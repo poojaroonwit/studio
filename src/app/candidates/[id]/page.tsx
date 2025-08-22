@@ -44,7 +44,7 @@ export default function CandidateDetailPage() {
   }
 
     return (
-      <div className="h-full">
+      <div className="h-full bg-background">
         <ErrorBoundary>
           <SafeComponentWrapper 
             fallbackTitle="Candidate Page Error"

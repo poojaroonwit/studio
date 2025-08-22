@@ -17,6 +17,7 @@ import { DateRange } from 'react-day-picker';
 interface NewApplicationsTimeSeriesChartProps {
   candidates: Candidate[];
   isLoading?: boolean;
+  dynamicHeight?: number;
 }
 
 type TimePeriod = 'month' | 'week' | 'year' | 'custom';
@@ -35,7 +36,7 @@ const PERIOD_UNITS = [
   { label: 'Year(s)', value: 'year' },
 ];
 
-export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false }: NewApplicationsTimeSeriesChartProps) {
+export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, dynamicHeight }: NewApplicationsTimeSeriesChartProps) {
   // New state for period selection
   const [periodType, setPeriodType] = useState<'this'|'last'|'pastN'|'custom'>('pastN');
   const [periodUnit, setPeriodUnit] = useState<'week'|'month'|'year'>('week');
@@ -428,7 +429,13 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false }
       <CardContent className="relative">
 
         
-        <div className="h-64 flex items-center justify-center">
+        <div 
+          className="flex items-center justify-center"
+          style={{ 
+            height: dynamicHeight && dynamicHeight > 0 ? `${dynamicHeight}px` : '256px',
+            minHeight: '256px'
+          }}
+        >
           {isLoading ? (
             <div className="flex items-center justify-center">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -444,6 +451,12 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false }
               options={{
                 responsive: true,
                 maintainAspectRatio: false,
+                layout: {
+                  padding: {
+                    top: 20,
+                    bottom: 20
+                  }
+                },
                 plugins: {
                   legend: {
                     display: true,

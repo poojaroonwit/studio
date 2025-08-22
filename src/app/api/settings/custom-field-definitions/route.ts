@@ -13,7 +13,6 @@ const createCustomFieldSchema = z.object({
   field_code: z.string().min(1, "Field code is required").regex(/^[A-Z0-9_]+$/, "Code must be uppercase alphanumeric with underscores."),
   label: z.string().min(1, "Label is required"),
   field_type: z.enum(['text', 'textarea', 'number', 'boolean', 'date', 'select_single', 'select_multiple']),
-  attributeLabel: z.string().optional(),
   
   // Role permissions - using role IDs (UUIDs)
   viewRoles: z.array(z.string().uuid()).default([]),
@@ -154,8 +153,7 @@ export async function GET(request: NextRequest) {
       label: row.label,
       field_type: row.field_type,
       options: row.options || [],
-      attributeCode: row.attribute_code,
-      attributeLabel: row.attribute_label,
+             attributeCode: row.attribute_code,
       viewRoles: row.view_roles || [],
       editRoles: row.edit_roles || [],
       showInFilter: row.show_in_filter || false,
@@ -205,7 +203,7 @@ export async function POST(request: NextRequest) {
   }
 
   const { 
-    model_name, field_code, label, field_type, attributeLabel,
+    model_name, field_code, label, field_type,
     viewRoles, editRoles, showInFilter, showInCandidateDetail, showInFullCandidateDetail,
     showInTaskBoardFilter, showInPositionSettings, showInHeadcountDetail, is_required, allowCustomOptions,
     sort_order, options 
@@ -238,12 +236,12 @@ export async function POST(request: NextRequest) {
       RETURNING *;
     `;
 
-    const result = await getPool().query(insertQuery, [
-      newFieldId, model_name, field_code, field_code, label, field_type, 
-      options || null, is_required, sort_order, field_code, attributeLabel || null,
-      viewRoles || [], editRoles || [], showInFilter, showInCandidateDetail,
-      showInFullCandidateDetail, showInTaskBoardFilter, showInPositionSettings, showInHeadcountDetail, allowCustomOptions
-    ]);
+         const result = await getPool().query(insertQuery, [
+       newFieldId, model_name, field_code, field_code, label, field_type, 
+       options || null, is_required, sort_order, field_code, null,
+       viewRoles || [], editRoles || [], showInFilter, showInCandidateDetail,
+       showInFullCandidateDetail, showInTaskBoardFilter, showInPositionSettings, showInHeadcountDetail, allowCustomOptions
+     ]);
 
     const newField = result.rows[0];
 
@@ -263,8 +261,7 @@ export async function POST(request: NextRequest) {
       label: newField.label,
       field_type: newField.field_type,
       options: newField.options || [],
-      attributeCode: newField.attribute_code,
-      attributeLabel: newField.attribute_label,
+             attributeCode: newField.attribute_code,
       viewRoles: newField.view_roles || [],
       editRoles: newField.edit_roles || [],
       showInFilter: newField.show_in_filter || false,
@@ -356,10 +353,7 @@ export async function PUT(request: NextRequest) {
       updateValues.push(updateData.options);
     }
 
-    if (updateData.attributeLabel !== undefined) {
-      updateFields.push(`attribute_label = $${paramIndex++}`);
-      updateValues.push(updateData.attributeLabel);
-    }
+
 
     if (updateData.viewRoles !== undefined) {
       updateFields.push(`view_roles = $${paramIndex++}`);
@@ -394,6 +388,11 @@ export async function PUT(request: NextRequest) {
     if (updateData.showInPositionSettings !== undefined) {
       updateFields.push(`show_in_position_settings = $${paramIndex++}`);
       updateValues.push(updateData.showInPositionSettings);
+    }
+
+    if (updateData.showInHeadcountDetail !== undefined) {
+      updateFields.push(`show_in_headcount_detail = $${paramIndex++}`);
+      updateValues.push(updateData.showInHeadcountDetail);
     }
 
     if (updateData.is_required !== undefined) {
@@ -444,8 +443,7 @@ export async function PUT(request: NextRequest) {
       label: updatedField.label,
       field_type: updatedField.field_type,
       options: updatedField.options || [],
-      attributeCode: updatedField.attribute_code,
-      attributeLabel: updatedField.attribute_label,
+             attributeCode: updatedField.attribute_code,
       viewRoles: updatedField.view_roles || [],
       editRoles: updatedField.edit_roles || [],
       showInFilter: updatedField.show_in_filter || false,
@@ -453,6 +451,7 @@ export async function PUT(request: NextRequest) {
       showInFullCandidateDetail: updatedField.show_in_full_candidate_detail || false,
       showInTaskBoardFilter: updatedField.show_in_task_board_filter || false,
       showInPositionSettings: updatedField.show_in_position_settings || false,
+      showInHeadcountDetail: updatedField.show_in_headcount_detail || false,
       is_required: updatedField.is_required,
       allowCustomOptions: updatedField.allow_custom_options || false,
       sort_order: updatedField.sort_order ?? 0,

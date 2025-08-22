@@ -102,31 +102,31 @@ const SEVERITIES = [
 
 const FIELD_SUGGESTIONS = {
   position: [
+    'hiringDate', // Prioritize date fields for overdue conditions
+    'createdAt',
+    'updatedAt',
     'title',
     'department',
     'description',
     'isOpen',
     'positionLevel',
-    'hiringDate',
-    'createdAt',
-    'updatedAt',
   ],
   candidate: [
+    'applicationDate', // Prioritize date fields for overdue conditions
+    'createdAt',
+    'updatedAt',
     'name',
     'email',
     'phone',
     'status',
     'fitScore',
-    'applicationDate',
-    'createdAt',
-    'updatedAt',
   ],
   headcount: [
-    'type',
-    'status',
-    'onboardingDate',
+    'onboardingDate', // Prioritize date fields for overdue conditions
     'createdAt',
     'updatedAt',
+    'type',
+    'status',
   ],
 };
 
@@ -193,7 +193,11 @@ export function WarningConfigurationModal({
     e.preventDefault();
     
     if (!formData.name || !formData.entityType || !formData.field || !formData.condition) {
-      showError("Please fill in all required fields");
+      if (!formData.field && formData.condition === 'overdue') {
+        showError("Please select a date field (e.g., hiringDate, applicationDate) for the overdue condition");
+      } else {
+        showError("Please fill in all required fields");
+      }
       return;
     }
 
@@ -290,7 +294,24 @@ export function WarningConfigurationModal({
   };
 
   const getFieldSuggestions = () => {
-    return FIELD_SUGGESTIONS[formData.entityType as keyof typeof FIELD_SUGGESTIONS] || [];
+    const suggestions = FIELD_SUGGESTIONS[formData.entityType as keyof typeof FIELD_SUGGESTIONS] || [];
+    
+    // For overdue conditions, prioritize date fields
+    if (formData.condition === 'overdue') {
+      const dateFields = suggestions.filter(field => 
+        field.toLowerCase().includes('date') || 
+        field.toLowerCase().includes('created') || 
+        field.toLowerCase().includes('updated')
+      );
+      const otherFields = suggestions.filter(field => 
+        !field.toLowerCase().includes('date') && 
+        !field.toLowerCase().includes('created') && 
+        !field.toLowerCase().includes('updated')
+      );
+      return [...dateFields, ...otherFields];
+    }
+    
+    return suggestions;
   };
 
   const shouldShowOperator = formData.condition && formData.condition !== 'empty' && formData.condition !== 'overdue';
@@ -308,6 +329,21 @@ export function WarningConfigurationModal({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Step-by-step guide for overdue conditions */}
+          {formData.condition === 'overdue' && (
+            <div className="p-4 bg-amber-50 dark:bg-amber-950/20 rounded-md border border-amber-200 dark:border-amber-800">
+              <h4 className="text-sm font-medium text-amber-800 dark:text-amber-200 mb-2">
+                📋 Steps to create an overdue warning:
+              </h4>
+              <ol className="text-xs text-amber-700 dark:text-amber-300 space-y-1">
+                <li>1. Select a date field (e.g., hiringDate, applicationDate)</li>
+                <li>2. Choose "Overdue" as the condition type</li>
+                <li>3. Toggle "Use position grade SLA" for dynamic thresholds, or enter a fixed number of days</li>
+                <li>4. Fill in the basic information and save</li>
+              </ol>
+            </div>
+          )}
+
           {/* Basic Information */}
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Basic Information</h3>
@@ -408,13 +444,33 @@ export function WarningConfigurationModal({
                     <SelectValue placeholder="Select field" />
                   </SelectTrigger>
                   <SelectContent>
-                    {getFieldSuggestions().map((field) => (
-                      <SelectItem key={field} value={field}>
-                        {field}
-                      </SelectItem>
-                    ))}
+                    {getFieldSuggestions().map((field) => {
+                      const isDateField = field.toLowerCase().includes('date') || 
+                                        field.toLowerCase().includes('created') || 
+                                        field.toLowerCase().includes('updated');
+                      return (
+                        <SelectItem key={field} value={field}>
+                          <div className="flex items-center gap-2">
+                            {field}
+                            {formData.condition === 'overdue' && isDateField && (
+                              <span className="text-xs text-blue-600 dark:text-blue-400">📅</span>
+                            )}
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
+                {formData.condition === 'overdue' && (
+                  <p className="text-xs text-muted-foreground">
+                    💡 For overdue conditions, select a date field like hiringDate, applicationDate, or onboardingDate
+                  </p>
+                )}
+                {formData.condition === 'overdue' && !formData.field && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400">
+                    ⚠️ Please select a date field above to monitor for overdue conditions
+                  </p>
+                )}
               </div>
             </div>
           </div>

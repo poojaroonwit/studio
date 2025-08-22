@@ -35,6 +35,7 @@ import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { NewApplicationsTimeSeriesChart } from './NewApplicationsTimeSeriesChart';
 import { SCORE_COLOR_STOPS } from '@/components/ui/score-color';
 import { SLAViolationsWidget } from './SLAViolationsWidget';
+import { useDynamicHeight } from '@/hooks/use-dynamic-height';
 import '@/lib/chartjs-setup';
 
 
@@ -61,6 +62,7 @@ export default function DashboardPageClient({
   // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { slaHeight, slaRef } = useDynamicHeight();
   
   const [allCandidates, setAllCandidates] = useState<Candidate[]>(initialCandidates || []);
   const [myAssignedCandidates, setMyAssignedCandidates] = useState<Candidate[]>(initialCandidates || []); // For Recruiter, initialCandidates *are* their assigned ones
@@ -753,10 +755,11 @@ export default function DashboardPageClient({
             </div>
             <NewApplicationsTimeSeriesChart 
               candidates={allCandidates} 
-              isLoading={isLoading} 
+              isLoading={isLoading}
+              dynamicHeight={slaHeight}
             />
           </div>
-          <div className="lg:col-span-3">
+          <div className="lg:col-span-3" ref={slaRef}>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center space-x-3">
                 <div className="h-8 w-1 bg-gradient-to-b from-orange-500 to-red-500 rounded-full"></div>

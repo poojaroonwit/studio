@@ -95,4 +95,29 @@ export function safeFilter<T>(
   return array.filter(callback);
 }
 
+/**
+ * Safely parses JSON string or returns a default value if parsing fails
+ * @param jsonString - The JSON string to parse
+ * @param defaultValue - The default value to return if parsing fails
+ * @returns The parsed object or the default value
+ */
+export function safeJsonParse<T>(jsonString: string | null | undefined, defaultValue: T): T {
+  if (!jsonString) {
+    return defaultValue;
+  }
+  
+  try {
+    if (typeof jsonString === 'string') {
+      return JSON.parse(jsonString);
+    } else if (typeof jsonString === 'object') {
+      return jsonString as T;
+    }
+    return defaultValue;
+  } catch (error) {
+    console.error('Error parsing JSON:', error);
+    console.error('Raw JSON string:', jsonString);
+    return defaultValue;
+  }
+}
+
 export { formatScoreWithGrade } from './scoreUtils';

@@ -99,10 +99,10 @@ export const CandidateTabsContent: React.FC<CandidateTabsContentProps> = ({
   onRefresh
 }) => {
   return (
-    <>
+    <div className="h-full bg-background">
       {/* Jobs Tab (Combined Job Applied and Job Match) */}
       {activeTab === 'jobs' && (
-        <div className="space-y-4">
+        <div className="space-y-4 h-full">
           <JobAppliedTab
             candidate={candidate}
             allDbPositions={allDbPositions}
@@ -128,7 +128,7 @@ export const CandidateTabsContent: React.FC<CandidateTabsContentProps> = ({
 
       {/* Candidate Info Tab (includes Contact) */}
       {activeTab === 'candidate-info' && (
-        <div className="space-y-4">
+        <div className="space-y-4 h-full">
         <CandidateInfoTab
           candidate={candidate}
           isEditing={isEditing}
@@ -153,7 +153,7 @@ export const CandidateTabsContent: React.FC<CandidateTabsContentProps> = ({
 
       {/* Education Tab */}
       {activeTab === 'education' && (
-        <div className="space-y-4">
+        <div className="space-y-4 h-full">
         <EducationTab
           candidate={candidate}
           isEditing={isEditing}
@@ -171,7 +171,7 @@ export const CandidateTabsContent: React.FC<CandidateTabsContentProps> = ({
 
       {/* Experience Tab */}
       {activeTab === 'experience' && (
-        <div className="space-y-4">
+        <div className="space-y-4 h-full">
         <ExperienceTab
           candidate={candidate}
           isEditing={isEditing}
@@ -190,7 +190,7 @@ export const CandidateTabsContent: React.FC<CandidateTabsContentProps> = ({
 
       {/* Job Suitability Tab */}
       {activeTab === 'job-suitability' && (
-        <div className="space-y-4">
+        <div className="space-y-4 h-full">
         <JobSuitabilityTab
           candidate={candidate}
           isEditing={isEditing}
@@ -208,6 +208,6 @@ export const CandidateTabsContent: React.FC<CandidateTabsContentProps> = ({
 
 
 
-    </>
+    </div>
   );
 };

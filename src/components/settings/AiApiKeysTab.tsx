@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Save, RefreshCw, AlertCircle, CheckCircle, Clock, XCircle } from 'lucide-react';
+import { Plus, Trash2, Save, RefreshCw, AlertCircle, CheckCircle, Clock, XCircle, GripVertical, Edit2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'react-hot-toast';
 import { cn } from '@/lib/utils';
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 
 interface ApiKey {
   key: string;
@@ -33,6 +34,8 @@ export default function AiApiKeysTab() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [stats, setStats] = useState<ApiKeyStats | null>(null);
+  const [editingKey, setEditingKey] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState('');
 
   const fetchApiKeys = async () => {
     setIsLoading(true);
@@ -90,6 +93,32 @@ export default function AiApiKeysTab() {
     setApiKeys(apiKeys.filter(key => key.priority !== priority));
   };
 
+  const startEditing = (apiKey: ApiKey) => {
+    setEditingKey(apiKey.key);
+    setEditValue(apiKey.key);
+  };
+
+  const cancelEditing = () => {
+    setEditingKey(null);
+    setEditValue('');
+  };
+
+  const saveEditing = () => {
+    if (!editingKey || !editValue.trim()) {
+      toast.error('Please enter a valid API key');
+      return;
+    }
+
+    setApiKeys(prev => prev.map(key => 
+      key.key === editingKey 
+        ? { ...key, key: editValue.trim() }
+        : key
+    ));
+    setEditingKey(null);
+    setEditValue('');
+    toast.success('API key updated');
+  };
+
   const saveApiKeys = async () => {
     setIsSaving(true);
     try {
@@ -119,6 +148,45 @@ export default function AiApiKeysTab() {
       console.error('Error saving API keys:', error);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleDragEnd = async (result: DropResult) => {
+    if (!result.destination) return;
+
+    const items = Array.from(apiKeys);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+
+    // Update priorities based on new order
+    const updatedItems = items.map((item, index) => ({
+      ...item,
+      priority: index + 1,
+    }));
+
+    setApiKeys(updatedItems);
+
+    try {
+      const response = await fetch('/api/settings/ai-api-keys/reorder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          apiKeys: updatedItems.map(item => ({
+            key: item.key,
+            priority: item.priority
+          }))
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update API key order');
+      }
+
+      toast.success('API key order updated successfully');
+    } catch (error) {
+      console.error('Failed to reorder:', error);
+      toast.error('Failed to update API key order');
+      fetchApiKeys(); // Revert to original order
     }
   };
 
@@ -239,7 +307,7 @@ export default function AiApiKeysTab() {
         <CardHeader>
           <CardTitle>Configured API Keys</CardTitle>
           <CardDescription>
-            Manage your API keys. Keys are used in priority order (1 = highest priority).
+            Manage your API keys. Drag and drop to reorder by priority (1 = highest priority). Click edit to modify API keys.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -248,48 +316,111 @@ export default function AiApiKeysTab() {
               No API keys configured. Add your first API key above.
             </div>
           ) : (
-            <div className="space-y-4">
-              {apiKeys.map((apiKey) => (
-                <div
-                  key={apiKey.priority}
-                  className={cn(
-                    "flex items-center justify-between p-4 border rounded-lg",
-                    apiKey.errorCount > 0 ? "border-red-200 bg-red-50" : "border-border"
-                  )}
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      {getStatusIcon(apiKey)}
-                      <Badge variant={apiKey.priority === 1 ? "default" : "secondary"}>
-                        Priority {apiKey.priority}
-                      </Badge>
-                    </div>
-                    <div>
-                      <div className="font-mono text-sm">
-                        {formatApiKey(apiKey.key)}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {getStatusText(apiKey)}
-                      </div>
-                      {apiKey.lastError && (
-                        <div className="text-xs text-red-600 mt-1">
-                          Last error: {apiKey.lastError}
-                        </div>
-                      )}
-                    </div>
+            <DragDropContext onDragEnd={handleDragEnd}>
+              <Droppable droppableId="api-keys">
+                {(provided) => (
+                  <div
+                    {...provided.droppableProps}
+                    ref={provided.innerRef}
+                    className="space-y-4"
+                  >
+                    {apiKeys.map((apiKey, index) => (
+                      <Draggable
+                        key={apiKey.priority}
+                        draggableId={apiKey.priority.toString()}
+                        index={index}
+                      >
+                        {(provided, snapshot) => (
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            className={cn(
+                              "flex items-center justify-between p-4 border rounded-lg",
+                              apiKey.errorCount > 0 ? "border-red-200 bg-red-50" : "border-border",
+                              snapshot.isDragging && "shadow-lg border-primary"
+                            )}
+                          >
+                            <div className="flex items-center gap-4">
+                              <div
+                                {...provided.dragHandleProps}
+                                className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors"
+                              >
+                                <GripVertical className="h-4 w-4" />
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {getStatusIcon(apiKey)}
+                                <Badge variant={apiKey.priority === 1 ? "default" : "secondary"}>
+                                  Priority {apiKey.priority}
+                                </Badge>
+                              </div>
+                              <div className="flex-1">
+                                {editingKey === apiKey.key ? (
+                                  <div className="flex items-center gap-2">
+                                    <Input
+                                      type="password"
+                                      value={editValue}
+                                      onChange={(e) => setEditValue(e.target.value)}
+                                      className="font-mono text-sm"
+                                      placeholder="Enter new API key"
+                                    />
+                                    <Button
+                                      size="sm"
+                                      onClick={saveEditing}
+                                      className="h-8 px-2"
+                                    >
+                                      <Save className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={cancelEditing}
+                                      className="h-8 px-2"
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <div className="font-mono text-sm">
+                                    {formatApiKey(apiKey.key)}
+                                  </div>
+                                )}
+                                <div className="text-xs text-muted-foreground">
+                                  {getStatusText(apiKey)}
+                                </div>
+                                {apiKey.lastError && (
+                                  <div className="text-xs text-red-600 mt-1">
+                                    Last error: {apiKey.lastError}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {editingKey !== apiKey.key && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => startEditing(apiKey)}
+                                >
+                                  <Edit2 className="h-4 w-4" />
+                                </Button>
+                              )}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => removeApiKey(apiKey.priority)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </Draggable>
+                    ))}
+                    {provided.placeholder}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => removeApiKey(apiKey.priority)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                )}
+              </Droppable>
+            </DragDropContext>
           )}
         </CardContent>
       </Card>
@@ -335,6 +466,7 @@ export default function AiApiKeysTab() {
                 <li>• Error counts and last error messages are tracked for each key</li>
                 <li>• Environment variable GOOGLE_API_KEY is used as final fallback</li>
                 <li>• All attempts and failures are logged for monitoring</li>
+                <li>• Drag and drop to reorder priorities, or click edit to modify keys</li>
               </ul>
             </div>
           </div>

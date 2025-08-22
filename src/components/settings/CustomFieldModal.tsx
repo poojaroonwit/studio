@@ -35,7 +35,6 @@ const customFieldFormSchema = z.object({
   field_code: z.string().min(1, "Field code is required").regex(/^[A-Z0-9_]+$/, "Code must be uppercase alphanumeric with underscores."),
   label: z.string().min(1, "Label is required"),
   field_type: z.enum(CUSTOM_FIELD_TYPES as [CustomFieldType, ...CustomFieldType[]], { required_error: "Field type is required" }),
-  attributeLabel: z.string().optional(),
   
   // Role permissions - using role IDs
   viewRoles: z.array(z.string().uuid()).default([]),
@@ -124,7 +123,6 @@ export default function CustomFieldModal({
       field_code: '',
       label: '',
       field_type: 'text',
-      attributeLabel: '',
       viewRoles: [],
       editRoles: [],
       showInFilter: false,
@@ -132,6 +130,7 @@ export default function CustomFieldModal({
       showInFullCandidateDetail: false,
       showInTaskBoardFilter: false,
       showInPositionSettings: false,
+      showInHeadcountDetail: false,
       is_required: false,
       allowCustomOptions: false,
       sort_order: 0,
@@ -155,7 +154,6 @@ export default function CustomFieldModal({
         field_code: '',
         label: '',
         field_type: 'text',
-        attributeLabel: '',
         viewRoles: [],
         editRoles: [],
         showInFilter: false,
@@ -163,6 +161,7 @@ export default function CustomFieldModal({
         showInFullCandidateDetail: false,
         showInTaskBoardFilter: false,
         showInPositionSettings: false,
+        showInHeadcountDetail: false,
         is_required: false,
         allowCustomOptions: false,
         sort_order: 0,
@@ -322,24 +321,7 @@ export default function CustomFieldModal({
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="attributeLabel"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Attribute Label</FormLabel>
-                          <FormControl>
-                            <Input placeholder="e.g., Custom Status Attribute" {...field} />
-                          </FormControl>
-                          <FormDescription>
-                            Optional detailed label
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+                  
 
                   <div className="flex items-center space-x-2">
                     <FormField
@@ -539,6 +521,29 @@ export default function CustomFieldModal({
                               <FormLabel>Show in Position Settings</FormLabel>
                               <FormDescription>
                                 Display in position settings page
+                              </FormDescription>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                    )}
+
+                    {watchModelName === 'Headcount' && (
+                      <FormField
+                        control={form.control}
+                        name="showInHeadcountDetail"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel>Show in Headcount Detail</FormLabel>
+                              <FormDescription>
+                                Display in headcount detail view
                               </FormDescription>
                             </div>
                           </FormItem>

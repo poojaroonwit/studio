@@ -337,6 +337,40 @@ export const useCandidateDetail = (candidateId: string) => {
     fetchTransitionHistory();
   }, [fetchTransitionHistory]);
 
+  // Populate form with candidate data when entering edit mode
+  useEffect(() => {
+    if (isEditing && candidate) {
+      const formValues: EditCandidateFormValues = {
+        name: candidate.name || '',
+        email: candidate.email || '',
+        phone: candidate.phone || '',
+        positionId: candidate.positionId || null,
+        recruiterId: candidate.recruiterId || null,
+        fitScore: candidate.fitScore || null,
+        status: candidate.status || '',
+        assignmentJustification: candidate.assignmentJustification || [],
+        parsedData: {
+          personal_info: candidate.parsedData?.personal_info || {},
+          contact_info: candidate.parsedData?.contact_info || {},
+          education: candidate.parsedData?.education || [],
+          experience: candidate.parsedData?.experience || [],
+          skills: candidate.parsedData?.skills || [],
+          job_suitable: candidate.parsedData?.job_suitable || [],
+          job_matches: candidate.parsedData?.job_matches || [],
+        },
+      };
+      
+      reset(formValues);
+    }
+  }, [isEditing, candidate, reset]);
+
+  // Handle entering edit mode
+  const handleEnterEditMode = useCallback(() => {
+    if (candidate) {
+      setIsEditing(true);
+    }
+  }, [candidate]);
+
   // Utility functions
   const calculateTotalExperienceDuration = useCallback((experienceArray: any[]) => {
     let totalMonths = 0;
@@ -566,6 +600,7 @@ export const useCandidateDetail = (candidateId: string) => {
     setIsAssigningSource,
     setCandidate,
     setTransitionHistory,
+    handleEnterEditMode,
     
     // Functions
     calculateTotalExperienceDuration,

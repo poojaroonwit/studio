@@ -353,7 +353,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
   }
 
   return (
-    <div className={isModal ? "h-full overflow-y-auto" : "h-full flex flex-col"}>
+    <div className={isModal ? "h-full overflow-y-auto bg-background" : "h-full flex flex-col bg-background"}>
       {/* Header */}
       <CandidateHeader
         candidate={candidate}
@@ -369,7 +369,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
         onAssignSource={handleAssignSource}
         onResetAssigning={() => setIsAssigningRecruiter(false)}
         onResetSourceAssigning={() => setIsAssigningSource(false)}
-        onEditClick={() => setIsEditing(true)}
+        onEditClick={handleEnterEditMode}
         onManageTransitions={openManageTransitionsModal}
         onReprocess={() => setIsReprocessModalOpen(true)}
         onGenerativeAI={() => setIsGenerativeAIModalOpen(true)}
@@ -511,7 +511,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
               </div>
             </div>
              
-            <div className="p-8 flex-1 overflow-y-auto">
+            <div className="p-8 flex-1 overflow-y-auto bg-background h-full">
               <CandidateTabsContent
                 activeTab={activeTab}
                 candidate={candidate}

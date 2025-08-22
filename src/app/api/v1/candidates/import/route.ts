@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { getPool } from '@/lib/db';
+import { safeJsonParse } from '@/lib/utils';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import { verifyApiToken } from '@/lib/auth';
@@ -77,8 +78,8 @@ export async function POST(req: NextRequest) {
           positionId: row.positionId || row.position_id || null,
           recruiterId: row.recruiterId || row.recruiter_id || null,
           fitScore: row.fitScore || row.fitScore ? parseInt(row.fitScore || row.fitScore) : null,
-          custom_attributes: row.custom_attributes ? JSON.parse(row.custom_attributes) : {},
-          parsedData: row.parsedData ? JSON.parse(row.parsedData) : null,
+          custom_attributes: safeJsonParse(row.custom_attributes, {}),
+          parsedData: safeJsonParse(row.parsedData, null),
           resumePath: row.resumePath || row.resume_path || null,
         }));
       } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
@@ -95,8 +96,8 @@ export async function POST(req: NextRequest) {
           positionId: row.positionId || row.position_id || null,
           recruiterId: row.recruiterId || row.recruiter_id || null,
           fitScore: row.fitScore || row.fitScore ? parseInt(row.fitScore || row.fitScore) : null,
-          custom_attributes: row.custom_attributes ? JSON.parse(row.custom_attributes) : {},
-          parsedData: row.parsedData ? JSON.parse(row.parsedData) : null,
+          custom_attributes: safeJsonParse(row.custom_attributes, {}),
+          parsedData: safeJsonParse(row.parsedData, null),
           resumePath: row.resumePath || row.resume_path || null,
         }));
       } else {

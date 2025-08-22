@@ -6,11 +6,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, Clock, Users, Eye, TrendingUp, Calendar, Target, BarChart3, Filter, RefreshCw, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
+import { PositionDetailDrawer } from '@/components/positions/PositionDetailDrawer';
 import type { SLAViolationNotification, SLAPositionData, SLAStatistics } from '@/lib/slaNotificationService';
 
 interface SLAViolationsWidgetProps {
@@ -26,7 +26,8 @@ export function SLAViolationsWidget({ recruiterId }: SLAViolationsWidgetProps) {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
   const [filterSeverity, setFilterSeverity] = useState<string>('all');
-  const router = useRouter();
+  const [selectedPositionId, setSelectedPositionId] = useState<string | null>(null);
+  const [isPositionDrawerOpen, setIsPositionDrawerOpen] = useState(false);
 
   // Determine the actual recruiter ID to use
   const actualRecruiterId = recruiterId === 'current' ? session?.user?.id : recruiterId;
@@ -144,7 +145,8 @@ export function SLAViolationsWidget({ recruiterId }: SLAViolationsWidgetProps) {
   }
 
   return (
-    <Card className="h-full flex flex-col">
+    <>
+      <Card className="h-full flex flex-col">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div>
@@ -390,7 +392,10 @@ export function SLAViolationsWidget({ recruiterId }: SLAViolationsWidgetProps) {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => router.push(`/positions/${position.positionId}`)}
+                          onClick={() => {
+                            setSelectedPositionId(position.positionId);
+                            setIsPositionDrawerOpen(true);
+                          }}
                           className="ml-2"
                         >
                           <Eye className="h-4 w-4" />
@@ -400,7 +405,10 @@ export function SLAViolationsWidget({ recruiterId }: SLAViolationsWidgetProps) {
                     
                     {filteredPositions.length > 8 && (
                       <div className="text-center pt-2">
-                        <Button variant="outline" size="sm" onClick={() => router.push('/positions')}>
+                        <Button variant="outline" size="sm" onClick={() => {
+                          // For "View all positions", we'll open the positions page in a new tab
+                          window.open('/positions', '_blank');
+                        }}>
                           View all {filteredPositions.length} positions
                         </Button>
                       </div>
@@ -478,7 +486,10 @@ export function SLAViolationsWidget({ recruiterId }: SLAViolationsWidgetProps) {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => router.push(`/positions/${violation.positionId}`)}
+                            onClick={() => {
+                              setSelectedPositionId(violation.positionId);
+                              setIsPositionDrawerOpen(true);
+                            }}
                             className="ml-2"
                           >
                             <Eye className="h-4 w-4" />
@@ -489,7 +500,10 @@ export function SLAViolationsWidget({ recruiterId }: SLAViolationsWidgetProps) {
                     
                     {violations.length > 8 && (
                       <div className="text-center pt-2">
-                        <Button variant="outline" size="sm" onClick={() => router.push('/positions')}>
+                        <Button variant="outline" size="sm" onClick={() => {
+                          // For "View all violations", we'll open the positions page in a new tab
+                          window.open('/positions', '_blank');
+                        }}>
                           View all {violations.length} violations
                         </Button>
                       </div>
@@ -572,5 +586,13 @@ export function SLAViolationsWidget({ recruiterId }: SLAViolationsWidgetProps) {
         </div>
       </CardContent>
     </Card>
+
+    {/* Position Detail Drawer */}
+    <PositionDetailDrawer
+      isOpen={isPositionDrawerOpen}
+      onOpenChange={setIsPositionDrawerOpen}
+      positionId={selectedPositionId}
+    />
+    </>
   );
 }

@@ -6,6 +6,7 @@ import type { Candidate, Position, UserProfile } from '@/lib/types';
 import { Suspense } from 'react';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { getPool } from '@/lib/db';
+import { safeJsonParse } from '@/lib/utils';
 
 export default async function DashboardPageServer() {
   let session: any = null;
@@ -59,25 +60,16 @@ export default async function DashboardPageServer() {
       const usersResult = await client.query(usersQuery);
 
       // Transform candidates data
-      initialCandidates = candidatesResult.rows.map(row => {
-        let customAttributes = row.customAttributes || {};
-        if (typeof customAttributes === 'string') {
-          try {
-            customAttributes = JSON.parse(customAttributes);
-          } catch {
-            customAttributes = {};
-          }
-        }
-        return {
-          id: row.id,
-          name: row.name,
-          email: row.email,
-          phone: row.phone || null,
-          avatarUrl: row.avatarUrl || null,
-          dataAiHint: row.dataAiHint || null,
-          resumePath: row.resumePath || null,
-          parsedData: row.parsedData || { personal_info: {}, contact_info: {} },
-          customAttributes,
+      initialCandidates = candidatesResult.rows.map(row => ({
+        id: row.id,
+        name: row.name,
+        email: row.email,
+        phone: row.phone || null,
+        avatarUrl: row.avatarUrl || null,
+        dataAiHint: row.dataAiHint || null,
+        resumePath: row.resumePath || null,
+        parsedData: safeJsonParse(row.parsedData, { personal_info: {}, contact_info: {} }),
+        customAttributes: safeJsonParse(row.customAttributes, {}),
           positionId: row.positionId || null,
           position: row.positionId ? {
             id: row.positionId,
@@ -110,8 +102,7 @@ export default async function DashboardPageServer() {
           createdAt: row.createdAt ? row.createdAt.toISOString() : new Date().toISOString(),
           updatedAt: row.updatedAt ? row.updatedAt.toISOString() : new Date().toISOString(),
           transitionHistory: row.transitionHistory || [],
-        };
-      });
+        }));
 
       // Transform positions data
       initialPositions = positionsResult.rows.map(row => ({

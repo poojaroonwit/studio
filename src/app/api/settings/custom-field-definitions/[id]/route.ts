@@ -67,7 +67,11 @@ export async function GET(request: NextRequest) {
     const query = `
       SELECT 
         id, model_name, field_key, field_code, label, field_type, options, 
-        is_required, sort_order, "createdAt", "updatedAt"
+        is_required, sort_order, attribute_code, attribute_label,
+        view_roles, edit_roles, show_in_filter, show_in_candidate_detail,
+        show_in_full_candidate_detail, show_in_task_board_filter,
+        show_in_position_settings, show_in_headcount_detail, allow_custom_options,
+        "createdAt", "updatedAt"
       FROM "CustomFieldDefinition"
       WHERE id = $1
     `;
@@ -78,7 +82,32 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ message: "Custom field definition not found" }, { status: 404 });
     }
 
-    return NextResponse.json(result.rows[0], { status: 200 });
+    const field = result.rows[0];
+    
+    // Return in the format expected by frontend
+    return NextResponse.json({
+      id: field.id,
+      model_name: field.model_name,
+      field_key: field.field_key,
+      field_code: field.field_code,
+      label: field.label,
+      field_type: field.field_type,
+      options: field.options || [],
+             attributeCode: field.attribute_code,
+      viewRoles: field.view_roles || [],
+      editRoles: field.edit_roles || [],
+      showInFilter: field.show_in_filter || false,
+      showInCandidateDetail: field.show_in_candidate_detail || false,
+      showInFullCandidateDetail: field.show_in_full_candidate_detail || false,
+      showInTaskBoardFilter: field.show_in_task_board_filter || false,
+      showInPositionSettings: field.show_in_position_settings || false,
+      showInHeadcountDetail: field.show_in_headcount_detail || false,
+      is_required: field.is_required,
+      allowCustomOptions: field.allow_custom_options || false,
+      sort_order: field.sort_order ?? 0,
+      createdAt: field.createdAt,
+      updatedAt: field.updatedAt,
+    }, { status: 200 });
   } catch (error: any) {
     console.error(`Failed to fetch custom field definition ${id}:`, error);
     await logAudit('ERROR', `Failed to fetch custom field definition (ID: ${id}). Error: ${error.message}`, 'API:CustomFields:GetById', session.user.id);

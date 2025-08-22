@@ -8,6 +8,7 @@ import { Suspense } from 'react';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import SafeComponentWrapper from '@/components/ui/safe-component-wrapper';
 import { getPool } from '@/lib/db';
+import { safeJsonParse } from '@/lib/utils';
 
 export default async function CandidatesPageServer() {
   const session = await getServerSession(authOptions);
@@ -22,10 +23,48 @@ export default async function CandidatesPageServer() {
     try {
       const client = await getPool().connect();
       try {
+        // Test database connection first
+        console.log('Testing database connection...');
+        const testResult = await client.query('SELECT 1 as test');
+        console.log('Database connection test successful:', testResult.rows[0]);
+        
+        // Check if tables exist
+        console.log('Checking if tables exist...');
+        const tableCheck = await client.query(`
+          SELECT table_name 
+          FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+          AND table_name IN ('Candidate', 'Position', 'RecruitmentStage', 'JobMatch', 'TransitionRecord', 'CandidateSource', 'User', 'Grade')
+          ORDER BY table_name;
+        `);
+        console.log('Available tables:', tableCheck.rows.map(row => row.table_name));
+        
+        // Check column names for JobMatch table
+        console.log('Checking JobMatch table columns...');
+        const jobMatchColumns = await client.query(`
+          SELECT column_name, data_type 
+          FROM information_schema.columns 
+          WHERE table_name = 'JobMatch' 
+          ORDER BY ordinal_position;
+        `);
+        console.log('JobMatch columns:', jobMatchColumns.rows);
+        
+        // Check column names for RecruitmentStage table
+        console.log('Checking RecruitmentStage table columns...');
+        const recruitmentStageColumns = await client.query(`
+          SELECT column_name, data_type 
+          FROM information_schema.columns 
+          WHERE table_name = 'RecruitmentStage' 
+          ORDER BY ordinal_position;
+        `);
+        console.log('RecruitmentStage columns:', recruitmentStageColumns.rows);
+        
         // Fetch initial data in parallel using direct database queries
-        const [candidatesResult, positionsResult, stagesResult] = await Promise.all([
-          // Fetch candidates with basic info
-          client.query(`
+        let candidatesResult, positionsResult, stagesResult;
+        
+        try {
+          console.log('Fetching candidates...');
+          candidatesResult = await client.query(`
             SELECT c.*, p.id as "positionId", p.title as "positionTitle", p.department as "positionDepartment", p."positionLevel" as "positionLevel", p."isOpen" as "positionIsOpen",
                    r.id as "recruiterId", r.name as "recruiterName", r.email as "recruiterEmail", r."avatarUrl" as "recruiterAvatarUrl",
                    cs.id as "sourceId", cs.name as "sourceName", cs.description as "sourceDescription",
@@ -55,12 +94,18 @@ export default async function CandidatesPageServer() {
               FROM "JobMatch" jm
               WHERE jm."candidateId" = c.id
             ) AS jm_data ON true
-            ORDER BY c."lastUpdate" DESC
+            ORDER BY c."updatedAt" DESC
             LIMIT 50;
-          `),
-          
-          // Fetch positions
-          client.query(`
+          `);
+          console.log('Candidates fetched successfully');
+        } catch (error) {
+          console.error('Error fetching candidates:', error);
+          throw error;
+        }
+        
+        try {
+          console.log('Fetching positions...');
+          positionsResult = await client.query(`
             SELECT p.*, u.name as "recruiterName", g.name as "gradeName", g."sla_days" as "gradeSlaDays", g.color as "gradeColor",
                    json_build_object(
                      'id', p."gradeId",
@@ -73,27 +118,37 @@ export default async function CandidatesPageServer() {
             LEFT JOIN "User" u ON p."recruiterId" = u.id
             LEFT JOIN "Grade" g ON p."gradeId" = g.id
             ORDER BY p."createdAt" DESC;
-          `),
-          
-          // Fetch recruitment stages
-          client.query('SELECT * FROM "RecruitmentStage" ORDER BY "order" ASC;')
-        ]);
+          `);
+          console.log('Positions fetched successfully');
+        } catch (error) {
+          console.error('Error fetching positions:', error);
+          throw error;
+        }
+        
+        try {
+          console.log('Fetching recruitment stages...');
+          stagesResult = await client.query('SELECT * FROM "RecruitmentStage" ORDER BY "sort_order" ASC;');
+          console.log('Recruitment stages fetched successfully');
+        } catch (error) {
+          console.error('Error fetching recruitment stages:', error);
+          throw error;
+        }
 
         // Transform candidates data
         initialCandidates = candidatesResult.rows.map((row: any) => ({
           ...row,
           transitionHistory: Array.isArray(row.transitionHistory) ? row.transitionHistory : [],
           jobMatches: Array.isArray(row.jobMatches) ? row.jobMatches : [],
-          parsedData: row.parsedData ? JSON.parse(row.parsedData) : null,
-          customAttributes: row.customAttributes ? JSON.parse(row.customAttributes) : {},
+          parsedData: safeJsonParse(row.parsedData, null),
+          customAttributes: safeJsonParse(row.customAttributes, {}),
           attachments: [] // Will be fetched separately if needed
         }));
 
         // Transform positions data
         initialAvailablePositions = positionsResult.rows.map((row: any) => ({
           ...row,
-          customAttributes: row.customAttributes ? JSON.parse(row.customAttributes) : {},
-          grade: row.grade ? JSON.parse(row.grade) : null
+          customAttributes: safeJsonParse(row.customAttributes, {}),
+          grade: safeJsonParse(row.grade, null)
         }));
 
         // Transform stages data
@@ -108,7 +163,15 @@ export default async function CandidatesPageServer() {
 
     } catch (error) {
       console.error('Error fetching initial data:', error);
-      initialFetchError = 'Failed to load initial data';
+      console.error('Error details:', {
+        message: (error as any).message,
+        code: (error as any).code,
+        detail: (error as any).detail,
+        hint: (error as any).hint,
+        position: (error as any).position,
+        where: (error as any).where
+      });
+      initialFetchError = `Failed to load initial data: ${(error as any).message}`;
     }
   }
   

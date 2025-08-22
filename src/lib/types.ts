@@ -525,7 +525,6 @@ export interface CustomFieldDefinition {
   
   // Enhanced custom attribute fields
   attributeCode?: string;
-  attributeLabel?: string;
   
   // Role permissions - using role IDs (UUIDs)
   viewRoles?: string[];

@@ -36,7 +36,6 @@ const customFieldFormSchema = z.object({
   field_code: z.string().min(1, "Field code is required").regex(/^[A-Z0-9_]+$/, "Code must be uppercase alphanumeric with underscores."),
   label: z.string().min(1, "Label is required"),
   field_type: z.enum(CUSTOM_FIELD_TYPES as [CustomFieldType, ...CustomFieldType[]], { required_error: "Field type is required" }),
-  attributeLabel: z.string().optional(),
   
   // Role permissions - using role IDs
   viewRoles: z.array(z.string().uuid()).default([]),
@@ -127,7 +126,6 @@ export default function CustomFieldDrawer({
       field_code: '',
       label: '',
       field_type: 'text',
-      attributeLabel: '',
       viewRoles: [],
       editRoles: [],
       showInFilter: false,
@@ -158,7 +156,6 @@ export default function CustomFieldDrawer({
         field_code: definition.field_code,
         label: definition.label,
         field_type: definition.field_type,
-        attributeLabel: definition.attributeLabel || '',
         viewRoles: definition.viewRoles || [],
         editRoles: definition.editRoles || [],
         showInFilter: definition.showInFilter || false,
@@ -166,6 +163,7 @@ export default function CustomFieldDrawer({
         showInFullCandidateDetail: definition.showInFullCandidateDetail || false,
         showInTaskBoardFilter: definition.showInTaskBoardFilter || false,
         showInPositionSettings: definition.showInPositionSettings || false,
+        showInHeadcountDetail: definition.showInHeadcountDetail || false,
         is_required: definition.is_required || false,
         allowCustomOptions: definition.allowCustomOptions || false,
         sort_order: definition.sort_order || 0,
@@ -177,7 +175,6 @@ export default function CustomFieldDrawer({
         field_code: '',
         label: '',
         field_type: 'text',
-        attributeLabel: '',
         viewRoles: [],
         editRoles: [],
         showInFilter: false,
@@ -185,6 +182,7 @@ export default function CustomFieldDrawer({
         showInFullCandidateDetail: false,
         showInTaskBoardFilter: false,
         showInPositionSettings: false,
+        showInHeadcountDetail: false,
         is_required: false,
         allowCustomOptions: false,
         sort_order: 0,
@@ -416,22 +414,7 @@ export default function CustomFieldDrawer({
                           />
                         </div>
 
-                        <FormField
-                          control={form.control}
-                          name="attributeLabel"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Attribute Label</FormLabel>
-                              <FormControl>
-                                <Input placeholder="e.g., Custom Status Attribute" {...field} />
-                              </FormControl>
-                              <FormDescription>
-                                Optional detailed label for the field
-                              </FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                        
                       </div>
                     </div>
 
@@ -699,6 +682,29 @@ export default function CustomFieldDrawer({
                                     <FormLabel>Show in Position Settings</FormLabel>
                                     <FormDescription>
                                       Display in position settings page
+                                    </FormDescription>
+                                  </div>
+                                </FormItem>
+                              )}
+                            />
+                          )}
+
+                          {watchModelName === 'Headcount' && (
+                            <FormField
+                              control={form.control}
+                              name="showInHeadcountDetail"
+                              render={({ field }) => (
+                                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                  <FormControl>
+                                    <Checkbox
+                                      checked={field.value}
+                                      onCheckedChange={field.onChange}
+                                    />
+                                  </FormControl>
+                                  <div className="space-y-1 leading-none">
+                                    <FormLabel>Show in Headcount Detail</FormLabel>
+                                    <FormDescription>
+                                      Display in headcount detail view
                                     </FormDescription>
                                   </div>
                                 </FormItem>

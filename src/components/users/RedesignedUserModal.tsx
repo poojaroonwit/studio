@@ -7,7 +7,7 @@ import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Save, Loader2, RotateCcw, User, Shield, Lock, UserPlus, Edit3, Edit, Palette, Mail, X, Check } from 'lucide-react';
+import { Save, Loader2, RotateCcw, User, Shield, Lock, UserPlus, Edit3, Edit, Palette, Mail, X, Check, AlertTriangle } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -105,15 +105,15 @@ function TabNavigation({ activeTab, onTabChange }: TabNavigationProps) {
   ];
 
   return (
-    <div className="w-56 border-r border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
-      <div className="p-4 space-y-2 mt-0">
+    <div className="w-48 border-r border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
+      <div className="p-3 space-y-1.5 mt-0">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             type="button"
             onClick={() => onTabChange(tab.id)}
             className={cn(
-              "flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors relative w-full rounded-lg text-left",
+              "flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors relative w-full rounded-lg text-left",
               activeTab === tab.id
                 ? "text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700"
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-700"
@@ -647,6 +647,7 @@ export function RedesignedUserModal({
           />
         );
 
+
       default:
         return null;
     }
@@ -654,20 +655,20 @@ export function RedesignedUserModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl h-[90vh] p-0 overflow-hidden bg-white dark:bg-slate-900 gap-0 flex flex-col">
+      <DialogContent className="max-w-5xl max-h-[90vh] p-0 overflow-hidden bg-white dark:bg-slate-900 gap-0 flex flex-col">
         {/* Header */}
         <ModalHeader modalInfo={modalInfo} onClose={() => onOpenChange(false)} />
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
             {/* Content */}
-            <div className="flex-1 overflow-hidden flex mt-0 pt-0">
+            <div className="flex-1 overflow-hidden flex mt-0 pt-0 min-h-0">
               {/* Tab Navigation */}
               <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
 
               {/* Main Content Area */}
-              <div className="flex-1 flex flex-col">
-                <ScrollArea className="flex-1 p-6">
+              <div className="flex-1 flex flex-col min-h-0">
+                <ScrollArea className="flex-1 p-4">
                   {renderTabContent()}
                 </ScrollArea>
               </div>

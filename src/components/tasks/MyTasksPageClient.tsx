@@ -29,6 +29,7 @@ import { RealtimeIndicator } from '@/components/ui/realtime-indicator';
 import { useRealtimeCollaboration } from '@/hooks/use-realtime-collaboration';
 import { getErrorMessage, retryWithBackoff, isRetryableError } from '@/lib/networkUtils';
 import { NetworkDiagnostics } from '@/components/ui/network-diagnostics';
+import { formatScoreWithGrade } from '@/lib/scoreUtils';
 
 interface MyTasksPageClientProps {
   userSession: { id: string; role: string; name: string | null; modulePermissions?: string[] } | null;
@@ -938,7 +939,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                         </TableCell>
                         <TableCell className="text-foreground">{candidate.position?.title || candidate.positionId}</TableCell>
                         <TableCell className="text-foreground">{candidate.recruiter?.name || candidate.recruiterId}</TableCell>
-                        <TableCell className="hidden sm:table-cell text-foreground">{candidate.fitScore != null ? `${candidate.fitScore}%` : '-'}</TableCell>
+                        <TableCell className="hidden sm:table-cell text-foreground">{formatScoreWithGrade(candidate.fitScore)}</TableCell>
                         <TableCell className="text-right">
                           <Button size="sm" variant="outline" onClick={e => { 
                             e.stopPropagation(); 

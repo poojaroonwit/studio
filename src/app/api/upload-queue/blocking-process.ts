@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { getServerSession } from 'next-auth/next';
 import { authOptions, validateUserSession } from '@/lib/auth';
 // import { logAudit } from '@/lib/auditLog'; // Removed to avoid database logging
-import { processSingleUploadQueueJob } from './process/route';
+import { processSingleUploadQueueJob } from '@/lib/uploadQueueProcessor';
 
 export const dynamic = 'force-dynamic';
 

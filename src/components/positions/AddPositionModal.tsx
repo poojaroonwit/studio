@@ -23,6 +23,7 @@ import { Briefcase, Save, Loader2, Edit3, Users, FileText, Target, BrainCircuit 
 import dynamic from 'next/dynamic';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { Position, Grade } from '@/lib/types';
@@ -285,8 +286,8 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-[95vw] w-full max-h-[95vh] flex flex-col p-0"> {/* Expanded to use 95% of viewport */}
-          <DialogHeader className="px-8 pt-8 pb-6">
+        <DialogContent className="max-w-[95vw] w-full max-h-[90vh] flex flex-col p-0"> {/* Reduced to 90vh to prevent footer overlap */}
+          <DialogHeader className="px-8 pt-8 pb-6 flex-shrink-0">
             <DialogTitle className="flex items-center">
               <Briefcase className="mr-2 h-5 w-5 text-primary" /> Add New Position
             </DialogTitle>
@@ -295,122 +296,129 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
             </DialogDescription>
           </DialogHeader>
           
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 min-h-0">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0 px-8 pb-6">
-              {/* First Column: Basic Information */}
-              <div className="space-y-6 bg-muted/30 p-4 rounded-lg">
-                <div className="flex items-center gap-2 mb-4">
-                  <Briefcase className="h-4 w-4 text-primary" />
-                  <h3 className="font-medium text-sm">Basic Information</h3>
-                </div>
-                <div>
-                  <Label htmlFor="title-add" className="font-medium">Position Title *</Label>
-                  <Input
-                    id="title-add"
-                    placeholder="Enter position title"
-                    {...form.register('title')}
-                    disabled={isSaving}
-                  />
-                  {form.formState.errors.title && (
-                    <p className="text-sm text-destructive mt-1">{form.formState.errors.title.message}</p>
-                  )}
-                </div>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+            <ScrollArea className="flex-1 px-8 pb-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-0">
+                             {/* First Column: Basic Information */}
+               <div className="space-y-6 bg-muted/30 p-4 rounded-lg">
+                 <div className="flex items-center gap-2 mb-4">
+                   <Briefcase className="h-4 w-4 text-primary" />
+                   <h3 className="font-medium text-sm">Basic Information</h3>
+                 </div>
+                 <div className="grid grid-cols-[120px_1fr] gap-3 items-center">
+                   <Label htmlFor="title-add" className="font-medium text-sm">Position Title *</Label>
+                   <div>
+                     <Input
+                       id="title-add"
+                       placeholder="Enter position title"
+                       {...form.register('title')}
+                       disabled={isSaving}
+                     />
+                     {form.formState.errors.title && (
+                       <p className="text-sm text-destructive mt-1">{form.formState.errors.title.message}</p>
+                     )}
+                   </div>
+                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="department-add" className="font-medium">Department *</Label>
-                  <Input
-                    id="department-add"
-                    placeholder="Enter department"
-                    {...form.register('department')}
-                    disabled={isSaving}
-                  />
-                  {form.formState.errors.department && (
-                    <p className="text-sm text-destructive mt-1">{form.formState.errors.department.message}</p>
-                  )}
-                </div>
+                 <div className="grid grid-cols-[120px_1fr] gap-3 items-center">
+                   <Label htmlFor="department-add" className="font-medium text-sm">Department *</Label>
+                   <div>
+                     <Input
+                       id="department-add"
+                       placeholder="Enter department"
+                       {...form.register('department')}
+                       disabled={isSaving}
+                     />
+                     {form.formState.errors.department && (
+                       <p className="text-sm text-destructive mt-1">{form.formState.errors.department.message}</p>
+                     )}
+                   </div>
+                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="position-level-add" className="font-medium">Position Level *</Label>
-                  <Input
-                    id="position-level-add"
-                    placeholder="Enter position level (e.g., Entry Level, Senior, Manager)"
-                    {...form.register('positionLevel')}
-                    disabled={isSaving}
-                  />
-                  {form.formState.errors.positionLevel && (
-                    <p className="text-sm text-destructive mt-1">{form.formState.errors.positionLevel.message}</p>
-                  )}
-                </div>
+                 <div className="grid grid-cols-[120px_1fr] gap-3 items-center">
+                   <Label htmlFor="position-level-add" className="font-medium text-sm">Position Level *</Label>
+                   <div>
+                     <Input
+                       id="position-level-add"
+                       placeholder="Enter position level (e.g., Entry Level, Senior, Manager)"
+                       {...form.register('positionLevel')}
+                       disabled={isSaving}
+                     />
+                     {form.formState.errors.positionLevel && (
+                       <p className="text-sm text-destructive mt-1">{form.formState.errors.positionLevel.message}</p>
+                     )}
+                   </div>
+                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="grade-add" className="font-medium">Grade</Label>
-                  <Controller
-                    name="gradeId"
-                    control={form.control}
-                    render={({ field }) => (
-                      <Select value={field.value || 'none'} onValueChange={(value) => field.onChange(value === 'none' ? null : value)}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a grade" />
-                        </SelectTrigger>
-                                             <SelectContent>
-                       <SelectItem value="none">No Grade</SelectItem>
-                       {grades.map((grade) => (
-                         <SelectItem key={grade.id} value={grade.id}>
-                           {grade.name} {grade.label && `- ${grade.label}`} ({grade.slaDays} days SLA)
-                         </SelectItem>
-                       ))}
-                     </SelectContent>
-                      </Select>
-                    )}
-                  />
-                </div>
+                 <div className="grid grid-cols-[120px_1fr] gap-3 items-center">
+                   <Label htmlFor="grade-add" className="font-medium text-sm">Grade</Label>
+                   <Controller
+                     name="gradeId"
+                     control={form.control}
+                     render={({ field }) => (
+                       <Select value={field.value || 'none'} onValueChange={(value) => field.onChange(value === 'none' ? null : value)}>
+                         <SelectTrigger>
+                           <SelectValue placeholder="Select a grade" />
+                         </SelectTrigger>
+                                              <SelectContent>
+                        <SelectItem value="none">No Grade</SelectItem>
+                        {grades.map((grade) => (
+                          <SelectItem key={grade.id} value={grade.id}>
+                            {grade.name} {grade.label && `- ${grade.label}`} ({grade.slaDays} days SLA)
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                       </Select>
+                     )}
+                   />
+                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="hiring-date-add" className="font-medium">Hiring Date</Label>
-                  <Input
-                    id="hiring-date-add"
-                    type="date"
-                    {...form.register('hiringDate')}
-                    disabled={isSaving}
-                  />
-                </div>
+                 <div className="grid grid-cols-[120px_1fr] gap-3 items-center">
+                   <Label htmlFor="hiring-date-add" className="font-medium text-sm">Hiring Date</Label>
+                   <Input
+                     id="hiring-date-add"
+                     type="date"
+                     {...form.register('hiringDate')}
+                     disabled={isSaving}
+                   />
+                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="recruiter-add" className="font-medium">Assigned Recruiter</Label>
-                  <Controller
-                    name="recruiterId"
-                    control={form.control}
-                    render={({ field }) => (
-                      <Select value={field.value || 'none'} onValueChange={(value) => field.onChange(value === 'none' ? null : value)}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a recruiter" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">No Recruiter</SelectItem>
-                          {availableRecruiters.map((recruiter) => (
-                            <SelectItem key={recruiter.id} value={recruiter.id}>
-                              {recruiter.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  />
-                </div>
-                <div className="flex items-center space-x-3 pt-2">
-                  <Controller
-                    name="isOpen"
-                    control={form.control}
-                    render={({ field }) => (
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    )}
-                  />
-                  <Label htmlFor="isOpen-add">Position is Open</Label>
-                </div>
-              </div>
+                 <div className="grid grid-cols-[120px_1fr] gap-3 items-center">
+                   <Label htmlFor="recruiter-add" className="font-medium text-sm">Assigned Recruiter</Label>
+                   <Controller
+                     name="recruiterId"
+                     control={form.control}
+                     render={({ field }) => (
+                       <Select value={field.value || 'none'} onValueChange={(value) => field.onChange(value === 'none' ? null : value)}>
+                         <SelectTrigger>
+                           <SelectValue placeholder="Select a recruiter" />
+                         </SelectTrigger>
+                         <SelectContent>
+                           <SelectItem value="none">No Recruiter</SelectItem>
+                           {availableRecruiters.map((recruiter) => (
+                             <SelectItem key={recruiter.id} value={recruiter.id}>
+                               {recruiter.name}
+                             </SelectItem>
+                           ))}
+                         </SelectContent>
+                       </Select>
+                     )}
+                   />
+                 </div>
+                 <div className="grid grid-cols-[120px_1fr] gap-3 items-center">
+                   <Label htmlFor="isOpen-add" className="font-medium text-sm">Position is Open</Label>
+                   <Controller
+                     name="isOpen"
+                     control={form.control}
+                     render={({ field }) => (
+                       <Switch
+                         checked={field.value}
+                         onCheckedChange={field.onChange}
+                       />
+                     )}
+                   />
+                 </div>
+               </div>
               
               {/* Second Column: Job Description */}
               <div className="flex flex-col min-h-0 bg-muted/20 p-4 rounded-lg">
@@ -515,8 +523,9 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
                 />
               </div>
             </div>
+            </ScrollArea>
             
-            <DialogFooter className="px-8 py-6 border-t mt-auto">
+            <DialogFooter className="px-8 py-6 border-t flex-shrink-0">
               <DialogClose asChild>
                 <Button type="button" variant="outline">
                   Cancel

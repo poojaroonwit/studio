@@ -76,228 +76,233 @@ export function RecruiterMultiSelectDropdown({
     onSelectionChange(newSelected);
   };
 
-  const handleRemoveRecruiter = (recruiterId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleRemoveRecruiter = (recruiterId: string, e?: React.MouseEvent | React.KeyboardEvent) => {
+    e?.stopPropagation();
     const newSelected = new Set(selectedIds);
     newSelected.delete(recruiterId);
     onSelectionChange(newSelected);
   };
 
-  const renderTrigger = () => {
-    // If "Select All" is selected
-    if (hasSelectAll) {
-      return (
-        <div className="flex items-center gap-2">
-          <span className="truncate text-foreground">All recruiters</span>
-          <Badge 
-            variant="default"
-            className="text-xs"
-          >
-            Select All
-          </Badge>
-        </div>
-      );
-    }
-
-    if (selectedIds.size === 0) {
-      return <span className="text-muted-foreground">{placeholder}</span>;
-    }
-
-    if (selectedIds.size === 1) {
-      const recruiterId = Array.from(selectedIds)[0];
-      if (recruiterId === 'unassigned') {
-        return (
-          <div className="flex items-center gap-2">
-            <span className="truncate text-foreground">Unassigned</span>
-            <Badge 
-              variant="secondary"
-              className="text-xs"
-            >
-              No Recruiter
-            </Badge>
-          </div>
-        );
-      }
-      const recruiter = recruiters.find(r => r.id === recruiterId);
-      if (recruiter) {
-        return (
-          <div className="flex items-center gap-2">
-            <span className="truncate text-foreground">{recruiter.name}</span>
-            <Badge 
-              variant="default"
-              className="text-xs"
-            >
-              Recruiter
-            </Badge>
-          </div>
-        );
-      }
-    }
-
-    return (
-      <div className="flex items-center gap-1">
-        <span className="text-foreground">{selectedIds.size} selected</span>
-        <div className="flex items-center gap-1 ml-2">
-          {/* Show Unassigned badge first if selected */}
-          {hasUnassigned && (
-            <Badge
-              key="unassigned"
-              variant="secondary"
-              className="text-xs px-1 py-0 h-5"
-            >
-              Unassigned
-              <button
-                type="button"
-                onClick={(e) => handleRemoveRecruiter('unassigned', e)}
-                className="ml-1 hover:bg-destructive hover:text-destructive-foreground rounded-full w-3 h-3 flex items-center justify-center"
-              >
-                <X className="w-2 h-2" />
-              </button>
-            </Badge>
-          )}
-          {/* Show regular recruiter badges */}
-          {selectedRecruiters.slice(0, hasUnassigned ? 1 : 2).map((recruiter) => (
-            <Badge
-              key={recruiter.id}
-              variant="secondary"
-              className="text-xs px-1 py-0 h-5"
-            >
-              {recruiter.name}
-              <button
-                type="button"
-                onClick={(e) => handleRemoveRecruiter(recruiter.id, e)}
-                className="ml-1 hover:bg-destructive hover:text-destructive-foreground rounded-full w-3 h-3 flex items-center justify-center"
-              >
-                <X className="w-2 h-2" />
-              </button>
-            </Badge>
-          ))}
-          {selectedIds.size > (hasUnassigned ? 2 : 2) && (
-            <Badge variant="outline" className="text-xs">
-              +{selectedIds.size - (hasUnassigned ? 2 : 2)} more
-            </Badge>
-          )}
-        </div>
-      </div>
-    );
-  };
-
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          className={cn("w-full justify-between bg-background text-foreground border-border hover:bg-accent hover:text-accent-foreground [&>*]:!text-foreground", className)}
-          disabled={disabled}
-        >
-          {renderTrigger()}
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50 text-foreground" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-full p-0 bg-popover border-border shadow-lg z-[10001]" align="start">
-        <div className="bg-popover text-popover-foreground">
-          {/* Search Input */}
-          <div className="flex items-center border-b border-border px-3 bg-popover">
-            <Search className="mr-2 h-4 w-4 shrink-0 opacity-50 text-muted-foreground" />
-            <Input
-              placeholder="Search recruiters..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="border-0 bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 text-foreground focus-visible:ring-0"
-            />
-          </div>
-          
-          {/* Recruiters List */}
-          <div className="max-h-[300px] overflow-y-auto">
+    <div className={cn("relative", className)}>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className="w-full min-w-full justify-between min-h-[40px] h-auto py-2"
+            disabled={disabled}
+          >
+            <div className="flex flex-wrap gap-1 flex-1">
+              {/* If "Select All" is selected */}
+              {hasSelectAll ? (
+                <Badge 
+                  variant="default"
+                  className="text-xs"
+                >
+                  Select All
+                  <button
+                    type="button"
+                    className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        handleToggleRecruiter('select-all');
+                      }
+                    }}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }}
+                    onClick={() => handleToggleRecruiter('select-all')}
+                  >
+                    <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                  </button>
+                </Badge>
+              ) : selectedIds.size === 0 ? (
+                <span className="text-muted-foreground">{placeholder}</span>
+              ) : (
+                <>
+                  {/* Show Unassigned badge first if selected */}
+                  {hasUnassigned && (
+                    <Badge
+                      key="unassigned"
+                      variant="secondary"
+                      className="text-xs"
+                    >
+                      Unassigned
+                      <button
+                        type="button"
+                        className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            handleRemoveRecruiter('unassigned');
+                          }
+                        }}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                        }}
+                        onClick={() => handleRemoveRecruiter('unassigned')}
+                      >
+                        <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                      </button>
+                    </Badge>
+                  )}
+                  {/* Show regular recruiter badges */}
+                  {selectedRecruiters.map((recruiter) => (
+                    <Badge
+                      key={recruiter.id}
+                      variant="secondary"
+                      className="text-xs"
+                    >
+                      {recruiter.name}
+                      <button
+                        type="button"
+                        className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            handleRemoveRecruiter(recruiter.id);
+                          }
+                        }}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                        }}
+                        onClick={() => handleRemoveRecruiter(recruiter.id)}
+                      >
+                        <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                      </button>
+                    </Badge>
+                  ))}
+                </>
+              )}
+            </div>
+            <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 bg-popover border-border shadow-lg z-[10001] max-h-[300px] overflow-y-auto" align="start">
+          <div className="p-2">
+            <div className="text-sm font-medium mb-2">Select Recruiters</div>
+            
+            {/* Search Input */}
+            <div className="relative mb-2">
+              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search recruiters..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-8 pr-2 py-1.5 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
+                disabled={disabled}
+              />
+            </div>
+            
             {filteredRecruiters.length === 0 ? (
-              <div className="py-6 text-center text-sm text-muted-foreground">
-                No recruiters found.
-              </div>
+              <div className="text-sm text-muted-foreground py-2">No recruiters available</div>
             ) : (
-              <div className="p-1">
+              <div className="space-y-0.5">
                 {/* Select All Option */}
-                <div
+                <button
                   key="select-all"
-                  className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground text-foreground border-b border-border transition-colors duration-150"
                   onClick={() => handleToggleRecruiter('select-all')}
+                  className={cn(
+                    "w-full text-left px-2 py-1.5 rounded-sm hover:bg-accent hover:text-accent-foreground cursor-pointer text-sm",
+                    hasSelectAll && "bg-accent text-accent-foreground"
+                  )}
                 >
-                  <Check
-                    className={cn(
-                      "mr-2 h-4 w-4 transition-opacity duration-150",
-                      hasSelectAll ? "opacity-100" : "opacity-0"
-                    )}
-                  />
-                  <div className="flex flex-col">
-                    <span className="font-medium text-foreground">Select All</span>
-                    <span className="text-sm text-muted-foreground">
-                      All recruiters
-                    </span>
-                  </div>
-                  <Badge 
-                    variant="default"
-                    className="ml-auto text-xs"
-                  >
-                    All
-                  </Badge>
-                </div>
-                {/* Unassigned Option */}
-                <div
-                  key="unassigned"
-                  className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground text-foreground border-b border-border transition-colors duration-150"
-                  onClick={() => handleToggleRecruiter('unassigned')}
-                >
-                  <Check
-                    className={cn(
-                      "mr-2 h-4 w-4 transition-opacity duration-150",
-                      hasUnassigned ? "opacity-100" : "opacity-0"
-                    )}
-                  />
-                  <div className="flex flex-col">
-                    <span className="font-medium text-foreground">Unassigned</span>
-                    <span className="text-sm text-muted-foreground">
-                      Candidates without assigned recruiters
-                    </span>
-                  </div>
-                  <Badge 
-                    variant="secondary"
-                    className="ml-auto text-xs"
-                  >
-                    No Recruiter
-                  </Badge>
-                </div>
-                {filteredRecruiters.map((recruiter) => (
-                  <div
-                    key={recruiter.id}
-                    className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground text-foreground transition-colors duration-150"
-                    onClick={() => handleToggleRecruiter(recruiter.id)}
-                  >
+                  <div className="flex items-center">
                     <Check
                       className={cn(
-                        "mr-2 h-4 w-4 transition-opacity duration-150",
-                        selectedIds.has(recruiter.id) ? "opacity-100" : "opacity-0"
+                        "mr-2 h-3 w-3",
+                        hasSelectAll ? "opacity-100" : "opacity-0"
                       )}
                     />
-                    <Avatar className="h-6 w-6 mr-2">
-                      <AvatarImage src={recruiter.avatarUrl} />
-                      <AvatarFallback className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
-                        {recruiter.name.charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
                     <div className="flex flex-col">
-                      <span className="font-medium text-foreground">{recruiter.name}</span>
-                      <span className="text-sm text-muted-foreground">
-                        Recruiter
+                      <span className="text-sm font-medium">Select All</span>
+                      <span className="text-xs text-muted-foreground">
+                        All recruiters
                       </span>
                     </div>
+                 
                   </div>
+                </button>
+                
+                {/* Unassigned Option */}
+                <button
+                  key="unassigned"
+                  onClick={() => handleToggleRecruiter('unassigned')}
+                  className={cn(
+                    "w-full text-left px-2 py-1.5 rounded-sm hover:bg-accent hover:text-accent-foreground cursor-pointer text-sm",
+                    hasUnassigned && "bg-accent text-accent-foreground"
+                  )}
+                >
+                  <div className="flex items-center">
+                    <Check
+                      className={cn(
+                        "mr-2 h-3 w-3",
+                        hasUnassigned ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium">Unassigned</span>
+                      <span className="text-xs text-muted-foreground">
+                        Candidates without assigned recruiters
+                      </span>
+                    </div>
+                   
+                  </div>
+                </button>
+                
+                {filteredRecruiters.map((recruiter) => (
+                  <button
+                    key={recruiter.id}
+                    onClick={() => handleToggleRecruiter(recruiter.id)}
+                    className={cn(
+                      "w-full text-left px-2 py-1.5 rounded-sm hover:bg-accent hover:text-accent-foreground cursor-pointer text-sm",
+                      selectedIds.has(recruiter.id) && "bg-accent text-accent-foreground"
+                    )}
+                  >
+                    <div className="flex items-center">
+                      <Check
+                        className={cn(
+                          "mr-2 h-3 w-3",
+                          selectedIds.has(recruiter.id) ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      <Avatar className="h-6 w-6 mr-2">
+                        <AvatarImage src={recruiter.avatarUrl} />
+                        <AvatarFallback className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                          {recruiter.name.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium">{recruiter.name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          Recruiter
+                        </span>
+                      </div>
+                    </div>
+                  </button>
                 ))}
               </div>
             )}
           </div>
-        </div>
-      </PopoverContent>
-    </Popover>
+        </PopoverContent>
+      </Popover>
+      {selectedIds.size > 0 && (
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => {
+            if (disabled) return;
+            onSelectionChange(new Set());
+          }}
+          className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 bg-background border border-border hover:bg-accent hover:text-accent-foreground"
+        >
+          <X className="h-3 w-3" />
+        </Button>
+      )}
+    </div>
   );
 }

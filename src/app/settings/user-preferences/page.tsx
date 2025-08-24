@@ -27,6 +27,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useUserPreferences } from '@/hooks/use-user-preferences';
 import { PersonalColorPicker } from '@/components/settings/PersonalColorPicker';
+import { ThemeSelector } from '@/components/settings/ThemeSelector';
 import { CardCustomizationSettings } from '@/components/tasks/CardCustomizationSettings';
 import { toast } from 'react-hot-toast';
 import { useSession } from 'next-auth/react';
@@ -108,6 +109,10 @@ export default function UserPreferencesPage() {
 
   const handlePersonalColorChange = (color: string) => {
     updateAppearancePreferences({ personalColor: color });
+  };
+
+  const handleThemeChange = (theme: 'light' | 'dark' | 'system') => {
+    updateAppearancePreferences({ themePreference: theme });
   };
 
   // Show loading state
@@ -220,6 +225,12 @@ export default function UserPreferencesPage() {
         {/* Appearance Tab */}
         {activeTab === 'appearance' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Theme Preference Configuration */}
+            <ThemeSelector
+              themePreference={preferences.appearance.themePreference}
+              onThemeChange={handleThemeChange}
+            />
+            
             {/* Personal Color Configuration */}
             <Card>
               <CardHeader>
@@ -264,6 +275,12 @@ export default function UserPreferencesPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                    <span className="text-sm font-medium">Theme Preference</span>
+                    <Badge variant="secondary">
+                      {preferences.appearance.themePreference}
+                    </Badge>
+                  </div>
                   <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                     <span className="text-sm font-medium">Personal Color</span>
                     <div className="flex items-center gap-2">

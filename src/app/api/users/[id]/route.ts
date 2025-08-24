@@ -148,6 +148,20 @@ export async function PUT(request: NextRequest) {
         return NextResponse.json({ message: "Forbidden" }, { status: 403 });
     }
 
+    // Check if the acting user has permission to modify the target user
+    const isAdmin = session?.user?.role === 'Admin';
+    const hasUserManagePermission = session?.user?.modulePermissions?.includes('USERS_MANAGE');
+    const isModifyingSelf = actingUserId === id;
+    
+    // Allow access if:
+    // 1. User is Admin, OR
+    // 2. User has USERS_MANAGE permission, OR  
+    // 3. User is modifying their own profile (for basic fields)
+    if (!isAdmin && !hasUserManagePermission && !isModifyingSelf) {
+        await logAudit('WARN', `Forbidden attempt to update user ${id} by ${session?.user?.email || 'Unknown'} (ID: ${actingUserId}). Required: Admin role or USERS_MANAGE permission.`, 'API:Users:Update', actingUserId);
+        return NextResponse.json({ message: "Forbidden: You don't have permission to modify this user." }, { status: 403 });
+    }
+
     let body;
     try {
         body = await request.json();
@@ -162,16 +176,44 @@ export async function PUT(request: NextRequest) {
         return NextResponse.json({ message: "Invalid input", errors: validationResult.error.flatten().fieldErrors }, { status: 400 });
     }
 
-    const { password, newPassword, userTeamIds, modulePermissions, ...fieldsToUpdate } = validationResult.data;
+    const { password, newPassword, userTeamIds, modulePermissions, role, ...fieldsToUpdate } = validationResult.data;
 
-    if (Object.keys(fieldsToUpdate).length === 0 && !password && (!newPassword || newPassword.trim() === "") && !userTeamIds && modulePermissions === undefined) {
+    if (Object.keys(fieldsToUpdate).length === 0 && !password && (!newPassword || newPassword.trim() === "") && !userTeamIds && modulePermissions === undefined && role === undefined) {
         return NextResponse.json({ message: "No fields to update." }, { status: 400 });
+    }
+
+    // Special handling for admin users modifying their own permissions
+    if (isModifyingSelf && isAdmin && modulePermissions !== undefined) {
+        // Admin users can modify their own permissions but cannot remove critical permissions
+        const criticalPermissions = ['USERS_MANAGE', 'USER_GROUPS_MANAGE'];
+        const currentPermissions = session?.user?.modulePermissions || [];
+        
+        // Check if trying to remove critical permissions
+        const removedCriticalPermissions = criticalPermissions.filter(permission => 
+            currentPermissions.includes(permission) && !modulePermissions.includes(permission)
+        );
+        
+        if (removedCriticalPermissions.length > 0) {
+            await logAudit('WARN', `Admin user ${session?.user?.email} attempted to remove critical permissions: ${removedCriticalPermissions.join(', ')}`, 'API:Users:Update', actingUserId);
+            return NextResponse.json({ 
+                message: "Cannot remove critical permissions (USERS_MANAGE, USER_GROUPS_MANAGE) from admin account for security reasons." 
+            }, { status: 400 });
+        }
+    }
+
+    // Prevent non-admin users from modifying role or critical permissions
+    if (!isAdmin && (role !== undefined || modulePermissions !== undefined)) {
+        await logAudit('WARN', `Non-admin user ${session?.user?.email} attempted to modify role or permissions`, 'API:Users:Update', actingUserId);
+        return NextResponse.json({ 
+            message: "Only admin users can modify roles and permissions." 
+        }, { status: 403 });
     }
     
     try {
         const updateData: any = { 
             ...fieldsToUpdate,
-            ...(modulePermissions !== undefined && { module_permissions: modulePermissions })
+            ...(modulePermissions !== undefined && { module_permissions: modulePermissions }),
+            ...(role !== undefined && { role })
         };
         
         // Handle password updates

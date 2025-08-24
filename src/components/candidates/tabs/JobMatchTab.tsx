@@ -1,9 +1,10 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Target, Copy, Check } from 'lucide-react';
+import { Target, Copy, Check, Lock } from 'lucide-react';
 import { ScoreBadge } from '@/components/ui/score-color';
 import { formatScoreWithGrade } from "@/lib/scoreUtils";
+import { useSession } from 'next-auth/react';
 import type { Candidate, Position } from '@/lib/types';
 
 interface JobMatchTabProps {
@@ -25,6 +26,38 @@ export const JobMatchTab: React.FC<JobMatchTabProps> = ({
   onCopyJobMatch,
   copiedJobMatchIndex
 }) => {
+  const { data: session } = useSession();
+  
+  // Check permissions
+  const canViewJobMatches = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('USERS_MANAGE') || 
+    session?.user?.modulePermissions?.includes('JOB_MATCH_VIEW');
+  const canManageJobMatches = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('USERS_MANAGE') || 
+    session?.user?.modulePermissions?.includes('JOB_MATCH_MANAGE');
+
+  // If user can't view job matches, show access denied
+  if (!canViewJobMatches) {
+    return (
+      <div className="space-y-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Target className="h-5 w-5 text-primary" />
+              Job Matches
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center py-8 text-muted-foreground">
+              <Lock className="mx-auto h-12 w-12 mb-4 opacity-50" />
+              <p>Access Denied</p>
+              <p className="text-sm">You don't have permission to view job matches.</p>
+              <p className="text-xs mt-2">Contact your administrator to request access.</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <Card>
@@ -51,7 +84,7 @@ export const JobMatchTab: React.FC<JobMatchTabProps> = ({
                   const displayTitle = position?.title || match.jobTitle || match.positionTitle || 'Unknown Position';
                   
                   return (
-                    <Card key={index} className="p-4 cursor-pointer hover:shadow-md transition-shadow relative group" onClick={() => onJobMatchClick(match)}>
+                    <Card key={index} className={`p-4 transition-shadow relative group ${canManageJobMatches ? 'cursor-pointer hover:shadow-md' : ''}`} onClick={canManageJobMatches ? () => onJobMatchClick(match) : undefined}>
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
                           <h4 className="font-semibold">{displayTitle}</h4>
@@ -61,22 +94,24 @@ export const JobMatchTab: React.FC<JobMatchTabProps> = ({
                                 {formatScoreWithGrade(match.fitScore)}
                               </ScoreBadge>
                             )}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onCopyJobMatch(match, index);
-                              }}
-                              className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                              title="Copy job match information"
-                            >
-                              {copiedJobMatchIndex === index ? (
-                                <Check className="h-4 w-4 text-green-600" />
-                              ) : (
-                                <Copy className="h-4 w-4" />
-                              )}
-                            </Button>
+                            {canManageJobMatches && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onCopyJobMatch(match, index);
+                                }}
+                                className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                title="Copy job match information"
+                              >
+                                {copiedJobMatchIndex === index ? (
+                                  <Check className="h-4 w-4 text-green-600" />
+                                ) : (
+                                  <Copy className="h-4 w-4" />
+                                )}
+                              </Button>
+                            )}
                           </div>
                         </div>
                         

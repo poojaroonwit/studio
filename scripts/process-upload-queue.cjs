@@ -19,7 +19,7 @@ const config = {
   apiKey: process.env.PROCESSOR_API_KEY || 'dev-key',
   intervalMs: parseInt(process.env.PROCESSOR_INTERVAL_MS) || 5000,
   logIntervalMs: parseInt(process.env.LOG_INTERVAL_MS) || 30000,
-  batchLimit: parseInt(process.env.PROCESSOR_BATCH_LIMIT) || 25,
+  batchLimit: parseInt(process.env.PROCESSOR_BATCH_LIMIT) || 10, // Reduced from 25 to 10 for better performance
   maxRetries: 3,
   retryDelayMs: 1000
 };
@@ -177,7 +177,9 @@ async function processJob() {
 // Process a batch of jobs in one call (uses new endpoint if available)
 async function processBatch() {
   try {
-    const response = await makeRequest(`${config.baseUrl}/api/upload-queue/process-all?limit=${encodeURIComponent(config.batchLimit)}`, {
+    // Use a high limit to ensure we utilize full concurrent capacity
+    // The endpoint will automatically limit to maxConcurrentProcessors setting
+    const response = await makeRequest(`${config.baseUrl}/api/upload-queue/process-all?limit=100`, {
       method: 'POST'
     });
 

@@ -14,6 +14,7 @@ import {
 } from '@/lib/apiErrorHandler';
 import { logAudit } from '@/lib/auditLog';
 import { getDefaultMatchCriteria } from '@/lib/systemSettings';
+import { WarningService } from '@/lib/warningService';
 
 const createPositionSchema = z.object({
   title: z.string().min(1, { message: 'Title is required' }),
@@ -43,7 +44,7 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20', 10);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
 
-    let query = 'SELECT p.id, p.title, p.department, p.description, p."matchCriteria", p."isOpen", p."positionLevel", p."recruiterId", p."customAttributes", p."createdAt", p."updatedAt", u.name as "recruiterName", u.email as "recruiterEmail" FROM "Position" p LEFT JOIN "User" u ON p."recruiterId" = u.id';
+    let query = 'SELECT p.id, p.title, p.department, p.description, p."matchCriteria", p."isOpen", p."positionLevel", p."gradeId", p."hiringDate", p."recruiterId", p."customAttributes", p."createdAt", p."updatedAt", u.name as "recruiterName", u.email as "recruiterEmail" FROM "Position" p LEFT JOIN "User" u ON p."recruiterId" = u.id';
     let countQuery = 'SELECT COUNT(*) FROM "Position" p';
     const conditions = [];
     const queryParams = [];
@@ -147,6 +148,15 @@ export async function POST(req: NextRequest) {
       ...result.rows[0],
       custom_attributes: result.rows[0].customAttributes || {},
     };
+    
+    // Check for warnings after position creation
+    try {
+      await WarningService.createOrUpdateWarnings('position', newPositionId, user.id);
+    } catch (warningError) {
+      console.error('Failed to check warnings for new position:', warningError);
+      // Don't fail the request if warning check fails
+    }
+    
     await logAudit('AUDIT', `Position '${validatedData.title}' created by ${user.name}.`, 'API:V1:Positions:Create', user.id, { positionId: newPositionId, ...validatedData });
     return createSuccessResponse(req, newPosition, 201);
   } catch (error) {

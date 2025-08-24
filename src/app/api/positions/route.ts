@@ -41,6 +41,7 @@ import { handleCors } from '@/lib/cors';
 import { dispatchWebhooks } from '@/lib/webhookDispatcher';
 import { getDefaultMatchCriteria } from '@/lib/systemSettings';
 import { broadcastPositionUpdate, broadcastPositionListUpdate, broadcastPositionStatisticsUpdate } from '@/lib/candidateSse';
+import { WarningService } from '@/lib/warningService';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -359,6 +360,14 @@ export async function POST(request: NextRequest) {
     } catch (webhookError) {
       console.error('Failed to dispatch position creation webhook:', webhookError);
       // Don't fail the request if webhook fails
+    }
+    
+    // Check for warnings after position creation
+    try {
+      await WarningService.createOrUpdateWarnings('position', newPosition.id, actingUserId || undefined);
+    } catch (warningError) {
+      console.error('Failed to check warnings for new position:', warningError);
+      // Don't fail the request if warning check fails
     }
     
     // Broadcast real-time updates

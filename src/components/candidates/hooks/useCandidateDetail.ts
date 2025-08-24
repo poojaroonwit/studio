@@ -53,8 +53,7 @@ export const useCandidateDetail = (candidateId: string) => {
   const [copiedJobMatchIndex, setCopiedJobMatchIndex] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Add refs for cleanup and caching
-  const abortControllerRef = useRef<AbortController | null>(null);
+  // Add refs for caching
   const cacheRef = useRef<Map<string, { data: any; timestamp: number }>>(new Map());
   const lastFetchRef = useRef<number>(0);
 
@@ -174,12 +173,7 @@ export const useCandidateDetail = (candidateId: string) => {
     setLoading(true);
     setError(null);
 
-    // Cancel previous request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-
-    abortControllerRef.current = new AbortController();
+    // Check if we have a recent cache entry
 
     // Retry configuration
     const maxRetries = 2; // Reduced from 3
@@ -187,25 +181,28 @@ export const useCandidateDetail = (candidateId: string) => {
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
-        const timeoutId = setTimeout(() => abortControllerRef.current?.abort(), 15000); // Reduced timeout
-
         const res = await fetch(`/api/candidates/${candidateId}`, {
-          signal: abortControllerRef.current.signal,
           headers: {
             'Content-Type': 'application/json',
             'Cache-Control': 'max-age=30',
           },
         });
 
-        clearTimeout(timeoutId);
-
         if (!res.ok) {
           if (res.status === 404) {
             throw new Error('Candidate not found');
           } else if (res.status === 403) {
             throw new Error('Access denied to candidate');
+          } else if (res.status === 408) {
+            throw new Error('Request timed out. The server may be experiencing high load. Please try again in a moment.');
+          } else if (res.status === 503) {
+            throw new Error('Database connection error. Please try again in a moment.');
+          } else if (res.status === 502 || res.status === 504) {
+            throw new Error('Gateway timeout. Please try again in a moment.');
           } else if (res.status >= 500) {
-            throw new Error('Server error occurred');
+            throw new Error('Server error occurred. Please try again later.');
+          } else if (res.status === 429) {
+            throw new Error('Too many requests. Please wait a moment before trying again.');
           } else {
             throw new Error(`Failed to fetch candidate: ${res.status}`);
           }
@@ -243,13 +240,7 @@ export const useCandidateDetail = (candidateId: string) => {
         console.error(`Error fetching candidate (attempt ${attempt + 1}/${maxRetries + 1}):`, err);
 
         if (err instanceof Error) {
-          if (err.name === 'AbortError') {
-            if (attempt === maxRetries) {
-              setError('Request timed out. Please try again.');
-              break;
-            }
-            console.log(`Timeout on attempt ${attempt + 1}, retrying...`);
-          } else if (err.message === 'Candidate not found' || err.message === 'Access denied to candidate') {
+          if (err.message === 'Candidate not found' || err.message === 'Access denied to candidate') {
             setError(err.message);
             break;
           } else if (attempt === maxRetries) {
@@ -260,7 +251,7 @@ export const useCandidateDetail = (candidateId: string) => {
           }
         } else {
           if (attempt === maxRetries) {
-            setError('Failed to fetch candidate');
+            setError('Failed to fetch candidate. Please check your connection and try again.');
             break;
           }
           console.log(`Unknown error on attempt ${attempt + 1}, retrying...`);
@@ -280,7 +271,7 @@ export const useCandidateDetail = (candidateId: string) => {
   // Fetch candidate data with optimized dependencies
   useEffect(() => {
     fetchCandidate();
-  }, [fetchCandidate]);
+  }, [candidateId]);
 
   // Memoized fetch functions for static data
   const fetchPositions = useCallback(async () => {
@@ -346,14 +337,12 @@ export const useCandidateDetail = (candidateId: string) => {
     fetchRecruiters();
     fetchSources();
     fetchStages();
-  }, [fetchPositions, fetchRecruiters, fetchSources, fetchStages]);
+  }, []);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
+      // Cleanup any ongoing operations if needed
     };
   }, []);
 

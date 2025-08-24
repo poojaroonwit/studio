@@ -323,7 +323,7 @@ export async function POST(request: NextRequest) {
     const actingUserName = validation.userName!;
 
     // Check permissions
-    const canUpload = session.user.role === 'Admin' || 
+    const canUpload = session.user.role === 'Admin' || session.user.modulePermissions?.includes('USERS_MANAGE') || 
       session.user.modulePermissions?.includes('BULK_UPLOAD') ||
       session.user.modulePermissions?.includes('UPLOAD_QUEUE_MANAGE');
     

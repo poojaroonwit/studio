@@ -11,6 +11,7 @@ import { normalizeFitScore } from '@/lib/scoreUtils';
 import { syncRecruiterForCandidate } from '@/lib/recruiterSync';
 import { NotificationService } from '@/lib/notificationService';
 import { validateCandidateHiringStatus, assignCandidateToHeadcount } from '@/lib/headcountUtils';
+import { WarningService } from '@/lib/warningService';
 
 export const dynamic = 'force-dynamic';
 
@@ -105,10 +106,16 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     return NextResponse.json({ message: 'Invalid candidate ID format' }, { status: 400 });
   }
 
+  const startTime = Date.now();
   const client = await getPool().connect();
   try {
+    // Set query timeout to prevent hanging queries - increased to match pool configuration
+    await client.query('SET statement_timeout = 30000'); // 30 seconds timeout to match pool config
+    
     // Check cache first (implement Redis or in-memory cache in production)
     const cacheKey = `candidate:${id}:${session.user.id}`;
+    
+    console.log(`[PERF] Starting candidate fetch for ID: ${id}`);
     
     // Optimized query with selective data fetching
     const candidateQuery = `
@@ -128,7 +135,10 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       WHERE c.id = $1::uuid
     `;
     
+    const candidateStartTime = Date.now();
     const candidateResult = await client.query(candidateQuery, [id]);
+    const candidateQueryTime = Date.now() - candidateStartTime;
+    console.log(`[PERF] Candidate query completed in ${candidateQueryTime}ms`);
     
     if (candidateResult.rows.length === 0) {
       return NextResponse.json({ message: 'Candidate not found' }, { status: 404 });
@@ -136,10 +146,15 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
     const candidate = candidateResult.rows[0];
 
-    // Fetch job matches separately with pagination
+    // Fetch job matches separately with pagination (reduced limit for performance)
     const jobMatchesQuery = `
       SELECT 
-        jm.*,
+        jm.id,
+        jm."candidateId",
+        jm."jobId",
+        jm."fitScore",
+        jm."createdAt",
+        jm."updatedAt",
         p.title as "positionTitle",
         p.department as "positionDepartment",
         p.description as "positionDescription"
@@ -147,27 +162,48 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       LEFT JOIN "Position" p ON jm."jobId" = p.id
       WHERE jm."candidateId" = $1::uuid
       ORDER BY jm."fitScore" DESC
-      LIMIT 10
+      LIMIT 5
     `;
     
+    const jobMatchesStartTime = Date.now();
     const jobMatchesResult = await client.query(jobMatchesQuery, [id]);
+    const jobMatchesQueryTime = Date.now() - jobMatchesStartTime;
+    console.log(`[PERF] Job matches query completed in ${jobMatchesQueryTime}ms`);
     const jobMatches = jobMatchesResult.rows || [];
 
-    // Fetch recent attachments only (last 5)
+    // Fetch recent attachments only (reduced limit for performance)
     const attachmentsQuery = `
-      SELECT a.*, u.name as "uploadedByUserName"
+      SELECT 
+        a.id,
+        a."candidateId",
+        a."uploadedById",
+        a."filePath",
+        a."fileName",
+        a.label,
+        a."isPrimary",
+        a."uploadedAt",
+        a."updatedAt",
+        a."headcountId",
+        u.name as "uploadedByUserName"
       FROM "Attachment" a
       LEFT JOIN "User" u ON a."uploadedById" = u.id
       WHERE a."candidateId" = $1::uuid
       ORDER BY a."uploadedAt" DESC
-      LIMIT 5
+      LIMIT 3
     `;
     
+    const attachmentsStartTime = Date.now();
     const attachmentsResult = await client.query(attachmentsQuery, [id]);
+    const attachmentsQueryTime = Date.now() - attachmentsStartTime;
+    console.log(`[PERF] Attachments query completed in ${attachmentsQueryTime}ms`);
     const attachments = attachmentsResult.rows || [];
+
+    const totalTime = Date.now() - startTime;
+    console.log(`[PERF] Total candidate fetch completed in ${totalTime}ms for ID: ${id}`);
 
     const responseData = {
       ...candidate,
+      fitScore: normalizeFitScore(candidate.fitScore),
       position: candidate.positionId ? {
         title: candidate.positionTitle || null,
         department: candidate.positionDepartment || null
@@ -184,7 +220,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       } : null,
       jobMatches: jobMatches.map((match: any) => ({
         ...match,
-        fitScore: match.fitScore,
+        fitScore: normalizeFitScore(match.fitScore),
         jobTitle: match.jobTitle || match.positionTitle || null,
         positionTitle: match.positionTitle || match.jobTitle || null,
       })),
@@ -194,8 +230,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       _metadata: {
         totalJobMatches: jobMatches.length,
         totalAttachments: attachments.length,
-        hasMoreJobMatches: jobMatches.length === 10,
-        hasMoreAttachments: attachments.length === 5
+        hasMoreJobMatches: jobMatches.length === 5,
+        hasMoreAttachments: attachments.length === 3
       }
     };
 
@@ -209,7 +245,24 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     });
   } catch (error: any) {
     console.error('Error fetching candidate', id, error);
-    return NextResponse.json({ message: 'Error fetching candidate', error: error?.message || String(error) }, { status: 500 });
+    
+
+    
+    // Handle connection errors
+    if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
+      console.error('Database connection error for candidate:', id, error);
+      return NextResponse.json({ 
+        message: 'Database connection error. Please try again in a moment.',
+        error: 'Database connection failed',
+        candidateId: id
+      }, { status: 503 }); // 503 Service Unavailable
+    }
+    
+    return NextResponse.json({ 
+      message: 'Error fetching candidate', 
+      error: error?.message || String(error),
+      candidateId: id
+    }, { status: 500 });
   } finally {
     client.release();
   }
@@ -673,7 +726,18 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     
     // Get attachment history for this candidate
     const attachmentsResult = await client.query(`
-      SELECT a.*, u.name as "uploadedByUserName"
+      SELECT 
+        a.id,
+        a."candidateId",
+        a."uploadedById",
+        a."filePath",
+        a."fileName",
+        a.label,
+        a."isPrimary",
+        a."uploadedAt",
+        a."updatedAt",
+        a."headcountId",
+        u.name as "uploadedByUserName"
       FROM "Attachment" a
       LEFT JOIN "User" u ON a."uploadedById" = u.id
       WHERE a."candidateId" = $1::uuid
@@ -693,6 +757,15 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       }
     } catch (e) {
       customAttributes = {};
+    }
+    
+    // Check for warnings after candidate update using automation system
+    try {
+      const { WarningAutomation } = await import('@/lib/warningAutomation');
+      WarningAutomation.triggerEntityCheckWithRetry('candidate', id, actingUserId);
+    } catch (warningError) {
+      console.error('Failed to trigger warning check for updated candidate:', warningError);
+      // Don't fail the request if warning check fails
     }
     
     // Broadcast update with safe candidate data

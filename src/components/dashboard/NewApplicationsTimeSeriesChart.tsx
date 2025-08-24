@@ -222,64 +222,65 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
       }).length;
       return count;
     });
-    const datasets = [
-      {
-        label: 'Current',
-        data: currentPeriodCounts.map((item: any) => item.count),
-        borderColor: 'rgba(59, 130, 246, 1)', // blue-500
-        backgroundColor: (context: any) => {
-          const chart = context.chart;
-          const { ctx, chartArea } = chart;
-          if (!chartArea) {
-            return 'rgba(59, 130, 246, 0.3)';
-          }
-          const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-          gradient.addColorStop(0, 'rgba(59, 130, 246, 0.3)');
-          gradient.addColorStop(0.5, 'rgba(59, 130, 246, 0.6)');
-          gradient.addColorStop(1, 'rgba(59, 130, 246, 0.8)');
-          return gradient;
-        },
-        borderWidth: 3,
-        fill: true,
-        tension: 0.4,
-        pointBackgroundColor: 'rgba(59, 130, 246, 1)',
-        pointBorderColor: '#ffffff',
-        pointBorderWidth: 2,
-        pointRadius: 6,
-        pointHoverRadius: 8,
-        pointHoverBackgroundColor: 'rgba(59, 130, 246, 1)',
-        pointHoverBorderColor: '#ffffff',
-        pointHoverBorderWidth: 3,
-      },
-    ];
-    datasets.push({
-      label: 'Previous',
-      data: comparisonData,
-      borderColor: 'rgba(156, 163, 175, 0.8)', // gray-400
-      backgroundColor: (context: any) => {
-        const chart = context.chart;
-        const { ctx, chartArea } = chart;
-        if (!chartArea) {
-          return 'rgba(156, 163, 175, 0.2)';
-        }
-        const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-        gradient.addColorStop(0, 'rgba(156, 163, 175, 0.2)');
-        gradient.addColorStop(0.5, 'rgba(156, 163, 175, 0.4)');
-        gradient.addColorStop(1, 'rgba(156, 163, 175, 0.6)');
-        return gradient;
-      },
-      borderWidth: 2,
-      fill: true,
-      tension: 0.4,
-      pointBackgroundColor: 'rgba(156, 163, 175, 0.8)',
-      pointBorderColor: '#ffffff',
-      pointBorderWidth: 1,
-      pointRadius: 4,
-      pointHoverRadius: 6,
-      pointHoverBackgroundColor: 'rgba(156, 163, 175, 0.8)',
-      pointHoverBorderColor: '#ffffff',
-      pointHoverBorderWidth: 2,
-    });
+         const datasets = [
+       {
+         label: 'Current',
+         data: currentPeriodCounts.map((item: any) => item.count),
+         borderColor: 'rgba(59, 130, 246, 1)', // blue-500
+         backgroundColor: (context: any) => {
+           const chart = context.chart;
+           const { ctx, chartArea } = chart;
+           if (!chartArea) {
+             return 'rgba(59, 130, 246, 0.4)';
+           }
+           const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+           gradient.addColorStop(0, 'rgba(59, 130, 246, 0.4)');
+           gradient.addColorStop(0.3, 'rgba(59, 130, 246, 0.6)');
+           gradient.addColorStop(0.7, 'rgba(59, 130, 246, 0.8)');
+           gradient.addColorStop(1, 'rgba(59, 130, 246, 0.9)');
+           return gradient;
+         },
+         borderWidth: 2,
+         fill: true,
+         tension: 0.4,
+         pointBackgroundColor: 'rgba(59, 130, 246, 1)',
+         pointBorderColor: '#ffffff',
+         pointBorderWidth: 2,
+         pointRadius: 5,
+         pointHoverRadius: 8,
+         pointHoverBackgroundColor: 'rgba(59, 130, 246, 1)',
+         pointHoverBorderColor: '#ffffff',
+         pointHoverBorderWidth: 3,
+       },
+     ];
+         datasets.push({
+       label: 'Previous',
+       data: comparisonData,
+       borderColor: 'rgba(156, 163, 175, 0.8)', // gray-400
+       backgroundColor: (context: any) => {
+         const chart = context.chart;
+         const { ctx, chartArea } = chart;
+         if (!chartArea) {
+           return 'rgba(156, 163, 175, 0.2)';
+         }
+         const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+         gradient.addColorStop(0, 'rgba(156, 163, 175, 0.2)');
+         gradient.addColorStop(0.5, 'rgba(156, 163, 175, 0.4)');
+         gradient.addColorStop(1, 'rgba(156, 163, 175, 0.6)');
+         return gradient;
+       },
+       borderWidth: 2,
+       fill: true,
+       tension: 0.4,
+       pointBackgroundColor: 'rgba(156, 163, 175, 0.8)',
+       pointBorderColor: '#ffffff',
+       pointBorderWidth: 1,
+       pointRadius: 4,
+       pointHoverRadius: 6,
+       pointHoverBackgroundColor: 'rgba(156, 163, 175, 0.8)',
+       pointHoverBorderColor: '#ffffff',
+       pointHoverBorderWidth: 2,
+     });
     return {
       labels: currentPeriodCounts.map((item: any) => item.label),
       datasets,
@@ -320,7 +321,7 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
   }, [chartData]);
 
   return (
-    <Card className="group relative overflow-hidden border-2 border-blue-200 dark:border-blue-800 hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm">
+    <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm">
       <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
       <CardHeader className="relative pb-3">
         <div className="flex items-center justify-between">
@@ -346,15 +347,15 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
             </Select>
             {periodType === 'pastN' && (
               <div className="flex items-center gap-1">
-                <input
-                  type="number"
-                  min={1}
-                  max={100}
-                  value={periodN}
-                  onChange={e => setPeriodN(Number(e.target.value))}
-                  className="w-16 h-8 text-xs border rounded px-2"
-                  style={{ minWidth: 40 }}
-                />
+                                 <input
+                   type="number"
+                   min={1}
+                   max={100}
+                   value={periodN}
+                   onChange={e => setPeriodN(Number(e.target.value))}
+                   className="w-16 h-8 text-xs border border-input bg-background text-foreground rounded-md px-2 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                   style={{ minWidth: 40 }}
+                 />
                 <Select value={periodUnit} onValueChange={v => setPeriodUnit(v as any)}>
                   <SelectTrigger className="w-28 h-8 text-xs">
                     <SelectValue />
@@ -446,94 +447,98 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
               <p className="text-sm">No application data available</p>
             </div>
           ) : (
-            <Line
-              data={chartData}
-              options={{
-                responsive: true,
-                maintainAspectRatio: false,
-                layout: {
-                  padding: {
-                    top: 20,
-                    bottom: 20
-                  }
-                },
-                plugins: {
-                  legend: {
-                    display: true,
-                    position: 'top' as const,
-                    labels: {
-                      color: 'rgb(100, 116, 139)',
-                      font: { size: 12 },
-                      usePointStyle: true,
-                      padding: 15
-                    }
-                  },
-                  tooltip: {
-                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                    titleColor: 'white',
-                    bodyColor: 'white',
-                    borderColor: 'rgba(59, 130, 246, 0.3)',
-                    borderWidth: 1,
-                    callbacks: {
-                      label: function(context) {
-                        return ` ${context.dataset.label}: ${context.parsed.y} applications`;
-                      }
-                    }
-                  },
-                  datalabels: {
-                    display: true,
-                    color: '#374151',
-                    font: {
-                      weight: 'bold',
-                      size: 11
-                    },
-                    formatter: function(value: number) {
-                      return value > 0 ? value : '';
-                    },
-                    anchor: 'end',
-                    align: 'top',
-                    offset: 4
-                  }
-                },
-                scales: {
-                  x: {
-                    grid: { 
-                      color: 'rgba(100,116,139,0.1)',
-                      display: false
-                    },
-                    ticks: { 
-                      color: 'rgb(100, 116, 139)', 
-                      font: { size: 11 },
-                      maxRotation: 45
-                    },
-                  },
-                  y: {
-                    beginAtZero: true,
-                                        grid: {
-                      color: 'rgba(100,116,139,0.1)',
-                    },
-                    ticks: { 
-                      color: 'rgb(100, 116, 139)', 
-                      font: { size: 11 },
-                      stepSize: 1
-                    },
-                    suggestedMax: (() => {
-                      const maxValue = Math.max(...chartData.datasets.flatMap(dataset => dataset.data));
-                      return maxValue * 10;
-                    })(),
-                  },
-                },
-                interaction: {
-                  intersect: false,
-                  mode: 'index' as const,
-                },
-                elements: {
-                  point: {
-                    hoverRadius: 8,
-                  },
-                },
-              }}
-            />
+                         <Line
+               data={chartData}
+               options={{
+                 responsive: true,
+                 maintainAspectRatio: false,
+                 layout: {
+                   padding: {
+                     top: 20,
+                     bottom: 20
+                   }
+                 },
+                 plugins: {
+                   legend: {
+                     display: true,
+                     position: 'top' as const,
+                     labels: {
+                       color: 'rgb(100, 116, 139)',
+                       font: { size: 12 },
+                       usePointStyle: true,
+                       padding: 15
+                     }
+                   },
+                   tooltip: {
+                     backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                     titleColor: 'white',
+                     bodyColor: 'white',
+                     borderColor: 'rgba(59, 130, 246, 0.3)',
+                     borderWidth: 1,
+                     callbacks: {
+                       label: function(context) {
+                         return ` ${context.dataset.label}: ${context.parsed.y} applications`;
+                       }
+                     }
+                   },
+                   datalabels: {
+                     display: true,
+                     color: '#374151',
+                     font: {
+                       weight: 'bold',
+                       size: 11
+                     },
+                     formatter: function(value: number) {
+                       return value > 0 ? value : '';
+                     },
+                     anchor: 'end',
+                     align: 'top',
+                     offset: 4
+                   }
+                 },
+                 scales: {
+                   x: {
+                     grid: { 
+                       color: 'rgba(100,116,139,0.1)',
+                       display: false
+                     },
+                     ticks: { 
+                       color: 'rgb(100, 116, 139)', 
+                       font: { size: 11 },
+                       maxRotation: 45
+                     },
+                   },
+                   y: {
+                     beginAtZero: true,
+                     grid: {
+                       color: 'rgba(100,116,139,0.1)',
+                     },
+                     ticks: { 
+                       color: 'rgb(100, 116, 139)', 
+                       font: { size: 11 },
+                       stepSize: 1
+                     },
+                     suggestedMax: (() => {
+                       const maxValue = Math.max(...chartData.datasets.flatMap(dataset => dataset.data));
+                       // Use a more standard approach: add 20% padding to the max value
+                       return Math.ceil(maxValue * 1.2);
+                     })(),
+                   },
+                 },
+                 interaction: {
+                   intersect: false,
+                   mode: 'index' as const,
+                 },
+                 elements: {
+                   point: {
+                     hoverRadius: 8,
+                   },
+                   line: {
+                     tension: 0.4,
+                   },
+                 },
+               }}
+             />
           )}
         </div>
       </CardContent>

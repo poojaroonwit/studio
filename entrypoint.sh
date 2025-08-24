@@ -165,6 +165,14 @@ fi
 
 echo "✅ Database setup complete!"
 
-# Start the main application with processor
-echo "🚀 Starting main application with upload queue processor..."
+# Start the main application with processor and health check
+echo "🚀 Starting main application with upload queue processor and health check..."
+echo "📋 Services that will be started:"
+echo "  - Main Next.js application (port 8021)"
+echo "  - Upload queue processor (background)"
+echo "  - Health check service (Docker-optimized)"
+echo ""
+
+# Use concurrently to run all services together
+# This ensures all services start and stop together
 exec npm run start:with-processor 

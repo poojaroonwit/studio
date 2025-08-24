@@ -44,7 +44,7 @@ export function WarningProvider({ children }: { children: React.ReactNode }) {
 
     try {
       setIsLoading(true);
-      const response = await fetch('/api/warnings?limit=100');
+      const response = await fetch(`/api/warnings?limit=100&userId=${session.user.id}`);
       if (response.ok) {
         const data = await response.json();
         setWarnings(data);
@@ -76,6 +76,39 @@ export function WarningProvider({ children }: { children: React.ReactNode }) {
       console.error('Error checking entity warnings:', error);
     }
   }, [fetchWarnings]);
+
+  // Initialize warnings and trigger automatic check for existing data
+  useEffect(() => {
+    if (!session?.user) return;
+
+    // Fetch current warnings
+    fetchWarnings();
+
+    // Check if warning system needs initialization
+    const initializeWarningSystem = async () => {
+      try {
+        const response = await fetch('/api/warnings/initialize', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          if (result.initialized) {
+            console.log('✅ Warning system initialized automatically');
+            // Refresh warnings after initialization
+            setTimeout(() => fetchWarnings(), 2000);
+          }
+        }
+      } catch (error) {
+        console.error('Error initializing warning system:', error);
+      }
+    };
+
+    initializeWarningSystem();
+  }, [session?.user, fetchWarnings]);
 
   // Set up real-time updates using Server-Sent Events
   useEffect(() => {

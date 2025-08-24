@@ -17,6 +17,7 @@ import Image from 'next/image';
 import { Package2, ChevronRight, ChevronLeft } from "lucide-react";
 import packageJson from '../../../package.json';
 import { setThemeAndColors } from '@/lib/themeUtils';
+import { useTheme } from '@/hooks/use-theme';
 import { SidebarHeaderContent } from "./SidebarHeaderContent";
 import {
   Tooltip,
@@ -71,6 +72,9 @@ export function AppLayout({ children }: AppLayoutProps) {
   const pathname = usePathname();
   const [currentAppName, setCurrentAppName] = useState<string>(DEFAULT_APP_NAME);
   const pageTitle = pathname === "/auth/signin" ? "Sign In" : getPageTitle(pathname) || currentAppName; // Use currentAppName in title if needed
+  
+  // Initialize theme
+  const { mounted: themeMounted } = useTheme();
   
   const [appLogoUrl, setAppLogoUrl] = useState<string | null>(null); // MinIO URL, not data URL
   const [isClient, setIsClient] = useState(false);
@@ -255,7 +259,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   }, [pathname]);
 
   // Show loading while session is being fetched or validated
-  if (status === "loading" || (shouldValidateSession && isSessionValidating)) {
+  if (status === "loading" || (shouldValidateSession && isSessionValidating) || !themeMounted) {
     return <GlobalLoadingOverlay />;
   }
 

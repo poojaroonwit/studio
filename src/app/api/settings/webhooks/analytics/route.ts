@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Check permissions
-    const canViewWebhookAnalytics = session.user.role === 'Admin' || 
+    const canViewWebhookAnalytics = session.user.role === 'Admin' || session.user.modulePermissions?.includes('USERS_MANAGE') || 
       session.user.modulePermissions?.includes('WEBHOOK_ANALYTICS_VIEW');
     
     if (!canViewWebhookAnalytics) {

@@ -147,12 +147,18 @@ const SidebarNavComponent = function SidebarNav() {
   const [isPendingLoading, setIsPendingLoading] = React.useState(true);
   
   React.useEffect(() => {
+    // Only set up SSE if session is authenticated
+    if (sessionStatus !== 'authenticated' || !session?.user) {
+      return;
+    }
+
     let ignore = false;
     let eventSource: EventSource | null = null;
     let reconnectAttempts = 0;
     const maxReconnectAttempts = 5;
     const baseReconnectDelay = 1000;
     const maxReconnectDelay = 10000;
+    let pollingInterval: NodeJS.Timeout | null = null;
     
     async function fetchPending() {
       try {
@@ -202,9 +208,10 @@ const SidebarNavComponent = function SidebarNav() {
           }
         };
         
-        eventSource.onerror = () => {
+        eventSource.onerror = (error) => {
           if (!ignore) {
             setPendingError(true);
+            console.error('[SSE] Upload queue connection error:', error);
             
             // Attempt to reconnect if under max attempts
             if (reconnectAttempts < maxReconnectAttempts) {
@@ -217,6 +224,15 @@ const SidebarNavComponent = function SidebarNav() {
                   connectSSE();
                 }
               }, delay);
+            } else {
+              // Fall back to polling if SSE fails completely
+              console.log('[SSE] Max reconnect attempts reached, falling back to polling');
+              if (pollingInterval) clearInterval(pollingInterval);
+              pollingInterval = setInterval(() => {
+                if (!ignore) {
+                  fetchPending();
+                }
+              }, 10000); // Poll every 10 seconds as fallback
             }
           }
         };
@@ -234,13 +250,24 @@ const SidebarNavComponent = function SidebarNav() {
     // Set up SSE for real-time updates
     connectSSE();
 
+    // Set up periodic refresh as backup (every 30 seconds)
+    const refreshInterval = setInterval(() => {
+      if (!ignore) {
+        fetchPending();
+      }
+    }, 30000);
+
     return () => { 
       ignore = true; 
       if (eventSource) {
         eventSource.close();
       }
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+      }
+      clearInterval(refreshInterval);
     };
-  }, []);
+  }, [sessionStatus, session?.user]);
 
   React.useEffect(() => {
     setIsClient(true);
@@ -347,7 +374,7 @@ const SidebarNavComponent = function SidebarNav() {
               </SidebarMenuButton>
             </Link>
           </MenuItemWithTooltip>
-          {isClient && userRole && (userRole === 'Admin' || 
+          {isClient && userRole && ((userRole === 'Admin' || session?.user?.modulePermissions?.includes('USERS_MANAGE')) || 
             session?.user?.modulePermissions?.includes('TASK_BOARD_VIEW') || 
             session?.user?.modulePermissions?.includes('CANDIDATES_VIEW')) && (
             <MenuItemWithTooltip label={myTaskBoardNavItem.label}>
@@ -547,7 +574,7 @@ const SidebarNavComponent = function SidebarNav() {
             </Link>
           </MenuItemWithTooltip>
         </SidebarMenuItem>
-        {isClient && userRole && (userRole === 'Admin' || 
+        {isClient && userRole && ((userRole === 'Admin' || session?.user?.modulePermissions?.includes('USERS_MANAGE')) || 
           session?.user?.modulePermissions?.includes('TASK_BOARD_VIEW') || 
           session?.user?.modulePermissions?.includes('CANDIDATES_VIEW')) && (
           <SidebarMenuItem key={myTaskBoardNavItem.href}>

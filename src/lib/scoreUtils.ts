@@ -35,7 +35,7 @@ export function getScoreGrade(score: number | null | undefined): string | null {
   }
   let normalizedScore = 0;
   if (typeof score === 'number') {
-    if (score > 0 && score <= 1) {
+    if (score >= 0 && score <= 1) {
       normalizedScore = Math.round(score * 100);
     } else {
       normalizedScore = Math.round(score);
@@ -44,6 +44,12 @@ export function getScoreGrade(score: number | null | undefined): string | null {
   if (normalizedScore < 0 || normalizedScore > 100) {
     return null;
   }
+  
+  // Return null for 0 scores (not scored)
+  if (normalizedScore === 0) {
+    return null;
+  }
+  
   const grade = SCORE_GRADES.find(g => normalizedScore >= g.min && normalizedScore <= g.max);
   return grade ? grade.letter : null;
 }
@@ -59,7 +65,7 @@ export function getScoreGradeInfo(score: number | null | undefined): ScoreGrade 
   }
   let normalizedScore = 0;
   if (typeof score === 'number') {
-    if (score > 0 && score <= 1) {
+    if (score >= 0 && score <= 1) {
       normalizedScore = Math.round(score * 100);
     } else {
       normalizedScore = Math.round(score);
@@ -68,6 +74,12 @@ export function getScoreGradeInfo(score: number | null | undefined): ScoreGrade 
   if (normalizedScore < 0 || normalizedScore > 100) {
     return null;
   }
+  
+  // Return null for 0 scores (not scored)
+  if (normalizedScore === 0) {
+    return null;
+  }
+  
   return SCORE_GRADES.find(g => normalizedScore >= g.min && normalizedScore <= g.max) || null;
 }
 
@@ -100,12 +112,16 @@ export function formatScoreWithGrade(score: number | null | undefined): string {
   if (score === null || score === undefined) return 'N/A';
   let normalizedScore = 0;
   if (typeof score === 'number') {
-    if (score > 0 && score <= 1) {
+    if (score >= 0 && score <= 1) {
       normalizedScore = Math.round(score * 100);
     } else {
       normalizedScore = Math.round(score);
     }
   }
+  
+  // Handle 0 score as "Not scored" instead of "0% (E)"
+  if (normalizedScore === 0) return 'Not scored';
+  
   const grade = getScoreGrade(normalizedScore);
   return grade ? `${normalizedScore}% (${grade})` : `${normalizedScore}%`;
 }
@@ -133,7 +149,7 @@ export function normalizeFitScore(score: number | null | undefined): number {
   if (score === null || score === undefined) return 0;
   
   // If score is a decimal (0-1), convert to percentage
-  if (score > 0 && score < 1) return Math.round(score * 100);
+  if (score >= 0 && score <= 1) return Math.round(score * 100);
   
   // If score is already in 0-100 range, use as is
   if (score >= 0 && score <= 100) return Math.round(score);

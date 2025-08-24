@@ -11,33 +11,65 @@ import { z } from 'zod';
 export const dynamic = 'force-dynamic';
 
 
-// GET: List resumes for a candidate
+// GET: List resumes for a candidate (with pagination and performance optimization)
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const { id } = params;
+  const { searchParams } = new URL(req.url);
+  const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100); // Max 100 attachments per request
+  const offset = parseInt(searchParams.get('offset') || '0');
+  
   // Validate candidate ID format
   const uuidSchema = z.string().uuid();
   if (!uuidSchema.safeParse(id).success) {
     return NextResponse.json({ message: 'Invalid candidate ID format' }, { status: 400 });
   }
-  // Check if candidate exists
-  const candidate = await prisma.candidate.findUnique({ where: { id } });
-  if (!candidate) {
-    return NextResponse.json({ message: 'Candidate not found' }, { status: 404 });
-  }
+  
+  const startTime = Date.now();
+  
   try {
-    const attachments = await prisma.attachment.findMany({
-      where: { candidateId: id },
-      orderBy: { uploadedAt: 'desc' },
-      include: { uploadedBy: { select: { id: true, name: true, email: true } } },
-    });
+    // Use Promise.all to check candidate existence and fetch attachments in parallel
+    const [candidate, attachments] = await Promise.all([
+      prisma.candidate.findUnique({ where: { id }, select: { id: true } }),
+      prisma.attachment.findMany({
+        where: { candidateId: id },
+        orderBy: { uploadedAt: 'desc' },
+        take: limit,
+        skip: offset,
+        include: { uploadedBy: { select: { id: true, name: true, email: true } } },
+      })
+    ]);
+    
+    if (!candidate) {
+      return NextResponse.json({ message: 'Candidate not found' }, { status: 404 });
+    }
+    
     // Add public URL
     const attachmentsWithUrl = attachments.map((a: typeof attachments[0]) => ({
       ...a,
       url: `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${a.filePath}`
     }));
-    return NextResponse.json({ data: attachmentsWithUrl });
+    
+    const queryTime = Date.now() - startTime;
+    console.log(`[PERF] Resumes query completed in ${queryTime}ms (${attachments.length} attachments)`);
+    
+    if (queryTime > 3000) {
+      console.warn(`[PERF WARNING] Slow resumes query: ${queryTime}ms for candidate ${id}`);
+    }
+    
+    return NextResponse.json({ 
+      data: attachmentsWithUrl,
+      pagination: {
+        limit,
+        offset,
+        total: attachments.length,
+        hasMore: attachments.length === limit
+      }
+    });
   } catch (err) {
     console.error(`[GET /api/candidates/${id}/resumes] Error:`, err);
+    
+
+    
     return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
   }
 }

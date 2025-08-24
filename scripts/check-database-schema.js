@@ -92,7 +92,7 @@ async function checkDatabaseSchema() {
   try {
     const client = await pool.connect();
     
-    console.log('🔍 Checking database schema...\n');
+    console.log('Checking database schema...\n');
     
     // Check if tables exist
     const tables = await client.query(`
@@ -103,7 +103,7 @@ async function checkDatabaseSchema() {
       ORDER BY table_name
     `);
     
-    console.log('📋 Existing tables:');
+    console.log('Existing tables:');
     tables.rows.forEach(row => {
       console.log(`  - ${row.table_name}`);
     });
@@ -115,7 +115,7 @@ async function checkDatabaseSchema() {
     
     // Check SystemPrompt table structure
     if (tables.rows.some(row => row.table_name === 'SystemPrompt')) {
-      console.log('\n📝 SystemPrompt table structure:');
+      console.log('\nSystemPrompt table structure:');
       const systemPromptColumns = await client.query(`
         SELECT column_name, data_type, is_nullable, column_default
         FROM information_schema.columns 
@@ -129,20 +129,20 @@ async function checkDatabaseSchema() {
       
       // Check SystemPrompt data
       const systemPromptCount = await client.query('SELECT COUNT(*) as count FROM "SystemPrompt"');
-      console.log(`\n📊 SystemPrompt records: ${systemPromptCount.rows[0].count}`);
+      console.log(`\nSystemPrompt records: ${systemPromptCount.rows[0].count}`);
       
       if (systemPromptCount.rows[0].count > 0) {
-        const samplePrompts = await client.query('SELECT id, name, "categoryId", category FROM "SystemPrompt" LIMIT 3');
+        const samplePrompts = await client.query('SELECT id, name, "categoryId" FROM "SystemPrompt" LIMIT 3');
         console.log('Sample records:');
         samplePrompts.rows.forEach(prompt => {
-          console.log(`  - ${prompt.name} (categoryId: ${prompt.categoryId}, category: ${prompt.category})`);
+          console.log(`  - ${prompt.name} (categoryId: ${prompt.categoryId})`);
         });
       }
     }
     
     // Check SystemPromptCategory table structure
     if (tables.rows.some(row => row.table_name === 'SystemPromptCategory')) {
-      console.log('\n📂 SystemPromptCategory table structure:');
+      console.log('\nSystemPromptCategory table structure:');
       const categoryColumns = await client.query(`
         SELECT column_name, data_type, is_nullable, column_default
         FROM information_schema.columns 
@@ -156,7 +156,7 @@ async function checkDatabaseSchema() {
       
       // Check SystemPromptCategory data
       const categoryCount = await client.query('SELECT COUNT(*) as count FROM "SystemPromptCategory"');
-      console.log(`\n📊 SystemPromptCategory records: ${categoryCount.rows[0].count}`);
+      console.log(`\nSystemPromptCategory records: ${categoryCount.rows[0].count}`);
       
       if (categoryCount.rows[0].count > 0) {
         const categories = await client.query('SELECT id, name, description FROM "SystemPromptCategory"');
@@ -170,7 +170,7 @@ async function checkDatabaseSchema() {
     }
     
     // Check foreign key constraints
-    console.log('\n🔗 Foreign key constraints:');
+    console.log('\nForeign key constraints:');
     const foreignKeys = await client.query(`
       SELECT 
         tc.constraint_name,
@@ -248,7 +248,7 @@ async function checkMigrationStatus() {
 
 async function main() {
     console.log('');
-    log('🔍 Database Health Check', 'blue');
+    log('Database Health Check', 'blue');
     console.log('');
     
     // Check if DATABASE_URL is configured

@@ -1,0 +1,104 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { WarningService } from '@/lib/warningService';
+import prisma from '@/lib/prisma';
+import { logAudit } from '@/lib/auditLog';
+
+export async function POST(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { entityType, entityId, checkAll } = await request.json();
+    const actingUserId = session.user.id;
+    const actingUserName = session.user.name || 'Unknown User';
+
+    console.log(`🔍 Triggering warning check for ${entityType || 'all'} ${entityId || 'entities'}`);
+
+    if (checkAll) {
+      // Check all entities for warnings
+      const results = await checkAllEntities(actingUserId);
+      
+      await logAudit('AUDIT', `Full warning check triggered by ${actingUserName}`, 'API:Warnings:Trigger', actingUserId, {
+        action: 'check_all',
+        results
+      });
+
+      return NextResponse.json({ 
+        success: true, 
+        message: 'Full warning check completed',
+        results
+      });
+    }
+
+    if (entityType && entityId) {
+      // Check specific entity
+      await WarningService.createOrUpdateWarnings(entityType, entityId, actingUserId);
+      
+      await logAudit('AUDIT', `Warning check triggered for ${entityType} ${entityId} by ${actingUserName}`, 'API:Warnings:Trigger', actingUserId, {
+        action: 'check_entity',
+        entityType,
+        entityId
+      });
+
+      return NextResponse.json({ 
+        success: true, 
+        message: `Warning check completed for ${entityType} ${entityId}`
+      });
+    }
+
+    return NextResponse.json({ error: 'Invalid parameters' }, { status: 400 });
+
+  } catch (error) {
+    console.error('Error triggering warning check:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+async function checkAllEntities(userId: string) {
+  const results = {
+    candidates: { checked: 0, warningsCreated: 0, warningsCleared: 0 },
+    positions: { checked: 0, warningsCreated: 0, warningsCleared: 0 },
+    headcounts: { checked: 0, warningsCreated: 0, warningsCleared: 0 }
+  };
+
+  try {
+    // Check all candidates
+    const candidates = await prisma.candidate.findMany({
+      select: { id: true }
+    });
+    
+    for (const candidate of candidates) {
+      await WarningService.createOrUpdateWarnings('candidate', candidate.id, userId);
+      results.candidates.checked++;
+    }
+
+    // Check all positions
+    const positions = await prisma.position.findMany({
+      select: { id: true }
+    });
+    
+    for (const position of positions) {
+      await WarningService.createOrUpdateWarnings('position', position.id, userId);
+      results.positions.checked++;
+    }
+
+    // Check all headcounts
+    const headcounts = await prisma.headcount.findMany({
+      select: { id: true }
+    });
+    
+    for (const headcount of headcounts) {
+      await WarningService.createOrUpdateWarnings('headcount', headcount.id, userId);
+      results.headcounts.checked++;
+    }
+
+  } catch (error) {
+    console.error('Error in checkAllEntities:', error);
+  }
+
+  return results;
+}

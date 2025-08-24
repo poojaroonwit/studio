@@ -36,6 +36,7 @@ export interface PositionsPreferences {
 
 export interface AppearancePreferences {
   personalColor: string;
+  themePreference: 'light' | 'dark' | 'system';
 }
 
 export interface UserPreferences {
@@ -79,6 +80,7 @@ const defaultPositionsPreferences: PositionsPreferences = {
 
 const defaultAppearancePreferences: AppearancePreferences = {
   personalColor: '#3B82F6',
+  themePreference: 'system',
 };
 
 const defaultPreferences: UserPreferences = {

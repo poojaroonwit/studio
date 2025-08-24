@@ -36,6 +36,7 @@ import { NewApplicationsTimeSeriesChart } from './NewApplicationsTimeSeriesChart
 import { SCORE_COLOR_STOPS } from '@/components/ui/score-color';
 import { SLAViolationsWidget } from './SLAViolationsWidget';
 import { useDynamicHeight } from '@/hooks/use-dynamic-height';
+import { PositionDetailDrawer } from '@/components/positions/PositionDetailDrawer';
 import '@/lib/chartjs-setup';
 
 
@@ -62,9 +63,12 @@ export default function DashboardPageClient({
   // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
   const { data: session, status } = useSession();
   const router = useRouter();
-  const { height: slaHeight, elementRef: slaRef } = useDynamicHeight();
+  const { height: sharedHeight, elementRef: sharedRef } = useDynamicHeight({
+    minHeight: 400,
+    maxHeight: 1200
+  });
   
-  const [allCandidates, setAllCandidates] = useState<Candidate[]>(initialCandidates || []);
+  const [filteredCandidates, setFilteredCandidates] = useState<Candidate[]>(initialCandidates || []);
   const [myAssignedCandidates, setMyAssignedCandidates] = useState<Candidate[]>(initialCandidates || []); // For Recruiter, initialCandidates *are* their assigned ones
   const [allPositions, setAllPositions] = useState<Position[]>(initialPositions || []);
   const [allUsers, setAllUsers] = useState<UserProfile[]>(initialUsers || []);
@@ -73,9 +77,13 @@ export default function DashboardPageClient({
   const [fetchError, setFetchError] = useState<string | null>(initialFetchError || null);
   const [authError, setAuthError] = useState(serverAuthError);
   const [permissionError, setPermissionError] = useState(serverPermissionError);
+  
+  // Position drawer state
+  const [selectedPositionId, setSelectedPositionId] = useState<string | null>(null);
+  const [isPositionDrawerOpen, setIsPositionDrawerOpen] = useState(false);
 
   // Check permissions
-  const canViewDashboard = session?.user?.role === 'Admin' || 
+  const canViewDashboard = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('USERS_MANAGE') || 
     session?.user?.modulePermissions?.includes('DASHBOARD_VIEW');
   
   // EARLY RETURNS MOVED TO AFTER ALL HOOKS
@@ -115,7 +123,7 @@ export default function DashboardPageClient({
     try {
       const fetchOptions = { credentials: 'include' as const };
       const promises = [];
-      if (userRole === 'Admin' || userRole === 'Hiring Manager') {
+      if (userRole === 'Admin' || userRole === 'Hiring Manager' || session?.user?.modulePermissions?.includes('USERS_MANAGE')) {
         promises.push(fetch('/api/candidates', fetchOptions));
         promises.push(fetch('/api/users', fetchOptions));
         promises.push(Promise.resolve(null));
@@ -133,11 +141,11 @@ export default function DashboardPageClient({
       if (candidatesResOrNull && !candidatesResOrNull.ok) {
         const errorText = candidatesResOrNull.statusText || `Status: ${candidatesResOrNull.status}`;
         accumulatedFetchError += `Failed to fetch candidates: ${errorText}. `;
-        if (userRole === 'Admin' || userRole === 'Hiring Manager') setAllCandidates([]); else setMyAssignedCandidates([]);
+        if (userRole === 'Admin' || userRole === 'Hiring Manager' || session?.user?.modulePermissions?.includes('USERS_MANAGE')) setFilteredCandidates([]); else setMyAssignedCandidates([]);
       } else if (candidatesResOrNull) {
         const response = await candidatesResOrNull.json();
         const candidatesData: Candidate[] = Array.isArray(response.data) ? response.data : (Array.isArray(response) ? response : []);
-        if (userRole === 'Admin' || userRole === 'Hiring Manager') setAllCandidates(candidatesData); else setMyAssignedCandidates(candidatesData);
+        if (userRole === 'Admin' || userRole === 'Hiring Manager' || session?.user?.modulePermissions?.includes('USERS_MANAGE')) setFilteredCandidates(candidatesData); else setMyAssignedCandidates(candidatesData);
       }
 
       if (usersResOrNull && !usersResOrNull.ok) { 
@@ -177,7 +185,7 @@ export default function DashboardPageClient({
     } catch (error) {
       const genericMessage = (error as Error).message || "An unexpected error occurred.";
       setFetchError(genericMessage);
-      setAllCandidates([]); setMyAssignedCandidates([]); setAllPositions([]); setAllUsers([]); setMyBacklogCandidates([]);
+      setFilteredCandidates([]); setMyAssignedCandidates([]); setAllPositions([]); setAllUsers([]); setMyBacklogCandidates([]);
     } finally {
       setIsLoading(false);
     }
@@ -185,7 +193,7 @@ export default function DashboardPageClient({
 
   useEffect(() => {
     // Handle initial state passed from server component
-    setAllCandidates(initialCandidates || []);
+    setFilteredCandidates(initialCandidates || []);
     if (session?.user?.role === 'Recruiter') {
       setMyAssignedCandidates(initialCandidates || []); // For recruiter, initial IS their assigned
       setMyBacklogCandidates((initialCandidates || []).filter(c => !BACKLOG_EXCLUSION_STATUSES.includes(c.status)));
@@ -229,9 +237,9 @@ export default function DashboardPageClient({
   }, [fetchDataClientSide]);
 
   const totalActiveCandidates = useMemo(() => {
-    const safeAllCandidates = Array.isArray(allCandidates) ? allCandidates : [];
+    const safeAllCandidates = Array.isArray(filteredCandidates)? filteredCandidates : [];
     return safeAllCandidates.filter((c: Candidate) => !BACKLOG_EXCLUSION_STATUSES.includes(c.status)).length;
-  }, [allCandidates]);
+  }, [filteredCandidates]);
   const totalOpenPositions = useMemo(() => {
     const safeAllPositions = Array.isArray(allPositions) ? allPositions : [];
     return safeAllPositions.filter((p: Position) => p.isOpen).length;
@@ -243,7 +251,7 @@ export default function DashboardPageClient({
     return safeAllPositions.filter((p: Position) => p.isOpen);
   }, [allPositions]);
   const hiredThisMonthAdmin = useMemo(() => {
-    const safeAllCandidates = Array.isArray(allCandidates) ? allCandidates : [];
+    const safeAllCandidates = Array.isArray(filteredCandidates)? filteredCandidates : [];
     const now = new Date();
     return safeAllCandidates.filter((c: Candidate) => {
       if (c.status !== 'Hired' || !c.applicationDate || typeof c.applicationDate !== 'string') return false;
@@ -252,10 +260,10 @@ export default function DashboardPageClient({
         return appDate.getMonth() === now.getMonth() && appDate.getFullYear() === now.getFullYear();
       } catch { return false; }
     }).length;
-  }, [allCandidates]);
+  }, [filteredCandidates]);
 
   const rejectedThisMonthAdmin = useMemo(() => {
-    const safeAllCandidates = Array.isArray(allCandidates) ? allCandidates : [];
+    const safeAllCandidates = Array.isArray(filteredCandidates)? filteredCandidates : [];
     const now = new Date();
     return safeAllCandidates.filter((c: Candidate) => {
       if (c.status !== 'Rejected' || !c.applicationDate || typeof c.applicationDate !== 'string') return false;
@@ -264,28 +272,28 @@ export default function DashboardPageClient({
         return appDate.getMonth() === now.getMonth() && appDate.getFullYear() === now.getFullYear();
       } catch { return false; }
     }).length;
-  }, [allCandidates]);
+  }, [filteredCandidates]);
   const totalActiveRecruiters = useMemo(() => {
     const safeAllUsers = Array.isArray(allUsers) ? allUsers : [];
     return safeAllUsers.filter((u: UserProfile) => u.role === 'Recruiter').length;
   }, [allUsers]);
   const newCandidatesTodayAdminList = useMemo(() => {
-    const safeAllCandidates = Array.isArray(allCandidates) ? allCandidates : [];
+    const safeAllCandidates = Array.isArray(filteredCandidates)? filteredCandidates : [];
     return safeAllCandidates.filter((c: Candidate) => {
       try {
         if (!c.applicationDate || typeof c.applicationDate !== 'string') return false;
         return isToday(parseISO(c.applicationDate));
       } catch { return false; }
     });
-  }, [allCandidates]);
+  }, [filteredCandidates]);
   const openPositionsWithNoCandidates = useMemo(() => {
     const safeAllPositions = Array.isArray(allPositions) ? allPositions : [];
-    const safeAllCandidates = Array.isArray(allCandidates) ? allCandidates : [];
+    const safeAllCandidates = Array.isArray(filteredCandidates)? filteredCandidates : [];
     return safeAllPositions.filter((position: Position) => {
       if (!position.isOpen) return false;
       return !safeAllCandidates.some(candidate => candidate.positionId === position.id);
     });
-  }, [allPositions, allCandidates]);
+  }, [allPositions, filteredCandidates]);
 
   const myActiveCandidatesList = useMemo(() => {
     const safeMyAssignedCandidates = Array.isArray(myAssignedCandidates) ? myAssignedCandidates : [];
@@ -311,7 +319,7 @@ export default function DashboardPageClient({
 
   // Derived statistics from processed data
   const candidateScoreRanges = useMemo(() => {
-    const safeAllCandidates = Array.isArray(allCandidates) ? allCandidates : [];
+    const safeAllCandidates = Array.isArray(filteredCandidates)? filteredCandidates : [];
     const scoreRanges = getScoreRangesForChart();
     const scoreRangeCounts: { [key: string]: number } = {};
     
@@ -330,25 +338,25 @@ export default function DashboardPageClient({
       count: scoreRangeCounts[range.label] || 0,
       letter: range.letter
     }));
-  }, [allCandidates]);
+  }, [filteredCandidates]);
 
   const unassignedCandidatesCount = useMemo(() => {
-    const safeAllCandidates = Array.isArray(allCandidates) ? allCandidates : [];
+    const safeAllCandidates = Array.isArray(filteredCandidates)? filteredCandidates : [];
     return safeAllCandidates.filter((c: Candidate) => 
       !BACKLOG_EXCLUSION_STATUSES.includes(c.status) && !c.recruiterId
     ).length;
-  }, [allCandidates]);
+  }, [filteredCandidates]);
 
   const unassignedCandidatesList = useMemo(() => {
-    const safeAllCandidates = Array.isArray(allCandidates) ? allCandidates : [];
+    const safeAllCandidates = Array.isArray(filteredCandidates)? filteredCandidates : [];
     return safeAllCandidates.filter((c: Candidate) => 
       !BACKLOG_EXCLUSION_STATUSES.includes(c.status) && !c.recruiterId
     );
-  }, [allCandidates]);
+  }, [filteredCandidates]);
 
   // Calculate Average Time to Hire (in days)
   const averageTimeToHire = useMemo(() => {
-    const safeAllCandidates = Array.isArray(allCandidates) ? allCandidates : [];
+    const safeAllCandidates = Array.isArray(filteredCandidates)? filteredCandidates : [];
     const hiredCandidates = safeAllCandidates.filter((c: Candidate) => 
       c.status === 'Hired' && c.applicationDate && typeof c.applicationDate === 'string'
     );
@@ -373,10 +381,10 @@ export default function DashboardPageClient({
 
     // Return float with two decimals
     return parseFloat((totalDays / hiredCandidates.length).toFixed(2));
-  }, [allCandidates]);
+  }, [filteredCandidates]);
 
   const highPriorityCandidates = useMemo(() => {
-    const safeAllCandidates = Array.isArray(allCandidates) ? allCandidates : [];
+    const safeAllCandidates = Array.isArray(filteredCandidates)? filteredCandidates : [];
     return safeAllCandidates.filter((c: Candidate) => {
       if (BACKLOG_EXCLUSION_STATUSES.includes(c.status)) return false;
       let appliedFitScore: number | undefined = undefined;
@@ -392,10 +400,10 @@ export default function DashboardPageClient({
       }
       return typeof appliedFitScore === 'number' && appliedFitScore >= 80;
     });
-  }, [allCandidates]);
+  }, [filteredCandidates]);
 
   const recentApplications = useMemo(() => {
-    const safeAllCandidates = Array.isArray(allCandidates) ? allCandidates : [];
+    const safeAllCandidates = Array.isArray(filteredCandidates)? filteredCandidates : [];
     const now = new Date();
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     
@@ -406,11 +414,11 @@ export default function DashboardPageClient({
         return appDate >= sevenDaysAgo && appDate <= now;
       } catch { return false; }
     });
-  }, [allCandidates]);
+  }, [filteredCandidates]);
 
   // Stage summary metrics
   const stageSummary = useMemo(() => {
-    const safeAllCandidates = Array.isArray(allCandidates) ? allCandidates : [];
+    const safeAllCandidates = Array.isArray(filteredCandidates)? filteredCandidates : [];
     const stageCounts: { [key: string]: number } = {};
     
     safeAllCandidates.forEach((candidate: Candidate) => {
@@ -424,7 +432,7 @@ export default function DashboardPageClient({
       stage,
       count
     })).sort((a, b) => b.count - a.count);
-  }, [allCandidates]);
+  }, [filteredCandidates]);
 
   // New candidates assigned to me today (for recruiter) - optimized
   const newCandidatesAssignedToMeToday = useMemo(() => {
@@ -446,11 +454,11 @@ export default function DashboardPageClient({
 
   // On-process candidates (not in BACKLOG_EXCLUSION_STATUSES)
   const onProcessCandidates = useMemo(() => {
-    const safeAllCandidates = Array.isArray(allCandidates) ? allCandidates : [];
+    const safeAllCandidates = Array.isArray(filteredCandidates)? filteredCandidates : [];
     return safeAllCandidates.filter(
       (c) => !BACKLOG_EXCLUSION_STATUSES.includes(c.status)
     );
-  }, [allCandidates]);
+  }, [filteredCandidates]);
 
   // Pie chart: On-process by stage
   const onProcessByStage = useMemo(() => {
@@ -486,7 +494,7 @@ export default function DashboardPageClient({
   if (permissionError) return ( <div className="flex flex-col items-center justify-center h-[calc(100vh-10rem)] text-center p-4"> <ServerCrash className="w-16 h-16 text-destructive mb-4" /> <h2 className="text-2xl font-semibold text-foreground mb-2">Permission Denied</h2> <p className="text-muted-foreground mb-4 max-w-md">{fetchError || "You do not have permission to view this page."}</p> <Button onClick={() => router.push('/')} className="btn-hover-primary-gradient">Go to Home</Button> </div> );
   if (fetchError && !isLoading && initialFetchError) return ( <div className="flex flex-col items-center justify-center h-[calc(100vh-10rem)] text-center"> <ServerCrash className="w-16 h-16 text-destructive mb-4" /> <h2 className="text-2xl font-semibold text-foreground mb-2">Data Loading Error</h2> <p className="text-muted-foreground mb-6 max-w-md"> Could not load dashboard data: {fetchError} </p> <Button onClick={fetchDataClientSide} className="btn-hover-primary-gradient">Try Again</Button> </div> );
   // Show loading state only for initial load, not for statistics calculations
-  if (isLoading && (!allCandidates.length && !allPositions.length)) return ( <div className="flex h-screen w-screen items-center justify-center bg-background fixed inset-0 z-50"> <Loader2 className="h-16 w-16 animate-spin text-primary" /> </div> );
+  if (isLoading && (!filteredCandidates.length && !allPositions.length)) return ( <div className="flex h-screen w-screen items-center justify-center bg-background fixed inset-0 z-50"> <Loader2 className="h-16 w-16 animate-spin text-primary" /> </div> );
 
   // Unified Dashboard - Show all metrics to everyone
   return (
@@ -741,157 +749,153 @@ export default function DashboardPageClient({
         {/* Separator */}
         <div className="border-t border-border/50 my-8"></div>
 
-        {/* New Applications + SLA side-by-side (70/30) */}
-        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-10">
-          <div className="lg:col-span-7">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center space-x-3">
-                <div className="h-8 w-1 bg-gradient-to-b from-blue-500 to-blue-400 rounded-full"></div>
-                <div>
-                  <h2 className="text-2xl font-bold text-foreground">New Applications Over Time</h2>
-                  <p className="text-sm text-muted-foreground mt-1">Track application trends and patterns</p>
-                </div>
-              </div>
+                 {/* New Applications + Candidate Scoring Analysis + SLA Monitoring Layout */}
+         <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-12">
+           {/* Left side - 2 rows */}
+           <div className="lg:col-span-7 space-y-6">
+             {/* Row 1: New Applications Over Time */}
+             <div>
+               <NewApplicationsTimeSeriesChart 
+                 candidates={filteredCandidates} 
+                 isLoading={isLoading}
+                 dynamicHeight={sharedHeight - 380}
+               />
+             </div>
+
+             {/* Row 2: Candidate Scoring Analysis */}
+             <div>
+              <Card className="shadow-sm hover:shadow-md transition-all duration-200">
+                <CardHeader className="pb-3">
+                                     <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
+                     <BarChart3 className="h-5 w-5 text-green-500" />
+                     Candidate Score Distribution
+                   </CardTitle>
+                   <CardDescription className="text-muted-foreground/70 text-xs">
+                     Distribution by fit score quality
+                   </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-3">
+                  {isLoading ? (
+                    <div className="h-[200px] flex items-center justify-center">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                  ) : (
+                    <Bar
+                      data={{
+                        labels: (() => {
+                          // Sort by grade order: A, B, C, D, E
+                          const gradeOrder = ['A', 'B', 'C', 'D', 'E'];
+                          return [...candidateScoreRanges].sort((a, b) => {
+                            const aGrade = a.letter || a.label[0];
+                            const bGrade = b.letter || b.label[0];
+                            return gradeOrder.indexOf(aGrade) - gradeOrder.indexOf(bGrade);
+                          }).map(r => r.label);
+                        })(),
+                        datasets: [
+                          {
+                            label: 'Candidates',
+                            data: (() => {
+                              // Sort by grade order: A, B, C, D, E
+                              const gradeOrder = ['A', 'B', 'C', 'D', 'E'];
+                              return [...candidateScoreRanges].sort((a, b) => {
+                                const aGrade = a.letter || a.label[0];
+                                const bGrade = b.letter || b.label[0];
+                                return gradeOrder.indexOf(aGrade) - gradeOrder.indexOf(bGrade);
+                              }).map(r => r.count);
+                            })(),
+                            backgroundColor: [
+                              'rgba(163, 230, 53, 0.8)',   // lime-400 (A grade)
+                              'rgba(250, 204, 21, 0.8)',   // yellow-400 (B grade)
+                              'rgba(254, 240, 138, 0.8)',  // yellow-200 (C grade)
+                              'rgba(251, 146, 60, 0.8)',   // orange-400 (D grade)
+                              'rgba(248, 113, 113, 0.8)',  // red-400 (E grade)
+                            ],
+                            borderRadius: 8,
+                            borderSkipped: false,
+                            barPercentage: 0.7,
+                          },
+                        ],
+                      }}
+                      options={{
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                          legend: { display: false },
+                          title: { display: false },
+                          tooltip: {
+                            callbacks: {
+                              label: function(context) {
+                                return ` ${context.parsed.x} candidates`;
+                              }
+                            }
+                          },
+                          datalabels: {
+                            anchor: 'end',
+                            align: 'end',
+                            color: '#22223b',
+                            font: { weight: 'bold', size: 14 },
+                            formatter: function(value) {
+                              return value;
+                            }
+                          }
+                        },
+                        onClick: (event, elements) => {
+                          if (elements.length > 0) {
+                            const index = elements[0].index;
+                            // Sort by grade order: A, B, C, D, E
+                            const gradeOrder = ['A', 'B', 'C', 'D', 'E'];
+                            const sortedScoreRanges = [...candidateScoreRanges].sort((a, b) => {
+                              const aGrade = a.letter || a.label[0];
+                              const bGrade = b.letter || b.label[0];
+                              return gradeOrder.indexOf(aGrade) - gradeOrder.indexOf(bGrade);
+                            });
+                            const range = sortedScoreRanges[index];
+                            if (range) {
+                              // Get the original score ranges to find min/max values
+                              const scoreRanges = getScoreRangesForChart();
+                              const originalRange = scoreRanges.find(r => r.label === range.label);
+                              if (originalRange) {
+                                const query = `minAppliedJobFitScore:${originalRange.min} maxAppliedJobFitScore:${originalRange.max}`;
+                                router.push('/candidates?query=' + encodeURIComponent(query));
+                              }
+                            }
+                          }
+                        },
+                        scales: {
+                          x: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(100,116,139,0.1)' },
+                            ticks: { color: '#64748b', font: { size: 13 } },
+                          },
+                          y: {
+                            grid: { display: false },
+                            ticks: { color: '#64748b', font: { size: 13 } },
+                          },
+                        },
+                      }}
+                      height={200}
+                    />
+                  )}
+                </CardContent>
+              </Card>
             </div>
-            <NewApplicationsTimeSeriesChart 
-              candidates={allCandidates} 
-              isLoading={isLoading}
-              dynamicHeight={slaHeight}
-            />
           </div>
-          <div className="lg:col-span-3" ref={slaRef}>
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center space-x-3">
-                <div className="h-8 w-1 bg-gradient-to-b from-orange-500 to-red-500 rounded-full"></div>
-                <div>
-                  <h2 className="text-2xl font-bold text-foreground">SLA Monitoring</h2>
-                  <p className="text-sm text-muted-foreground mt-1">Track hiring timeline violations</p>
-                </div>
-              </div>
-            </div>
-           
-              {/* <div className="absolute inset-0 bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950/50 dark:to-orange-900/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div> */}
-              <div className="relative  space-y-4 overflow-y-auto">
+
+                                 {/* Right side - SLA Monitoring (full height) */}
+            <div className="lg:col-span-5" ref={sharedRef}>
+              <div className="relative space-y-4 overflow-y-auto max-h-[1200px]" style={{ height: `${sharedHeight}px` }}>
                 <SLAViolationsWidget />
                 {session?.user?.role === 'Recruiter' && (
                   <SLAViolationsWidget recruiterId={session.user.id} />
                 )}
               </div>
-           
-          </div>
+            </div>
         </div>
       </div>
 
       {/* Separator */}
       <div className="border-t border-border/50 my-8"></div>
-
-      {/* Section 2.5: Candidate Scoring Analysis - Chart.js Horizontal Bar Chart */}
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="h-8 w-1 bg-gradient-to-b from-blue-500 to-blue-400 rounded-full"></div>
-            <div>
-              <h2 className="text-2xl font-bold text-foreground">Candidate Scoring Analysis</h2>
-              <p className="text-sm text-muted-foreground mt-1">Distribution by fit score quality</p>
-            </div>
-          </div>
-        </div>
-        <p className="text-sm text-muted-foreground mb-4">This chart shows the distribution of candidates by their fit score, helping you quickly identify the quality mix in your pipeline.</p>
-        {/* Sort score ranges by count descending */}
-        {(() => {
-          // Sort by grade order: A, B, C, D, E
-          const gradeOrder = ['A', 'B', 'C', 'D', 'E'];
-          const sortedScoreRanges = [...candidateScoreRanges].sort((a, b) => {
-            const aGrade = a.letter || a.label[0];
-            const bGrade = b.letter || b.label[0];
-            return gradeOrder.indexOf(aGrade) - gradeOrder.indexOf(bGrade);
-          });
-          return (
-            <Card className="shadow-sm hover:shadow-md transition-all duration-200">
-              <CardContent className="pt-6">
-                {isLoading ? (
-                  <div className="h-[300px] flex items-center justify-center">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  </div>
-                ) : (
-                <Bar
-                  data={{
-                    labels: sortedScoreRanges.map(r => r.label),
-                    datasets: [
-                      {
-                        label: 'Candidates',
-                        data: sortedScoreRanges.map(r => r.count),
-                        backgroundColor: [
-                          'rgba(163, 230, 53, 0.8)',   // lime-400 (A grade)
-                          'rgba(250, 204, 21, 0.8)',   // yellow-400 (B grade)
-                          'rgba(254, 240, 138, 0.8)',  // yellow-200 (C grade)
-                          'rgba(251, 146, 60, 0.8)',   // orange-400 (D grade)
-                          'rgba(248, 113, 113, 0.8)',  // red-400 (E grade)
-                        ],
-                        borderRadius: 8,
-                        borderSkipped: false,
-                        barPercentage: 0.7,
-                      },
-                    ],
-                  }}
-                  options={{
-                    indexAxis: 'y',
-                    responsive: true,
-                    plugins: {
-                      legend: { display: false },
-                      title: { display: false },
-                      tooltip: {
-                        callbacks: {
-                          label: function(context) {
-                            return ` ${context.parsed.x} candidates`;
-                          }
-                        }
-                      },
-                      datalabels: {
-                        anchor: 'end',
-                        align: 'end',
-                        color: '#22223b',
-                        font: { weight: 'bold', size: 14 },
-                        formatter: function(value) {
-                          return value;
-                        }
-                      }
-                    },
-                    onClick: (event, elements) => {
-                      if (elements.length > 0) {
-                        const index = elements[0].index;
-                        const range = sortedScoreRanges[index];
-                        if (range) {
-                          // Get the original score ranges to find min/max values
-                          const scoreRanges = getScoreRangesForChart();
-                          const originalRange = scoreRanges.find(r => r.label === range.label);
-                          if (originalRange) {
-                            const query = `minAppliedJobFitScore:${originalRange.min} maxAppliedJobFitScore:${originalRange.max}`;
-                            router.push('/candidates?query=' + encodeURIComponent(query));
-                          }
-                        }
-                      }
-                    },
-                    scales: {
-                      x: {
-                        beginAtZero: true,
-                        grid: { color: 'rgba(100,116,139,0.1)' },
-                        ticks: { color: '#64748b', font: { size: 13 } },
-                      },
-                      y: {
-                        grid: { display: false },
-                        ticks: { color: '#64748b', font: { size: 13 } },
-                      },
-                    },
-                  }}
-                  height={100}
-                />
-                )}
-              </CardContent>
-            </Card>
-          );
-        })()}
-      </div>
 
       {/* Section 3: Recruiter Performance (if applicable) */}
       {session?.user?.role === 'Recruiter' && (
@@ -1027,7 +1031,7 @@ export default function DashboardPageClient({
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Bar Chart: On-process by Stage */}
-          <Card className="group relative overflow-hidden border-2 border-purple-200 dark:border-purple-800 hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm">
+          <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm">
             <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/50 dark:to-purple-900/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             <CardHeader className="relative pb-3">
               <CardTitle className="text-base font-semibold text-foreground group-hover:text-foreground transition-colors">On-Process Candidates by Stage</CardTitle>
@@ -1099,7 +1103,7 @@ export default function DashboardPageClient({
           </Card>
 
           {/* Bar Chart: On-process by Recruiter */}
-          <Card className="group relative overflow-hidden border-2 border-purple-200 dark:border-purple-800 hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm">
+          <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm">
             <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/50 dark:to-purple-900/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             <CardHeader className="relative pb-3">
               <CardTitle className="text-base font-semibold text-foreground group-hover:text-foreground transition-colors">On-Process Candidates by Recruiter</CardTitle>
@@ -1263,9 +1267,15 @@ export default function DashboardPageClient({
                     {openPositionsWithNoCandidates.slice(0, 5).map(position => (
                       <TableRow key={position.id} className="hover:bg-muted/50">
                         <TableCell>
-                          <Link href={`/positions/${position.id}`} className="font-medium hover:underline">
+                          <button
+                            onClick={() => {
+                              setSelectedPositionId(position.id);
+                              setIsPositionDrawerOpen(true);
+                            }}
+                            className="font-medium hover:underline text-left cursor-pointer hover:text-primary/80 transition-colors"
+                          >
                             {position.title}
-                          </Link>
+                          </button>
                         </TableCell>
                         <TableCell>{position.department}</TableCell>
                         <TableCell>{position.positionLevel || 'N/A'}</TableCell>
@@ -1405,7 +1415,7 @@ export default function DashboardPageClient({
                           <TableCell>
                             <Badge variant="outline" className="capitalize">{candidate.status}</Badge>
                           </TableCell>
-                          <TableCell>{candidate.fitScore || 0}%</TableCell>
+                          <TableCell>{formatScoreWithGrade(candidate.fitScore)}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -1416,6 +1426,18 @@ export default function DashboardPageClient({
           </div>
         </div>
       )}
+      
+      {/* Position Detail Drawer */}
+      <PositionDetailDrawer
+        isOpen={isPositionDrawerOpen}
+        onOpenChange={(open) => {
+          setIsPositionDrawerOpen(open);
+          if (!open) {
+            setSelectedPositionId(null);
+          }
+        }}
+        positionId={selectedPositionId}
+      />
         </div>
       );}
 

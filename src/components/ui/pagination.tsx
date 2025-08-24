@@ -21,7 +21,7 @@ export function Pagination({
   total,
   onPageChange,
   onPageSizeChange,
-  pageSizeOptions = [20, 50, 100, 200, 500],
+  pageSizeOptions = [20, 50, 100, 200, 500, 1000],
   showPageSizeSelector = true,
   className = "",
 }: PaginationProps) {

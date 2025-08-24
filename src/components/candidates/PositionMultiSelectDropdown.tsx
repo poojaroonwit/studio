@@ -164,8 +164,8 @@ export function PositionMultiSelectDropdown({
     }
   };
 
-  const handleRemovePosition = (positionId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleRemovePosition = (positionId: string, e?: React.MouseEvent | React.KeyboardEvent) => {
+    e?.stopPropagation();
     if (disabled) {
       return;
     }
@@ -179,238 +179,298 @@ export function PositionMultiSelectDropdown({
       return <span className="text-muted-foreground">{placeholder}</span>;
     }
     
-    if (selectedIds.size === 1) {
-      const position = selectedPositions[0];
-      
-      // Handle case where position might not be found yet (still loading or not in filtered results)
-      if (!position) {
-        return <span className="text-muted-foreground">Loading selected position...</span>;
-      }
-      
-      return (
-        <div className="flex items-center gap-2">
-          <span className="truncate text-foreground">{position.title}</span>
-          {showOpenStatus && (
-            <Badge 
-              variant={position.isOpen ? "default" : "secondary"}
+    return (
+      <div className="flex flex-wrap gap-1 flex-1">
+        {/* Show Not Applied badge first if selected */}
+        {hasNotApplied && (
+          <Badge
+            key="not-applied"
+            variant="secondary"
+            className="text-xs"
+          >
+            Not Applied
+            <button
+              type="button"
+              className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleRemovePosition('not-applied', e);
+                }
+              }}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              onClick={(e) => handleRemovePosition('not-applied', e)}
+            >
+              <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+            </button>
+          </Badge>
+        )}
+        {/* Show regular position badges */}
+        {selectedPositions.map((position) => (
+          position ? (
+            <Badge
+              key={position.id}
+              variant="secondary"
               className="text-xs"
             >
-              {position.isOpen ? "Open" : "Closed"}
-            </Badge>
-          )}
-        </div>
-      );
-    }
-    
-    return (
-      <div className="flex items-center gap-1">
-        <span className="text-foreground">{selectedIds.size} selected</span>
-        <div className="flex items-center gap-1 ml-2">
-          {/* Show Not Applied badge first if selected */}
-          {hasNotApplied && (
-            <Badge
-              key="not-applied"
-              variant="secondary"
-              className="text-xs px-1 py-0 h-5"
-            >
-              Not Applied
+              {position.title}
               <button
                 type="button"
-                onClick={(e) => {
-                  if (disabled) {
-            
-                    return;
+                className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleRemovePosition(position.id, e);
                   }
-                  handleRemovePosition('not-applied', e);
                 }}
-                className="ml-1 hover:bg-destructive hover:text-destructive-foreground rounded-full w-3 h-3 flex items-center justify-center"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onClick={(e) => handleRemovePosition(position.id, e)}
               >
-                <X className="w-2 h-2" />
+                <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
               </button>
             </Badge>
-          )}
-          {/* Show regular position badges */}
-          {selectedPositions.slice(0, hasNotApplied ? 1 : 2).map((position) => (
-            position ? (
-              <Badge
-                key={position.id}
-                variant="secondary"
-                className="text-xs px-1 py-0 h-5"
-              >
-                {position.title}
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    if (disabled) {
-                      return;
-                    }
-                    handleRemovePosition(position.id, e);
-                  }}
-                  className="ml-1 hover:bg-destructive hover:text-destructive-foreground rounded-full w-3 h-3 flex items-center justify-center"
-                >
-                  <X className="w-2 h-2" />
-                </button>
-              </Badge>
-            ) : null
-          ))}
-          {selectedIds.size > (hasNotApplied ? 2 : 2) && (
-            <Badge variant="outline" className="text-xs">
-              +{selectedIds.size - (hasNotApplied ? 2 : 2)} more
-            </Badge>
-          )}
-        </div>
+          ) : null
+        ))}
       </div>
     );
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          className={cn("w-full justify-between bg-background text-foreground border-border hover:bg-accent hover:text-accent-foreground [&>*]:!text-foreground", className)}
-          disabled={disabled || loading}
-        >
-          {loading ? (
-            <span className="text-foreground">Loading positions...</span>
-          ) : (
-            renderTrigger()
-          )}
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50 text-foreground" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-full p-0 bg-popover border-border shadow-lg z-[10001]" align="start">
-        <div className="bg-popover text-popover-foreground">
-          {/* Search Input */}
-          <div className="flex items-center border-b border-border px-3 bg-popover">
-            <Search className="mr-2 h-4 w-4 shrink-0 opacity-50 text-muted-foreground" />
-            <Input
-              placeholder="Search positions..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="border-0 bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 text-foreground focus-visible:ring-0"
-            />
-          </div>
-          
-          {/* Positions List */}
-          <div className="max-h-[300px] overflow-y-auto">
+    <div className={cn("relative", className)}>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className="w-full min-w-full justify-between min-h-[40px] h-auto py-2"
+            disabled={disabled || loading}
+          >
+            <div className="flex flex-wrap gap-1 flex-1">
+              {loading ? (
+                <span className="text-muted-foreground">Loading positions...</span>
+              ) : selectedIds.size === 0 ? (
+                <span className="text-muted-foreground">{placeholder}</span>
+              ) : (
+                <>
+                  {/* Show Not Applied badge first if selected */}
+                  {hasNotApplied && (
+                    <Badge
+                      key="not-applied"
+                      variant="secondary"
+                      className="text-xs"
+                    >
+                      Not Applied
+                      <button
+                        type="button"
+                        className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            handleRemovePosition('not-applied');
+                          }
+                        }}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                        }}
+                        onClick={() => handleRemovePosition('not-applied')}
+                      >
+                        <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                      </button>
+                    </Badge>
+                  )}
+                  {/* Show regular position badges */}
+                  {selectedPositions.map((position) => (
+                    position ? (
+                      <Badge
+                        key={position.id}
+                        variant="secondary"
+                        className="text-xs"
+                      >
+                        {position.title}
+                        <button
+                          type="button"
+                          className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              handleRemovePosition(position.id);
+                            }
+                          }}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }}
+                          onClick={() => handleRemovePosition(position.id)}
+                        >
+                          <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                        </button>
+                      </Badge>
+                    ) : null
+                  ))}
+                </>
+              )}
+            </div>
+            <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 bg-popover border-border shadow-lg z-[10001] max-h-[300px] overflow-y-auto" align="start">
+          <div className="p-2">
+            <div className="text-sm font-medium mb-2">Select Positions</div>
+            
+            {/* Search Input */}
+            <div className="relative mb-2">
+              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search positions..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-8 pr-2 py-1.5 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
+                disabled={disabled}
+              />
+            </div>
+            
             {filteredPositions.length === 0 && !showUnassignedOption ? (
-              <div className="py-6 text-center text-sm text-muted-foreground">
-                No position found.
-              </div>
+              <div className="text-sm text-muted-foreground py-2">No positions available</div>
             ) : (
-              <div className="p-1">
+              <div className="space-y-0.5">
                 {/* Select All Option - Only show in multi-select mode */}
                 {filteredPositions.length > 0 && !singleSelect && (
-                  <div
+                  <button
                     key="select-all"
-                    className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground text-foreground transition-colors duration-150 border-b border-border"
                     onClick={() => {
                       if (disabled) {
                         return;
                       }
                       handleSelectAll();
                     }}
+                    className={cn(
+                      "w-full text-left px-2 py-1.5 rounded-sm hover:bg-accent hover:text-accent-foreground cursor-pointer text-sm",
+                      filteredPositions.every(pos => selectedIds.has(pos.id)) && "bg-accent text-accent-foreground"
+                    )}
                   >
-                    <Check
-                      className={cn(
-                        "mr-2 h-4 w-4 transition-opacity duration-150",
-                        filteredPositions.every(pos => selectedIds.has(pos.id)) ? "opacity-100" : "opacity-0"
-                      )}
-                    />
-                    <div className="flex flex-col">
-                      <span className="font-medium text-foreground">
-                        {filteredPositions.every(pos => selectedIds.has(pos.id)) ? 'Deselect All' : 'Select All'}
-                      </span>
-                      <span className="text-sm text-muted-foreground">
-                        {filteredPositions.every(pos => selectedIds.has(pos.id)) 
-                          ? 'Remove all position filters' 
-                          : `Select all ${filteredPositions.length} positions`
-                        }
-                      </span>
+                    <div className="flex items-center">
+                      <Check
+                        className={cn(
+                          "mr-2 h-3 w-3",
+                          filteredPositions.every(pos => selectedIds.has(pos.id)) ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium">
+                          {filteredPositions.every(pos => selectedIds.has(pos.id)) ? 'Deselect All' : 'Select All'}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {filteredPositions.every(pos => selectedIds.has(pos.id)) 
+                            ? 'Remove all position filters' 
+                            : `Select all ${filteredPositions.length} positions`
+                          }
+                        </span>
+                      </div>
+                      <Badge 
+                        variant="outline"
+                        className="ml-auto text-xs"
+                      >
+                        {filteredPositions.filter(pos => selectedIds.has(pos.id)).length}/{filteredPositions.length}
+                      </Badge>
                     </div>
-                    <Badge 
-                      variant="outline"
-                      className="ml-auto text-xs"
-                    >
-                      {filteredPositions.filter(pos => selectedIds.has(pos.id)).length}/{filteredPositions.length}
-                    </Badge>
-                  </div>
+                  </button>
                 )}
                 
                 {/* Not Applied Option */}
                 {showUnassignedOption && (
-                  <div
+                  <button
                     key="not-applied"
-                    className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground text-foreground transition-colors duration-150"
                     onClick={() => {
                       if (disabled) {
                         return;
                       }
                       handleTogglePosition('not-applied');
                     }}
+                    className={cn(
+                      "w-full text-left px-2 py-1.5 rounded-sm hover:bg-accent hover:text-accent-foreground cursor-pointer text-sm",
+                      selectedIds.has('not-applied') && "bg-accent text-accent-foreground"
+                    )}
                   >
-                    <Check
-                      className={cn(
-                        "mr-2 h-4 w-4 transition-opacity duration-150",
-                        selectedIds.has('not-applied') ? "opacity-100" : "opacity-0"
-                      )}
-                    />
-                    <div className="flex flex-col">
-                      <span className="font-medium text-foreground">Not Applied</span>
-                      <span className="text-sm text-muted-foreground">
-                        Candidates who haven't applied to any position
-                      </span>
+                    <div className="flex items-center">
+                      <Check
+                        className={cn(
+                          "mr-2 h-3 w-3",
+                          selectedIds.has('not-applied') ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium">Not Applied</span>
+                        <span className="text-xs text-muted-foreground">
+                          Candidates who haven't applied to any position
+                        </span>
+                      </div>
+                  
                     </div>
-                    <Badge 
-                      variant="secondary"
-                      className="ml-auto text-xs"
-                    >
-                      No Application
-                    </Badge>
-                  </div>
+                  </button>
                 )}
+                
                 {filteredPositions.map((position) => (
-                  <div
+                  <button
                     key={position.id}
-                    className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground text-foreground transition-colors duration-150"
                     onClick={() => {
                       if (disabled) {
                         return;
                       }
                       handleTogglePosition(position.id);
                     }}
-                  >
-                    <Check
-                      className={cn(
-                        "mr-2 h-4 w-4 transition-opacity duration-150",
-                        selectedIds.has(position.id) ? "opacity-100" : "opacity-0"
-                      )}
-                    />
-                    <div className="flex flex-col">
-                      <span className="font-medium text-foreground">{position.title}</span>
-                      <span className="text-sm text-muted-foreground">
-                        {position.department}
-                        {position.positionLevel && ` • ${position.positionLevel}`}
-                      </span>
-                    </div>
-                    {showOpenStatus && (
-                      <Badge 
-                        variant={position.isOpen ? "default" : "secondary"}
-                        className="ml-auto text-xs"
-                      >
-                        {position.isOpen ? "Open" : "Closed"}
-                      </Badge>
+                    className={cn(
+                      "w-full text-left px-2 py-1.5 rounded-sm hover:bg-accent hover:text-accent-foreground cursor-pointer text-sm",
+                      selectedIds.has(position.id) && "bg-accent text-accent-foreground"
                     )}
-                  </div>
+                  >
+                    <div className="flex items-center">
+                      <Check
+                        className={cn(
+                          "mr-2 h-3 w-3",
+                          selectedIds.has(position.id) ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium">{position.title}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {position.department}
+                          {position.positionLevel && ` • ${position.positionLevel}`}
+                        </span>
+                      </div>
+                      {showOpenStatus && (
+                        <Badge 
+                          variant={position.isOpen ? "default" : "secondary"}
+                          className="ml-auto text-xs"
+                        >
+                          {position.isOpen ? "Open" : "Closed"}
+                        </Badge>
+                      )}
+                    </div>
+                  </button>
                 ))}
               </div>
             )}
           </div>
-        </div>
-      </PopoverContent>
-    </Popover>
+        </PopoverContent>
+      </Popover>
+      {selectedIds.size > 0 && (
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => {
+            if (disabled) return;
+            handleSelectionChange(new Set());
+          }}
+          className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 bg-background border border-border hover:bg-accent hover:text-accent-foreground"
+        >
+          <X className="h-3 w-3" />
+        </Button>
+      )}
+    </div>
   );
 } 

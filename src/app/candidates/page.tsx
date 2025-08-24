@@ -23,47 +23,12 @@ export default async function CandidatesPageServer() {
     try {
       const client = await getPool().connect();
       try {
-        // Test database connection first
-        console.log('Testing database connection...');
-        const testResult = await client.query('SELECT 1 as test');
-        console.log('Database connection test successful:', testResult.rows[0]);
-        
-        // Check if tables exist
-        console.log('Checking if tables exist...');
-        const tableCheck = await client.query(`
-          SELECT table_name 
-          FROM information_schema.tables 
-          WHERE table_schema = 'public' 
-          AND table_name IN ('Candidate', 'Position', 'RecruitmentStage', 'JobMatch', 'TransitionRecord', 'CandidateSource', 'User', 'Grade')
-          ORDER BY table_name;
-        `);
-        console.log('Available tables:', tableCheck.rows.map(row => row.table_name));
-        
-        // Check column names for JobMatch table
-        console.log('Checking JobMatch table columns...');
-        const jobMatchColumns = await client.query(`
-          SELECT column_name, data_type 
-          FROM information_schema.columns 
-          WHERE table_name = 'JobMatch' 
-          ORDER BY ordinal_position;
-        `);
-        console.log('JobMatch columns:', jobMatchColumns.rows);
-        
-        // Check column names for RecruitmentStage table
-        console.log('Checking RecruitmentStage table columns...');
-        const recruitmentStageColumns = await client.query(`
-          SELECT column_name, data_type 
-          FROM information_schema.columns 
-          WHERE table_name = 'RecruitmentStage' 
-          ORDER BY ordinal_position;
-        `);
-        console.log('RecruitmentStage columns:', recruitmentStageColumns.rows);
+
         
         // Fetch initial data in parallel using direct database queries
         let candidatesResult, positionsResult, stagesResult;
         
         try {
-          console.log('Fetching candidates...');
           candidatesResult = await client.query(`
             SELECT c.*, p.id as "positionId", p.title as "positionTitle", p.department as "positionDepartment", p."positionLevel" as "positionLevel", p."isOpen" as "positionIsOpen",
                    r.id as "recruiterId", r.name as "recruiterName", r.email as "recruiterEmail", r."avatarUrl" as "recruiterAvatarUrl",
@@ -94,17 +59,14 @@ export default async function CandidatesPageServer() {
               FROM "JobMatch" jm
               WHERE jm."candidateId" = c.id
             ) AS jm_data ON true
-            ORDER BY c."updatedAt" DESC
-            LIMIT 50;
+            ORDER BY c."updatedAt" DESC;
           `);
-          console.log('Candidates fetched successfully');
         } catch (error) {
           console.error('Error fetching candidates:', error);
           throw error;
         }
         
         try {
-          console.log('Fetching positions...');
           positionsResult = await client.query(`
             SELECT p.*, u.name as "recruiterName", g.name as "gradeName", g."sla_days" as "gradeSlaDays", g.color as "gradeColor",
                    json_build_object(
@@ -119,16 +81,13 @@ export default async function CandidatesPageServer() {
             LEFT JOIN "Grade" g ON p."gradeId" = g.id
             ORDER BY p."createdAt" DESC;
           `);
-          console.log('Positions fetched successfully');
         } catch (error) {
           console.error('Error fetching positions:', error);
           throw error;
         }
         
         try {
-          console.log('Fetching recruitment stages...');
           stagesResult = await client.query('SELECT * FROM "RecruitmentStage" ORDER BY "sort_order" ASC;');
-          console.log('Recruitment stages fetched successfully');
         } catch (error) {
           console.error('Error fetching recruitment stages:', error);
           throw error;
@@ -151,11 +110,10 @@ export default async function CandidatesPageServer() {
           grade: safeJsonParse(row.grade, null)
         }));
 
-        // Transform stages data
-        initialAvailableStages = stagesResult.rows.map((row: any) => ({
-          ...row,
-          color: row.color || '#3B82F6'
-        }));
+                 // Transform stages data
+         initialAvailableStages = stagesResult.rows.map((row: any) => ({
+           ...row
+         }));
 
       } finally {
         client.release();

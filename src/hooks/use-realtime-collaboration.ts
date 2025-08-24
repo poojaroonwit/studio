@@ -123,7 +123,7 @@ export function useRealtimeCollaboration(options: RealtimeCollaborationOptions =
       
       // If no message received for more than 60 seconds, consider connection dead
       if (timeSinceLastMessage > 60000) {
-        console.warn('🔄 Health check failed: No messages received for 60 seconds');
+        console.warn('Health check failed: No messages received for 60 seconds');
         setIsConnected(false);
         handleReconnect();
       }
@@ -133,7 +133,7 @@ export function useRealtimeCollaboration(options: RealtimeCollaborationOptions =
   const handleReconnect = useCallback(() => {
     if (isReconnecting || reconnectAttempts >= maxReconnectAttempts) {
       if (reconnectAttempts >= maxReconnectAttempts) {
-        console.error('🔄 Max reconnection attempts reached');
+        console.error('Max reconnection attempts reached');
         showErrorNotification('Real-time connection failed. Please refresh the page.');
       }
       return;
@@ -148,7 +148,7 @@ export function useRealtimeCollaboration(options: RealtimeCollaborationOptions =
       maxReconnectDelayMs
     );
 
-    console.log(`🔄 Attempting to reconnect in ${delay}ms (attempt ${reconnectAttempts + 1}/${maxReconnectAttempts})`);
+    console.log(`Attempting to reconnect in ${delay}ms (attempt ${reconnectAttempts + 1}/${maxReconnectAttempts})`);
 
     reconnectTimeoutRef.current = setTimeout(() => {
       setReconnectAttempts(prev => prev + 1);

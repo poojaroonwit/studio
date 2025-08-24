@@ -150,7 +150,7 @@ const UploadAttachmentsModal = ({ isOpen, onOpenChange, candidate, onUploadSucce
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md !z-[99999]">
         <DialogHeader>
           <DialogTitle>Upload Attachments</DialogTitle>
           <DialogDescription>

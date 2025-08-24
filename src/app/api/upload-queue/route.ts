@@ -245,7 +245,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Check permissions
-  const canManageUploadQueue = session.user.role === 'Admin' || 
+  const canManageUploadQueue = session.user.role === 'Admin' || session.user.modulePermissions?.includes('USERS_MANAGE') || 
     (session.user.modulePermissions?.includes('UPLOAD_QUEUE_MANAGE') || false);
   
   if (!canManageUploadQueue) {

@@ -64,7 +64,7 @@ function createCandidateSummary(candidate: Candidate): string {
                                aboutMe.toLowerCase().includes('ielts') || 
                                aboutMe.toLowerCase().includes('toefl') ||
                                aboutMe.toLowerCase().includes('language');
-        const prefix = hasLanguageCert ? "🏆 About Me: " : "About Me: ";
+        const prefix = hasLanguageCert ? "About Me: " : "About Me: ";
         summaryParts.push(`${prefix}${aboutMe}`);
       }
     }
@@ -88,7 +88,7 @@ function createCandidateSummary(candidate: Candidate): string {
                                educationText.includes('english');
         
         if (hasLanguageCert) {
-          eduStr = `  🏆 ${index + 1}. University: ${edu.university || 'N/A'}`;
+          eduStr = `  ${index + 1}. University: ${edu.university || 'N/A'}`;
           if (edu.major || edu.field) eduStr += `, Major/Field: ${edu.major || ''}${edu.major && edu.field ? ' / ' : ''}${edu.field || ''}`;
           if (edu.campus) eduStr += `, Campus: ${edu.campus}`;
           if (edu.period) eduStr += `, Period: ${edu.period}`;
@@ -115,7 +115,7 @@ function createCandidateSummary(candidate: Candidate): string {
                                  description.toLowerCase().includes('ielts') || 
                                  description.toLowerCase().includes('toefl') ||
                                  description.toLowerCase().includes('language');
-          const prefix = hasLanguageCert ? "    🏆 Description: " : "    Description: ";
+          const prefix = hasLanguageCert ? "    Description: " : "    Description: ";
           expStr += `\n${prefix}${description}`;
         }
         summaryParts.push(expStr);
@@ -143,7 +143,7 @@ function createCandidateSummary(candidate: Candidate): string {
                                (skillEntry.segment_skill && skillEntry.segment_skill.toLowerCase().includes('language'));
         
         if (hasLanguageCert) {
-          skillStr = `  🏆 - Segment: ${skillEntry.segment_skill || 'General'}: `;
+          skillStr = `  - Segment: ${skillEntry.segment_skill || 'General'}: `;
         }
         
         skillStr += skillsText;
@@ -179,7 +179,7 @@ function createCandidateSummary(candidate: Candidate): string {
                               key.toLowerCase().includes('ielts') || 
                               key.toLowerCase().includes('language') || 
                               key.toLowerCase().includes('certification');
-        const prefix = isLanguageCert ? "  🏆 " : "  ";
+        const prefix = isLanguageCert ? "  " : "  ";
         summaryParts.push(`${prefix}${key}: ${typeof value === 'object' ? JSON.stringify(value) : value}`);
     }
   }
@@ -203,7 +203,7 @@ export async function searchCandidatesAIChat(input: SearchCandidatesInput): Prom
     }
   }
 
-  let allCandidates: Candidate[] = [];
+  let filteredCandidates: Candidate[] = [];
   try {
     const candidatesResult = await getPool().query(`
         SELECT 
@@ -225,7 +225,7 @@ export async function searchCandidatesAIChat(input: SearchCandidatesInput): Prom
         ) AS th_data ON true
     `);
 
-    allCandidates = candidatesResult.rows.map(row => ({
+    filteredCandidates = candidatesResult.rows.map(row => ({
         ...row,
         parsedData: row.parsedData || { personal_info: {}, contact_info: {} },
         position: row.positionId ? { id: row.positionId, title: row.positionTitle } : null,
@@ -240,7 +240,7 @@ export async function searchCandidatesAIChat(input: SearchCandidatesInput): Prom
         fitScore: row.fitScore || 0, // Convert null to 0 for consistency
     })) as Candidate[];
 
-    if (allCandidates.length === 0) {
+    if (filteredCandidates.length === 0) {
       return { matchedCandidateIds: [], aiReasoning: "No candidates found in the database to search.", recordCount: 0 };
     }
   } catch (dbError) {
@@ -248,13 +248,13 @@ export async function searchCandidatesAIChat(input: SearchCandidatesInput): Prom
     return { matchedCandidateIds: [], aiReasoning: "Failed to retrieve candidate data for searching.", recordCount: 0 };
   }
 
-  const candidateSummariesText = allCandidates
+  const candidateSummariesText = filteredCandidates
     .map(c => `CANDIDATE_START\n${createCandidateSummary(c)}\nCANDIDATE_END`)
     .join('\n\n---\n\n');
   
 
   
-  if (!candidateSummariesText.trim() && allCandidates.length > 0) {
+  if (!candidateSummariesText.trim() && filteredCandidates.length > 0) {
       console.warn("AI Search: Candidate summaries text is empty even though candidates were fetched. This might indicate an issue with createCandidateSummary or empty candidate details.");
   }
 

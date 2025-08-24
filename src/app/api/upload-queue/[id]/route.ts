@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getPool } from '@/lib/db';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { processSingleUploadQueueJob } from '../process/route';
+import { processSingleUploadQueueJob } from '@/lib/uploadQueueProcessor';
 import { broadcastUploadQueueUpdate } from '../sse/broadcastUploadQueueUpdate';
 
 /**

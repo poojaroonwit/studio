@@ -57,6 +57,21 @@ export async function GET(request: NextRequest) {
       };
       appearance: {
         personalColor: string;
+        themePreference: 'light' | 'dark' | 'system';
+      };
+      candidates: {
+        showCandidateColumn: boolean;
+        showAppliedJobColumn: boolean;
+        showJobMatchesColumn: boolean;
+        showFitScoreColumn: boolean;
+        showRecruiterColumn: boolean;
+        showSourceColumn: boolean;
+        showStatusColumn: boolean;
+        showAppliedDateColumn: boolean;
+        showFilters: boolean;
+        showHorizontalFitScoreFilters: boolean;
+        fitScoreType: 'applied' | 'matching';
+        fitScoreFilterMode: 'single' | 'multi';
       };
     } = {
       taskBoard: {
@@ -92,6 +107,21 @@ export async function GET(request: NextRequest) {
       },
       appearance: {
         personalColor: '#3B82F6',
+        themePreference: 'system',
+      },
+      candidates: {
+        showCandidateColumn: true,
+        showAppliedJobColumn: true,
+        showJobMatchesColumn: true,
+        showFitScoreColumn: true,
+        showRecruiterColumn: true,
+        showSourceColumn: true,
+        showStatusColumn: true,
+        showAppliedDateColumn: true,
+        showFilters: true,
+        showHorizontalFitScoreFilters: true,
+        fitScoreType: 'applied',
+        fitScoreFilterMode: 'multi',
       }
     };
 
@@ -184,13 +214,55 @@ export async function GET(request: NextRequest) {
             transformedPreferences.positions.sortOrder = value as 'asc' | 'desc';
             break;
         }
-      } else if (pref.modelType === 'appearance') {
-        switch (pref.attributeKey) {
-          case 'personalColor':
-            transformedPreferences.appearance.personalColor = value;
-            break;
+              } else if (pref.modelType === 'appearance') {
+          switch (pref.attributeKey) {
+            case 'personalColor':
+              transformedPreferences.appearance.personalColor = value;
+              break;
+            case 'themePreference':
+              transformedPreferences.appearance.themePreference = value as 'light' | 'dark' | 'system';
+              break;
+          }
+        } else if (pref.modelType === 'candidates') {
+          switch (pref.attributeKey) {
+            case 'showCandidateColumn':
+              transformedPreferences.candidates.showCandidateColumn = value === 'true';
+              break;
+            case 'showAppliedJobColumn':
+              transformedPreferences.candidates.showAppliedJobColumn = value === 'true';
+              break;
+            case 'showJobMatchesColumn':
+              transformedPreferences.candidates.showJobMatchesColumn = value === 'true';
+              break;
+            case 'showFitScoreColumn':
+              transformedPreferences.candidates.showFitScoreColumn = value === 'true';
+              break;
+            case 'showRecruiterColumn':
+              transformedPreferences.candidates.showRecruiterColumn = value === 'true';
+              break;
+            case 'showSourceColumn':
+              transformedPreferences.candidates.showSourceColumn = value === 'true';
+              break;
+            case 'showStatusColumn':
+              transformedPreferences.candidates.showStatusColumn = value === 'true';
+              break;
+            case 'showAppliedDateColumn':
+              transformedPreferences.candidates.showAppliedDateColumn = value === 'true';
+              break;
+            case 'showFilters':
+              transformedPreferences.candidates.showFilters = value === 'true';
+              break;
+            case 'showHorizontalFitScoreFilters':
+              transformedPreferences.candidates.showHorizontalFitScoreFilters = value === 'true';
+              break;
+            case 'fitScoreType':
+              transformedPreferences.candidates.fitScoreType = value as 'applied' | 'matching';
+              break;
+            case 'fitScoreFilterMode':
+              transformedPreferences.candidates.fitScoreFilterMode = value as 'single' | 'multi';
+              break;
+          }
         }
-      }
     });
 
     return NextResponse.json(transformedPreferences);
@@ -224,9 +296,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate modelType
-    if (!['taskBoard', 'positions', 'appearance'].includes(modelType)) {
+    if (!['taskBoard', 'positions', 'appearance', 'candidates'].includes(modelType)) {
       return NextResponse.json(
-        { error: 'Invalid modelType. Must be "taskBoard", "positions", or "appearance"' },
+        { error: 'Invalid modelType. Must be "taskBoard", "positions", "appearance", or "candidates"' },
         { status: 400 }
       );
     }
@@ -282,9 +354,9 @@ export async function DELETE(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const modelType = searchParams.get('modelType');
 
-    if (modelType && !['taskBoard', 'positions', 'appearance'].includes(modelType)) {
+    if (modelType && !['taskBoard', 'positions', 'appearance', 'candidates'].includes(modelType)) {
       return NextResponse.json(
-        { error: 'Invalid modelType. Must be "taskBoard", "positions", or "appearance"' },
+        { error: 'Invalid modelType. Must be "taskBoard", "positions", "appearance", or "candidates"' },
         { status: 400 }
       );
     }

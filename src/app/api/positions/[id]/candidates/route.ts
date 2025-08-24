@@ -43,6 +43,12 @@ export async function GET(
     const sortDirectionParam = (searchParams.get('sortDirection') || 'desc').toLowerCase();
     const sortColumn = allowedSortColumns[sortColumnParam as keyof typeof allowedSortColumns] || '"applicationDate"';
     const sortDirection = sortDirectionParam === 'asc' ? 'ASC' : 'DESC';
+    
+    // Handle NULL values in sorting - for fitScore, put NULL values last
+    let sortClause = `${sortColumn} ${sortDirection}`;
+    if (sortColumnParam === 'fitScore') {
+      sortClause = `"fitScore" ${sortDirection} NULLS LAST`;
+    }
 
     // Search term
     const searchTerm = searchParams.get('searchTerm') || '';
@@ -243,8 +249,7 @@ export async function GET(
        }
 
        const candidatesQuery = baseQuery
-         .replace('SORT_COLUMN_PLACEHOLDER', sortColumn)
-         .replace('SORT_DIRECTION_PLACEHOLDER', sortDirection);
+         .replace('SORT_COLUMN_PLACEHOLDER SORT_DIRECTION_PLACEHOLDER', sortClause);
 
       // Count query for total
       let countQuery = '';

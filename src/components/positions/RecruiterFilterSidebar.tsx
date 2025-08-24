@@ -43,8 +43,8 @@ export function RecruiterFilterSidebar({
     return filtered;
   }, [recruiterIds, recruiters, searchTerm]);
 
-  // Always show unassigned if there are unassigned positions, regardless of search
-  const showUnassigned = recruiterStats?.unassigned && recruiterStats.unassigned > 0;
+  // Always show unassigned section, even when there are 0 unassigned positions
+  const showUnassigned = recruiterStats?.unassigned !== undefined;
 
   return (
     <div className="h-full flex flex-col">
@@ -256,7 +256,7 @@ export function RecruiterFilterSidebar({
           )}
 
           {/* Show message when no recruiters are available */}
-          {!searchTerm.trim() && recruiterIds.length === 0 && !recruiterStats?.unassigned && (
+          {!searchTerm.trim() && recruiterIds.length === 0 && recruiterStats?.unassigned === undefined && (
             <div className="px-3 py-8 text-center">
               <p className="text-base text-muted-foreground font-medium">
                 No recruiters available

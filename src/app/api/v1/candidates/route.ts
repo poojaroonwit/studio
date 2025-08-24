@@ -21,6 +21,8 @@ import { logAudit } from '@/lib/auditLog';
 import { syncRecruiterForCandidate } from '@/lib/recruiterSync';
 import { createDateInTimezone } from '@/lib/dateUtils';
 import { NotificationService } from '@/lib/notificationService';
+import { WarningService } from '@/lib/warningService';
+import { normalizeFitScore } from '@/lib/scoreUtils';
 
 export const dynamic = 'force-dynamic';
 
@@ -255,6 +257,14 @@ export async function POST(request: NextRequest) {
     });
     await logAudit('AUDIT', `Candidate '${name}' created by ${user.name}.`, 'API:V1:Candidates:Create', user.id, { candidateId: newCandidateId, name, email, status: appliedStage });
     
+    // Check for warnings after candidate creation
+    try {
+      await WarningService.createOrUpdateWarnings('candidate', newCandidateId, user.id);
+    } catch (warningError) {
+      console.error('Failed to check warnings for new candidate:', warningError);
+      // Don't fail the request if warning check fails
+    }
+    
     // Auto-assign recruiter if candidate has a position and no recruiter
     let finalCandidate = newCandidate;
     if (positionId && !newCandidate.recruiterId) {
@@ -438,7 +448,7 @@ export async function GET(request: NextRequest) {
         recruiterId: candidate.recruiterId,
         sourceId: candidate.sourceId,
         subSource: candidate.subSource,
-        fitScore: candidate.fitScore,
+        fitScore: normalizeFitScore(candidate.fitScore),
         status: candidate.status,
         applicationDate: candidate.applicationDate,
         createdAt: candidate.createdAt,

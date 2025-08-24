@@ -69,13 +69,13 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
   const nameInfo = formatCandidateNameWithLang(candidate);
 
   return (
-    <div className="bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-100/20 dark:from-slate-900 dark:via-slate-800/50 dark:to-slate-700/30 shadow-lg backdrop-blur-sm border-b border-border p-4 sticky top-0 z-50">
+    <div className="bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-100/20 dark:from-slate-900 dark:via-slate-800/50 dark:to-slate-700/30 shadow-lg backdrop-blur-sm border-b border-border p-4 sticky top-0 z-50 pointer-events-auto">
       <div className="grid grid-cols-1 lg:grid-cols-10 gap-6 relative">
         {/* Modal Close Button in header */}
         {isModal && typeof onClose === 'function' && (
           <button
             type="button"
-            className="absolute top-0 right-0 mt-2 mr-2 z-50 p-2 rounded-full hover:bg-muted transition"
+            className="absolute top-0 right-0 mt-2 mr-2 z-50 p-2 rounded-full hover:bg-muted transition pointer-events-auto"
             title="Close"
             onClick={(e) => {
               e.stopPropagation();
@@ -188,7 +188,7 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
         <div className="lg:col-span-3">
           <div className="flex items-center justify-end gap-4 mt-8">
             {/* Candidate Source */}
-            <div>
+            <div className="border border-border rounded-lg">
               <CandidateSourceCell
                 candidate={candidate}
                 availableSources={availableSources}

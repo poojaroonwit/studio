@@ -29,11 +29,11 @@ async function fixStuckQueue() {
   const pool = new Pool(config);
   
   try {
-    console.log('🔧 Fix Stuck Upload Queue');
+    console.log('Fix Stuck Upload Queue');
     console.log('========================\n');
 
     // 1. Check current queue status
-    console.log('📊 Current Queue Status:');
+    console.log('Current Queue Status:');
     const statusQuery = `
       SELECT 
         status,
@@ -106,7 +106,7 @@ async function fixStuckQueue() {
     console.log('');
 
     // 4. Present fix options
-    console.log('🔧 Fix Options:');
+    console.log('Fix Options:');
     console.log('  1. Reset ALL in-process jobs to queued status');
     console.log('  2. Reset only jobs stuck for more than 1 hour');
     console.log('  3. Reduce max concurrent processors to 1');
@@ -126,7 +126,7 @@ async function fixStuckQueue() {
 
     // 5. Execute selected actions
     if (action === '1' || action === '4') {
-      console.log('\n🔄 Resetting ALL in-process jobs to queued status...');
+      console.log('\nResetting ALL in-process jobs to queued status...');
       const resetAllQuery = `
         UPDATE upload_queue 
         SET 
@@ -144,7 +144,7 @@ async function fixStuckQueue() {
     }
 
     if (action === '2') {
-      console.log('\n🔄 Resetting jobs stuck for more than 1 hour...');
+      console.log('\nResetting jobs stuck for more than 1 hour...');
       const resetStuckQuery = `
         UPDATE upload_queue 
         SET 
@@ -178,7 +178,7 @@ async function fixStuckQueue() {
     }
 
     // 6. Verify the fix
-    console.log('\n📊 Updated Queue Status:');
+    console.log('\nUpdated Queue Status:');
     const finalStatusResult = await pool.query(statusQuery);
     
     finalStatusResult.rows.forEach(row => {
@@ -186,7 +186,7 @@ async function fixStuckQueue() {
     });
 
     console.log('\n✅ Queue fix completed successfully!');
-    console.log('💡 Consider:');
+    console.log('Consider:');
     console.log('  - Check your webhook service status');
     console.log('  - Verify webhook URL and authentication');
     console.log('  - Monitor queue processing for any new issues');
@@ -194,7 +194,7 @@ async function fixStuckQueue() {
   } catch (error) {
     console.error('❌ Error fixing queue:', error.message);
     if (error.code === 'ECONNREFUSED') {
-      console.error('💡 Make sure your database is running and DATABASE_URL is correct in .env.local');
+      console.error('Make sure your database is running and DATABASE_URL is correct in .env.local');
     }
   } finally {
     await pool.end();

@@ -10,6 +10,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions, clearUserValidationCache } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { dispatchWebhooks } from '@/lib/webhooks';
+import { createDefaultWarningConfigurations } from '@/lib/userWarningDefaults';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -203,10 +204,20 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user?.role !== 'Admin') {
-    await logAudit('WARN', `Forbidden attempt to create user by ${session?.user?.email || 'Unknown'} (ID: ${session?.user?.id || 'N/A'}). Required role: Admin.`, 'API:Users:Create', session?.user?.id);
+  if (!session) {
     return NextResponse.json(
-      { message: "Forbidden: You must be an Admin to create users." },
+      { message: "Unauthorized: User session required." },
+      { status: 401 }
+    );
+  }
+
+  const isAdmin = session.user?.role === 'Admin';
+  const hasUserManagePermission = session.user?.modulePermissions?.includes('USERS_MANAGE');
+  
+  if (!isAdmin && !hasUserManagePermission) {
+    await logAudit('WARN', `Forbidden attempt to create user by ${session?.user?.email || 'Unknown'} (ID: ${session?.user?.id || 'N/A'}). Required: Admin role or USERS_MANAGE permission.`, 'API:Users:Create', session?.user?.id);
+    return NextResponse.json(
+      { message: "Forbidden: You must be an Admin or have USERS_MANAGE permission to create users." },
       { status: 403 }
     );
   }
@@ -299,6 +310,16 @@ export async function POST(request: NextRequest) {
     });
 
     console.log('User created successfully:', newUser.id);
+
+    // Create default warning configurations for the new user
+    try {
+      await createDefaultWarningConfigurations(newUser.id, session.user.id);
+      console.log('Default warning configurations created for user:', newUser.id);
+    } catch (warningError) {
+      console.error('Error creating default warning configurations:', warningError);
+      // Don't fail the user creation if warning config creation fails
+      await logAudit('WARN', `Failed to create default warning configurations for user ${newUser.id}. Error: ${(warningError as Error).message}`, 'API:Users:Create', session.user.id);
+    }
 
     const userToReturn = {
       ...newUser,

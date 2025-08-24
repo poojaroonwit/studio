@@ -213,7 +213,7 @@ export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availa
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-grow overflow-hidden">
-          <ScrollArea className="flex-grow overflow-y-auto p-6 pt-4">
+                          <ScrollArea className="flex-grow p-6 pt-4">
             <div className="space-y-6">
               <div>
                 <Label htmlFor="cv_language">CV Language</Label>
@@ -300,11 +300,11 @@ export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availa
                                 <SelectTrigger id="status" className="mt-1">
                                     <SelectValue placeholder="Select status" />
                                 </SelectTrigger>
-                                <SelectContent>
-                                    {availableStages.map(s => (
-                                    <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>
-                                    ))}
-                                </SelectContent>
+                                                                 <SelectContent className="z-[10003]">
+                                     {availableStages.map(s => (
+                                     <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>
+                                     ))}
+                                 </SelectContent>
                                 </Select>
                             )}
                         />
@@ -368,7 +368,7 @@ export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availa
                           <SelectTrigger>
                             <SelectValue placeholder="Month" />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent className="z-[10003]">
                             {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
                               <SelectItem key={month} value={month.toString()}>
                                 {new Date(2000, month - 1).toLocaleDateString('en-US', { month: 'long' })}
@@ -414,7 +414,7 @@ export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availa
                             <SelectTrigger>
                               <SelectValue placeholder="Month" />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="z-[10003]">
                               {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
                                 <SelectItem key={month} value={month.toString()}>
                                   {new Date(2000, month - 1).toLocaleDateString('en-US', { month: 'long' })}
@@ -474,9 +474,9 @@ export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availa
                                   value={controllerField.value ?? PLACEHOLDER_VALUE_NONE}
                                 >
                                 <SelectTrigger id={`experience.${index}.positionLevel`}><SelectValue placeholder="Position Level" /></SelectTrigger>
-                                <SelectContent>
+                                <SelectContent className="z-[10003]">
                                     <SelectItem value={PLACEHOLDER_VALUE_NONE}>N/A / Not Specified</SelectItem>
-                                    {positionLevelOptions.map(level => <SelectItem key={level} value={level}>{level?.charAt(0)?.toUpperCase() + level?.slice(1) || ''}</SelectItem>)}
+                                    {positionLevelOptions.map(level => <SelectItem key={level} value={level || 'unknown'}>{level?.charAt(0)?.toUpperCase() + level?.slice(1) || ''}</SelectItem>)}
                                 </SelectContent>
                                 </Select>
                             )}
@@ -494,7 +494,7 @@ export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availa
                            <SelectTrigger>
                              <SelectValue placeholder="Month" />
                            </SelectTrigger>
-                           <SelectContent>
+                           <SelectContent className="z-[10003]">
                              {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
                                <SelectItem key={month} value={month.toString()}>
                                  {new Date(2000, month - 1).toLocaleDateString('en-US', { month: 'long' })}
@@ -540,7 +540,7 @@ export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availa
                              <SelectTrigger>
                                <SelectValue placeholder="Month" />
                              </SelectTrigger>
-                             <SelectContent>
+                             <SelectContent className="z-[10003]">
                                {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
                                  <SelectItem key={month} value={month.toString()}>
                                    {new Date(2000, month - 1).toLocaleDateString('en-US', { month: 'long' })}

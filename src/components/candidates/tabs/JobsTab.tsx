@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Briefcase, ChevronDown, ChevronRight, Copy, Check, Info, ListChecks } from 'lucide-react';
+import { Briefcase, ChevronDown, ChevronRight, Copy, Check, Info, ListChecks, Lock } from 'lucide-react';
 import { ScoreBadge } from '@/components/ui/score-color';
 import { formatScoreWithGrade } from "@/lib/scoreUtils";
+import { useSession } from 'next-auth/react';
 import type { Candidate, Position } from '@/lib/types';
 
 interface JobsTabProps {
@@ -39,6 +40,13 @@ export const JobsTab: React.FC<JobsTabProps> = ({
 }) => {
   const [jobAppliedOpen, setJobAppliedOpen] = useState(true);
   const [jobMatchesOpen, setJobMatchesOpen] = useState(true);
+  const { data: session } = useSession();
+  
+  // Check permissions
+  const canViewJobMatches = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('USERS_MANAGE') || 
+    session?.user?.modulePermissions?.includes('JOB_MATCH_VIEW');
+  const canManageJobMatches = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('USERS_MANAGE') || 
+    session?.user?.modulePermissions?.includes('JOB_MATCH_MANAGE');
 
   return (
     <>
@@ -174,71 +182,82 @@ export const JobsTab: React.FC<JobsTabProps> = ({
         </button>
         {jobMatchesOpen && (
           <div className="space-y-4 transition-all duration-200">
-            <div className="space-y-4">
-              {candidateJobMatches && candidateJobMatches.length > 0 ? (
-                <div className="grid gap-4">
-                  {candidateJobMatches.map((match: any, index: number) => {
-                    const position = Array.isArray(allDbPositions) ? 
-                                   (allDbPositions.find(p => p.id === match.jobId) || 
-                                    allDbPositions.find(p => p.title === match.jobTitle)) : null;
-                    
-                    const displayTitle = position?.title || match.jobTitle || match.positionTitle || 'Unknown Position';
-                    
-                    return (
-                      <Card key={index} className="p-4 cursor-pointer hover:shadow-md transition-shadow relative group" onClick={() => onJobMatchClick(match)}>
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <h4 className="font-semibold">{displayTitle}</h4>
-                            <div className="flex items-center gap-2">
-                              {match.fitScore !== undefined && match.fitScore !== null && (
-                                <ScoreBadge score={match.fitScore}>
-                                  {formatScoreWithGrade(match.fitScore)}
-                                </ScoreBadge>
-                              )}
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onCopyJobMatch(match, index);
-                                }}
-                                className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                                title="Copy job match information"
-                              >
-                                {copiedJobMatchIndex === index ? (
-                                  <Check className="h-4 w-4 text-green-600" />
-                                ) : (
-                                  <Copy className="h-4 w-4" />
+            {!canViewJobMatches ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Lock className="mx-auto h-12 w-12 mb-4 opacity-50" />
+                <p>Access Denied</p>
+                <p className="text-sm">You don't have permission to view job matches.</p>
+                <p className="text-xs mt-2">Contact your administrator to request access.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {candidateJobMatches && candidateJobMatches.length > 0 ? (
+                  <div className="grid gap-4">
+                    {candidateJobMatches.map((match: any, index: number) => {
+                      const position = Array.isArray(allDbPositions) ? 
+                                     (allDbPositions.find(p => p.id === match.jobId) || 
+                                      allDbPositions.find(p => p.title === match.jobTitle)) : null;
+                      
+                      const displayTitle = position?.title || match.jobTitle || match.positionTitle || 'Unknown Position';
+                      
+                      return (
+                        <Card key={index} className={`p-4 transition-shadow relative group ${canManageJobMatches ? 'cursor-pointer hover:shadow-md' : ''}`} onClick={canManageJobMatches ? () => onJobMatchClick(match) : undefined}>
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <h4 className="font-semibold">{displayTitle}</h4>
+                              <div className="flex items-center gap-2">
+                                {match.fitScore !== undefined && match.fitScore !== null && (
+                                  <ScoreBadge score={match.fitScore}>
+                                    {formatScoreWithGrade(match.fitScore)}
+                                  </ScoreBadge>
                                 )}
-                              </Button>
+                                {canManageJobMatches && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onCopyJobMatch(match, index);
+                                    }}
+                                    className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    title="Copy job match information"
+                                  >
+                                    {copiedJobMatchIndex === index ? (
+                                      <Check className="h-4 w-4 text-green-600" />
+                                    ) : (
+                                      <Copy className="h-4 w-4" />
+                                    )}
+                                  </Button>
+                                )}
+                              </div>
                             </div>
+                            {match.matchReasons && Array.isArray(match.matchReasons) && match.matchReasons.length > 0 && (
+                              <div className="space-y-1">
+                                <p className="text-sm text-muted-foreground">Match reasons:</p>
+                                <ul className="text-sm space-y-1">
+                                  {match.matchReasons.slice(0, 3).map((reason: string, reasonIndex: number) => (
+                                    <li key={reasonIndex} className="flex items-start gap-2">
+                                      <span className="text-primary text-xs mt-1">•</span>
+                                      <span>{reason}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
                           </div>
-                          {match.matchReasons && Array.isArray(match.matchReasons) && match.matchReasons.length > 0 && (
-                            <div className="space-y-1">
-                              <p className="text-sm text-muted-foreground">Match reasons:</p>
-                              <ul className="text-sm space-y-1">
-                                {match.matchReasons.slice(0, 3).map((reason: string, reasonIndex: number) => (
-                                  <li key={reasonIndex} className="flex items-start gap-2">
-                                    <span className="text-primary text-xs mt-1">•</span>
-                                    <span>{reason}</span>
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-                        </div>
-                      </Card>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <ListChecks className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                  <p>No job matches found for this candidate.</p>
-                  <p className="text-sm">Job matches will appear here if the candidate matches any positions.</p>
-                </div>
-              )}
-            </div>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <ListChecks className="mx-auto h-12 w-12 mb-4 opacity-50" />
+                    <p>No job matches found for this candidate.</p>
+                    <p className="text-sm">Job matches will appear here if the candidate matches any positions.</p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </section>

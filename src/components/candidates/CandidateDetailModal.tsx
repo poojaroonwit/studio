@@ -52,7 +52,7 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
 
   const modalContent = (
     <div
-      className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[10000] flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[10000] flex items-center justify-center p-4 pointer-events-auto"
       onClick={(e) => {
         // Prevent event from bubbling up to parent components
         e.stopPropagation();
@@ -60,7 +60,7 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
       }}
     >
       <div
-        className="w-full max-w-[95vw] h-full max-h-[95vh] flex flex-col bg-background rounded-lg shadow-2xl border border-border overflow-hidden"
+        className="w-full max-w-[95vw] h-full max-h-[95vh] flex flex-col bg-background rounded-lg shadow-2xl border border-border overflow-hidden relative pointer-events-auto"
         onClick={e => {
           e.stopPropagation();
           e.preventDefault();

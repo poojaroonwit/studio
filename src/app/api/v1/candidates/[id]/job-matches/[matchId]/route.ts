@@ -20,10 +20,15 @@ export async function GET(req: NextRequest, { params }: { params: { id: string; 
   const authHeader = req.headers.get('authorization');
   const token = authHeader?.split(' ')[1];
   const user = token ? await verifyApiToken(token) : null;
+  
   if (!user) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: handleCors(req) });
   }
-  
+
+  if (user.role !== 'Admin' && !user.modulePermissions?.includes('JOB_MATCH_VIEW')) {
+    return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to view job matches' }), { status: 403, headers: handleCors(req) });
+  }
+
   const { id, matchId } = params;
   const client = await getPool().connect();
   
@@ -76,7 +81,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string; 
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: handleCors(req) });
   }
   
-  if (user.role !== 'Admin' && !user.modulePermissions?.includes('CANDIDATES_MANAGE')) {
+  if (user.role !== 'Admin' && !user.modulePermissions?.includes('JOB_MATCH_MANAGE')) {
     return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to manage job matches' }), { status: 403, headers: handleCors(req) });
   }
 
@@ -166,7 +171,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: handleCors(req) });
   }
   
-  if (user.role !== 'Admin' && !user.modulePermissions?.includes('CANDIDATES_MANAGE')) {
+  if (user.role !== 'Admin' && !user.modulePermissions?.includes('JOB_MATCH_MANAGE')) {
     return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to manage job matches' }), { status: 403, headers: handleCors(req) });
   }
 

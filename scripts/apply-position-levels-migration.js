@@ -9,7 +9,7 @@ async function applyPositionLevelsMigration() {
   });
 
   try {
-    console.log('🔍 Applying PositionLevel migration...');
+    console.log('Applying PositionLevel migration...');
     
     // Read the SQL migration file
     const sqlPath = path.join(__dirname, '../prisma/migrations/add_position_levels.sql');
@@ -33,7 +33,7 @@ async function applyPositionLevelsMigration() {
       
       // Check if data was seeded
       const countResult = await pool.query('SELECT COUNT(*) as count FROM "PositionLevel"');
-      console.log(`📊 PositionLevel records: ${countResult.rows[0].count}`);
+      console.log(`PositionLevel records: ${countResult.rows[0].count}`);
     } else {
       console.log('❌ PositionLevel table not found in database');
     }

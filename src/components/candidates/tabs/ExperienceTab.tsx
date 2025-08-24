@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PlusCircle, Trash2, Briefcase, Building2 } from 'lucide-react';
 import type { Candidate } from '@/lib/types';
+import { formatScoreWithGrade } from '@/lib/scoreUtils';
 
 interface ExperienceTabProps {
   candidate: Candidate;
@@ -70,18 +71,7 @@ const hasFitScore = (item: any) => {
   return item.fitScore !== undefined && item.fitScore !== null;
 };
 
-const formatScoreWithGrade = (score: number) => {
-  if (score >= 90) return 'A+';
-  if (score >= 85) return 'A';
-  if (score >= 80) return 'A-';
-  if (score >= 75) return 'B+';
-  if (score >= 70) return 'B';
-  if (score >= 65) return 'B-';
-  if (score >= 60) return 'C+';
-  if (score >= 55) return 'C';
-  if (score >= 50) return 'C-';
-  return 'D';
-};
+
 
 export const ExperienceTab: React.FC<ExperienceTabProps> = ({ 
   candidate, 
@@ -314,7 +304,9 @@ export const ExperienceTab: React.FC<ExperienceTabProps> = ({
                       {hasFitScore(exp) && (
                         <div className="flex flex-col items-center justify-center ml-6">
                           <span className="text-4xl font-extrabold text-primary leading-none">{formatScoreWithGrade(exp.fitScore)}</span>
-                          <span className="text-lg text-muted-foreground font-semibold mt-1">{exp.fitScore}%</span>
+                          <span className="text-lg text-muted-foreground font-semibold mt-1">
+                            {exp.fitScore === 0 ? 'Not scored' : formatScoreWithGrade(exp.fitScore)}
+                          </span>
                         </div>
                       )}
                     </div>

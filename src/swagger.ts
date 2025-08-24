@@ -1961,6 +1961,115 @@ export function getSwaggerSpec() {
           }
         }
       },
+      '/api/v1/candidates/clear-duplicates': {
+        post: {
+          summary: 'Clear duplicate candidates (v1 API)',
+          description: 'Clear duplicate candidates based on email and position applied, keeping only the first candidate with a non-zero match score. Supports dry run mode to preview changes without making them. Requires Bearer token authentication and CANDIDATES_MANAGE permission.',
+          tags: ['V1 Candidates', 'V1 Bulk Actions'],
+          security: [{ bearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    dryRun: { 
+                      type: 'boolean', 
+                      description: 'If true, only show what would be deleted without actually deleting anything',
+                      default: false
+                    },
+                    positionId: { 
+                      type: 'string', 
+                      format: 'uuid',
+                      description: 'If provided, only check for duplicates within this specific position. If null or not provided, check all positions.',
+                      nullable: true
+                    }
+                  }
+                },
+                examples: {
+                  'dry_run_example': {
+                    summary: 'Dry Run Example',
+                    value: {
+                      dryRun: true
+                    }
+                  },
+                  'specific_position_example': {
+                    summary: 'Clear Duplicates for Specific Position',
+                    value: {
+                      dryRun: false,
+                      positionId: "123e4567-e89b-12d3-a456-426614174000"
+                    }
+                  },
+                  'all_positions_example': {
+                    summary: 'Clear All Duplicates',
+                    value: {
+                      dryRun: false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          responses: {
+            '200': {
+              description: 'Duplicate candidates cleared successfully',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean' },
+                      data: {
+                        type: 'object',
+                        properties: {
+                          message: { type: 'string' },
+                          duplicatesFound: { type: 'integer', description: 'Number of duplicate groups found' },
+                          candidatesDeleted: { type: 'integer', description: 'Number of candidates deleted (only in actual run)' },
+                          candidatesToDelete: { type: 'integer', description: 'Number of candidates that would be deleted (only in dry run)' },
+                          keptCandidates: {
+                            type: 'array',
+                            items: {
+                              type: 'object',
+                              properties: {
+                                id: { type: 'string', format: 'uuid' },
+                                email: { type: 'string', format: 'email' },
+                                positionId: { type: 'string', format: 'uuid', nullable: true },
+                                fitScore: { type: 'number' },
+                                createdAt: { type: 'string', format: 'date-time' }
+                              }
+                            }
+                          },
+                          candidatesToDeleteDetails: {
+                            type: 'array',
+                            items: {
+                              type: 'object',
+                              properties: {
+                                id: { type: 'string', format: 'uuid' },
+                                name: { type: 'string' },
+                                email: { type: 'string', format: 'email' },
+                                positionId: { type: 'string', format: 'uuid', nullable: true },
+                                fitScore: { type: 'number' },
+                                createdAt: { type: 'string', format: 'date-time' }
+                              }
+                            },
+                            description: 'Only included in dry run responses'
+                          },
+                          dryRun: { type: 'boolean' }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            '400': { description: 'Invalid input data' },
+            '401': { description: 'Unauthorized' },
+            '403': { description: 'Insufficient permissions to manage candidates' },
+            '500': { description: 'Failed to clear duplicate candidates' }
+          }
+        }
+      },
       '/api/v1/health': {
         get: {
           summary: 'Health check (v1 API)',

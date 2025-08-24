@@ -127,7 +127,7 @@ export const CandidateImportUploadQueue: React.FC<{
 
   // Add sort state and handler at the top of the component
   const [sortColumn, setSortColumn] = useState<string | null>(null);
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc' | null>('asc');
   const [openMenu, setOpenMenu] = useState<string | null>(null);
 
   // Add after other useState hooks at the top of the component
@@ -212,10 +212,19 @@ export const CandidateImportUploadQueue: React.FC<{
       return;
     }
     if (sortColumn === column && direction == null) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+      // 3-state toggle: unsorted -> asc -> desc -> unsorted
+      if (sortDirection === 'asc') {
+        setSortDirection('desc');
+      } else if (sortDirection === 'desc') {
+        // Clear sort - go back to unsorted
+        setSortDirection(null);
+      } else {
+        // From unsorted (null) to asc
+        setSortDirection('asc');
+      }
     } else {
       setSortColumn(column);
-      setSortDirection(direction || 'asc');
+      setSortDirection(direction || 'desc');
     }
   };
 

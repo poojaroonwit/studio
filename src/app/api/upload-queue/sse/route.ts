@@ -109,12 +109,17 @@ export async function GET(request: NextRequest) {
   const limit = parseInt(url.searchParams.get('limit') || '20', 10);
   const offset = parseInt(url.searchParams.get('offset') || '0', 10);
 
+  console.log('[SSE] New client connected to upload queue SSE');
+
   const stream = new ReadableStream({
     async start(controller) {
       let isClosed = false;
       uploadQueueControllers.add(controller);
+      console.log(`[SSE] Client added to controllers. Total clients: ${uploadQueueControllers.size}`);
+      
       // Send initial data
       await sendUploadQueueUpdate(controller, { fileName, status, dateStart, dateEnd, positionId, limit, offset });
+      
       // Send keepalive every 10 seconds for more responsive connection
       const keepaliveInterval = setInterval(() => {
         if (isClosed) {
@@ -128,11 +133,13 @@ export async function GET(request: NextRequest) {
           clearInterval(keepaliveInterval);
         }
       }, 10000); // Reduced to 10 seconds for better responsiveness
+      
       // Cleanup on close
       request.signal.addEventListener('abort', async () => {
         isClosed = true;
         clearInterval(keepaliveInterval);
         uploadQueueControllers.delete(controller);
+        console.log(`[SSE] Client disconnected. Remaining clients: ${uploadQueueControllers.size}`);
         try { controller.close(); } catch {}
       });
     }

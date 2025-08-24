@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useState } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import {
   Table,
   TableBody,
@@ -42,6 +42,10 @@ import CandidateDetailModal from './CandidateDetailModal';
 import UploadResumeModal from './UploadResumeModal';
 import { CandidateRecruiterCell } from './CandidateRecruiterCell';
 import { CandidateSourceCell } from './CandidateSourceCell';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Loader2 } from 'lucide-react';
 
 
 interface CandidateTableProps {
@@ -58,7 +62,7 @@ interface CandidateTableProps {
   isLoading?: boolean;
   onRefreshCandidateData: (candidateId: string) => Promise<void>;
   // For bulk actions
-  selectedCandidateIds: Set<string>;
+  selectedCandidateIds?: Set<string>;
   onToggleSelectCandidate: (candidateId: string) => void;
   onToggleSelectAllCandidates: () => void;
   isAllCandidatesSelected: boolean;
@@ -66,7 +70,7 @@ interface CandidateTableProps {
   pageSize?: number;
   baseIndex?: number;
   sortColumn?: string;
-  sortDirection?: 'asc' | 'desc';
+  sortDirection?: 'asc' | 'desc' | null;
   onSort?: (column: string | null, direction?: 'asc' | 'desc' | null) => void;
   canManageCandidates?: boolean;
   // Settings
@@ -79,9 +83,14 @@ interface CandidateTableProps {
     showSourceColumn?: boolean;
     showStatusColumn?: boolean;
     showAppliedDateColumn?: boolean;
+    showLastUpdateColumn?: boolean;
   };
   // Dynamic height
   tableHeight?: number;
+  // Bulk action handlers
+  onBulkDelete?: (candidateIds: string[]) => Promise<void>;
+  onBulkChangeStatus?: (candidateIds: string[], newStatus: string, notes?: string) => Promise<void>;
+  onBulkAssignRecruiter?: (candidateIds: string[], recruiterId: string | null) => Promise<void>;
 }
 
 const getStatusBadgeVariant = (status: CandidateStatus): "default" | "secondary" | "destructive" | "outline" => {
@@ -189,7 +198,12 @@ export function CandidateTable({
   canManageCandidates = false,
   settings,
   tableHeight = 400,
+  onBulkDelete,
+  onBulkChangeStatus,
+  onBulkAssignRecruiter,
 }: CandidateTableProps) {
+  // Ensure selectedCandidateIds is always a Set
+  const safeSelectedCandidateIds = selectedCandidateIds || new Set<string>();
   const [selectedCandidateForModal, setSelectedCandidateForModal] = useState<Candidate | null>(null);
   const [candidateToDelete, setCandidateToDelete] = useState<Candidate | null>(null);
   // Add state for comments and logs
@@ -206,15 +220,35 @@ export function CandidateTable({
   const [assigningRecruiter, setAssigningRecruiter] = useState<string | null>(null);
   const [assigningSource, setAssigningSource] = useState<string | null>(null);
 
-  // Group candidates by email
-  const candidatesByEmail = candidates.reduce((acc, candidate) => {
-    const email = candidate.email?.toLowerCase() || '';
-    if (!acc[email]) acc[email] = [];
-    acc[email].push(candidate);
-    return acc;
-  }, {} as Record<string, Candidate[]>);
+  // Group candidates by email for grouping functionality
+  const candidatesByEmail = useMemo(() => {
+    const groups: Record<string, Candidate[]> = {};
+    candidates.forEach((c) => {
+      if (!c.email) return;
+      if (!groups[c.email]) groups[c.email] = [];
+      groups[c.email].push(c);
+    });
+    return groups;
+  }, [candidates]);
 
-  const emailOrder = Object.keys(candidatesByEmail).sort();
+  const emailOrder = useMemo(() => {
+    const seen = new Set<string>();
+    return candidates
+      .map((c) => c.email)
+      .filter((email) => email && !seen.has(email) && seen.add(email));
+  }, [candidates]);
+
+  // Bulk action state - removed since it's now handled in parent component
+
+  // Memoize the onOpenChange callbacks to prevent infinite re-renders
+  const handleOpenChange = useCallback((menuName: string) => (open: boolean) => {
+    setOpenMenu(open ? menuName : null);
+  }, []);
+
+  const handleMenuClick = useCallback((menuName: string) => (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setOpenMenu(menuName);
+  }, []);
 
   const getCombinedActivities = () => {
     return candidates.flatMap(candidate => {
@@ -281,7 +315,7 @@ export function CandidateTable({
 
   const renderSortIcon = (col: string) => {
     if (sortColumn !== col) return null;
-    return sortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />;
+    return sortDirection === 'asc' ? <ChevronUp size={16} /> : sortDirection === 'desc' ? <ChevronDown size={16} /> : <MoreVertical size={16} />;
   };
 
   const handleUploadResumeClick = (candidate: Candidate) => {
@@ -331,6 +365,8 @@ export function CandidateTable({
     setAssigningSource(null);
   };
 
+  // Bulk action handlers - removed since they're now handled in parent component
+
   // Calculate the number of visible columns for proper colSpan
   const getVisibleColumnCount = () => {
     let count = 2; // Row number and select checkbox are always visible
@@ -342,13 +378,24 @@ export function CandidateTable({
     if (!settings || settings.showSourceColumn !== false) count++;
     if (!settings || settings.showStatusColumn !== false) count++;
     if (!settings || settings.showAppliedDateColumn !== false) count++;
+    if (!settings || settings.showLastUpdateColumn !== false) count++; // Last update column is always visible
     count++; // Actions column is always visible
     return count;
   };
 
 
+  // Debug logging
+  console.log('🔍 TABLE DEBUG: CandidateTable received:', {
+    candidatesLength: candidates?.length || 0,
+    candidatesType: typeof candidates,
+    isArray: Array.isArray(candidates),
+    isLoading,
+    firstCandidate: candidates?.[0]
+  });
+
   if (isLoading) {
-     return (
+    console.log('🔍 TABLE DEBUG: Showing loading state');
+    return (
       <div className="flex flex-col items-center justify-center h-64 border rounded-lg bg-card shadow">
         <Users className="w-16 h-16 text-muted-foreground animate-pulse mb-4" />
         <h3 className="text-xl font-semibold text-foreground">Loading Candidates...</h3>
@@ -360,8 +407,8 @@ export function CandidateTable({
     );
   }
 
-
   if (!Array.isArray(candidates) || candidates.length === 0) {
+    console.log('🔍 TABLE DEBUG: Showing no candidates found state');
     return (
       <div className="flex flex-col items-center justify-center h-64 border rounded-lg bg-card shadow">
         <Users className="w-16 h-16 text-muted-foreground mb-4" />
@@ -374,11 +421,14 @@ export function CandidateTable({
   return (
     <>
       <div 
-        className="border rounded-lg shadow overflow-hidden table-container-responsive"
-        style={{ height: `${tableHeight}px` }}
+        className="overflow-hidden table-container-responsive h-full"
+        style={{ 
+          '--table-cell-max-width': '100%',
+          '--table-text-overflow': 'ellipsis'
+        } as React.CSSProperties}
       >
         <div className="h-full w-full overflow-auto table-scrollbar">
-          <Table className="min-w-full table-content-expandable">
+          <Table className="min-w-full table-content-expandable table-fixed [&_td]:overflow-hidden [&_th]:overflow-hidden">
             <TableHeader>
               <TableRow key="header-row">
                 <TableHead key="row-number" className="w-8 min-w-[32px] text-center">#</TableHead>
@@ -389,25 +439,25 @@ export function CandidateTable({
                 /></TableHead>
               {/* Removed Pipeline column header */}
               {(!settings || settings.showCandidateColumn !== false) && (
-                <TableHead key="candidate" className="min-w-[200px] max-w-[300px] cursor-pointer select-none group" onClick={() => { onSort && onSort('candidate'); setOpenMenu(null); }}>
+                <TableHead key="candidate" className="min-w-[200px] max-w-[300px] cursor-pointer select-none group" onClick={() => { onSort && onSort('name'); setOpenMenu(null); }}>
                   <span className="inline-flex items-center gap-1">
                     Candidate
-                    <DropdownMenu open={openMenu === 'candidate'} onOpenChange={open => setOpenMenu(open ? 'candidate' : null)}>
-                      <DropdownMenuTrigger asChild>
-                        {sortColumn === 'candidate' ? (
+                    <DropdownMenu open={openMenu === 'candidate'} onOpenChange={handleOpenChange('candidate')}>
+                      <DropdownMenuTrigger>
+                        {sortColumn === 'name' ? (
                           <button
                             type="button"
                             className="text-primary font-bold p-1 rounded hover:bg-muted"
-                            onClick={e => { e.stopPropagation(); setOpenMenu('candidate'); }}
+                            onClick={handleMenuClick('candidate')}
                             aria-label="Sort options"
                           >
-                            {sortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                            {sortDirection === 'asc' ? <ChevronUp size={16} /> : sortDirection === 'desc' ? <ChevronDown size={16} /> : <MoreVertical size={16} />}
                           </button>
                         ) : (
                           <button
                             type="button"
                             className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted"
-                            onClick={e => { e.stopPropagation(); setOpenMenu('candidate'); }}
+                            onClick={handleMenuClick('candidate')}
                             aria-label="Sort options"
                           >
                             <MoreVertical size={16} />
@@ -415,8 +465,8 @@ export function CandidateTable({
                         )}
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => { onSort && onSort('candidate', 'asc'); setOpenMenu(null); }}>Sort Ascending ▲</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => { onSort && onSort('candidate', 'desc'); setOpenMenu(null); }}>Sort Descending ▼</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { onSort && onSort('name', 'asc'); setOpenMenu(null); }}>Sort Ascending ▲</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { onSort && onSort('name', 'desc'); setOpenMenu(null); }}>Sort Descending ▼</DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => { onSort && onSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
                       </DropdownMenuContent>
@@ -424,40 +474,10 @@ export function CandidateTable({
                   </span>
                 </TableHead>
               )}
+
               {(!settings || settings.showAppliedJobColumn !== false) && (
-                <TableHead key="applied-job" className="cursor-pointer select-none group" onClick={() => { onSort && onSort('appliedJob'); setOpenMenu(null); }}>
-                  <span className="inline-flex items-center gap-1">
-                    Applied Job
-                    <DropdownMenu open={openMenu === 'appliedJob'} onOpenChange={open => setOpenMenu(open ? 'appliedJob' : null)}>
-                      <DropdownMenuTrigger asChild>
-                        {sortColumn === 'appliedJob' ? (
-                          <button
-                            type="button"
-                            className="text-primary font-bold p-1 rounded hover:bg-muted"
-                            onClick={e => { e.stopPropagation(); setOpenMenu('appliedJob'); }}
-                            aria-label="Sort options"
-                          >
-                            {sortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted"
-                            onClick={e => { e.stopPropagation(); setOpenMenu('appliedJob'); }}
-                            aria-label="Sort options"
-                          >
-                            <MoreVertical size={16} />
-                          </button>
-                        )}
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => { onSort && onSort('appliedJob', 'asc'); setOpenMenu(null); }}>Sort Ascending ▲</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => { onSort && onSort('appliedJob', 'desc'); setOpenMenu(null); }}>Sort Descending ▼</DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => { onSort && onSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </span>
+                <TableHead key="applied-job" className="min-w-[120px] max-w-[200px]">
+                  Applied Job
                 </TableHead>
               )}
               {/* Job Matches Count Column */}
@@ -468,22 +488,22 @@ export function CandidateTable({
                 <TableHead key="fit-score" className="min-w-[80px] max-w-[120px] hidden sm:table-cell cursor-pointer select-none group" onClick={() => { onSort && onSort('fitScore'); setOpenMenu(null); }}>
                   <span className="inline-flex items-center gap-1">
                     Fit Score
-                    <DropdownMenu open={openMenu === 'fitScore'} onOpenChange={open => setOpenMenu(open ? 'fitScore' : null)}>
-                      <DropdownMenuTrigger asChild>
+                    <DropdownMenu open={openMenu === 'fitScore'} onOpenChange={handleOpenChange('fitScore')}>
+                      <DropdownMenuTrigger>
                         {sortColumn === 'fitScore' ? (
                           <button
                             type="button"
                             className="text-primary font-bold p-1 rounded hover:bg-muted"
-                            onClick={e => { e.stopPropagation(); setOpenMenu('fitScore'); }}
+                            onClick={handleMenuClick('fitScore')}
                             aria-label="Sort options"
                           >
-                            {sortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                            {sortDirection === 'asc' ? <ChevronUp size={16} /> : sortDirection === 'desc' ? <ChevronDown size={16} /> : <MoreVertical size={16} />}
                           </button>
                         ) : (
                           <button
                             type="button"
                             className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted"
-                            onClick={e => { e.stopPropagation(); setOpenMenu('fitScore'); }}
+                            onClick={handleMenuClick('fitScore')}
                             aria-label="Sort options"
                           >
                             <MoreVertical size={16} />
@@ -501,61 +521,30 @@ export function CandidateTable({
                 </TableHead>
               )}
               {(!settings || settings.showRecruiterColumn !== false) && (
-                <TableHead key="recruiter" className="cursor-pointer select-none group" onClick={() => { onSort && onSort('recruiter'); setOpenMenu(null); }}>
-                  <span className="inline-flex items-center gap-1">
-                    Recruiter
-                    <DropdownMenu open={openMenu === 'recruiter'} onOpenChange={open => setOpenMenu(open ? 'recruiter' : null)}>
-                      <DropdownMenuTrigger asChild>
-                        {sortColumn === 'recruiter' ? (
-                          <button
-                            type="button"
-                            className="text-primary font-bold p-1 rounded hover:bg-muted"
-                            onClick={e => { e.stopPropagation(); setOpenMenu('recruiter'); }}
-                            aria-label="Sort options"
-                          >
-                            {sortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted"
-                            onClick={e => { e.stopPropagation(); setOpenMenu('recruiter'); }}
-                            aria-label="Sort options"
-                          >
-                            <MoreVertical size={16} />
-                          </button>
-                        )}
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => { onSort && onSort('recruiter', 'asc'); setOpenMenu(null); }}>Sort Ascending ▲</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => { onSort && onSort('recruiter', 'desc'); setOpenMenu(null); }}>Sort Descending ▼</DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => { onSort && onSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </span>
+                <TableHead key="recruiter" className="min-w-[100px] max-w-[150px]">
+                  Recruiter
                 </TableHead>
               )}
               {(!settings || settings.showSourceColumn !== false) && (
-                <TableHead key="source" className="cursor-pointer select-none group" onClick={() => { onSort && onSort('source'); setOpenMenu(null); }}>
+                <TableHead key="source" className="min-w-[80px] max-w-[120px] cursor-pointer select-none group" onClick={() => { onSort && onSort('source'); setOpenMenu(null); }}>
                   <span className="inline-flex items-center gap-1">
                     Source
-                    <DropdownMenu open={openMenu === 'source'} onOpenChange={open => setOpenMenu(open ? 'source' : null)}>
-                      <DropdownMenuTrigger asChild>
+                    <DropdownMenu open={openMenu === 'source'} onOpenChange={handleOpenChange('source')}>
+                      <DropdownMenuTrigger>
                         {sortColumn === 'source' ? (
                           <button
                             type="button"
                             className="text-primary font-bold p-1 rounded hover:bg-muted"
-                            onClick={e => { e.stopPropagation(); setOpenMenu('source'); }}
+                            onClick={handleMenuClick('source')}
                             aria-label="Sort options"
                           >
-                            {sortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                            {sortDirection === 'asc' ? <ChevronUp size={16} /> : sortDirection === 'desc' ? <ChevronDown size={16} /> : <MoreVertical size={16} />}
                           </button>
                         ) : (
                           <button
                             type="button"
                             className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted"
-                            onClick={e => { e.stopPropagation(); setOpenMenu('source'); }}
+                            onClick={handleMenuClick('source')}
                             aria-label="Sort options"
                           >
                             <MoreVertical size={16} />
@@ -573,25 +562,25 @@ export function CandidateTable({
                 </TableHead>
               )}
               {(!settings || settings.showStatusColumn !== false) && (
-                <TableHead key="status" className="cursor-pointer select-none group" onClick={() => { onSort && onSort('status'); setOpenMenu(null); }}>
+                <TableHead key="status" className="min-w-[100px] max-w-[150px] cursor-pointer select-none group" onClick={() => { onSort && onSort('status'); setOpenMenu(null); }}>
                   <span className="inline-flex items-center gap-1">
                     Status
-                    <DropdownMenu open={openMenu === 'status'} onOpenChange={open => setOpenMenu(open ? 'status' : null)}>
-                      <DropdownMenuTrigger asChild>
+                    <DropdownMenu open={openMenu === 'status'} onOpenChange={handleOpenChange('status')}>
+                      <DropdownMenuTrigger>
                         {sortColumn === 'status' ? (
                           <button
                             type="button"
                             className="text-primary font-bold p-1 rounded hover:bg-muted"
-                            onClick={e => { e.stopPropagation(); setOpenMenu('status'); }}
+                            onClick={handleMenuClick('status')}
                             aria-label="Sort options"
                           >
-                            {sortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                            {sortDirection === 'asc' ? <ChevronUp size={16} /> : sortDirection === 'desc' ? <ChevronDown size={16} /> : <MoreVertical size={16} />}
                           </button>
                         ) : (
                           <button
                             type="button"
                             className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted"
-                            onClick={e => { e.stopPropagation(); setOpenMenu('status'); }}
+                            onClick={handleMenuClick('status')}
                             aria-label="Sort options"
                           >
                             <MoreVertical size={16} />
@@ -612,22 +601,22 @@ export function CandidateTable({
                 <TableHead key="applied-date" className="min-w-[100px] max-w-[140px] hidden sm:table-cell cursor-pointer select-none group" onClick={() => { onSort && onSort('applicationDate'); setOpenMenu(null); }}>
                   <span className="inline-flex items-center gap-1">
                     Applied Date
-                    <DropdownMenu open={openMenu === 'applicationDate'} onOpenChange={open => setOpenMenu(open ? 'applicationDate' : null)}>
-                      <DropdownMenuTrigger asChild>
+                    <DropdownMenu open={openMenu === 'applicationDate'} onOpenChange={handleOpenChange('applicationDate')}>
+                      <DropdownMenuTrigger>
                         {sortColumn === 'applicationDate' ? (
                           <button
                             type="button"
                             className="text-primary font-bold p-1 rounded hover:bg-muted"
-                            onClick={e => { e.stopPropagation(); setOpenMenu('applicationDate'); }}
+                            onClick={handleMenuClick('applicationDate')}
                             aria-label="Sort options"
                           >
-                            {sortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                            {sortDirection === 'asc' ? <ChevronUp size={16} /> : sortDirection === 'desc' ? <ChevronDown size={16} /> : <MoreVertical size={16} />}
                           </button>
                         ) : (
                           <button
                             type="button"
                             className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted"
-                            onClick={e => { e.stopPropagation(); setOpenMenu('applicationDate'); }}
+                            onClick={handleMenuClick('applicationDate')}
                             aria-label="Sort options"
                           >
                             <MoreVertical size={16} />
@@ -637,6 +626,42 @@ export function CandidateTable({
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => { onSort && onSort('applicationDate', 'asc'); setOpenMenu(null); }}>Sort Ascending ▲</DropdownMenuItem>
                         <DropdownMenuItem onClick={() => { onSort && onSort('applicationDate', 'desc'); setOpenMenu(null); }}>Sort Descending ▼</DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => { onSort && onSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </span>
+                </TableHead>
+              )}
+              {(!settings || settings.showLastUpdateColumn !== false) && (
+                <TableHead key="last-update" className="min-w-[100px] max-w-[140px] hidden lg:table-cell cursor-pointer select-none group" onClick={() => { onSort && onSort('lastUpdate'); setOpenMenu(null); }}>
+                  <span className="inline-flex items-center gap-1">
+                    Last Update
+                    <DropdownMenu open={openMenu === 'lastUpdate'} onOpenChange={handleOpenChange('lastUpdate')}>
+                      <DropdownMenuTrigger>
+                        {sortColumn === 'lastUpdate' ? (
+                          <button
+                            type="button"
+                            className="text-primary font-bold p-1 rounded hover:bg-muted"
+                            onClick={handleMenuClick('lastUpdate')}
+                            aria-label="Sort options"
+                          >
+                            {sortDirection === 'asc' ? <ChevronUp size={16} /> : sortDirection === 'desc' ? <ChevronDown size={16} /> : <MoreVertical size={16} />}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted"
+                            onClick={handleMenuClick('lastUpdate')}
+                            aria-label="Sort options"
+                          >
+                            <MoreVertical size={16} />
+                          </button>
+                        )}
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => { onSort && onSort('lastUpdate', 'asc'); setOpenMenu(null); }}>Sort Ascending ▲</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { onSort && onSort('lastUpdate', 'desc'); setOpenMenu(null); }}>Sort Descending ▼</DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => { onSort && onSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
                       </DropdownMenuContent>
@@ -677,16 +702,16 @@ export function CandidateTable({
               const currentStageIndex = availableStages.findIndex(s => s.name === candidate.status);
 
                   const row = (
-                <TableRow key={candidate.id} onClick={(e) => handleRowClick(candidate, e)} className="cursor-pointer hover:bg-muted/40" data-state={selectedCandidateIds.has(candidate.id) ? 'selected' : ''}>
+                <TableRow key={candidate.id} onClick={(e) => handleRowClick(candidate, e)} className="cursor-pointer hover:bg-muted/40" data-state={safeSelectedCandidateIds.has(candidate.id) ? 'selected' : ''}>
                       <TableCell key={`${candidate.id}-row-number`} className="text-center font-mono text-xs text-muted-foreground">{rowNumber}</TableCell>
                   <TableCell key={`${candidate.id}-select`}><Checkbox
-                      checked={selectedCandidateIds.has(candidate.id)}
+                      checked={safeSelectedCandidateIds.has(candidate.id)}
                       onCheckedChange={() => onToggleSelectCandidate(candidate.id)}
                       aria-label={`Select candidate ${candidate.name}`}
                     /></TableCell>
                   {/* Removed Pipeline cell */}
                   {(!settings || settings.showCandidateColumn !== false) && (
-                    <TableCell key={`${candidate.id}-candidate-info`}>
+                    <TableCell key={`${candidate.id}-candidate-info`} className="max-w-[300px]">
                       <div className="flex items-center gap-3">
                         {(() => {
                           const nameInfo = formatCandidateNameWithLang(candidate);
@@ -702,16 +727,17 @@ export function CandidateTable({
                                 size="lg"
                                 className="border-2 border-border"
                               />
-                              <div>
+                              <div className="min-w-0 flex-1">
                                 <Link href={`/candidates/${candidate.id}`} passHref>
                                   <span 
-                                    className={`font-medium text-foreground hover:underline cursor-pointer ${nameInfo.fontClass}`}
+                                    className={`font-medium text-foreground hover:underline cursor-pointer truncate block ${nameInfo.fontClass}`}
                                     lang={nameInfo.lang}
+                                    title={nameInfo.name}
                                   >
                                     {nameInfo.name}
                                   </span>
                                 </Link>
-                                <div className="text-xs text-muted-foreground">{candidate.email}</div>
+                                <div className="text-xs text-muted-foreground truncate" title={candidate.email}>{candidate.email}</div>
                               </div>
                             </>
                           );
@@ -719,26 +745,26 @@ export function CandidateTable({
                       </div>
                     </TableCell>
                   )}
+
                   {(!settings || settings.showAppliedJobColumn !== false) && (
-                    <TableCell key={`${candidate.id}-position`}>
+                    <TableCell key={`${candidate.id}-position`} className="max-w-[200px]">
                       {candidate.position?.title ? (
                         <div className="space-y-1">
-                          <Link href={`/positions/${candidate.positionId || candidate.position?.id}`} passHref>
-                            <span
-                              className="font-medium text-primary hover:underline cursor-pointer"
-                              title={`Go to ${candidate.position.title}`}
-                              style={{
-                                display: '-webkit-box',
-                                WebkitLineClamp: 2,
-                                WebkitBoxOrient: 'vertical',
-                                overflow: 'hidden',
-                                lineHeight: '1.2em',
-                                maxHeight: '2.4em'
-                              }}
-                            >
-                              {candidate.position.title}
-                            </span>
-                          </Link>
+                          <button
+                            onClick={() => onEditPosition(candidate.position!)}
+                            className="font-medium text-primary hover:underline cursor-pointer text-left w-full"
+                            title={`View ${candidate.position.title} details`}
+                            style={{
+                              display: '-webkit-box',
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: 'vertical',
+                              overflow: 'hidden',
+                              lineHeight: '1.2em',
+                              maxHeight: '2.4em'
+                            }}
+                          >
+                            {candidate.position.title}
+                          </button>
                         </div>
                       ) : candidate.positionId ? (
                         <span className="text-warning-foreground bg-warning/20 px-2 py-1 rounded text-xs font-semibold">Missing Job Info</span>
@@ -749,12 +775,12 @@ export function CandidateTable({
                   )}
                   {/* Job Matches Count Cell */}
                   {(!settings || settings.showJobMatchesColumn !== false) && (
-                    <TableCell key={`${candidate.id}-job-matches-count`} className="text-center">
+                    <TableCell key={`${candidate.id}-job-matches-count`} className="text-center max-w-[120px]">
                       {Array.isArray(candidate.jobMatches) && candidate.jobMatches.length > 0 ? candidate.jobMatches.length : '-'}
                     </TableCell>
                   )}
                   {(!settings || settings.showFitScoreColumn !== false) && (
-                    <TableCell key={`${candidate.id}-fit-score`} className="hidden sm:table-cell">
+                    <TableCell key={`${candidate.id}-fit-score`} className="hidden sm:table-cell max-w-[120px]">
                       <div className="flex items-center gap-2">
                         {(candidate.fitScore !== undefined && candidate.fitScore !== null) ? (
                           <ScoreBadge score={candidate.fitScore} className="rounded-full">
@@ -767,7 +793,7 @@ export function CandidateTable({
                     </TableCell>
                   )}
                   {(!settings || settings.showRecruiterColumn !== false) && (
-                    <TableCell key={`${candidate.id}-recruiter`}>
+                    <TableCell key={`${candidate.id}-recruiter`} className="max-w-[150px]">
                       <CandidateRecruiterCell
                         candidate={candidate}
                         availableRecruiters={availableRecruiters}
@@ -779,7 +805,7 @@ export function CandidateTable({
                     </TableCell>
                   )}
                   {(!settings || settings.showSourceColumn !== false) && (
-                    <TableCell key={`${candidate.id}-source`}>
+                    <TableCell key={`${candidate.id}-source`} className="max-w-[120px]">
                                              <CandidateSourceCell
                          candidate={candidate}
                          availableSources={availableSources}
@@ -791,7 +817,7 @@ export function CandidateTable({
                     </TableCell>
                   )}
                   {(!settings || settings.showStatusColumn !== false) && (
-                    <TableCell key={`${candidate.id}-status`}>
+                    <TableCell key={`${candidate.id}-status`} className="max-w-[150px]">
                       {(() => {
                         const stage = availableStages.find(s => s.name === candidate.status);
                         const badgeColor = stage?.color_badge;
@@ -808,14 +834,19 @@ export function CandidateTable({
                     </TableCell>
                   )}
                   {(!settings || settings.showAppliedDateColumn !== false) && (
-                    <TableCell key={`${candidate.id}-applied-date`} className="hidden sm:table-cell">
+                    <TableCell key={`${candidate.id}-applied-date`} className="hidden sm:table-cell max-w-[140px] text-ellipsis whitespace-nowrap">
                       {displayAppliedDate(candidate.applicationDate)}
                     </TableCell>
                   )}
-                  <TableCell key={`${candidate.id}-actions`} className="text-right">
+                  {(!settings || settings.showLastUpdateColumn !== false) && (
+                    <TableCell key={`${candidate.id}-last-update`} className="hidden lg:table-cell max-w-[140px] text-ellipsis whitespace-nowrap">
+                      {displayAppliedDate(candidate.updatedAt)}
+                    </TableCell>
+                  )}
+                  <TableCell key={`${candidate.id}-actions`} className="text-right max-w-[100px]">
                     <div className="flex items-center justify-end gap-2">
                       <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
+                        <DropdownMenuTrigger>
                           <Button variant="ghost" size="icon" className="h-8 w-8">
                             <MoreHorizontal className="h-4 w-4" />
                             <span className="sr-only">Actions</span>
@@ -865,10 +896,10 @@ export function CandidateTable({
                       </TableRow>
                       {isExpanded && group.map((candidate, idx) => {
                         const row = (
-                          <TableRow key={candidate.id} onClick={(e) => handleRowClick(candidate, e)} className="cursor-pointer hover:bg-muted/40 border-t" data-state={selectedCandidateIds.has(candidate.id) ? 'selected' : ''}>
+                          <TableRow key={candidate.id} onClick={(e) => handleRowClick(candidate, e)} className="cursor-pointer hover:bg-muted/40 border-t" data-state={safeSelectedCandidateIds.has(candidate.id) ? 'selected' : ''}>
                             <TableCell key={`${candidate.id}-row-number`} className="text-center font-mono text-xs text-muted-foreground">{rowNumber}</TableCell>
                             <TableCell key={`${candidate.id}-select`}><Checkbox
-                                checked={selectedCandidateIds.has(candidate.id)}
+                                checked={safeSelectedCandidateIds.has(candidate.id)}
                                 onCheckedChange={() => onToggleSelectCandidate(candidate.id)}
                                 aria-label={`Select candidate ${candidate.name}`}
                               /></TableCell>
@@ -911,13 +942,15 @@ export function CandidateTable({
                                 })()}
                               </div>
                             </TableCell>
-                            <TableCell key={`${candidate.id}-position`}>
-                              {candidate.position?.title ? (
-                                <div className="space-y-1">
-                                  <Link href={`/positions/${candidate.positionId || candidate.position?.id}`} passHref>
-                                    <span
-                                      className="font-medium text-primary hover:underline cursor-pointer"
-                                      title={`Go to ${candidate.position.title}`}
+
+                            {(!settings || settings.showAppliedJobColumn !== false) && (
+                              <TableCell key={`${candidate.id}-position`} className="max-w-[200px]">
+                                {candidate.position?.title ? (
+                                  <div className="space-y-1">
+                                    <button
+                                      onClick={() => onEditPosition(candidate.position!)}
+                                      className="font-medium text-primary hover:underline cursor-pointer text-left w-full"
+                                      title={`View ${candidate.position.title} details`}
                                       style={{
                                         display: '-webkit-box',
                                         WebkitLineClamp: 2,
@@ -928,72 +961,89 @@ export function CandidateTable({
                                       }}
                                     >
                                       {candidate.position.title}
-                                    </span>
-                                  </Link>
-                                </div>
-                              ) : candidate.positionId ? (
-                                <span className="text-warning-foreground bg-warning/20 px-2 py-1 rounded text-xs font-semibold">Missing Job Info</span>
-                              ) : (
-                                <span className="text-muted-foreground">N/A</span>
-                              )}
-                            </TableCell>
-                            {/* Job Matches Count Cell */}
-                            <TableCell key={`${candidate.id}-job-matches-count`} className="text-center">
-                              {Array.isArray(candidate.jobMatches) && candidate.jobMatches.length > 0 ? candidate.jobMatches.length : '-'}
-                            </TableCell>
-                            <TableCell key={`${candidate.id}-fit-score`} className="hidden sm:table-cell">
-                              <div className="flex items-center gap-2">
-                                {(candidate.fitScore !== undefined && candidate.fitScore !== null) ? (
-                                  <ScoreBadge score={candidate.fitScore} className="rounded-full">
-                                    {displayFitScoreWithGrade(candidate.fitScore)}
-                                  </ScoreBadge>
+                                    </button>
+                                  </div>
+                                ) : candidate.positionId ? (
+                                  <span className="text-warning-foreground bg-warning/20 px-2 py-1 rounded text-xs font-semibold">Missing Job Info</span>
                                 ) : (
-                                  <span className="text-xs text-muted-foreground">No job applied</span>
+                                  <span className="text-muted-foreground">N/A</span>
                                 )}
-                              </div>
-                            </TableCell>
-                            <TableCell key={`${candidate.id}-recruiter`}>
-                              <CandidateRecruiterCell
-                                candidate={candidate}
-                                availableRecruiters={availableRecruiters}
-                                canManageCandidates={canManageCandidates}
-                                isAssigning={assigningRecruiter === candidate.id}
-                                onAssignRecruiter={handleAssignRecruiter}
-                                onResetAssigning={handleResetAssigning}
-                              />
-                            </TableCell>
-                                                         <TableCell key={`${candidate.id}-source`}>
-                               <CandidateSourceCell
-                                 candidate={candidate}
-                                 availableSources={availableSources}
-                                 canManageCandidates={canManageCandidates}
-                                 isAssigning={assigningSource === candidate.id}
-                                 onAssignSource={handleAssignSource}
-                                 onResetAssigning={handleResetAssigning}
-                               />
-                             </TableCell>
-                            <TableCell key={`${candidate.id}-status`}>
-                              {(() => {
-                                const stage = availableStages.find(s => s.name === candidate.status);
-                                const badgeColor = stage?.color_badge;
-                                return (
-                                  <Badge
-                                    variant={getStatusBadgeVariant(candidate.status)}
-                                    className="capitalize"
-                                    style={badgeColor ? { backgroundColor: badgeColor, color: '#fff', borderColor: badgeColor } : undefined}
-                                  >
-                                    {candidate.status}
-                                  </Badge>
-                                );
-                              })()}
-                            </TableCell>
-                            <TableCell key={`${candidate.id}-applied-date`} className="hidden sm:table-cell">
-                              {displayAppliedDate(candidate.applicationDate)}
-                            </TableCell>
+                              </TableCell>
+                            )}
+                            {/* Job Matches Count Cell */}
+                            {(!settings || settings.showJobMatchesColumn !== false) && (
+                              <TableCell key={`${candidate.id}-job-matches-count`} className="text-center max-w-[120px]">
+                                {Array.isArray(candidate.jobMatches) && candidate.jobMatches.length > 0 ? candidate.jobMatches.length : '-'}
+                              </TableCell>
+                            )}
+                            {(!settings || settings.showFitScoreColumn !== false) && (
+                              <TableCell key={`${candidate.id}-fit-score`} className="hidden sm:table-cell max-w-[120px]">
+                                <div className="flex items-center gap-2">
+                                  {(candidate.fitScore !== undefined && candidate.fitScore !== null) ? (
+                                    <ScoreBadge score={candidate.fitScore} className="rounded-full">
+                                      {displayFitScoreWithGrade(candidate.fitScore)}
+                                    </ScoreBadge>
+                                  ) : (
+                                    <span className="text-xs text-muted-foreground">No job applied</span>
+                                  )}
+                                </div>
+                              </TableCell>
+                            )}
+                            {(!settings || settings.showRecruiterColumn !== false) && (
+                              <TableCell key={`${candidate.id}-recruiter`} className="max-w-[150px]">
+                                <CandidateRecruiterCell
+                                  candidate={candidate}
+                                  availableRecruiters={availableRecruiters}
+                                  canManageCandidates={canManageCandidates}
+                                  isAssigning={assigningRecruiter === candidate.id}
+                                  onAssignRecruiter={handleAssignRecruiter}
+                                  onResetAssigning={handleResetAssigning}
+                                />
+                              </TableCell>
+                            )}
+                            {(!settings || settings.showSourceColumn !== false) && (
+                              <TableCell key={`${candidate.id}-source`} className="max-w-[120px]">
+                                <CandidateSourceCell
+                                  candidate={candidate}
+                                  availableSources={availableSources}
+                                  canManageCandidates={canManageCandidates}
+                                  isAssigning={assigningSource === candidate.id}
+                                  onAssignSource={handleAssignSource}
+                                  onResetAssigning={handleResetAssigning}
+                                />
+                              </TableCell>
+                            )}
+                            {(!settings || settings.showStatusColumn !== false) && (
+                              <TableCell key={`${candidate.id}-status`} className="max-w-[150px]">
+                                {(() => {
+                                  const stage = availableStages.find(s => s.name === candidate.status);
+                                  const badgeColor = stage?.color_badge;
+                                  return (
+                                    <Badge
+                                      variant={getStatusBadgeVariant(candidate.status)}
+                                      className="capitalize"
+                                      style={badgeColor ? { backgroundColor: badgeColor, color: '#fff', borderColor: badgeColor } : undefined}
+                                    >
+                                      {candidate.status}
+                                    </Badge>
+                                  );
+                                })()}
+                              </TableCell>
+                            )}
+                            {(!settings || settings.showAppliedDateColumn !== false) && (
+                              <TableCell key={`${candidate.id}-applied-date`} className="hidden sm:table-cell max-w-[140px] text-ellipsis whitespace-nowrap">
+                                {displayAppliedDate(candidate.applicationDate)}
+                              </TableCell>
+                            )}
+                            {(!settings || settings.showLastUpdateColumn !== false) && (
+                              <TableCell key={`${candidate.id}-last-update`} className="hidden lg:table-cell">
+                                {displayAppliedDate(candidate.updatedAt)}
+                              </TableCell>
+                            )}
                             <TableCell key={`${candidate.id}-actions`} className="text-right">
                               <div className="flex items-center justify-end gap-2">
                                 <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
+                                  <DropdownMenuTrigger>
                                     <Button variant="ghost" size="icon" className="h-8 w-8">
                                       <MoreHorizontal className="h-4 w-4" />
                                       <span className="sr-only">Actions</span>
@@ -1047,6 +1097,9 @@ export function CandidateTable({
         </Table>
         </div>
       </div>
+
+      {/* Bulk Action Confirmation Dialog - removed since it's now handled in parent component */}
+
       {selectedCandidateSummary && (
         <CandidateDetailModal
           candidateId={selectedCandidateSummary.id}

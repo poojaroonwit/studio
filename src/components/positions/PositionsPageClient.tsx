@@ -170,7 +170,7 @@ export default function PositionsPageClient() {
       }
       setStatusFilter(newStatus);
     }
-  }, [typeof window !== 'undefined' ? window.location.search : '']);
+  }, [searchParams]);
 
   // Update local state when preferences are loaded
   useEffect(() => {
@@ -798,7 +798,7 @@ export default function PositionsPageClient() {
 
   // Add sort state and handler at the top of the component
   const [sortColumn, setSortColumn] = useState<string | null>(null);
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc' | null>('asc');
   const [openMenu, setOpenMenu] = useState<string | null>(null);
 
   const handleSort = (column: string | null, direction?: 'asc' | 'desc' | null) => {
@@ -808,10 +808,19 @@ export default function PositionsPageClient() {
       return;
     }
     if (sortColumn === column && direction == null) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+      // 3-state toggle: unsorted -> asc -> desc -> unsorted
+      if (sortDirection === 'asc') {
+        setSortDirection('desc');
+      } else if (sortDirection === 'desc') {
+        // Clear sort - go back to unsorted
+        setSortDirection(null);
+      } else {
+        // From unsorted (null) to asc
+        setSortDirection('asc');
+      }
     } else {
       setSortColumn(column);
-      setSortDirection(direction || 'asc');
+      setSortDirection(direction || 'desc');
     }
   };
 
@@ -1084,9 +1093,7 @@ export default function PositionsPageClient() {
                         <Loader2 className="h-3 w-3" />
                       </Button>
                     </div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      Add positions with departments to see them here
-                    </div>
+                  
 
                   </div>
                 )}

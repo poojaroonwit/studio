@@ -12,7 +12,7 @@ This document explains how the admin role permissions are configured to ensure f
 
 ## Available Permissions (36 total)
 
-### Candidate Management (10 permissions)
+### Candidate Management (12 permissions)
 - `CANDIDATES_VIEW` - View candidate profiles and lists
 - `CANDIDATES_MANAGE` - Add, edit, and delete candidate profiles
 - `CANDIDATES_IMPORT` - Bulk import candidate data
@@ -23,6 +23,8 @@ This document explains how the admin role permissions are configured to ensure f
 - `CANDIDATES_RECRUITER_ASSIGN` - Assign candidates to recruiters
 - `TASK_BOARD_VIEW` - View task board for candidate workflow
 - `TASK_BOARD_MANAGE_ALL` - Manage all tasks across all recruiters
+- `JOB_MATCH_VIEW` - View job match information for candidates
+- `JOB_MATCH_MANAGE` - Add, edit, and delete job matches for candidates
 
 ### Position Management (4 permissions)
 - `POSITIONS_VIEW` - View job position details and lists

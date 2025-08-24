@@ -17,6 +17,7 @@ interface RolePermissionSelectorProps {
   disabled?: boolean;
   className?: string;
   noCard?: boolean;
+  protectedPermissions?: PlatformModuleId[];
 }
 
 // Group permissions by category for display
@@ -32,12 +33,18 @@ export function RolePermissionSelector({
   description = "Choose which permissions should be granted to this role.",
   disabled = false,
   className,
-  noCard = false
+  noCard = false,
+  protectedPermissions = []
 }: RolePermissionSelectorProps) {
   const [searchQuery, setSearchQuery] = useState('');
 
   const togglePermission = (permissionId: PlatformModuleId) => {
     if (disabled) return;
+    
+    // Prevent removing protected permissions
+    if (selectedPermissions.includes(permissionId) && protectedPermissions.includes(permissionId)) {
+      return;
+    }
     
     const newPermissions = selectedPermissions.includes(permissionId)
       ? selectedPermissions.filter(p => p !== permissionId)
@@ -54,7 +61,9 @@ export function RolePermissionSelector({
 
   const clearAllPermissions = () => {
     if (disabled) return;
-    onPermissionsChange([]);
+    // Preserve protected permissions when clearing all
+    const preservedPermissions = selectedPermissions.filter(p => protectedPermissions.includes(p));
+    onPermissionsChange(preservedPermissions);
   };
 
   const selectCategoryPermissions = (category: string) => {
@@ -77,7 +86,7 @@ export function RolePermissionSelector({
       .map(p => p.id);
     
     const newPermissions = selectedPermissions.filter(p => 
-      !categoryPermissions.includes(p)
+      !categoryPermissions.includes(p) || protectedPermissions.includes(p)
     );
     onPermissionsChange(newPermissions);
   };
@@ -197,34 +206,52 @@ export function RolePermissionSelector({
               
               {/* Permission Options */}
               <div className="divide-y divide-border/50">
-                {permissions.map(permission => (
-                  <div key={permission.id} className="group">
-                    <label className={cn(
-                      "flex items-center space-x-3 p-3 hover:bg-muted/30 transition-colors cursor-pointer",
-                      disabled && "cursor-not-allowed opacity-50"
-                    )}>
-                      <Checkbox
-                        checked={selectedPermissions.includes(permission.id)}
-                        onCheckedChange={() => togglePermission(permission.id)}
-                        disabled={disabled}
-                        className="rounded border-2 border-primary/30 focus:ring-2 focus:ring-primary text-primary"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium text-foreground">
-                            {permission.label}
-                          </span>
-                          <Badge variant="outline" className="text-xs ml-2 flex-shrink-0">
-                            {permission.id}
-                          </Badge>
+                {permissions.map(permission => {
+                  const isProtected = protectedPermissions.includes(permission.id);
+                  const isSelected = selectedPermissions.includes(permission.id);
+                  const isDisabled = disabled || (isProtected && isSelected);
+                  
+                  return (
+                    <div key={permission.id} className="group">
+                      <label className={cn(
+                        "flex items-center space-x-3 p-3 hover:bg-muted/30 transition-colors cursor-pointer",
+                        isDisabled && "cursor-not-allowed opacity-50"
+                      )}>
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={() => togglePermission(permission.id)}
+                          disabled={isDisabled}
+                          className="rounded border-2 border-primary/30 focus:ring-2 focus:ring-primary text-primary"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-foreground">
+                                {permission.label}
+                              </span>
+                              {isProtected && (
+                                <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800">
+                                  Protected
+                                </Badge>
+                              )}
+                            </div>
+                            <Badge variant="outline" className="text-xs ml-2 flex-shrink-0">
+                              {permission.id}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {permission.description}
+                            {isProtected && isSelected && (
+                              <span className="block text-amber-600 dark:text-amber-400 mt-1">
+                                This permission cannot be removed for security reasons.
+                              </span>
+                            )}
+                          </p>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {permission.description}
-                        </p>
-                      </div>
-                    </label>
-                  </div>
-                ))}
+                      </label>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           ))}

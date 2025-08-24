@@ -123,7 +123,7 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl w-full max-h-[95vh] flex flex-col">
+      <DialogContent className="max-w-4xl w-full max-h-[90vh] flex flex-col">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-3">
             {getFileIcon(file.fileName)}
@@ -158,8 +158,8 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
                   <img
                     src={file.url}
                     alt={file.fileName}
-                    className="max-w-full max-h-[calc(95vh-200px)] object-contain rounded-lg shadow-lg"
-                    style={{ maxHeight: 'calc(95vh - 200px)' }}
+                    className="max-w-full max-h-[calc(90vh-200px)] object-contain rounded-lg shadow-lg"
+                    style={{ maxHeight: 'calc(90vh - 200px)' }}
                   />
                 </div>
               ) : isPdf ? (
@@ -167,7 +167,7 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
                   src={file.url}
                   className="w-full h-full border-0 rounded-lg"
                   title={file.fileName}
-                  style={{ minHeight: '400px', height: 'calc(95vh - 200px)' }}
+                  style={{ minHeight: '400px', height: 'calc(90vh - 200px)' }}
                 />
               ) : null}
             </div>

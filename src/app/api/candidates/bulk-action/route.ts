@@ -7,7 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { getPool } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
 import { broadcastCandidateUpdate, broadcastCandidateTransitionUpdate } from '@/lib/candidateSse';
-import { validateCandidateHiringStatus, assignCandidateToHeadcount } from '@/lib/headcountUtils';
+import { validateCandidateHiringStatus, assignCandidateToHeadcount, autoClosePositionIfHeadcountFilled } from '@/lib/headcountUtils';
 
 
 
@@ -17,6 +17,15 @@ const bulkActionSchema = z.object({
   newStatus: z.string().optional(), // Required if action is 'change_status'
   newRecruiterId: z.string().uuid().nullable().optional(), // Required if action is 'assign_recruiter'
   transitionNotes: z.string().optional().nullable(), // Optional for 'change_status'
+}).refine((data) => {
+  // Validate that required fields are present based on action
+  if (data.action === 'change_status' && !data.newStatus) {
+    return false;
+  }
+  return true;
+}, {
+  message: "newStatus is required when action is 'change_status'",
+  path: ["newStatus"]
 });
 
 /**
@@ -210,6 +219,7 @@ export async function POST(request: NextRequest) {
 
         // Handle headcount assignments for candidates changing to "Hired" status
         const headcountAssignmentResults = [];
+        const autoCloseResults = [];
         if (newStatus === 'Hired') {
           for (const result of headcountValidationResults) {
             if (result.willAutoAssign) {
@@ -226,6 +236,15 @@ export async function POST(request: NextRequest) {
                   message: assignmentResult.message,
                   headcountId: assignmentResult.headcountId
                 });
+
+                // Check if position should be auto-closed after headcount assignment
+                if (assignmentResult.success && assignmentResult.autoCloseResult) {
+                  autoCloseResults.push({
+                    candidateId: result.candidateId,
+                    positionId: candidatesToUpdate.find(c => c.id === result.candidateId)?.positionId!,
+                    autoCloseResult: assignmentResult.autoCloseResult
+                  });
+                }
               } catch (error) {
                 console.error(`Error assigning headcount for candidate ${result.candidateId}:`, error);
                 headcountAssignmentResults.push({
@@ -242,23 +261,23 @@ export async function POST(request: NextRequest) {
           updatedCount: candidatesToUpdate.length,
           rejectedCount: candidatesToReject.length,
           headcountAssignments: headcountAssignmentResults,
+          autoCloseResults: autoCloseResults,
           rejectedCandidates: candidatesToReject
         };
         
         const successMessage = `Updated status to ${newStatus} for ${candidatesToUpdate.length} candidates`;
         const rejectMessage = candidatesToReject.length > 0 ? `, rejected ${candidatesToReject.length} candidates due to headcount constraints` : '';
-        auditMessage = successMessage + rejectMessage;
+        const autoCloseMessage = autoCloseResults.length > 0 ? `, auto-closed ${autoCloseResults.filter(r => r.autoCloseResult?.action === 'closed').length} positions` : '';
+        auditMessage = successMessage + rejectMessage + autoCloseMessage;
         break;
 
       case 'assign_recruiter':
-        if (!newRecruiterId) {
-          throw new Error('Recruiter ID is required for assign_recruiter action');
-        }
-
-        // Verify recruiter exists and has recruiter role
-        const recruiterCheck = await client.query('SELECT id FROM "User" WHERE id = $1 AND role = $2', [newRecruiterId, 'Recruiter']);
-        if (recruiterCheck.rows.length === 0) {
-          throw new Error('Invalid recruiter ID or user is not a recruiter');
+        // If newRecruiterId is provided, verify it exists and has recruiter role
+        if (newRecruiterId !== null && newRecruiterId !== undefined) {
+          const recruiterCheck = await client.query('SELECT id FROM "User" WHERE id = $1 AND role = $2', [newRecruiterId, 'Recruiter']);
+          if (recruiterCheck.rows.length === 0) {
+            throw new Error('Invalid recruiter ID or user is not a recruiter');
+          }
         }
 
         const assignRecruiterResult = await client.query(

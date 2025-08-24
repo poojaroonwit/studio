@@ -561,26 +561,26 @@ export default function WebhookBodyCustomization({
                                   <div className="w-32">
                                     <Label className="text-xs font-medium">Transform</Label>
                                     <Select
-                                      value={mapping.transform || ''}
+                                      value={mapping.transform || 'none'}
                                       onValueChange={(value) => {
                                         if (bodyConfigs[selectedEvent]) {
-                                          updateEventFieldMapping(selectedEvent, index, 'transform', value || undefined);
+                                          updateEventFieldMapping(selectedEvent, index, 'transform', value === 'none' ? undefined : value);
                                         } else {
-                                          updateGlobalFieldMapping(index, 'transform', value || undefined);
+                                          updateGlobalFieldMapping(index, 'transform', value === 'none' ? undefined : value);
                                         }
                                       }}
                                     >
                                       <SelectTrigger className="mt-1">
                                         <SelectValue placeholder="None" />
                                       </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="">None</SelectItem>
-                                        {TRANSFORM_OPTIONS.map(option => (
-                                          <SelectItem key={option.value} value={option.value}>
-                                            {option.label}
-                                          </SelectItem>
-                                        ))}
-                                      </SelectContent>
+                                                                             <SelectContent className="z-[10003]">
+                                         <SelectItem value="none">None</SelectItem>
+                                         {TRANSFORM_OPTIONS.map(option => (
+                                           <SelectItem key={option.value} value={option.value}>
+                                             {option.label}
+                                           </SelectItem>
+                                         ))}
+                                       </SelectContent>
                                     </Select>
                                   </div>
                                   <Button

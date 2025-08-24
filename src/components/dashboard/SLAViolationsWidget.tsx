@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, Clock, Users, Eye, TrendingUp, Calendar, Target, BarChart3, Filter, RefreshCw, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { AlertTriangle, Clock, Users, Eye, TrendingUp, Calendar, Target, BarChart3, Filter, RefreshCw, Loader2, CheckCircle, AlertCircle, Flame, Bell, AlertCircle as AlertCircleIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -81,11 +81,11 @@ export function SLAViolationsWidget({ recruiterId }: SLAViolationsWidgetProps) {
 
   const getSeverityIcon = (status: string) => {
     switch (status) {
-      case 'urgent': return '🔥';
-      case 'critical': return '🚨';
-      case 'warning': return '⚠️';
-      case 'on_track': return '✅';
-      default: return '📊';
+      case 'urgent': return <Flame className="h-4 w-4 text-red-500" />;
+      case 'critical': return <Bell className="h-4 w-4 text-red-600" />;
+      case 'warning': return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
+      case 'on_track': return <CheckCircle className="h-4 w-4 text-green-500" />;
+      default: return <BarChart3 className="h-4 w-4 text-gray-500" />;
     }
   };
 
@@ -146,7 +146,7 @@ export function SLAViolationsWidget({ recruiterId }: SLAViolationsWidgetProps) {
 
   return (
     <>
-      <Card className="h-full flex flex-col">
+      <Card className="h-full flex flex-col" style={{ height: '100%' }}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div>
@@ -186,19 +186,7 @@ export function SLAViolationsWidget({ recruiterId }: SLAViolationsWidgetProps) {
           )}
         >
           <BarChart3 className="h-4 w-4" />
-          Overview
-        </div>
-        <div
-          onClick={() => setActiveTab('positions')}
-          className={cn(
-            "flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all duration-200 relative cursor-pointer",
-            activeTab === 'positions'
-              ? "text-primary border-b-2 border-primary"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-          )}
-        >
-          <AlertTriangle className="h-4 w-4" />
-          All Positions
+          Overview & Positions
           <Badge variant="outline" className="ml-1 text-xs">
             {allPositions.length}
           </Badge>
@@ -234,7 +222,7 @@ export function SLAViolationsWidget({ recruiterId }: SLAViolationsWidgetProps) {
         </div>
       </div>
 
-      <CardContent className="flex-1 p-0">
+      <CardContent className="flex-1 p-0" style={{ height: 'calc(100% - 120px)' }}>
         <div className="h-full">
           {activeTab === 'overview' && statistics && (
             <ScrollArea className="h-full px-6 py-4">
@@ -309,115 +297,100 @@ export function SLAViolationsWidget({ recruiterId }: SLAViolationsWidgetProps) {
                     </div>
                   </div>
                 )}
-              </div>
-            </ScrollArea>
-          )}
-
-          {activeTab === 'positions' && (
-            <ScrollArea className="h-full px-6 py-4">
-              <div className="space-y-4">
-                {/* Filter */}
-                <div className="flex items-center gap-2">
-                  <Filter className="h-4 w-4 text-muted-foreground" />
-                  <Select value={filterSeverity} onValueChange={setFilterSeverity}>
-                    <SelectTrigger className="w-32">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All</SelectItem>
-                      <SelectItem value="on_track">On Track</SelectItem>
-                      <SelectItem value="warning">Warning</SelectItem>
-                      <SelectItem value="critical">Critical</SelectItem>
-                      <SelectItem value="urgent">Urgent</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
 
                 {/* Positions List */}
-                {filteredPositions.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Clock className="h-12 w-12 text-green-500 mx-auto mb-4" />
-                    <p className="text-muted-foreground">No positions found</p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {filterSeverity === 'all' 
-                        ? 'No positions with SLA monitoring found'
-                        : `No ${filterSeverity} positions found`
-                      }
-                    </p>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-medium">All Positions</h4>
+                    <div className="flex items-center gap-2">
+                      <Filter className="h-4 w-4 text-muted-foreground" />
+                      <Select value={filterSeverity} onValueChange={setFilterSeverity}>
+                        <SelectTrigger className="w-32">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All</SelectItem>
+                          <SelectItem value="on_track">On Track</SelectItem>
+                          <SelectItem value="warning">Warning</SelectItem>
+                          <SelectItem value="critical">Critical</SelectItem>
+                          <SelectItem value="urgent">Urgent</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
-                ) : (
-                  <div className="space-y-3">
-                    {filteredPositions.slice(0, 8).map((position) => (
-                      <div
-                        key={position.positionId}
-                        className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-lg">{getSeverityIcon(position.status)}</span>
-                            <h4 className="font-medium text-sm truncate">
-                              {position.positionTitle}
-                            </h4>
-                            <Badge 
-                              variant={position.status === 'on_track' ? 'default' : 'destructive'} 
-                              className="text-xs"
-                            >
-                              {getStatusLabel(position.status)}
-                            </Badge>
-                          </div>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <Badge variant="outline" className="text-xs">
-                              {position.gradeName}
-                            </Badge>
-                            <span>•</span>
-                            <span>{position.slaDays} days SLA</span>
-                            <span>•</span>
-                            {position.isViolated ? (
-                              <span className={getSeverityColor(position.status)}>
-                                {position.daysOverdue} days overdue
-                              </span>
-                            ) : (
-                              <span className="text-green-600 dark:text-green-400">
-                                {position.daysRemaining} days remaining
-                              </span>
-                            )}
-                          </div>
-                          {position.recruiterName && (
-                            <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
-                              <Users className="h-3 w-3" />
-                              <span>{position.recruiterName}</span>
-                            </div>
-                          )}
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedPositionId(position.positionId);
-                            setIsPositionDrawerOpen(true);
-                          }}
-                          className="ml-2"
+
+                  {filteredPositions.length === 0 ? (
+                    <div className="text-center py-4">
+                      <Clock className="h-8 w-8 text-green-500 mx-auto mb-2" />
+                      <p className="text-sm text-muted-foreground">No positions found</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {filteredPositions.slice(0, 5).map((position) => (
+                        <div
+                          key={position.positionId}
+                          className="flex items-center justify-between p-2 border rounded-lg hover:bg-muted/50 transition-colors"
                         >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
-                    
-                    {filteredPositions.length > 8 && (
-                      <div className="text-center pt-2">
-                        <Button variant="outline" size="sm" onClick={() => {
-                          // For "View all positions", we'll open the positions page in a new tab
-                          window.open('/positions', '_blank');
-                        }}>
-                          View all {filteredPositions.length} positions
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                )}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-sm">{getSeverityIcon(position.status)}</span>
+                              <h4 className="font-medium text-xs truncate">
+                                {position.positionTitle}
+                              </h4>
+                              <Badge 
+                                variant={position.status === 'on_track' ? 'default' : 'destructive'} 
+                                className="text-xs"
+                              >
+                                {getStatusLabel(position.status)}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <Badge variant="outline" className="text-xs">
+                                {position.gradeName}
+                              </Badge>
+                              <span>•</span>
+                              {position.isViolated ? (
+                                <span className={getSeverityColor(position.status)}>
+                                  {position.daysOverdue} days overdue
+                                </span>
+                              ) : (
+                                <span className="text-green-600 dark:text-green-400">
+                                  {position.daysRemaining} days remaining
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedPositionId(position.positionId);
+                              setIsPositionDrawerOpen(true);
+                            }}
+                            className="ml-2 h-6 w-6 p-0"
+                          >
+                            <Eye className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                      
+                      {filteredPositions.length > 5 && (
+                        <div className="text-center pt-2">
+                          <Button variant="outline" size="sm" onClick={() => {
+                            window.open('/positions', '_blank');
+                          }}>
+                            View all {filteredPositions.length} positions
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </ScrollArea>
           )}
+
+
 
           {activeTab === 'violations' && (
             <ScrollArea className="h-full px-6 py-4">

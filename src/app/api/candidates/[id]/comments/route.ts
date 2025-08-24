@@ -12,7 +12,7 @@ import { z } from 'zod';
 export const dynamic = 'force-dynamic';
 
 
-// Helper to get attachment info by IDs
+// Helper to get attachment info by IDs (legacy)
 async function getAttachmentsByIds(ids: string[]) {
   if (!ids || ids.length === 0) return [];
   const attachments = await prisma.attachment.findMany({
@@ -25,33 +25,90 @@ async function getAttachmentsByIds(ids: string[]) {
   }));
 }
 
-// GET: List comments for a candidate (with attachments)
+// Optimized helper to get attachments as a Map for efficient lookups
+async function getAttachmentsMap(ids: string[]) {
+  if (!ids || ids.length === 0) return new Map();
+  const attachments = await prisma.attachment.findMany({
+    where: { id: { in: ids } },
+    include: { uploadedBy: { select: { id: true, name: true, email: true } } },
+  });
+  
+  const attachmentMap = new Map();
+  attachments.forEach(a => {
+    attachmentMap.set(a.id, {
+      ...a,
+      url: `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${a.filePath}`
+    });
+  });
+  
+  return attachmentMap;
+}
+
+// GET: List comments for a candidate (with attachments and pagination)
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const { id } = params;
+  const { searchParams } = new URL(req.url);
+  const limit = Math.min(parseInt(searchParams.get('limit') || '10'), 50); // Max 50 comments per request
+  const offset = parseInt(searchParams.get('offset') || '0');
+  
   // Validate candidate ID format
   const uuidSchema = z.string().uuid();
   if (!uuidSchema.safeParse(id).success) {
     return NextResponse.json({ message: 'Invalid candidate ID format' }, { status: 400 });
   }
-  // Check if candidate exists
-  const candidate = await prisma.candidate.findUnique({ where: { id } });
-  if (!candidate) {
-    return NextResponse.json({ message: 'Candidate not found' }, { status: 404 });
-  }
+  
+  const startTime = Date.now();
+  
   try {
-    const comments = await prisma.candidateComment.findMany({
-      where: { candidateId: id },
-      orderBy: { createdAt: 'desc' },
-      include: { author: { select: { id: true, name: true, email: true } } },
+    // Use Promise.all to check candidate existence and fetch comments in parallel
+    const [candidate, comments] = await Promise.all([
+      prisma.candidate.findUnique({ where: { id }, select: { id: true } }),
+      prisma.candidateComment.findMany({
+        where: { candidateId: id },
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        skip: offset,
+        include: { author: { select: { id: true, name: true, email: true } } },
+      })
+    ]);
+    
+    if (!candidate) {
+      return NextResponse.json({ message: 'Candidate not found' }, { status: 404 });
+    }
+    
+    // Batch fetch all attachments in one query instead of multiple queries
+    const allAttachmentIds = comments.flatMap(c => c.attachmentIds || []);
+    const attachmentMap = allAttachmentIds.length > 0 
+      ? await getAttachmentsMap(allAttachmentIds)
+      : new Map();
+    
+    // Map attachments to comments efficiently
+    const commentsWithAttachments = comments.map(comment => ({
+      ...comment,
+      attachments: (comment.attachmentIds || []).map(id => attachmentMap.get(id)).filter(Boolean)
+    }));
+    
+    const queryTime = Date.now() - startTime;
+    console.log(`[PERF] Comments query completed in ${queryTime}ms (${comments.length} comments)`);
+    
+    if (queryTime > 3000) {
+      console.warn(`[PERF WARNING] Slow comments query: ${queryTime}ms for candidate ${id}`);
+    }
+    
+    return NextResponse.json({ 
+      data: commentsWithAttachments,
+      pagination: {
+        limit,
+        offset,
+        total: comments.length,
+        hasMore: comments.length === limit
+      }
     });
-    // Attachments for each comment
-    const commentsWithAttachments = await Promise.all(comments.map(async (c: typeof comments[0]) => ({
-      ...c,
-      attachments: await getAttachmentsByIds(c.attachmentIds || [])
-    })));
-    return NextResponse.json({ data: commentsWithAttachments });
   } catch (err) {
     console.error(`[GET /api/candidates/${id}/comments] Error:`, err);
+    
+
+    
     return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
   }
 }
@@ -65,7 +122,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   }
 
   // Check permissions
-  const canManageComments = session.user.role === 'Admin' || 
+  const canManageComments = session.user.role === 'Admin' || session.user.modulePermissions?.includes('USERS_MANAGE') || 
     session.user.modulePermissions?.includes('CANDIDATES_COMMENTS');
   
   if (!canManageComments) {

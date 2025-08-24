@@ -34,6 +34,9 @@ export const PLATFORM_MODULES: PlatformModule[] = [
   { id: 'CANDIDATES_RECRUITER_ASSIGN', label: 'Assign Recruiters', category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT, description: "Allows assigning candidates to recruiters." },
   { id: 'TASK_BOARD_VIEW', label: 'View Task Board', category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT, description: "Allows viewing the task board for managing candidate tasks and workflow." },
   { id: 'TASK_BOARD_MANAGE_ALL', label: 'Manage All Tasks', category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT, description: "Allows viewing and managing tasks for all recruiters (Admin functionality)." },
+  { id: 'JOB_MATCH_VIEW', label: 'View Job Matches', category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT, description: "Allows viewing job match information for candidates." },
+  { id: 'JOB_MATCH_MANAGE', label: 'Manage Job Matches', category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT, description: "Allows adding, editing, and deleting job matches for candidates." },
+  { id: 'WARNING_CONFIGURATIONS_MANAGE', label: 'Manage Warning Configurations', category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT, description: "Allows managing warning configurations for all users." },
   
   // Position Management
   { id: 'POSITIONS_VIEW', label: 'View Positions', category: PLATFORM_MODULE_CATEGORIES.POSITION_MANAGEMENT, description: "Allows viewing job position details and lists." },
@@ -458,6 +461,7 @@ export interface UserProfile {
   password?: string;
   authenticationMethod?: 'basic' | 'azure';
   teams?: UserTeam[]; // User can belong to multiple teams
+  modulePermissions?: PlatformModuleId[];
   createdAt?: string;
   updatedAt?: string;
 }
@@ -565,6 +569,7 @@ export type SystemSettingKey =
   | 'resumeProcessingWebhookToken'
   | 'resumeProcessingWebhookResponseMode'
   | 'resumeProcessingWebhookTimeout'
+  | 'webhookConnectionTimeout'
 
   | 'preventDuplicateWebhookProcessing'
   | 'geminiApiKey'

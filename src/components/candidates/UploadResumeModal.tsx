@@ -89,7 +89,7 @@ const UploadResumeModal = ({ isOpen, onOpenChange, candidate, onUploadSuccess }:
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md !z-[99999]">
         <DialogHeader>
           <DialogTitle>Upload Resume</DialogTitle>
           <DialogDescription>

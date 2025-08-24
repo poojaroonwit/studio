@@ -32,7 +32,7 @@ export default function SLAMonitoringPage() {
               <p className="text-sm text-muted-foreground mt-1">Complete SLA overview for all positions</p>
             </div>
           </div>
-          <div className="h-[600px]">
+          <div className="h-[800px]">
             <SLAViolationsWidget />
           </div>
         </div>
@@ -46,7 +46,7 @@ export default function SLAMonitoringPage() {
               <p className="text-sm text-muted-foreground mt-1">SLA monitoring for your assigned positions</p>
             </div>
           </div>
-          <div className="h-[600px]">
+          <div className="h-[800px]">
             <SLAViolationsWidget recruiterId="current" />
           </div>
         </div>

@@ -1,6 +1,7 @@
 import prisma from './prisma';
 import { webhookRateLimits, addRateLimitHeaders, RateLimitResult } from './webhookRateLimit';
 import { areWebhooksEnabled } from './webhookConfig';
+import { webhookFetch, WebhookFetchError } from './webhookFetch';
 
 export interface WebhookPayload {
   event: string;
@@ -170,39 +171,39 @@ export class WebhookDispatcher {
     // Retry logic
     for (let attempt = 0; attempt <= webhook.retry_count; attempt++) {
       try {
-        const controller = new AbortController();
         const timeoutMs = (webhook.timeout || 30) * 1000; // Default 30 seconds
-        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-        const response = await fetch(webhook.url, {
+        
+        // Use the enhanced webhook fetch utility
+        const webhookResult = await webhookFetch({
+          url: webhook.url,
           method: webhook.method,
           headers,
           body: webhook.method !== 'GET' ? JSON.stringify(payload) : undefined,
-          signal: controller.signal
+          timeoutMs,
+          retries: 0, // We handle retries manually here
         });
 
-        clearTimeout(timeoutId);
-        lastStatus = response.status;
+        lastStatus = webhookResult.status;
 
-        if (response.ok) {
+        if (webhookResult.ok) {
           const duration = Date.now() - startTime;
           
           // Log successful webhook
-          await this.logWebhook(webhook.id, event, payload, response.status, 
-            await response.text().catch(() => 'Unable to read response body'), 
+          await this.logWebhook(webhook.id, event, payload, webhookResult.status, 
+            webhookResult.body, 
             true, null, duration);
 
           return {
             webhook_id: webhook.id,
             success: true,
-            status: response.status,
+            status: webhookResult.status,
             duration_ms: duration
           };
         } else {
-          lastError = `HTTP ${response.status}`;
+          lastError = `HTTP ${webhookResult.status}`;
           
           // If it's a client error (4xx), don't retry
-          if (response.status >= 400 && response.status < 500) {
+          if (webhookResult.status >= 400 && webhookResult.status < 500) {
             break;
           }
         }

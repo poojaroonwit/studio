@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Save, Palette, ImageUp, Trash2, Loader2, XCircle, PenSquare, ServerCrash, ShieldAlert, Settings2, Wallpaper, Droplets, Type, Sidebar as SidebarIcon, RotateCcw, Eye, EyeOff, Monitor, Sun, Moon, Zap, StickyNote, Paintbrush, LayoutDashboard, Sidebar as SidebarMenuIcon, LogIn, Edit3, Users, ShieldCheck, ChevronsUpDown, User, ChevronRight, UserCheck, Bell, Eye as EyeIcon, Palette as PaletteIcon, UserPlus, Database, Filter, Layout, Lock, Shield, Mail, KeyRound } from 'lucide-react';
+import { Save, Palette, ImageUp, Trash2, Loader2, XCircle, PenSquare, ServerCrash, ShieldAlert, Settings2, Wallpaper, Droplets, Type, Sidebar as SidebarIcon, RotateCcw, Eye, EyeOff, Monitor, Sun, Moon, Zap, StickyNote, Paintbrush, LayoutDashboard, Sidebar as SidebarMenuIcon, LogIn, Edit3, Users, ShieldCheck, ChevronsUpDown, User, ChevronRight, UserCheck, Bell, Eye as EyeIcon, Palette as PaletteIcon, UserPlus, Database, Filter, Layout, Lock, Shield, Mail, KeyRound, Settings, AlertTriangle } from 'lucide-react';
 import Image from 'next/image';
 import { signIn, useSession } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
@@ -54,6 +54,7 @@ const unifiedUserFormSchema = z.object({
   authenticationMethod: z.enum(['basic', 'azure']).optional().default('basic'),
 
   groupIds: z.union([z.string().uuid(), z.array(z.string().uuid())]).optional().default([]),
+  modulePermissions: z.array(z.string()).optional().default([]),
   avatarUrl: z.string().optional(),
   personalColor: z.string().optional(),
 
@@ -104,6 +105,7 @@ export function UnifiedUserModal({
       authenticationMethod: 'basic', 
 
       groupIds: mode === 'create' ? [] : '', 
+      modulePermissions: [],
       avatarUrl: '', 
       personalColor: '#3B82F6',
 
@@ -113,14 +115,17 @@ export function UnifiedUserModal({
   const { isSubmitting } = form.formState;
 
   // Check permissions for different fields
-  const canManageUsers = session?.user?.role === 'Admin' || 
-    session?.user?.modulePermissions?.includes('USERS_MANAGE');
-  const canManageGroups = session?.user?.role === 'Admin' || 
-    session?.user?.modulePermissions?.includes('USERS_MANAGE');
-  const canForcePasswordChange = session?.user?.role === 'Admin' || 
-    session?.user?.modulePermissions?.includes('USERS_MANAGE');
-  const canManageAuthentication = session?.user?.role === 'Admin' || 
-    session?.user?.modulePermissions?.includes('USERS_MANAGE');
+  const isAdmin = session?.user?.role === 'Admin';
+  const hasUserManagePermission = session?.user?.modulePermissions?.includes('USERS_MANAGE');
+  const isEditingSelf = user?.id === session?.user?.id;
+  
+  const canManageUsers = isAdmin || hasUserManagePermission;
+  const canManageGroups = isAdmin || hasUserManagePermission;
+  const canForcePasswordChange = isAdmin || hasUserManagePermission;
+  const canManageAuthentication = isAdmin || hasUserManagePermission;
+  
+  // Admin users can always modify their own permissions, but with restrictions
+  const canModifyOwnPermissions = isAdmin && isEditingSelf;
 
   // Load user data and groups when modal opens
   useEffect(() => {
@@ -135,6 +140,7 @@ export function UnifiedUserModal({
             forcePasswordChange: false,
             authenticationMethod: user.authenticationMethod || 'basic',
             groupIds: user.teams?.map(t => t.id) || [],
+            modulePermissions: user.modulePermissions || [],
             avatarUrl: user.avatarUrl || '',
             personalColor: user.personalColor || '#3B82F6',
 
@@ -151,6 +157,7 @@ export function UnifiedUserModal({
           forcePasswordChange: false,
           authenticationMethod: 'basic',
           groupIds: [],
+          modulePermissions: [],
           avatarUrl: '',
           personalColor: '#3B82F6',
           
@@ -233,7 +240,7 @@ export function UnifiedUserModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-6xl h-[95vh] flex flex-col p-0 overflow-hidden">
+      <DialogContent className="sm:max-w-6xl max-h-[95vh] flex flex-col p-0 overflow-hidden">
         <DialogHeader className="flex-shrink-0 p-6 pb-4 border-b bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -287,9 +294,9 @@ export function UnifiedUserModal({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col">
-            <div className="flex-1 overflow-hidden">
-              <div className="h-full flex flex-col">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
+            <div className="flex-1 overflow-hidden min-h-0">
+              <div className="h-full flex flex-col min-h-0">
                 {/* Tab Navigation - Following system settings pattern */}
                 <div className="flex w-full border-b border-border/50 mb-6">
                   <div
@@ -340,10 +347,24 @@ export function UnifiedUserModal({
                     <Users className="h-4 w-4" />
                     Groups
                   </div>
+                  {canModifyOwnPermissions && (
+                    <div
+                      onClick={() => setActiveTab('permissions')}
+                      className={cn(
+                        "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                        activeTab === 'permissions'
+                          ? "text-primary border-b-2 border-primary"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                      )}
+                    >
+                      <Settings className="h-4 w-4" />
+                      Permissions
+                    </div>
+                  )}
                 </div>
 
                 {/* Tab Content */}
-                <div className="flex-1 overflow-hidden">
+                <div className="flex-1 overflow-hidden min-h-0">
                   {activeTab === 'personal' && (
                     <ScrollArea className="h-full pr-4">
                       <div className="space-y-6">
@@ -694,6 +715,61 @@ export function UnifiedUserModal({
                                         className="h-full"
                                         noCard={true}
                                         disabled={mode === 'profile'}
+                                      />
+                                    </div>
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )} 
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </ScrollArea>
+                  )}
+
+                  {activeTab === 'permissions' && canModifyOwnPermissions && (
+                    <ScrollArea className="h-full pr-4">
+                      <div className="space-y-6">
+                        {/* Direct Permissions */}
+                        <div className="space-y-4">
+                          <div>
+                            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                              <Settings className="h-5 w-5 text-primary" />
+                              Direct Permissions
+                            </h3>
+                            <p className="text-sm text-slate-600 dark:text-slate-400">
+                              Manage your individual permissions. Critical permissions (USERS_MANAGE, USER_GROUPS_MANAGE) cannot be removed for security reasons.
+                            </p>
+                          </div>
+                          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                            <div className="flex items-start gap-3">
+                              <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5" />
+                              <div>
+                                <h4 className="text-sm font-medium text-amber-800 dark:text-amber-200">Security Notice</h4>
+                                <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                                  You are editing your own permissions. Critical permissions (USERS_MANAGE, USER_GROUPS_MANAGE) are protected and cannot be removed to ensure system security.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                          <div>
+                            <FormField 
+                              control={form.control} 
+                              name="modulePermissions" 
+                              render={({ field }) => (
+                                <FormItem className="h-full">
+                                  <FormControl>
+                                    <div className="h-full min-h-0">
+                                      <RolePermissionSelector
+                                        selectedPermissions={field.value || []}
+                                        onPermissionsChange={(permissions) => field.onChange(permissions)}
+                                        disabled={false}
+                                        title="Your Permissions"
+                                        description="Select which permissions you want to have. Critical permissions are protected."
+                                        className="h-full"
+                                        noCard={true}
+                                        protectedPermissions={['USERS_MANAGE', 'USER_GROUPS_MANAGE']}
                                       />
                                     </div>
                                   </FormControl>

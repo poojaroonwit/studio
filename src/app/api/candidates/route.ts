@@ -12,6 +12,8 @@ import { dispatchWebhooks } from '@/lib/webhookDispatcher';
 import { normalizeFitScore } from '@/lib/scoreUtils';
 import { syncRecruiterForCandidate } from '@/lib/recruiterSync';
 import { NotificationService } from '@/lib/notificationService';
+import { WarningService } from '@/lib/warningService';
+import type { CandidateFilterValues } from '@/components/candidates/CandidateFilters';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -228,6 +230,14 @@ export async function POST(request: NextRequest) {
       }
     }
     
+    // Check for warnings after candidate creation
+    try {
+      await WarningService.createOrUpdateWarnings('candidate', newCandidateId, actingUserId);
+    } catch (warningError) {
+      console.error('Failed to check warnings for new candidate:', warningError);
+      // Don't fail the request if warning check fails
+    }
+    
     // Dispatch webhook for candidate creation
     try {
       await dispatchWebhooks.candidateCreated(newCandidate);
@@ -247,13 +257,15 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+  
     const { session, error } = await requireSessionAndPermission('CANDIDATES_VIEW', request);
     if (error) return error;
 
     const { searchParams } = new URL(request.url);
+    const isForCounts = searchParams.get('forCounts') === 'true';
     const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
-    const limit = Math.max(1, Math.min(100, parseInt(searchParams.get('limit') || '20', 10)));
-    const offset = (page - 1) * limit;
+    const limit = isForCounts ? 10000 : Math.max(1, Math.min(1000, parseInt(searchParams.get('limit') || '20', 10)));
+    const offset = isForCounts ? 0 : (page - 1) * limit;
 
     // Sorting
     const allowedSortColumns = {
@@ -263,11 +275,39 @@ export async function GET(request: NextRequest) {
       applicationDate: 'c."applicationDate"',
       status: 'c.status',
       lastUpdate: 'c."updatedAt"',
+      source: 'cs.name',
     };
     const sortColumnParam = searchParams.get('sortColumn') || 'lastUpdate';
-    const sortDirectionParam = (searchParams.get('sortDirection') || 'desc').toLowerCase();
-    const sortColumn = allowedSortColumns[sortColumnParam as keyof typeof allowedSortColumns] || 'c."updatedAt"';
-    const sortDirection = sortDirectionParam === 'asc' ? 'ASC' : 'DESC';
+    const sortDirectionParam = searchParams.get('sortDirection');
+    
+    console.log('🔍 API SORT DEBUG: Received sortColumnParam:', sortColumnParam, 'sortDirectionParam:', sortDirectionParam);
+    
+    // Handle 3-state toggle: null/empty = unsorted (no sorting), 'asc' = ascending, 'desc' = descending
+    let sortColumn = allowedSortColumns[sortColumnParam as keyof typeof allowedSortColumns] || 'c."updatedAt"';
+    let sortDirection = 'DESC'; // default
+    
+    if (sortDirectionParam && sortDirectionParam.toLowerCase() === 'asc') {
+      sortDirection = 'ASC';
+    } else if (sortDirectionParam && sortDirectionParam.toLowerCase() === 'desc') {
+      sortDirection = 'DESC';
+    } else {
+      // sortDirectionParam is null, empty, or invalid - treat as unsorted
+      // For unsorted state, we'll use the default sort (lastUpdate desc)
+      sortColumn = 'c."updatedAt"';
+      sortDirection = 'DESC';
+    }
+    
+    console.log('🔍 API SORT DEBUG: Final sortColumn:', sortColumn, 'sortDirection:', sortDirection);
+    
+
+    
+    // Handle NULL values in sorting - for fitScore, put NULL values last
+    let sortClause = `${sortColumn} ${sortDirection}`;
+    if (sortColumnParam === 'fitScore') {
+      sortClause = `c."fitScore" ${sortDirection} NULLS LAST`;
+    }
+    
+
 
     // Parse advanced query parameter if present
     const advancedQuery = searchParams.get('query');
@@ -328,6 +368,8 @@ export async function GET(request: NextRequest) {
       maxAppliedJobFitScore: searchParams.get('maxAppliedJobFitScore') ? parseFloat(searchParams.get('maxAppliedJobFitScore')!) : undefined,
       minMatchingJobFitScore: searchParams.get('minMatchingJobFitScore') ? parseFloat(searchParams.get('minMatchingJobFitScore')!) : undefined,
       maxMatchingJobFitScore: searchParams.get('maxMatchingJobFitScore') ? parseFloat(searchParams.get('maxMatchingJobFitScore')!) : undefined,
+      includeNoScoreInApplied: searchParams.get('includeNoScoreInApplied') === 'true',
+      includeNoScoreInMatching: searchParams.get('includeNoScoreInMatching') === 'true',
       minExperienceYears: searchParams.get('minExperienceYears') ? parseInt(searchParams.get('minExperienceYears')!, 10) : undefined,
       maxExperienceYears: searchParams.get('maxExperienceYears') ? parseInt(searchParams.get('maxExperienceYears')!, 10) : undefined,
       applicationDateStart: searchParams.get('applicationDateStart') ? new Date(searchParams.get('applicationDateStart')!) : undefined,
@@ -349,32 +391,112 @@ export async function GET(request: NextRequest) {
 
       // Handle name filter
       if (filters.name) {
-        const operator = filters.nameOperator === 'exact' ? '=' : 'ILIKE';
-        const value = filters.nameOperator === 'exact' ? filters.name : `%${filters.name}%`;
+        let operator = 'ILIKE';
+        let value = filters.name;
+        
+        switch (filters.nameOperator) {
+          case 'is':
+            operator = '=';
+            break;
+          case 'startsWith':
+            operator = 'ILIKE';
+            value = `${filters.name}%`;
+            break;
+          case 'endsWith':
+            operator = 'ILIKE';
+            value = `%${filters.name}`;
+            break;
+          case 'contains':
+          default:
+            operator = 'ILIKE';
+            value = `%${filters.name}%`;
+            break;
+        }
+        
         whereClauses.push(`c.name ${operator} $${paramIndex++}`);
         queryParams.push(value);
       }
 
       // Handle email filter
       if (filters.email) {
-        const operator = filters.emailOperator === 'exact' ? '=' : 'ILIKE';
-        const value = filters.emailOperator === 'exact' ? filters.email : `%${filters.email}%`;
+        let operator = 'ILIKE';
+        let value = filters.email;
+        
+        switch (filters.emailOperator) {
+          case 'is':
+            operator = '=';
+            break;
+          case 'startsWith':
+            operator = 'ILIKE';
+            value = `${filters.email}%`;
+            break;
+          case 'endsWith':
+            operator = 'ILIKE';
+            value = `%${filters.email}`;
+            break;
+          case 'contains':
+          default:
+            operator = 'ILIKE';
+            value = `%${filters.email}%`;
+            break;
+        }
+        
         whereClauses.push(`c.email ${operator} $${paramIndex++}`);
         queryParams.push(value);
       }
 
       // Handle phone filter
       if (filters.phone) {
-        const operator = filters.phoneOperator === 'exact' ? '=' : 'ILIKE';
-        const value = filters.phoneOperator === 'exact' ? filters.phone : `%${filters.phone}%`;
+        let operator = 'ILIKE';
+        let value = filters.phone;
+        
+        switch (filters.phoneOperator) {
+          case 'is':
+            operator = '=';
+            break;
+          case 'startsWith':
+            operator = 'ILIKE';
+            value = `${filters.phone}%`;
+            break;
+          case 'endsWith':
+            operator = 'ILIKE';
+            value = `%${filters.phone}`;
+            break;
+          case 'contains':
+          default:
+            operator = 'ILIKE';
+            value = `%${filters.phone}%`;
+            break;
+        }
+        
         whereClauses.push(`c.phone ${operator} $${paramIndex++}`);
         queryParams.push(value);
       }
 
       // Handle location filter
       if (filters.location) {
-        const operator = filters.locationOperator === 'exact' ? '=' : 'ILIKE';
-        const value = filters.locationOperator === 'exact' ? filters.location : `%${filters.location}%`;
+        let operator = 'ILIKE';
+        let value = filters.location;
+        
+        switch (filters.locationOperator) {
+          case 'is':
+            operator = '=';
+            break;
+          case 'startsWith':
+            operator = 'ILIKE';
+            value = `${filters.location}%`;
+            break;
+          case 'endsWith':
+            operator = 'ILIKE';
+            value = `%${filters.location}`;
+            break;
+          case 'contains':
+          default:
+            operator = 'ILIKE';
+            value = `%${filters.location}%`;
+            break;
+        }
+        
         whereClauses.push(`c.location ${operator} $${paramIndex++}`);
         queryParams.push(value);
       }
@@ -478,23 +600,264 @@ export async function GET(request: NextRequest) {
       // Handle source filter
       if (filters.sourceId) {
         const sourceIds = filters.sourceId.split(',').map(id => id.trim()).filter(id => id !== '');
-        if (sourceIds.length === 1) {
-          whereClauses.push(`c."sourceId" = $${paramIndex++}`);
-          queryParams.push(sourceIds[0]);
-        } else if (sourceIds.length > 1) {
-          whereClauses.push(`c."sourceId" = ANY($${paramIndex++})`);
-          queryParams.push(sourceIds);
+        
+        // Check if "select-all" is selected - if so, don't filter by source (show all)
+        if (sourceIds.includes('select-all')) {
+          // Don't add any source filter - show all sources
+        } else {
+          // Check if "unassigned" is one of the selected sources
+          const hasUnassigned = sourceIds.includes('unassigned');
+          const regularSources = sourceIds.filter(id => id !== 'unassigned');
+          
+          if (hasUnassigned && regularSources.length === 0) {
+            // Only "unassigned" selected - filter for candidates with no source
+            whereClauses.push(`c."sourceId" IS NULL`);
+          } else if (hasUnassigned && regularSources.length > 0) {
+            // Mixed selection - include both "unassigned" and regular sources
+            if (regularSources.length === 1) {
+              whereClauses.push(`(c."sourceId" = $${paramIndex++} OR c."sourceId" IS NULL)`);
+              queryParams.push(regularSources[0]);
+            } else {
+              whereClauses.push(`(c."sourceId" = ANY($${paramIndex++}) OR c."sourceId" IS NULL)`);
+              queryParams.push(regularSources);
+            }
+          } else {
+            // Only regular sources selected
+            if (regularSources.length === 1) {
+              whereClauses.push(`c."sourceId" = $${paramIndex++}`);
+              queryParams.push(regularSources[0]);
+            } else if (regularSources.length > 1) {
+              whereClauses.push(`c."sourceId" = ANY($${paramIndex++})`);
+              queryParams.push(regularSources);
+            }
+          }
         }
       }
 
-      // Handle fit score filters
-      if (filters.minAppliedJobFitScore !== undefined) {
-        whereClauses.push(`c."fitScore" >= $${paramIndex++}`);
-        queryParams.push(filters.minAppliedJobFitScore);
+      // Debug logging for fit score filters
+      const hasFitScoreFilters = filters.minAppliedJobFitScore !== undefined || 
+                                filters.maxAppliedJobFitScore !== undefined ||
+                                filters.minMatchingJobFitScore !== undefined || 
+                                filters.maxMatchingJobFitScore !== undefined;
+      
+      if (hasFitScoreFilters) {
+        console.log('API DEBUG: Fit score filters received:', {
+          appliedJob: {
+            min: filters.minAppliedJobFitScore,
+            max: filters.maxAppliedJobFitScore
+          },
+          matchingJobs: {
+            min: filters.minMatchingJobFitScore,
+            max: filters.maxMatchingJobFitScore
+          }
+        });
+        
+        // Debug: Show what scores exist in the database
+        console.log('API DEBUG: Checking database for fit scores...');
+        const scoreCheckQuery = `
+          SELECT "fitScore", COUNT(*) as count 
+          FROM "Candidate" 
+          WHERE "fitScore" IS NOT NULL 
+          GROUP BY "fitScore" 
+          ORDER BY "fitScore"
+        `;
+        try {
+          const scoreCheckResult = await client.query(scoreCheckQuery);
+          console.log('API DEBUG: Available fit scores in database:', scoreCheckResult.rows);
+          
+          // Also check for scores in the C range (0.41 to 0.60)
+          const cRangeQuery = `
+            SELECT "fitScore", COUNT(*) as count 
+            FROM "Candidate" 
+            WHERE "fitScore" >= 0.41 AND "fitScore" <= 0.60
+            GROUP BY "fitScore" 
+            ORDER BY "fitScore"
+          `;
+          const cRangeResult = await client.query(cRangeQuery);
+          console.log('API DEBUG: Scores in C range (0.41-0.60):', cRangeResult.rows);
+          
+          // Check total count in C range
+          const cRangeCountQuery = `
+            SELECT COUNT(*) as total 
+            FROM "Candidate" 
+            WHERE "fitScore" >= 0.41 AND "fitScore" <= 0.60
+          `;
+          const cRangeCountResult = await client.query(cRangeCountQuery);
+          console.log('API DEBUG: Total candidates in C range:', cRangeCountResult.rows[0].total);
+        } catch (error) {
+          console.log('API DEBUG: Error checking fit scores:', error);
+        }
       }
-      if (filters.maxAppliedJobFitScore !== undefined) {
-        whereClauses.push(`c."fitScore" <= $${paramIndex++}`);
-        queryParams.push(filters.maxAppliedJobFitScore);
+
+      // Handle fit score filters - simple approach
+      if (filters.minAppliedJobFitScore !== undefined || filters.maxAppliedJobFitScore !== undefined) {
+        console.log('API DEBUG: Processing applied job fit score filters');
+        
+        // Check if this is the "no-score" case (both min and max are -1)
+        if (filters.minAppliedJobFitScore === -1 && filters.maxAppliedJobFitScore === -1) {
+          // Special case: filter for candidates with no fit score
+          whereClauses.push(`(c."fitScore" IS NULL OR c."fitScore" = 0)`);
+          console.log('API DEBUG: Added no-score filter for applied job fit score');
+        } else if (filters.includeNoScoreInApplied) {
+          // Both regular grades and no-score selected - create OR condition
+          const regularScoreConditions: string[] = [];
+          
+          if (filters.minAppliedJobFitScore !== undefined && filters.minAppliedJobFitScore !== -1) {
+            // Convert percentage to decimal for database comparison
+            const minScoreDecimal = filters.minAppliedJobFitScore / 100;
+            regularScoreConditions.push(`c."fitScore" >= $${paramIndex++}`);
+            queryParams.push(minScoreDecimal);
+          }
+          
+          if (filters.maxAppliedJobFitScore !== undefined && filters.maxAppliedJobFitScore !== -1) {
+            // Convert percentage to decimal for database comparison
+            const maxScoreDecimal = filters.maxAppliedJobFitScore / 100;
+            regularScoreConditions.push(`c."fitScore" <= $${paramIndex++}`);
+            queryParams.push(maxScoreDecimal);
+          }
+          
+          // Create OR condition: (regular score conditions) OR (no-score condition)
+          const noScoreCondition = `(c."fitScore" IS NULL OR c."fitScore" = 0)`;
+          
+          if (regularScoreConditions.length > 0) {
+            whereClauses.push(`((${regularScoreConditions.join(' AND ')}) OR ${noScoreCondition})`);
+            console.log('API DEBUG: Added OR condition for applied regular grades + no-score');
+          } else {
+            whereClauses.push(`(${noScoreCondition})`);
+            console.log('API DEBUG: Added applied no-score condition only');
+          }
+        } else {
+          // Handle regular score range filtering
+          if (filters.minAppliedJobFitScore !== undefined && filters.minAppliedJobFitScore !== -1) {
+            // Convert percentage to decimal for database comparison
+            const minScoreDecimal = filters.minAppliedJobFitScore / 100;
+            whereClauses.push(`c."fitScore" >= $${paramIndex++}`);
+            queryParams.push(minScoreDecimal);
+            console.log('API DEBUG: Added min applied job fit score filter:', filters.minAppliedJobFitScore, 'as decimal:', minScoreDecimal);
+          }
+          if (filters.maxAppliedJobFitScore !== undefined && filters.maxAppliedJobFitScore !== -1) {
+            // Convert percentage to decimal for database comparison
+            const maxScoreDecimal = filters.maxAppliedJobFitScore / 100;
+            whereClauses.push(`c."fitScore" <= $${paramIndex++}`);
+            queryParams.push(maxScoreDecimal);
+            console.log('API DEBUG: Added max applied job fit score filter:', filters.maxAppliedJobFitScore, 'as decimal:', maxScoreDecimal);
+          }
+          
+          // Debug: Show the final WHERE clause for fit score filtering
+          console.log('API DEBUG: Final fit score WHERE clause:', whereClauses.slice(-2).join(' AND '));
+          console.log('API DEBUG: Fit score query parameters:', queryParams.slice(-2));
+        }
+      }
+
+      // Handle matching job fit score filters - simple approach
+      if (filters.minMatchingJobFitScore !== undefined || filters.maxMatchingJobFitScore !== undefined) {
+        console.log('API DEBUG: Processing matching job fit score filters');
+        
+        // Check if this is the "no-score" case (both min and max are -1)
+        if (filters.minMatchingJobFitScore === -1 && filters.maxMatchingJobFitScore === -1) {
+          // No matching fit score filter - candidates with no job matches
+          whereClauses.push(`(
+            (c."parsedData"->>'job_matches' IS NULL OR c."parsedData"->>'job_matches' = '[]' OR c."parsedData"->>'job_matches' = '')
+            AND NOT EXISTS (SELECT 1 FROM "JobMatch" jm WHERE jm."candidateId" = c.id)
+          )`);
+
+        } else if (filters.includeNoScoreInMatching) {
+          // Both regular grades and no-score selected - create OR condition
+          const regularScoreConditions: string[] = [];
+          
+          if (filters.minMatchingJobFitScore !== undefined && filters.minMatchingJobFitScore !== -1) {
+            // Convert percentage to decimal for database comparison
+            const minScoreDecimal = filters.minMatchingJobFitScore / 100;
+            regularScoreConditions.push(`(
+              EXISTS (
+                SELECT 1 FROM jsonb_array_elements(c."parsedData"->'job_matches') AS job_match
+                WHERE CAST(job_match->>'fitScore' AS DECIMAL) >= $${paramIndex}
+              )
+              OR EXISTS (
+                SELECT 1 FROM "JobMatch" jm 
+                WHERE jm."candidateId" = c.id AND jm."fitScore" >= $${paramIndex + 1}
+              )
+            )`);
+            queryParams.push(minScoreDecimal, minScoreDecimal);
+            paramIndex += 2;
+          }
+          
+          if (filters.maxMatchingJobFitScore !== undefined && filters.maxMatchingJobFitScore !== -1) {
+            // Convert percentage to decimal for database comparison
+            const maxScoreDecimal = filters.maxMatchingJobFitScore / 100;
+            regularScoreConditions.push(`(
+              EXISTS (
+                SELECT 1 FROM jsonb_array_elements(c."parsedData"->'job_matches') AS job_match
+                WHERE CAST(job_match->>'fitScore' AS DECIMAL) <= $${paramIndex}
+              )
+              OR EXISTS (
+                SELECT 1 FROM "JobMatch" jm 
+                WHERE jm."candidateId" = c.id AND jm."fitScore" <= $${paramIndex + 1}
+              )
+            )`);
+            queryParams.push(maxScoreDecimal, maxScoreDecimal);
+            paramIndex += 2;
+          }
+          
+          // Create OR condition: (regular score conditions) OR (no-score condition)
+          const noScoreCondition = `(
+            (c."parsedData"->>'job_matches' IS NULL OR c."parsedData"->>'job_matches' = '[]' OR c."parsedData"->>'job_matches' = '')
+            AND NOT EXISTS (SELECT 1 FROM "JobMatch" jm WHERE jm."candidateId" = c.id)
+          )`;
+          
+          if (regularScoreConditions.length > 0) {
+            whereClauses.push(`((${regularScoreConditions.join(' AND ')}) OR ${noScoreCondition})`);
+
+          } else {
+            whereClauses.push(`(${noScoreCondition})`);
+
+          }
+        } else {
+          // Handle regular score range filtering for matching jobs
+          const conditions: string[] = [];
+          
+          if (filters.minMatchingJobFitScore !== undefined && filters.minMatchingJobFitScore !== -1) {
+            // Convert percentage to decimal for database comparison
+            const minScoreDecimal = filters.minMatchingJobFitScore / 100;
+            conditions.push(`(
+              EXISTS (
+                SELECT 1 FROM jsonb_array_elements(c."parsedData"->'job_matches') AS job_match
+                WHERE CAST(job_match->>'fitScore' AS DECIMAL) >= $${paramIndex}
+              )
+              OR EXISTS (
+                SELECT 1 FROM "JobMatch" jm 
+                WHERE jm."candidateId" = c.id AND jm."fitScore" >= $${paramIndex + 1}
+              )
+            )`);
+            queryParams.push(minScoreDecimal, minScoreDecimal);
+            paramIndex += 2;
+
+          }
+          
+          if (filters.maxMatchingJobFitScore !== undefined && filters.maxMatchingJobFitScore !== -1) {
+            // Convert percentage to decimal for database comparison
+            const maxScoreDecimal = filters.maxMatchingJobFitScore / 100;
+            conditions.push(`(
+              EXISTS (
+                SELECT 1 FROM jsonb_array_elements(c."parsedData"->'job_matches') AS job_match
+                WHERE CAST(job_match->>'fitScore' AS DECIMAL) <= $${paramIndex}
+              )
+              OR EXISTS (
+                SELECT 1 FROM "JobMatch" jm 
+                WHERE jm."candidateId" = c.id AND jm."fitScore" <= $${paramIndex + 1}
+              )
+            )`);
+            queryParams.push(maxScoreDecimal, maxScoreDecimal);
+            paramIndex += 2;
+
+          }
+          
+          // Combine conditions with AND if both exist
+          if (conditions.length > 0) {
+            whereClauses.push(`(${conditions.join(' AND ')})`);
+
+          }
+        }
       }
 
       // Handle experience filters
@@ -537,6 +900,13 @@ export async function GET(request: NextRequest) {
 
       // Build the WHERE clause
       const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+      
+      // Debug: Show the complete WHERE clause and parameters for fit score filters
+      if (hasFitScoreFilters) {
+        console.log('API DEBUG: Complete WHERE clause:', whereClause);
+        console.log('API DEBUG: All query parameters:', queryParams);
+      }
+
 
       // Optimized query with reduced joins and selective data fetching
       const countQuery = `
@@ -567,23 +937,92 @@ export async function GET(request: NextRequest) {
         LEFT JOIN "User" u ON c."recruiterId" = u.id
         LEFT JOIN "CandidateSource" cs ON c."sourceId" = cs.id
         ${whereClause}
-        ORDER BY ${sortColumn} ${sortDirection}
-        LIMIT $${paramIndex++} OFFSET $${paramIndex++}
+        ORDER BY ${sortClause}
+        ${isForCounts ? '' : `LIMIT $${paramIndex++} OFFSET $${paramIndex++}`}
       `;
 
-      // Execute queries in parallel for better performance
+      // Debug: Show the final SQL query for fit score filters
+      if (hasFitScoreFilters) {
+        console.log('API DEBUG: Final SQL query:', dataQuery);
+      }
+
+
+
+            if (isForCounts) {
+        // For counts only, run count query and fit score distribution query
+        const countResult = await client.query(countQuery, queryParams);
+        const total = parseInt(countResult.rows[0].total);
+        
+        // Get fit score distribution for accurate badge counts
+        // For fit score counts, we want the distribution of ALL candidates, not filtered ones
+        const fitScoreCountQuery = `
+          SELECT grade, COUNT(*) as count
+          FROM (
+            SELECT 
+              CASE 
+                WHEN c."fitScore" >= 0.81 THEN 'A'
+                WHEN c."fitScore" >= 0.61 AND c."fitScore" < 0.81 THEN 'B' 
+                WHEN c."fitScore" >= 0.41 AND c."fitScore" < 0.61 THEN 'C'
+                WHEN c."fitScore" >= 0.21 AND c."fitScore" < 0.41 THEN 'D'
+                WHEN c."fitScore" >= 0.01 AND c."fitScore" < 0.21 THEN 'E'
+                ELSE 'no-score'
+              END as grade
+            FROM "Candidate" c
+          ) subquery
+          GROUP BY grade
+          ORDER BY 
+            CASE grade
+              WHEN 'A' THEN 1
+              WHEN 'B' THEN 2
+              WHEN 'C' THEN 3
+              WHEN 'D' THEN 4
+              WHEN 'E' THEN 5
+              WHEN 'no-score' THEN 6
+            END
+        `;
+        
+        const fitScoreResult = await client.query(fitScoreCountQuery, []); // No parameters needed since no WHERE clause
+        const fitScoreCounts = fitScoreResult.rows.map(row => ({
+          letter: row.grade,
+          count: parseInt(row.count)
+        }));
+        
+        console.log('API DEBUG: Count-only response:', {
+          total,
+          fitScoreCounts,
+          whereClause: whereClause || 'no filters'
+        });
+        
+        return NextResponse.json({
+          data: [], // Empty array for count-only requests
+          total: total,
+          fitScoreCounts: fitScoreCounts,
+          pagination: {
+            page: 1,
+            limit: total,
+            total: total,
+            totalPages: 1,
+            hasNext: false,
+            hasPrev: false
+          }
+        });
+      }
+
+      // For regular data requests, execute both queries in parallel
       const [countResult, dataResult] = await Promise.all([
         client.query(countQuery, queryParams),
         client.query(dataQuery, [...queryParams, limit, offset])
       ]);
 
       const total = parseInt(countResult.rows[0].total);
+
+      
       const candidates = dataResult.rows.map(row => ({
         id: row.id,
         name: row.name,
         email: row.email,
         phone: row.phone,
-        fitScore: row.fitScore,
+        fitScore: normalizeFitScore(row.fitScore),
         status: row.status,
         applicationDate: row.applicationDate,
         updatedAt: row.updatedAt,
@@ -595,6 +1034,40 @@ export async function GET(request: NextRequest) {
         recruiter: row.recruiterName ? { name: row.recruiterName } : null,
         source: row.sourceName ? { name: row.sourceName } : null,
       }));
+
+      // Debug: Log fit scores in the results
+      if (hasFitScoreFilters) {
+        console.log('API DEBUG: Candidates returned with fit scores:', candidates.map(c => ({ 
+          id: c.id, 
+          name: c.name, 
+          fitScore: c.fitScore
+        })));
+        
+        // Also check what fit scores exist in the database
+        const fitScoreCheckQuery = `
+          SELECT "fitScore", COUNT(*) as count 
+          FROM "Candidate" 
+          WHERE "fitScore" IS NOT NULL 
+          GROUP BY "fitScore" 
+          ORDER BY "fitScore"
+        `;
+        const fitScoreCheckResult = await client.query(fitScoreCheckQuery);
+        console.log('API DEBUG: All fit scores in database:', fitScoreCheckResult.rows);
+      }
+
+      // For counts, return all candidates without pagination info
+      if (isForCounts) {
+
+        return NextResponse.json({
+          data: candidates,
+          total: candidates.length
+        }, {
+          headers: {
+            'Cache-Control': 'public, max-age=10, stale-while-revalidate=30',
+            'ETag': `"${Buffer.from(JSON.stringify({ filters, forCounts: true, total: candidates.length })).toString('base64').slice(0, 8)}"`
+          }
+        });
+      }
 
       return NextResponse.json({
         data: candidates,

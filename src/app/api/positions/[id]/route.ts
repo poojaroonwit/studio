@@ -8,6 +8,7 @@ import { dispatchWebhooks } from '@/lib/webhookDispatcher';
 import { syncRecruitersForPosition } from '@/lib/recruiterSync';
 import { broadcastPositionUpdate, broadcastPositionListUpdate, broadcastPositionStatisticsUpdate } from '@/lib/candidateSse';
 import { NotificationService } from '@/lib/notificationService';
+import { WarningService } from '@/lib/warningService';
 
 const updatePositionSchema = z.object({
   title: z.string().min(1).optional(),
@@ -262,8 +263,8 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     await client.query('COMMIT');
     const updatedPosition = updateResult.rows[0];
     
-    // Fetch the updated position with recruiter name
-    const enrichedPositionQuery = 'SELECT p.id, p.title, p.department, p.description, p."matchCriteria", p."isOpen", p."positionLevel", p."positionAttribute", p."recruiterId", p."customAttributes", p."createdAt", p."updatedAt", u.name as "recruiterName" FROM "Position" p LEFT JOIN "User" u ON p."recruiterId" = u.id WHERE p.id = $1';
+    // Fetch the updated position with recruiter name and grade information
+    const enrichedPositionQuery = 'SELECT p.id, p.title, p.department, p.description, p."matchCriteria", p."isOpen", p."positionLevel", p."positionAttribute", p."gradeId", p."hiringDate", p."recruiterId", p."customAttributes", p."createdAt", p."updatedAt", u.name as "recruiterName", g.name as "gradeName", g.label as "gradeLabel", g."sla_days" as "gradeSlaDays", g.color as "gradeColor" FROM "Position" p LEFT JOIN "User" u ON p."recruiterId" = u.id LEFT JOIN "Grade" g ON p."gradeId" = g.id WHERE p.id = $1';
     const enrichedResult = await client.query(enrichedPositionQuery, [id]);
     const enrichedPosition = enrichedResult.rows[0];
     
@@ -300,7 +301,24 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       custom_attributes: enrichedPosition.customAttributes || {},
       // Ensure recruiterName is properly included in the response
       recruiterName: enrichedPosition.recruiterName || null,
+      // Include grade information
+      grade: enrichedPosition.gradeId ? {
+        id: enrichedPosition.gradeId,
+        name: enrichedPosition.gradeName,
+        label: enrichedPosition.gradeLabel,
+        slaDays: enrichedPosition.gradeSlaDays,
+        color: enrichedPosition.gradeColor
+      } : null,
     };
+    
+    // Check for warnings after position update using automation system
+    try {
+      const { WarningAutomation } = await import('@/lib/warningAutomation');
+      WarningAutomation.triggerEntityCheckWithRetry('position', id, actingUserId);
+    } catch (warningError) {
+      console.error('Failed to trigger warning check for updated position:', warningError);
+      // Don't fail the request if warning check fails
+    }
     
     // Dispatch webhook for position update
     try {

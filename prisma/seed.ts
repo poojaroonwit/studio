@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
@@ -6,24 +7,30 @@ async function main() {
   console.log('🌱 Starting database seeding...');
   
   try {
-    // Create default admin user
+    // Create admin user (same as init-db.sql)
     console.log('Creating admin user...');
     const adminEmail = 'admin@qsncc.com';
-    const adminPassword = '$2a$10$dwiCxbUtCqnXeB2O8BmiyeWHL0e7rOqahafQAUACsnD4EZ9nGqPx2'; // bcrypt hash for 'nccadmin'
+    const adminPassword = 'nccadmin';
+    const hashedPassword = await bcrypt.hash(adminPassword, 10);
     
     await prisma.user.upsert({
       where: { email: adminEmail },
-      update: {},
+      update: {
+        password: hashedPassword,
+        forcePasswordChange: false
+      },
       create: {
         name: 'Admin User',
         email: adminEmail,
-        password: adminPassword,
+        password: hashedPassword,
         role: 'Admin',
         authenticationMethod: 'basic',
         forcePasswordChange: false
       }
     });
     console.log('✅ Admin user created/updated');
+    console.log(`Email: ${adminEmail}`);
+console.log(`Password: ${adminPassword}`);
 
     // Create default recruitment stages
     console.log('Creating recruitment stages...');
@@ -193,51 +200,171 @@ async function main() {
     const grades = [
       {
         id: '550e8400-e29b-41d4-a716-446655440020',
-        name: 'Junior',
-        label: 'J',
-        description: 'Entry-level positions with 0-2 years experience',
+        name: 'G1',
+        label: 'G1',
+        description: 'Grade 1 - Entry level positions',
         minLevel: 1,
-        maxLevel: 2,
-        slaDays: 30,
-        color: '#10B981',
+        maxLevel: 1,
+        slaDays: 15,
+        color: '#3B82F6',
         isActive: true,
         sortOrder: 1
       },
       {
         id: '550e8400-e29b-41d4-a716-446655440021',
-        name: 'Mid-Level',
-        label: 'M',
-        description: 'Mid-level positions with 3-5 years experience',
-        minLevel: 3,
-        maxLevel: 5,
-        slaDays: 45,
-        color: '#F59E0B',
+        name: 'G2',
+        label: 'G2',
+        description: 'Grade 2 - Entry level positions',
+        minLevel: 2,
+        maxLevel: 2,
+        slaDays: 15,
+        color: '#3B82F6',
         isActive: true,
         sortOrder: 2
       },
       {
         id: '550e8400-e29b-41d4-a716-446655440022',
-        name: 'Senior',
-        label: 'S',
-        description: 'Senior positions with 6-8 years experience',
-        minLevel: 6,
-        maxLevel: 8,
-        slaDays: 60,
-        color: '#EF4444',
+        name: 'G3',
+        label: 'G3',
+        description: 'Grade 3 - Mid-level positions',
+        minLevel: 3,
+        maxLevel: 3,
+        slaDays: 30,
+        color: '#10B981',
         isActive: true,
         sortOrder: 3
       },
       {
         id: '550e8400-e29b-41d4-a716-446655440023',
-        name: 'Lead',
-        label: 'L',
-        description: 'Lead positions with 9+ years experience',
-        minLevel: 9,
-        maxLevel: 15,
-        slaDays: 90,
-        color: '#8B5CF6',
+        name: 'G4',
+        label: 'G4',
+        description: 'Grade 4 - Mid-level positions',
+        minLevel: 4,
+        maxLevel: 4,
+        slaDays: 30,
+        color: '#10B981',
         isActive: true,
         sortOrder: 4
+      },
+      {
+        id: '550e8400-e29b-41d4-a716-446655440024',
+        name: 'G5',
+        label: 'G5',
+        description: 'Grade 5 - Mid-level positions',
+        minLevel: 5,
+        maxLevel: 5,
+        slaDays: 30,
+        color: '#10B981',
+        isActive: true,
+        sortOrder: 5
+      },
+      {
+        id: '550e8400-e29b-41d4-a716-446655440025',
+        name: 'G6',
+        label: 'G6',
+        description: 'Grade 6 - Senior positions',
+        minLevel: 6,
+        maxLevel: 6,
+        slaDays: 45,
+        color: '#F59E0B',
+        isActive: true,
+        sortOrder: 6
+      },
+      {
+        id: '550e8400-e29b-41d4-a716-446655440026',
+        name: 'G7',
+        label: 'G7',
+        description: 'Grade 7 - Senior positions',
+        minLevel: 7,
+        maxLevel: 7,
+        slaDays: 45,
+        color: '#F59E0B',
+        isActive: true,
+        sortOrder: 7
+      },
+      {
+        id: '550e8400-e29b-41d4-a716-446655440027',
+        name: 'G8',
+        label: 'G8',
+        description: 'Grade 8 - Executive positions',
+        minLevel: 8,
+        maxLevel: 8,
+        slaDays: 60,
+        color: '#EF4444',
+        isActive: true,
+        sortOrder: 8
+      },
+      {
+        id: '550e8400-e29b-41d4-a716-446655440028',
+        name: 'G9',
+        label: 'G9',
+        description: 'Grade 9 - Executive positions',
+        minLevel: 9,
+        maxLevel: 9,
+        slaDays: 60,
+        color: '#EF4444',
+        isActive: true,
+        sortOrder: 9
+      },
+      {
+        id: '550e8400-e29b-41d4-a716-446655440029',
+        name: 'G10',
+        label: 'G10',
+        description: 'Grade 10 - Executive positions',
+        minLevel: 10,
+        maxLevel: 10,
+        slaDays: 60,
+        color: '#EF4444',
+        isActive: true,
+        sortOrder: 10
+      },
+      {
+        id: '550e8400-e29b-41d4-a716-446655440030',
+        name: 'G11',
+        label: 'G11',
+        description: 'Grade 11 - Executive positions',
+        minLevel: 11,
+        maxLevel: 11,
+        slaDays: 60,
+        color: '#EF4444',
+        isActive: true,
+        sortOrder: 11
+      },
+      {
+        id: '550e8400-e29b-41d4-a716-446655440031',
+        name: 'G12',
+        label: 'G12',
+        description: 'Grade 12 - Executive positions',
+        minLevel: 12,
+        maxLevel: 12,
+        slaDays: 60,
+        color: '#EF4444',
+        isActive: true,
+        sortOrder: 12
+      },
+      {
+        id: '550e8400-e29b-41d4-a716-446655440032',
+        name: 'G13',
+        label: 'G13',
+        description: 'Grade 13 - Executive positions',
+        minLevel: 13,
+        maxLevel: 13,
+        slaDays: 60,
+        color: '#EF4444',
+        isActive: true,
+        sortOrder: 13
+      },
+      {
+        id: '550e8400-e29b-41d4-a716-446655440033',
+        name: 'G14',
+        label: 'G14',
+        description: 'Grade 14 - Executive positions',
+        minLevel: 14,
+        maxLevel: 14,
+        slaDays: 60,
+        color: '#EF4444',
+        isActive: true,
+        sortOrder: 14
       }
     ];
     
@@ -459,6 +586,362 @@ Do not include any markdown formatting, code blocks, or additional text. Only re
       }
     }
     console.log('✅ TOEIC custom field and options created/updated');
+
+    // Create candidate sources
+    console.log('Creating candidate sources...');
+    const candidateSources = [
+      {
+        id: '550e8400-e29b-41d4-a716-446655440040',
+        name: 'JobsDB',
+        description: 'JobsDB job portal',
+        isActive: true,
+        sortOrder: 1
+      },
+      {
+        id: '550e8400-e29b-41d4-a716-446655440041',
+        name: 'JobTopGun',
+        description: 'JobTopGun job portal',
+        isActive: true,
+        sortOrder: 2
+      },
+      {
+        id: '550e8400-e29b-41d4-a716-446655440042',
+        name: 'JobThai',
+        description: 'JobThai job portal',
+        isActive: true,
+        sortOrder: 3
+      },
+      {
+        id: '550e8400-e29b-41d4-a716-446655440043',
+        name: 'JobBKK',
+        description: 'JobBKK job portal',
+        isActive: true,
+        sortOrder: 4
+      },
+      {
+        id: '550e8400-e29b-41d4-a716-446655440044',
+        name: 'JobsNCC',
+        description: 'JobsNCC internal job portal',
+        isActive: true,
+        sortOrder: 5
+      },
+      {
+        id: '550e8400-e29b-41d4-a716-446655440045',
+        name: 'Hoteljob',
+        description: 'Hoteljob specialized portal',
+        isActive: true,
+        sortOrder: 6
+      },
+      {
+        id: '550e8400-e29b-41d4-a716-446655440046',
+        name: 'Linkedin',
+        description: 'LinkedIn professional network',
+        isActive: true,
+        sortOrder: 7
+      },
+      {
+        id: '550e8400-e29b-41d4-a716-446655440047',
+        name: 'Facebook',
+        description: 'Facebook social media',
+        isActive: true,
+        sortOrder: 8
+      },
+      {
+        id: '550e8400-e29b-41d4-a716-446655440048',
+        name: 'Line',
+        description: 'Line messaging platform',
+        isActive: true,
+        sortOrder: 9
+      },
+      {
+        id: '550e8400-e29b-41d4-a716-446655440049',
+        name: 'Referral',
+        description: 'Employee referral',
+        isActive: true,
+        sortOrder: 10
+      },
+      {
+        id: '550e8400-e29b-41d4-a716-446655440050',
+        name: 'Transfer',
+        description: 'Internal transfer',
+        isActive: true,
+        sortOrder: 11
+      },
+      {
+        id: '550e8400-e29b-41d4-a716-446655440051',
+        name: 'Promoted',
+        description: 'Internal promotion',
+        isActive: true,
+        sortOrder: 12
+      },
+      {
+        id: '550e8400-e29b-41d4-a716-446655440052',
+        name: 'University',
+        description: 'University partnership',
+        isActive: true,
+        sortOrder: 13
+      },
+      {
+        id: '550e8400-e29b-41d4-a716-446655440053',
+        name: 'NCC Career',
+        description: 'NCC Career portal',
+        isActive: true,
+        sortOrder: 14
+      },
+      {
+        id: '550e8400-e29b-41d4-a716-446655440054',
+        name: 'Internship',
+        description: 'Internship program',
+        isActive: true,
+        sortOrder: 15
+      },
+      {
+        id: '550e8400-e29b-41d4-a716-446655440055',
+        name: 'Instagram',
+        description: 'Instagram social media',
+        isActive: true,
+        sortOrder: 16
+      },
+      {
+        id: '550e8400-e29b-41d4-a716-446655440056',
+        name: 'JobExpo',
+        description: 'Job fair/Expo',
+        isActive: true,
+        sortOrder: 17
+      }
+    ];
+
+    for (const source of candidateSources) {
+      await prisma.candidateSource.upsert({
+        where: { id: source.id },
+        update: {},
+        create: source
+      });
+    }
+    console.log('✅ Candidate sources created/updated');
+
+    // Get admin user for creating warning configurations
+    const adminUserForWarnings = await prisma.user.findUnique({
+      where: { email: adminEmail }
+    });
+
+    if (!adminUserForWarnings) {
+      throw new Error('Admin user not found for creating warning configurations');
+    }
+
+    // Create default warning configurations
+    console.log('Creating warning configurations...');
+    const warningConfigurations = [
+      {
+        id: '550e8400-e29b-41d4-a716-446655440060',
+        name: 'Position No Grade',
+        description: 'Warns when a position has no grade assigned',
+        entityType: 'position',
+        field: 'gradeId',
+        condition: 'empty',
+        operator: 'eq',
+        value: '',
+        threshold: null,
+        severity: 'warning',
+        isActive: true,
+        isPublic: true,
+        logicalOperator: null,
+        conditions: null,
+        crossEntityConditions: null,
+        createdBy: adminUserForWarnings.id
+      },
+      {
+        id: '550e8400-e29b-41d4-a716-446655440061',
+        name: 'Position No Hiring Date',
+        description: 'Warns when a position has no hiring date set',
+        entityType: 'position',
+        field: 'hiringDate',
+        condition: 'empty',
+        operator: 'eq',
+        value: '',
+        threshold: null,
+        severity: 'warning',
+        isActive: true,
+        isPublic: true,
+        logicalOperator: null,
+        conditions: null,
+        crossEntityConditions: null,
+        createdBy: adminUserForWarnings.id
+      },
+      {
+        id: '550e8400-e29b-41d4-a716-446655440062',
+        name: 'Position No Grade Assigned',
+        description: 'Warns when a position has no grade assigned',
+        entityType: 'position',
+        field: 'gradeId',
+        condition: 'empty',
+        operator: 'eq',
+        value: '',
+        threshold: null,
+        severity: 'warning',
+        isActive: true,
+        isPublic: true,
+        logicalOperator: null,
+        conditions: null,
+        crossEntityConditions: null,
+        createdBy: adminUser.id
+      },
+      {
+        id: '550e8400-e29b-41d4-a716-446655440063',
+        name: 'Position Open But No Recruiter',
+        description: 'Warns when a position is open but has no recruiter assigned',
+        entityType: 'position',
+        field: 'isOpen',
+        condition: 'custom',
+        operator: 'eq',
+        value: 'true',
+        threshold: null,
+        severity: 'warning',
+        isActive: true,
+        isPublic: true,
+        logicalOperator: 'AND',
+        conditions: [
+          {
+            field: 'isOpen',
+            condition: 'custom',
+            operator: 'eq',
+            value: 'true',
+            threshold: null
+          },
+          {
+            field: 'recruiterId',
+            condition: 'empty',
+            operator: 'eq',
+            value: '',
+            threshold: null
+          }
+        ],
+        crossEntityConditions: null,
+        createdBy: adminUserForWarnings.id
+      },
+      {
+        id: '550e8400-e29b-41d4-a716-446655440064',
+        name: 'Position No Recruiter Assigned',
+        description: 'Warns when a position has no recruiter assigned',
+        entityType: 'position',
+        field: 'recruiterId',
+        condition: 'empty',
+        operator: 'eq',
+        value: '',
+        threshold: null,
+        severity: 'warning',
+        isActive: true,
+        isPublic: true,
+        logicalOperator: null,
+        conditions: null,
+        crossEntityConditions: null,
+        createdBy: adminUserForWarnings.id
+      },
+      {
+        id: '550e8400-e29b-41d4-a716-446655440065',
+        name: 'Candidate No Email',
+        description: 'Warns when a candidate has no email address',
+        entityType: 'candidate',
+        field: 'email',
+        condition: 'empty',
+        operator: 'eq',
+        value: '',
+        threshold: null,
+        severity: 'warning',
+        isActive: true,
+        isPublic: true,
+        logicalOperator: null,
+        conditions: null,
+        crossEntityConditions: null,
+        createdBy: adminUserForWarnings.id
+      },
+      {
+        id: '550e8400-e29b-41d4-a716-446655440066',
+        name: 'Candidate No Recruiter Assigned',
+        description: 'Warns when a candidate has no recruiter assigned',
+        entityType: 'candidate',
+        field: 'recruiterId',
+        condition: 'empty',
+        operator: 'eq',
+        value: '',
+        threshold: null,
+        severity: 'warning',
+        isActive: true,
+        isPublic: true,
+        logicalOperator: null,
+        conditions: null,
+        crossEntityConditions: null,
+        createdBy: adminUserForWarnings.id
+      },
+      {
+        id: '550e8400-e29b-41d4-a716-446655440067',
+        name: 'Candidate No Source',
+        description: 'Warns when a candidate has no source assigned',
+        entityType: 'candidate',
+        field: 'sourceId',
+        condition: 'empty',
+        operator: 'eq',
+        value: '',
+        threshold: null,
+        severity: 'warning',
+        isActive: true,
+        isPublic: true,
+        logicalOperator: null,
+        conditions: null,
+        crossEntityConditions: null,
+        createdBy: adminUserForWarnings.id
+      },
+      {
+        id: '550e8400-e29b-41d4-a716-446655440068',
+        name: 'Candidate Over Grade SLA',
+        description: 'Warns when a candidate has exceeded the SLA timeframe based on their position grade (Junior: 30 days, Mid: 45 days, Senior: 60 days, Lead: 90 days). Only applies to candidates with assigned positions.',
+        entityType: 'candidate',
+        field: '',
+        condition: '',
+        operator: '',
+        value: '',
+        threshold: null,
+        severity: 'warning',
+        isActive: true,
+        isPublic: true,
+        logicalOperator: 'AND',
+        conditions: null,
+        crossEntityConditions: [
+          {
+            entityType: 'candidate',
+            field: 'applicationDate',
+            condition: 'overdue',
+            operator: 'gt',
+            value: '',
+            threshold: null
+          },
+          {
+            entityType: 'position',
+            field: 'gradeId',
+            condition: 'empty',
+            operator: 'ne',
+            value: '',
+            threshold: null
+          }
+        ],
+        createdBy: adminUserForWarnings.id
+      }
+    ];
+
+    for (const config of warningConfigurations) {
+      await prisma.warningConfiguration.upsert({
+        where: { id: config.id },
+        update: {
+          name: config.name,
+          description: config.description,
+          severity: config.severity,
+          isActive: config.isActive,
+          isPublic: config.isPublic
+        },
+        create: config
+      });
+    }
+    console.log('✅ Warning configurations created/updated');
 
     console.log('🎉 Database seeding completed successfully!');
   } catch (error) {

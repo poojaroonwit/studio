@@ -61,13 +61,24 @@ export function useDynamicHeight(options: UseDynamicHeightOptions = {}) {
     const initialTimer = setTimeout(updateHeight, 100);
 
     // Set up ResizeObserver to watch for height changes
-    const resizeObserver = new ResizeObserver(debouncedUpdateHeight);
+    const resizeObserver = new ResizeObserver(() => {
+      if (resizeTimeoutRef.current) {
+        clearTimeout(resizeTimeoutRef.current);
+      }
+      resizeTimeoutRef.current = setTimeout(updateHeight, debounceMs);
+    });
     if (elementRef.current) {
       resizeObserver.observe(elementRef.current);
     }
 
     // Also listen for window resize events
-    window.addEventListener('resize', debouncedUpdateHeight);
+    const handleResize = () => {
+      if (resizeTimeoutRef.current) {
+        clearTimeout(resizeTimeoutRef.current);
+      }
+      resizeTimeoutRef.current = setTimeout(updateHeight, debounceMs);
+    };
+    window.addEventListener('resize', handleResize);
 
     return () => {
       clearTimeout(initialTimer);
@@ -75,9 +86,9 @@ export function useDynamicHeight(options: UseDynamicHeightOptions = {}) {
         clearTimeout(resizeTimeoutRef.current);
       }
       resizeObserver.disconnect();
-      window.removeEventListener('resize', debouncedUpdateHeight);
+      window.removeEventListener('resize', handleResize);
     };
-  }, [updateHeight, debouncedUpdateHeight]);
+  }, [updateHeight, debounceMs]);
 
   return { 
     height, 

@@ -62,13 +62,13 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   const [fetchError, setFetchError] = useState<string | null>(null);
 
   // State for candidates
-  const [allCandidates, setAllCandidates] = useState<Candidate[]>([]);
-  const [allCandidatesPage, setAllCandidatesPage] = useState(1);
-  const [allCandidatesPageSize, setAllCandidatesPageSize] = useState(50);
-  const [allCandidatesTotal, setAllCandidatesTotal] = useState(0);
-  const [allCandidatesSearchTerm, setAllCandidatesSearchTerm] = useState('');
-  const [allCandidatesSortColumn, setAllCandidatesSortColumn] = useState<string | null>('applicationDate');
-  const [allCandidatesSortDirection, setAllCandidatesSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [filteredCandidates, setFilteredCandidates] = useState<Candidate[]>([]);
+  const [allCandidatesPage, setFilteredCandidatesPage] = useState(1);
+  const [allCandidatesPageSize, setFilteredCandidatesPageSize] = useState(100);
+  const [allCandidatesTotal, setFilteredCandidatesTotal] = useState(0);
+  const [allCandidatesSearchTerm, setFilteredCandidatesSearchTerm] = useState('');
+  const [allCandidatesSortColumn, setFilteredCandidatesSortColumn] = useState<string | null>('applicationDate');
+  const [allCandidatesSortDirection, setFilteredCandidatesSortDirection] = useState<'asc' | 'desc'>('desc');
 
   // State for headcount
   const [headcounts, setHeadcounts] = useState<any[]>([]);
@@ -77,7 +77,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   // State for applied candidates
   const [appliedCandidates, setAppliedCandidates] = useState<Candidate[]>([]);
   const [appliedCandidatesPage, setAppliedCandidatesPage] = useState(1);
-  const [appliedCandidatesPageSize, setAppliedCandidatesPageSize] = useState(50);
+  const [appliedCandidatesPageSize, setAppliedCandidatesPageSize] = useState(100);
   const [appliedCandidatesTotal, setAppliedCandidatesTotal] = useState(0);
   const [appliedCandidatesSearchTerm, setAppliedCandidatesSearchTerm] = useState('');
   const [appliedCandidatesSortColumn, setAppliedCandidatesSortColumn] = useState<string | null>('applicationDate');
@@ -86,7 +86,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   // State for potential candidates
   const [potentialCandidates, setPotentialCandidates] = useState<Candidate[]>([]);
   const [potentialCandidatesPage, setPotentialCandidatesPage] = useState(1);
-  const [potentialCandidatesPageSize, setPotentialCandidatesPageSize] = useState(50);
+  const [potentialCandidatesPageSize, setPotentialCandidatesPageSize] = useState(100);
   const [potentialCandidatesTotal, setPotentialCandidatesTotal] = useState(0);
   const [potentialCandidatesSearchTerm, setPotentialCandidatesSearchTerm] = useState('');
 
@@ -95,7 +95,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   const [isCandidateModalOpen, setIsCandidateModalOpen] = useState(false);
   
   // Edit states
-  const [isEditMode, setIsEditMode] = useState(initialEditMode);
+  const [isEditMode, setIsEditMode] = useState(false);
   const [defaultMatchCriteria, setDefaultMatchCriteria] = useState<string>('');
 
   // Reset edit mode when drawer opens/closes
@@ -121,7 +121,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   const [potentialCandidatesOpenMenu, setPotentialCandidatesOpenMenu] = useState<string | null>(null);
 
   // Sorting state for all candidates table
-  const [allCandidatesOpenMenu, setAllCandidatesOpenMenu] = useState<string | null>(null);
+  const [allCandidatesOpenMenu, setFilteredCandidatesOpenMenu] = useState<string | null>(null);
 
   // Tab states
   const [activeTab, setActiveTab] = useState('details');
@@ -173,15 +173,15 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
 
   const handleAllCandidatesSort = (column: string | null, direction?: 'asc' | 'desc' | null) => {
     if (!column) {
-      setAllCandidatesSortColumn(null);
-      setAllCandidatesSortDirection('asc');
+      setFilteredCandidatesSortColumn(null);
+      setFilteredCandidatesSortDirection('asc');
       return;
     }
     if (allCandidatesSortColumn === column && direction == null) {
-      setAllCandidatesSortDirection(allCandidatesSortDirection === 'asc' ? 'desc' : 'asc');
+      setFilteredCandidatesSortDirection(allCandidatesSortDirection === 'asc' ? 'desc' : 'asc');
     } else {
-      setAllCandidatesSortColumn(column);
-      setAllCandidatesSortDirection(direction || 'asc');
+      setFilteredCandidatesSortColumn(column);
+      setFilteredCandidatesSortDirection(direction || 'asc');
     }
   };
 
@@ -214,9 +214,14 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
     [appliedCandidatesTotal]
   );
 
-  // Sorted candidates
+  // Sorted candidates - use server-side sorting for fitScore, client-side for others
   const sortedAppliedCandidates = useMemo(() => {
     if (!appliedCandidatesSortColumn) return appliedCandidates;
+    
+    // For fitScore, rely on server-side sorting
+    if (appliedCandidatesSortColumn === 'fitScore') {
+      return appliedCandidates;
+    }
     
     return [...appliedCandidates].sort((a, b) => {
       const aValue = getSortableValue(a, appliedCandidatesSortColumn);
@@ -230,6 +235,11 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   const sortedPotentialCandidates = useMemo(() => {
     if (!potentialCandidatesSortColumn) return potentialCandidates;
     
+    // For fitScore, rely on server-side sorting
+    if (potentialCandidatesSortColumn === 'fitScore') {
+      return potentialCandidates;
+    }
+    
     return [...potentialCandidates].sort((a, b) => {
       const aValue = getSortableValue(a, potentialCandidatesSortColumn);
       const bValue = getSortableValue(b, potentialCandidatesSortColumn);
@@ -240,16 +250,21 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   }, [potentialCandidates, potentialCandidatesSortColumn, potentialCandidatesSortDirection]);
 
   const sortedAllCandidates = useMemo(() => {
-    if (!allCandidatesSortColumn) return allCandidates;
+    if (!allCandidatesSortColumn) return filteredCandidates;
     
-    return [...allCandidates].sort((a, b) => {
+    // For fitScore, rely on server-side sorting
+    if (allCandidatesSortColumn === 'fitScore') {
+      return filteredCandidates;
+    }
+    
+    return [...filteredCandidates].sort((a, b) => {
       const aValue = getSortableValue(a, allCandidatesSortColumn);
       const bValue = getSortableValue(b, allCandidatesSortColumn);
       if (aValue < bValue) return allCandidatesSortDirection === 'asc' ? -1 : 1;
       if (aValue > bValue) return allCandidatesSortDirection === 'asc' ? 1 : -1;
       return 0;
     });
-  }, [allCandidates, allCandidatesSortColumn, allCandidatesSortDirection]);
+  }, [filteredCandidates, allCandidatesSortColumn, allCandidatesSortDirection]);
 
   // Level options
 
@@ -381,12 +396,12 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       const data = await response.json();
       const candidates = Array.isArray(data.data) ? data.data : [];
       
-      setAllCandidates(candidates);
-      setAllCandidatesTotal(data.pagination?.total || candidates.length);
+      setFilteredCandidates(candidates);
+      setFilteredCandidatesTotal(data.pagination?.total || candidates.length);
     } catch (error) {
       console.error('Error fetching all candidates:', error);
-      setAllCandidates([]);
-      setAllCandidatesTotal(0);
+      setFilteredCandidates([]);
+      setFilteredCandidatesTotal(0);
     }
   }, [positionId, allCandidatesPage, allCandidatesPageSize, allCandidatesSearchTerm, allCandidatesSortColumn, allCandidatesSortDirection, sessionStatus]);
 
@@ -639,16 +654,16 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   useEffect(() => {
     if (!isOpen) {
       setPosition(null);
-      setAllCandidates([]);
-      setAllCandidatesTotal(0);
+      setFilteredCandidates([]);
+      setFilteredCandidatesTotal(0);
       setAppliedCandidates([]);
       setAppliedCandidatesTotal(0);
       setPotentialCandidates([]);
       setPotentialCandidatesTotal(0);
       setHeadcountsTotal(0);
       setFetchError(null);
-      setAllCandidatesSearchTerm('');
-      setAllCandidatesPage(1);
+      setFilteredCandidatesSearchTerm('');
+      setFilteredCandidatesPage(1);
       setAppliedCandidatesSearchTerm('');
       setAppliedCandidatesPage(1);
       setPotentialCandidatesSearchTerm('');
@@ -664,7 +679,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       setPotentialCandidatesSortColumn(null);
       setPotentialCandidatesSortDirection('asc');
       setPotentialCandidatesOpenMenu(null);
-      setAllCandidatesOpenMenu(null);
+      setFilteredCandidatesOpenMenu(null);
     }
   }, [isOpen, form]);
 
@@ -1055,7 +1070,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
             <Input
               placeholder="Search candidates..."
               value={allCandidatesSearchTerm}
-              onChange={(e) => setAllCandidatesSearchTerm(e.target.value)}
+              onChange={(e) => setFilteredCandidatesSearchTerm(e.target.value)}
               className="pl-10"
             />
             {allCandidatesSearchTerm && (
@@ -1063,7 +1078,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                 variant="ghost"
                 size="icon"
                 className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6"
-                onClick={() => setAllCandidatesSearchTerm('')}
+                onClick={() => setFilteredCandidatesSearchTerm('')}
               >
                 <X className="h-4 w-4" />
               </Button>
@@ -1080,13 +1095,13 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                 <TableHead className="cursor-pointer select-none group" onClick={() => handleAllCandidatesSort('name')}>
                   <span className="inline-flex items-center gap-1">
                     Candidate
-                    <DropdownMenu open={allCandidatesOpenMenu === 'name'} onOpenChange={open => setAllCandidatesOpenMenu(open ? 'name' : null)}>
+                    <DropdownMenu open={allCandidatesOpenMenu === 'name'} onOpenChange={open => setFilteredCandidatesOpenMenu(open ? 'name' : null)}>
                       <DropdownMenuTrigger asChild>
                         {allCandidatesSortColumn === 'name' ? (
                           <button
                             type="button"
                             className="text-primary font-bold p-1 rounded hover:bg-muted"
-                            onClick={e => { e.stopPropagation(); setAllCandidatesOpenMenu('name'); }}
+                            onClick={e => { e.stopPropagation(); setFilteredCandidatesOpenMenu('name'); }}
                             aria-label="Sort options"
                           >
                             {allCandidatesSortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
@@ -1095,7 +1110,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                           <button
                             type="button"
                             className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted"
-                            onClick={e => { e.stopPropagation(); setAllCandidatesOpenMenu('name'); }}
+                            onClick={e => { e.stopPropagation(); setFilteredCandidatesOpenMenu('name'); }}
                             aria-label="Sort options"
                           >
                             <MoreVertical size={16} />
@@ -1103,10 +1118,10 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                         )}
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => { handleAllCandidatesSort('name', 'asc'); setAllCandidatesOpenMenu(null); }}>Sort Ascending ▲</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => { handleAllCandidatesSort('name', 'desc'); setAllCandidatesOpenMenu(null); }}>Sort Descending ▼</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { handleAllCandidatesSort('name', 'asc'); setFilteredCandidatesOpenMenu(null); }}>Sort Ascending ▲</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { handleAllCandidatesSort('name', 'desc'); setFilteredCandidatesOpenMenu(null); }}>Sort Descending ▼</DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => { handleAllCandidatesSort(null, null); setAllCandidatesOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { handleAllCandidatesSort(null, null); setFilteredCandidatesOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </span>
@@ -1114,13 +1129,13 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                 <TableHead className="cursor-pointer select-none group" onClick={() => handleAllCandidatesSort('fitScore')}>
                   <span className="inline-flex items-center gap-1">
                     Fit Score
-                    <DropdownMenu open={allCandidatesOpenMenu === 'fitScore'} onOpenChange={open => setAllCandidatesOpenMenu(open ? 'fitScore' : null)}>
+                    <DropdownMenu open={allCandidatesOpenMenu === 'fitScore'} onOpenChange={open => setFilteredCandidatesOpenMenu(open ? 'fitScore' : null)}>
                       <DropdownMenuTrigger asChild>
                         {allCandidatesSortColumn === 'fitScore' ? (
                           <button
                             type="button"
                             className="text-primary font-bold p-1 rounded hover:bg-muted"
-                            onClick={e => { e.stopPropagation(); setAllCandidatesOpenMenu('fitScore'); }}
+                            onClick={e => { e.stopPropagation(); setFilteredCandidatesOpenMenu('fitScore'); }}
                             aria-label="Sort options"
                           >
                             {allCandidatesSortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
@@ -1129,7 +1144,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                           <button
                             type="button"
                             className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted"
-                            onClick={e => { e.stopPropagation(); setAllCandidatesOpenMenu('fitScore'); }}
+                            onClick={e => { e.stopPropagation(); setFilteredCandidatesOpenMenu('fitScore'); }}
                             aria-label="Sort options"
                           >
                             <MoreVertical size={16} />
@@ -1137,10 +1152,10 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                         )}
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => { handleAllCandidatesSort('fitScore', 'asc'); setAllCandidatesOpenMenu(null); }}>Sort Ascending ▲</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => { handleAllCandidatesSort('fitScore', 'desc'); setAllCandidatesOpenMenu(null); }}>Sort Descending ▼</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { handleAllCandidatesSort('fitScore', 'asc'); setFilteredCandidatesOpenMenu(null); }}>Sort Ascending ▲</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { handleAllCandidatesSort('fitScore', 'desc'); setFilteredCandidatesOpenMenu(null); }}>Sort Descending ▼</DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => { handleAllCandidatesSort(null, null); setAllCandidatesOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { handleAllCandidatesSort(null, null); setFilteredCandidatesOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </span>
@@ -1148,13 +1163,13 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                 <TableHead className="cursor-pointer select-none group" onClick={() => handleAllCandidatesSort('status')}>
                   <span className="inline-flex items-center gap-1">
                     Status
-                    <DropdownMenu open={allCandidatesOpenMenu === 'status'} onOpenChange={open => setAllCandidatesOpenMenu(open ? 'status' : null)}>
+                    <DropdownMenu open={allCandidatesOpenMenu === 'status'} onOpenChange={open => setFilteredCandidatesOpenMenu(open ? 'status' : null)}>
                       <DropdownMenuTrigger asChild>
                         {allCandidatesSortColumn === 'status' ? (
                           <button
                             type="button"
                             className="text-primary font-bold p-1 rounded hover:bg-muted"
-                            onClick={e => { e.stopPropagation(); setAllCandidatesOpenMenu('status'); }}
+                            onClick={e => { e.stopPropagation(); setFilteredCandidatesOpenMenu('status'); }}
                             aria-label="Sort options"
                           >
                             {allCandidatesSortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
@@ -1163,7 +1178,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                           <button
                             type="button"
                             className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted"
-                            onClick={e => { e.stopPropagation(); setAllCandidatesOpenMenu('status'); }}
+                            onClick={e => { e.stopPropagation(); setFilteredCandidatesOpenMenu('status'); }}
                             aria-label="Sort options"
                           >
                             <MoreVertical size={16} />
@@ -1171,10 +1186,10 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                         )}
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => { handleAllCandidatesSort('status', 'asc'); setAllCandidatesOpenMenu(null); }}>Sort Ascending ▲</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => { handleAllCandidatesSort('status', 'desc'); setAllCandidatesOpenMenu(null); }}>Sort Descending ▼</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { handleAllCandidatesSort('status', 'asc'); setFilteredCandidatesOpenMenu(null); }}>Sort Ascending ▲</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { handleAllCandidatesSort('status', 'desc'); setFilteredCandidatesOpenMenu(null); }}>Sort Descending ▼</DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => { handleAllCandidatesSort(null, null); setAllCandidatesOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { handleAllCandidatesSort(null, null); setFilteredCandidatesOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </span>
@@ -1306,8 +1321,8 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
             totalPages={allCandidatesTotalPages}
             pageSize={allCandidatesPageSize}
             total={allCandidatesTotal}
-            onPageChange={setAllCandidatesPage}
-            onPageSizeChange={setAllCandidatesPageSize}
+            onPageChange={setFilteredCandidatesPage}
+            onPageSizeChange={setFilteredCandidatesPageSize}
           />
         )}
       </div>
@@ -1943,7 +1958,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                     <div className="h-full flex flex-col p-6">
                       <HeadcountTab 
                         positionId={positionId!} 
-                        candidates={allCandidates}
+                        candidates={filteredCandidates}
                         onHeadcountChange={fetchHeadcountCount}
                       />
                     </div>

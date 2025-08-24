@@ -29,7 +29,7 @@ import {
   Lock,
   Globe,
   BarChart3,
-  AlertTriangle
+
 } from 'lucide-react';
 import type { PlatformModuleId } from '@/lib/types';
 
@@ -76,14 +76,7 @@ const settingsItems = [
     permissionId: 'WEBHOOK_MAPPING_MANAGE' as PlatformModuleId, 
     adminOnlyOrPermission: true
   },
-  { 
-    href: "/settings/warning-configurations", 
-    label: "Warning Configurations", 
-    icon: AlertTriangle, 
-    description: "Configure dynamic warning rules for data monitoring.", 
-    permissionId: 'SYSTEM_SETTINGS_MANAGE' as PlatformModuleId, 
-    adminOnlyOrPermission: true
-  },
+
   { 
     href: "/settings/users", 
     label: "User Management", 
@@ -119,9 +112,9 @@ export default function SettingsPage() {
 
   const canAccess = (item: { adminOnly?: boolean, permissionId?: PlatformModuleId, adminOnlyOrPermission?: boolean }) => {
     if (!isClient || sessionStatus !== 'authenticated') return false;
-    if (item.adminOnly && session?.user?.role !== 'Admin') return false;
+    if (item.adminOnly && session?.user?.role !== 'Admin' && !session?.user?.modulePermissions?.includes('USERS_MANAGE')) return false;
     if (item.adminOnlyOrPermission) {
-      if (session?.user?.role === 'Admin') return true;
+      if (session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('USERS_MANAGE')) return true;
       if (item.permissionId && session?.user?.modulePermissions?.includes(item.permissionId)) return true;
       return false;
     }

@@ -33,6 +33,8 @@ export function StatusMultiSelectDropdown({
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
+
+
   // Filter stages based on search term
   const filteredStages = stages.filter(stage => 
     stage.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -68,8 +70,8 @@ export function StatusMultiSelectDropdown({
     onSelectionChange(newSelected);
   };
 
-  const handleRemoveStage = (stageName: string, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleRemoveStage = (stageName: string, e?: React.MouseEvent | React.KeyboardEvent) => {
+    e?.stopPropagation();
     const newSelected = new Set(selectedIds);
     newSelected.delete(stageName);
     onSelectionChange(newSelected);
@@ -79,13 +81,28 @@ export function StatusMultiSelectDropdown({
     // If "Select All" is selected
     if (hasSelectAll) {
       return (
-        <div className="flex items-center gap-2">
-          <span className="truncate text-foreground">All pipeline stages</span>
+        <div className="flex flex-wrap gap-1 flex-1">
           <Badge 
             variant="default"
             className="text-xs"
           >
             Select All
+            <button
+              type="button"
+              className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleToggleStage('select-all');
+                }
+              }}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              onClick={(e) => handleToggleStage('select-all')}
+            >
+              <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+            </button>
           </Badge>
         </div>
       );
@@ -96,141 +113,209 @@ export function StatusMultiSelectDropdown({
       return <span className="text-muted-foreground">All pipeline stages</span>;
     }
 
-    if (selectedIds.size === 1) {
-      const stageName = Array.from(selectedIds)[0];
-      const stage = stages.find(s => s.name === stageName);
-      if (stage) {
-        return (
-          <div className="flex items-center gap-2">
-            <span className="truncate text-foreground">{stage.name}</span>
-          </div>
-        );
-      }
-    }
-
     return (
-      <div className="flex items-center gap-1">
-        <span className="text-foreground">{selectedIds.size} selected</span>
-        <div className="flex items-center gap-1 ml-2">
-          {selectedStages.slice(0, 2).map((stage) => (
-            <Badge
-              key={stage.name}
-              variant="secondary"
-              className="text-xs px-1 py-0 h-5"
+      <div className="flex flex-wrap gap-1 flex-1">
+        {selectedStages.map((stage) => (
+          <Badge
+            key={stage.name}
+            variant="secondary"
+            className="text-xs"
+          >
+            {stage.name}
+            <button
+              type="button"
+              className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleRemoveStage(stage.name, e);
+                }
+              }}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              onClick={(e) => handleRemoveStage(stage.name, e)}
             >
-              {stage.name}
-              <button
-                type="button"
-                onClick={(e) => handleRemoveStage(stage.name, e)}
-                className="ml-1 hover:bg-destructive hover:text-destructive-foreground rounded-full w-3 h-3 flex items-center justify-center"
-              >
-                <X className="w-2 h-2" />
-              </button>
-            </Badge>
-          ))}
-          {selectedIds.size > 2 && (
-            <Badge variant="outline" className="text-xs">
-              +{selectedIds.size - 2} more
-            </Badge>
-          )}
-        </div>
+              <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+            </button>
+          </Badge>
+        ))}
       </div>
     );
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          className={cn("w-full justify-between bg-background text-foreground border-border hover:bg-accent hover:text-accent-foreground [&>*]:!text-foreground", className)}
-          disabled={disabled}
-        >
-          {renderTrigger()}
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50 text-foreground" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-full p-0 bg-popover border-border shadow-lg z-[10001]" align="start">
-        <div className="bg-popover text-popover-foreground">
-          {/* Search Input */}
-          <div className="flex items-center border-b border-border px-3 bg-popover">
-            <Search className="mr-2 h-4 w-4 shrink-0 opacity-50 text-muted-foreground" />
-            <Input
-              placeholder="Search pipeline stages..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="border-0 bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 text-foreground focus-visible:ring-0"
-            />
-          </div>
-          
-          {/* Stages List */}
-          <div className="max-h-[300px] overflow-y-auto">
-            {filteredStages.length === 0 ? (
-              <div className="py-6 text-center text-sm text-muted-foreground">
-                No pipeline stages found.
-              </div>
-            ) : (
-              <div className="p-1">
-                {/* Select All Option */}
-                <div
-                  key="select-all"
-                  className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground text-foreground border-b border-border transition-colors duration-150"
-                  onClick={() => handleToggleStage('select-all')}
+    <div className={cn("relative", className)}>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className="w-full min-w-full justify-between min-h-[40px] h-auto py-2"
+            disabled={disabled}
+          >
+            <div className="flex flex-wrap gap-1 flex-1">
+              {/* If "Select All" is selected */}
+              {hasSelectAll ? (
+                <Badge 
+                  variant="default"
+                  className="text-xs"
                 >
-                  <Check
-                    className={cn(
-                      "mr-2 h-4 w-4 transition-opacity duration-150",
-                      hasSelectAll ? "opacity-100" : "opacity-0"
-                    )}
-                  />
-                  <div className="flex flex-col">
-                    <span className="font-medium text-foreground">Select All</span>
-                    <span className="text-sm text-muted-foreground">
-                      All pipeline stages
-                    </span>
-                  </div>
-                  <Badge 
-                    variant="default"
-                    className="ml-auto text-xs"
+                  Select All
+                  <button
+                    type="button"
+                    className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        handleToggleStage('select-all');
+                      }
+                    }}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }}
+                    onClick={() => handleToggleStage('select-all')}
                   >
-                    All
-                  </Badge>
-                </div>
-                {filteredStages.map((stage) => (
-                  <div
+                    <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                  </button>
+                </Badge>
+              ) : selectedIds.size === 0 ? (
+                <span className="text-muted-foreground">All pipeline stages</span>
+              ) : (
+                selectedStages.map((stage) => (
+                  <Badge
                     key={stage.name}
-                    className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground text-foreground transition-colors duration-150"
-                    onClick={() => handleToggleStage(stage.name)}
+                    variant="secondary"
+                    className="text-xs"
                   >
+                    {stage.name}
+                    <button
+                      type="button"
+                      className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          handleRemoveStage(stage.name);
+                        }
+                      }}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }}
+                      onClick={() => handleRemoveStage(stage.name)}
+                    >
+                      <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                    </button>
+                  </Badge>
+                ))
+              )}
+            </div>
+            <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 bg-popover border-border shadow-lg z-[10001] max-h-[300px] overflow-y-auto" align="start">
+          <div className="p-2">
+            <div className="text-sm font-medium mb-2">Select Pipeline Stages</div>
+            
+            {/* Search Input */}
+            <div className="relative mb-2">
+              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search pipeline stages..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-8 pr-2 py-1.5 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
+                disabled={disabled}
+              />
+            </div>
+            
+            {filteredStages.length === 0 ? (
+              <div className="text-sm text-muted-foreground py-2">No pipeline stages available</div>
+            ) : (
+              <div className="space-y-0.5">
+                {/* Select All Option */}
+                <button
+                  key="select-all"
+                  onClick={() => handleToggleStage('select-all')}
+                  className={cn(
+                    "w-full text-left px-2 py-1.5 rounded-sm hover:bg-accent hover:text-accent-foreground cursor-pointer text-sm",
+                    hasSelectAll && "bg-accent text-accent-foreground"
+                  )}
+                >
+                  <div className="flex items-center">
                     <Check
                       className={cn(
-                        "mr-2 h-4 w-4 transition-opacity duration-150",
-                        selectedIds.has(stage.name) ? "opacity-100" : "opacity-0"
+                        "mr-2 h-3 w-3",
+                        hasSelectAll ? "opacity-100" : "opacity-0"
                       )}
                     />
-                    <div className="flex flex-col flex-1">
-                      <span className="font-medium text-foreground">{stage.name}</span>
-                      <span className="text-sm text-muted-foreground">
-                        {stage.description && stage.description}
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium">Select All</span>
+                      <span className="text-xs text-muted-foreground">
+                        All pipeline stages
                       </span>
                     </div>
-                    {(candidateCounts[stage.name] && candidateCounts[stage.name] > 0) && (
-                      <Badge 
-                        variant="outline"
-                        className="ml-auto text-xs"
-                      >
-                        {candidateCounts[stage.name]}
-                      </Badge>
-                    )}
+                    <Badge 
+                      variant="default"
+                      className="ml-auto text-xs"
+                    >
+                      All
+                    </Badge>
                   </div>
+                </button>
+                
+                {filteredStages.map((stage) => (
+                  <button
+                    key={stage.name}
+                    onClick={() => handleToggleStage(stage.name)}
+                    className={cn(
+                      "w-full text-left px-2 py-1.5 rounded-sm hover:bg-accent hover:text-accent-foreground cursor-pointer text-sm",
+                      selectedIds.has(stage.name) && "bg-accent text-accent-foreground"
+                    )}
+                  >
+                    <div className="flex items-center">
+                      <Check
+                        className={cn(
+                          "mr-2 h-3 w-3",
+                          selectedIds.has(stage.name) ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      <div className="flex flex-col flex-1">
+                        <span className="text-sm font-medium">{stage.name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {stage.description && stage.description}
+                        </span>
+                      </div>
+                      {(candidateCounts[stage.name] && candidateCounts[stage.name] > 0) && (
+                        <Badge 
+                          variant="outline"
+                          className="ml-auto text-xs"
+                        >
+                          {candidateCounts[stage.name]}
+                        </Badge>
+                      )}
+                    </div>
+                  </button>
                 ))}
               </div>
             )}
           </div>
-        </div>
-      </PopoverContent>
-    </Popover>
+        </PopoverContent>
+      </Popover>
+      {selectedIds.size > 0 && (
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => {
+            if (disabled) return;
+            onSelectionChange(new Set());
+          }}
+          className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 bg-background border border-border hover:bg-accent hover:text-accent-foreground"
+        >
+          <X className="h-3 w-3" />
+        </Button>
+      )}
+    </div>
   );
 }

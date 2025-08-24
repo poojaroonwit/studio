@@ -47,6 +47,7 @@ export default function AutoCloseTab() {
     setSummary(null);
 
     try {
+      console.log('Starting manual auto-close check...');
       const response = await fetch('/api/positions/auto-close', {
         method: 'POST',
         headers: {
@@ -56,15 +57,25 @@ export default function AutoCloseTab() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to run auto-close check');
+        console.error('Auto-close API error:', errorData);
+        throw new Error(errorData.error || `Failed to run auto-close check: ${response.status}`);
       }
 
       const data = await response.json();
+      console.log('Auto-close API response:', data);
+      
       setResults(data.results || []);
       setSummary(data.summary || null);
       setLastRun(new Date());
       
-      toast.success(data.message || 'Auto-close check completed successfully');
+      const closedCount = data.summary?.closedCount || 0;
+      const totalProcessed = data.summary?.totalProcessed || 0;
+      
+      if (closedCount > 0) {
+        toast.success(`Auto-close completed! Processed ${totalProcessed} positions, closed ${closedCount} positions.`);
+      } else {
+        toast.success(`Auto-close completed! Processed ${totalProcessed} positions. No positions needed to be closed.`);
+      }
     } catch (error) {
       console.error('Error running auto-close:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to run auto-close check');

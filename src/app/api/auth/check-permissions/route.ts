@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     const userModulePermissions = session.user.modulePermissions || [];
 
     // Check if user has admin role or specific permissions
-    const hasPermission = userRole === 'Admin' || 
+    const hasPermission = userRole === 'Admin' || session.user.modulePermissions?.includes('USERS_MANAGE') || 
       permissions.some(permission => userModulePermissions.includes(permission));
 
     return NextResponse.json({

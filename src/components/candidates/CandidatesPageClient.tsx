@@ -1,22 +1,20 @@
 "use client";
 
 import * as React from "react";
-import type { ReactNode } from "react";
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { CandidateFilters, type CandidateFilterValues } from '@/components/candidates/CandidateFilters';
 import { CandidateTable } from '@/components/candidates/CandidateTable';
-import type { Candidate, CandidateStatus, Position, RecruitmentStage, UserProfile, CandidateSource } from '@/lib/types';
+import type { Candidate, Position, RecruitmentStage } from '@/lib/types';
 import { getScoreRangesForChart } from '@/lib/scoreUtils';
 import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { PlusCircle, Users, ServerCrash, Zap, Loader2, FileDown, FileUp, ChevronDown, FileSpreadsheet, ShieldAlert, Brain, Trash2 as BulkTrashIcon, Edit as BulkEditIcon, ChevronLeft, ChevronRight, ChevronsUpDown, Check, Briefcase, X, Filter, Search, Settings, MoreVertical } from 'lucide-react';
+import { PlusCircle, Users, ServerCrash, Zap, Loader2, FileDown, FileUp, ChevronDown, FileSpreadsheet, ShieldAlert, Brain, Trash2 as BulkTrashIcon, Edit as BulkEditIcon, ChevronLeft, ChevronRight, ChevronsUpDown, Check, Briefcase, X, Filter, Search, Settings, MoreVertical, Trash2, FileEdit, Users as UsersIcon } from 'lucide-react';
 import { toast } from "react-hot-toast";
-import { AddCandidateModal, type AddCandidateFormValues } from '@/components/candidates/AddCandidateModal';
-import { EditPositionModal } from '@/components/positions/EditPositionModal';
+import { AddCandidateModal } from '@/components/candidates/AddCandidateModal';
+import { PositionDetailDrawer } from '@/components/positions/PositionDetailDrawer';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import Link from 'next/link';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { useSession, signIn } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Label } from '@/components/ui/label';
@@ -25,8 +23,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import BulkUploadCVsModal from '@/components/BulkUploadCVsModal';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import AutomationUploadModal from './AutomationUploadModal';
+
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
@@ -36,9 +35,16 @@ import { Badge } from '@/components/ui/badge';
 import { UserX } from 'lucide-react';
 import { FitScoreFilterBadges } from './FitScoreFilterBadges';
 import { FitScoreFilterTabs } from './FitScoreFilterTabs';
-import { CandidateSettingsDrawer, type CandidateSettings } from './CandidateSettingsDrawer';
+import { CandidateSettingsDrawer } from './CandidateSettingsDrawer';
 import { useDynamicHeight } from '@/hooks/use-dynamic-height';
+import { useCandidateSettings } from '@/hooks/use-candidate-settings';
 
+// Import our new hooks
+import { useCandidateFilters } from './hooks/use-candidate-filters';
+import { useCandidateData } from './hooks/use-candidate-data';
+import { useCandidateFetching } from './hooks/use-candidate-fetching';
+import { useCandidateActions } from './hooks/use-candidate-actions';
+import { useCandidateAiSearch } from './hooks/use-candidate-ai-search';
 
 interface CandidatesPageClientProps {
   initialCandidates: Candidate[];
@@ -46,21 +52,8 @@ interface CandidatesPageClientProps {
   initialAvailableStages: RecruitmentStage[];
   authError?: boolean;
   permissionError?: boolean;
-  initialFetchError?: string; // Added for server-side errors
+  initialFetchError?: string;
   initialFilters?: CandidateFilterValues;
-}
-
-function downloadFile(content: string | Blob, filename: string, contentType?: string) {
-  const blob = content instanceof Blob ? content : new Blob([content], { type: contentType });
-  const link = document.createElement("a");
-  const url = URL.createObjectURL(blob);
-  link.setAttribute("href", url);
-  link.setAttribute("download", filename);
-  link.style.visibility = 'hidden';
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
 }
 
 export function CandidatesPageClient({
@@ -72,10 +65,10 @@ export function CandidatesPageClient({
   initialFetchError,
   initialFilters,
 }: CandidatesPageClientProps) {
-  // All hooks must be called before any return
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { data: session, status: sessionStatus } = useSession();
   
   // Add refs for height calculation
   const contentRef = useRef<HTMLDivElement>(null);
@@ -90,91 +83,299 @@ export function CandidatesPageClient({
     debounceMs: 150
   });
 
+  // Local state for pagination and UI
+  const [page, setPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(100);
+  const [total, setTotal] = useState<number>(0);
+  const [sortColumn, setSortColumn] = useState<string>('lastUpdate');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc' | null>('desc');
+  
 
+  const [tableLoading, setTableLoading] = useState<boolean>(false);
+  const [tableError, setTableError] = useState<string | null>(null);
+  const [isClearingFilters, setIsClearingFilters] = useState(false);
 
-  const [filters, setFilters] = useState<CandidateFilterValues>(() => {
-    const baseFilters = initialFilters || {
-      minAppliedJobFitScore: undefined,
-      maxAppliedJobFitScore: undefined,
-      minMatchingJobFitScore: undefined,
-      maxMatchingJobFitScore: undefined,
-      minExperienceYears: 0,
-      maxExperienceYears: 50,
-      selectedPositionIds: [],
-      selectedStatuses: [],
-      selectedRecruiterIds: []
-    };
-    
-    // console.log('Initial filters set:', baseFilters);
-    return baseFilters;
-  });
-
-  // Debug: Log whenever filters change
-  // useEffect(() => {
-  //   console.log('Filters state changed to:', filters);
-  // }, [filters]);
-
-
-
-  const safeInitialCandidates = Array.isArray(initialCandidates) ? initialCandidates : [];
-  const safeInitialAvailablePositions = Array.isArray(initialAvailablePositions) ? initialAvailablePositions : [];
-  const safeInitialAvailableStages = Array.isArray(initialAvailableStages) ? initialAvailableStages : [];
-
-  const [allCandidates, setAllCandidates] = useState<Candidate[]>(safeInitialCandidates || []);
-  const [fullCandidatesForCounts, setFullCandidatesForCounts] = useState<Candidate[]>(safeInitialCandidates || []);
-  const [availablePositions, setAvailablePositions] = useState<Position[]>(safeInitialAvailablePositions || []);
-  const [availableStages, setAvailableStages] = useState<RecruitmentStage[]>(safeInitialAvailableStages || []);
-  const [availableRecruiters, setAvailableRecruiters] = useState<Pick<UserProfile, 'id' | 'name' | 'email' | 'avatarUrl'>[]>([]);
-  const [availableSources, setAvailableSources] = useState<CandidateSource[]>([]);
-
-
-
-  const [isLoading, setIsLoading] = useState(() => {
-    // Start with loading true only if we don't have initial data
-    return safeInitialCandidates.length === 0;
-  });
-  const [isAiSearching, setIsAiSearching] = useState(false);
-  const [isFetching, setIsFetching] = useState(false); // Track if we're currently fetching
+  // AI Search state
   const [aiSearchReasoning, setAiSearchReasoning] = useState<string | null>(null);
   const [aiMatchedCandidateIds, setAiMatchedCandidateIds] = useState<string[] | null>(null);
   const [aiRecordCount, setAiRecordCount] = useState<number>(0);
   const [isAiSearchActive, setIsAiSearchActive] = useState(false);
-  const [hasInitialFetch, setHasInitialFetch] = useState(false);
-  const [hasInitialDataFetch, setHasInitialDataFetch] = useState(false);
-  const [advancedQueryFromUrl, setAdvancedQueryFromUrl] = useState<string>('');
-  const [isClearingFilters, setIsClearingFilters] = useState(false);
 
-  // Add debouncing for fetch requests
-  const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Stabilize setter functions to prevent unnecessary re-renders
+  const stableSetAiMatchedCandidateIds = useCallback((ids: string[] | null) => {
+    setAiMatchedCandidateIds(ids);
+  }, []);
 
+  const stableSetAiSearchReasoning = useCallback((reasoning: string | null) => {
+    setAiSearchReasoning(reasoning);
+  }, []);
+
+  const stableSetAiRecordCount = useCallback((count: number) => {
+    setAiRecordCount(count);
+  }, []);
+
+  const stableSetIsAiSearchActive = useCallback((active: boolean) => {
+    setIsAiSearchActive(active);
+  }, []);
+
+  // Use our custom hooks
+  const {
+    filters,
+    setFilters,
+    horizontalSelectedFitScoreGrades,
+    setHorizontalSelectedFitScoreGrades,
+    horizontalSelectedMatchingFitScoreGrades,
+    setHorizontalSelectedMatchingFitScoreGrades,
+    handleHorizontalFitScoreGradeToggle,
+    handleHorizontalMatchingFitScoreGradeToggle,
+    applyHorizontalFitScoreFilters,
+    handleFilterChange,
+    clearAllFilters,
+    clearAllHorizontalFitScoreFilters,
+    filterChangeTimeoutRef,
+    lastAppliedFiltersRef,
+    optimisticUpdateRef
+  } = useCandidateFilters(initialFilters);
+
+  // Add ref to track current filters
+  const currentFiltersRef = useRef(filters);
+  
+  // Update ref when filters change
+  useEffect(() => {
+    currentFiltersRef.current = filters;
+  }, [filters]);
+
+  const {
+    filteredCandidates,
+    setFilteredCandidates,
+    allCandidatesForCounts,
+    setAllCandidatesForCounts,
+    availablePositions,
+    setAvailablePositions,
+    availableStages,
+    setAvailableStages,
+    availableRecruiters,
+    setAvailableRecruiters,
+    availableSources,
+    setAvailableSources,
+    isLoading,
+    setIsLoading,
+    isFetching,
+    setIsFetching,
+    hasInitialFetch,
+    setHasInitialFetch,
+    hasInitialDataFetch,
+    setHasInitialDataFetch,
+    fetchError,
+    setFetchError,
+    authError,
+    setAuthError,
+    permissionError,
+    setPermissionError,
+    fetchTimeoutRef,
+    currentRequestRef,
+    latestRequestIdRef,
+    normalizeFitScore,
+    getBestMatchingFitScore,
+    fetchRecruiters,
+    fetchSources,
+    fetchAllCandidatesForCounts,
+    fetchCandidateById,
+    refreshCandidateInList,
+    applyOptimisticUpdate,
+    revertOptimisticUpdate,
+    databaseFitScoreCounts
+  } = useCandidateData({
+    initialCandidates,
+    initialAvailablePositions,
+    initialAvailableStages,
+    sessionStatus,
+    serverAuthError,
+    serverPermissionError,
+    initialFetchError
+  });
+
+  const {
+    fetchTableData,
+    debouncedFetchTableData,
+    fetchTimeoutRef: fetchTimeoutRefFromHook,
+    currentRequestRef: currentRequestRefFromHook,
+    latestRequestIdRef: latestRequestIdRefFromHook
+  } = useCandidateFetching({
+    sessionStatus,
+    serverAuthError,
+    serverPermissionError,
+    isClearingFilters,
+    hasInitialDataFetch,
+    searchParams,
+    sortColumn,
+    sortDirection,
+    setFilteredCandidates,
+    setTotal,
+    setTableError,
+    setTableLoading,
+    setIsFetching,
+    setAuthError,
+    setPermissionError,
+    setFetchError,
+    setIsLoading
+  });
+
+  const {
+    updateCandidateStatus,
+    handleDeleteCandidate,
+    handleAssignRecruiter,
+    handleAssignSource
+  } = useCandidateActions({
+    setFilteredCandidates,
+    setAllCandidatesForCounts,
+    fetchTableData,
+    filters,
+    page,
+    pageSize,
+    aiMatchedCandidateIds
+  });
+
+  // Bulk action handlers
+  const handleBulkDelete = useCallback(async (candidateIds: string[]) => {
+    try {
+      const response = await fetch('/api/candidates/bulk-action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'delete',
+          candidateIds: candidateIds
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Bulk delete failed');
+      }
+
+      const result = await response.json();
+      toast.success(`${result.successCount} candidate(s) deleted successfully`);
+      
+      // Clear selection and refresh data
+      setSelectedCandidateIds(new Set());
+      fetchTableData(filters, page, pageSize);
+      fetchAllCandidatesForCounts();
+    } catch (error) {
+      console.error('Bulk delete error:', error);
+      toast.error((error as Error).message || 'Bulk delete failed');
+    }
+  }, [fetchTableData, filters, page, pageSize, fetchAllCandidatesForCounts]);
+
+  const handleBulkChangeStatus = useCallback(async (candidateIds: string[], newStatus: string, notes?: string) => {
+    try {
+      const response = await fetch('/api/candidates/bulk-action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'change_status',
+          candidateIds: candidateIds,
+          newStatus: newStatus,
+          transitionNotes: notes
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Bulk status change failed');
+      }
+
+      const result = await response.json();
+      toast.success(`${result.successCount} candidate(s) status updated to ${newStatus}`);
+      
+      // Clear selection and refresh data
+      setSelectedCandidateIds(new Set());
+      fetchTableData(filters, page, pageSize);
+      fetchAllCandidatesForCounts();
+    } catch (error) {
+      console.error('Bulk status change error:', error);
+      toast.error((error as Error).message || 'Bulk status change failed');
+    }
+  }, [fetchTableData, filters, page, pageSize, fetchAllCandidatesForCounts]);
+
+  const handleBulkAssignRecruiter = useCallback(async (candidateIds: string[], recruiterId: string | null) => {
+    try {
+      const response = await fetch('/api/candidates/bulk-action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'assign_recruiter',
+          candidateIds: candidateIds,
+          newRecruiterId: recruiterId
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Bulk recruiter assignment failed');
+      }
+
+      const result = await response.json();
+      const recruiterName = availableRecruiters.find(r => r.id === recruiterId)?.name || 'No Recruiter';
+      toast.success(`${result.successCount} candidate(s) assigned to ${recruiterName}`);
+      
+      // Clear selection and refresh data
+      setSelectedCandidateIds(new Set());
+      fetchTableData(filters, page, pageSize);
+      fetchAllCandidatesForCounts();
+    } catch (error) {
+      console.error('Bulk recruiter assignment error:', error);
+      toast.error((error as Error).message || 'Bulk recruiter assignment failed');
+    }
+  }, [fetchTableData, filters, page, pageSize, fetchAllCandidatesForCounts, availableRecruiters]);
+
+  const {
+    isAiSearching,
+    handleAiSearch
+  } = useCandidateAiSearch({
+    setFilteredCandidates,
+    setAiMatchedCandidateIds: stableSetAiMatchedCandidateIds,
+    setAiSearchReasoning: stableSetAiSearchReasoning,
+    setAiRecordCount: stableSetAiRecordCount,
+    setIsAiSearchActive: stableSetIsAiSearchActive,
+    filteredCandidates
+  });
+
+  // UI state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isCreateViaAutomationModalOpen, setIsCreateViaAutomationModalOpen] = useState(false);
-  const [fetchError, setFetchError] = useState<string | null>(initialFetchError || null);
-  const [authError, setAuthError] = useState(serverAuthError);
-  const [permissionError, setPermissionError] = useState(serverPermissionError);
-
-  const [isEditPositionModalOpen, setIsEditPositionModalOpen] = useState(false);
+  const [isPositionDrawerOpen, setIsPositionDrawerOpen] = useState(false);
   const [selectedPositionForEdit, setSelectedPositionForEdit] = useState<Position | null>(null);
-  const { data: session, status: sessionStatus } = useSession();
-  
-  
-
-
   const [selectedCandidateIds, setSelectedCandidateIds] = useState<Set<string>>(new Set());
   const [isBulkActionConfirmOpen, setIsBulkActionConfirmOpen] = useState(false);
   const [bulkActionType, setBulkActionType] = useState<'delete' | 'change_status' | 'assign_recruiter' | null>(null);
+  const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false);
+
+  const [showFilters, setShowFilters] = useState(true);
+  const [missingPositions, setMissingPositions] = useState<string[]>([]);
+  const [isSettingsDrawerOpen, setIsSettingsDrawerOpen] = useState(false);
+  const [advancedQueryFromUrl, setAdvancedQueryFromUrl] = useState<string>('');
+
+  // Bulk action modal states
+  const [isBulkStatusModalOpen, setIsBulkStatusModalOpen] = useState(false);
+  const [isBulkRecruiterModalOpen, setIsBulkRecruiterModalOpen] = useState(false);
   const [bulkNewStatus, setBulkNewStatus] = useState<string>('');
   const [bulkNewRecruiterId, setBulkNewRecruiterId] = useState<string | null>(null);
   const [bulkTransitionNotes, setBulkTransitionNotes] = useState<string>('');
 
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(50);
-  const [total, setTotal] = useState(0);
-  
-  // Add sorting state variables here to prevent temporal dead zone issues
-  const [sortColumn, setSortColumn] = useState<string>('lastUpdate');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  // Settings
+  const { settings: candidateSettings, setSettings: setCandidateSettings, isLoading: settingsLoading, error: settingsError } = useCandidateSettings();
 
+  // Stable callback for settings change
+  const handleSettingsChange = useCallback(async (settings: any) => {
+    setCandidateSettings(settings);
+  }, [setCandidateSettings]);
+
+  // Stable callback for settings drawer open/close
+  const handleSettingsDrawerOpenChange = useCallback((open: boolean) => {
+    setIsSettingsDrawerOpen(open);
+  }, []);
+
+  // Permissions
   const canExportCandidates = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('CANDIDATES_EXPORT') || false;
   const canManageCandidates = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('CANDIDATES_MANAGE') || false;
 
@@ -186,151 +387,310 @@ export function CandidatesPageClient({
     return Math.max(1, Math.ceil(total / pageSize));
   }, [isAiSearchActive, aiMatchedCandidateIds, aiRecordCount, pageSize, total]);
 
-  // Simplified helper function to normalize fit scores
-  const normalizeFitScore = (score: number | null | undefined): number => {
-    if (score === null || score === undefined) return 0;
-    if (score > 0 && score <= 1) return Math.round(score * 100);
-    return Math.round(score);
-  };
-
-  // Simplified helper function to get the best matching fit score
-  const getBestMatchingFitScore = (candidate: Candidate): number => {
-    // Check JobMatch table first
-    if (candidate.jobMatches && Array.isArray(candidate.jobMatches)) {
-      const maxMatchScore = Math.max(...candidate.jobMatches.map(match => match.fitScore || 0));
-      if (maxMatchScore > 0) return normalizeFitScore(maxMatchScore);
-    }
-    
-    // If no JobMatch, check parsedData.job_matches
-    if (candidate.parsedData && typeof candidate.parsedData === 'object') {
-      const parsed = candidate.parsedData as any;
-      if (parsed.job_matches && Array.isArray(parsed.job_matches)) {
-        const maxMatchScore = Math.max(...parsed.job_matches.map((match: any) => match.fitScore || 0));
-        if (maxMatchScore > 0) return normalizeFitScore(maxMatchScore);
-      }
-    }
-    
-    return 0;
-  };
-
-  // Add a separate state for table data to prevent full page refresh
-  const [tableCandidates, setTableCandidates] = useState<Candidate[]>([]);
-  const [tableLoading, setTableLoading] = useState(() => {
-    // Start with loading true only if we don't have initial data
-    return safeInitialCandidates.length === 0;
-  });
-  const [tableError, setTableError] = useState<string | null>(null);
-
-
-
-  const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false);
-  const [isAutomationUploadModalOpen, setIsAutomationUploadModalOpen] = useState(false);
-
-  // Collapsible sidebar state
-  const [showFilters, setShowFilters] = useState(true);
-
-  // Horizontal fit score filter state
-  const [horizontalSelectedFitScoreGrades, setHorizontalSelectedFitScoreGrades] = useState<Set<string>>(new Set());
-  const [horizontalSelectedMatchingFitScoreGrades, setHorizontalSelectedMatchingFitScoreGrades] = useState<Set<string>>(new Set());
-
-  // Add at the top of the component
-  const hasInitializedFilters = useRef(false);
-  
-
-
-  const [missingPositions, setMissingPositions] = useState<string[]>([]);
-
-  // Settings state
-  const [isSettingsDrawerOpen, setIsSettingsDrawerOpen] = useState(false);
-  const [candidateSettings, setCandidateSettings] = useState<CandidateSettings>({
-    showCandidateColumn: true,
-    showAppliedJobColumn: true,
-    showJobMatchesColumn: true,
-    showFitScoreColumn: true,
-    showRecruiterColumn: true,
-    showSourceColumn: true,
-    showStatusColumn: true,
-    showAppliedDateColumn: true,
-    showFilters: true,
-    showHorizontalFitScoreFilters: true,
-    fitScoreType: 'applied'
-  });
-
-
-
-  // Add filter refs to the dynamic height hook
-  useEffect(() => {
-    if (sidebarFilterRef.current) {
-      addFilterRef(sidebarFilterRef.current);
-    }
-    if (activeFiltersBarRef.current) {
-      addFilterRef(activeFiltersBarRef.current);
-    }
-    
-    return () => {
-      if (sidebarFilterRef.current) {
-        removeFilterRef(sidebarFilterRef.current);
-      }
-      if (activeFiltersBarRef.current) {
-        removeFilterRef(activeFiltersBarRef.current);
-      }
-    };
-  }, [addFilterRef, removeFilterRef]);
-
-  // Get candidates that match all other filters but NOT fit score filters
-  // This prevents circular dependency where fit score counts would be affected by selected fit score filters
+  // Get candidates for fit score counts
+  // Note: With the new efficient count-only API, we use filteredCandidates for fit score calculation
+  // and rely on the API's total count for the "All" tab
   const candidatesForFitScoreCounts = useMemo(() => {
-    // Apply basic filters to fullCandidatesForCounts to get counts for the current filter state
-    // This excludes fit score filters to prevent circular dependency
-    const filtered = fullCandidatesForCounts.filter((candidate: Candidate) => {
-      // Apply basic filters that we can easily replicate on client side
-      if (filters.selectedPositionIds && filters.selectedPositionIds.length > 0 && 
-          !filters.selectedPositionIds.includes(candidate.positionId || '')) return false;
-      if (filters.selectedStatuses && filters.selectedStatuses.length > 0 && 
-          !filters.selectedStatuses.includes(candidate.status)) return false;
-      if (filters.selectedRecruiterIds && filters.selectedRecruiterIds.length > 0 && 
-          !filters.selectedRecruiterIds.includes(candidate.recruiterId || '')) return false;
-      if (filters.selectedSourceIds && filters.selectedSourceIds.length > 0 && 
-          !filters.selectedSourceIds.includes(candidate.sourceId || '')) return false;
-      
-      return true;
-    });
+    console.log('🔍 CANDIDATES DEBUG: Using filteredCandidates for fit score counts (efficient approach)');
+    console.log('🔍 CANDIDATES DEBUG: filteredCandidates length:', filteredCandidates.length);
+    console.log('🔍 CANDIDATES DEBUG: total from API:', total);
+    console.log('🔍 CANDIDATES DEBUG: isLoading:', isLoading, 'tableLoading:', tableLoading);
     
+    // Use filteredCandidates for fit score badge calculations
+    // This is more efficient as we don't need to fetch all candidates
+    // The total count comes from the count-only API call
+    return filteredCandidates;
+  }, [filteredCandidates, total, isLoading, tableLoading]);
 
-    
-    return filtered;
-  }, [fullCandidatesForCounts, filters.selectedPositionIds, filters.selectedStatuses, filters.selectedRecruiterIds, filters.selectedSourceIds]);
+  // Update total count when allCandidatesForCounts changes
+  // Only update if we don't have a valid total from the main table fetch
+  // This useEffect is now disabled to prevent conflicts with the main table fetch total
+  /*
+  useEffect(() => {
+    // Only update total from allCandidatesForCounts if:
+    // 1. We have candidates in allCandidatesForCounts
+    // 2. The current total is 0 (meaning no valid total from main table fetch)
+    // 3. We're not currently clearing filters (to avoid race conditions)
+    if (allCandidatesForCounts.length > 0 && total === 0 && !isClearingFilters) {
+      console.log('🔍 TOTAL DEBUG: Updating total from allCandidatesForCounts (fallback):', allCandidatesForCounts.length);
+      setTotal(allCandidatesForCounts.length);
+    } else {
+      console.log('🔍 TOTAL DEBUG: allCandidatesForCounts length:', allCandidatesForCounts.length, 'current total:', total, 'isClearingFilters:', isClearingFilters);
+    }
+  }, [allCandidatesForCounts, total, isClearingFilters]);
+  */
 
-  // Calculate candidate score counts for fit score filter badges
-  // Use candidates filtered by other criteria but NOT fit score filters to avoid circular dependency
+  // Use database-level fit score counts for accurate badge display
   const candidateScoreCounts = useMemo(() => {
+    console.log('🔍 COUNTS DEBUG: Recalculating candidateScoreCounts');
+    console.log('🔍 COUNTS DEBUG: Database fit score counts:', databaseFitScoreCounts);
+    console.log('🔍 COUNTS DEBUG: filteredCandidates length:', filteredCandidates.length);
+    console.log('🔍 COUNTS DEBUG: Current filters:', filters);
+    console.log('🔍 COUNTS DEBUG: isAiSearchActive:', isAiSearchActive);
+    console.log('🔍 COUNTS DEBUG: aiMatchedCandidateIds length:', aiMatchedCandidateIds?.length || 0);
+    
+    // If AI search is active, calculate counts based on AI-matched candidates only
+    if (isAiSearchActive && aiMatchedCandidateIds && aiMatchedCandidateIds.length > 0) {
+      console.log('🔍 COUNTS DEBUG: AI search active, calculating counts for AI-matched candidates only');
+      
+      const scoreRanges = getScoreRangesForChart();
+      const appliedScoreRangeCounts: { [key: string]: number } = {};
+      const matchingScoreRangeCounts: { [key: string]: number } = {};
+      
+      // Get AI-matched candidates from the full candidate list
+      const aiMatchedCandidates = filteredCandidates.filter(candidate => 
+        aiMatchedCandidateIds.includes(candidate.id)
+      );
+      
+      console.log('🔍 COUNTS DEBUG: Processing', aiMatchedCandidates.length, 'AI-matched candidates for score counts');
+      
+      aiMatchedCandidates.forEach((candidate: Candidate) => {
+        // Applied fit score - count each applied position record separately
+        const appliedScores = [];
+        
+        // Add main fit score if available
+        if (candidate.fitScore !== null && candidate.fitScore !== undefined) {
+          const normalizedScore = normalizeFitScore(candidate.fitScore);
+          appliedScores.push(normalizedScore);
+          console.log('🔍 COUNTS DEBUG: AI-matched candidate', candidate.name, 'has fit score:', candidate.fitScore, 'normalized to:', normalizedScore);
+        }
+        
+        // Add fit scores from parsedData.job_applied if available
+        if (candidate.parsedData && typeof candidate.parsedData === 'object') {
+          const parsedData = candidate.parsedData as any;
+          if (parsedData.job_applied && parsedData.job_applied.fitScore) {
+            appliedScores.push(normalizeFitScore(parsedData.job_applied.fitScore));
+          }
+        }
+        
+        if (appliedScores.length > 0) {
+          // Count each candidate once based on their best applied score
+          const bestAppliedScore = Math.max(...appliedScores);
+          console.log('🔍 COUNTS DEBUG: AI-matched candidate', candidate.name, 'best applied score:', bestAppliedScore);
+          scoreRanges.forEach(range => {
+            if (bestAppliedScore >= range.min && bestAppliedScore <= range.max) {
+              appliedScoreRangeCounts[range.letter] = (appliedScoreRangeCounts[range.letter] || 0) + 1;
+              console.log('🔍 COUNTS DEBUG: Added to grade', range.letter, 'for AI-matched candidate', candidate.name);
+            }
+          });
+        } else {
+          // Count candidates with no applied fit score
+          appliedScoreRangeCounts['no-score'] = (appliedScoreRangeCounts['no-score'] || 0) + 1;
+          console.log('🔍 COUNTS DEBUG: Added to no-score for AI-matched candidate', candidate.name);
+        }
+        
+        // Matching fit score - count each job match record separately
+        const jobMatches = candidate.jobMatches || [];
+        const parsedJobMatches = candidate.parsedData && typeof candidate.parsedData === 'object' 
+          ? (candidate.parsedData as any).job_matches || []
+          : [];
+        
+        // Combine both sources of job matches
+        const allJobMatches = [
+          ...jobMatches.map(match => ({ fitScore: match.fitScore })),
+          ...parsedJobMatches.map((match: any) => ({ fitScore: match.fitScore }))
+        ];
+        
+        if (allJobMatches.length > 0) {
+          // Count each candidate once based on their best matching score
+          const matchScores = allJobMatches.map(match => normalizeFitScore(match.fitScore));
+          const bestMatchScore = Math.max(...matchScores);
+          scoreRanges.forEach(range => {
+            if (bestMatchScore >= range.min && bestMatchScore <= range.max) {
+              matchingScoreRangeCounts[range.letter] = (matchingScoreRangeCounts[range.letter] || 0) + 1;
+            }
+          });
+        } else {
+          // Count candidates with no matching fit score
+          matchingScoreRangeCounts['no-score'] = (matchingScoreRangeCounts['no-score'] || 0) + 1;
+        }
+      });
+      
+      const result = {
+        applied: [
+          ...scoreRanges.map(range => ({
+            letter: range.letter,
+            count: appliedScoreRangeCounts[range.letter] || 0
+          })),
+          {
+            letter: 'no-score',
+            count: appliedScoreRangeCounts['no-score'] || 0
+          }
+        ],
+        matching: [
+          ...scoreRanges.map(range => ({
+            letter: range.letter,
+            count: matchingScoreRangeCounts[range.letter] || 0
+          })),
+          {
+            letter: 'no-score',
+            count: matchingScoreRangeCounts['no-score'] || 0
+          }
+        ]
+      };
+      
+      console.log('🔍 COUNTS DEBUG: AI search fit score counts:', {
+        applied: result.applied,
+        matching: result.matching,
+        totalApplied: result.applied.reduce((sum, item) => sum + item.count, 0),
+        totalMatching: result.matching.reduce((sum, item) => sum + item.count, 0)
+      });
+      
+      return result;
+    }
+    
+    // For regular filtered results, calculate counts based on current filteredCandidates
+    // This ensures counts reflect the current filter state
+    if (filteredCandidates.length > 0) {
+      console.log('🔍 COUNTS DEBUG: Calculating counts from filteredCandidates:', filteredCandidates.length);
+      
+      const scoreRanges = getScoreRangesForChart();
+      const appliedScoreRangeCounts: { [key: string]: number } = {};
+      const matchingScoreRangeCounts: { [key: string]: number } = {};
+      
+      filteredCandidates.forEach((candidate: Candidate) => {
+        // Applied fit score calculation
+        const appliedScores = [];
+        
+        // Add main fit score if available
+        if (candidate.fitScore !== null && candidate.fitScore !== undefined) {
+          const normalizedScore = normalizeFitScore(candidate.fitScore);
+          appliedScores.push(normalizedScore);
+        }
+        
+        // Add fit scores from parsedData.job_applied if available
+        if (candidate.parsedData && typeof candidate.parsedData === 'object') {
+          const parsedData = candidate.parsedData as any;
+          if (parsedData.job_applied && parsedData.job_applied.fitScore) {
+            appliedScores.push(normalizeFitScore(parsedData.job_applied.fitScore));
+          }
+        }
+        
+        if (appliedScores.length > 0) {
+          // Count each candidate once based on their best applied score
+          const bestAppliedScore = Math.max(...appliedScores);
+          scoreRanges.forEach(range => {
+            if (bestAppliedScore >= range.min && bestAppliedScore <= range.max) {
+              appliedScoreRangeCounts[range.letter] = (appliedScoreRangeCounts[range.letter] || 0) + 1;
+            }
+          });
+        } else {
+          // Count candidates with no applied fit score
+          appliedScoreRangeCounts['no-score'] = (appliedScoreRangeCounts['no-score'] || 0) + 1;
+        }
+        
+        // Matching fit score calculation
+        const matchingScore = getBestMatchingFitScore(candidate);
+        
+        if (matchingScore > 0) {
+          scoreRanges.forEach(range => {
+            if (matchingScore >= range.min && matchingScore <= range.max) {
+              matchingScoreRangeCounts[range.letter] = (matchingScoreRangeCounts[range.letter] || 0) + 1;
+            }
+          });
+        } else {
+          // Count candidates with no matching fit score
+          matchingScoreRangeCounts['no-score'] = (matchingScoreRangeCounts['no-score'] || 0) + 1;
+        }
+      });
+      
+      const result = {
+        applied: [
+          ...scoreRanges.map(range => ({
+            letter: range.letter,
+            count: appliedScoreRangeCounts[range.letter] || 0
+          })),
+          {
+            letter: 'no-score',
+            count: appliedScoreRangeCounts['no-score'] || 0
+          }
+        ],
+        matching: [
+          ...scoreRanges.map(range => ({
+            letter: range.letter,
+            count: matchingScoreRangeCounts[range.letter] || 0
+          })),
+          {
+            letter: 'no-score',
+            count: matchingScoreRangeCounts['no-score'] || 0
+          }
+        ]
+      };
+      
+      console.log('🔍 COUNTS DEBUG: Filtered candidates fit score counts:', {
+        applied: result.applied,
+        matching: result.matching,
+        totalApplied: result.applied.reduce((sum, item) => sum + item.count, 0),
+        totalMatching: result.matching.reduce((sum, item) => sum + item.count, 0)
+      });
+      
+      return result;
+    }
+    
+    // Fallback to client-side calculation if database counts not available
+    console.log('🔍 COUNTS DEBUG: Fallback to client-side calculation with', candidatesForFitScoreCounts.length, 'candidates');
+    console.log('🔍 COUNTS DEBUG: These counts exclude fit score filters to show accurate counts for all grades');
     const scoreRanges = getScoreRangesForChart();
+    
     const appliedScoreRangeCounts: { [key: string]: number } = {};
     const matchingScoreRangeCounts: { [key: string]: number } = {};
     
     const candidatesToProcess = candidatesForFitScoreCounts;
+    console.log('🔍 COUNTS DEBUG: Processing', candidatesToProcess.length, 'candidates for score counts');
     
     candidatesToProcess.forEach((candidate: Candidate) => {
-      // Applied fit score (normalized)
-      const appliedScore = normalizeFitScore(candidate.fitScore);
+      // Applied fit score - count each applied position record separately
+      const appliedScores = [];
       
-      if (appliedScore > 0) {
+      // Add main fit score if available
+      if (candidate.fitScore !== null && candidate.fitScore !== undefined) {
+        const normalizedScore = normalizeFitScore(candidate.fitScore);
+        appliedScores.push(normalizedScore);
+        console.log('🔍 COUNTS DEBUG: Candidate', candidate.name, 'has fit score:', candidate.fitScore, 'normalized to:', normalizedScore);
+      }
+      
+      // Add fit scores from parsedData.job_applied if available
+      if (candidate.parsedData && typeof candidate.parsedData === 'object') {
+        const parsedData = candidate.parsedData as any;
+        if (parsedData.job_applied && parsedData.job_applied.fitScore) {
+          appliedScores.push(normalizeFitScore(parsedData.job_applied.fitScore));
+        }
+      }
+      
+      if (appliedScores.length > 0) {
+        // Count each candidate once based on their best applied score
+        const bestAppliedScore = Math.max(...appliedScores);
+        console.log('🔍 COUNTS DEBUG: Candidate', candidate.name, 'best applied score:', bestAppliedScore);
         scoreRanges.forEach(range => {
-          if (appliedScore >= range.min && appliedScore <= range.max) {
+          if (bestAppliedScore >= range.min && bestAppliedScore <= range.max) {
             appliedScoreRangeCounts[range.letter] = (appliedScoreRangeCounts[range.letter] || 0) + 1;
+            console.log('🔍 COUNTS DEBUG: Added to grade', range.letter, 'for candidate', candidate.name);
           }
         });
       } else {
         // Count candidates with no applied fit score
         appliedScoreRangeCounts['no-score'] = (appliedScoreRangeCounts['no-score'] || 0) + 1;
+        console.log('🔍 COUNTS DEBUG: Added to no-score for candidate', candidate.name);
       }
       
-      // Matching fit score (simplified)
-      const matchingScore = getBestMatchingFitScore(candidate);
+      // Matching fit score - count each job match record separately
+      const jobMatches = candidate.jobMatches || [];
+      const parsedJobMatches = candidate.parsedData && typeof candidate.parsedData === 'object' 
+        ? (candidate.parsedData as any).job_matches || []
+        : [];
       
-      if (matchingScore > 0) {
+      // Combine both sources of job matches
+      const allJobMatches = [
+        ...jobMatches.map(match => ({ fitScore: match.fitScore })),
+        ...parsedJobMatches.map((match: any) => ({ fitScore: match.fitScore }))
+      ];
+      
+      if (allJobMatches.length > 0) {
+        // Count each candidate once based on their best matching score
+        const matchScores = allJobMatches.map(match => normalizeFitScore(match.fitScore));
+        const bestMatchScore = Math.max(...matchScores);
         scoreRanges.forEach(range => {
-          if (matchingScore >= range.min && matchingScore <= range.max) {
+          if (bestMatchScore >= range.min && bestMatchScore <= range.max) {
             matchingScoreRangeCounts[range.letter] = (matchingScoreRangeCounts[range.letter] || 0) + 1;
           }
         });
@@ -363,14 +723,365 @@ export function CandidatesPageClient({
       ]
     };
     
-
+    console.log('🔍 COUNTS DEBUG: Final count results:', {
+      applied: result.applied,
+      matching: result.matching,
+      appliedScoreRangeCounts,
+      matchingScoreRangeCounts
+    });
+    
+    console.log('🔍 COUNTS DEBUG: Final candidate score counts:', {
+      applied: result.applied,
+      matching: result.matching,
+      totalApplied: result.applied.reduce((sum, item) => sum + item.count, 0),
+      totalMatching: result.matching.reduce((sum, item) => sum + item.count, 0)
+    });
     
     return result;
+  }, [databaseFitScoreCounts, candidatesForFitScoreCounts, normalizeFitScore, getBestMatchingFitScore, isAiSearchActive, aiMatchedCandidateIds, filteredCandidates, filters]);
+
+  // Calculate candidate counts by stage for the pipeline stage filter
+  const candidateCountsByStage = useMemo(() => {
+    const stageCounts: { [stageName: string]: number } = {};
+    
+    candidatesForFitScoreCounts.forEach((candidate: Candidate) => {
+      const status = candidate.status;
+      stageCounts[status] = (stageCounts[status] || 0) + 1;
+    });
+    
+    return stageCounts;
   }, [candidatesForFitScoreCounts]);
+
+  // Map candidates for display
+  const mappedCandidates = useMemo(() => {
+    console.log('🔍 MAPPING DEBUG: Mapping candidates:', {
+      filteredCandidatesLength: filteredCandidates.length,
+      availablePositionsLength: availablePositions.length,
+      availableRecruitersLength: availableRecruiters.length,
+      availableSourcesLength: availableSources.length
+    });
+    
+    const candidates = filteredCandidates.map((candidate: Candidate) => {
+      const position = availablePositions.find(p => p.id === candidate.positionId);
+      const recruiter = availableRecruiters.find(r => r.id === candidate.recruiterId);
+      const source = availableSources.find(s => s.id === candidate.sourceId);
+      
+      return {
+        ...candidate,
+        position,
+        recruiter,
+        source
+      };
+    });
+    
+    console.log('🔍 MAPPING DEBUG: Mapped candidates result:', candidates.length);
+    return candidates;
+  }, [filteredCandidates, availablePositions, availableRecruiters, availableSources, isAiSearchActive, aiMatchedCandidateIds]);
+
+  // Paginate candidates for display
+  const paginatedCandidates = useMemo(() => {
+    if (isAiSearchActive && aiMatchedCandidateIds) {
+      // Filter candidates to only show AI-matched ones
+      const aiMatchedCandidates = mappedCandidates.filter(candidate => 
+        aiMatchedCandidateIds.includes(candidate.id)
+      );
+      
+      const startIndex = (page - 1) * pageSize;
+      const endIndex = startIndex + pageSize;
+      return aiMatchedCandidates.slice(startIndex, endIndex);
+    }
+    
+    const startIndex = (page - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    return mappedCandidates.slice(startIndex, endIndex);
+  }, [isAiSearchActive, aiMatchedCandidateIds, mappedCandidates, page, pageSize]);
+
+  // For row numbering in table
+  const displayedCandidates = useMemo(() => {
+    console.log('🔍 DISPLAY DEBUG: Calculating displayedCandidates:', {
+      isAiSearchActive,
+      aiMatchedCandidateIds: aiMatchedCandidateIds?.length || 0,
+      mappedCandidatesLength: mappedCandidates.length,
+      filteredCandidatesLength: filteredCandidates.length,
+      paginatedCandidatesLength: paginatedCandidates.length,
+      page,
+      pageSize,
+      total,
+      isLoading,
+      tableLoading
+    });
+    
+    if (isAiSearchActive && aiMatchedCandidateIds) {
+      console.log('🔍 DISPLAY DEBUG: Returning AI search results:', paginatedCandidates.length);
+      return paginatedCandidates;
+    }
+    
+    // But we need to ensure we're not returning an empty array when there are candidates
+    if (mappedCandidates.length === 0 && filteredCandidates.length > 0) {
+      // If mappedCandidates is empty but filteredCandidates has data, there might be a filtering issue
+      // Return the first page of filteredCandidates as a fallback
+      const safePageSize = pageSize > 0 ? pageSize : 20;
+      const safePage = page > 0 ? page : 1;
+      const startIndex = (safePage - 1) * safePageSize;
+      const endIndex = startIndex + safePageSize;
+      const fallbackCandidates = filteredCandidates.slice(startIndex, endIndex);
+      console.log('🔍 DISPLAY DEBUG: Using fallback candidates:', fallbackCandidates.length);
+      return fallbackCandidates;
+    }
+    
+    console.log('🔍 DISPLAY DEBUG: Returning paginated candidates:', paginatedCandidates.length);
+    return paginatedCandidates;
+  }, [isAiSearchActive, aiMatchedCandidateIds, mappedCandidates, filteredCandidates, page, pageSize, total, paginatedCandidates, isLoading, tableLoading]);
+
+  // Apply horizontal filters when selections change
+  useEffect(() => {
+    console.log('🔍 CLIENT DEBUG: Horizontal fit score selections changed:', {
+      applied: Array.from(horizontalSelectedFitScoreGrades),
+      matching: Array.from(horizontalSelectedMatchingFitScoreGrades)
+    });
+    
+    // Skip if we're currently clearing filters to prevent conflicts
+    if (isClearingFilters) {
+      return;
+    }
+    
+    // Skip if we haven't completed initial data fetch yet
+    if (!hasInitialDataFetch) {
+      console.log('🔍 CLIENT DEBUG: Skipping horizontal filter application - initial data fetch not complete');
+      return;
+    }
+    
+    // Only apply horizontal filters if there are selections
+    if (horizontalSelectedFitScoreGrades.size > 0 || horizontalSelectedMatchingFitScoreGrades.size > 0) {
+      const horizontalFilters = applyHorizontalFitScoreFilters();
+      console.log('🔍 CLIENT DEBUG: Horizontal filters calculated:', horizontalFilters);
+      
+      // Check if horizontal filters have any actual values
+      const hasValidFilters = Object.values(horizontalFilters).some(value => value !== undefined);
+      
+      if (hasValidFilters) {
+        const newFilters = {
+          ...currentFiltersRef.current,
+          ...horizontalFilters
+        };
+        console.log('🔍 CLIENT DEBUG: Applying new filters with horizontal filters:', newFilters);
+        setFilters(newFilters);
+        setPage(1);
+        console.log('🔍 CLIENT DEBUG: Calling debouncedFetchTableData with new filters');
+        debouncedFetchTableData(newFilters, 1, pageSize);
+        fetchAllCandidatesForCounts(newFilters); // Update counts data when horizontal filters change
+      } else {
+        console.log('🔍 CLIENT DEBUG: No valid horizontal filters to apply, clearing fit score filters');
+        // Clear fit score filters if no valid horizontal filters
+        const newFilters = {
+          ...currentFiltersRef.current,
+          minAppliedJobFitScore: undefined,
+          maxAppliedJobFitScore: undefined,
+          minMatchingJobFitScore: undefined,
+          maxMatchingJobFitScore: undefined,
+        };
+        setFilters(newFilters);
+        debouncedFetchTableData(newFilters, page, pageSize);
+        fetchAllCandidatesForCounts(newFilters); // Update counts data when clearing fit score filters
+      }
+    } else {
+      // If no horizontal selections, clear fit score filters from main filters
+      const newFilters = {
+        ...currentFiltersRef.current,
+        minAppliedJobFitScore: undefined,
+        maxAppliedJobFitScore: undefined,
+        minMatchingJobFitScore: undefined,
+        maxMatchingJobFitScore: undefined,
+      };
+      console.log('🔍 CLIENT DEBUG: Clearing fit score filters (no horizontal selections):', newFilters);
+      setFilters(newFilters);
+      debouncedFetchTableData(newFilters, page, pageSize);
+      fetchAllCandidatesForCounts(newFilters); // Update counts data when clearing all fit score filters
+    }
+  }, [horizontalSelectedFitScoreGrades, horizontalSelectedMatchingFitScoreGrades, applyHorizontalFitScoreFilters, page, pageSize, isClearingFilters, hasInitialDataFetch, fetchAllCandidatesForCounts]);
+
+  // Handle filter changes
+  const onFilterChange = useCallback((newFilters: CandidateFilterValues) => {
+    console.log('🔍 CLIENT DEBUG: onFilterChange called with:', newFilters);
+    
+    // Clear any existing timeout
+    if (filterChangeTimeoutRef.current) {
+      clearTimeout(filterChangeTimeoutRef.current);
+    }
+    
+    // Skip if we're currently clearing filters to prevent conflicts
+    if (isClearingFilters) {
+      console.log('🔍 CLIENT DEBUG: Skipping filter change - currently clearing filters');
+      return;
+    }
+    
+    // Reset page to 1 when filters change
+    setPage(1);
+    
+    // Debounce the filter change to prevent excessive calls
+    filterChangeTimeoutRef.current = setTimeout(() => {
+      console.log('🔍 CLIENT DEBUG: Applying filter change after debounce');
+      handleFilterChange(newFilters, (filters) => {
+        console.log('🔍 CLIENT DEBUG: handleFilterChange callback called with:', filters);
+        setTableLoading(true);
+        debouncedFetchTableData(filters, 1, pageSize);
+        fetchAllCandidatesForCounts(filters); // Update counts data when filters change
+      });
+    }, 150); // Increased debounce to prevent rapid successive calls
+  }, [handleFilterChange, pageSize, debouncedFetchTableData, isClearingFilters, fetchAllCandidatesForCounts]);
+
+  // Update total count when filteredCandidates changes to ensure pagination is accurate
+  useEffect(() => {
+    if (!isLoading && !tableLoading && !isClearingFilters) {
+      // For AI search, use aiRecordCount
+      if (isAiSearchActive && aiMatchedCandidateIds) {
+        console.log('🔍 PAGINATION DEBUG: AI search active, using aiRecordCount:', aiRecordCount);
+        setTotal(aiRecordCount);
+      } else {
+        // For regular search, use the length of filtered candidates
+        const newTotal = filteredCandidates.length;
+        console.log('🔍 PAGINATION DEBUG: Updating total from filteredCandidates:', newTotal, 'previous total:', total);
+        if (newTotal !== total) {
+          setTotal(newTotal);
+          console.log('🔍 PAGINATION DEBUG: Total updated to:', newTotal);
+        }
+      }
+    }
+  }, [filteredCandidates.length, isAiSearchActive, aiMatchedCandidateIds, aiRecordCount, isLoading, tableLoading, isClearingFilters, total]);
+
+  // Update fit score counts when filteredCandidates changes
+  useEffect(() => {
+    if (!isLoading && !tableLoading && !isClearingFilters) {
+      console.log('🔍 COUNTS DEBUG: filteredCandidates changed, updating fit score counts');
+      // The candidateScoreCounts will be recalculated automatically via useMemo
+      // when filteredCandidates changes, so we don't need to do anything here
+    }
+  }, [filteredCandidates, isLoading, tableLoading, isClearingFilters]);
+
+  // Update fit score counts when database fit score counts change
+  useEffect(() => {
+    if (!isLoading && !tableLoading && !isClearingFilters) {
+      console.log('🔍 COUNTS DEBUG: databaseFitScoreCounts changed, updating fit score counts');
+      // The candidateScoreCounts will be recalculated automatically via useMemo
+      // when databaseFitScoreCounts changes, so we don't need to do anything here
+    }
+  }, [databaseFitScoreCounts, isLoading, tableLoading, isClearingFilters]);
+
+  // Handle clear all filters
+  const handleClearAllFilters = useCallback(() => {
+    console.log('🔍 CLIENT DEBUG: handleClearAllFilters called - setting isClearingFilters to true');
+    setIsClearingFilters(true);
+    
+    // Clear AI search state
+    setAiMatchedCandidateIds(null);
+    setAiSearchReasoning(null);
+    setAiRecordCount(0);
+    setIsAiSearchActive(false);
+    
+    const defaultFilters = clearAllFilters();
+    setPage(1);
+    
+    // Clear any existing filter change timeout to prevent conflicts
+    if (filterChangeTimeoutRef.current) {
+      clearTimeout(filterChangeTimeoutRef.current);
+      filterChangeTimeoutRef.current = null;
+    }
+    
+    // Fetch candidates with default filters to restore original state
+    // Use a small delay to ensure state updates are processed
+    setTimeout(() => {
+      console.log('🔍 CLIENT DEBUG: Clearing filters - fetching data with default filters:', defaultFilters);
+      fetchTableData(defaultFilters, 1, pageSize);
+      fetchAllCandidatesForCounts(defaultFilters); // Update counts data when clearing all filters
+      console.log('🔍 CLIENT DEBUG: Setting isClearingFilters to false');
+      setIsClearingFilters(false);
+    }, 100);
+  }, [clearAllFilters, pageSize, fetchTableData, fetchAllCandidatesForCounts, filterChangeTimeoutRef]);
+
+  // Handle export candidates
+  const handleExportCandidates = useCallback(async () => {
+    try {
+      setTableLoading(true);
+      
+      // Build query parameters from current filters
+      const params = new URLSearchParams();
+      if (filters.name) params.append('name', filters.name);
+      if (filters.email) params.append('email', filters.email);
+      if (filters.phone) params.append('phone', filters.phone);
+      if (filters.location) params.append('location', filters.location);
+      if (filters.selectedPositionIds) params.append('positionIds', filters.selectedPositionIds.join(','));
+      if (filters.selectedStatuses) params.append('statuses', filters.selectedStatuses.join(','));
+      if (filters.selectedSourceIds) params.append('sourceIds', filters.selectedSourceIds.join(','));
+      if (filters.selectedRecruiterIds) params.append('recruiterIds', filters.selectedRecruiterIds.join(','));
+      if (filters.skills) params.append('skills', filters.skills);
+      if (filters.minExperienceYears) params.append('minExperienceYears', filters.minExperienceYears.toString());
+      if (filters.maxExperienceYears) params.append('maxExperienceYears', filters.maxExperienceYears.toString());
+      if (filters.minAppliedJobFitScore) params.append('minAppliedJobFitScore', filters.minAppliedJobFitScore.toString());
+      if (filters.maxAppliedJobFitScore) params.append('maxAppliedJobFitScore', filters.maxAppliedJobFitScore.toString());
+      if (filters.minMatchingJobFitScore) params.append('minMatchingJobFitScore', filters.minMatchingJobFitScore.toString());
+      if (filters.maxMatchingJobFitScore) params.append('maxMatchingJobFitScore', filters.maxMatchingJobFitScore.toString());
+      if (filters.applicationDateStart) params.append('applicationDateStart', filters.applicationDateStart.toString());
+      if (filters.applicationDateEnd) params.append('applicationDateEnd', filters.applicationDateEnd.toString());
+      
+      // Add format parameter (CSV by default)
+      params.append('format', 'csv');
+      
+      const response = await fetch(`/api/candidates/export?${params.toString()}`);
+      
+      if (!response.ok) {
+        throw new Error('Export failed');
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `candidates-export-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast.success('Export completed successfully');
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Export failed. Please try again.');
+    } finally {
+      setTableLoading(false);
+    }
+  }, [filters, toast]);
+
+  // Handle import candidates
+  const handleImportCandidates = useCallback(() => {
+    // Open import modal or redirect to import page
+    toast.success('Import functionality - please use the import template from /api/candidates/import/template');
+    
+    // You can implement a modal here or redirect to a dedicated import page
+    // For now, we'll just show a toast with instructions
+  }, [toast]);
+
+  // Add filter refs to the dynamic height hook
+  useEffect(() => {
+    if (sidebarFilterRef.current) {
+      addFilterRef(sidebarFilterRef.current);
+    }
+    if (activeFiltersBarRef.current) {
+      addFilterRef(activeFiltersBarRef.current);
+    }
+    
+    return () => {
+      if (sidebarFilterRef.current) {
+        removeFilterRef(sidebarFilterRef.current);
+      }
+      if (activeFiltersBarRef.current) {
+        removeFilterRef(activeFiltersBarRef.current);
+      }
+    };
+  }, [addFilterRef, removeFilterRef]);
 
   // Fetch missing positions if any candidate has a positionId not in availablePositions
   useEffect(() => {
-    const missing = allCandidates
+    const missing = filteredCandidates
       .filter(c => c.positionId && !availablePositions.some(p => p.id === c.positionId))
       .map(c => c.positionId)
       .filter((id, idx, arr): id is string => typeof id === 'string' && arr.indexOf(id) === idx);
@@ -389,758 +1100,22 @@ export function CandidatesPageClient({
           }
         });
     }
-  }, [allCandidates, availablePositions]);
+  }, [filteredCandidates, availablePositions]);
 
-  // Handle initial URL parameters (only if not clearing filters)
+  // Handle initial loading state
   useEffect(() => {
-    if (isClearingFilters || hasInitializedFilters.current) {
-      return;
-    }
-    
-    // Read URL parameters for initial filtering
-    const urlPositionId = searchParams.get('positionId');
-    const urlRecruiterId = searchParams.get('recruiterId');
-    const urlStatus = searchParams.get('status');
-    const applicationDateStartParam = searchParams.get('applicationDateStart');
-    const applicationDateEndParam = searchParams.get('applicationDateEnd');
-    const nameParam = searchParams.get('name');
-    const emailParam = searchParams.get('email');
-    const phoneParam = searchParams.get('phone');
-    const educationParam = searchParams.get('education');
-    const minAppliedJobFitScoreParam = searchParams.get('minAppliedJobFitScore');
-    const maxAppliedJobFitScoreParam = searchParams.get('maxAppliedJobFitScore');
-    const advancedQueryParam = searchParams.get('query');
-
-    // Build new filters from URL params
-    let newFilters = { ...filters };
-    let hasChanges = false;
-    let advancedQuery = '';
-
-    // Handle advanced query parameter first
-    if (advancedQueryParam) {
-      advancedQuery = decodeURIComponent(advancedQueryParam);
-      hasChanges = true;
-      // Don't process individual parameters when we have an advanced query
-      // The advanced query will be parsed by the CandidateFilters component
-    } else {
-      // Handle individual parameters
-      // Handle recruiter filter
-      if (urlRecruiterId) {
-        const recruiterIds = urlRecruiterId.split(',');
-        if (!filters.selectedRecruiterIds || 
-            JSON.stringify(filters.selectedRecruiterIds.sort()) !== JSON.stringify(recruiterIds.sort())) {
-          newFilters.selectedRecruiterIds = recruiterIds;
-          hasChanges = true;
-        }
-      }
-
-      // Handle position filter
-      if (urlPositionId) {
-        const positionIds = urlPositionId.split(',');
-        if (!filters.selectedPositionIds || 
-            JSON.stringify(filters.selectedPositionIds.sort()) !== JSON.stringify(positionIds.sort())) {
-          newFilters.selectedPositionIds = positionIds;
-          hasChanges = true;
-        }
-      }
-
-      // Handle status filter
-      if (urlStatus) {
-        const statuses = urlStatus.split(',');
-        if (!filters.selectedStatuses || 
-            JSON.stringify(filters.selectedStatuses.sort()) !== JSON.stringify(statuses.sort())) {
-          newFilters.selectedStatuses = statuses;
-          hasChanges = true;
-        }
-      }
-
-      // Handle date range
-      if (applicationDateStartParam || applicationDateEndParam) {
-        const startDate = applicationDateStartParam ? new Date(applicationDateStartParam) : undefined;
-        const endDate = applicationDateEndParam ? new Date(applicationDateEndParam) : undefined;
-        
-        if (filters.applicationDateStart !== startDate || filters.applicationDateEnd !== endDate) {
-          newFilters.applicationDateStart = startDate;
-          newFilters.applicationDateEnd = endDate;
-          hasChanges = true;
-        }
-      }
-
-      // Handle text filters
-      if (nameParam && filters.name !== nameParam) {
-        newFilters.name = nameParam;
-        hasChanges = true;
-      }
-      if (emailParam && filters.email !== emailParam) {
-        newFilters.email = emailParam;
-        hasChanges = true;
-      }
-      if (phoneParam && filters.phone !== phoneParam) {
-        newFilters.phone = phoneParam;
-        hasChanges = true;
-      }
-      if (educationParam && filters.education !== educationParam) {
-        newFilters.education = educationParam;
-        hasChanges = true;
-      }
-
-      // Handle fit score range
-      if (minAppliedJobFitScoreParam || maxAppliedJobFitScoreParam) {
-        const minScore = minAppliedJobFitScoreParam ? parseInt(minAppliedJobFitScoreParam, 10) : 0;
-        const maxScore = maxAppliedJobFitScoreParam ? parseInt(maxAppliedJobFitScoreParam, 10) : 100;
-        
-        if (filters.minAppliedJobFitScore !== minScore || filters.maxAppliedJobFitScore !== maxScore) {
-          newFilters.minAppliedJobFitScore = minScore;
-          newFilters.maxAppliedJobFitScore = maxScore;
-          hasChanges = true;
-        }
-      }
-    }
-
-    // Only update if there are actual changes
-    if (hasChanges) {
-      // If we have an advanced query, don't update filters state directly
-      // Let the CandidateFilters component handle the parsing
-      if (!advancedQuery) {
-        setFilters(newFilters);
-      }
-      
-      // If we have an advanced query, store it for the filter component
-      if (advancedQuery) {
-        setAdvancedQueryFromUrl(advancedQuery);
-      }
-    }
-  }, [searchParams, isClearingFilters, filters]); // Use searchParams instead of window.location.search
-
-  const fetchRecruiters = useCallback(async (retryCount = 0) => {
-
-    if (sessionStatus !== 'authenticated') return;
-    
-    const maxRetries = 3;
-    const retryDelay = 1000 * (retryCount + 1); // Exponential backoff: 1s, 2s, 3s
-    
-    try {
-      const response = await fetch('/api/users?role=Recruiter');
-      if (!response.ok) {
-          const errorData = await response.json().catch(() => ({})); // Default to empty object on JSON parse fail
-          console.error("API error fetching recruiters:", errorData); // Log the object we got
-          
-          let detailedErrorMessage = (errorData as any)?.message || 'Failed to fetch recruiters';
-          if (Object.keys(errorData).length === 0 && !(errorData as any)?.message) {
-            // If errorData is empty and has no message, use statusText
-            detailedErrorMessage = `Failed to fetch recruiters. Server responded with status ${response.status}: ${response.statusText || 'No additional error message.'}`;
-          } else if ((errorData as any)?.error) { // If there's an 'error' property in the JSON
-            detailedErrorMessage += ` (Details: ${(errorData as any).error})`;
-          }
-          if ((errorData as any)?.code) { // If there's a 'code' property
-             detailedErrorMessage += ` (Code: ${(errorData as any).code})`;
-          }
-          
-          // Retry on server errors (5xx) but not on client errors (4xx)
-          if (response.status >= 500 && retryCount < maxRetries) {
-            console.warn(`Recruiter fetch failed (attempt ${retryCount + 1}/${maxRetries}), retrying in ${retryDelay}ms:`, detailedErrorMessage);
-            setTimeout(() => fetchRecruiters(retryCount + 1), retryDelay);
-            return;
-          }
-          
-          // Don't throw error, just log it and continue with empty recruiters list
-          console.warn("Recruiter fetch failed, continuing with empty list:", detailedErrorMessage);
-          setAvailableRecruiters([]);
-          return;
-      }
-      const responseData = await response.json(); 
-      // Handle the correct API response structure: { users: [...], pagination: {...} }
-      const recruitersArray = responseData?.users || [];
-
-      if (!Array.isArray(recruitersArray)) {
-        console.warn("Invalid data format received for recruiters, using empty list");
-        setAvailableRecruiters([]);
-        return;
-      }
-      const mappedRecruiters = recruitersArray.map(r => ({ id: r.id, name: r.name, email: r.email || '', avatarUrl: r.avatarUrl }));
-
-      setAvailableRecruiters(mappedRecruiters);
-    } catch (error) {
-      console.error("Error fetching recruiters:", error);
-      
-      // Retry on network errors
-      if (retryCount < maxRetries) {
-        console.warn(`Recruiter fetch failed due to network error (attempt ${retryCount + 1}/${maxRetries}), retrying in ${retryDelay}ms`);
-        setTimeout(() => fetchRecruiters(retryCount + 1), retryDelay);
-        return;
-      }
-      
-      // Don't show toast error, just log it and continue with empty recruiters list
-      console.warn("Recruiter fetch failed due to network error, continuing with empty list");
-      setAvailableRecruiters([]);
-    }
-  }, [sessionStatus]);
-
-  const fetchSources = useCallback(async () => {
-    if (sessionStatus !== 'authenticated') return;
-    
-    try {
-      const response = await fetch('/api/settings/candidate-sources');
-      if (!response.ok) {
-        console.warn("Failed to fetch candidate sources, continuing with empty list");
-        setAvailableSources([]);
-        return;
-      }
-      const sourcesData = await response.json();
-      setAvailableSources(sourcesData || []);
-    } catch (error) {
-      console.error("Error fetching candidate sources:", error);
-      setAvailableSources([]);
-    }
-  }, [sessionStatus]);
-
-  // Use ref to track session status to avoid dependency issues
-  const sessionStatusRef = useRef(sessionStatus);
-  sessionStatusRef.current = sessionStatus;
-  
-  // Use ref to track current request to prevent infinite loops
-  const currentRequestRef = useRef<string | null>(null);
-  
-  const latestRequestIdRef = useRef<string | null>(null);
-
-  const fetchPaginatedCandidates = useCallback(async (currentFilters: CandidateFilterValues, page: number, pageSize: number) => {
-    const requestId = `${Date.now()}-${Math.random()}`;
-    latestRequestIdRef.current = requestId;
-
-    if (sessionStatusRef.current !== 'authenticated') {
-      setIsLoading(false);
-      return;
-    }
-    
-    // Prevent multiple simultaneous requests
-    if (isFetching) {
-      // console.log('fetchPaginatedCandidates: Already fetching, skipping request');
-      return;
-    }
-    
-    // Clear any pending timeout
-    if (fetchTimeoutRef.current) {
-      clearTimeout(fetchTimeoutRef.current);
-    }
-    
-    setIsFetching(true);
-    setIsLoading(true);
-    setFetchError(null);
-    setAuthError(false);
-    setPermissionError(false);
-    // Do NOT clear AI results here; only clear on explicit user action
-    // if (!isAiSearchActive) {
-    //   setAiMatchedCandidateIds(null);
-    //   setAiSearchReasoning(null);
-    // }
-    
-    // Add a timeout to prevent infinite loading
-    const loadingTimeout = setTimeout(() => {
-      // console.error('Loading timeout: Candidates fetch took too long');
-      setIsLoading(false);
-      setIsFetching(false);
-      setFetchError('Request timeout. The server may be starting up. Please wait a moment and refresh.');
-    }, 30000);
-    try {
-      const query = new URLSearchParams();
-      
-      // Check if we have an advanced query from URL and pass it to the API
-      const advancedQueryParam = searchParams.get('query');
-      if (advancedQueryParam) {
-        query.append('query', advancedQueryParam);
-      }
-      
-      if (currentFilters.name) {
-        query.append('name', currentFilters.name);
-        if (currentFilters.nameOperator) query.append('nameOperator', currentFilters.nameOperator);
-      }
-      if (currentFilters.email) {
-        query.append('email', currentFilters.email);
-        if (currentFilters.emailOperator) query.append('emailOperator', currentFilters.emailOperator);
-      }
-      if (currentFilters.phone) {
-        query.append('phone', currentFilters.phone);
-        if (currentFilters.phoneOperator) query.append('phoneOperator', currentFilters.phoneOperator);
-      }
-      if (currentFilters.selectedPositionIds && currentFilters.selectedPositionIds.length > 0) query.append('positionId', currentFilters.selectedPositionIds.join(','));
-      if (currentFilters.selectedStatuses && currentFilters.selectedStatuses.length > 0) query.append('status', currentFilters.selectedStatuses.join(','));
-      if (currentFilters.education) query.append('education', currentFilters.education);
-      if (currentFilters.minAppliedJobFitScore !== undefined && currentFilters.minAppliedJobFitScore !== 0) query.append('minAppliedJobFitScore', String(currentFilters.minAppliedJobFitScore));
-      if (currentFilters.maxAppliedJobFitScore !== undefined && currentFilters.maxAppliedJobFitScore !== 100) query.append('maxAppliedJobFitScore', String(currentFilters.maxAppliedJobFitScore));
-      if (currentFilters.minMatchingJobFitScore !== undefined && currentFilters.minMatchingJobFitScore !== 0) query.append('minMatchingJobFitScore', String(currentFilters.minMatchingJobFitScore));
-      if (currentFilters.maxMatchingJobFitScore !== undefined && currentFilters.maxMatchingJobFitScore !== 100) query.append('maxMatchingJobFitScore', String(currentFilters.maxMatchingJobFitScore));
-      if (currentFilters.minExperienceYears !== undefined && (currentFilters.minExperienceYears > 0 || currentFilters.minExperienceYears === -1)) query.append('minExperienceYears', String(currentFilters.minExperienceYears));
-      if (currentFilters.maxExperienceYears !== undefined) query.append('maxExperienceYears', String(currentFilters.maxExperienceYears));
-      if (currentFilters.applicationDateStart) {
-        query.append('applicationDateStart', currentFilters.applicationDateStart.toISOString());
-      }
-      if (currentFilters.applicationDateEnd) {
-        query.append('applicationDateEnd', currentFilters.applicationDateEnd.toISOString());
-      }
-      if (currentFilters.selectedRecruiterIds && currentFilters.selectedRecruiterIds.length > 0) query.append('recruiterId', currentFilters.selectedRecruiterIds.join(','));
-      query.append('page', String(page));
-      query.append('limit', String(pageSize));
-      // Add sorting
-      if (sortColumn) query.append('sortColumn', sortColumn);
-      if (sortDirection) query.append('sortDirection', sortDirection);
-      
-      if (currentFilters.location) {
-        query.append('location', currentFilters.location);
-        if (currentFilters.locationOperator) query.append('locationOperator', currentFilters.locationOperator);
-      }
-      if (currentFilters.skills && Array.isArray(currentFilters.skills)) {
-        if (currentFilters.skills.length > 0) query.append('skills', currentFilters.skills.join(','));
-      } else if (typeof currentFilters.skills === 'string' && currentFilters.skills) {
-        query.append('skills', currentFilters.skills);
-      }
-      
-            const apiUrl = `/api/candidates?${query.toString()}`;
-            
-
-
-      // Add timeout and retry logic
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
-
-      const response = await fetch(apiUrl, {
-        signal: controller.signal,
-        headers: {
-          'Cache-Control': 'no-cache'
-        }
-      });
-      clearTimeout(timeoutId);
-      
-      if (!response.ok) {
-        let errorData: any = {};
-        let errorMessageFromServer = null;
-        try {
-          errorData = await response.json();
-          errorMessageFromServer = errorData?.message || errorData?.error;
-        } catch (e) {}
-        let errorMessage = errorMessageFromServer || `Failed to fetch candidates. Server responded with status ${response.status}: ${response.statusText || 'No additional error message.'}`;
-        if (errorData?.code) {
-          errorMessage += ` (Code: ${errorData.code})`;
-        }
-        if (response.status === 401) {
-            setAuthError(true);
-            setIsLoading(false); // Clear loading state on auth error
-            return;
-        }
-        if (response.status === 403) {
-            setPermissionError(true);
-            setFetchError(errorMessage);
-            setIsLoading(false); // Clear loading state on permission error
-            if (latestRequestIdRef.current === requestId) setAllCandidates([]); // Only clear on permission error
-            return;
-        }
-        setFetchError(errorMessage);
-        setIsLoading(false); // Clear loading state on error
-        // Do NOT clear candidates here
-        return;
-      }
-      const data = await response.json();
-      
-      const candidatesArray = Array.isArray(data.data) ? data.data : [];
-      const totalCount = data.pagination?.total || 0;
-      const actualPage = data.pagination?.page || 1;
-      
-      // Only update if this is the latest request
-      if (latestRequestIdRef.current === requestId) {
-        setAllCandidates(candidatesArray); // Only update on success
-        setTotal(totalCount);
-        setPage(actualPage); // <-- Update page state from API response
-        
-        // Ensure loading state is cleared when we have data
-        if (candidatesArray.length > 0 || totalCount > 0) {
-          setIsLoading(false);
-        }
-      } 
-      
-    } catch (error: any) {
-      if (error.name === 'AbortError') {
-        // console.error('Request timeout - server may be overloaded');
-        setFetchError('Request timeout - please try again in a moment');
-      } else {
-      const errorMessage = (error as Error).message || "Could not load candidate data.";
-       if (!(errorMessage.toLowerCase().includes("unauthorized") || errorMessage.toLowerCase().includes("forbidden"))) {
-        setFetchError(errorMessage);
-        }
-      }
-      // Do NOT clear candidates here
-    } finally {
-      clearTimeout(loadingTimeout); // Clear the loading timeout
-      setIsLoading(false);
-      setIsFetching(false);
-      currentRequestRef.current = null; // Clear the current request ref
-    }
-  }, [sortColumn, sortDirection]); // Include sorting dependencies
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (fetchTimeoutRef.current) {
-        clearTimeout(fetchTimeoutRef.current);
-      }
-      if (filterChangeTimeoutRef.current) {
-        clearTimeout(filterChangeTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  // Create a debounced version for refresh events
-  const debouncedFetchPaginatedCandidates = useCallback((currentFilters: CandidateFilterValues, page: number, pageSize: number) => {
-    // Clear any pending timeout
-    if (fetchTimeoutRef.current) {
-      clearTimeout(fetchTimeoutRef.current);
-    }
-    
-    // Set a new timeout - reduced for faster response
-    fetchTimeoutRef.current = setTimeout(() => {
-      fetchPaginatedCandidates(currentFilters, page, pageSize);
-    }, 50); // Reduced debounce for faster response
-  }, [fetchPaginatedCandidates]);
-
-      // Separate function to fetch only table data for optimized filtering
-    const fetchTableData = useCallback(async (currentFilters: CandidateFilterValues, currentPage: number, currentPageSize: number) => {
-      console.log('🔍 DEBUG: fetchTableData called with filters:', currentFilters);
-      const requestId = `${Date.now()}-${Math.random()}`;
-      latestRequestIdRef.current = requestId;
-
-    if (sessionStatusRef.current !== 'authenticated') {
-      setTableLoading(false);
-      return;
-    }
-    
-    // Prevent multiple simultaneous requests
-    if (isFetching) {
-      return;
-    }
-    
-    // Clear any existing timeout
-    if (fetchTimeoutRef.current) {
-      clearTimeout(fetchTimeoutRef.current);
-    }
-    
-    setIsFetching(true);
-    setTableLoading(true);
-    setTableError(null);
-    
-    // Add a timeout to prevent infinite loading
-    const loadingTimeout = setTimeout(() => {
-      setTableLoading(false);
-      setIsLoading(false); // Also clear the main loading state
-      setIsFetching(false);
-      setTableError('Request timeout. The server may be starting up. Please wait a moment and refresh.');
-    }, 30000);
-    
-    try {
-      const query = new URLSearchParams();
-      
-      // Check if we have an advanced query from URL and pass it to the API
-      const advancedQueryParam = searchParams.get('query');
-      if (advancedQueryParam) {
-        query.append('query', advancedQueryParam);
-      }
-      
-      if (currentFilters.name) {
-        query.append('name', currentFilters.name);
-        if (currentFilters.nameOperator) query.append('nameOperator', currentFilters.nameOperator);
-      }
-      if (currentFilters.email) {
-        query.append('email', currentFilters.email);
-        if (currentFilters.emailOperator) query.append('emailOperator', currentFilters.emailOperator);
-      }
-      if (currentFilters.phone) {
-        query.append('phone', currentFilters.phone);
-        if (currentFilters.phoneOperator) query.append('phoneOperator', currentFilters.phoneOperator);
-      }
-      if (currentFilters.selectedPositionIds && currentFilters.selectedPositionIds.length > 0) query.append('positionId', currentFilters.selectedPositionIds.join(','));
-      if (currentFilters.selectedStatuses && currentFilters.selectedStatuses.length > 0) query.append('status', currentFilters.selectedStatuses.join(','));
-      if (currentFilters.education) query.append('education', currentFilters.education);
-      if (currentFilters.minAppliedJobFitScore !== undefined && currentFilters.minAppliedJobFitScore !== 0) query.append('minAppliedJobFitScore', String(currentFilters.minAppliedJobFitScore));
-      if (currentFilters.maxAppliedJobFitScore !== undefined && currentFilters.maxAppliedJobFitScore !== 100) query.append('maxAppliedJobFitScore', String(currentFilters.maxAppliedJobFitScore));
-      if (currentFilters.minMatchingJobFitScore !== undefined && currentFilters.minMatchingJobFitScore !== 0) query.append('minMatchingJobFitScore', String(currentFilters.minMatchingJobFitScore));
-      if (currentFilters.maxMatchingJobFitScore !== undefined && currentFilters.maxMatchingJobFitScore !== 100) query.append('maxMatchingJobFitScore', String(currentFilters.maxMatchingJobFitScore));
-      if (currentFilters.minExperienceYears !== undefined && (currentFilters.minExperienceYears > 0 || currentFilters.minExperienceYears === -1)) query.append('minExperienceYears', String(currentFilters.minExperienceYears));
-      if (currentFilters.maxExperienceYears !== undefined) query.append('maxExperienceYears', String(currentFilters.maxExperienceYears));
-      if (currentFilters.applicationDateStart) {
-        query.append('applicationDateStart', currentFilters.applicationDateStart.toISOString());
-      }
-      if (currentFilters.applicationDateEnd) {
-        query.append('applicationDateEnd', currentFilters.applicationDateEnd.toISOString());
-      }
-      if (currentFilters.selectedRecruiterIds && currentFilters.selectedRecruiterIds.length > 0) query.append('recruiterId', currentFilters.selectedRecruiterIds.join(','));
-      query.append('page', String(currentPage));
-      query.append('limit', String(currentPageSize));
-      // Add sorting
-      if (sortColumn) query.append('sortColumn', sortColumn);
-      if (sortDirection) query.append('sortDirection', sortDirection);
-      
-      if (currentFilters.location) {
-        query.append('location', currentFilters.location);
-        if (currentFilters.locationOperator) query.append('locationOperator', currentFilters.locationOperator);
-      }
-      if (currentFilters.skills && Array.isArray(currentFilters.skills)) {
-        if (currentFilters.skills.length > 0) query.append('skills', currentFilters.skills.join(','));
-      } else if (typeof currentFilters.skills === 'string' && currentFilters.skills) {
-        query.append('skills', currentFilters.skills);
-      }
-      
-      const apiUrl = `/api/candidates?${query.toString()}`;
-      
-      // Add timeout and retry logic
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
-
-      const response = await fetch(apiUrl, {
-        signal: controller.signal,
-        headers: {
-          'Cache-Control': 'no-cache'
-        }
-      });
-      clearTimeout(timeoutId);
-      
-      if (!response.ok) {
-        let errorData: any = {};
-        let errorMessageFromServer = null;
-        try {
-          errorData = await response.json();
-          errorMessageFromServer = errorData?.message || errorData?.error;
-        } catch (e) {}
-        let errorMessage = errorMessageFromServer || `Failed to fetch candidates. Server responded with status ${response.status}: ${response.statusText || 'No additional error message.'}`;
-        if (errorData?.code) {
-          errorMessage += ` (Code: ${errorData.code})`;
-        }
-        if (response.status === 401) {
-            setAuthError(true);
-            setIsLoading(false); // Clear loading state on auth error
-            return;
-        }
-        if (response.status === 403) {
-            setPermissionError(true);
-            setTableError(errorMessage);
-            setIsLoading(false); // Clear loading state on permission error
-            if (latestRequestIdRef.current === requestId) setTableCandidates([]); // Only clear on permission error
-            return;
-        }
-        setTableError(errorMessage);
-        setIsLoading(false); // Clear loading state on error
-        return;
-      }
-      const data = await response.json();
-      
-      const candidatesArray = Array.isArray(data.data) ? data.data : [];
-      const totalCount = data.pagination?.total || 0;
-      const actualPage = data.pagination?.page || 1;
-      
-      // Only update if this is the latest request
-      if (latestRequestIdRef.current === requestId) {
-        setTableCandidates(candidatesArray); // Update only table data
-        setAllCandidates(candidatesArray); // Keep main state in sync for other components
-        setTotal(totalCount);
-        setPage(actualPage);
-        
-        // Ensure loading state is cleared when we have data
-        if (candidatesArray.length > 0 || totalCount > 0) {
-          setIsLoading(false);
-        }
-      } 
-      
-    } catch (error: any) {
-      if (error.name === 'AbortError') {
-        setTableError('Request timeout - please try again in a moment');
-      } else {
-        const errorMessage = (error as Error).message || "Could not load candidate data.";
-        if (!(errorMessage.toLowerCase().includes("unauthorized") || errorMessage.toLowerCase().includes("forbidden"))) {
-          setTableError(errorMessage);
-        }
-      }
-    } finally {
-      clearTimeout(loadingTimeout);
-      setTableLoading(false);
-      setIsLoading(false); // Also clear the main loading state
-      setIsFetching(false);
-      currentRequestRef.current = null;
-    }
-  }, [sortColumn, sortDirection, searchParams]);
-
-  // Create a debounced version for table refresh
-  const debouncedFetchTableData = useCallback((currentFilters: CandidateFilterValues, currentPage: number, currentPageSize: number) => {
-    // Clear any pending timeout
-    if (fetchTimeoutRef.current) {
-      clearTimeout(fetchTimeoutRef.current);
-    }
-    
-    // Set a new timeout - reduced for faster response
-    fetchTimeoutRef.current = setTimeout(() => {
-      const currentFetchTableData = fetchTableData;
-      currentFetchTableData(currentFilters, currentPage, currentPageSize);
-    }, 50); // Reduced debounce for faster response
-  }, [fetchTableData]);
-
-  // Add refs to track latest state and avoid stale closures
-  const filtersRef = useRef(filters);
-  const pageRef = useRef(page);
-  const pageSizeRef = useRef(pageSize);
-  const debouncedFetchTableDataRef = useRef(debouncedFetchTableData);
-  
-  // Update refs when state changes
-  useEffect(() => {
-    filtersRef.current = filters;
-  }, [filters]);
-  
-  useEffect(() => {
-    pageRef.current = page;
-  }, [page]);
-  
-  useEffect(() => {
-    pageSizeRef.current = pageSize;
-  }, [pageSize]);
-  
-  useEffect(() => {
-    debouncedFetchTableDataRef.current = debouncedFetchTableData;
-  }, [debouncedFetchTableData]);
-
-  const handleAiSearch = async (aiQuery: string) => {
-    if (!aiQuery.trim()) {
-      toast("Please enter a search query for AI search.");
-      return;
-    }
-    setIsAiSearching(true);
-    setFetchError(null);
-    setAiSearchReasoning(null);
-    setAiMatchedCandidateIds(null);
-    setAiRecordCount(0);
-    setIsAiSearchActive(true);
-    
-    // Add timeout for AI search
-    const timeoutId = setTimeout(() => {
-      setIsAiSearching(false);
-      setIsAiSearchActive(false);
-      toast.error("AI search timed out. Please try again with a more specific query.");
-    }, 30000); // 30 second timeout
-    
-    try {
-      const controller = new AbortController();
-      const timeoutId2 = setTimeout(() => controller.abort(), 25000); // 25 second timeout for fetch
-      
-      const response = await fetch('/api/ai/search-candidates', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: aiQuery }),
-        signal: controller.signal,
-      });
-      
-      clearTimeout(timeoutId2);
-      
-      clearTimeout(timeoutId); // Clear timeout on successful response
-      
-      const result = await response.json();
-      if (!response.ok) {
-        throw new Error(result.message || `AI search failed with status: ${response.status}`);
-      }
-      
-
-      
-      // If AI search returned results, fetch all candidates to ensure we have them available
-      // But do it silently without affecting the page state
-      if (result.matchedCandidateIds?.length > 0) {
-        // Check if we already have all the matched candidates in our current list
-        const existingIds = new Set(allCandidates.map(c => c.id));
-        const missingCandidates = result.matchedCandidateIds.filter((id: string) => !existingIds.has(id));
-        
-        if (missingCandidates.length > 0) {
-          // Only fetch if we're missing some candidates
-
-          
-          // Fetch all candidates without filters to ensure AI search results are available
-          // Use a separate state update to avoid triggering page refresh
-          const allCandidatesResponse = await fetch('/api/candidates?limit=1000');
-          if (allCandidatesResponse.ok) {
-            const allCandidatesData = await allCandidatesResponse.json();
-            if (allCandidatesData.data && Array.isArray(allCandidatesData.data)) {
-              // Update candidates silently without affecting other state
-              setAllCandidates(prevCandidates => {
-                // Merge new candidates with existing ones, avoiding duplicates
-                const existingIds = new Set(prevCandidates.map((c: Candidate) => c.id));
-                const newCandidates = (allCandidatesData.data as Candidate[]).filter((c: Candidate) => !existingIds.has(c.id));
-                const mergedCandidates = [...prevCandidates, ...newCandidates];
-                
-
-                
-                return mergedCandidates;
-              });
-              
-              // Wait a bit for the state to update before setting AI results
-              setTimeout(() => {
-                setAiMatchedCandidateIds(result.matchedCandidateIds || []);
-                setAiSearchReasoning(result.aiReasoning || "AI search complete.");
-                setAiRecordCount(result.recordCount || 0);
-                toast.success(`Found ${result.recordCount || result.matchedCandidateIds.length} potential match(es).`);
-              }, 100);
-            } else {
-              // If we couldn't fetch candidates, still show AI results but warn user
-              setAiMatchedCandidateIds(result.matchedCandidateIds || []);
-              setAiSearchReasoning(result.aiReasoning || "AI search complete.");
-              setAiRecordCount(result.recordCount || 0);
-              toast.success(`Found ${result.recordCount || result.matchedCandidateIds.length} potential match(es).`);
-              toast.error("Some candidates may not be visible due to current filters.");
-            }
-                      } else {
-              // If fetch failed, still show AI results but warn user
-              setAiMatchedCandidateIds(result.matchedCandidateIds || []);
-              setAiSearchReasoning(result.aiReasoning || "AI search complete.");
-              setAiRecordCount(result.recordCount || 0);
-              toast.success(`Found ${result.recordCount || result.matchedCandidateIds.length} potential match(es).`);
-              toast.error("Could not load all candidates. Some results may not be visible.");
-            }
-        } else {
-          setAiMatchedCandidateIds(result.matchedCandidateIds || []);
-          setAiSearchReasoning(result.aiReasoning || "AI search complete.");
-          setAiRecordCount(result.recordCount || 0);
-          toast.success(`Found ${result.recordCount || result.matchedCandidateIds.length} potential match(es).`);
-        }
-      } else {
-        setAiMatchedCandidateIds(result.matchedCandidateIds || []);
-        setAiSearchReasoning(result.aiReasoning || "AI search complete.");
-        setAiRecordCount(result.recordCount || 0);
-        toast.success(`Found ${result.recordCount || 0} potential match(es).`);
-      }
-    } catch (error) {
-      clearTimeout(timeoutId); // Clear timeout on error
-      // console.error("AI Search Error:", error);
-      
-      if (error instanceof Error && error.name === 'AbortError') {
-        toast.error("AI search request was cancelled due to timeout. Please try again.");
-      } else {
-        toast.error((error as Error).message);
-      }
-      
-      setAiMatchedCandidateIds([]);
-      setAiRecordCount(0);
-      setIsAiSearchActive(false);
-    } finally {
-      setIsAiSearching(false);
-    }
-  };
-
-  useEffect(() => {
-    // Set initial loading state - simplified logic
     if (sessionStatus === 'loading') {
       setIsLoading(true);
     } else if (sessionStatus === 'authenticated') {
-      // If we have initial data, don't show loading
-      if (safeInitialCandidates.length > 0) {
+      if (initialCandidates.length > 0) {
         setIsLoading(false);
       } else if (!initialFetchError && !serverAuthError && !serverPermissionError) {
-        // Show loading if we don't have initial data and no errors
         setIsLoading(true);
       } else {
         setIsLoading(false);
       }
       
-      // Safety check: if we have candidates, ensure loading is false
-      if (allCandidates.length > 0) {
+      if (filteredCandidates.length > 0) {
         setIsLoading(false);
       }
       
@@ -1152,660 +1127,113 @@ export function CandidatesPageClient({
       
       return () => clearTimeout(timeoutId);
     } else {
-      // Not authenticated or has errors
-      setIsLoading(false);
-      setTableLoading(false); // Also clear table loading state
-    }
-  }, [sessionStatus, serverAuthError, serverPermissionError, fetchRecruiters, fetchSources, safeInitialCandidates.length, initialFetchError, allCandidates.length]);
-
-  // Add a separate effect to clear loading when we have data
-  useEffect(() => {
-    if (allCandidates.length > 0 || tableCandidates.length > 0) {
       setIsLoading(false);
       setTableLoading(false);
     }
-  }, [allCandidates.length, tableCandidates.length]);
+  }, [sessionStatus, serverAuthError, serverPermissionError, fetchRecruiters, fetchSources, initialFetchError]);
 
-  // Separate useEffect for initial data fetching
+  // Single client-side fetch - no server-side initial data
   useEffect(() => {
-    // Only fetch candidates if:
-    // 1. We're authenticated
-    // 2. No server errors
-    // 3. No initial data provided
-    // 4. Haven't already fetched
+    console.log('🔍 INITIAL DATA DEBUG: useEffect triggered with:', {
+      sessionStatus,
+      serverAuthError: !!serverAuthError,
+      serverPermissionError: !!serverPermissionError,
+      hasInitialDataFetch,
+      filters
+    });
+    
     if (
       sessionStatus === 'authenticated' &&
       !serverAuthError &&
       !serverPermissionError &&
-      safeInitialCandidates.length === 0 &&
-      !hasInitialDataFetch
+      !hasInitialDataFetch &&
+      initialCandidates.length === 0
     ) {
+      console.log('🔍 INITIAL DATA DEBUG: Triggering single client-side fetch for full data');
+      console.log('🔍 INITIAL DATA DEBUG: Current filters:', filters);
+      console.log('🔍 INITIAL DATA DEBUG: Current page:', page, 'pageSize:', pageSize);
       setHasInitialDataFetch(true);
-      // Use a ref to avoid dependency issues
-      const currentFetchTableData = fetchTableData;
-      currentFetchTableData(filters, page, pageSize);
-    } else if (safeInitialCandidates.length > 0) {
-      // If we have initial data, set it immediately and clear loading
-      setAllCandidates(safeInitialCandidates);
-      setTableCandidates(safeInitialCandidates);
-      setTotal(safeInitialCandidates.length);
-      setIsLoading(false);
-      setTableLoading(false);
-      setHasInitialDataFetch(true); // Mark as fetched to prevent duplicate requests
-    }
-  }, [sessionStatus, serverAuthError, serverPermissionError, safeInitialCandidates.length, initialFetchError, hasInitialDataFetch, fetchTableData, filters, page, pageSize]);
-
-  // Reset hasInitialDataFetch on client-side navigation (pathname change)
-  useEffect(() => {
-    setHasInitialDataFetch(false);
-  }, [pathname]);
-
-
-
-  // Separate useEffect for URL parameter handling
-  useEffect(() => {
-    // Skip if we're currently clearing filters
-    if (isClearingFilters) {
-      return;
-    }
-    
-    // Check for URL parameters using searchParams hook
-    const recruiterIdParam = searchParams.get('recruiterId');
-    const positionIdParam = searchParams.get('positionId');
-    const statusParam = searchParams.get('status');
-    const applicationDateStartParam = searchParams.get('applicationDateStart');
-    const applicationDateEndParam = searchParams.get('applicationDateEnd');
-    const nameParam = searchParams.get('name');
-    const emailParam = searchParams.get('email');
-    const phoneParam = searchParams.get('phone');
-    const educationParam = searchParams.get('education');
-    const minAppliedJobFitScoreParam = searchParams.get('minAppliedJobFitScore');
-    const maxAppliedJobFitScoreParam = searchParams.get('maxAppliedJobFitScore');
-    const advancedQueryParam = searchParams.get('query');
-
-    // Build new filters from URL params
-    let newFilters = { ...filters };
-    let hasChanges = false;
-    let advancedQuery = '';
-
-    // Handle advanced query parameter first
-    if (advancedQueryParam) {
-      advancedQuery = decodeURIComponent(advancedQueryParam);
-      hasChanges = true;
-      // Don't process individual parameters when we have an advanced query
-      // The advanced query will be parsed by the CandidateFilters component
-    } else {
-      // Handle individual parameters
-      // Handle recruiter filter
-      if (recruiterIdParam) {
-        const recruiterIds = recruiterIdParam.split(',');
-        if (!filters.selectedRecruiterIds || 
-            JSON.stringify(filters.selectedRecruiterIds.sort()) !== JSON.stringify(recruiterIds.sort())) {
-          newFilters.selectedRecruiterIds = recruiterIds;
-          hasChanges = true;
-        }
-      }
-
-      // Handle position filter
-      if (positionIdParam) {
-        const positionIds = positionIdParam.split(',');
-        if (!filters.selectedPositionIds || 
-            JSON.stringify(filters.selectedPositionIds.sort()) !== JSON.stringify(positionIds.sort())) {
-          newFilters.selectedPositionIds = positionIds;
-          hasChanges = true;
-        }
-      }
-
-      // Handle status filter
-      if (statusParam) {
-        const statuses = statusParam.split(',');
-        if (!filters.selectedStatuses || 
-            JSON.stringify(filters.selectedStatuses.sort()) !== JSON.stringify(statuses.sort())) {
-          newFilters.selectedStatuses = statuses;
-          hasChanges = true;
-        }
-      }
-
-      // Handle date range
-      if (applicationDateStartParam || applicationDateEndParam) {
-        const startDate = applicationDateStartParam ? new Date(applicationDateStartParam) : undefined;
-        const endDate = applicationDateEndParam ? new Date(applicationDateEndParam) : undefined;
-        
-        if (filters.applicationDateStart !== startDate || filters.applicationDateEnd !== endDate) {
-          newFilters.applicationDateStart = startDate;
-          newFilters.applicationDateEnd = endDate;
-          hasChanges = true;
-        }
-      }
-
-      // Handle text filters
-      if (nameParam && filters.name !== nameParam) {
-        newFilters.name = nameParam;
-        hasChanges = true;
-      }
-      if (emailParam && filters.email !== emailParam) {
-        newFilters.email = emailParam;
-        hasChanges = true;
-      }
-      if (phoneParam && filters.phone !== phoneParam) {
-        newFilters.phone = phoneParam;
-        hasChanges = true;
-      }
-      if (educationParam && filters.education !== educationParam) {
-        newFilters.education = educationParam;
-        hasChanges = true;
-      }
-
-      // Handle fit score range
-      if (minAppliedJobFitScoreParam || maxAppliedJobFitScoreParam) {
-        const minScore = minAppliedJobFitScoreParam ? parseInt(minAppliedJobFitScoreParam, 10) : 0;
-        const maxScore = maxAppliedJobFitScoreParam ? parseInt(maxAppliedJobFitScoreParam, 10) : 100;
-        
-        if (filters.minAppliedJobFitScore !== minScore || filters.maxAppliedJobFitScore !== maxScore) {
-          newFilters.minAppliedJobFitScore = minScore;
-          newFilters.maxAppliedJobFitScore = maxScore;
-          hasChanges = true;
-        }
-      }
-    }
-
-    // Only update if there are actual changes
-    if (hasChanges) {
-      // If we have an advanced query, don't update filters state directly
-      // Let the CandidateFilters component handle the parsing
-      if (!advancedQuery) {
-        setFilters(newFilters);
-      }
+      setIsLoading(true);
+      setTableLoading(true);
       
-      // If we have an advanced query, store it for the filter component
-      if (advancedQuery) {
-        setAdvancedQueryFromUrl(advancedQuery);
+      // Fetch both table data and full dataset for counts in parallel
+      console.log('🔍 INITIAL DATA DEBUG: Calling fetchTableData...');
+      fetchTableData(filters, page, pageSize);
+      console.log('🔍 INITIAL DATA DEBUG: Calling fetchAllCandidatesForCounts...');
+      fetchAllCandidatesForCounts(filters);
+    } else {
+      // If we have initial data from server, mark as fetched
+      if (initialCandidates.length > 0 && !hasInitialDataFetch) {
+        console.log('🔍 INITIAL DATA DEBUG: Setting hasInitialDataFetch to true because we have server data');
+        setHasInitialDataFetch(true);
+        // Ensure loading states are reset when we have initial data
+        setIsLoading(false);
+        setTableLoading(false);
+        // Don't fetch data immediately if we have initial candidates
+        // The initial candidates are already loaded and will be used
+      } else {
+        console.log('🔍 INITIAL DATA DEBUG: No action taken - conditions not met:', {
+          sessionStatus,
+          serverAuthError,
+          serverPermissionError,
+          hasInitialDataFetch,
+          initialCandidatesLength: initialCandidates.length
+        });
       }
     }
-  }, [searchParams, isClearingFilters]); // Removed filters from dependencies to prevent infinite loop
+  }, [sessionStatus, serverAuthError, serverPermissionError, hasInitialDataFetch, fetchTableData, fetchAllCandidatesForCounts, initialCandidates.length]);
 
   // Separate useEffect to handle filter changes and fetch candidates
   useEffect(() => {
-    // Skip if not authenticated or has errors
     if (sessionStatus !== 'authenticated' || serverAuthError || serverPermissionError) {
       return;
     }
     
-    // Skip if we're currently clearing filters
     if (isClearingFilters) {
       return;
     }
     
-    // Skip if we haven't completed initial fetch yet
     if (!hasInitialDataFetch) {
       return;
     }
     
-    // Create a unique request ID to prevent infinite loops
+    // If we have initial candidates and no filters are applied, don't fetch immediately
+    // This prevents overwriting the initial data unnecessarily
+    const hasActiveFilters = Object.values(filters).some(value => 
+      value !== undefined && 
+      value !== null && 
+      (Array.isArray(value) ? value.length > 0 : true)
+    );
+    
+    // Only skip fetch if we have initial candidates, no active filters, page is 1, and sort is default
+    if (initialCandidates.length > 0 && !hasActiveFilters && page === 1 && sortColumn === 'lastUpdate' && (sortDirection === 'desc' || sortDirection === null)) {
+      console.log('🔍 FILTER CHANGE DEBUG: Skipping fetch - using initial candidates with default sort');
+      return;
+    }
+    
+    // Skip if filters haven't actually changed to prevent unnecessary requests
     const requestId = JSON.stringify({ filters, page, pageSize, sortColumn, sortDirection });
     if (currentRequestRef.current === requestId) {
       return;
     }
     
-    currentRequestRef.current = requestId;
-
+    // Add a small delay to prevent rapid successive requests
+    const timeoutId = setTimeout(() => {
+      console.log('🔍 FILTER CHANGE DEBUG: Calling fetchTableData and fetchAllCandidatesForCounts');
+      currentRequestRef.current = requestId;
+      fetchTableData(filters, page, pageSize);
+      fetchAllCandidatesForCounts(filters); // Update counts when filters change
+    }, 200); // Increased delay to prevent rapid successive requests
     
-    // Call fetchTableData directly instead of through dependency
-    const fetchCandidates = async () => {
-      const requestId = `${Date.now()}-${Math.random()}`;
-      latestRequestIdRef.current = requestId;
+    return () => clearTimeout(timeoutId);
+  }, [filters, page, pageSize, sortColumn, sortDirection, sessionStatus, serverAuthError, serverPermissionError, isClearingFilters, hasInitialDataFetch, fetchAllCandidatesForCounts, initialCandidates.length]);
 
-      if (sessionStatus !== 'authenticated') {
-        setTableLoading(false);
-        return;
-      }
-      
-      // Prevent multiple simultaneous requests
-      if (isFetching) {
-        return;
-      }
-      
-      // Clear any existing timeout
-      if (fetchTimeoutRef.current) {
-        clearTimeout(fetchTimeoutRef.current);
-      }
-      
-      setIsFetching(true);
-      setTableLoading(true);
-      setTableError(null);
-      
-      // Add a timeout to prevent infinite loading
-      const loadingTimeout = setTimeout(() => {
-        setTableLoading(false);
-        setIsLoading(false); // Also clear the main loading state
-        setIsFetching(false);
-        setTableError('Request timeout. The server may be starting up. Please wait a moment and refresh.');
-      }, 30000);
-      
-      try {
-        const query = new URLSearchParams();
-        
-        // Check if we have an advanced query from URL and pass it to the API
-        const advancedQueryParam = searchParams.get('query');
-        if (advancedQueryParam) {
-          query.append('query', advancedQueryParam);
-        }
-        
-        if (filters.name) {
-          query.append('name', filters.name);
-          if (filters.nameOperator) query.append('nameOperator', filters.nameOperator);
-        }
-        if (filters.email) {
-          query.append('email', filters.email);
-          if (filters.emailOperator) query.append('emailOperator', filters.emailOperator);
-        }
-        if (filters.phone) {
-          query.append('phone', filters.phone);
-          if (filters.phoneOperator) query.append('phoneOperator', filters.phoneOperator);
-        }
-        if (filters.selectedPositionIds && filters.selectedPositionIds.length > 0) query.append('positionId', filters.selectedPositionIds.join(','));
-        if (filters.selectedStatuses && filters.selectedStatuses.length > 0) query.append('status', filters.selectedStatuses.join(','));
-        if (filters.education) query.append('education', filters.education);
-        if (filters.minAppliedJobFitScore !== undefined && filters.minAppliedJobFitScore !== 0) query.append('minAppliedJobFitScore', String(filters.minAppliedJobFitScore));
-        if (filters.maxAppliedJobFitScore !== undefined && filters.maxAppliedJobFitScore !== 100) query.append('maxAppliedJobFitScore', String(filters.maxAppliedJobFitScore));
-        if (filters.minMatchingJobFitScore !== undefined && filters.minMatchingJobFitScore !== 0) query.append('minMatchingJobFitScore', String(filters.minMatchingJobFitScore));
-        if (filters.maxMatchingJobFitScore !== undefined && filters.maxMatchingJobFitScore !== 100) query.append('maxMatchingJobFitScore', String(filters.maxMatchingJobFitScore));
-        if (filters.minExperienceYears !== undefined && (filters.minExperienceYears > 0 || filters.minExperienceYears === -1)) query.append('minExperienceYears', String(filters.minExperienceYears));
-        if (filters.maxExperienceYears !== undefined) query.append('maxExperienceYears', String(filters.maxExperienceYears));
-        if (filters.applicationDateStart) {
-          query.append('applicationDateStart', filters.applicationDateStart.toISOString());
-        }
-        if (filters.applicationDateEnd) {
-          query.append('applicationDateEnd', filters.applicationDateEnd.toISOString());
-        }
-        if (filters.selectedRecruiterIds && filters.selectedRecruiterIds.length > 0) query.append('recruiterId', filters.selectedRecruiterIds.join(','));
-        query.append('page', String(page));
-        query.append('limit', String(pageSize));
-        // Add sorting
-        if (sortColumn) query.append('sortColumn', sortColumn);
-        if (sortDirection) query.append('sortDirection', sortDirection);
-        
-        if (filters.location) {
-          query.append('location', filters.location);
-          if (filters.locationOperator) query.append('locationOperator', filters.locationOperator);
-        }
-        if (filters.skills && Array.isArray(filters.skills)) {
-          if (filters.skills.length > 0) query.append('skills', filters.skills.join(','));
-        } else if (typeof filters.skills === 'string' && filters.skills) {
-          query.append('skills', filters.skills);
-        }
-        
-        const apiUrl = `/api/candidates?${query.toString()}`;
-        
-        // Add timeout and retry logic
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
-
-        const response = await fetch(apiUrl, {
-          signal: controller.signal,
-          headers: {
-            'Cache-Control': 'no-cache'
-          }
-        });
-        clearTimeout(timeoutId);
-        
-        if (!response.ok) {
-          throw new Error(`Failed to fetch candidates: ${response.status} ${response.statusText}`);
-        }
-        
-        const data = await response.json();
-        
-        // Check if this is still the latest request
-        if (latestRequestIdRef.current !== requestId) {
-          return;
-        }
-        
-        if (data.data && Array.isArray(data.data)) {
-          setAllCandidates(data.data);
-          setTotal(data.pagination?.total || data.data.length);
-          setTableError(null);
-        } else {
-          setAllCandidates([]);
-          setTotal(0);
-          setTableError('Invalid data format received from server');
-        }
-      } catch (error) {
-        if (latestRequestIdRef.current !== requestId) {
-          return;
-        }
-        
-        console.error('Error fetching candidates:', error);
-        setTableError((error as Error).message || 'Failed to fetch candidates');
-        setAllCandidates([]);
-        setTotal(0);
-      } finally {
-        if (latestRequestIdRef.current !== requestId) {
-          return;
-        }
-        
-        clearTimeout(loadingTimeout);
-        setTableLoading(false);
-        setIsFetching(false);
-        currentRequestRef.current = null;
-      }
-    };
-    
-    fetchCandidates();
-  }, [filters, page, pageSize, sortColumn, sortDirection, sessionStatus, serverAuthError, serverPermissionError, isClearingFilters, hasInitialDataFetch, searchParams]);
-
-  useEffect(() => {
-    if (sessionStatus === 'unauthenticated' && !serverAuthError && !serverPermissionError) {
-        return;
-    }
-  }, [sessionStatus, serverAuthError, serverPermissionError]);
-
-  useEffect(() => { 
-    setAllCandidates(safeInitialCandidates || []); 
-    setFullCandidatesForCounts(safeInitialCandidates || []); 
-    // Also set table candidates if we have initial data
-    if (safeInitialCandidates.length > 0) {
-      setTableCandidates(safeInitialCandidates);
-      setTableLoading(false);
-    }
-  }, [safeInitialCandidates]);
-  useEffect(() => { setAvailablePositions(safeInitialAvailablePositions || []); }, [safeInitialAvailablePositions]);
-  useEffect(() => { setAvailableStages(safeInitialAvailableStages || []); }, [safeInitialAvailableStages]);
-
-  // Fetch positions and stages on mount if not provided initially
-  useEffect(() => {
-    if (sessionStatus === 'authenticated' && safeInitialAvailablePositions.length === 0) {
-      const fetchPositionsAndStages = async () => {
-        try {
-          const [posResponse, stagesResponse] = await Promise.all([
-            fetch('/api/positions/all'),
-            fetch('/api/recruitment-stages')
-          ]);
-
-          if (posResponse.ok) {
-            const posData = await posResponse.json();
-            // console.log('Positions fetched:', posData);
-            // console.log('Positions data length:', posData.data?.length || 0);
-            // console.log('First few positions:', posData.data?.slice(0, 3));
-            setAvailablePositions(posData.data || []);
-          } else {
-            // console.error("Failed to fetch positions");
-            // console.error("Response status:", posResponse.status);
-            // console.error("Response status text:", posResponse.statusText);
-            toast.error("Could not load the list of available positions.");
-          }
-
-          if (stagesResponse.ok) {
-            const stagesData = await stagesResponse.json();
-            setAvailableStages(Array.isArray(stagesData) ? stagesData : (stagesData.stages || []));
-          } else {
-            // console.error("Failed to fetch recruitment stages");
-            toast.error("Could not load recruitment stages.");
-          }
-        } catch (error) {
-          // console.error("Error fetching positions or stages:", error);
-          toast.error("A network error occurred while fetching initial data.");
-        }
-      };
-      fetchPositionsAndStages();
-    }
-  }, [sessionStatus, safeInitialAvailablePositions.length]);
-
-  // Fetch full candidates dataset for accurate count calculations
-  const fetchFullCandidatesForCounts = useCallback(async () => {
-    try {
-      const response = await fetch('/api/candidates?limit=1000');
-      if (response.ok) {
-        const data = await response.json();
-        if (data.data && Array.isArray(data.data)) {
-          setFullCandidatesForCounts(data.data);
-        }
-      }
-    } catch (error) {
-      // Silently fail - this is for counts only, not critical functionality
-      console.warn('Failed to fetch full candidates for counts:', error);
-    }
-  }, []);
-
-  // Fetch full candidates on mount and when session changes
-  useEffect(() => {
-    if (sessionStatus === 'authenticated') {
-      fetchFullCandidatesForCounts();
-    }
-  }, [sessionStatus, fetchFullCandidatesForCounts]);
-
-  useEffect(() => {
     // Show error as toast popup if present
+  useEffect(() => {
     if (initialFetchError) {
       toast.error(initialFetchError);
     }
   }, [initialFetchError]);
-
-  // Add a ref to track the debounce timeout
-  const filterChangeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const lastAppliedFiltersRef = useRef<string>('');
-  const optimisticUpdateRef = useRef<boolean>(false);
-
-  const handleFilterChange = (newFilters: CandidateFilterValues) => {
-    // Skip if we're currently clearing filters
-    if (isClearingFilters) {
-      return;
-    }
-
-    // Clear any existing timeout
-    if (filterChangeTimeoutRef.current) {
-      clearTimeout(filterChangeTimeoutRef.current);
-      filterChangeTimeoutRef.current = null;
-    }
-    
-    const combinedFilters = { ...filters, ...newFilters, aiSearchQuery: undefined };
-    
-    // Check if filters have actually changed to prevent unnecessary updates
-    const currentFiltersString = JSON.stringify(filters);
-    const newFiltersString = JSON.stringify(combinedFilters);
-    if (currentFiltersString === newFiltersString) {
-      return;
-    }
-
-    // Always clear AI search state if filters are changed
-    if (isAiSearchActive) {
-      setAiMatchedCandidateIds(null);
-      setAiSearchReasoning(null);
-      setAiRecordCount(0);
-      setIsAiSearchActive(false);
-    }
-    
-    // Clear horizontal fit score filters when other filters change to avoid conflicts
-    setHorizontalSelectedFitScoreGrades(new Set());
-    setHorizontalSelectedMatchingFitScoreGrades(new Set());
-    
-    // Immediate UI update for better responsiveness
-    setPage(1);
-    setFilters(combinedFilters);
-    
-    // Show loading state immediately
-    setTableLoading(true);
-    optimisticUpdateRef.current = true;
-    
-    // Determine debounce time based on filter type - reduced for faster response
-    const isFitScoreFilter = newFilters.minAppliedJobFitScore !== undefined || 
-                            newFilters.maxAppliedJobFitScore !== undefined ||
-                            newFilters.minMatchingJobFitScore !== undefined ||
-                            newFilters.maxMatchingJobFitScore !== undefined;
-    
-    const isTextFilter = newFilters.name || newFilters.email || newFilters.phone || newFilters.location;
-    const isDateFilter = newFilters.applicationDateStart || newFilters.applicationDateEnd;
-    
-    // Faster response for different filter types
-    let debounceTime = 100; // Default
-    if (isFitScoreFilter) debounceTime = 25; // Very fast for score filters
-    else if (isTextFilter) debounceTime = 50; // Fast for text filters
-    else if (isDateFilter) debounceTime = 75; // Medium for date filters
-    
-    // Debounce the actual API call to prevent rapid successive calls
-    filterChangeTimeoutRef.current = setTimeout(() => {
-      // Use the optimized table fetch function instead of the full page refresh
-      debouncedFetchTableData(combinedFilters, 1, pageSize);
-    }, debounceTime);
-  };
-
-  // Horizontal fit score filter handlers
-  const handleHorizontalFitScoreGradeToggle = useCallback((grade: string) => {
-    setHorizontalSelectedFitScoreGrades(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(grade)) {
-        newSet.delete(grade);
-      } else {
-        newSet.add(grade);
-      }
-      return newSet;
-    });
-  }, []);
-
-  const handleHorizontalMatchingFitScoreGradeToggle = useCallback((grade: string) => {
-    setHorizontalSelectedMatchingFitScoreGrades(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(grade)) {
-        newSet.delete(grade);
-      } else {
-        newSet.add(grade);
-      }
-      return newSet;
-    });
-  }, []);
-
-  // Apply horizontal fit score filters
-  const applyHorizontalFitScoreFilters = useCallback(() => {
-    const scoreRanges = getScoreRangesForChart();
-    
-    let minAppliedJobFitScore: number | undefined = undefined;
-    let maxAppliedJobFitScore: number | undefined = undefined;
-    let minMatchingJobFitScore: number | undefined = undefined;
-    let maxMatchingJobFitScore: number | undefined = undefined;
-
-    // Handle applied job fit score grades
-    if (horizontalSelectedFitScoreGrades.size > 0) {
-      const selectedRanges = scoreRanges.filter(range => horizontalSelectedFitScoreGrades.has(range.letter));
-      const hasNoScore = horizontalSelectedFitScoreGrades.has('no-score');
-      
-      if (selectedRanges.length > 0) {
-        const minScore = Math.min(...selectedRanges.map(r => r.min));
-        const maxScore = Math.max(...selectedRanges.map(r => r.max));
-        minAppliedJobFitScore = minScore;
-        maxAppliedJobFitScore = maxScore;
-      } else if (hasNoScore) {
-        minAppliedJobFitScore = -1;
-        maxAppliedJobFitScore = undefined; // Keep as undefined for "no-score" case
-      }
-    }
-
-    // Handle matching job fit score grades
-    if (horizontalSelectedMatchingFitScoreGrades.size > 0) {
-      const selectedRanges = scoreRanges.filter(range => horizontalSelectedMatchingFitScoreGrades.has(range.letter));
-      const hasNoScore = horizontalSelectedMatchingFitScoreGrades.has('no-score');
-      
-      if (selectedRanges.length > 0) {
-        const minScore = Math.min(...selectedRanges.map(r => r.min));
-        const maxScore = Math.max(...selectedRanges.map(r => r.max));
-        minMatchingJobFitScore = minScore;
-        maxMatchingJobFitScore = maxScore;
-      } else if (hasNoScore) {
-        minMatchingJobFitScore = -1;
-        maxMatchingJobFitScore = undefined; // Keep as undefined for "no-score" case
-      }
-    }
-
-    const newFilters = {
-      ...filtersRef.current,
-      minAppliedJobFitScore,
-      maxAppliedJobFitScore,
-      minMatchingJobFitScore,
-      maxMatchingJobFitScore,
-    };
-
-    console.log('🔍 DEBUG: Horizontal fit score filters being applied:', {
-      horizontalSelectedFitScoreGrades: Array.from(horizontalSelectedFitScoreGrades),
-      horizontalSelectedMatchingFitScoreGrades: Array.from(horizontalSelectedMatchingFitScoreGrades),
-      newFilters,
-      scoreRanges
-    });
-
-    setFilters(newFilters);
-    setPage(1);
-    debouncedFetchTableDataRef.current(newFilters, 1, pageSizeRef.current);
-  }, [horizontalSelectedFitScoreGrades, horizontalSelectedMatchingFitScoreGrades]);
-
-  // Apply horizontal filters when selections change
-  useEffect(() => {
-    // Only apply horizontal filters if there are selections
-    if (horizontalSelectedFitScoreGrades.size > 0 || horizontalSelectedMatchingFitScoreGrades.size > 0) {
-      applyHorizontalFitScoreFilters();
-    } else {
-      // If no horizontal selections, clear fit score filters from main filters
-      const newFilters = {
-        ...filtersRef.current,
-        minAppliedJobFitScore: undefined,
-        maxAppliedJobFitScore: undefined,
-        minMatchingJobFitScore: undefined,
-        maxMatchingJobFitScore: undefined,
-      };
-      setFilters(newFilters);
-      debouncedFetchTableDataRef.current(newFilters, pageRef.current, pageSizeRef.current);
-    }
-  }, [horizontalSelectedFitScoreGrades, horizontalSelectedMatchingFitScoreGrades]);
-
-  const handleClearAllFilters = useCallback(() => {
-    setIsClearingFilters(true);
-    
-    // Clear AI search state
-    setAiMatchedCandidateIds(null);
-    setAiSearchReasoning(null);
-    setAiRecordCount(0);
-    setIsAiSearchActive(false);
-    
-    // Clear horizontal fit score filters
-    setHorizontalSelectedFitScoreGrades(new Set());
-    setHorizontalSelectedMatchingFitScoreGrades(new Set());
-    
-    // Reset filters to default
-    const defaultFilters: CandidateFilterValues = {
-      name: '',
-      email: '',
-      phone: '',
-      education: '',
-      skills: '',
-      location: '',
-      cvLanguage: '',
-      jobSuitableCareer: '',
-      jobSuitableLevel: '',
-      jobSuitablePosition: '',
-      minExperienceYears: undefined,
-      maxExperienceYears: undefined,
-      selectedPositionIds: [],
-      selectedStatuses: [],
-      selectedRecruiterIds: [],
-      minAppliedJobFitScore: undefined,
-      maxAppliedJobFitScore: undefined,
-      minMatchingJobFitScore: undefined,
-      maxMatchingJobFitScore: undefined,
-      applicationDateStart: undefined,
-      applicationDateEnd: undefined,
-      nameOperator: 'contains',
-      emailOperator: 'contains',
-      phoneOperator: 'contains',
-      locationOperator: 'contains',
-      aiSearchQuery: undefined,
-    };
-    
-    setFilters(defaultFilters);
-    setPage(1);
-    
-    // Fetch candidates with default filters to restore original state
-    // Use a small delay to ensure state updates are processed
-    setTimeout(() => {
-      fetchTableData(defaultFilters, 1, pageSize);
-      setIsClearingFilters(false);
-    }, 100);
-  }, [fetchPaginatedCandidates, pageSize]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -1816,1465 +1244,519 @@ export function CandidatesPageClient({
     };
   }, []);
 
-
-
-  const fetchCandidateById = useCallback(async (candidateId: string): Promise<Candidate | null> => {
-    try {
-      const response = await fetch(`/api/candidates/${candidateId}`);
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        // console.error(`Failed to fetch candidate ${candidateId}: ${errorData.message || response.statusText}`);
-        return null;
-      }
-      return await response.json();
-    } catch (error) {
-      // console.error(`Error fetching candidate ${candidateId}:`, error);
-      return null;
-    }
-  }, []);
-
-  const refreshCandidateInList = useCallback(async (candidateId: string) => {
-    if (aiMatchedCandidateIds !== null) {
-        toast('AI Search Active: Please clear AI search or re-run it to see specific updates.');
-        return;
-    }
-
-    const updatedCandidate = await fetchCandidateById(candidateId);
-    if (updatedCandidate) {
-      setAllCandidates(prev => prev.map(c => c.id === candidateId ? updatedCandidate : c));
-      setFullCandidatesForCounts(prev => prev.map(c => c.id === candidateId ? updatedCandidate : c));
-    } else {
-      toast.error('Could not refresh data for candidate. Attempting full list refresh.');
-      const currentFetchTableData = fetchTableData;
-      currentFetchTableData(filters, page, pageSize);
-    }
-      }, [fetchCandidateById, toast, filters, page, pageSize, aiMatchedCandidateIds]);
-
-  // Optimistic update helper function
-  const applyOptimisticUpdate = useCallback((candidateId: string, updates: Partial<Candidate>) => {
-    setAllCandidates(prev => prev.map(candidate => 
-      candidate.id === candidateId 
-        ? { ...candidate, ...updates, updatedAt: new Date().toISOString() }
-        : candidate
-    ));
-    setFullCandidatesForCounts(prev => prev.map(candidate => 
-      candidate.id === candidateId 
-        ? { ...candidate, ...updates, updatedAt: new Date().toISOString() }
-        : candidate
-    ));
-  }, []);
-
-  // Revert optimistic update helper function
-  const revertOptimisticUpdate = useCallback((candidateId: string, originalCandidate: Candidate) => {
-    setAllCandidates(prev => prev.map(candidate => 
-      candidate.id === candidateId ? originalCandidate : candidate
-    ));
-    setFullCandidatesForCounts(prev => prev.map(candidate => 
-      candidate.id === candidateId ? originalCandidate : candidate
-    ));
-  }, []);
-
-  const updateCandidateStatus = useCallback(async (candidateId: string, newStatus: CandidateStatus, notes?: string, suppressToast?: boolean) => {
-    if (aiMatchedCandidateIds !== null) {
-      toast('AI Search Active: Please clear AI search to perform updates.');
-      return;
-    }
-
-    // Find the original candidate for potential rollback
-    const originalCandidate = allCandidates.find(c => c.id === candidateId);
-    if (!originalCandidate) {
-      toast.error('Candidate not found');
-      return;
-    }
-
-    // Apply optimistic update immediately
-    applyOptimisticUpdate(candidateId, { status: newStatus });
-    
-    if (!suppressToast) {
-      toast.loading('Updating candidate status...', { id: candidateId });
-    }
-
-    try {
-      // Use the utility function instead of direct API call
-      const response = await fetch(`/api/candidates/bulk-action`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'change_status',
-          candidateIds: [candidateId],
-          newStatus: newStatus,
-          transitionNotes: notes
-        }),
-      });
-
-      if (!response.ok) {
-        // Revert optimistic update on error
-        revertOptimisticUpdate(candidateId, originalCandidate);
-        
-        const errorData = await response.json().catch(() => ({ message: 'Failed to update status' }));
-        const errorMessage = errorData.message || `Failed to update status: ${response.statusText}`;
-        
-        if (!suppressToast) {
-          toast.error(errorMessage, { id: candidateId });
-        }
-        throw new Error(errorMessage);
-      }
-
-      const result = await response.json();
-      
-      // Handle headcount validation results
-      if (result.rejectedCandidates && result.rejectedCandidates.length > 0) {
-        const rejectedCandidate = result.rejectedCandidates.find((c: any) => c.candidateId === candidateId);
-        if (rejectedCandidate) {
-          if (!suppressToast) {
-            toast.error(rejectedCandidate.message, { id: candidateId });
-          }
-          throw new Error(rejectedCandidate.message);
-        }
-      }
-
-      // Show success messages for headcount assignments
-      if (result.headcountAssignments && result.headcountAssignments.length > 0) {
-        const assignment = result.headcountAssignments.find((a: any) => a.candidateId === candidateId);
-        if (assignment && assignment.success) {
-          if (!suppressToast) {
-            toast.success(`Candidate automatically assigned to headcount`, { id: candidateId });
-          }
-        }
-      }
-
-      // Fetch the updated candidate to ensure we have the latest data
-      const candidateResponse = await fetch(`/api/candidates/${candidateId}`);
-      if (!candidateResponse.ok) {
-        throw new Error('Failed to fetch updated candidate data');
-      }
-      const updatedCandidate = await candidateResponse.json();
-      
-      // Update with server response (this confirms the optimistic update)
-      setAllCandidates(prev => prev.map(c => 
-        c.id === candidateId ? {
-          ...c,
-          ...updatedCandidate,
-          position: updatedCandidate.position || c.position,
-          recruiter: updatedCandidate.recruiter || c.recruiter
-        } : c
-      ));
-      setFullCandidatesForCounts(prev => prev.map(c => 
-        c.id === candidateId ? {
-          ...c,
-          ...updatedCandidate,
-          position: updatedCandidate.position || c.position,
-          recruiter: updatedCandidate.recruiter || c.recruiter
-        } : c
-      ));
-
-      if (!suppressToast) {
-        toast.success(`Status updated to ${newStatus}`, { id: candidateId });
-      }
-    } catch (error) {
-      console.error('Error updating candidate status:', error);
-      // Optimistic update already reverted above
-      if (!suppressToast) {
-        toast.error((error as Error).message, { id: candidateId });
-      }
-    }
-  }, [allCandidates, aiMatchedCandidateIds, toast, applyOptimisticUpdate, revertOptimisticUpdate]);
-
-  const handleDeleteCandidate = async (candidateId: string) => {
-     try {
-      const response = await fetch(`/api/candidates/${candidateId}`, { method: 'DELETE' });
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: "An unknown error occurred" }));
-        throw new Error(errorData.message || `Failed to delete candidate: ${response.statusText || `Status: ${response.status}`}`);
-      }
-      setAllCandidates(prev => prev.filter(c => c.id !== candidateId));
-      setFullCandidatesForCounts(prev => prev.filter(c => c.id !== candidateId));
-      setSelectedCandidateIds(prev => { const newSet = new Set(prev); newSet.delete(candidateId); return newSet; });
-      toast.success(`Candidate successfully deleted.`);
-    } catch (error) {
-      // console.error("Error deleting candidate:", error);
-      toast.error((error as Error).message);
-      throw error; // Re-throw for table to handle
-    }
-  };
-
-  const handleAddCandidateSubmit = async (formData: AddCandidateFormValues) => {
-    setIsLoading(true);
-    try {
-      // v1 API expects this structure:
-      // {
-      //   candidate_info: { personal_info, contact_info, cv_language, skills, job_suitable, status, ... },
-      //   educationData: [...],
-      //   experienceData: [...],
-      //   ...
-      // }
-      // Create job_applied object if positionId is provided
-      const job_applied = formData.positionId ? {
-        jobId: formData.positionId,
-        fitScore: formData.fitScore || 0,
-        justification: []
-      } : formData.job_applied;
-
-      const candidate_info = {
-        personal_info: formData.personal_info,
-        contact_info: formData.contact_info,
-        cv_language: formData.cv_language,
-        skills: formData.skills?.map(s => ({
-          segment_skill: s.segment_skill,
-          skill: s.skill_string?.split(',').map(sk => sk.trim()).filter(sk => sk) || []
-        })),
-        job_suitable: formData.job_suitable,
-        status: formData.status,
-        fitScore: formData.fitScore,
-        job_matches: formData.job_matches,
-        job_applied: job_applied,
-        applicationDate: formData.applicationDate,
-      };
-      const apiPayload = {
-        candidate_info,
-        job_applied: job_applied, // Also include at top level for the API
-        educationData: formData.education || [],
-        experienceData: formData.experience?.map(exp => ({
-          ...exp,
-          positionLevel: exp.positionLevel === "___NOT_SPECIFIED___" || exp.positionLevel === null ? undefined : exp.positionLevel
-        })) || [],
-      };
-      const response = await fetch('/api/candidates', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(apiPayload),
-      });
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: "An unknown error occurred" }));
-        throw new Error(errorData.message || `Failed to add candidate: ${response.statusText || `Status: ${response.status}`}`);
-      }
-      const { candidate } = await response.json();
-      // Instead of manually adding the candidate, refetch the list from the backend
-      await fetchTableData(filters, page, pageSize);
-      // Also refresh the full candidates dataset for accurate counts
-      await fetchFullCandidatesForCounts();
-      setIsAddModalOpen(false);
-      toast.success(`${candidate.name} has been successfully added.`);
-      // Optionally force a router refresh for full sync:
-      // router.refresh();
-    } catch (error) {
-        // console.error("Error adding candidate:", error);
-        toast.error((error as Error).message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleAutomatedProcessingStart = () => {
-    toast('Processing Started: Resume sent for automated processing. Candidate list will refresh if successful.');
-    setTimeout(() => { fetchTableData(filters, page, pageSize); }, 15000); // Optimistic refresh after 15s
-  };
-
-  const handleExportToExcel = async () => {
-    setIsLoading(true);
-    try {
-      const query = new URLSearchParams();
-      query.append('format', 'excel');
-      if (filters.name) query.append('name', filters.name);
-      if (filters.email) query.append('email', filters.email);
-      if (filters.phone) query.append('phone', filters.phone);
-      if (filters.selectedPositionIds && filters.selectedPositionIds.length > 0) query.append('positionId', filters.selectedPositionIds.join(','));
-      if (filters.selectedStatuses && filters.selectedStatuses.length > 0) query.append('status', filters.selectedStatuses.join(','));
-      if (filters.education) query.append('education', filters.education);
-      if (filters.minAppliedJobFitScore !== undefined) query.append('minAppliedJobFitScore', String(filters.minAppliedJobFitScore));
-      if (filters.maxAppliedJobFitScore !== undefined) query.append('maxAppliedJobFitScore', String(filters.maxAppliedJobFitScore));
-      if (filters.applicationDateStart) query.append('applicationDateStart', filters.applicationDateStart.toISOString());
-      if (filters.applicationDateEnd) query.append('applicationDateEnd', filters.applicationDateEnd.toISOString());
-      if (filters.selectedRecruiterIds && filters.selectedRecruiterIds.length > 0) query.append('recruiterId', filters.selectedRecruiterIds.join(','));
-
-      const response = await fetch(`/api/candidates/export?${query.toString()}`);
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: "Error exporting candidate data." }));
-        throw new Error(errorData.message);
-      }
-      const blob = await response.blob();
-      const filename = response.headers.get('content-disposition')?.split('filename=')[1]?.replace(/"/g, '') || 'candidates_export.xlsx';
-      downloadFile(blob, filename);
-
-      toast.success('Candidates exported as Excel.');
-    } catch (error) {
-      toast.error((error as Error).message);
-    } finally { setIsLoading(false); }
-  };
-
-
-
-  const handleOpenEditPositionModal = (position: Position) => {
-    setSelectedPositionForEdit(position);
-    setIsEditPositionModalOpen(true);
-  };
-
-  const handlePositionEdited = async () => {
-    toast.success('Position details have been saved.');
-    setIsEditPositionModalOpen(false);
-    if (sessionStatus === 'authenticated') {
-        const posResponse = await fetch('/api/positions/all'); // Re-fetch all positions
-        if (posResponse.ok) {
-          const posData = await posResponse.json();
-          setAvailablePositions(posData.data || []);
-        }
-        fetchTableData(filters, page, pageSize); // Refresh candidates list
-        // Also refresh the full candidates dataset for accurate counts
-        fetchFullCandidatesForCounts();
-    }
-  };
-
-  const handleToggleSelectCandidate = (candidateId: string) => {
-    setSelectedCandidateIds(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(candidateId)) {
-        newSet.delete(candidateId);
-      } else {
-        newSet.add(candidateId);
-      }
-      return newSet;
-    });
-  };
-
-  const displayedCandidates = useMemo(() => {
-    // Ensure allCandidates is an array before calling filter
-    const candidates = Array.isArray(allCandidates) ? allCandidates : [];
-    // Filter out invalid candidates
-    const validCandidates = candidates.filter(c => c && c.id && c.name);
-    return aiMatchedCandidateIds !== null
-      ? validCandidates.filter(c => aiMatchedCandidateIds.includes(c.id))
-      : validCandidates;
-  }, [allCandidates, aiMatchedCandidateIds]);
-
-
-  const handleToggleSelectAllCandidates = () => {
-    if (selectedCandidateIds.size === displayedCandidates.length && displayedCandidates.length > 0) {
-      setSelectedCandidateIds(new Set());
-    } else {
-      setSelectedCandidateIds(new Set(displayedCandidates.map(c => c.id)));
-    }
-  };
-
-  const isAllCandidatesSelected = useMemo(() => {
-    if (displayedCandidates.length === 0) return false;
-    return selectedCandidateIds.size === displayedCandidates.length;
-  }, [selectedCandidateIds, displayedCandidates]);
-
-  const handleBulkAction = (action: 'delete' | 'change_status' | 'assign_recruiter') => {
-    setBulkActionType(action);
-    if (action === 'change_status') {
-      setBulkNewStatus(availableStages.find(s => s.name === 'Applied')?.name || availableStages[0]?.name || '');
-    } else if (action === 'assign_recruiter') {
-      setBulkNewRecruiterId(availableRecruiters[0]?.id || null);
-    }
-    setBulkTransitionNotes('');
-    setIsBulkActionConfirmOpen(true);
-  };
-
-  const executeBulkAction = async () => {
-    if (!bulkActionType || selectedCandidateIds.size === 0) return;
-    setIsLoading(true);
-    try {
-      const payload: any = {
-        action: bulkActionType,
-        candidateIds: Array.from(selectedCandidateIds),
-      };
-      if (bulkActionType === 'change_status') {
-        payload.newStatus = bulkNewStatus;
-        payload.transitionNotes = bulkTransitionNotes;
-      } else if (bulkActionType === 'assign_recruiter') {
-        payload.newRecruiterId = bulkNewRecruiterId;
-      }
-
-      const response = await fetch('/api/candidates/bulk-action', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.message || 'Bulk action failed');
-
-      toast.success(`${result.successCount} candidate(s) affected. ${result.failCount > 0 ? `${result.failCount} failed.` : ''}`);
-      setSelectedCandidateIds(new Set()); // Clear selection
-      fetchTableData(filters, page, pageSize); // Refresh list
-      // Also refresh the full candidates dataset for accurate counts
-      fetchFullCandidatesForCounts();
-    } catch (error) {
-      toast.error((error as Error).message);
-    } finally {
-      setIsLoading(false);
-      setIsBulkActionConfirmOpen(false);
-      setBulkActionType(null);
-    }
-  };
-
-  // Add handler for assigning recruiter inline
-  const handleAssignRecruiter = async (candidateId: string, recruiterId: string | null) => {
-    // Find previous recruiter for revert on error
-    const prevCandidate = allCandidates.find(c => c.id === candidateId);
-    const prevRecruiter = prevCandidate?.recruiter || null;
-    // Optimistically update recruiter in UI
-    setAllCandidates(prev =>
-      prev.map(c =>
-        c.id === candidateId
-          ? {
-              ...c,
-              recruiter: recruiterId
-                ? (() => {
-                    const found = availableRecruiters.find(r => r.id === recruiterId);
-                    return found
-                      ? { id: found.id, name: found.name, email: found.email || '' }
-                      : { id: recruiterId, name: 'Unknown', email: '' };
-                  })()
-                : null,
-            }
-          : c
-      )
-    );
-    try {
-      // Find the candidate's current status
-      const candidate = allCandidates.find(c => c.id === candidateId);
-      const status = candidate?.status || 'Applied';
-      const response = await fetch(`/api/candidates/${candidateId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ recruiterId, status }),
-      });
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Failed to assign recruiter' }));
-        throw new Error(errorData.message || `Failed to assign recruiter: ${response.status} ${response.statusText}`);
-      }
-      await refreshCandidateInList(candidateId);
-      toast.success('Recruiter updated.');
-    } catch (error) {
-      // Revert recruiter in UI
-      setAllCandidates(prev =>
-        prev.map(c =>
-          c.id === candidateId
-            ? { ...c, recruiter: prevRecruiter }
-            : c
-        )
-      );
-      console.error('Error assigning recruiter:', error);
-      toast.error((error as Error).message || 'Failed to assign recruiter');
-    }
-  };
-
-  // Add handler for assigning source inline
-  const handleAssignSource = async (candidateId: string, sourceId: string | null, subSource?: string | null) => {
-    // Find previous source for revert on error
-    const prevCandidate = allCandidates.find(c => c.id === candidateId);
-    const prevSource = prevCandidate?.source || null;
-    const prevSubSource = prevCandidate?.subSource || null;
-    
-    // Optimistically update source in UI
-    setAllCandidates(prev =>
-      prev.map(c =>
-        c.id === candidateId
-          ? {
-              ...c,
-              source: sourceId
-                ? (() => {
-                    const found = availableSources.find(s => s.id === sourceId);
-                    return found
-                      ? { id: found.id, name: found.name, description: found.description, logo: found.logo, allowSubSource: found.allowSubSource, sortOrder: found.sortOrder, isActive: found.isActive }
-                      : { id: sourceId, name: 'Unknown', description: null, logo: undefined, allowSubSource: false, sortOrder: 0, isActive: true };
-                  })()
-                : null,
-              subSource: subSource || null,
-            }
-          : c
-      )
-    );
-    try {
-      // Find the candidate's current status
-      const candidate = allCandidates.find(c => c.id === candidateId);
-      const status = candidate?.status || 'Applied';
-      const response = await fetch(`/api/candidates/${candidateId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sourceId, subSource, status }),
-      });
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Failed to assign source' }));
-        throw new Error(errorData.message || `Failed to assign source: ${response.status} ${response.statusText}`);
-      }
-      await refreshCandidateInList(candidateId);
-      toast.success('Source updated.');
-    } catch (error) {
-      // Revert source in UI
-      setAllCandidates(prev =>
-        prev.map(c =>
-          c.id === candidateId
-            ? { ...c, source: prevSource, subSource: prevSubSource }
-            : c
-        )
-      );
-      console.error('Error assigning source:', error);
-      toast.error((error as Error).message || 'Failed to assign source');
-    }
-  };
-
+  // Ensure loading states are properly managed when we have initial data
   useEffect(() => {
-    const handleRefresh = () => {
-      debouncedFetchPaginatedCandidates(filters, page, pageSize);
-    };
-    window.addEventListener('refreshCandidateQueue', handleRefresh);
-    return () => {
-      window.removeEventListener('refreshCandidateQueue', handleRefresh);
-    };
-  }, [filters, page, pageSize, debouncedFetchPaginatedCandidates]);
+    if (initialCandidates.length > 0 && (isLoading || tableLoading)) {
+      console.log('🔍 LOADING DEBUG: Resetting loading states because we have initial candidates');
+      setIsLoading(false);
+      setTableLoading(false);
+    }
+  }, [initialCandidates.length, isLoading, tableLoading, setIsLoading, setTableLoading]);
 
-  // Refresh data when page becomes visible (e.g., when navigating back from candidate detail)
+  // Ensure total is set when we have initial candidates
   useEffect(() => {
-    let visibilityTimeout: NodeJS.Timeout;
-    let focusTimeout: NodeJS.Timeout;
-    let lastRefreshTime = 0;
-    const MIN_REFRESH_INTERVAL = 2000; // Minimum 2 seconds between refreshes
-    
-    const handleVisibilityChange = () => {
-      if (!document.hidden && sessionStatus === 'authenticated' && !isLoading && !isAiSearchActive) {
-        const now = Date.now();
-        if (now - lastRefreshTime < MIN_REFRESH_INTERVAL) {
-          return; // Skip refresh if too soon
-        }
-        
-        // Add a small delay to prevent rapid refreshes when modals open/close - reduced for better responsiveness
-        clearTimeout(visibilityTimeout);
-        visibilityTimeout = setTimeout(() => {
-          // console.log('Page became visible, refreshing candidate data...');
-          lastRefreshTime = Date.now();
-          debouncedFetchTableData(filters, page, pageSize);
-        }, 300); // Reduced delay from 1000ms to 300ms
-      }
-    };
-
-    const handleFocus = () => {
-      if (sessionStatus === 'authenticated' && !isLoading && !isAiSearchActive) {
-        const now = Date.now();
-        if (now - lastRefreshTime < MIN_REFRESH_INTERVAL) {
-          return; // Skip refresh if too soon
-        }
-        
-        // Add a small delay to prevent rapid refreshes when modals open/close - reduced for better responsiveness
-        clearTimeout(focusTimeout);
-        focusTimeout = setTimeout(() => {
-          // console.log('Window gained focus, refreshing candidate data...');
-          lastRefreshTime = Date.now();
-          debouncedFetchTableData(filters, page, pageSize);
-        }, 300); // Reduced delay from 1000ms to 300ms
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleFocus);
-    
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleFocus);
-      clearTimeout(visibilityTimeout);
-      clearTimeout(focusTimeout);
-    };
-  }, [sessionStatus, isLoading, isAiSearchActive, filters, page, pageSize]);
-
-  // Note: Removed automatic recruiter filter setting to allow recruiters to freely select any recruiter filter
-
-  // Ensure ALL useMemo hooks are called before any return
-  const mappedCandidates = useMemo(() => {
-    // Defensive check to prevent temporal dead zone issues
-    if (!Array.isArray(tableCandidates)) {
-      return [];
+    if (initialCandidates.length > 0 && total === 0) {
+      console.log('🔍 TOTAL DEBUG: Setting total to initial candidates length:', initialCandidates.length);
+      setTotal(initialCandidates.length);
     }
-    
-    let candidates = tableCandidates.map(candidate => {
-      // Ensure candidate is valid object
-      if (!candidate || typeof candidate !== 'object') {
-        return candidate;
-      }
-      
-      if ((!candidate.position || !candidate.position.title) && 
-          candidate.positionId && 
-          Array.isArray(availablePositions) && 
-          availablePositions.length > 0) {
-        const foundPosition = availablePositions.find(pos => pos && pos.id === candidate.positionId);
-        if (foundPosition) {
-          return { ...candidate, position: foundPosition };
-        }
-      }
-      return candidate;
-    });
-    
-    // Filter by AI search if active - with safer checks
-    if (isAiSearchActive && Array.isArray(aiMatchedCandidateIds)) {
-      if (aiMatchedCandidateIds.length > 0) {
-        // Create a Set for faster lookup
-        const aiMatchedIdsSet = new Set(aiMatchedCandidateIds);
-        candidates = candidates.filter(c => c && c.id && aiMatchedIdsSet.has(c.id));
-      } else {
-        // If AI search is active and there are no matches, show empty list
-        candidates = [];
-      }
-    }
-    
-    return candidates;
-  }, [tableCandidates, availablePositions, isAiSearchActive, aiMatchedCandidateIds]);
+  }, [initialCandidates.length, total, setTotal]);
 
-  // Paginate candidates for display
-  const paginatedCandidates = useMemo(() => {
-    // Defensive check to prevent temporal dead zone issues
-    if (!Array.isArray(mappedCandidates)) {
-      return [];
-    }
-    
-    // For AI search, we need client-side pagination since the API doesn't handle AI search pagination
-    if (isAiSearchActive && Array.isArray(aiMatchedCandidateIds)) {
-      const safePageSize = pageSize > 0 ? pageSize : 20;
-      const safePage = page > 0 ? page : 1;
-      const start = (safePage - 1) * safePageSize;
-      const end = start + safePageSize;
-      const paginated = mappedCandidates.slice(start, end);
-      return paginated;
-    }
-    
-    // For regular searches, the API already returns paginated data, so just return the mapped candidates
-    // But we need to ensure we're not returning an empty array when there are candidates
-    if (mappedCandidates.length === 0 && tableCandidates.length > 0) {
-      // If mappedCandidates is empty but tableCandidates has data, there might be a filtering issue
-      // Return the first page of tableCandidates as a fallback
-      const safePageSize = pageSize > 0 ? pageSize : 20;
-      const safePage = page > 0 ? page : 1;
-      const start = (safePage - 1) * safePageSize;
-      const end = start + safePageSize;
-      return tableCandidates.slice(start, end);
-    }
-    
-    return mappedCandidates;
-  }, [isAiSearchActive, aiMatchedCandidateIds, mappedCandidates, tableCandidates, page, pageSize]);
+  // Monitor isClearingFilters state for debugging
+  useEffect(() => {
+    console.log('🔍 CLIENT DEBUG: isClearingFilters changed to:', isClearingFilters);
+  }, [isClearingFilters]);
 
-  // For row numbering in table
-  const baseIndex = useMemo(() => {
-    const safePageSize = pageSize > 0 ? pageSize : 20;
-    const safePage = page > 0 ? page : 1;
-    return (safePage - 1) * safePageSize;
-  }, [page, pageSize]);
-
-  // Calculate candidate counts by stage for the pipeline stage filter
-  // Use fullCandidatesForCounts to show total counts regardless of current filters
-  const candidateCountsByStage = useMemo(() => {
-    const stageCounts: { [stageName: string]: number } = {};
-    
-    fullCandidatesForCounts.forEach((candidate: Candidate) => {
-      const status = candidate.status;
-      stageCounts[status] = (stageCounts[status] || 0) + 1;
-    });
-    
-    return stageCounts;
-  }, [fullCandidatesForCounts]);
-
-  // Sort state variables have been moved to the top with other state declarations to prevent temporal dead zone issues
-
-  const handleSort = (column: string | null, direction?: 'asc' | 'desc' | null) => {
-    if (!column) return;
-    if (sortColumn === column) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortColumn(column);
-      setSortDirection(direction ?? 'asc');
-    }
-  };
-
-  // Server-side sorting is handled by the API, so we don't need client-side sorting
-  // The candidates come pre-sorted from the server based on sortColumn and sortDirection
-  const sortedCandidates = useMemo(() => {
-    return paginatedCandidates;
-  }, [paginatedCandidates]);
-
-  // ALL EARLY RETURNS MOVED TO AFTER ALL HOOKS
-  // Centralized error UI for auth/permission
-  if (authError || sessionStatus === 'unauthenticated') {
-    return (
-      <div className="flex flex-col items-center justify-center h-[calc(100vh-10rem)] text-center p-4">
-        <ServerCrash className="w-16 h-16 text-destructive mb-4" />
-        <h2 className="text-2xl font-semibold text-foreground mb-2">Authentication Error</h2>
-        <p className="text-muted-foreground mb-4 max-w-md">You need to be signed in to view candidates.</p>
-        <Button onClick={() => signIn(undefined, { callbackUrl: pathname })}>Sign In</Button>
-      </div>
-    );
-  }
-  if (permissionError) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[calc(100vh-10rem)] text-center p-4">
-        <ShieldAlert className="w-16 h-16 text-destructive mb-4" />
-        <h2 className="text-2xl font-semibold text-foreground mb-2">Permission Denied</h2>
-        <p className="text-muted-foreground mb-4 max-w-md">You do not have permission to view candidates. Please contact your administrator if you believe this is an error.</p>
-      </div>
-    );
-  }
-  // Only show full-screen loader on initial load, not during filter updates
-  if (isLoading && allCandidates.length === 0 && !fetchError && !hasInitialDataFetch) {
-    return ( <div className="flex h-screen w-screen items-center justify-center bg-background fixed inset-0 z-50"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div> );
-  }
-  if (fetchError && !isLoading) {
-    const isMissingTableError = fetchError.toLowerCase().includes("relation") && fetchError.toLowerCase().includes("does not exist");
-    return (
-      <div className="flex flex-col items-center justify-center h-[calc(100vh-10rem)] text-center p-4">
-        <ServerCrash className="w-16 h-16 text-destructive mb-4" />
-        <h2 className="text-2xl font-semibold text-foreground mb-2">Error Loading Candidates</h2>
-        <p className="text-muted-foreground mb-4 max-w-md">{fetchError}</p>
-        {isMissingTableError && ( 
-          <div className="mb-6 p-4 border border-destructive bg-destructive/10 rounded-md text-sm"> 
-            <p className="font-semibold">It looks like a required database table (e.g., &quot;Candidate&quot;, &quot;Position&quot;, &quot;User&quot;, &quot;RecruitmentStage&quot;) is missing or not accessible.</p> 
-            <p className="mt-1">This usually means the database initialization script (`pg-init-scripts/init-db.sql`) did not run correctly when the PostgreSQL Docker container started.</p> 
-            <p className="mt-2">Please refer to the troubleshooting steps in the `README.md` for guidance on how to resolve this, typically involving a clean Docker volume reset.</p> 
-          </div> 
-        )}
-        <Button onClick={() => fetchTableData(filters, page, pageSize)} className="btn-primary-gradient">Try Again</Button>
-      </div>
-    );
-  }
-
-  // Show loading spinner while session is loading
-  if (sessionStatus === 'loading') {
-    return (
-      <div className="flex h-screen w-screen items-center justify-center bg-background fixed inset-0 z-50">
-        <Loader2 className="h-16 w-16 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-
-
+  // Render the component
   return (
-    <div className="flex h-full relative">
-      {/* Filter Sidebar */}
-      {candidateSettings.showFilters && (
-        <aside ref={sidebarFilterRef} className="w-80 min-w-[250px] border-r bg-card dark:bg-background transition-all flex flex-col h-screen responsive-filter-sidebar">
-          <div className="flex justify-between items-center p-2 border-b flex-shrink-0">
-            <span className="font-bold text-lg">Filters</span>
-            <button
-              className="ml-2 p-1 rounded hover:bg-muted"
-              onClick={() => setCandidateSettings(prev => ({ ...prev, showFilters: false }))}
-              aria-label="Hide filters"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </button>
-          </div>
-          <div className="flex-1 overflow-y-auto custom-scrollbar">
-            <ErrorBoundary>
-              <CandidateFilters
-                initialFilters={filters}
-                onFilterChange={handleFilterChange}
-                onAiSearch={handleAiSearch}
-                onClearAllFilters={handleClearAllFilters}
-                availablePositions={availablePositions}
-                availableStages={availableStages}
-                availableRecruiters={availableRecruiters}
-                availableSources={availableSources}
-                isLoading={false}
-                isAiSearching={isAiSearching}
-                advancedQuery={advancedQueryFromUrl}
-                candidateScoreCounts={candidateScoreCounts}
-                candidateCounts={candidateCountsByStage}
-              />
-            </ErrorBoundary>
-          </div>
-        </aside>
-      )}
-      {/* Show button when sidebar is hidden */}
-      {!candidateSettings.showFilters && (
-        <button
-          className="absolute left-0 top-4 z-10 bg-card dark:bg-background border rounded-r p-1 shadow"
-                      onClick={() => setCandidateSettings(prev => ({ ...prev, showFilters: true }))}
-          aria-label="Show filters"
-        >
-          <ChevronRight className="h-5 w-5" />
-        </button>
-      )}
-      {/* Main Content */}
-      <main ref={dynamicContentRef} className="flex-1 w-full space-y-6 min-w-0 p-6">
-       
-
-     
-
-    
-
-        {/* Fit Score Filter Tabs and Action Buttons Row */}
-        <div className="flex flex-col sm:flex-row justify-between items-left">
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 transition-all duration-300 ease-in-out">
-          <div className="flex items-center gap-4 w-full">
-            {/* Candidate count badge */}
-            {/* <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-muted text-foreground transition-all duration-300 ease-in-out">
-              {isAiSearchActive && aiMatchedCandidateIds ? aiRecordCount : total} Candidate{(isAiSearchActive && aiMatchedCandidateIds ? aiRecordCount : total) !== 1 ? 's' : ''}
-            </span> */}
-          </div>
-        </div>
-         
-          {/* Fit Score Filter Tabs */}
-          {candidateSettings.showHorizontalFitScoreFilters && (
-            <div className="flex-1">
-              {candidateSettings.fitScoreType === 'applied' && (
-                <FitScoreFilterTabs
-                  selectedGrades={horizontalSelectedFitScoreGrades}
-                  onGradeToggle={handleHorizontalFitScoreGradeToggle}
-                  candidateCounts={candidateScoreCounts?.applied || []}
-                  className=""
-                />
-              )}
-              {candidateSettings.fitScoreType === 'matching' && (
-                <FitScoreFilterTabs
-                  selectedGrades={horizontalSelectedMatchingFitScoreGrades}
-                  onGradeToggle={handleHorizontalMatchingFitScoreGradeToggle}
-                  candidateCounts={candidateScoreCounts?.matching || []}
-                  className=""
-                />
-              )}
-            </div>
-          )}
-
-        
-          
-        
-          {isAiSearchActive && aiMatchedCandidateIds && aiRecordCount === 0 && (
-            <div className="flex items-center gap-2 mt-2">
-              <span className="text-blue-700 dark:text-blue-300">No candidates matched your AI search.</span>
-              <Button size="sm" variant="outline" onClick={handleClearAllFilters}>Clear AI Search</Button>
-            </div>
-          )}
-
-      
-          
-          {/* Action buttons on the right */}
-          <div className="flex gap-2 items-center">
-            {canManageCandidates && (
-              <Button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-
-                  setIsBulkUploadModalOpen(true);
-                }}
-                variant="default"
-                size="sm"
-                className="w-full sm:w-auto transition-all duration-300 ease-in-out hover:scale-105 mb-2"
-              >
-                <Zap className="mr-2 h-3 w-3" /> Upload CVs
-              </Button>
-            )}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" className="h-8 w-8 mb-2">
-                  <MoreVertical className="h-3 w-3" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onSelect={() => setIsSettingsDrawerOpen(true)}>
-                  <Settings className="mr-2 h-4 w-4" /> Settings
-                </DropdownMenuItem>
-                {canManageCandidates && (
-                  <DropdownMenuItem onSelect={() => setIsAddModalOpen(true)}>
-                    <PlusCircle className="mr-2 h-4 w-4" /> Add Manually
-                  </DropdownMenuItem>
-                )}
-                {canExportCandidates && (
-                  <DropdownMenuItem onSelect={handleExportToExcel} disabled={isLoading}>
-                    <FileSpreadsheet className="mr-2 h-4 w-4" /> Export (Excel)
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-
-        {/* Active Filters Bar */}
-        {(() => {
-          const hasActiveFilters = 
-            filters.name || 
-            filters.email || 
-            filters.phone || 
-            filters.education ||
-            filters.skills ||
-            filters.location ||
-            filters.cvLanguage ||
-            filters.jobSuitableCareer ||
-            filters.jobSuitableLevel ||
-            filters.jobSuitablePosition ||
-            (filters.minExperienceYears !== undefined && (filters.minExperienceYears > 0 || filters.minExperienceYears === -1)) ||
-            (filters.maxExperienceYears !== undefined && filters.maxExperienceYears < 50) ||
-            (filters.selectedPositionIds && filters.selectedPositionIds.length > 0) ||
-            (filters.selectedStatuses && filters.selectedStatuses.length > 0) ||
-            (filters.selectedRecruiterIds && filters.selectedRecruiterIds.length > 0) ||
-            // Fit score filters - only show if there's actual filtering
-            (filters.minAppliedJobFitScore !== undefined) ||
-            (filters.maxAppliedJobFitScore !== undefined && filters.maxAppliedJobFitScore !== 100) ||
-            (filters.minMatchingJobFitScore !== undefined) ||
-            (filters.maxMatchingJobFitScore !== undefined && filters.maxMatchingJobFitScore !== 100) ||
-            filters.applicationDateStart ||
-            filters.applicationDateEnd ||
-            aiSearchReasoning ||
-            horizontalSelectedFitScoreGrades.size > 0 ||
-            horizontalSelectedMatchingFitScoreGrades.size > 0;
-
-          if (!hasActiveFilters) return null;
-
-          return (
-            <div ref={activeFiltersBarRef} className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 px-2 py-1.5 rounded-md filter-bar-container transition-all duration-200 ease-in-out">
-              <Filter className="h-3 w-3" />
-              <span>Active filters:</span>
-              {filters.name && (
-                <Badge variant="secondary" className="text-xs">
-                  Name: "{filters.name}"
-                </Badge>
-              )}
-              {filters.email && (
-                <Badge variant="secondary" className="text-xs">
-                  Email: "{filters.email}"
-                </Badge>
-              )}
-              {filters.phone && (
-                <Badge variant="secondary" className="text-xs">
-                  Phone: "{filters.phone}"
-                </Badge>
-              )}
-              {filters.education && (
-                <Badge variant="secondary" className="text-xs">
-                  Education: "{filters.education}"
-                </Badge>
-              )}
-              {filters.skills && (
-                <Badge variant="secondary" className="text-xs">
-                  Skills: {filters.skills}
-                </Badge>
-              )}
-              {filters.location && (
-                <Badge variant="secondary" className="text-xs">
-                  Location: "{filters.location}"
-                </Badge>
-              )}
-              {filters.cvLanguage && (
-                <Badge variant="secondary" className="text-xs">
-                  CV Language: "{filters.cvLanguage}"
-                </Badge>
-              )}
-              {filters.jobSuitableCareer && (
-                <Badge variant="secondary" className="text-xs">
-                  Career: "{filters.jobSuitableCareer}"
-                </Badge>
-              )}
-              {filters.jobSuitableLevel && (
-                <Badge variant="secondary" className="text-xs">
-                  Level: "{filters.jobSuitableLevel}"
-                </Badge>
-              )}
-              {filters.jobSuitablePosition && (
-                <Badge variant="secondary" className="text-xs">
-                  Position: "{filters.jobSuitablePosition}"
-                </Badge>
-              )}
-              {filters.minExperienceYears !== undefined && (filters.minExperienceYears > 0 || filters.minExperienceYears === -1) && (
-                <Badge variant="secondary" className="text-xs">
-                  {filters.minExperienceYears === -1 ? 'No Experience' : `Min Experience: ${filters.minExperienceYears} years`}
-                </Badge>
-              )}
-              {filters.maxExperienceYears !== undefined && filters.maxExperienceYears < 50 && (
-                <Badge variant="secondary" className="text-xs">
-                  Max Experience: {filters.maxExperienceYears} years
-                </Badge>
-              )}
-              {filters.selectedPositionIds && filters.selectedPositionIds.length > 0 && (
-                <Badge variant="secondary" className="text-xs">
-                  Position{filters.selectedPositionIds.length > 1 ? 's' : ''}: {filters.selectedPositionIds.map(id => {
-                    if (id === 'not-applied') return 'Not Applied';
-                    const position = availablePositions.find(p => p.id === id);
-                    return position ? position.title : id;
-                  }).join(', ')}
-                </Badge>
-              )}
-              {filters.selectedStatuses && filters.selectedStatuses.length > 0 && (
-                <Badge variant="secondary" className="text-xs">
-                  Pipeline{filters.selectedStatuses.length > 1 ? ' Stages' : ' Stage'}: {filters.selectedStatuses.join(', ')}
-                </Badge>
-              )}
-              {filters.selectedRecruiterIds && filters.selectedRecruiterIds.length > 0 && (
-                <Badge variant="secondary" className="text-xs">
-                  Recruiter{filters.selectedRecruiterIds.length > 1 ? 's' : ''}: {filters.selectedRecruiterIds.map(id => {
-                    if (id === 'unassigned') return 'Unassigned';
-                    const recruiter = availableRecruiters.find(r => r.id === id);
-                    return recruiter ? recruiter.name : id;
-                  }).join(', ')}
-                </Badge>
-              )}
-              {filters.minAppliedJobFitScore !== undefined && filters.minAppliedJobFitScore !== -1 && (
-                <Badge variant="secondary" className="text-xs">
-                  Applied Job Min Score: {filters.minAppliedJobFitScore}
-                </Badge>
-              )}
-              {filters.maxAppliedJobFitScore !== undefined && filters.maxAppliedJobFitScore !== 100 && (
-                <Badge variant="secondary" className="text-xs">
-                  Applied Job Max Score: {filters.maxAppliedJobFitScore}
-                </Badge>
-              )}
-              {filters.minAppliedJobFitScore === -1 && (
-                <Badge variant="secondary" className="text-xs">
-                  Applied Job: No Score Only
-                </Badge>
-              )}
-              {filters.minMatchingJobFitScore !== undefined && filters.minMatchingJobFitScore !== -1 && (
-                <Badge variant="secondary" className="text-xs">
-                  Matching Job Min Score: {filters.minMatchingJobFitScore}
-                </Badge>
-              )}
-              {filters.maxMatchingJobFitScore !== undefined && filters.maxMatchingJobFitScore !== 100 && (
-                <Badge variant="secondary" className="text-xs">
-                  Matching Job Max Score: {filters.maxMatchingJobFitScore}
-                </Badge>
-              )}
-              {filters.minMatchingJobFitScore === -1 && (
-                <Badge variant="secondary" className="text-xs">
-                  Matching Job: No Score Only
-                </Badge>
-              )}
-              {filters.applicationDateStart && (
-                <Badge variant="secondary" className="text-xs">
-                  From: {filters.applicationDateStart.toLocaleDateString()}
-                </Badge>
-              )}
-              {filters.applicationDateEnd && (
-                <Badge variant="secondary" className="text-xs">
-                  To: {filters.applicationDateEnd.toLocaleDateString()}
-                </Badge>
-              )}
-              {aiSearchReasoning && (
-                <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
-                  AI Search Active
-                </Badge>
-              )}
-              {horizontalSelectedFitScoreGrades.size > 0 && (
-                <Badge variant="secondary" className="text-xs">
-                  Applied Fit Score: {Array.from(horizontalSelectedFitScoreGrades).join(', ')}
-                </Badge>
-              )}
-              {horizontalSelectedMatchingFitScoreGrades.size > 0 && (
-                <Badge variant="secondary" className="text-xs">
-                  Matching Fit Score: {Array.from(horizontalSelectedMatchingFitScoreGrades).join(', ')}
-                </Badge>
-              )}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="ml-auto h-6 px-2 text-xs"
-                onClick={handleClearAllFilters}
-              >
-                Clear all
-              </Button>
-            </div>
-          );
-        })()}
-        {/* AI Search Results - Now positioned after Fit Score Filter Tabs */}
-        {aiSearchReasoning && (
-            <Alert variant="default" className="bg-blue-50 border-blue-300 dark:bg-blue-900/30 dark:border-blue-700 transition-all duration-300 ease-in-out animate-in slide-in-from-top-2 mt-4">
-              <Brain className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-              <AlertTitle className="font-semibold text-blue-700 dark:text-blue-300">AI Search Results</AlertTitle>
-              <AlertDescription className="text-blue-700 dark:text-blue-300">
-                {aiSearchReasoning}
-              </AlertDescription>
-            </Alert>
-          )}
-        {/* Bulk Actions - show when candidates are selected */}
-        {selectedCandidateIds.size > 0 && canManageCandidates && (
-          <div className="flex items-center gap-2 mt-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-8 px-3 text-sm transition-all duration-300 ease-in-out hover:scale-105">
-                  Bulk Actions ({selectedCandidateIds.size}) <ChevronDown className="ml-1 h-3 w-3" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onSelect={() => handleBulkAction('delete')}>
-                  <BulkTrashIcon className="mr-2 h-4 w-4" /> Delete Selected
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => handleBulkAction('change_status')}>
-                  <BulkEditIcon className="mr-2 h-4 w-4" /> Change Status
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => handleBulkAction('assign_recruiter')}>
-                  <Users className="mr-2 h-4 w-4" /> Assign Recruiter
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        )}
-
-        {/* Show no matching candidates message right under the filters */}
-        {mappedCandidates.length === 0 && tableCandidates.length > 0 && (
-          <div className="flex flex-col items-center justify-center py-6 text-center transition-all duration-500 ease-in-out animate-in fade-in mt-4">
-            <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mb-3">
-              <Search className="w-6 h-6 text-muted-foreground" />
-            </div>
-            <h3 className="text-base font-semibold text-foreground mb-2">No matching candidates</h3>
-            <p className="text-muted-foreground mb-3 max-w-md text-sm">
-              Try adjusting your filters or search criteria to find more candidates.
-            </p>
-            <Button onClick={handleClearAllFilters} variant="outline" size="sm">
-              Clear All Filters
-            </Button>
-          </div>
-        )}
-
-        {/* Authentication Check */}
-        {String(sessionStatus) === 'unauthenticated' && (
-          <div className="flex flex-col items-center justify-center py-12 text-center transition-all duration-500 ease-in-out animate-in fade-in">
-            <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
-              <ShieldAlert className="w-8 h-8 text-muted-foreground" />
-            </div>
-            <h3 className="text-lg font-semibold text-foreground mb-2">Authentication Required</h3>
-            <p className="text-muted-foreground mb-4 max-w-md">
-              Please sign in to view and manage candidates.
-            </p>
-            <Button onClick={() => signIn()}>
-              Sign In
-            </Button>
-          </div>
-        )}
-
-        {/* Loading State - Show when server is starting up or initial data is being fetched */}
-        {String(sessionStatus) === 'authenticated' && (isLoading || tableLoading) && !isAiSearching && (
-          <div className="flex flex-col items-center justify-center py-12 text-center transition-all duration-500 ease-in-out animate-in fade-in">
-            <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4 animate-pulse">
-              <Loader2 className="w-8 h-8 text-muted-foreground animate-spin" />
-            </div>
-            <h3 className="text-lg font-semibold text-foreground mb-2">Loading Candidates...</h3>
-            <p className="text-muted-foreground mb-4 max-w-md">
-              {isLoading ? 'Initializing...' : 'Fetching data...'}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              If this takes too long, the server may be starting up. Please wait a moment.
-            </p>
-          </div>
-        )}
-
-        {/* Empty State - Single conditional to prevent duplicates */}
-        {String(sessionStatus) === 'authenticated' && !isLoading && !tableLoading && !isAiSearching && (() => {
-          // AI search is active and has results - don't show empty state
-          if (isAiSearchActive && aiMatchedCandidateIds && aiMatchedCandidateIds.length > 0) {
-            return null; // Don't show empty state when AI search has results
-          }
-          
-          // No candidates in database at all
-          if (tableCandidates.length === 0) {
-            return (
-              <div className="flex flex-col items-center justify-center py-12 text-center transition-all duration-500 ease-in-out animate-in fade-in">
-                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
-                  <Users className="w-8 h-8 text-muted-foreground" />
-                </div>
-                <h3 className="text-lg font-semibold text-foreground mb-2">No candidates found</h3>
-                <p className="text-muted-foreground mb-4 max-w-md">
-                  No candidates have been added yet. Add your first candidate to get started.
-                </p>
-                {canManageCandidates && (
-                  <Button onClick={() => setIsAddModalOpen(true)}>
-                    Add First Candidate
-                  </Button>
-                )}
-              </div>
-            );
-          }
-          
-          // Has candidates and results - show nothing
-          return null;
-        })()}
-
-        {/* Only render table when there are candidates to show */}
-        {(() => {
-          if (sortedCandidates.length > 0) {
-            // Create a settings hash to force table re-render when column visibility changes
-            const settingsHash = JSON.stringify({
-              showCandidateColumn: candidateSettings.showCandidateColumn,
-              showAppliedJobColumn: candidateSettings.showAppliedJobColumn,
-              showJobMatchesColumn: candidateSettings.showJobMatchesColumn,
-              showFitScoreColumn: candidateSettings.showFitScoreColumn,
-              showRecruiterColumn: candidateSettings.showRecruiterColumn,
-              showStatusColumn: candidateSettings.showStatusColumn,
-              showAppliedDateColumn: candidateSettings.showAppliedDateColumn,
-            });
-
-            return (
-              <ErrorBoundary>
-                <CandidateTable
-                  key={`table-${settingsHash}`}
-                  candidates={sortedCandidates}
+    <>
+      <div className="flex flex-col h-full">
+        {/* Main Content */}
+        <div className="flex-1 flex overflow-hidden">
+          {/* Filters Sidebar */}
+          {showFilters && (
+            <div className="w-[280px] border-r bg-background overflow-hidden">
+              <div className="h-full overflow-y-auto">
+                <CandidateFilters
+                  initialFilters={filters}
+                  onFilterChange={onFilterChange}
+                  onAiSearch={handleAiSearch}
                   availablePositions={availablePositions}
                   availableStages={availableStages}
                   availableRecruiters={availableRecruiters}
                   availableSources={availableSources}
-                  onAssignRecruiter={handleAssignRecruiter}
-                  onAssignSource={handleAssignSource}
-                  onUpdateCandidate={updateCandidateStatus}
-                  onDeleteCandidate={handleDeleteCandidate}
-                  onEditPosition={handleOpenEditPositionModal}
-                  isLoading={tableLoading}
-                  onRefreshCandidateData={refreshCandidateInList}
-                  selectedCandidateIds={selectedCandidateIds}
-                  onToggleSelectCandidate={handleToggleSelectCandidate}
-                  onToggleSelectAllCandidates={handleToggleSelectAllCandidates}
-                  isAllCandidatesSelected={isAllCandidatesSelected}
-                  page={page}
-                  pageSize={pageSize}
-                  baseIndex={baseIndex}
-                  sortColumn={sortColumn}
-                  sortDirection={sortDirection}
-                  onSort={handleSort}
-                  canManageCandidates={canManageCandidates}
-                  settings={candidateSettings}
-                  tableHeight={tableHeight}
+                  candidateCounts={candidateCountsByStage}
+                  onClearAllFilters={handleClearAllFilters}
+                  isLoading={isLoading}
+                  isAiSearching={isAiSearching}
+                  candidateScoreCounts={candidateScoreCounts}
                 />
-              </ErrorBoundary>
-            );
-          }
-          
-          // If AI search is active and has results but no candidates are showing, 
-          // there might be an issue with the filtering
-          if (isAiSearchActive && aiMatchedCandidateIds && aiMatchedCandidateIds.length > 0 && sortedCandidates.length === 0) {
-        
-            return (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-                  <Brain className="w-8 h-8 text-blue-600" />
-                </div>
-                <h3 className="text-lg font-semibold text-foreground mb-2">AI Search Results Found</h3>
-                <p className="text-muted-foreground mb-4 max-w-md">
-                  AI found {aiMatchedCandidateIds.length} matching candidates, but they are not currently visible. 
-                  This might be due to filtering issues.
-                </p>
-                <Button onClick={handleClearAllFilters} variant="outline">
-                  Clear Filters to View Results
-                </Button>
               </div>
-            );
-          }
-          
-          return null;
-        })()}
-
-        {/* Pagination Controls */}
-        <div className="flex items-center justify-between mt-4 transition-all duration-300 ease-in-out">
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setPage(1)}
-              disabled={page === 1}
-              aria-label="First page"
-              className="transition-all duration-200 ease-in-out hover:scale-105"
-            >
-              <ChevronLeft className="h-4 w-4" />
-              <ChevronLeft className="h-4 w-4 -ml-2" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setPage(page - 1)}
-              disabled={page === 1}
-              aria-label="Previous page"
-              className="transition-all duration-200 ease-in-out hover:scale-105"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="text-sm">
-              Page {page} of {totalPages}
-              {isAiSearchActive && aiRecordCount > 0 && (
-                <span className="ml-2 text-muted-foreground">
-                  ({sortedCandidates.length} of {aiRecordCount} results)
-                </span>
-              )}
-            </span>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setPage(page + 1)}
-              disabled={page === totalPages}
-              aria-label="Next page"
-              className="transition-all duration-200 ease-in-out hover:scale-105"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setPage(totalPages)}
-              disabled={page === totalPages}
-              aria-label="Last page"
-              className="transition-all duration-200 ease-in-out hover:scale-105"
-            >
-              <ChevronRight className="h-4 w-4" />
-              <ChevronRight className="h-4 w-4 -ml-2" />
-            </Button>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm">Rows per page:</span>
-            <select
-              value={pageSize}
-              onChange={e => {
-                const newPageSize = Number(e.target.value);
-                setPageSize(newPageSize);
-                setPage(1); // Reset to first page when changing page size
-              }}
-              className="border rounded-md px-2 py-1 text-sm bg-background text-foreground transition-all duration-200 ease-in-out hover:border-primary focus:border-primary focus:outline-none"
-            >
-              {[10, 20, 50, 100].map(size => (
-                <option key={size} value={size}>{size}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </main>
-
-      {canManageCandidates && <AddCandidateModal isOpen={isAddModalOpen} onOpenChange={setIsAddModalOpen} onAddCandidate={handleAddCandidateSubmit} availableStages={availableStages} />}
-      {selectedPositionForEdit && (
-        <EditPositionModal 
-          isOpen={isEditPositionModalOpen} 
-          onOpenChange={(isOpen) => { 
-            setIsEditPositionModalOpen(isOpen); 
-            if (!isOpen) setSelectedPositionForEdit(null); 
-          }} 
-          position={selectedPositionForEdit} 
-          onEditPosition={handlePositionEdited} 
-        />
-      )}
-      <AutomationUploadModal
-        isOpen={isAutomationUploadModalOpen}
-        onOpenChange={setIsAutomationUploadModalOpen}
-      />
-      {canManageCandidates && (
-        <BulkUploadCVsModal
-          isOpen={isBulkUploadModalOpen}
-          onOpenChange={(open) => {
-        
-            setIsBulkUploadModalOpen(open);
-          }}
-        />
-      )}
-
-      <AlertDialog open={isBulkActionConfirmOpen} onOpenChange={setIsBulkActionConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Bulk Action</AlertDialogTitle>
-            <AlertDialogDescription>
-              You are about to perform <strong>{bulkActionType?.replace('_', ' ')}</strong> on <strong>{selectedCandidateIds.size}</strong> selected candidate(s).
-              {bulkActionType === 'delete' && " This action cannot be undone."}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          {bulkActionType === 'change_status' && (
-            <div className="my-4 space-y-2">
-              <StageSelect
-                value={bulkNewStatus}
-                onChange={setBulkNewStatus}
-                availableStages={availableStages}
-                label="New Status"
-              />
-              <Label htmlFor="bulk-transition-notes">Notes (Optional)</Label>
-              <Textarea id="bulk-transition-notes" value={bulkTransitionNotes} onChange={(e) => setBulkTransitionNotes(e.target.value)} placeholder="Optional notes for this bulk status change."/>
             </div>
           )}
-          {bulkActionType === 'assign_recruiter' && (
-            <div className="my-4 space-y-2">
-              <Label htmlFor="bulk-new-recruiter">Assign to Recruiter</Label>
-              <Popover>
-                <PopoverTrigger asChild>
+
+          {/* Table Area */}
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Fit Score Filters with Action Buttons */}
+            {(() => {
+              if (!candidateSettings.showHorizontalFitScoreFilters) {
+                return null;
+              }
+              
+              return (
+                <div className="p-4 pb-0 pr-2 border-b">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      {candidateSettings.fitScoreType === 'applied' && (
+                        <FitScoreFilterTabs
+                          selectedGrades={horizontalSelectedFitScoreGrades}
+                          onGradeToggle={handleHorizontalFitScoreGradeToggle}
+                          onClearAll={clearAllHorizontalFitScoreFilters}
+                          candidateCounts={candidateScoreCounts?.applied || []}
+                          className=""
+                          filterMode={candidateSettings.fitScoreFilterMode}
+                          aiMatchedCount={aiRecordCount}
+                          isAiSearchActive={isAiSearchActive}
+                        />
+                      )}
+                      {candidateSettings.fitScoreType === 'matching' && (
+                        <FitScoreFilterTabs
+                          selectedGrades={horizontalSelectedMatchingFitScoreGrades}
+                          onGradeToggle={handleHorizontalMatchingFitScoreGradeToggle}
+                          onClearAll={clearAllHorizontalFitScoreFilters}
+                          candidateCounts={candidateScoreCounts?.matching || []}
+                          className=""
+                          filterMode={candidateSettings.fitScoreFilterMode}
+                          aiMatchedCount={aiRecordCount}
+                          isAiSearchActive={isAiSearchActive}
+                        />
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center space-x-3 ml-3">
+                      <Button
+                        size="sm"
+                        onClick={() => setIsBulkUploadModalOpen(true)}
+                        disabled={isLoading || tableLoading}
+                        className="mb-2"
+                      >
+                        Upload CVs
+                      </Button>
+                      
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="sm" disabled={isLoading || tableLoading} className="w-8 p-0 ml-2 mb-2">
+                            <MoreVertical className="h-3 w-3" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => setIsAddModalOpen(true)}>
+                            <PlusCircle className="mr-2 h-4 w-4" />
+                            Add Candidate
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={handleExportCandidates}>
+                            <FileDown className="mr-2 h-4 w-4" />
+                            Export Data
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={handleImportCandidates}>
+                            <FileSpreadsheet className="mr-2 h-4 w-4" />
+                            Import Data
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setIsSettingsDrawerOpen(true)}>
+                            <Settings className="mr-2 h-4 w-4" />
+                            Settings Page
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                  
+                  {/* AI Search Results Display */}
+                  {aiSearchReasoning && (
+                    <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20">
+                      <div className="flex items-start gap-2">
+                        <Brain className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                              AI Search Results
+                            </span>
+                            <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-200">
+                              {aiRecordCount} matched
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-blue-700 dark:text-blue-300">
+                            {aiSearchReasoning}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* Table */}
+            <div className="flex-1 overflow-hidden">
+              <CandidateTable
+                candidates={displayedCandidates}
+                isLoading={(isLoading || tableLoading) && displayedCandidates.length === 0}
+                onUpdateCandidate={updateCandidateStatus}
+                onDeleteCandidate={handleDeleteCandidate}
+                onAssignRecruiter={handleAssignRecruiter}
+                onAssignSource={handleAssignSource}
+                availablePositions={availablePositions}
+                availableStages={availableStages}
+                availableRecruiters={availableRecruiters}
+                availableSources={availableSources}
+                canManageCandidates={canManageCandidates}
+                sortColumn={sortColumn}
+                sortDirection={sortDirection}
+                onSort={(column, direction) => {
+                  if (column === sortColumn && direction === null) {
+                    // 3-state toggle: unsorted -> asc -> desc -> unsorted
+                    if (sortDirection === 'asc') {
+                      setSortDirection('desc');
+                    } else if (sortDirection === 'desc') {
+                      // Clear sort - go back to unsorted (default)
+                      setSortDirection(null);
+                    } else {
+                      // From unsorted (null) to asc
+                      setSortDirection('asc');
+                    }
+                  } else {
+                    // Set new column and direction (always update even if same values)
+                    setSortColumn(column || 'lastUpdate');
+                    setSortDirection(direction || 'desc');
+                  }
+                }}
+                onEditPosition={setSelectedPositionForEdit}
+                onRefreshCandidateData={async (candidateId) => {
+                  await fetchCandidateById(candidateId);
+                }}
+                selectedCandidateIds={selectedCandidateIds}
+                onToggleSelectCandidate={(candidateId) => {
+                  const newSelected = new Set(selectedCandidateIds);
+                  if (newSelected.has(candidateId)) {
+                    newSelected.delete(candidateId);
+                  } else {
+                    newSelected.add(candidateId);
+                  }
+                  setSelectedCandidateIds(newSelected);
+                }}
+                onToggleSelectAllCandidates={() => {
+                  if (selectedCandidateIds.size === displayedCandidates.length) {
+                    setSelectedCandidateIds(new Set());
+                  } else {
+                    setSelectedCandidateIds(new Set(displayedCandidates.map(c => c.id)));
+                  }
+                }}
+                isAllCandidatesSelected={selectedCandidateIds.size === displayedCandidates.length && displayedCandidates.length > 0}
+                page={page}
+                pageSize={pageSize}
+                baseIndex={(page - 1) * pageSize}
+                onBulkDelete={handleBulkDelete}
+                onBulkChangeStatus={handleBulkChangeStatus}
+                onBulkAssignRecruiter={handleBulkAssignRecruiter}
+                settings={candidateSettings}
+              />
+            </div>
+
+            {/* Bulk Action Footer - moved outside table area */}
+            {selectedCandidateIds && selectedCandidateIds.size > 0 && (
+              <div className="border-t bg-muted/50 p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <span className="font-medium text-sm">
+                      {selectedCandidateIds.size} candidate{selectedCandidateIds.size !== 1 ? 's' : ''} selected
+                    </span>
+                    
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleBulkDelete(Array.from(selectedCandidateIds))}
+                        disabled={!canManageCandidates}
+                      >
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        Delete Selected
+                      </Button>
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setBulkNewStatus('');
+                          setBulkTransitionNotes('');
+                          setIsBulkStatusModalOpen(true);
+                        }}
+                        disabled={!canManageCandidates}
+                      >
+                        <FileEdit className="h-4 w-4 mr-1" />
+                        Change Status
+                      </Button>
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setBulkNewRecruiterId(null);
+                          setIsBulkRecruiterModalOpen(true);
+                        }}
+                        disabled={!canManageCandidates}
+                      >
+                        <Users className="h-4 w-4 mr-1" />
+                        Assign Recruiter
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedCandidateIds(new Set())}
+                  >
+                    Clear Selection
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Pagination */}
+            <div className="p-4 border-t">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="text-sm text-gray-600">
+                    {(() => {
+                      // Use AI search counts when AI search is active
+                      const currentTotal = isAiSearchActive && aiMatchedCandidateIds ? aiRecordCount : total;
+                      const currentPageSize = pageSize;
+                      const startItem = ((page - 1) * currentPageSize) + 1;
+                      const endItem = Math.min(page * currentPageSize, currentTotal);
+                      
+                      if (currentTotal === 0) {
+                        return isAiSearchActive ? 'No AI-matched candidates found' : 'No candidates found';
+                      }
+                      
+                      if (isAiSearchActive && aiMatchedCandidateIds) {
+                        return `Showing ${startItem} to ${endItem} of ${currentTotal} AI-matched candidates`;
+                      }
+                      
+                      return `Showing ${startItem} to ${endItem} of ${currentTotal} candidates`;
+                    })()}
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600">Items per page:</span>
+                    <Select 
+                      value={pageSize.toString()} 
+                      onValueChange={(value) => {
+                        const newPageSize = parseInt(value);
+                        setPageSize(newPageSize);
+                        setPage(1); // Reset to first page when changing page size
+                        // Fetch data with new page size
+                        fetchTableData(filters, 1, newPageSize);
+                      }}
+                    >
+                      <SelectTrigger className="w-20 h-8">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="10">10</SelectItem>
+                        <SelectItem value="20">20</SelectItem>
+                        <SelectItem value="50">50</SelectItem>
+                        <SelectItem value="100">100</SelectItem>
+                        <SelectItem value="1000">Show All</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                
+                <div className="flex items-center space-x-2">
                   <Button
                     variant="outline"
-                    role="combobox"
-                    className="w-full justify-between"
-                    id="bulk-new-recruiter"
+                    size="sm"
+                    onClick={() => setPage(Math.max(1, page - 1))}
+                    disabled={(() => {
+                      const currentTotal = isAiSearchActive && aiMatchedCandidateIds ? aiRecordCount : total;
+                      return page <= 1 || currentTotal === 0;
+                    })()}
                   >
-                    {bulkNewRecruiterId ? (
-                      <div className="flex items-center gap-2">
-                        {(() => {
-                          const selectedRecruiter = availableRecruiters.find(r => r.id === bulkNewRecruiterId);
-                          return selectedRecruiter ? (
-                            <>
-                              <Avatar className="h-5 w-5">
-                                <AvatarImage src={selectedRecruiter.avatarUrl} />
-                                <AvatarFallback className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
-                                  {selectedRecruiter.name.charAt(0).toUpperCase()}
-                                </AvatarFallback>
-                              </Avatar>
-                              <span>{selectedRecruiter.name}</span>
-                            </>
-                          ) : (
-                            <span>Unknown recruiter</span>
-                          );
-                        })()}
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground">Select recruiter...</span>
-                    )}
-                    <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
+                    <ChevronLeft className="h-4 w-4" />
+                    Previous
                   </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-full p-0" align="start">
-                  <div className="p-2">
-                    <div className="text-sm font-medium mb-2">Select Recruiter</div>
-                    
-                    {/* Unassign option */}
-                    <button
-                      onClick={() => setBulkNewRecruiterId(null)}
-                      className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-accent text-left"
-                    >
-                      <div className="h-6 w-6 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                        <UserX className="h-3 w-3 text-gray-500" />
-                      </div>
-                      <div className="flex flex-col flex-1">
-                        <span className="text-sm">Unassign</span>
-                        <span className="text-xs text-muted-foreground">Remove recruiter assignment</span>
-                      </div>
-                      {bulkNewRecruiterId === null && (
-                        <div className="w-4 h-4 rounded-full bg-primary" />
-                      )}
-                    </button>
-
-                    {/* Available recruiters */}
-                    {availableRecruiters.map((recruiter) => (
-                      <button
-                        key={recruiter.id}
-                        onClick={() => setBulkNewRecruiterId(recruiter.id)}
-                        className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-accent text-left"
-                      >
-                        <Avatar className="h-6 w-6">
-                          <AvatarImage src={recruiter.avatarUrl} />
-                          <AvatarFallback className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
-                            {recruiter.name.charAt(0).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex flex-col flex-1">
-                          <span className="text-sm font-medium">{recruiter.name}</span>
-                          <span className="text-xs text-muted-foreground">Recruiter</span>
-                        </div>
-                        {bulkNewRecruiterId === recruiter.id && (
-                          <div className="w-4 h-4 rounded-full bg-primary" />
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                </PopoverContent>
-              </Popover>
+                  
+                  <span className="text-sm">
+                    {(() => {
+                      const currentTotal = isAiSearchActive && aiMatchedCandidateIds ? aiRecordCount : total;
+                      if (currentTotal === 0) {
+                        return 'No pages';
+                      }
+                      return `Page ${page} of ${totalPages}`;
+                    })()}
+                  </span>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage(Math.min(totalPages, page + 1))}
+                    disabled={(() => {
+                      const currentTotal = isAiSearchActive && aiMatchedCandidateIds ? aiRecordCount : total;
+                      return page >= totalPages || currentTotal === 0;
+                    })()}
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
             </div>
-          )}
+          </div>
+        </div>
+      </div>
+
+      {/* Modals */}
+      <AddCandidateModal
+        isOpen={isAddModalOpen}
+        onOpenChange={setIsAddModalOpen}
+        availableStages={availableStages}
+        onAddCandidate={async () => {
+          fetchTableData(filters, page, pageSize);
+        }}
+      />
+
+      <BulkUploadCVsModal
+        isOpen={isBulkUploadModalOpen}
+        onOpenChange={setIsBulkUploadModalOpen}
+        onUploadSuccess={() => {
+          fetchTableData(filters, page, pageSize);
+        }}
+      />
+
+      <PositionDetailDrawer
+        isOpen={isPositionDrawerOpen}
+        onOpenChange={setIsPositionDrawerOpen}
+        positionId={selectedPositionForEdit?.id || null}
+      />
+
+      <CandidateSettingsDrawer
+        isOpen={isSettingsDrawerOpen}
+        onOpenChange={handleSettingsDrawerOpenChange}
+        currentSettings={candidateSettings}
+        onSettingsChange={handleSettingsChange}
+        isLoading={settingsLoading}
+        error={settingsError}
+      />
+
+      {/* Bulk Status Change Modal */}
+      <AlertDialog open={isBulkStatusModalOpen} onOpenChange={setIsBulkStatusModalOpen}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Change Status for Selected Candidates</AlertDialogTitle>
+            <AlertDialogDescription>
+              Change the status for {selectedCandidateIds.size} selected candidate{selectedCandidateIds.size !== 1 ? 's' : ''}.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="bulk-status">New Status</Label>
+              <Select value={bulkNewStatus} onValueChange={setBulkNewStatus}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent className="z-[10003]">
+                  {availableStages.map((stage) => (
+                    <SelectItem key={stage.name} value={stage.name}>
+                      {stage.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              <Label htmlFor="bulk-notes">Transition Notes (Optional)</Label>
+              <Textarea
+                id="bulk-notes"
+                placeholder="Add notes about this status change..."
+                value={bulkTransitionNotes}
+                onChange={(e) => setBulkTransitionNotes(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+          
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => {setIsBulkActionConfirmOpen(false); setBulkActionType(null);}}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={executeBulkAction} disabled={isLoading}>
-              {isLoading ? <Loader2 className="animate-spin mr-2" /> : null} Confirm
+            <AlertDialogCancel onClick={() => {
+              setIsBulkStatusModalOpen(false);
+              setBulkNewStatus('');
+              setBulkTransitionNotes('');
+            }}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                if (bulkNewStatus) {
+                  handleBulkChangeStatus(Array.from(selectedCandidateIds), bulkNewStatus, bulkTransitionNotes);
+                  setIsBulkStatusModalOpen(false);
+                  setBulkNewStatus('');
+                  setBulkTransitionNotes('');
+                }
+              }}
+              disabled={!bulkNewStatus}
+            >
+              Change Status
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Settings Drawer */}
-      <CandidateSettingsDrawer
-        isOpen={isSettingsDrawerOpen}
-        onOpenChange={setIsSettingsDrawerOpen}
-        onSettingsChange={setCandidateSettings}
-        currentSettings={candidateSettings}
-      />
-    </div>
+      {/* Bulk Recruiter Assignment Modal */}
+      <AlertDialog open={isBulkRecruiterModalOpen} onOpenChange={setIsBulkRecruiterModalOpen}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Assign Recruiter to Selected Candidates</AlertDialogTitle>
+            <AlertDialogDescription>
+              Assign a recruiter to {selectedCandidateIds.size} selected candidate{selectedCandidateIds.size !== 1 ? 's' : ''}.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="bulk-recruiter">Recruiter</Label>
+              <Select value={bulkNewRecruiterId || 'none'} onValueChange={(value) => setBulkNewRecruiterId(value === 'none' ? null : value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select recruiter" />
+                </SelectTrigger>
+                <SelectContent className="z-[10003]">
+                  <SelectItem value="none">No Recruiter</SelectItem>
+                  {availableRecruiters.map((recruiter) => (
+                    <SelectItem key={recruiter.id} value={recruiter.id}>
+                      {recruiter.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setIsBulkRecruiterModalOpen(false);
+              setBulkNewRecruiterId(null);
+            }}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                handleBulkAssignRecruiter(Array.from(selectedCandidateIds), bulkNewRecruiterId);
+                setIsBulkRecruiterModalOpen(false);
+                setBulkNewRecruiterId(null);
+              }}
+            >
+              Assign Recruiter
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
-

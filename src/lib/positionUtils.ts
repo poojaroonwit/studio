@@ -1,6 +1,7 @@
 /**
  * Utilities for position-related operations and styling
  */
+import { CheckCircle, XCircle } from 'lucide-react';
 
 export interface PositionStatusBadgeProps {
   isOpen: boolean;
@@ -18,7 +19,7 @@ export function getPositionStatusBadge(isOpen: boolean, showIcon: boolean = true
       ? "bg-green-100 text-green-800 border-green-200 hover:bg-green-200" 
       : "bg-red-100 text-red-800 border-red-200 hover:bg-red-200",
     text: showIcon 
-      ? (isOpen ? "🟢 Open" : "🔴 Closed")
+      ? (isOpen ? "Open" : "Closed")
       : (isOpen ? "Open" : "Closed")
   };
 }

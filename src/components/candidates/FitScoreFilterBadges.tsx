@@ -11,6 +11,7 @@ interface FitScoreFilterBadgesProps {
   candidateCounts?: Array<{ letter: string; count: number }>;
   title?: string;
   className?: string;
+  filterMode?: 'single' | 'multi';
 }
 
 export function FitScoreFilterBadges({
@@ -18,7 +19,8 @@ export function FitScoreFilterBadges({
   onGradeToggle,
   candidateCounts = [],
   title = "Fit Score Filter",
-  className
+  className,
+  filterMode = 'multi'
 }: FitScoreFilterBadgesProps) {
   const scoreRanges = getScoreRangesForChart();
 
@@ -66,7 +68,17 @@ export function FitScoreFilterBadges({
                   ? getGradeColor(grade.letter)
                   : "hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700"
               )}
-              onClick={() => onGradeToggle(grade.letter)}
+              onClick={() => {
+                if (filterMode === 'single') {
+                  // In single mode, clear all other selections first
+                  selectedGrades.forEach(selectedGrade => {
+                    if (selectedGrade !== grade.letter) {
+                      onGradeToggle(selectedGrade);
+                    }
+                  });
+                }
+                onGradeToggle(grade.letter);
+              }}
             >
               {grade.letter} ({grade.min}-{grade.max})
               <Badge
@@ -93,7 +105,17 @@ export function FitScoreFilterBadges({
               ? "bg-gray-700 hover:bg-gray-600 text-white border-gray-700"
               : "hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700"
           )}
-          onClick={() => onGradeToggle('no-score')}
+          onClick={() => {
+            if (filterMode === 'single') {
+              // In single mode, clear all other selections first
+              selectedGrades.forEach(selectedGrade => {
+                if (selectedGrade !== 'no-score') {
+                  onGradeToggle(selectedGrade);
+                }
+              });
+            }
+            onGradeToggle('no-score');
+          }}
         >
           No Score
           <Badge

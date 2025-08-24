@@ -16,7 +16,7 @@ import { CandidateSidebar } from './CandidateSidebar';
 // Import modals
 import UploadResumeModal from './UploadResumeModal';
 import { ManageTransitionsModal } from './ManageTransitionsModal';
-import { EditPositionModal } from '@/components/positions/EditPositionModal';
+
 import JobMatchModal from './JobMatchModal';
 import ReprocessModal from './ReprocessModal';
 import { GenerativeAIModal } from './GenerativeAIModal';
@@ -61,7 +61,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isTransitionsModalOpen, setIsTransitionsModalOpen] = useState(false);
   const [isJobMatchModalOpen, setIsJobMatchModalOpen] = useState(false);
-  const [isEditPositionModalOpen, setIsEditPositionModalOpen] = useState(false);
+
   const [isAttachmentModalOpen, setIsAttachmentModalOpen] = useState(false);
   const [isReprocessModalOpen, setIsReprocessModalOpen] = useState(false);
   const [isGenerativeAIModalOpen, setIsGenerativeAIModalOpen] = useState(false);
@@ -77,7 +77,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
   // Selection states
   const [preselectedStage, setPreselectedStage] = useState<string | null>(null);
   const [selectedJobMatch, setSelectedJobMatch] = useState<any>(null);
-  const [selectedPositionForEdit, setSelectedPositionForEdit] = useState<Position | null>(null);
+
   const [activeTab, setActiveTab] = useState<string>('jobs');
 
   // Use custom hook for candidate detail logic
@@ -228,9 +228,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
     
     const position = Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === candidate.positionId) : null;
     const jobTitle = position?.title || 'Unknown Position';
-    const fitScore = candidate.fitScore !== null && candidate.fitScore !== undefined 
-      ? `${Math.round(candidate.fitScore * 100)}%`
-      : 'Not set';
+    const fitScore = formatScoreWithGrade(candidate.fitScore);
     const justification = candidate.assignmentJustification
             ? (Array.isArray(candidate.assignmentJustification)
           ? candidate.assignmentJustification.filter(Boolean)
@@ -356,7 +354,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
   }
 
   return (
-    <div className={isModal ? "h-full overflow-y-auto bg-background" : "h-full flex flex-col bg-background"}>
+    <div className={isModal ? "h-full overflow-y-auto bg-background pointer-events-auto" : "h-full flex flex-col bg-background"}>
       {/* Header */}
       <CandidateHeader
         candidate={candidate}
@@ -412,8 +410,8 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
       {/* Main Content Area */}
       <div className="grid grid-cols-1 lg:grid-cols-10 border-t bg-card flex-1 min-h-0">
         {/* Main Content with Tabs */}
-        <div className="lg:col-span-7 border-r border-border bg-muted/50 flex flex-col min-h-0">
-          <div className="w-full h-full flex flex-col min-h-0">
+        <div className="lg:col-span-7 border-r border-border bg-muted/50 flex flex-col min-h-0 pointer-events-auto">
+          <div className="w-full h-full flex flex-col min-h-0 pointer-events-auto">
             <div className="grid w-full grid-cols-5 bg-background border-b border-border flex-shrink-0">
               <div 
                 className={`text-xs flex items-center justify-center gap-2 px-3 py-4 cursor-pointer transition-colors ${activeTab === 'jobs' ? 'border-b-2 border-primary bg-background' : 'bg-transparent'}`}
@@ -514,7 +512,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
               </div>
             </div>
              
-            <div className="p-8 flex-1 overflow-y-auto bg-background h-full">
+            <div className="p-8 flex-1 overflow-y-auto bg-background h-full pointer-events-auto">
               <CandidateTabsContent
                 activeTab={activeTab}
                 candidate={candidate}
@@ -563,7 +561,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
         </div>
         
         {/* Sidebar */}
-        <div className="lg:col-span-3 flex flex-col min-h-0">
+        <div className="lg:col-span-3 flex flex-col min-h-0 pointer-events-auto">
           <CandidateSidebar
             candidate={candidate}
             comments={comments} 
@@ -682,14 +680,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
         jobMatch={selectedJobMatch}
       />
  
-      <EditPositionModal
-        isOpen={isEditPositionModalOpen}
-        onOpenChange={setIsEditPositionModalOpen}
-        position={selectedPositionForEdit}
-        onEditPosition={async () => {
-          setIsEditPositionModalOpen(false);
-        }}
-      />
+
 
       <CandidateAttachmentUploadModal
         candidateId={candidateId}

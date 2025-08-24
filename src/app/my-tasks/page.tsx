@@ -20,7 +20,7 @@ export default async function MyTasksPageServer() {
   const modulePermissions = session.user.modulePermissions || [];
   
   // Allow access if user is Admin OR has TASK_BOARD_VIEW permission OR has CANDIDATES_VIEW permission
-  const canAccessTaskBoard = userRole === 'Admin' || 
+  const canAccessTaskBoard = userRole === 'Admin' || session?.user?.modulePermissions?.includes('USERS_MANAGE') || 
     modulePermissions.includes('TASK_BOARD_VIEW') || 
     modulePermissions.includes('CANDIDATES_VIEW');
 

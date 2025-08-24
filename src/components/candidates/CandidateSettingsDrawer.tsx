@@ -13,8 +13,10 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 interface CandidateSettingsDrawerProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  onSettingsChange: (settings: CandidateSettings) => void;
-  currentSettings: CandidateSettings;
+  onSettingsChange: (settings: CandidateSettings) => Promise<void>;
+  currentSettings?: CandidateSettings;
+  isLoading?: boolean;
+  error?: string | null;
 }
 
 export interface CandidateSettings {
@@ -27,6 +29,7 @@ export interface CandidateSettings {
   showSourceColumn: boolean;
   showStatusColumn: boolean;
   showAppliedDateColumn: boolean;
+  showLastUpdateColumn: boolean;
   
   // Filter options
   showFilters: boolean;
@@ -34,6 +37,9 @@ export interface CandidateSettings {
   
   // Fit score type preference
   fitScoreType: 'applied' | 'matching';
+  
+  // Fit score filter mode
+  fitScoreFilterMode: 'single' | 'multi';
 }
 
 const defaultSettings: CandidateSettings = {
@@ -45,31 +51,48 @@ const defaultSettings: CandidateSettings = {
   showSourceColumn: true,
   showStatusColumn: true,
   showAppliedDateColumn: true,
+  showLastUpdateColumn: true,
   showFilters: true,
   showHorizontalFitScoreFilters: true,
-  fitScoreType: 'applied'
-};
+  fitScoreType: 'applied',
+  fitScoreFilterMode: 'multi'
+} as const;
 
 export function CandidateSettingsDrawer({
   isOpen,
   onOpenChange,
   onSettingsChange,
-  currentSettings
+  currentSettings,
+  isLoading = false,
+  error = null
 }: CandidateSettingsDrawerProps) {
-  const [localSettings, setLocalSettings] = useState<CandidateSettings>(currentSettings);
+  // Initialize local settings with currentSettings or defaults
+  const [localSettings, setLocalSettings] = useState<CandidateSettings>(currentSettings || defaultSettings);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
+  // Update local settings when currentSettings changes
   useEffect(() => {
-    setLocalSettings(currentSettings);
+    if (currentSettings) {
+      setLocalSettings(currentSettings);
+    }
   }, [currentSettings]);
 
   const handleSettingChange = (key: keyof CandidateSettings, value: boolean | string) => {
-    const newSettings = { ...localSettings, [key]: value };
-    setLocalSettings(newSettings);
+    setLocalSettings(prev => ({ ...prev, [key]: value }));
   };
 
-  const handleSave = () => {
-    onSettingsChange(localSettings);
-    onOpenChange(false);
+  const handleSave = async () => {
+    try {
+      setIsSaving(true);
+      setSaveError(null);
+      await onSettingsChange(localSettings);
+      onOpenChange(false);
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Failed to save settings');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleReset = () => {
@@ -77,7 +100,8 @@ export function CandidateSettingsDrawer({
   };
 
   const handleCancel = () => {
-    setLocalSettings(currentSettings);
+    setLocalSettings(currentSettings || defaultSettings);
+    setSaveError(null);
     onOpenChange(false);
   };
 
@@ -111,89 +135,124 @@ export function CandidateSettingsDrawer({
                     <Label htmlFor="showCandidateColumn" className="text-sm font-medium">
                       Candidate Name
                     </Label>
-                    <Switch
-                      id="showCandidateColumn"
-                      checked={localSettings.showCandidateColumn}
-                      onCheckedChange={(checked) => handleSettingChange('showCandidateColumn', checked)}
-                    />
+                                         <Switch
+                       id="showCandidateColumn"
+                       checked={localSettings.showCandidateColumn}
+                       onCheckedChange={(checked) => handleSettingChange('showCandidateColumn', checked)}
+                     />
                   </div>
                   
                   <div className="flex items-center justify-between">
                     <Label htmlFor="showAppliedJobColumn" className="text-sm font-medium">
                       Applied Job
                     </Label>
-                    <Switch
-                      id="showAppliedJobColumn"
-                      checked={localSettings.showAppliedJobColumn}
-                      onCheckedChange={(checked) => handleSettingChange('showAppliedJobColumn', checked)}
-                    />
+                                         <Switch
+                       id="showAppliedJobColumn"
+                       checked={localSettings.showAppliedJobColumn}
+                       onCheckedChange={(checked) => handleSettingChange('showAppliedJobColumn', checked)}
+                     />
                   </div>
                   
                   <div className="flex items-center justify-between">
                     <Label htmlFor="showJobMatchesColumn" className="text-sm font-medium">
                       Job Matches Count
                     </Label>
-                    <Switch
-                      id="showJobMatchesColumn"
-                      checked={localSettings.showJobMatchesColumn}
-                      onCheckedChange={(checked) => handleSettingChange('showJobMatchesColumn', checked)}
-                    />
+                                         <Switch
+                       id="showJobMatchesColumn"
+                       checked={localSettings.showJobMatchesColumn}
+                       onCheckedChange={(checked) => handleSettingChange('showJobMatchesColumn', checked)}
+                     />
                   </div>
                   
                   <div className="flex items-center justify-between">
                     <Label htmlFor="showFitScoreColumn" className="text-sm font-medium">
                       Fit Score
                     </Label>
-                    <Switch
-                      id="showFitScoreColumn"
-                      checked={localSettings.showFitScoreColumn}
-                      onCheckedChange={(checked) => handleSettingChange('showFitScoreColumn', checked)}
-                    />
+                                         <Switch
+                       id="showFitScoreColumn"
+                       checked={localSettings.showFitScoreColumn}
+                       onCheckedChange={(checked) => handleSettingChange('showFitScoreColumn', checked)}
+                     />
                   </div>
                   
                   <div className="flex items-center justify-between">
                     <Label htmlFor="showRecruiterColumn" className="text-sm font-medium">
                       Recruiter
                     </Label>
-                    <Switch
-                      id="showRecruiterColumn"
-                      checked={localSettings.showRecruiterColumn}
-                      onCheckedChange={(checked) => handleSettingChange('showRecruiterColumn', checked)}
-                    />
+                                         <Switch
+                       id="showRecruiterColumn"
+                       checked={localSettings.showRecruiterColumn}
+                       onCheckedChange={(checked) => handleSettingChange('showRecruiterColumn', checked)}
+                     />
                   </div>
                   
                   <div className="flex items-center justify-between">
                     <Label htmlFor="showSourceColumn" className="text-sm font-medium">
                       Source
                     </Label>
-                    <Switch
-                      id="showSourceColumn"
-                      checked={localSettings.showSourceColumn}
-                      onCheckedChange={(checked) => handleSettingChange('showSourceColumn', checked)}
-                    />
+                                         <Switch
+                       id="showSourceColumn"
+                       checked={localSettings.showSourceColumn}
+                       onCheckedChange={(checked) => handleSettingChange('showSourceColumn', checked)}
+                     />
                   </div>
                   
                   <div className="flex items-center justify-between">
                     <Label htmlFor="showStatusColumn" className="text-sm font-medium">
                       Status
                     </Label>
-                    <Switch
-                      id="showStatusColumn"
-                      checked={localSettings.showStatusColumn}
-                      onCheckedChange={(checked) => handleSettingChange('showStatusColumn', checked)}
-                    />
+                                         <Switch
+                       id="showStatusColumn"
+                       checked={localSettings.showStatusColumn}
+                       onCheckedChange={(checked) => handleSettingChange('showStatusColumn', checked)}
+                     />
                   </div>
                   
                   <div className="flex items-center justify-between">
                     <Label htmlFor="showAppliedDateColumn" className="text-sm font-medium">
                       Applied Date
                     </Label>
-                    <Switch
-                      id="showAppliedDateColumn"
-                      checked={localSettings.showAppliedDateColumn}
-                      onCheckedChange={(checked) => handleSettingChange('showAppliedDateColumn', checked)}
-                    />
+                                         <Switch
+                       id="showAppliedDateColumn"
+                       checked={localSettings.showAppliedDateColumn}
+                       onCheckedChange={(checked) => handleSettingChange('showAppliedDateColumn', checked)}
+                     />
                   </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="showLastUpdateColumn" className="text-sm font-medium">
+                      Last Update
+                    </Label>
+                                         <Switch
+                       id="showLastUpdateColumn"
+                       checked={localSettings.showLastUpdateColumn}
+                       onCheckedChange={(checked) => handleSettingChange('showLastUpdateColumn', checked)}
+                     />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Separator />
+
+            {/* Horizontal Fit Score Filters Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Horizontal Fit Score Filters</CardTitle>
+                <CardDescription>
+                  Show horizontal fit score filter tabs above the candidate table
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="showHorizontalFitScoreFilters" className="text-sm font-medium">
+                    Show Horizontal Fit Score Filters
+                  </Label>
+                  <Switch
+                    id="showHorizontalFitScoreFilters"
+                    checked={localSettings.showHorizontalFitScoreFilters}
+                    onCheckedChange={(checked) => handleSettingChange('showHorizontalFitScoreFilters', checked)}
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -209,11 +268,11 @@ export function CandidateSettingsDrawer({
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <RadioGroup
-                  value={localSettings.fitScoreType}
-                  onValueChange={(value: 'applied' | 'matching') => handleSettingChange('fitScoreType', value)}
-                  className="space-y-3"
-                >
+                                 <RadioGroup
+                   value={localSettings.fitScoreType}
+                   onValueChange={(value: 'applied' | 'matching') => handleSettingChange('fitScoreType', value)}
+                   className="space-y-3"
+                 >
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="applied" id="applied" />
                     <Label htmlFor="applied" className="text-sm font-medium">
@@ -229,17 +288,80 @@ export function CandidateSettingsDrawer({
                 </RadioGroup>
               </CardContent>
             </Card>
+
+            <Separator />
+
+            {/* Fit Score Filter Mode Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Fit Score Filter Mode</CardTitle>
+                <CardDescription>
+                  Configure how fit score filters behave when selecting grades
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                                 <RadioGroup
+                   value={localSettings.fitScoreFilterMode}
+                   onValueChange={(value: 'single' | 'multi') => handleSettingChange('fitScoreFilterMode', value)}
+                   className="space-y-3"
+                 >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="single" id="single" />
+                    <Label htmlFor="single" className="text-sm font-medium">
+                      Single Select
+                    </Label>
+                    <div className="text-xs text-muted-foreground ml-2">
+                      Only one fit score grade can be selected at a time
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="multi" id="multi" />
+                    <Label htmlFor="multi" className="text-sm font-medium">
+                      Multi Select
+                    </Label>
+                    <div className="text-xs text-muted-foreground ml-2">
+                      Multiple fit score grades can be selected simultaneously
+                    </div>
+                  </div>
+                </RadioGroup>
+              </CardContent>
+            </Card>
           </div>
 
           <SheetFooter className="border-t pt-4">
-            <div className="flex items-center justify-end w-full">
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={handleCancel}>
-                  Cancel
-                </Button>
-                <Button onClick={handleSave}>
-                  Save Settings
-                </Button>
+            <div className="flex flex-col w-full space-y-3">
+              {/* Error message */}
+              {(error || saveError) && (
+                <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-2">
+                  {error || saveError}
+                </div>
+              )}
+              
+              {/* Loading indicator */}
+              {(isLoading || isSaving) && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <div className="w-4 h-4 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin"></div>
+                  {isSaving ? 'Saving settings...' : 'Loading settings...'}
+                </div>
+              )}
+              
+              {/* Action buttons */}
+              <div className="flex items-center justify-end w-full">
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={handleCancel}
+                    disabled={isSaving}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={handleSave}
+                    disabled={isSaving || isLoading}
+                  >
+                    {isSaving ? 'Saving...' : 'Save Settings'}
+                  </Button>
+                </div>
               </div>
             </div>
           </SheetFooter>

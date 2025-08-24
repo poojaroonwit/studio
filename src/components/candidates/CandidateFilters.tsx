@@ -98,6 +98,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DialogTrigger } from '@/components/ui/dialog';
+import { AdvancedQuerySyntaxModal } from './AdvancedQuerySyntaxModal';
 
 export interface CandidateFilterValues {
   name?: string;
@@ -122,6 +123,8 @@ export interface CandidateFilterValues {
   maxAppliedJobFitScore?: number; // Max fit score for applied job
   minMatchingJobFitScore?: number; // Min fit score for matching jobs
   maxMatchingJobFitScore?: number; // Max fit score for matching jobs
+  includeNoScoreInApplied?: boolean; // Include no-score candidates in applied job fit score filter
+  includeNoScoreInMatching?: boolean; // Include no-score candidates in matching job fit score filter
   applicationDateStart?: Date;
   applicationDateEnd?: Date;
   selectedRecruiterIds?: string[];
@@ -143,19 +146,18 @@ export interface CandidateFilterValues {
 interface CandidateFiltersProps {
   initialFilters?: CandidateFilterValues;
   onFilterChange: (filters: CandidateFilterValues) => void;
-  onAiSearch: (query: string, type: 'semantic' | 'exact' | 'hybrid', filters?: any) => void;
-  onClearAllFilters?: () => void;
+  onAiSearch: (query: string) => void;
+  onClearAllFilters: () => void;
   availablePositions: Position[];
   availableStages: RecruitmentStage[];
   availableRecruiters: Pick<UserProfile, 'id' | 'name'>[];
   availableSources: CandidateSource[];
   isLoading?: boolean;
   isAiSearching?: boolean;
-  aiSearchResults?: any;
   advancedQuery?: string;
   candidateScoreCounts?: {
-    applied: { letter: string; count: number }[];
-    matching: { letter: string; count: number }[];
+    applied: Array<{ letter: string; count: number }>;
+    matching: Array<{ letter: string; count: number }>;
   };
   candidateCounts?: { [stageName: string]: number };
 }
@@ -171,7 +173,6 @@ export function CandidateFilters({
     availableSources,
     isLoading,
     isAiSearching,
-    aiSearchResults,
     advancedQuery,
     candidateScoreCounts,
     candidateCounts = {}
@@ -201,6 +202,13 @@ export function CandidateFilters({
   // Add refs for debouncing multiselect changes
   const multiselectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isApplyingFilters, setIsApplyingFilters] = useState(false);
+  
+  // Remove loading states since they're managed by the parent component
+  // const [isStagesLoading, setIsStagesLoading] = useState(false);
+  // const [isRecruitersLoading, setIsRecruitersLoading] = useState(false);
+  // const [stagesError, setStagesError] = useState<string | null>(null);
+  // const [recruitersError, setRecruitersError] = useState<string | null>(null);
+  
   const isInitialLoadRef = useRef(true);
   // Guard to avoid triggering auto-apply effects while syncing state from incoming props
   const isSyncingFromInitialFiltersRef = useRef(false);
@@ -226,6 +234,7 @@ export function CandidateFilters({
   // Advanced Query State
   const [advancedQueryInput, setAdvancedQueryInput] = useState('');
   const [activeTab, setActiveTab] = useState<'filters' | 'advanced'>('filters');
+  const [isAdvancedQuerySyntaxModalOpen, setIsAdvancedQuerySyntaxModalOpen] = useState(false);
   const [queryExamples] = useState([
     {
       name: "High Priority Candidates",
@@ -294,8 +303,46 @@ export function CandidateFilters({
   // Add locationOperator state
   const [locationOperator, setLocationOperator] = useState<'contains' | 'is' | 'startsWith' | 'endsWith' | 'other'>(initialFilters.locationOperator || 'contains');
 
+  // Use a ref to store onFilterChange to avoid dependency issues
+  const onFilterChangeRef = useRef(onFilterChange);
+  
+  // Update ref when onFilterChange changes
+  useEffect(() => {
+    console.log('🔍 REF DEBUG: onFilterChange prop updated:', onFilterChange);
+    onFilterChangeRef.current = onFilterChange;
+    console.log('🔍 REF DEBUG: onFilterChangeRef.current set to:', onFilterChangeRef.current);
+  }, [onFilterChange]);
+
   // Define handleApplyStandardFilters early to avoid temporal dead zone issues
   const handleApplyStandardFilters = useCallback(() => {
+    console.log('🔍 FILTERS DEBUG: handleApplyStandardFilters called');
+    console.log('🔍 FILTERS DEBUG: Current filter values:', {
+      name, email, phone, location,
+      selectedPositionIds: Array.from(selectedPositionIds),
+      selectedStatuses: Array.from(selectedStatuses),
+      selectedSourceIds: Array.from(selectedSourceIds),
+      skills: Array.from(skills),
+      experienceYearsRange,
+      applicationDateRange,
+      selectedRecruiterIds: Array.from(selectedRecruiterIds)
+    });
+    
+    // Skip if we're already applying filters
+    if (isApplyingFilters) {
+      console.log('🔍 FILTERS DEBUG: Already applying filters, skipping');
+      return;
+    }
+    
+    // Rate limiting: prevent applying filters more than once every 300ms
+    const now = Date.now();
+    if (now - lastFilterApplyTimeRef.current < 300) {
+      console.log('🔍 FILTERS DEBUG: Rate limited, skipping filter application');
+      return;
+    }
+    
+    // Set flag to prevent recursive calls
+    setIsApplyingFilters(true);
+    
     // Clear any pending multiselect timeout
     if (multiselectTimeoutRef.current) {
       clearTimeout(multiselectTimeoutRef.current);
@@ -308,42 +355,110 @@ export function CandidateFilters({
     let minMatchingJobFitScore: number | undefined = undefined;
     let maxMatchingJobFitScore: number | undefined = undefined;
 
+    // ... existing fit score calculation logic ...
 
+         const newFilters: CandidateFilterValues = {
+       name: name !== undefined ? name : undefined,
+       nameOperator: name ? nameOperator : undefined,
+       email: email !== undefined ? email : undefined,
+       emailOperator: email ? emailOperator : undefined,
+       phone: phone !== undefined ? phone : undefined,
+       phoneOperator: phone ? phoneOperator : undefined,
+       selectedPositionIds: selectedPositionIds.size > 0 ? Array.from(selectedPositionIds) : undefined,
+       selectedStatuses: selectedStatuses.size > 0 ? Array.from(selectedStatuses) : undefined,
+       selectedSourceIds: selectedSourceIds.size > 0 ? Array.from(selectedSourceIds) : undefined,
+       skills: skills.size > 0 ? Array.from(skills).join(',') : undefined,
+       location: location !== undefined ? location : undefined,
+       locationOperator: location ? locationOperator : undefined,
+       minExperienceYears: experienceYearsRange[0] > 0 ? experienceYearsRange[0] : undefined,
+       maxExperienceYears: experienceYearsRange[1] < 50 ? experienceYearsRange[1] : undefined,
+       minAppliedJobFitScore,
+       maxAppliedJobFitScore,
+       minMatchingJobFitScore,
+       maxMatchingJobFitScore,
+       applicationDateStart: applicationDateRange?.from,
+       applicationDateEnd: applicationDateRange?.to,
+       selectedRecruiterIds: selectedRecruiterIds.size > 0 ? Array.from(selectedRecruiterIds) : undefined,
+       aiSearchQuery: undefined,
+     };
 
-    const newFilters: CandidateFilterValues = {
-      name: name || undefined,
-      nameOperator,
-      email: email || undefined,
-      emailOperator,
-      phone: phone || undefined,
-      phoneOperator,
-      selectedPositionIds: selectedPositionIds.size > 0 ? Array.from(selectedPositionIds) : undefined,
-      selectedStatuses: selectedStatuses.size > 0 ? Array.from(selectedStatuses) : undefined,
-      selectedSourceIds: selectedSourceIds.size > 0 ? Array.from(selectedSourceIds) : undefined,
-      skills: skills.size > 0 ? Array.from(skills).join(',') : undefined,
-      location: location || undefined,
-      locationOperator,
-      minExperienceYears: experienceYearsRange[0] > 0 ? experienceYearsRange[0] : undefined,
-      maxExperienceYears: experienceYearsRange[1] < 50 ? experienceYearsRange[1] : undefined,
-      minAppliedJobFitScore,
-      maxAppliedJobFitScore,
-      minMatchingJobFitScore,
-      maxMatchingJobFitScore,
-      applicationDateStart: applicationDateRange?.from,
-      applicationDateEnd: applicationDateRange?.to,
-      selectedRecruiterIds: selectedRecruiterIds.size > 0 ? Array.from(selectedRecruiterIds) : undefined,
-      aiSearchQuery: undefined,
-    };
+    // Remove undefined values to keep the filter object clean, but preserve empty strings
+    Object.keys(newFilters).forEach(key => {
+      if (newFilters[key as keyof CandidateFilterValues] === undefined) {
+        delete newFilters[key as keyof CandidateFilterValues];
+      }
+    });
 
-    // Only call onFilterChange if the filters have actually changed from what we last applied
-    // This prevents infinite loops with the parent component
     const newFiltersString = JSON.stringify(newFilters);
-    if (lastAppliedFiltersRef.current !== newFiltersString) {
-      lastAppliedFiltersRef.current = newFiltersString;
-      // Apply filters immediately for table-only refresh
-      onFilterChange(newFilters);
+    if (lastAppliedFiltersRef.current === newFiltersString) {
+      console.log('🔍 FILTERS DEBUG: Filters unchanged, skipping update');
+      setIsApplyingFilters(false);
+      return;
     }
-      }, [name, nameOperator, email, emailOperator, phone, phoneOperator, selectedPositionIds, selectedStatuses, selectedSourceIds, skills, location, locationOperator, experienceYearsRange, applicationDateRange, selectedRecruiterIds]);
+
+    // Check if we have any meaningful filters or explicitly empty strings (to clear filters)
+    const hasMeaningfulFilters = Object.values(newFilters).some(value => 
+      value !== undefined && 
+      value !== null && 
+      value !== '' &&
+      (Array.isArray(value) ? value.length > 0 : true)
+    );
+
+    // Check if we have any explicitly empty strings that should clear previous filters
+    const hasEmptyStrings = (name === '' || email === '' || phone === '' || location === '');
+
+    // Always apply filters if we have any values or empty strings
+    if (Object.keys(newFilters).length > 0 || hasEmptyStrings) {
+      console.log('🔍 FILTERS DEBUG: Applying new filters:', newFilters);
+      console.log('🔍 FILTERS DEBUG: Filter object keys:', Object.keys(newFilters));
+      console.log('🔍 FILTERS DEBUG: Filter object values:', Object.values(newFilters));
+      console.log('🔍 FILTERS DEBUG: Calling onFilterChange with:', newFilters);
+      console.log('🔍 FILTERS DEBUG: onFilterChangeRef.current type:', typeof onFilterChangeRef.current);
+      console.log('🔍 FILTERS DEBUG: onFilterChangeRef.current value:', onFilterChangeRef.current);
+      lastAppliedFiltersRef.current = newFiltersString;
+      lastFilterApplyTimeRef.current = Date.now();
+      if (typeof onFilterChangeRef.current === 'function') {
+        onFilterChangeRef.current(newFilters);
+        console.log('🔍 FILTERS DEBUG: onFilterChange called successfully');
+      } else {
+        console.error('🔍 FILTERS DEBUG: onFilterChangeRef.current is not a function!');
+      }
+    } else {
+      console.log('🔍 FILTERS DEBUG: No filters to apply, sending empty filter object');
+      console.log('🔍 FILTERS DEBUG: Calling onFilterChange with empty object');
+      if (typeof onFilterChangeRef.current === 'function') {
+        onFilterChangeRef.current({});
+        console.log('🔍 FILTERS DEBUG: onFilterChange called successfully with empty object');
+      } else {
+        console.error('🔍 FILTERS DEBUG: onFilterChangeRef.current is not a function!');
+      }
+    }
+    
+    // Reset flag after a delay
+    setTimeout(() => {
+      setIsApplyingFilters(false);
+    }, 100);
+     }, [name, nameOperator, email, emailOperator, phone, phoneOperator, selectedPositionIds, selectedStatuses, selectedSourceIds, skills, location, locationOperator, experienceYearsRange, applicationDateRange, selectedRecruiterIds]); // Removed onFilterChange from dependencies
+
+  // Single auto-apply effect for all filter changes
+  useEffect(() => {
+    if (!isInitialLoadRef.current && !isSyncingFromInitialFiltersRef.current && isComponentInitializedRef.current) {
+      console.log('🔍 AUTO-APPLY DEBUG: Filter values changed, applying filters');
+      handleApplyStandardFilters();
+    }
+  }, [
+    name, nameOperator,
+    email, emailOperator,
+    phone, phoneOperator,
+    location, locationOperator,
+    selectedPositionIds,
+    selectedStatuses,
+    selectedRecruiterIds,
+    selectedSourceIds,
+    skills,
+    experienceYearsRange,
+    applicationDateRange
+  ]);
 
   // Define a list of common skills
   const skillOptions = [
@@ -587,84 +702,30 @@ export function CandidateFilters({
     }
   }, [advancedQuery]); // Removed onFilterChange from dependencies
 
-  // Clear all filters function
-  const handleClearAll = () => {
-    // Reset all local state
-    setName('');
-    setEmail('');
-    setPhone('');
-    setSelectedPositionIds(new Set());
-    setSelectedStatuses(new Set());
-    setSelectedRecruiterIds(new Set());
-          setSkills(new Set()); // Clear skills selection
+     // Clear all filters function (unused - handleResetFilters is used instead)
+   // const handleClearAll = () => { ... };
 
-    setExperienceYearsRange([0, 50]); // Added missing experience years clear (will reset no-experience checkbox)
-    setApplicationDateRange(undefined);
-    setLocation('');
-    setLocationOperator('contains');
-    setAiSearchQueryInput('');
-    setAiSearchType('hybrid'); // Added missing AI search type clear
-    setAiSearchFilters({}); // Added missing AI search filters clear
-    setAdvancedQueryInput('');
-    
-
-    
-    // Reset to filters tab
-    setActiveTab('filters');
-    
-    // Clear search states
-
-    
-    
-    
-    // Apply empty filters to clear everything (this will trigger URL parameter clearing)
-    onFilterChange({
-      name: undefined,
-      email: undefined,
-      phone: undefined,
-      skills: undefined, // Added missing skills in filter change
-      education: undefined, // Added missing education
-      cvLanguage: undefined, // Added missing CV language
-      jobSuitableCareer: undefined, // Added missing job suitable fields
-      jobSuitableLevel: undefined,
-      jobSuitablePosition: undefined,
-      minExperienceYears: undefined, // Added missing experience years
-      maxExperienceYears: undefined,
-      selectedPositionIds: undefined,
-      selectedStatuses: undefined,
-      selectedRecruiterIds: undefined,
-      minAppliedJobFitScore: undefined,
-      maxAppliedJobFitScore: undefined,
-      minMatchingJobFitScore: undefined,
-      maxMatchingJobFitScore: undefined,
-      applicationDateStart: undefined,
-      applicationDateEnd: undefined,
-      location: undefined,
-      locationOperator: 'contains',
-      aiSearchQuery: undefined,
-    });
-  };
-
-  // Only reset state on initial load or when initialFilters actually change
+  // Only reset state on initial load
   useEffect(() => {
     if (isInitialLoadRef.current) {
       setName(initialFilters.name || '');
       setEmail(initialFilters.email || '');
       setPhone(initialFilters.phone || '');
-      setSelectedPositionIds(new Set(initialFilters.selectedPositionIds || []));
-      setSelectedStatuses(new Set(initialFilters.selectedStatuses || []));
-      setSkills(new Set(initialFilters.skills ? initialFilters.skills.split(',').filter(Boolean) : []));
-      setLocation(initialFilters.location || '');
-      setLocationOperator(initialFilters.locationOperator || 'contains');
-      setExperienceYearsRange([initialFilters.minExperienceYears ?? 0, initialFilters.maxExperienceYears || 50]);
-      setApplicationDateRange(
-        initialFilters.applicationDateStart && initialFilters.applicationDateEnd
-          ? { from: parseISO(String(initialFilters.applicationDateStart)), to: parseISO(String(initialFilters.applicationDateEnd)) }
-          : initialFilters.applicationDateStart
-          ? { from: parseISO(String(initialFilters.applicationDateStart)), to: undefined }
-          : undefined
-      );
-      setSelectedRecruiterIds(new Set(initialFilters.selectedRecruiterIds || []));
+             setSelectedPositionIds(new Set(initialFilters.selectedPositionIds || []));
+       setSelectedStatuses(new Set(initialFilters.selectedStatuses || []));
+       setSelectedSourceIds(new Set(initialFilters.selectedSourceIds || []));
+       setSkills(new Set(initialFilters.skills ? initialFilters.skills.split(',').filter(Boolean) : []));
+       setLocation(initialFilters.location || '');
+       setLocationOperator(initialFilters.locationOperator || 'contains');
+       setExperienceYearsRange([initialFilters.minExperienceYears ?? 0, initialFilters.maxExperienceYears || 50]);
+       setApplicationDateRange(
+         initialFilters.applicationDateStart && initialFilters.applicationDateEnd
+           ? { from: parseISO(String(initialFilters.applicationDateStart)), to: parseISO(String(initialFilters.applicationDateEnd)) }
+           : initialFilters.applicationDateStart
+           ? { from: parseISO(String(initialFilters.applicationDateStart)), to: undefined }
+           : undefined
+       );
+       setSelectedRecruiterIds(new Set(initialFilters.selectedRecruiterIds || []));
       setAiSearchQueryInput(initialFilters.aiSearchQuery || '');
       setAiSearchType(initialFilters.aiSearchType || 'hybrid');
       setAiSearchFilters(initialFilters.aiSearchFilters || {});
@@ -674,19 +735,21 @@ export function CandidateFilters({
         isComponentInitializedRef.current = true;
       }, 50);
     }
-  }, [initialFilters]);
+  }, []); // Remove initialFilters dependency to prevent infinite loops
 
   // Handle initialFilters changes after initial load (e.g., when clear all is clicked)
   useEffect(() => {
-    if (!isInitialLoadRef.current) {
+    if (!isInitialLoadRef.current && isComponentInitializedRef.current) {
       // Mark that we're syncing local state from incoming props to avoid feedback loops
       isSyncingFromInitialFiltersRef.current = true;
+      
       // Update component state to match the new initialFilters
       setName(initialFilters.name || '');
       setEmail(initialFilters.email || '');
       setPhone(initialFilters.phone || '');
       setSelectedPositionIds(new Set(initialFilters.selectedPositionIds || []));
       setSelectedStatuses(new Set(initialFilters.selectedStatuses || []));
+      setSelectedSourceIds(new Set(initialFilters.selectedSourceIds || []));
       setSkills(new Set(initialFilters.skills ? initialFilters.skills.split(',').filter(Boolean) : []));
       setLocation(initialFilters.location || '');
       setLocationOperator(initialFilters.locationOperator || 'contains');
@@ -702,10 +765,8 @@ export function CandidateFilters({
       setAiSearchQueryInput(initialFilters.aiSearchQuery || '');
       setAiSearchType(initialFilters.aiSearchType || 'hybrid');
       setAiSearchFilters(initialFilters.aiSearchFilters || {});
+      setAdvancedQueryInput('');
       
-             // Don't clear fit score UI state based on backend response
-       // The UI state should be controlled by user interactions, not backend filter values
-
       // Defer unsetting the syncing flag to the next tick to let dependent effects settle
       setTimeout(() => {
         isSyncingFromInitialFiltersRef.current = false;
@@ -745,61 +806,132 @@ export function CandidateFilters({
 
       return () => clearTimeout(timeoutId);
     }
-  }, [initialFilters]); // Keep dependency but guard with ref
+  }, []); // Remove initialFilters dependency to prevent infinite loops
 
-  // Define the debounced function after handleApplyStandardFilters is defined
-  const handleApplyStandardFiltersDebounced = useCallback(() => {
-    // Clear any existing timeout
-    if (multiselectTimeoutRef.current) {
-      clearTimeout(multiselectTimeoutRef.current);
-    }
-    
-    // Set a new timeout for debounced filter application
-    multiselectTimeoutRef.current = setTimeout(() => {
-      handleApplyStandardFilters();
-    }, 100); // Reduced to 100ms for faster table refresh
-  }, [handleApplyStandardFilters]);
+  // Add a ref for auto-apply debouncing
+  const autoApplyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Auto-apply filters when input values change (debounced)
+  // Add a ref to track if we're currently applying filters
+  // const isApplyingFiltersRef = useRef(false); // Removed - using state variable instead
+
+  // Add a ref to track the last time we applied filters to prevent rapid successive calls
+  const lastFilterApplyTimeRef = useRef<number>(0);
+
+  // Auto-apply filters when input values change (immediate)
   // Note: Fit score ranges are now handled separately through debounced handlers
   useEffect(() => {
+    console.log('🔍 AUTO-APPLY DEBUG: Auto-apply useEffect triggered with values:', {
+      name, email, phone, selectedPositionIds: Array.from(selectedPositionIds), 
+      selectedStatuses: Array.from(selectedStatuses), skills: Array.from(skills), 
+      location, experienceYearsRange, applicationDateRange, 
+      selectedRecruiterIds: Array.from(selectedRecruiterIds), advancedQueryInput
+    });
+    
+    // Clear any existing timeout
+    if (autoApplyTimeoutRef.current) {
+      clearTimeout(autoApplyTimeoutRef.current);
+    }
+    
     // Skip auto-apply if we're currently syncing state from incoming props or not fully initialized
     if (isSyncingFromInitialFiltersRef.current || !isComponentInitializedRef.current) {
+      console.log('🔍 AUTO-APPLY DEBUG: Skipping due to syncing or not initialized');
       return;
     }
-    const timeoutId = setTimeout(() => {
-      // Skip if there's an advanced query active
-      if (advancedQueryInput.trim()) return;
+    
+    // Skip if we're currently handling position changes directly
+    if (isHandlingPositionChangeRef.current) {
+      console.log('🔍 AUTO-APPLY DEBUG: Skipping due to position change in progress');
+      return;
+    }
+    
+    // Skip if we're currently applying filters
+    if (isApplyingFilters) {
+      console.log('🔍 AUTO-APPLY DEBUG: Skipping due to filters being applied');
+      return;
+    }
+    
+    // Skip if there's an advanced query active
+    if (advancedQueryInput.trim()) {
+      console.log('🔍 AUTO-APPLY DEBUG: Skipping due to advanced query');
+      return;
+    }
+    
+    // Skip if we're in the middle of a filter update cycle
+    if (lastAppliedFiltersRef.current) {
+      const currentFilters = {
+        name: name || undefined,
+        email: email || undefined,
+        phone: phone || undefined,
+        selectedPositionIds: selectedPositionIds.size > 0 ? Array.from(selectedPositionIds) : undefined,
+        selectedStatuses: selectedStatuses.size > 0 ? Array.from(selectedStatuses) : undefined,
+        skills: skills.size > 0 ? Array.from(skills).join(',') : undefined,
+        location: location || undefined,
+        minExperienceYears: experienceYearsRange[0] > 0 ? experienceYearsRange[0] : undefined,
+        maxExperienceYears: experienceYearsRange[1] < 50 ? experienceYearsRange[1] : undefined,
+        applicationDateStart: applicationDateRange?.from,
+        applicationDateEnd: applicationDateRange?.to,
+        selectedRecruiterIds: selectedRecruiterIds.size > 0 ? Array.from(selectedRecruiterIds) : undefined,
+      };
       
-      // Only apply filters if we have meaningful changes (excluding fit score ranges)
-      const hasFilters = name || email || phone || 
-                        selectedPositionIds.size > 0 || 
-                        selectedStatuses.size > 0 || 
-                        skills.size > 0 || 
-                        location ||
-                        experienceYearsRange[0] > 0 || 
-                        experienceYearsRange[1] < 50 ||
-                        applicationDateRange?.from ||
-                        applicationDateRange?.to ||
-                        selectedRecruiterIds.size > 0;
+      // Remove undefined values
+      Object.keys(currentFilters).forEach(key => {
+        if (currentFilters[key as keyof typeof currentFilters] === undefined) {
+          delete currentFilters[key as keyof typeof currentFilters];
+        }
+      });
       
-      if (hasFilters) {
-        // Use the debounced function to apply all filters including fit score ranges
-        handleApplyStandardFiltersDebounced();
+      const currentFiltersString = JSON.stringify(currentFilters);
+      if (lastAppliedFiltersRef.current === currentFiltersString) {
+        console.log('🔍 AUTO-APPLY DEBUG: Filters unchanged, skipping update');
+        return;
       }
-    }, 150); // Reduced to 150ms for faster response
+    }
+    
+             // Check if we have any meaningful filters
+    const hasFilters = name || email || phone || 
+                       selectedPositionIds.size > 0 || 
+                       selectedStatuses.size > 0 || 
+                       selectedSourceIds.size > 0 ||
+                       skills.size > 0 || 
+                       location ||
+                       experienceYearsRange[0] > 0 || 
+                       experienceYearsRange[1] < 50 ||
+                       applicationDateRange?.from ||
+                       applicationDateRange?.to ||
+                       selectedRecruiterIds.size > 0;
+    
+    console.log('🔍 AUTO-APPLY DEBUG: Has filters:', hasFilters, 'name:', name, 'email:', email, 'phone:', phone);
+    
+    // Always apply filters when any filter value changes, even if it's empty (to clear previous filters)
+    // This ensures that when you clear a field, it properly clears the filter
+    console.log('🔍 AUTO-APPLY DEBUG: Applying filters immediately for testing');
+    handleApplyStandardFilters();
+     }, [name, email, phone, selectedPositionIds, selectedStatuses, selectedSourceIds, skills, location, experienceYearsRange, applicationDateRange, selectedRecruiterIds, advancedQueryInput]);
 
-    return () => clearTimeout(timeoutId);
-  }, [name, email, phone, selectedPositionIds, selectedStatuses, skills, location, experienceYearsRange, applicationDateRange, selectedRecruiterIds, advancedQueryInput, nameOperator, emailOperator, phoneOperator, locationOperator, handleApplyStandardFiltersDebounced]); // Removed onFilterChange to prevent infinite loop
-
-  // Cleanup timeout on unmount
+  // Component initialization
   useEffect(() => {
+    console.log('🔍 INIT DEBUG: Component initialization started');
+    
+    // Mark component as initialized immediately
+    isComponentInitializedRef.current = true;
+    isInitialLoadRef.current = false;
+    console.log('🔍 INIT DEBUG: Component initialized');
+    
+    // Apply filters immediately to ensure proper state
+    console.log('🔍 INIT DEBUG: Applying initial filters to ensure proper state');
+    handleApplyStandardFilters();
+
     return () => {
       if (multiselectTimeoutRef.current) {
         clearTimeout(multiselectTimeoutRef.current);
       }
+      if (autoApplyTimeoutRef.current) {
+        clearTimeout(autoApplyTimeoutRef.current);
+      }
     };
-  }, []);
+  }, []); // Only run once on mount
+
+
 
 
 
@@ -812,7 +944,7 @@ export function CandidateFilters({
         maxAppliedJobFitScore: aiSearchFilters.maxAppliedJobFitScore,
         dateRange: aiSearchFilters.dateRange,
       };
-      onAiSearch(aiSearchQueryInput.trim(), aiSearchType, filters);
+      onAiSearch(aiSearchQueryInput.trim());
     }
   };
 
@@ -820,93 +952,77 @@ export function CandidateFilters({
     setAiSearchQueryInput(example);
   };
 
+  // Track whether we're currently handling position changes to prevent auto-apply interference
+  const isHandlingPositionChangeRef = useRef(false);
+
   // Wrapper functions to apply filters when dropdown values change
   const handlePositionChange = (newSelectedIds: Set<string>) => {
+    console.log('🔍 POSITION DEBUG: handlePositionChange called with:', Array.from(newSelectedIds));
     
+    // Set flag to prevent auto-apply useEffect from triggering
+    isHandlingPositionChangeRef.current = true;
+    
+    // Update state
     setSelectedPositionIds(newSelectedIds);
     
-    // Apply filters immediately with the new selection to ensure state is updated
-    // Use the helper function that takes the new selection directly to avoid race conditions
-    handleApplyStandardFiltersWithPositions(newSelectedIds);
-  };
-
-  // Helper function to apply filters with specific position IDs
-  const handleApplyStandardFiltersWithPositions = (positionIds: Set<string>) => {
-    
-    // Clear any pending multiselect timeout
-    if (multiselectTimeoutRef.current) {
-      clearTimeout(multiselectTimeoutRef.current);
-      multiselectTimeoutRef.current = null;
-    }
-
-    // Calculate fit score filters based on selected grades
-    let minAppliedJobFitScore: number | undefined = undefined;
-    let maxAppliedJobFitScore: number | undefined = undefined;
-    let minMatchingJobFitScore: number | undefined = undefined;
-    let maxMatchingJobFitScore: number | undefined = undefined;
-
-
-
-
-
+    // Apply filters immediately with the new position IDs
     const newFilters: CandidateFilterValues = {
       name: name || undefined,
-      nameOperator,
       email: email || undefined,
-      emailOperator,
       phone: phone || undefined,
-      phoneOperator,
-      selectedPositionIds: positionIds.size > 0 ? Array.from(positionIds) : undefined,
-      // If no stages are selected, it means all stages (don't send status filter)
+      selectedPositionIds: newSelectedIds.size > 0 ? Array.from(newSelectedIds) : undefined,
       selectedStatuses: selectedStatuses.size > 0 ? Array.from(selectedStatuses) : undefined,
+      selectedSourceIds: selectedSourceIds.size > 0 ? Array.from(selectedSourceIds) : undefined,
       skills: skills.size > 0 ? Array.from(skills).join(',') : undefined,
       location: location || undefined,
-      locationOperator,
       minExperienceYears: experienceYearsRange[0] > 0 ? experienceYearsRange[0] : undefined,
       maxExperienceYears: experienceYearsRange[1] < 50 ? experienceYearsRange[1] : undefined,
-      minAppliedJobFitScore,
-      maxAppliedJobFitScore,
-      minMatchingJobFitScore,
-      maxMatchingJobFitScore,
       applicationDateStart: applicationDateRange?.from,
       applicationDateEnd: applicationDateRange?.to,
       selectedRecruiterIds: selectedRecruiterIds.size > 0 ? Array.from(selectedRecruiterIds) : undefined,
       aiSearchQuery: undefined,
     };
 
-    // Only call onFilterChange if the filters have actually changed from what we last applied
+    // Convert to string to compare and prevent duplicate calls
     const newFiltersString = JSON.stringify(newFilters);
-    if (lastAppliedFiltersRef.current !== newFiltersString) {
-      lastAppliedFiltersRef.current = newFiltersString;
-      onFilterChange(newFilters);
+    if (lastAppliedFiltersRef.current === newFiltersString) {
+      console.log('🔍 POSITION DEBUG: Filters unchanged, skipping application');
+      isHandlingPositionChangeRef.current = false;
+      return;
     }
+
+    console.log('🔍 POSITION DEBUG: Applying new position filters:', newFilters);
+    lastAppliedFiltersRef.current = newFiltersString;
+    onFilterChange(newFilters);
     
-    // Clear loading state
-    setIsApplyingFilters(false);
+    // Reset flag after a brief delay to allow state to settle
+    setTimeout(() => {
+      isHandlingPositionChangeRef.current = false;
+    }, 100);
   };
 
   const handleStatusChange = (newSelectedStatuses: Set<string>) => {
     setSelectedStatuses(newSelectedStatuses);
     // Apply filters with debouncing for smooth multiselect experience
-    handleApplyStandardFiltersDebounced();
+    handleApplyStandardFilters();
   };
 
   const handleRecruiterChange = (newSelectedRecruiterIds: Set<string>) => {
     setSelectedRecruiterIds(newSelectedRecruiterIds);
     // Apply filters with debouncing for smooth multiselect experience
-    handleApplyStandardFiltersDebounced();
+    handleApplyStandardFilters();
   };
 
   const handleSourceChange = (newSelectedSourceIds: Set<string>) => {
     setSelectedSourceIds(newSelectedSourceIds);
     // Apply filters with debouncing for smooth multiselect experience
-    handleApplyStandardFiltersDebounced();
+    handleApplyStandardFilters();
   };
 
   const handleExperienceYearsChange = (newRange: [number, number]) => {
     setExperienceYearsRange(newRange);
     // Apply filters with debouncing for smooth experience years change
-    handleApplyStandardFiltersDebounced();
+    handleApplyStandardFilters();
   };
 
 
@@ -984,817 +1100,736 @@ export function CandidateFilters({
   const safeAvailableRecruiters = Array.isArray(availableRecruiters) ? availableRecruiters : [];
   
 
-  
-  // Add loading states for better UX
-  const [isStagesLoading, setIsStagesLoading] = useState(false);
-  const [isRecruitersLoading, setIsRecruitersLoading] = useState(false);
-  const [stagesError, setStagesError] = useState<string | null>(null);
-  const [recruitersError, setRecruitersError] = useState<string | null>(null);
 
-  // Retry loading data if it's empty
-  useEffect(() => {
-    if (safeAvailableStages.length === 0 && !isStagesLoading && !stagesError) {
-      setIsStagesLoading(true);
-      // You can add a retry mechanism here if needed
-      setTimeout(() => setIsStagesLoading(false), 1000);
-    }
-  }, [safeAvailableStages.length, isStagesLoading, stagesError]);
+  // Remove the problematic retry mechanisms that cause infinite loading loops
+  // The data should be loaded by the parent component, not retried here
 
-  useEffect(() => {
-    if (safeAvailableRecruiters.length === 0 && !isRecruitersLoading && !recruitersError) {
-      setIsRecruitersLoading(true);
-      // You can add a retry mechanism here if needed
-      setTimeout(() => setIsRecruitersLoading(false), 1000);
-    }
-  }, [safeAvailableRecruiters.length, isRecruitersLoading, recruitersError]);
-
-
-
-  
-
-
-
-  return (
-    <div>
-      <Accordion type="multiple" defaultValue={["ai-search", "filters"]} className="w-full">
-        
-        {/* AI Power Search Accordion */}
-        <AccordionItem value="ai-search" className={cn("bg-card", isAiSearching && "animate-pulse")}>
-          <AccordionTrigger className={cn("px-3 py-2.5 hover:no-underline hover:bg-accent/50 transition-colors", isAiSearching && "bg-blue-50 dark:bg-blue-950/20")}>
-            <div className="flex items-center justify-between w-full pr-2">
-              <div className="flex items-center gap-2">
-                {isAiSearching ? (
-                  <div className="relative">
-                    <Brain className="w-4 h-4 text-blue-600 animate-pulse" />
-                    <div className="absolute inset-0 w-4 h-4 border-2 border-blue-300 border-t-transparent rounded-full animate-spin"></div>
-                  </div>
-                ) : (
-                  <Brain className="w-4 h-4 text-primary" />
-                )}
-                <span className={cn("font-medium text-sm", isAiSearching ? "text-blue-700 dark:text-blue-300" : "text-foreground")}>
-                  {isAiSearching ? "AI Power Search (Searching...)" : "AI Power Search"}
-                </span>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="inline-flex">
-                    <Lightbulb className={cn("w-3 h-3 ml-1", isAiSearching ? "text-blue-500 animate-pulse" : "text-muted-foreground")} />
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="max-w-xs">
-                      Use natural language to search across all candidate attributes including skills, experience, education, and parsed resume data.
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleClearAll();
-                    }}
-                    className={cn(
-                      "h-6 px-2 hover:bg-accent/50 rounded-md flex items-center cursor-pointer transition-colors",
-                      (isLoading || isAiSearching) && "opacity-50 cursor-not-allowed"
-                    )}
-                  >
-                    <FilterX className="h-3 w-3 mr-1" />
-                    Clear All
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Clear all filters</p>
-                </TooltipContent>
-              </Tooltip>
-            </div>
-          </AccordionTrigger>
-          <AccordionContent className="px-3 pb-3 bg-muted/20">
-            <div className="flex flex-col gap-3 pt-3">
-              <div className="relative">
-                <Textarea
-                  id="ai-search"
-                  placeholder="e.g., 'React developers with 5+ years experience at tech companies'"
-                  value={aiSearchQueryInput}
-                  onChange={(e) => setAiSearchQueryInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-                      // Allow Ctrl+Enter or Cmd+Enter for new line
-                      return;
-                    }
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      if (aiSearchQueryInput.trim() && !isLoading && !isAiSearching) {
-                        handleAiSearchClick();
-                      }
-                    }
-                  }}
-                  className={cn("min-h-[80px] text-base transition-all duration-300", isAiSearching && "border-blue-300 bg-blue-50/50 dark:bg-blue-950/20")}
-                  disabled={isLoading || isAiSearching}
-                />
-                {isAiSearching && (
-                  <div className="absolute top-2 right-2">
-                    <div className="w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
-                  </div>
-                )}
-              </div>
-              <div className="space-y-3">
-                <Button
-                  onClick={handleAiSearchClick}
-                  disabled={!aiSearchQueryInput.trim() || isLoading || isAiSearching}
-                  className={cn("w-full transition-all duration-300", isAiSearching && "bg-blue-600 hover:bg-blue-700 shadow-lg")}
-                  size="sm"
-                >
-                  {isAiSearching ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Searching...
-                    </>
-                  ) : (
-                    <>
-                      <Brain className="mr-2 h-4 w-4" />
-                      AI Search
-                    </>
-                  )}
-                </Button>
-
-                {isAiSearching && (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400">
-                      <div className="flex space-x-1">
-                        <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                        <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                        <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                      </div>
-                      <span>Analyzing candidates with AI...</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-1.5 dark:bg-gray-700">
-                      <div className="bg-blue-600 h-1.5 rounded-full animate-pulse" style={{ width: '60%' }}></div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {aiSearchResults && (
-                <Card className="bg-background animate-in slide-in-from-bottom-2 duration-300">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <Brain className="w-4 h-4 text-green-600" />
-                      AI Search Results
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs">Found:</span>
-                        <Badge variant="secondary" className="animate-in zoom-in-50 duration-300">{aiSearchResults.totalFound} candidates</Badge>
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        <strong>Query:</strong> &quot;{aiSearchResults.searchQuery}&quot;
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        <strong>Type:</strong> {aiSearchResults.searchType}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        <strong>Reasoning:</strong> {aiSearchResults.reasoning}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+    return (
+    <div className="space-y-0 candidate-filters">
+             {/* Filters Section */}
+       <div className="bg-card overflow-hidden border-t border-border/50">
+        <div>
+           {/* Standard Tab Design */}
+          <div className="flex w-full border-b border-border/50 ">
+            <div
+              onClick={() => setActiveTab('filters')}
+              className={cn(
+                "flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium transition-all duration-200 relative cursor-pointer flex-1",
+                activeTab === 'filters'
+                  ? "text-primary border-b-2 border-primary"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
               )}
+            >
+              <ListFilter className="h-4 w-4" />
+              Filters
             </div>
-          </AccordionContent>
-        </AccordionItem>
-
-        {/* Filters & Advanced Query Accordion */}
-        <AccordionItem value="filters" className="bg-card">
-          <AccordionTrigger className="px-3 py-2.5 hover:no-underline hover:bg-accent/50 transition-colors">
-            <div className="flex items-center justify-between w-full pr-2">
-              <div className="flex items-center gap-2">
-                <ListFilter className="w-4 h-4 text-muted-foreground" />
-                <span className="font-medium text-sm text-foreground">Filters</span>
-              </div>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleClearAll();
-                    }}
-                    className={cn(
-                      "h-6 px-2 hover:bg-accent/50 rounded-md flex items-center cursor-pointer transition-colors",
-                      (isLoading || isAiSearching) && "opacity-50 cursor-not-allowed"
-                    )}
-                  >
-                    <FilterX className="h-3 w-3 mr-1" />
-                    Clear All
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Clear all filters</p>
-                </TooltipContent>
-              </Tooltip>
+            <div
+              onClick={() => setActiveTab('advanced')}
+              className={cn(
+                "flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium transition-all duration-200 relative cursor-pointer flex-1",
+                activeTab === 'advanced'
+                  ? "text-primary border-b-2 border-primary"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+              )}
+            >
+              <Code className="h-4 w-4" />
+              Advanced
             </div>
-          </AccordionTrigger>
-          <AccordionContent className="px-3 pb-3 bg-muted/20">
-            <div className="pt-3">
-              {/* Tabs for Filters and Advanced Query */}
-              <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'filters' | 'advanced')} className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="filters" className="text-xs">Filters</TabsTrigger>
-                  <TabsTrigger value="advanced" className="text-xs">Advanced Query</TabsTrigger>
-                </TabsList>
-                
-                {/* Filters Tab */}
-                <TabsContent value="filters" className="space-y-4 mt-3">
-                  <div>
-                    <Accordion type="multiple" className="w-full" defaultValue={["application-status"]}>
-                      {/* Candidate Information Section */}
-                    <AccordionItem value="candidate-info">
-                      <AccordionTrigger>
-                        <div className="flex items-center gap-2">
-                          <User className="w-4 h-4 text-muted-foreground" />
-                          <h4 className="text-sm font-medium">Candidate Information</h4>
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent>
-                        <div className="grid grid-cols-1 gap-3">
-                          <div>
-                            <Label htmlFor="name-search" className="text-xs">Name</Label>
-                            <div className="flex gap-2 items-center mt-1">
-                              <Select value={nameOperator} onValueChange={v => setNameOperator(v as 'contains' | 'is' | 'startsWith' | 'endsWith')} disabled={false}>
-                                <SelectTrigger className="w-24 h-8 text-xs">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="contains">contains</SelectItem>
-                                  <SelectItem value="is">is</SelectItem>
-                                  <SelectItem value="startsWith">starts with</SelectItem>
-                                  <SelectItem value="endsWith">ends with</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <Input 
-                                id="name-search" 
-                                placeholder="Filter by name..." 
-                                value={name} 
-                                onChange={(e) => setName(e.target.value)} 
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    e.preventDefault();
-                                    handleApplyStandardFilters();
-                                  }
-                                }}
-                                className="flex-1 h-8 text-sm" 
-                                disabled={false}
-                              />
-                            </div>
+          </div>
+          
+          {/* Filters Tab */}
+          {activeTab === 'filters' && (
+            <div>
+              {/* AI Power Search Section */}
+              <Accordion type="multiple" defaultValue={["ai-power-search"]} className="w-full">
+                <AccordionItem value="ai-power-search" className="border-b border-border/50">
+                  <AccordionTrigger className="px-4 py-3 hover:no-underline rounded-none pl-6 pr-6 pr-6">
+                    <div className="flex items-center justify-between w-full pr-2">
+                      <div className="flex items-center gap-2">
+                        {isAiSearching ? (
+                          <div className="relative">
+                            <Brain className="w-4 h-4 text-blue-600 animate-pulse" />
+                            <div className="absolute inset-0 w-4 h-4 border-2 border-blue-300 border-t-transparent rounded-full animate-spin"></div>
                           </div>
-                          <div>
-                            <Label htmlFor="email-search" className="text-xs">Email</Label>
-                            <div className="flex gap-2 items-center mt-1">
-                              <Select value={emailOperator} onValueChange={v => setEmailOperator(v as 'contains' | 'is' | 'startsWith' | 'endsWith')} disabled={isLoading || isAiSearching}>
-                                <SelectTrigger className="w-24 h-8 text-xs">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="contains">contains</SelectItem>
-                                  <SelectItem value="is">is</SelectItem>
-                                  <SelectItem value="startsWith">starts with</SelectItem>
-                                  <SelectItem value="endsWith">ends with</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <Input 
-                                id="email-search" 
-                                placeholder="Filter by email..." 
-                                value={email} 
-                                onChange={(e) => setEmail(e.target.value)} 
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter' && !isLoading && !isAiSearching) {
-                                    e.preventDefault();
-                                    handleApplyStandardFilters();
-                                  }
-                                }}
-                                className="flex-1 h-8 text-sm" 
-                                disabled={isLoading || isAiSearching}
-                              />
-                            </div>
-                          </div>
-                          <div>
-                            <Label htmlFor="phone-search" className="text-xs">Phone</Label>
-                            <div className="flex gap-2 items-center mt-1">
-                              <Select value={phoneOperator} onValueChange={v => setPhoneOperator(v as 'contains' | 'is' | 'startsWith' | 'endsWith')} disabled={isLoading || isAiSearching}>
-                                <SelectTrigger className="w-24 h-8 text-xs">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="contains">contains</SelectItem>
-                                  <SelectItem value="is">is</SelectItem>
-                                  <SelectItem value="startsWith">starts with</SelectItem>
-                                  <SelectItem value="endsWith">ends with</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <Input 
-                                id="phone-search" 
-                                placeholder="Filter by phone..." 
-                                value={phone} 
-                                onChange={(e) => setPhone(e.target.value)} 
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter' && !isLoading && !isAiSearching) {
-                                    e.preventDefault();
-                                    handleApplyStandardFilters();
-                                  }
-                                }}
-                                className="flex-1 h-8 text-sm" 
-                                disabled={isLoading || isAiSearching}
-                              />
-                            </div>
-                          </div>
-                          <div>
-                            <Label htmlFor="skills-search" className="text-xs">Skills Keywords</Label>
-                            <div
-                              className="flex flex-wrap items-center gap-1 mt-1 min-h-[40px] border rounded-md px-2 py-1 bg-background focus-within:ring-2 focus-within:ring-ring"
-                              style={{ cursor: isLoading || isAiSearching ? 'not-allowed' : 'text' }}
-                              onClick={e => {
-                                if (!isLoading && !isAiSearching) {
-                                  (document.getElementById('skills-tag-input') as HTMLInputElement)?.focus();
-                                }
-                              }}
-                            >
-                              {Array.from(skills).map((skill) => (
-                                <Badge key={skill} variant="secondary" className="flex items-center gap-1 px-2 py-0.5 text-xs">
-                                  {skill}
-                                  <span
-                                    role="button"
-                                    className="ml-1 text-muted-foreground hover:text-destructive focus:outline-none cursor-pointer"
-                                    onClick={e => {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                      if (isLoading || isAiSearching) return;
-                                      const newSkills = new Set(skills);
-                                      newSkills.delete(skill);
-                                      setSkills(newSkills);
-                                      // Apply filters after removing skill
-                                      setTimeout(() => handleApplyStandardFilters(), 100);
-                                    }}
-                                    onMouseDown={e => {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                    }}
-                                    aria-label={`Remove ${skill}`}
-                                    tabIndex={-1}
-                                  >
-                                    <X className="w-3 h-3" />
-                                  </span>
-                                </Badge>
-                              ))}
-                              <input
-                                id="skills-tag-input"
-                                type="text"
-                                className="flex-1 min-w-[120px] border-0 outline-none bg-transparent text-sm py-1 px-2 placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
-                                placeholder="e.g., React, Python, AWS..."
-                                disabled={isLoading || isAiSearching}
-                                onKeyDown={e => {
-                                  if (isLoading || isAiSearching) return;
-                                  
-                                  // Always prevent default for Enter key to avoid form submission
-                                  if (e.key === 'Enter') {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                  }
-                                  
-                                  const value = (e.target as HTMLInputElement).value.trim();
-                                  if ((e.key === 'Enter' || e.key === ',' || e.key === 'Tab') && value) {
-                                    if (!skills.has(value)) {
-                                      const newSkills = new Set(skills);
-                                      newSkills.add(value);
-                                      setSkills(newSkills);
-                                      // Apply filters after adding skill
-                                      setTimeout(() => handleApplyStandardFilters(), 100);
-                                    }
-                                    (e.target as HTMLInputElement).value = '';
-                                    // Apply filters after adding skill
-                                    if (e.key === 'Enter') {
-                                      handleApplyStandardFilters();
-                                    }
-                                  } else if (e.key === 'Enter' && !value) {
-                                    // If Enter is pressed with empty input, apply filters
-                                    handleApplyStandardFilters();
-                                  } else if (e.key === 'Backspace' && !value && skills.size > 0) {
-                                    // Remove last skill if input is empty and backspace is pressed
-                                    const arr = Array.from(skills);
-                                    const last = arr[arr.length - 1];
-                                    const newSkills = new Set(skills);
-                                    newSkills.delete(last);
-                                    setSkills(newSkills);
-                                    // Apply filters after removing skill
-                                    setTimeout(() => handleApplyStandardFilters(), 100);
-                                  }
-                                }}
-                                onChange={e => {
-                                  // Handle input change without preventing default
-                                  // The input value is managed by the onKeyDown handler
-                                }}
-                                onPaste={e => {
-                                  if (isLoading || isAiSearching) return;
-                                  const paste = e.clipboardData.getData('text');
-                                  if (paste) {
-                                    e.preventDefault();
-                                    let hasChanges = false;
-                                    paste.split(',').map(s => s.trim()).filter(Boolean).forEach(skill => {
-                                      if (!skills.has(skill)) {
-                                        const newSkills = new Set(skills);
-                                        newSkills.add(skill);
-                                        setSkills(newSkills);
-                                        hasChanges = true;
-                                      }
-                                    });
-                                    // Apply filters after pasting skills
-                                    if (hasChanges) {
-                                      setTimeout(() => handleApplyStandardFilters(), 100);
-                                    }
-                                  }
-                                }}
-                              />
-                            </div>
-
-                          </div>
-                          <div>
-                            <Label htmlFor="location-search" className="text-xs">Location</Label>
-                            <div className="flex gap-2 items-center mt-1">
-                              <Select value={locationOperator} onValueChange={v => setLocationOperator(v as 'contains' | 'is' | 'startsWith' | 'endsWith' | 'other')} disabled={isLoading || isAiSearching}>
-                                <SelectTrigger className="w-24 h-8 text-xs">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="contains">contains</SelectItem>
-                                  <SelectItem value="is">is</SelectItem>
-                                  <SelectItem value="startsWith">starts with</SelectItem>
-                                  <SelectItem value="endsWith">ends with</SelectItem>
-                                  <SelectItem value="other">other</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <Input 
-                                id="location-search" 
-                                placeholder="e.g., Bangkok, Thailand..." 
-                                value={location} 
-                                onChange={(e) => setLocation(e.target.value)} 
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter' && !isLoading && !isAiSearching) {
-                                    e.preventDefault();
-                                    handleApplyStandardFilters();
-                                  }
-                                }}
-                                className="flex-1 h-8 text-sm" 
-                                disabled={isLoading || isAiSearching}
-                              />
-                            </div>
-
-                          </div>
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-
-                    {/* Application Status Section */}
-                    <AccordionItem value="application-status">
-                      <AccordionTrigger>
-                        <div className="flex items-center gap-2">
-                          <FileText className="w-4 h-4 text-muted-foreground" />
-                          <h4 className="text-sm font-medium">Application Status</h4>
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent>
-                        <div className="grid grid-cols-1 gap-3">
-                          <div>
-                            <Label htmlFor="position-select" className="text-xs">Position(s)</Label>
-                            <PositionMultiSelectDropdown
-                              selectedIds={selectedPositionIds}
-                              onSelectionChange={handlePositionChange}
-                              placeholder="All positions..."
-                              disabled={isLoading || isAiSearching || isApplyingFilters}
-                              showOpenStatus={true}
-                              filterOpenOnly={false}
-                              showUnassignedOption={true}
-                            />
-                            {isApplyingFilters && (
-                              <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                                <div className="w-3 h-3 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin"></div>
-                                Applying filters...
-                              </div>
-                            )}
-                          </div>
-                          <div>
-                            <Label htmlFor="status-select" className="text-xs">Recruitment Pipeline</Label>
-                            {isStagesLoading ? (
-                              <div className="flex items-center gap-2 p-2 border rounded-md bg-muted/20">
-                                <div className="w-3 h-3 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin"></div>
-                                <span className="text-xs text-muted-foreground">Loading pipeline stages...</span>
-                              </div>
-                            ) : stagesError ? (
-                              <div className="p-2 border rounded-md bg-destructive/10 border-destructive/20">
-                                <span className="text-xs text-destructive">Error loading stages: {stagesError}</span>
-                              </div>
-                            ) : safeAvailableStages.length === 0 ? (
-                              <div className="p-2 border rounded-md bg-muted/20">
-                                <span className="text-xs text-muted-foreground">No pipeline stages available</span>
-                              </div>
-                            ) : (
-                              <StatusMultiSelectDropdown
-                                selectedIds={selectedStatuses}
-                                onSelectionChange={handleStatusChange}
-                                placeholder="Select pipeline stages..."
-                                stages={safeAvailableStages}
-                                candidateCounts={candidateCounts}
-                                disabled={isLoading || isAiSearching || isApplyingFilters}
-                              />
-                            )}
-                            {isApplyingFilters && (
-                              <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                                <div className="w-3 h-3 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin"></div>
-                                Applying filters...
-                              </div>
-                            )}
-                          </div>
-                          <div>
-                            <Label htmlFor="recruiter-select" className="text-xs">Assigned Recruiter(s)</Label>
-                            {isRecruitersLoading ? (
-                              <div className="flex items-center gap-2 p-2 border rounded-md bg-muted/20">
-                                <div className="w-3 h-3 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin"></div>
-                                <span className="text-xs text-muted-foreground">Loading recruiters...</span>
-                              </div>
-                            ) : recruitersError ? (
-                              <div className="p-2 border rounded-md bg-destructive/10 border-destructive/20">
-                                <span className="text-xs text-destructive">Error loading recruiters: {recruitersError}</span>
-                              </div>
-                            ) : safeAvailableRecruiters.length === 0 ? (
-                              <div className="p-2 border rounded-md bg-muted/20">
-                                <span className="text-xs text-muted-foreground">No recruiters available - can filter unassigned</span>
-                              </div>
-                            ) : (
-                              <RecruiterMultiSelectDropdown
-                                selectedIds={selectedRecruiterIds}
-                                onSelectionChange={handleRecruiterChange}
-                                placeholder={`All recruiters`}
-                                recruiters={safeAvailableRecruiters}
-                                disabled={isLoading || isAiSearching || isApplyingFilters}
-                              />
-                            )}
-                            {isApplyingFilters && (
-                              <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                                <div className="w-3 h-3 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin"></div>
-                                Applying filters...
-                              </div>
-                            )}
-                          </div>
-                          <div>
-                            <Label htmlFor="source-select" className="text-xs">Candidate Source(s)</Label>
-                            {availableSources.length === 0 ? (
-                              <div className="p-2 border rounded-md bg-muted/20">
-                                <span className="text-xs text-muted-foreground">No sources available</span>
-                              </div>
-                            ) : (
-                              <SourceMultiSelectDropdown
-                                selectedSourceIds={selectedSourceIds}
-                                onSelectionChange={handleSourceChange}
-                                availableSources={availableSources}
-                                placeholder="Select sources..."
-                                disabled={isLoading || isAiSearching || isApplyingFilters}
-                              />
-                            )}
-                            {isApplyingFilters && (
-                              <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                                <div className="w-3 h-3 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin"></div>
-                                Applying filters...
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-
-                    {/* Experience Section */}
-                    <AccordionItem value="experience">
-                      <AccordionTrigger>
-                        <div className="flex items-center gap-2">
-                          <Clock className="w-4 h-4 text-muted-foreground" />
-                          <h4 className="text-sm font-medium">Experience</h4>
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent>
-                        <div className="space-y-4">
-                          <div>
-                            <Label className="text-xs font-medium pt-2">Experience Years</Label>
-                            <div className="flex items-center gap-2">
-                              <div className="flex items-center gap-2 flex-1">
-                                <div className="flex-1">
-                                  <Label className="text-xs text-muted-foreground">Min</Label>
-                                  <Input
-                                    type="number"
-                                    min="0"
-                                    max="50"
-                                    value={experienceYearsRange[0] === -1 ? '' : experienceYearsRange[0]}
-                                    onChange={(e) => {
-                                      const value = e.target.value === '' ? 0 : parseInt(e.target.value);
-                                      if (!isNaN(value) && value >= 0 && value <= 50) {
-                                        const currentMax = experienceYearsRange[1];
-                                        const newMax = Math.max(value, currentMax);
-                                        handleExperienceYearsChange([value, newMax]);
-                                      }
-                                    }}
-                                    placeholder="Min"
-                                    className="h-8 text-xs"
-                                    disabled={isLoading || isAiSearching || experienceYearsRange[0] === -1}
-                                  />
-                                </div>
-                                <span className="text-xs text-muted-foreground">to</span>
-                                <div className="flex-1">
-                                  <Label className="text-xs text-muted-foreground">Max</Label>
-                                  <Input
-                                    type="number"
-                                    min="0"
-                                    max="50"
-                                    value={experienceYearsRange[1]}
-                                    onChange={(e) => {
-                                      const value = e.target.value === '' ? 50 : parseInt(e.target.value);
-                                      if (!isNaN(value) && value >= 0 && value <= 50) {
-                                        const currentMin = experienceYearsRange[0] === -1 ? 0 : experienceYearsRange[0];
-                                        const newMin = Math.min(currentMin, value);
-                                        handleExperienceYearsChange([newMin, value]);
-                                      }
-                                    }}
-                                    placeholder="Max"
-                                    className="h-8 text-xs"
-                                    disabled={isLoading || isAiSearching}
-                                  />
-                                </div>
-                              </div>
-                              <span className="text-xs w-20 text-muted-foreground">
-                                {experienceYearsRange[0] === -1 ? 'No exp' : experienceYearsRange[0]}-{experienceYearsRange[1]} years
-                              </span>
-                            </div>
-                            <div className="flex items-center space-x-2 mt-2">
-                              <input
-                                type="checkbox"
-                                id="no-experience-checkbox"
-                                checked={experienceYearsRange[0] === -1}
-                                onChange={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  if (e.target.checked) {
-                                    setExperienceYearsRange([-1, 50]); // Use -1 as special marker for "no experience"
-                                  } else {
-                                    setExperienceYearsRange([0, 50]); // Reset to default
-                                  }
-                                  // Apply filters when checkbox changes
-                                  setTimeout(() => handleApplyStandardFilters(), 100);
-                                }}
-                                onMouseDown={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                }}
-                                disabled={isLoading || isAiSearching}
-                                className="rounded border-border text-primary focus:ring-primary"
-                              />
-                              <Label 
-                                htmlFor="no-experience-checkbox" 
-                                className="text-xs text-muted-foreground cursor-pointer"
-                                onMouseDown={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                }}
-                              >
-                                Include candidates with no experience listed
-                              </Label>
-                            </div>
-                          </div>
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-
-
-
-
-                    </Accordion>
-
-                    {/* Action Buttons */}
-                    <div className="flex gap-2 mt-4">
+                        ) : (
+                          <Brain className="w-4 h-4 text-muted-foreground" />
+                        )}
+                        <h4 className="text-sm font-semibold">AI Power Search</h4>
+                        <Lightbulb className={cn("w-4 h-4", isAiSearching ? "text-blue-500 animate-pulse" : "text-muted-foreground")} />
+                      </div>
                       <Button
-                        onClick={handleApplyStandardFilters}
-                        disabled={false}
+                        variant="ghost"
                         size="sm"
-                        className="flex-1 transition-all duration-200 ease-in-out hover:scale-105"
-                      >
-                        <Filter className="mr-2 h-4 w-4" />
-                        Apply Filters
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={handleResetFilters}
-                        disabled={false}
-                        size="sm"
-                        className="flex-1 transition-all duration-200 ease-in-out hover:scale-105"
-                      >
-                        <FilterX className="mr-2 h-4 w-4" />
-                        Clear All
-                      </Button>
-                    </div>
-                  </div>
-                </TabsContent>
-
-                {/* Advanced Query Tab */}
-                <TabsContent value="advanced" className="space-y-3 mt-3">
-                  {/* Advanced Query Syntax */}
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Label className="text-xs font-medium">Advanced Query Syntax</Label>
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button variant="ghost" size="icon" className="p-1 h-6 w-6" type="button">
-                            <FileText className="w-4 h-4 text-blue-600" />
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-2xl">
-                          <DialogHeader>
-                            <DialogTitle>Advanced Query Syntax Guide</DialogTitle>
-                            <DialogDescription>
-                              Use advanced query syntax to filter candidates with powerful expressions. Combine multiple filters with spaces. Supported keys:
-                            </DialogDescription>
-                          </DialogHeader>
-                          <div className="py-2 space-y-2 text-sm">
-                            <ul className="list-disc pl-5">
-                              <li><b>name</b>: Filter by candidate name. <code>name:John</code></li>
-                              <li><b>email</b>: Filter by email. <code>email:gmail.com</code></li>
-                              <li><b>phone</b>: Filter by phone. <code>phone:555</code></li>
-                              <li><b>skills</b>: Skills keywords. <code>skills:React,Python</code></li>
-                              <li><b>location</b>: Location. <code>location:Bangkok,Thailand</code></li>
-                              <li><b>locationOperator</b>: Location operator (contains, is, startsWith, endsWith, other). <code>locationOperator:contains</code></li>
-                              <li><b>minexperienceyears</b>: Minimum experience years. <code>minExperienceYears:5</code></li>
-                              <li><b>maxexperienceyears</b>: Maximum experience years. <code>maxExperienceYears:10</code></li>
-                              <li><b>positionid</b>: Position IDs (comma separated). <code>positionId:pos1,pos2</code></li>
-                              <li><b>status</b>: Statuses (comma separated). <code>status:Applied,Screening</code></li>
-                              <li><b>recruiterid</b>: Recruiter IDs or <code>unassigned</code>. <code>recruiterId:unassigned</code></li>
-                              <li><b>minfitscore</b>: Minimum fit score. <code>minFitScore:80</code></li>
-                              <li><b>maxfitscore</b>: Maximum fit score. <code>maxFitScore:95</code></li>
-                              <li><b>matchingfitscore</b>: Matching fit score range. <code>matchingFitScoreMin:70 matchingFitScoreMax:100</code></li>
-                              <li><b>applicationdatestart</b>: Start date (YYYY-MM-DD). <code>applicationDateStart:2024-01-01</code></li>
-                              <li><b>applicationdateend</b>: End date (YYYY-MM-DD). <code>applicationDateEnd:2024-01-31</code></li>
-                              <li><b>location</b>: Location. <code>location:Bangkok,Thailand</code></li>
-                              <li><b>locationoperator</b>: Location operator (contains, is, startsWith, endsWith, other). <code>locationOperator:contains</code></li>
-                            </ul>
-                            <div className="mt-4">
-                              <b>Examples:</b>
-                              <ul className="list-disc pl-5 mt-1">
-                                <li><code>minFitScore:80 status:Applied,Screening</code> <span className="text-muted-foreground">// High fit score in active stages</span></li>
-                                <li><code>applicationDateStart:2024-01-01 applicationDateEnd:2024-01-31</code> <span className="text-muted-foreground">// Applied in January 2024</span></li>
-                                <li><code>recruiterId:unassigned</code> <span className="text-muted-foreground">// Not assigned to any recruiter</span></li>
-                                <li><code>status:Off</code> <span className="text-muted-foreground">// Candidates with no status assigned</span></li>
-                                <li><code>positionId:pos1,pos2 status:Screening</code> <span className="text-muted-foreground">// Candidates in specific positions and status</span></li>
-                              </ul>
-                            </div>
-                          </div>
-                        </DialogContent>
-                      </Dialog>
-                    </div>
-                    <div className="flex gap-2">
-                      <Textarea
-                        placeholder="e.g., minFitScore:80 status:Applied,Screening"
-                        value={advancedQueryInput}
-                        onChange={(e) => setAdvancedQueryInput(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-                            // Allow Ctrl+Enter or Cmd+Enter for new line
-                            return;
-                          }
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            if (advancedQueryInput.trim()) {
-                              handleApplyAdvancedQuery();
-                            }
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setAiSearchQueryInput('');
+                          setAiSearchFilters({});
+                          // Call parent's clear function to properly clear AI search state
+                          if (onClearAllFilters) {
+                            onClearAllFilters();
                           }
                         }}
-                        className="flex-1 min-h-[80px]"
-                        disabled={false}
-                      />
+                        disabled={isLoading || isAiSearching}
+                        className="h-6 w-6 p-0 hover:bg-muted/50"
+                      >
+                        <FilterX className="h-3 w-3" />
+                      </Button>
                     </div>
-                  </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-4 pb-4">
+                    <div className="flex flex-col gap-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="ai-search" className="text-xs font-medium">Search Query</Label>
+                        <div className="relative">
+                          <Textarea
+                            id="ai-search"
+                            placeholder="e.g., 'React developers with 5+ years experience at tech companies'"
+                            value={aiSearchQueryInput}
+                            onChange={(e) => setAiSearchQueryInput(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                                return;
+                              }
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                if (aiSearchQueryInput.trim() && !isLoading && !isAiSearching) {
+                                  handleAiSearchClick();
+                                }
+                              }
+                            }}
+                            className={cn("min-h-[80px] text-base transition-all duration-300", isAiSearching && "border-blue-300 bg-blue-50/50 dark:bg-blue-950/20")}
+                            disabled={isLoading || isAiSearching}
+                          />
+                          {isAiSearching && (
+                            <div className="absolute top-2 right-2">
+                              <div className="w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="space-y-3">
+                        <Button
+                          onClick={handleAiSearchClick}
+                          disabled={!aiSearchQueryInput.trim() || isLoading || isAiSearching}
+                          className={cn("w-full transition-all duration-300", isAiSearching && "bg-blue-600 hover:bg-blue-700 shadow-lg")}
+                          size="sm"
+                        >
+                          {isAiSearching ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Searching...
+                            </>
+                          ) : (
+                            <>
+                              <Brain className="mr-2 h-4 w-4" />
+                              AI Search
+                            </>
+                          )}
+                        </Button>
 
-                  {/* Action Buttons */}
-                  <div className="flex gap-2 pt-2 border-t">
-                    <Button
-                      onClick={handleApplyAdvancedQuery}
-                      disabled={!advancedQueryInput.trim()}
-                      className="flex-1"
-                      size="sm"
+                        {isAiSearching && (
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400">
+                              <div className="flex space-x-1">
+                                <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                                <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                                <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                              </div>
+                              <span>Analyzing candidates with AI...</span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-1.5 dark:bg-gray-700">
+                              <div className="bg-blue-600 h-1.5 rounded-full animate-pulse" style={{ width: '60%' }}></div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* AI Search Results Display removed - now shown under fit score filter tabs */}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+
+              {/* Candidate Information Section */}
+               <Accordion type="multiple" defaultValue={["candidate-info"]} className="w-full">
+                 <AccordionItem value="candidate-info" className="border-b border-border/50">
+                   <AccordionTrigger className="px-4 py-3 hover:no-underline rounded-none pl-6 pr-6">
+                     <div className="flex items-center justify-between w-full pr-2">
+                       <div className="flex items-center gap-2">
+                         <User className="w-4 h-4 text-muted-foreground" />
+                         <h4 className="text-sm font-semibold">Candidate Information</h4>
+                       </div>
+                       <Button
+                         variant="ghost"
+                         size="sm"
+                         onClick={(e) => {
+                           e.stopPropagation();
+                           setName('');
+                           setEmail('');
+                           setPhone('');
+                           setSkills(new Set());
+                           setLocation('');
+                         }}
+                         disabled={isLoading || isAiSearching}
+                         className="h-6 w-6 p-0 hover:bg-muted/50"
+                       >
+                         <FilterX className="h-3 w-3" />
+                       </Button>
+                     </div>
+                   </AccordionTrigger>
+                                       <AccordionContent className="px-4 pb-4 overflow-visible">
+                      <div className="space-y-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="name-search" className="text-xs font-medium">Name</Label>
+                                           <div className="grid grid-cols-5 gap-2 w-full">
+                        <Select value={nameOperator} onValueChange={v => setNameOperator(v as 'contains' | 'is' | 'startsWith' | 'endsWith')} disabled={false}>
+                          <SelectTrigger 
+                            className="h-8 text-xs w-full col-span-2"
+                          >
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="z-[10001]">
+                            <SelectItem value="contains">contains</SelectItem>
+                            <SelectItem value="is">is</SelectItem>
+                            <SelectItem value="startsWith">starts with</SelectItem>
+                            <SelectItem value="endsWith">ends with</SelectItem>
+                          </SelectContent>
+                        </Select>
+                       <Input 
+                         id="name-search" 
+                         placeholder="Filter by name..." 
+                         value={name} 
+                         onChange={(e) => setName(e.target.value)} 
+                         onKeyDown={(e) => {
+                           if (e.key === 'Enter') {
+                             e.preventDefault();
+                             handleApplyStandardFilters();
+                           }
+                         }}
+                         className="h-8 text-sm col-span-3" 
+                         disabled={false}
+                       />
+                     </div>
+                   </div>
+                   <div className="space-y-2">
+                                           <Label htmlFor="email-search" className="text-xs font-medium">Email</Label>
+                                           <div className="grid grid-cols-5 gap-2 w-full">
+                        <Select value={emailOperator} onValueChange={v => setEmailOperator(v as 'contains' | 'is' | 'startsWith' | 'endsWith')} disabled={isLoading || isAiSearching}>
+                          <SelectTrigger 
+                            className="h-8 text-xs w-full col-span-2"
+                          >
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="z-[10001]">
+                            <SelectItem value="contains">contains</SelectItem>
+                            <SelectItem value="is">is</SelectItem>
+                            <SelectItem value="startsWith">starts with</SelectItem>
+                            <SelectItem value="endsWith">ends with</SelectItem>
+                          </SelectContent>
+                        </Select>
+                       <Input 
+                         id="email-search" 
+                         placeholder="Filter by email..." 
+                         value={email} 
+                         onChange={(e) => setEmail(e.target.value)} 
+                         onKeyDown={(e) => {
+                           if (e.key === 'Enter' && !isLoading && !isAiSearching) {
+                             e.preventDefault();
+                             handleApplyStandardFilters();
+                           }
+                         }}
+                         className="h-8 text-sm col-span-3" 
+                         disabled={isLoading || isAiSearching}
+                       />
+                     </div>
+                   </div>
+                   <div className="space-y-2">
+                                           <Label htmlFor="phone-search" className="text-xs font-medium">Phone</Label>
+                                           <div className="grid grid-cols-5 gap-2 w-full">
+                        <Select value={phoneOperator} onValueChange={v => setPhoneOperator(v as 'contains' | 'is' | 'startsWith' | 'endsWith')} disabled={isLoading || isAiSearching}>
+                          <SelectTrigger 
+                            className="h-8 text-xs w-full col-span-2"
+                          >
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="z-[10001]">
+                            <SelectItem value="contains">contains</SelectItem>
+                            <SelectItem value="is">is</SelectItem>
+                            <SelectItem value="startsWith">starts with</SelectItem>
+                            <SelectItem value="endsWith">ends with</SelectItem>
+                          </SelectContent>
+                        </Select>
+                       <Input 
+                         id="phone-search" 
+                         placeholder="Filter by phone..." 
+                         value={phone} 
+                         onChange={(e) => setPhone(e.target.value)} 
+                         onKeyDown={(e) => {
+                           if (e.key === 'Enter' && !isLoading && !isAiSearching) {
+                             e.preventDefault();
+                             handleApplyStandardFilters();
+                           }
+                         }}
+                         className="h-8 text-sm col-span-3" 
+                         disabled={isLoading || isAiSearching}
+                       />
+                     </div>
+                   </div>
+                   <div className="space-y-2">
+                                           <Label htmlFor="location-search" className="text-xs font-medium">Location</Label>
+                                           <div className="grid grid-cols-5 gap-2 w-full">
+                        <Select value={locationOperator} onValueChange={v => setLocationOperator(v as 'contains' | 'is' | 'startsWith' | 'endsWith' | 'other')} disabled={isLoading || isAiSearching}>
+                          <SelectTrigger 
+                            className="h-8 text-xs w-full col-span-2"
+                          >
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="z-[10001]">
+                            <SelectItem value="contains">contains</SelectItem>
+                            <SelectItem value="is">is</SelectItem>
+                            <SelectItem value="startsWith">starts with</SelectItem>
+                            <SelectItem value="endsWith">ends with</SelectItem>
+                            <SelectItem value="other">other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                       <Input 
+                         id="location-search" 
+                         placeholder="e.g., Bangkok, Thailand..." 
+                         value={location} 
+                         onChange={(e) => setLocation(e.target.value)} 
+                         onKeyDown={(e) => {
+                           if (e.key === 'Enter' && !isLoading && !isAiSearching) {
+                             e.preventDefault();
+                             handleApplyStandardFilters();
+                           }
+                         }}
+                         className="h-8 text-sm col-span-3" 
+                         disabled={isLoading || isAiSearching}
+                       />
+                     </div>
+                   </div>
+                 </div>
+                <div className="space-y-2 mt-2">
+                  <Label htmlFor="skills-search" className="text-xs font-medium">Skills Keywords</Label>
+                  <div
+                    className="flex flex-wrap items-center gap-1 mt-1 min-h-[40px] border px-2 py-1 bg-background focus-within:ring-2 focus-within:ring-ring"
+                    style={{ cursor: isLoading || isAiSearching ? 'not-allowed' : 'text' }}
+                    onClick={e => {
+                      if (!isLoading && !isAiSearching) {
+                        (document.getElementById('skills-tag-input') as HTMLInputElement)?.focus();
+                      }
+                    }}
+                  >
+                    {Array.from(skills).map((skill) => (
+                      <Badge key={skill} variant="secondary" className="flex items-center gap-1 px-2 py-0.5 text-xs">
+                        {skill}
+                        <span
+                          role="button"
+                          className="ml-1 text-muted-foreground hover:text-destructive focus:outline-none cursor-pointer"
+                          onClick={e => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (isLoading || isAiSearching) return;
+                            const newSkills = new Set(skills);
+                            newSkills.delete(skill);
+                            setSkills(newSkills);
+                            setTimeout(() => handleApplyStandardFilters(), 100);
+                          }}
+                          onMouseDown={e => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }}
+                          aria-label={`Remove ${skill}`}
+                          tabIndex={-1}
+                        >
+                          <X className="w-3 h-3" />
+                        </span>
+                      </Badge>
+                    ))}
+                    <input
+                      id="skills-tag-input"
+                      type="text"
+                      className="flex-1 min-w-[120px] border-0 outline-none bg-transparent text-sm py-1 px-2 placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                      placeholder="e.g., React, Python, AWS..."
+                      disabled={isLoading || isAiSearching}
+                      onKeyDown={e => {
+                        if (isLoading || isAiSearching) return;
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          e.stopPropagation();
+                        }
+                        const value = (e.target as HTMLInputElement).value.trim();
+                        if ((e.key === 'Enter' || e.key === ',' || e.key === 'Tab') && value) {
+                          if (!skills.has(value)) {
+                            const newSkills = new Set(skills);
+                            newSkills.add(value);
+                            setSkills(newSkills);
+                            setTimeout(() => handleApplyStandardFilters(), 100);
+                          }
+                          (e.target as HTMLInputElement).value = '';
+                          if (e.key === 'Enter') {
+                            handleApplyStandardFilters();
+                          }
+                        } else if (e.key === 'Enter' && !value) {
+                          handleApplyStandardFilters();
+                        } else if (e.key === 'Backspace' && !value && skills.size > 0) {
+                          const arr = Array.from(skills);
+                          const last = arr[arr.length - 1];
+                          const newSkills = new Set(skills);
+                          newSkills.delete(last);
+                          setSkills(newSkills);
+                          setTimeout(() => handleApplyStandardFilters(), 100);
+                        }
+                      }}
+                      onChange={e => {
+                        // Handle input change without preventing default
+                      }}
+                      onPaste={e => {
+                        if (isLoading || isAiSearching) return;
+                        const paste = e.clipboardData.getData('text');
+                        if (paste) {
+                          e.preventDefault();
+                          let hasChanges = false;
+                          paste.split(',').map(s => s.trim()).filter(Boolean).forEach(skill => {
+                            if (!skills.has(skill)) {
+                              const newSkills = new Set(skills);
+                              newSkills.add(skill);
+                              setSkills(newSkills);
+                              hasChanges = true;
+                            }
+                          });
+                          if (hasChanges) {
+                            setTimeout(() => handleApplyStandardFilters(), 100);
+                          }
+                        }
+                      }}
+                    />
+                  </div>
+                                     </div>
+                   </AccordionContent>
+                 </AccordionItem>
+               </Accordion>
+
+               {/* Application Status Section */}
+               <Accordion type="multiple" defaultValue={["application-status"]} className="w-full">
+                 <AccordionItem value="application-status" className="border-b border-border/50">
+                   <AccordionTrigger className="px-4 py-3 hover:no-underline rounded-none pl-6 pr-6">
+                     <div className="flex items-center justify-between w-full pr-2">
+                       <div className="flex items-center gap-2">
+                         <FileText className="w-4 h-4 text-muted-foreground" />
+                         <h4 className="text-sm font-semibold">Application Status</h4>
+                       </div>
+                       <Button
+                         variant="ghost"
+                         size="sm"
+                         onClick={(e) => {
+                           e.stopPropagation();
+                           setSelectedPositionIds(new Set());
+                           setSelectedStatuses(new Set());
+                           setSelectedRecruiterIds(new Set());
+                           setSelectedSourceIds(new Set());
+                         }}
+                         disabled={isLoading || isAiSearching}
+                         className="h-6 w-6 p-0 hover:bg-muted/50"
+                       >
+                         <FilterX className="h-3 w-3" />
+                       </Button>
+                     </div>
+                   </AccordionTrigger>
+                                       <AccordionContent className="px-4 pb-4">
+                      <div className="space-y-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="position-select" className="text-xs">Position(s)</Label>
+                         <div className="w-full min-w-full">
+                           <PositionMultiSelectDropdown
+                             selectedIds={selectedPositionIds}
+                             onSelectionChange={handlePositionChange}
+                             placeholder="All positions..."
+                             disabled={isLoading || isAiSearching || isApplyingFilters}
+                             showOpenStatus={true}
+                             filterOpenOnly={false}
+                             showUnassignedOption={true}
+                           />
+                         </div>
+                         {isApplyingFilters && (
+                           <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                             <div className="w-3 h-3 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin"></div>
+                             Applying filters...
+                           </div>
+                         )}
+                       </div>
+                       <div className="space-y-2">
+                     <Label htmlFor="status-select" className="text-xs">Recruitment Pipeline</Label>
+                     {safeAvailableStages.length === 0 ? (
+                       <div className="p-2 border bg-muted/20">
+                         <span className="text-xs text-muted-foreground">No pipeline stages available</span>
+                       </div>
+                     ) : (
+                       <div className="w-full min-w-full">
+                         <StatusMultiSelectDropdown
+                           selectedIds={selectedStatuses}
+                           onSelectionChange={handleStatusChange}
+                           placeholder="All stages..."
+                           disabled={isLoading || isAiSearching || isApplyingFilters}
+                           stages={safeAvailableStages}
+                         />
+                       </div>
+                     )}
+                     {isApplyingFilters && (
+                       <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                         <div className="w-3 h-3 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin"></div>
+                         Applying filters...
+                       </div>
+                     )}
+                   </div>
+                   <div className="space-y-2">
+                     <Label htmlFor="recruiter-select" className="text-xs">Assigned Recruiter(s)</Label>
+                     {safeAvailableRecruiters.length === 0 ? (
+                       <div className="p-2 border bg-muted/20">
+                         <span className="text-xs text-muted-foreground">No recruiters available</span>
+                       </div>
+                     ) : (
+                       <div className="w-full min-w-full">
+                         <RecruiterMultiSelectDropdown
+                           selectedIds={selectedRecruiterIds}
+                           onSelectionChange={handleRecruiterChange}
+                           placeholder="All recruiters..."
+                           disabled={isLoading || isAiSearching || isApplyingFilters}
+                           recruiters={safeAvailableRecruiters}
+                         />
+                       </div>
+                     )}
+                     {isApplyingFilters && (
+                       <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                         <div className="w-3 h-3 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin"></div>
+                         Applying filters...
+                       </div>
+                     )}
+                   </div>
+                                       <div className="space-y-2">
+                      <Label htmlFor="source-select" className="text-xs">Candidate Source(s)</Label>
+                      <div className="w-full min-w-full">
+                        <SourceMultiSelectDropdown
+                          selectedSourceIds={selectedSourceIds}
+                          onSelectionChange={handleSourceChange}
+                          placeholder="All sources..."
+                          disabled={false}
+                          availableSources={availableSources}
+                        />
+                      </div>
+                      {isApplyingFilters && (
+                        <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                          <div className="w-3 h-3 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin"></div>
+                          Applying filters...
+                        </div>
+                      )}
+                    </div>
+                     </div>
+                   </AccordionContent>
+                 </AccordionItem>
+               </Accordion>
+
+               {/* Experience Section */}
+               <Accordion type="multiple" defaultValue={["experience"]} className="w-full">
+                 <AccordionItem value="experience" className="border-b border-border/50">
+                   <AccordionTrigger className="px-4 py-3 hover:no-underline rounded-none pl-6 pr-6">
+                     <div className="flex items-center justify-between w-full pr-2">
+                       <div className="flex items-center gap-2">
+                         <Clock className="w-4 h-4 text-muted-foreground" />
+                         <h4 className="text-sm font-semibold">Experience</h4>
+                       </div>
+                       <Button
+                         variant="ghost"
+                         size="sm"
+                         onClick={(e) => {
+                           e.stopPropagation();
+                           setExperienceYearsRange([0, 50]);
+                           setApplicationDateRange(undefined);
+                         }}
+                         disabled={isLoading || isAiSearching}
+                         className="h-6 w-6 p-0 hover:bg-muted/50"
+                       >
+                         <FilterX className="h-3 w-3" />
+                       </Button>
+                     </div>
+                   </AccordionTrigger>
+                                      <AccordionContent className="px-4 pb-4">
+                     <div className="space-y-2">
+                   <div>
+                    <Label className="text-xs font-medium pt-2">Experience Years</Label>
+                    <div className="flex items-center gap-2 mt-2">
+                      <div className="flex items-center gap-2 flex-1">
+                        <div className="flex-1">
+                          <Label className="text-xs text-muted-foreground">Min</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            max="50"
+                            value={experienceYearsRange[0] === -1 ? '' : experienceYearsRange[0]}
+                            onChange={(e) => {
+                              const value = e.target.value === '' ? 0 : parseInt(e.target.value);
+                              if (!isNaN(value) && value >= 0 && value <= 50) {
+                                const currentMax = experienceYearsRange[1];
+                                const newMax = Math.max(value, currentMax);
+                                handleExperienceYearsChange([value, newMax]);
+                              }
+                            }}
+                            placeholder="Min"
+                            className="h-8 text-xs"
+                            disabled={isLoading || isAiSearching || experienceYearsRange[0] === -1}
+                          />
+                        </div>
+                        <span className="text-xs text-muted-foreground">to</span>
+                        <div className="flex-1">
+                          <Label className="text-xs text-muted-foreground">Max</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            max="50"
+                            value={experienceYearsRange[1]}
+                            onChange={(e) => {
+                              const value = e.target.value === '' ? 50 : parseInt(e.target.value);
+                              if (!isNaN(value) && value >= 0 && value <= 50) {
+                                const currentMin = experienceYearsRange[0] === -1 ? 0 : experienceYearsRange[0];
+                                const newMin = Math.min(currentMin, value);
+                                handleExperienceYearsChange([newMin, value]);
+                              }
+                            }}
+                            placeholder="Max"
+                            className="h-8 text-xs"
+                            disabled={isLoading || isAiSearching}
+                          />
+                        </div>
+                      </div>
+                      <span className="text-xs w-20 text-muted-foreground">
+                        {experienceYearsRange[0] === -1 ? 'No exp' : experienceYearsRange[0]}-{experienceYearsRange[1]} years
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-2 mt-2">
+                      <input
+                        type="checkbox"
+                        id="no-experience-checkbox"
+                        checked={experienceYearsRange[0] === -1}
+                        onChange={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          if (e.target.checked) {
+                            setExperienceYearsRange([-1, 50]);
+                          } else {
+                            setExperienceYearsRange([0, 50]);
+                          }
+                          setTimeout(() => handleApplyStandardFilters(), 100);
+                        }}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                        }}
+                        disabled={isLoading || isAiSearching}
+                        className="border-border text-primary focus:ring-primary"
+                      />
+                      <Label 
+                        htmlFor="no-experience-checkbox" 
+                        className="text-xs text-muted-foreground cursor-pointer"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                        }}
+                      >
+                        Include candidates with no experience listed
+                      </Label>
+                                         </div>
+                   </div>
+                 </div>
+                   </AccordionContent>
+                 </AccordionItem>
+               </Accordion>
+
+               {/* Action Buttons */}
+               <div className="flex gap-2 p-4">
+                <Button
+                  onClick={handleApplyStandardFilters}
+                  disabled={false}
+                  size="sm"
+                  className="flex-1 transition-all duration-200 ease-in-out hover:scale-105"
+                >
+                  <Filter className="mr-2 h-4 w-4" />
+                  Apply Filters
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleResetFilters}
+                  disabled={false}
+                  size="sm"
+                  className="flex-1 transition-all duration-200 ease-in-out hover:scale-105"
+                >
+                  <FilterX className="mr-2 h-4 w-4" />
+                  Clear All
+                </Button>
+              </div>
+            </div>
+            )}
+
+            {/* Advanced Query Tab */}
+            {activeTab === 'advanced' && (
+              <div className="space-y-2">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 m-4">
+                    <Label className="text-xs font-medium">Advanced Query Syntax</Label>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="p-1 h-6 w-6" 
+                      type="button"
+                      onClick={() => setIsAdvancedQuerySyntaxModalOpen(true)}
                     >
-                      <Play className="mr-2 h-4 w-4" />
-                      Apply Query
+                      <FileText className="w-4 h-4 text-blue-600" />
                     </Button>
                   </div>
-                </TabsContent>
-              </Tabs>
-            </div>
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
+                  <div className="flex gap-2 px-4">
+                    <Textarea
+                      placeholder="e.g., minFitScore:80 status:Applied,Screening"
+                      value={advancedQueryInput}
+                      onChange={(e) => setAdvancedQueryInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                          return;
+                        }
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          if (advancedQueryInput.trim()) {
+                            handleApplyAdvancedQuery();
+                          }
+                        }
+                      }}
+                      className="flex-1 min-h-[80px]"
+                      disabled={false}
+                    />
+                  </div>
+                  <div className="flex gap-2 pt-2 mx-4">
+                  <Button
+                    onClick={handleApplyAdvancedQuery}
+                    disabled={!advancedQueryInput.trim()}
+                    className="flex-1"
+                    size="sm"
+                  >
+                    <Play className="mr-2 h-4 w-4" />
+                    Apply Query
+                  </Button>
+                </div>
+                </div>
+
+                {/* Action Buttons */}
+                
+              </div>
+            )}
+        </div>
+      </div>
+
+      {/* Advanced Query Syntax Modal */}
+      <AdvancedQuerySyntaxModal 
+        isOpen={isAdvancedQuerySyntaxModalOpen}
+        onOpenChange={setIsAdvancedQuerySyntaxModalOpen}
+      />
     </div>
   );
 }

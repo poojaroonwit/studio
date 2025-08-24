@@ -21,11 +21,11 @@ async function checkQueueStatus() {
   const pool = new Pool(config);
   
   try {
-    console.log('🔍 Upload Queue Status Check');
+    console.log('Upload Queue Status Check');
     console.log('===========================\n');
 
     // 1. Check current queue status
-    console.log('📊 Current Queue Status:');
+    console.log('Current Queue Status:');
     const statusQuery = `
       SELECT 
         status,
@@ -97,7 +97,7 @@ async function checkQueueStatus() {
     console.log('');
 
     // 4. Check recent activity
-    console.log('📈 Recent Activity (last 10 jobs):');
+    console.log('Recent Activity (last 10 jobs):');
     const recentQuery = `
       SELECT 
         id,
@@ -116,7 +116,7 @@ async function checkQueueStatus() {
     recentResult.rows.forEach(row => {
       const statusIcon = row.status === 'success' ? '✅' : 
                         row.status === 'fail' ? '❌' : 
-                        row.status === 'error' ? '💥' : 
+                        row.status === 'error' ? 'ERROR' : 
                         row.status === 'inprocess' ? '⏳' : '⏸️';
       console.log(`  ${statusIcon} ${row.file_name} - ${row.status} (${row.upload_date})`);
       if (row.error) {
@@ -127,7 +127,7 @@ async function checkQueueStatus() {
   } catch (error) {
     console.error('❌ Error checking queue status:', error.message);
     if (error.code === 'ECONNREFUSED') {
-      console.error('💡 Make sure your database is running and DATABASE_URL is correct in .env.local');
+      console.error('Make sure your database is running and DATABASE_URL is correct in .env.local');
     }
   } finally {
     await pool.end();

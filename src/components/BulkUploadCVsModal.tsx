@@ -47,7 +47,7 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
   
   // Memoize the permission check to prevent unnecessary re-renders
   const canBulkUpload = useMemo(() => {
-    return session?.user?.role === 'Admin' || 
+    return session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('USERS_MANAGE') || 
       session?.user?.modulePermissions?.includes('BULK_UPLOAD');
   }, [session?.user?.role, session?.user?.modulePermissions]);
   
@@ -314,7 +314,7 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
   return (
     <Dialog open={isOpen} onOpenChange={handleModalClose}>
       <DialogContent 
-        className="max-w-4xl w-full" 
+        className="max-w-4xl w-full !z-[99999]" 
         onEscapeKeyDown={(e) => e.preventDefault()}
         onOpenAutoFocus={(e) => e.preventDefault()}
       >

@@ -13,9 +13,17 @@
     "typecheck": "tsc --noEmit",
     "postbuild": "echo Build finished",
     "start": "next start -p 8021",
-    "start:with-processor": "concurrently \"npm run start\" \"npm run processor\"",
+    "start:with-processor": "concurrently \"npm run start\" \"npm run processor\" \"npm run health-check\"",
     "lint": "next lint",
     "processor": "node scripts/process-upload-queue.cjs",
+    "processor:pm2": "pm2 start ecosystem.config.js",
+    "processor:pm2:stop": "pm2 stop upload-queue-processor",
+    "processor:pm2:restart": "pm2 restart upload-queue-processor",
+    "processor:pm2:logs": "pm2 logs upload-queue-processor",
+    "health-check": "node scripts/health-check.cjs",
+    "health-check:docker": "node scripts/health-check-docker.cjs",
+    "health-check:pm2": "pm2 start ecosystem.config.js --only health-check",
+    "start:production": "node scripts/start-production.cjs",
     "check-webhook": "node scripts/check-webhook-settings.js",
     "check-504": "node scripts/check-504-errors.js",
     "check-duplicates": "node scripts/check-duplicate-processing.js",
@@ -44,6 +52,8 @@
     "db:setup:ps": "powershell -ExecutionPolicy Bypass -File scripts/setup-db-with-postgres-user.ps1",
     "setup:local": "node scripts/setup-local-dev.js",
     "db:check": "node scripts/check-database-schema.js",
+    "db:seed": "npx tsx prisma/seed.ts",
+    "db:create-admin": "node scripts/create-admin-user.js",
     "build:processor": "echo 'Processor build skipped - auto-triggering is now built into the upload API'",
     "seed:upload-queue": "node scripts/seed-upload-queue.js",
     "start:docker": "docker-compose up -d",
@@ -53,6 +63,9 @@
     "migrate:merge-field-codes": "node scripts/migrate-merge-field-codes.cjs",
     "add-toeic-field": "node scripts/add-toeic-custom-field.cjs",
     "init-ai-prompt": "node scripts/init-ai-power-search-prompt.cjs"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
     "@editorjs/checklist": "^1.6.0",
@@ -79,6 +92,7 @@
     "@radix-ui/react-alert-dialog": "^1.1.6",
     "@radix-ui/react-avatar": "^1.1.3",
     "@radix-ui/react-checkbox": "^1.1.4",
+    "@radix-ui/react-collapsible": "^1.1.12",
     "@radix-ui/react-dialog": "^1.1.14",
     "@radix-ui/react-dropdown-menu": "^2.1.6",
     "@radix-ui/react-label": "^2.1.2",
@@ -92,7 +106,7 @@
     "@radix-ui/react-slider": "^1.2.3",
     "@radix-ui/react-slot": "^1.1.2",
     "@radix-ui/react-switch": "^1.2.5",
-    "@radix-ui/react-tabs": "^1.1.12",
+    "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-tooltip": "^1.1.8",
     "@tailwindcss/typography": "^0.5.16",
     "@tanstack/react-query": "^5.83.0",
@@ -178,8 +192,5 @@
     "typescript": "^5",
     "undici-types": "^7.11.0"
   },
-  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e",
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
-  }
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }

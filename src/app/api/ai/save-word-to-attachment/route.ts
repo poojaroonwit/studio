@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Check permissions
-  const canManageAttachments = session.user.role === 'Admin' || 
+  const canManageAttachments = session.user.role === 'Admin' || session.user.modulePermissions?.includes('USERS_MANAGE') || 
     session.user.modulePermissions?.includes('CANDIDATES_MANAGE');
   
   if (!canManageAttachments) {

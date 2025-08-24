@@ -63,7 +63,7 @@ export async function GET(
       const jobMatchCandidateIds = new Set(jobMatchCandidates.map((match: any) => match.candidateId));
 
       // Method 2: Check parsedData.job_matches (legacy system)
-      const allCandidates = await prisma.candidate.findMany({
+      const filteredCandidates = await prisma.candidate.findMany({
         select: {
           id: true,
           positionId: true,
@@ -73,7 +73,7 @@ export async function GET(
       
       // Filter candidates who have job matches for this position in parsedData
       const parsedDataCandidateIds = new Set();
-      allCandidates.forEach((candidate: any) => {
+      filteredCandidates.forEach((candidate: any) => {
         try {
           const parsedData = candidate.parsedData as any;
           if (!parsedData || typeof parsedData !== 'object') return;
@@ -110,7 +110,7 @@ export async function GET(
       });
       
             // From parsedData (only count if not already counted from JobMatch table)
-      allCandidates
+        filteredCandidates
         .filter((candidate: any) =>
           parsedDataCandidateIds.has(candidate.id) &&
           !jobMatchCandidateIds.has(candidate.id) &&

@@ -41,9 +41,9 @@ export default function DebugPermissionsPage() {
           <CardDescription>Permissions assigned to this user</CardDescription>
         </CardHeader>
         <CardContent>
-          {session.user.role === 'Admin' ? (
+          {(session.user.role === 'Admin' || session.user.modulePermissions?.includes('USERS_MANAGE')) ? (
             <div className="flex flex-wrap gap-2">
-              <Badge variant="secondary">Admin Role - All Permissions</Badge>
+              <Badge variant="secondary">Admin Role or USERS_MANAGE - All Permissions</Badge>
             </div>
           ) : (
             <p className="text-muted-foreground">No module permissions assigned (role-based only)</p>
@@ -59,20 +59,20 @@ export default function DebugPermissionsPage() {
         <CardContent className="space-y-2">
           <div className="flex items-center gap-2">
             <strong>Is Admin:</strong>
-            <Badge variant={session.user.role === 'Admin' ? 'default' : 'secondary'}>
-              {session.user.role === 'Admin' ? 'Yes' : 'No'}
+            <Badge variant={(session.user.role === 'Admin' || session.user.modulePermissions?.includes('USERS_MANAGE')) ? 'default' : 'secondary'}>
+              {(session.user.role === 'Admin' || session.user.modulePermissions?.includes('USERS_MANAGE')) ? 'Yes' : 'No'}
             </Badge>
           </div>
           <div className="flex items-center gap-2">
             <strong>Has USER_GROUPS_MANAGE:</strong>
-            <Badge variant={session.user.role === 'Admin' ? 'default' : 'secondary'}>
-              {session.user.role === 'Admin' ? 'Yes' : 'No'}
+            <Badge variant={(session.user.role === 'Admin' || session.user.modulePermissions?.includes('USERS_MANAGE')) ? 'default' : 'secondary'}>
+              {(session.user.role === 'Admin' || session.user.modulePermissions?.includes('USERS_MANAGE')) ? 'Yes' : 'No'}
             </Badge>
           </div>
           <div className="flex items-center gap-2">
             <strong>Can access user groups:</strong>
-            <Badge variant={session.user.role === 'Admin' ? 'default' : 'secondary'}>
-              {session.user.role === 'Admin' ? 'Yes' : 'No'}
+            <Badge variant={(session.user.role === 'Admin' || session.user.modulePermissions?.includes('USERS_MANAGE')) ? 'default' : 'secondary'}>
+              {(session.user.role === 'Admin' || session.user.modulePermissions?.includes('USERS_MANAGE')) ? 'Yes' : 'No'}
             </Badge>
           </div>
         </CardContent>

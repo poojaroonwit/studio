@@ -48,7 +48,7 @@ export const CandidateSidebar: React.FC<CandidateSidebarProps> = ({
   };
 
   return (
-    <div className="h-full flex flex-col min-h-0">
+    <div className="h-full flex flex-col min-h-0 pointer-events-auto">
       {/* Tab Navigation */}
       <div className="grid w-full grid-cols-2 bg-background border-b border-border flex-shrink-0">
         <div 
@@ -76,7 +76,7 @@ export const CandidateSidebar: React.FC<CandidateSidebarProps> = ({
       </div>
 
       {/* Tab Content */}
-      <div className="p-4 flex-1 overflow-y-auto">
+      <div className="p-4 flex-1 overflow-y-auto pointer-events-auto">
         {activeTab === 'comments' && (
           <CandidateCommentsSection 
             candidateId={candidate.id} 

@@ -353,6 +353,7 @@ interface CandidateKanbanViewProps {
   visibleFields?: string[];
   visibleRowValues?: string[];
   visibleColumnValues?: string[];
+  isLoading?: boolean;
 }
 
 export function CandidateKanbanView({
@@ -367,7 +368,22 @@ export function CandidateKanbanView({
   visibleFields = ['name', 'email', 'status', 'fitScore'],
   visibleRowValues = [],
   visibleColumnValues = [],
+  isLoading = false,
 }: CandidateKanbanViewProps) {
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="w-full min-h-[300px] bg-muted/30 rounded-lg p-6 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 mx-auto mb-3 bg-muted rounded-full flex items-center justify-center animate-pulse">
+            <Users className="w-6 h-6 text-muted-foreground" />
+          </div>
+          <p className="text-lg text-muted-foreground">Loading candidates...</p>
+        </div>
+      </div>
+    );
+  }
+
   // If there are no candidates at all
   if (candidates.length === 0) {
     return (
@@ -396,6 +412,7 @@ export function CandidateKanbanView({
       visibleFields={visibleFields}
       visibleRowValues={visibleRowValues}
       visibleColumnValues={visibleColumnValues}
+      isLoading={isLoading}
     />
   );
 }
@@ -411,12 +428,27 @@ export function CandidateRowKanbanView({
   columnField = 'recruiterId', 
   visibleFields = ['name', 'email', 'status', 'fitScore'], 
   visibleRowValues = [], 
-  visibleColumnValues = [] 
+  visibleColumnValues = [],
+  isLoading = false
 }: CandidateKanbanViewProps) {
   const [draggedCandidate, setDraggedCandidate] = useState<Candidate | null>(null);
   const [dragOverRowValue, setDragOverRowValue] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCandidateSummary, setSelectedCandidateSummary] = useState<Partial<Candidate> & { id: string; name: string } | null>(null);
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="w-full min-h-[300px] bg-muted/30 rounded-lg p-6 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 mx-auto mb-3 bg-muted rounded-full flex items-center justify-center animate-pulse">
+            <Users className="w-6 h-6 text-muted-foreground" />
+          </div>
+          <p className="text-lg text-muted-foreground">Loading candidates...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Group candidates by row field value
   const candidatesByRowValue = useMemo(() => {
@@ -530,12 +562,27 @@ export function FlexibleKanbanView({
   columnField = 'recruiterId', 
   visibleFields = ['name', 'email', 'status', 'fitScore'], 
   visibleRowValues = [], 
-  visibleColumnValues = [] 
+  visibleColumnValues = [],
+  isLoading = false
 }: CandidateKanbanViewProps) {
   const [draggedCandidate, setDraggedCandidate] = useState<Candidate | null>(null);
   const [dragOverRow, setDragOverRow] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="w-full min-h-[300px] bg-muted/30 rounded-lg p-6 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 mx-auto mb-3 bg-muted rounded-full flex items-center justify-center animate-pulse">
+            <Users className="w-6 h-6 text-muted-foreground" />
+          </div>
+          <p className="text-lg text-muted-foreground">Loading candidates...</p>
+        </div>
+      </div>
+    );
+  }
   
   // Helper function to get the proper value for a field
   const getFieldValue = (candidate: Candidate, field: string) => {
@@ -1415,11 +1462,26 @@ export function SingleRowKanbanView({
   columnField = 'recruiterId', 
   visibleFields = ['name', 'email', 'status', 'fitScore'], 
   visibleRowValues = [], 
-  visibleColumnValues = [] 
+  visibleColumnValues = [],
+  isLoading = false
 }: CandidateKanbanViewProps & { visibleFields?: string[] }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCandidateSummary, setSelectedCandidateSummary] = useState<Partial<Candidate> & { id: string; name: string } | null>(null);
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="w-full min-h-[300px] bg-muted/30 rounded-lg p-6 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 mx-auto mb-3 bg-muted rounded-full flex items-center justify-center animate-pulse">
+            <Users className="w-6 h-6 text-muted-foreground" />
+          </div>
+          <p className="text-lg text-muted-foreground">Loading candidates...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Helper function to get the proper value for a field
   const getFieldValue = (candidate: Candidate, field: string) => {
@@ -1670,7 +1732,7 @@ export function SingleRowKanbanView({
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-medium text-foreground">{getFieldLabel('fitScore')}</span>
                         <span className="text-sm font-semibold text-foreground">
-                          {currentCandidate.fitScore}%
+                          {currentCandidate.fitScore === 0 ? 'Not scored' : formatScoreWithGrade(currentCandidate.fitScore)}
                         </span>
                       </div>
                       <div className="w-full bg-muted rounded-full h-3">
@@ -1865,7 +1927,9 @@ export function MultiRecruiterKanbanView({ candidates, stages, recruiters, onMov
                                   <div className="mt-2 space-y-1">
                                     <div className="flex items-center justify-between text-xs">
                                       <span className="text-muted-foreground">{getFieldLabel('fitScore')}</span>
-                                      <span className="font-medium text-foreground">{candidate.fitScore}%</span>
+                                      <span className="font-medium text-foreground">
+                                        {candidate.fitScore === 0 ? 'Not scored' : formatScoreWithGrade(candidate.fitScore)}
+                                      </span>
                                     </div>
                                     <div className="w-full bg-muted rounded-full h-1">
                                       <div 

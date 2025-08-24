@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
     const entityId = searchParams.get('entityId');
     const severity = searchParams.get('severity');
     const limit = parseInt(searchParams.get('limit') || '50');
+    const userId = searchParams.get('userId'); // For user-specific warnings
 
     // Build where clause to get user's accessible warnings
     const where: any = {};
@@ -36,11 +37,11 @@ export async function GET(request: NextRequest) {
       where: {
         OR: [
           { isPublic: true }, // Public configurations
-          { createdBy: actingUserId }, // User's own configurations
+          { createdBy: userId || actingUserId }, // User's own configurations (or specific user if provided)
           {
             sharedWith: {
               some: {
-                userId: actingUserId
+                userId: userId || actingUserId
               }
             }
           } // Shared configurations
@@ -57,30 +58,42 @@ export async function GET(request: NextRequest) {
     }
     
     // Add configuration ID filter to where clause
-    where.configurationId = {
+    where.configuration_id = {
       in: configIds
     };
 
     const warnings = await prisma.warning.findMany({
       where,
       include: {
-        WarningConfiguration: {
-          include: {
-            createdByUser: {
-              select: {
-                id: true,
-                name: true,
-                email: true
-              }
-            }
+        configuration: {
+          select: {
+            id: true,
+            name: true,
+            description: true
           }
         }
       },
       orderBy: {
-        createdAt: 'desc'
+        created_at: 'desc'
       },
       take: limit
     });
+
+    // Transform the warnings to use camelCase field names for frontend compatibility
+    const transformedWarnings = warnings.map(warning => ({
+      id: warning.id,
+      configurationId: warning.configuration_id,
+      entityType: warning.entityType,
+      entityId: warning.entityId,
+      field: warning.field,
+      currentValue: warning.currentValue,
+      expectedValue: warning.expectedValue,
+      message: warning.message,
+      severity: warning.severity,
+      createdAt: warning.created_at,
+      updatedAt: warning.updated_at,
+      configuration: warning.configuration
+    }));
 
     await logAudit('AUDIT', `Warnings accessed by ${actingUserName}`, 'API:Warnings:Get', actingUserId, {
       entityType,
@@ -89,7 +102,7 @@ export async function GET(request: NextRequest) {
       count: warnings.length
     });
 
-    return NextResponse.json(warnings);
+    return NextResponse.json(transformedWarnings);
   } catch (error) {
     console.error('Error getting warnings:', error);
     await logAudit('ERROR', `Failed to get warnings by ${actingUserName}`, 'API:Warnings:Get', actingUserId, {
@@ -126,7 +139,7 @@ export async function POST(request: NextRequest) {
     // Check if warning already exists for this entity and configuration
     const existingWarning = await prisma.warning.findFirst({
       where: {
-        configurationId,
+        configuration_id: configurationId,
         entityType,
         entityId
       }
@@ -141,10 +154,16 @@ export async function POST(request: NextRequest) {
           expectedValue,
           message,
           severity: severity || 'warning',
-          updatedAt: new Date()
+          updated_at: new Date()
         },
         include: {
-          WarningConfiguration: true
+          configuration: {
+            select: {
+              id: true,
+              name: true,
+              description: true
+            }
+          }
         }
       });
 
@@ -155,22 +174,45 @@ export async function POST(request: NextRequest) {
         entityId
       });
 
-      return NextResponse.json(warning);
+      // Transform the warning to use camelCase field names
+      const transformedWarning = {
+        id: warning.id,
+        configurationId: warning.configuration_id,
+        entityType: warning.entityType,
+        entityId: warning.entityId,
+        field: warning.field,
+        currentValue: warning.currentValue,
+        expectedValue: warning.expectedValue,
+        message: warning.message,
+        severity: warning.severity,
+        createdAt: warning.created_at,
+        updatedAt: warning.updated_at,
+        configuration: warning.configuration
+      };
+
+      return NextResponse.json(transformedWarning);
     } else {
       // Create new warning
       const warning = await prisma.warning.create({
         data: {
-          configurationId,
+          configuration_id: configurationId,
           entityType,
           entityId,
           field,
           currentValue,
           expectedValue,
           message,
-          severity: severity || 'warning'
+          severity: severity || 'warning',
+          updated_at: new Date()
         },
         include: {
-          WarningConfiguration: true
+          configuration: {
+            select: {
+              id: true,
+              name: true,
+              description: true
+            }
+          }
         }
       });
 
@@ -181,7 +223,23 @@ export async function POST(request: NextRequest) {
         entityId
       });
 
-      return NextResponse.json(warning, { status: 201 });
+      // Transform the warning to use camelCase field names
+      const transformedWarning = {
+        id: warning.id,
+        configurationId: warning.configuration_id,
+        entityType: warning.entityType,
+        entityId: warning.entityId,
+        field: warning.field,
+        currentValue: warning.currentValue,
+        expectedValue: warning.expectedValue,
+        message: warning.message,
+        severity: warning.severity,
+        createdAt: warning.created_at,
+        updatedAt: warning.updated_at,
+        configuration: warning.configuration
+      };
+
+      return NextResponse.json(transformedWarning, { status: 201 });
     }
   } catch (error) {
     console.error('Error creating/updating warning:', error);

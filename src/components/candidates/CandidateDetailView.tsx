@@ -15,28 +15,30 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
   const [resumes, setResumes] = useState<any[]>([]);
   const [attachments, setAttachments] = useState<any[]>([]);
 
-  const fetchComments = useCallback(async () => {
+  const fetchComments = useCallback(async (limit = 10, offset = 0) => {
     try {
-      const res = await fetch(`/api/candidates/${candidateId}/comments`);
+      const res = await fetch(`/api/candidates/${candidateId}/comments?limit=${limit}&offset=${offset}`);
       if (res.ok) {
         const data = await res.json();
         return Array.isArray(data.data) ? data.data : [];
       }
       return [];
-    } catch {
+    } catch (error) {
+      console.error('Error fetching comments:', error);
       return [];
     }
   }, [candidateId]);
 
-  const fetchResumes = useCallback(async () => {
+  const fetchResumes = useCallback(async (limit = 20, offset = 0) => {
     try {
-      const res = await fetch(`/api/candidates/${candidateId}/resumes`);
+      const res = await fetch(`/api/candidates/${candidateId}/resumes?limit=${limit}&offset=${offset}`);
       if (res.ok) {
         const data = await res.json();
         return Array.isArray(data.data) ? data.data : [];
       }
       return [];
-    } catch {
+    } catch (error) {
+      console.error('Error fetching resumes:', error);
       return [];
     }
   }, [candidateId]);

@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useToastManager } from '@/hooks/use-toast-manager';
+import { Bell } from 'lucide-react';
 
 interface Notification {
   id: string;
@@ -120,7 +121,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     if (notificationsEnabled) {
       showToast(`${notification.title}: ${notification.message}`, {
         duration: 5000,
-        icon: '🔔',
+        icon: <Bell className="h-4 w-4" />,
         style: {
           background: 'hsl(var(--card))',
           color: 'hsl(var(--card-foreground))',
@@ -155,7 +156,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         setEventSource(es);
 
         es.onopen = () => {
-          console.log('🔔 Real-time notifications connected');
+          console.log('Real-time notifications connected');
         };
 
         es.onerror = (error) => {

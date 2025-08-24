@@ -6,13 +6,14 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label"; 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PlusCircle, UsersRound, ShieldAlert, Edit3, Trash2, ServerCrash, Loader2, MoreHorizontal, KeyRound, Filter, Search, XCircle, Settings, Users, ShieldCheck } from "lucide-react";
+import { PlusCircle, UsersRound, ShieldAlert, Edit3, Trash2, ServerCrash, Loader2, MoreHorizontal, KeyRound, Filter, Search, XCircle, Settings, Users, ShieldCheck, AlertTriangle } from "lucide-react";
 import type { UserProfile, UserGroup, UserTeam } from '@/lib/types'; 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { UserAvatarCompact } from "@/components/ui/user-avatar";
 import { Badge } from "@/components/ui/badge";
 import React, { useState, useEffect, useCallback } from 'react'; 
-import { RedesignedUserModal, type UserFormValues, type ModalMode } from '@/components/users/RedesignedUserModal';
+import { UnifiedUserModal, type UnifiedUserFormValues, type ModalMode } from '@/components/users/UnifiedUserModal';
+
 import { useRouter, usePathname } from 'next/navigation'; 
 import {
   AlertDialog,
@@ -69,6 +70,7 @@ export default function ManageUsersPage() {
   const [modalMode, setModalMode] = useState<ModalMode>('create');
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [userToDelete, setUserToDelete] = useState<UserProfile | null>(null);
+
 
 
   const fetchUsers = useCallback(async (currentFilters: {name?: string, email?: string, role?: UserProfile['role'] | "ALL_ROLES", teamId?: string | "ALL_TEAMS"} = {}, currentPageParam?: number, currentPageSize?: number) => {
@@ -172,7 +174,7 @@ export default function ManageUsersPage() {
   }, [sessionStatus]);
 
 
-  const handleAddUser = async (data: UserFormValues) => {
+  const handleAddUser = async (data: UnifiedUserFormValues) => {
     try {
       const response = await fetch('/api/users', {
         method: 'POST',
@@ -195,7 +197,7 @@ export default function ManageUsersPage() {
     }
   };
 
-  const handleEditUser = async (userId: string, data: UserFormValues) => {
+  const handleEditUser = async (userId: string, data: UnifiedUserFormValues) => {
      try {
       const response = await fetch(`/api/users/${userId}`, {
         method: 'PUT',
@@ -321,7 +323,7 @@ export default function ManageUsersPage() {
             <h1 className="text-2xl font-semibold text-foreground">User Management</h1>
             <p className="text-muted-foreground">Manage users, roles, permissions, and teams</p>
           </div>
-          {session?.user?.role === 'Admin' && activeTab === 'users' && (
+                     {(session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('USERS_MANAGE')) && activeTab === 'users' && (
             <Button variant="default" onClick={() => openUserModal('create')}> 
               <PlusCircle className="mr-2 h-4 w-4" /> Add New User
             </Button>
@@ -424,7 +426,7 @@ export default function ManageUsersPage() {
                 <div className="text-center py-10">
                   <UsersRound className="mx-auto h-12 w-12 text-muted-foreground" />
                   <p className="mt-4 text-muted-foreground">No users found matching your criteria.</p>
-                    {session?.user?.role === 'Admin' && (
+                                         {(session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('USERS_MANAGE')) && (
                       <Button variant="default" className="mt-4" onClick={() => openUserModal('create')}> 
                         <PlusCircle className="mr-2 h-4 w-4" /> Add First User
                     </Button>
@@ -468,8 +470,8 @@ export default function ManageUsersPage() {
                               : <span className="text-xs text-muted-foreground">No teams</span>
                             }
                           </TableCell>
-                          <TableCell className="text-right">
-                            {session?.user?.role === 'Admin' && (
+                                                     <TableCell className="text-right">
+                             {(session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('USERS_MANAGE') || session?.user?.modulePermissions?.includes('WARNING_CONFIGURATIONS_MANAGE')) && (
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -477,10 +479,15 @@ export default function ManageUsersPage() {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => openUserModal('edit', user)}>
-                                    <Edit3 className="mr-2 h-4 w-4" />
-                                    Edit User
-                                  </DropdownMenuItem>
+                                                                     <DropdownMenuItem onClick={() => openUserModal('edit', user)}>
+                                     <Edit3 className="mr-2 h-4 w-4" />
+                                     Edit User
+                                   </DropdownMenuItem>
+                                   <DropdownMenuItem onClick={() => router.push(`/settings/users/${user.id}/warning-configurations`)}>
+                                     <AlertTriangle className="mr-2 h-4 w-4" />
+                                     Warning Configurations
+                                   </DropdownMenuItem>
+                                  
                                   <DropdownMenuSeparator />
                                   <DropdownMenuItem 
                                     onClick={() => setUserToDelete(user)}
@@ -531,7 +538,7 @@ export default function ManageUsersPage() {
       </ScrollArea>
 
       {/* Modals */}
-      <RedesignedUserModal
+      <UnifiedUserModal
         isOpen={isUserModalOpen}
         onOpenChange={(isOpen: boolean) => {
           if (!isOpen) {
@@ -542,10 +549,12 @@ export default function ManageUsersPage() {
         }}
         mode={modalMode}
         user={selectedUser}
-        onSave={selectedUser ? (data: UserFormValues) => handleEditUser(selectedUser.id, data) : handleAddUser}
+        onSave={selectedUser ? (data: UnifiedUserFormValues) => handleEditUser(selectedUser.id, data) : handleAddUser}
         onEditUser={handleEditUser}
         onAddUser={handleAddUser}
       />
+
+      
 
       {userToDelete && (
         <AlertDialog open={!!userToDelete} onOpenChange={(open) => { if(!open) setUserToDelete(null);}}>

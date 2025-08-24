@@ -98,6 +98,24 @@
   animation: notificationPulse 2s ease-in-out infinite;
 }
 
+/* Force all dialogs to have very high z-index to appear above drawers */
+[data-radix-dialog-overlay] {
+  z-index: 99999 !important;
+}
+
+[data-radix-dialog-content] {
+  z-index: 100000 !important;
+}
+
+/* Force all alert dialogs to have very high z-index */
+[data-radix-alert-dialog-overlay] {
+  z-index: 99999 !important;
+}
+
+[data-radix-alert-dialog-content] {
+  z-index: 100000 !important;
+}
+
 /* Warning pulse animation */
 @keyframes warning-pulse {
   0%, 100% {
@@ -241,30 +259,142 @@ html, body, #__next, [data-nextjs-page-router-viewport] {
   font-family: 'IBM Plex Sans Thai', 'Inter', Arial, Helvetica, sans-serif;
 }
 
-/* Custom scrollbar styling */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 8px;
+/* UNIVERSAL MINIMAL SCROLLBAR DESIGN - APPLIES TO ENTIRE APPLICATION */
+/* This affects ALL scrollbars: body, div, table, textarea, select, etc. */
+
+/* Firefox scrollbars */
+* {
+  scrollbar-width: thin !important;
+  scrollbar-color: hsl(var(--muted-foreground) / 0.2) transparent !important;
 }
 
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-  border-radius: 4px;
+/* Webkit scrollbars (Chrome, Safari, Edge) */
+*::-webkit-scrollbar {
+  width: 4px !important;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted-foreground) / 0.3);
-  border-radius: 4px;
-  transition: background 0.2s ease;
+*::-webkit-scrollbar-track {
+  background: transparent !important;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground) / 0.5);
+*::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.2) !important;
+  border-radius: 2px !important;
+  transition: background 0.15s ease !important;
+  min-height: 20px !important;
 }
 
-/* Firefox scrollbar styling */
-.custom-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
+*::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.4) !important;
+}
+
+*::-webkit-scrollbar-thumb:active {
+  background: hsl(var(--muted-foreground) / 0.5) !important;
+}
+
+/* Completely remove ALL scrollbar buttons/arrows */
+*::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  position: absolute !important;
+  left: -9999px !important;
+  top: -9999px !important;
+  -webkit-appearance: none !important;
+}
+
+/* Remove scrollbar corners */
+*::-webkit-scrollbar-corner {
+  background: transparent !important;
+}
+
+/* Dark mode - applies to ALL elements */
+.dark * {
+  scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent !important;
+}
+
+.dark *::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3) !important;
+}
+
+.dark *::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5) !important;
+}
+
+.dark *::-webkit-scrollbar-thumb:active {
+  background: hsl(var(--muted-foreground) / 0.6) !important;
+}
+
+/* Ensure these styles override any existing scrollbar styles */
+html, body, div, section, article, aside, nav, header, footer, main, 
+table, textarea, select, input, iframe, embed, object, video, audio,
+[class*="scroll"], [class*="overflow"], [style*="overflow"] {
+  scrollbar-width: thin !important;
+  scrollbar-color: hsl(var(--muted-foreground) / 0.2) transparent !important;
+}
+
+html::-webkit-scrollbar, body::-webkit-scrollbar, div::-webkit-scrollbar,
+section::-webkit-scrollbar, article::-webkit-scrollbar, aside::-webkit-scrollbar,
+nav::-webkit-scrollbar, header::-webkit-scrollbar, footer::-webkit-scrollbar,
+main::-webkit-scrollbar, table::-webkit-scrollbar, textarea::-webkit-scrollbar,
+select::-webkit-scrollbar, input::-webkit-scrollbar, iframe::-webkit-scrollbar,
+embed::-webkit-scrollbar, object::-webkit-scrollbar, video::-webkit-scrollbar,
+audio::-webkit-scrollbar {
+  width: 4px !important;
+}
+
+html::-webkit-scrollbar-thumb, body::-webkit-scrollbar-thumb, div::-webkit-scrollbar-thumb,
+section::-webkit-scrollbar-thumb, article::-webkit-scrollbar-thumb, aside::-webkit-scrollbar-thumb,
+nav::-webkit-scrollbar-thumb, header::-webkit-scrollbar-thumb, footer::-webkit-scrollbar-thumb,
+main::-webkit-scrollbar-thumb, table::-webkit-scrollbar-thumb, textarea::-webkit-scrollbar-thumb,
+select::-webkit-scrollbar-thumb, input::-webkit-scrollbar-thumb, iframe::-webkit-scrollbar-thumb,
+embed::-webkit-scrollbar-thumb, object::-webkit-scrollbar-thumb, video::-webkit-scrollbar-thumb,
+audio::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.2) !important;
+  border-radius: 2px !important;
+  transition: background 0.15s ease !important;
+  min-height: 20px !important;
+}
+
+html::-webkit-scrollbar-thumb:hover, body::-webkit-scrollbar-thumb:hover, div::-webkit-scrollbar-thumb:hover,
+section::-webkit-scrollbar-thumb:hover, article::-webkit-scrollbar-thumb:hover, aside::-webkit-scrollbar-thumb:hover,
+nav::-webkit-scrollbar-thumb:hover, header::-webkit-scrollbar-thumb:hover, footer::-webkit-scrollbar-thumb:hover,
+main::-webkit-scrollbar-thumb:hover, table::-webkit-scrollbar-thumb:hover, textarea::-webkit-scrollbar-thumb:hover,
+select::-webkit-scrollbar-thumb:hover, input::-webkit-scrollbar-thumb:hover, iframe::-webkit-scrollbar-thumb:hover,
+embed::-webkit-scrollbar-thumb:hover, object::-webkit-scrollbar-thumb:hover, video::-webkit-scrollbar-thumb:hover,
+audio::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.4) !important;
+}
+
+/* Remove buttons from all specific elements */
+html::-webkit-scrollbar-button, body::-webkit-scrollbar-button, div::-webkit-scrollbar-button,
+section::-webkit-scrollbar-button, article::-webkit-scrollbar-button, aside::-webkit-scrollbar-button,
+nav::-webkit-scrollbar-button, header::-webkit-scrollbar-button, footer::-webkit-scrollbar-button,
+main::-webkit-scrollbar-button, table::-webkit-scrollbar-button, textarea::-webkit-scrollbar-button,
+select::-webkit-scrollbar-button, input::-webkit-scrollbar-button, iframe::-webkit-scrollbar-button,
+embed::-webkit-scrollbar-button, object::-webkit-scrollbar-button, video::-webkit-scrollbar-button,
+audio::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  position: absolute !important;
+  left: -9999px !important;
+  top: -9999px !important;
+  -webkit-appearance: none !important;
 }
 
 /* Ensure proper font rendering for Thai text */
@@ -973,6 +1103,46 @@ html, body, #__next, [data-nextjs-page-router-viewport] {
     background: hsl(var(--foreground));
   }
 }
+
+/* Smooth scrolling behavior for all elements */
+* {
+  scroll-behavior: smooth;
+}
+
+/* Override global scrollbar styles for ScrollArea components */
+[data-radix-scroll-area-viewport] {
+  scrollbar-width: none !important;
+}
+
+[data-radix-scroll-area-viewport]::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* Ensure ScrollArea components don't get global scrollbar styles */
+[data-radix-scroll-area-root] {
+  scrollbar-width: none !important;
+}
+
+[data-radix-scroll-area-root]::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* Prevent global scrollbar styles on overflow-hidden elements */
+.overflow-hidden {
+  scrollbar-width: none !important;
+}
+
+.overflow-hidden::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+
     
 
 /* Editor.js Custom Styles */
@@ -2183,10 +2353,21 @@ html, body, #__next, [data-nextjs-page-router-viewport] {
 @media (min-width: 1025px) {
   .responsive-filter-sidebar {
     width: 320px;
-    min-width: 250px;
+    min-width: 320px;
   }
   
   .filter-bar-container {
     padding: 12px 20px;
   }
+}
+
+/* Ensure filter inputs take full width */
+.candidate-filters .w-full {
+  width: 100% !important;
+  min-width: 100% !important;
+}
+
+.candidate-filters button[role="combobox"] {
+  width: 100% !important;
+  min-width: 100% !important;
 }

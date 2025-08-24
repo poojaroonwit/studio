@@ -6,33 +6,67 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 
 interface FitScoreFilterTabsProps {
-  selectedGrades: Set<string>;
+  selectedGrades?: Set<string>;
   onGradeToggle: (grade: string) => void;
   candidateCounts?: Array<{ letter: string; count: number }>;
   className?: string;
+  filterMode?: 'single' | 'multi';
+  onClearAll?: () => void; // Add new prop for clearing all selections
+  aiMatchedCount?: number; // Add new prop for AI search matched count
+  isAiSearchActive?: boolean; // Add new prop to indicate if AI search is active
 }
 
 export function FitScoreFilterTabs({
   selectedGrades,
   onGradeToggle,
   candidateCounts = [],
-  className
+  className,
+  filterMode = 'multi',
+  onClearAll,
+  aiMatchedCount = 0,
+  isAiSearchActive = false
 }: FitScoreFilterTabsProps) {
+
+  
   const scoreRanges = getScoreRangesForChart();
+
+  // Ensure selectedGrades is always a Set
+  const safeSelectedGrades = selectedGrades || new Set<string>();
+
+  // Defensive check for onGradeToggle function
+  const safeOnGradeToggle = typeof onGradeToggle === 'function' ? onGradeToggle : (grade: string) => {
+    console.error('🚨 FitScoreFilterTabs: onGradeToggle is not a function. Grade:', grade);
+    console.error('🚨 FitScoreFilterTabs: onGradeToggle value:', onGradeToggle);
+  };
+
+  // Defensive check for onClearAll function
+  const safeOnClearAll = typeof onClearAll === 'function' ? onClearAll : () => {
+    console.error('🚨 FitScoreFilterTabs: onClearAll is not a function');
+  };
+
+  const formatCount = (count: number) => {
+    if (count === 0) return null; // Return null to hide badge
+    if (count >= 1000) {
+      return (count / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+    }
+    return count.toString();
+  };
 
   const getCount = (letter: string) => {
     const count = candidateCounts.find(c => c.letter === letter)?.count || 0;
-
     return count;
   };
 
   const getTotalCount = () => {
+    // If AI search is active, show the AI matched count instead of total candidates
+    if (isAiSearchActive && aiMatchedCount > 0) {
+      return aiMatchedCount;
+    }
     const total = candidateCounts.reduce((total, item) => total + item.count, 0);
-
     return total;
   };
 
-  const isAllSelected = selectedGrades.size === 0;
+  const isAllSelected = safeSelectedGrades.size === 0;
 
   // Function to get blue shade based on grade
   const getGradeBorderColor = (grade: string) => {
@@ -80,7 +114,7 @@ export function FitScoreFilterTabs({
         <div
           onClick={() => {
             // Clear all selections to show "All"
-            selectedGrades.forEach(grade => onGradeToggle(grade));
+            safeOnClearAll();
           }}
           className={cn(
             "flex items-center gap-2 px-2 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer rounded-t-lg",
@@ -89,32 +123,52 @@ export function FitScoreFilterTabs({
               : "text-black hover:text-foreground hover:bg-muted/30 border-b-2 border-gray-300"
           )}
         >
-          All (0-100) {getTotalCount() > 0 && <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0.5 h-5 min-w-5 flex items-center justify-center text-foreground">{getTotalCount()}</Badge>}
+          {isAiSearchActive && aiMatchedCount > 0 ? "AI Matched" : "All (0-100)"} {formatCount(getTotalCount()) && <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0.5 h-5 min-w-5 flex items-center justify-center text-foreground">{formatCount(getTotalCount())}</Badge>}
         </div>
         {scoreRanges.map((grade) => (
           <div
             key={grade.letter}
-            onClick={() => onGradeToggle(grade.letter)}
+            onClick={() => {
+              if (filterMode === 'single') {
+                // In single mode, clear all other selections first
+                safeSelectedGrades.forEach(selectedGrade => {
+                  if (selectedGrade !== grade.letter) {
+                    safeOnGradeToggle(selectedGrade);
+                  }
+                });
+              }
+              safeOnGradeToggle(grade.letter);
+            }}
             className={cn(
               "flex items-center gap-2 px-2 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer rounded-t-lg",
-              selectedGrades.has(grade.letter)
+              safeSelectedGrades.has(grade.letter)
                 ? cn("text-white border-b-2", getGradeBorderColor(grade.letter))
                 : cn("hover:bg-muted/30", getGradeTextColor(grade.letter))
             )}
           >
-            {grade.letter} ({grade.min}-{grade.max}) {getCount(grade.letter) > 0 && <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0.5 h-5 min-w-5 flex items-center justify-center text-foreground">{getCount(grade.letter)}</Badge>}
+            {grade.letter} ({grade.min}-{grade.max}) {formatCount(getCount(grade.letter)) && <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0.5 h-5 min-w-5 flex items-center justify-center text-foreground">{formatCount(getCount(grade.letter))}</Badge>}
           </div>
         ))}
         <div
-          onClick={() => onGradeToggle('no-score')}
-          className={cn(
-            "flex items-center gap-2 px-2 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer rounded-t-lg",
-            selectedGrades.has('no-score')
-              ? cn("text-white border-b-2", getGradeBorderColor('no-score'))
-              : cn("hover:bg-muted/30", getGradeTextColor('no-score'))
-          )}
+          onClick={() => {
+            if (filterMode === 'single') {
+              // In single mode, clear all other selections first
+              safeSelectedGrades.forEach(selectedGrade => {
+                if (selectedGrade !== 'no-score') {
+                  safeOnGradeToggle(selectedGrade);
+                }
+              });
+            }
+            safeOnGradeToggle('no-score');
+          }}
+                      className={cn(
+              "flex items-center gap-2 px-2 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer rounded-t-lg",
+              safeSelectedGrades.has('no-score')
+                ? cn("text-white border-b-2", getGradeBorderColor('no-score'))
+                : cn("hover:bg-muted/30", getGradeTextColor('no-score'))
+            )}
         >
-          No Score {getCount('no-score') > 0 && <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0.5 h-5 min-w-5 flex items-center justify-center text-foreground">{getCount('no-score')}</Badge>}
+          No Score {formatCount(getCount('no-score')) && <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0.5 h-5 min-w-5 flex items-center justify-center text-foreground">{formatCount(getCount('no-score'))}</Badge>}
         </div>
       </div>
     </div>

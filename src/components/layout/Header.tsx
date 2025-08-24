@@ -1,11 +1,12 @@
 "use client";
 import React, { useEffect, useState, useMemo } from 'react';
 import { useSession, signOut, signIn } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import { UserAvatarCompact } from "@/components/ui/user-avatar";
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Sun, Moon, LogOut, LogIn, Edit3, KeyRound } from 'lucide-react';
+import { Sun, Moon, LogOut, LogIn, Edit3, KeyRound, AlertTriangle } from 'lucide-react';
 import { useSidebar } from '@/components/ui/sidebar';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { usePathname } from 'next/navigation';
@@ -13,6 +14,7 @@ import { NotificationIcon } from '@/components/ui/notification-icon';
 import { WarningIcon } from '@/components/ui/warning-icon';
 import { ChangePasswordModal } from '@/components/auth/ChangePasswordModal';
 import { RedesignedUserModal } from '@/components/users/RedesignedUserModal';
+
 import type { UserProfile } from '@/lib/types';
 import type { UserFormValues } from '@/components/users/RedesignedUserModal';
 import { toast } from 'react-hot-toast';
@@ -100,6 +102,7 @@ interface HeaderProps {
 export function Header({ pageTitle: initialPageTitle }: { pageTitle: string }) {
   const { isMobile, open } = useSidebar();
   const { data: session, status, update: updateSession } = useSession();
+  const router = useRouter();
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
@@ -311,6 +314,11 @@ export function Header({ pageTitle: initialPageTitle }: { pageTitle: string }) {
                   <Edit3 className="mr-2 h-4 w-4" />
                   Edit My Profile
                 </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => router.push(`/settings/users/${user.id}/warning-configurations`)}>
+                  <AlertTriangle className="mr-2 h-4 w-4" />
+                  My Warning Configurations
+                </DropdownMenuItem>
+
                 <DropdownMenuItem onSelect={() => setIsChangePasswordModalOpen(true)}>
                   <KeyRound className="mr-2 h-4 w-4" />
                   Change Password

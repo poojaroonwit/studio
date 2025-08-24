@@ -48,16 +48,16 @@ export function HeadcountAttachmentModal({
         const file = files[i];
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('headcountId', headcount.id);
         formData.append('label', file.name);
 
-        const response = await fetch('/api/upload-image', {
+        const response = await fetch(`/api/headcount/${headcount.id}/attachments`, {
           method: 'POST',
           body: formData,
         });
 
         if (!response.ok) {
-          throw new Error('Failed to upload file');
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || 'Failed to upload file');
         }
       }
 
@@ -65,7 +65,7 @@ export function HeadcountAttachmentModal({
       onUpdate();
     } catch (error) {
       console.error('Error uploading files:', error);
-      toast.error('Failed to upload files');
+      toast.error(error instanceof Error ? error.message : 'Failed to upload files');
     } finally {
       setUploading(false);
       if (fileInputRef.current) {
@@ -75,25 +75,26 @@ export function HeadcountAttachmentModal({
   };
 
   const handleDeleteAttachment = async (attachmentId: string) => {
-    if (!confirm('Are you sure you want to delete this attachment?')) {
+    if (!confirm('Are you sure you want to delete this attachment?') || !headcount) {
       return;
     }
 
     setDeleting(attachmentId);
     try {
-      const response = await fetch(`/api/upload-image?attachmentId=${attachmentId}`, {
+      const response = await fetch(`/api/headcount/${headcount.id}/attachments?attachmentId=${attachmentId}`, {
         method: 'DELETE',
       });
 
       if (!response.ok) {
-        throw new Error('Failed to delete attachment');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to delete attachment');
       }
 
       toast.success('Attachment deleted successfully');
       onUpdate();
     } catch (error) {
       console.error('Error deleting attachment:', error);
-      toast.error('Failed to delete attachment');
+      toast.error(error instanceof Error ? error.message : 'Failed to delete attachment');
     } finally {
       setDeleting(null);
     }

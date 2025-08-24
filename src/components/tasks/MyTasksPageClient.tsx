@@ -245,7 +245,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     const fetchCandidates = async () => {
       setLoading(true);
       try {
-        const res = await fetch('/api/candidates');
+        const res = await fetch('/api/candidates?limit=1000');
         const data = await res.json();
         setCandidates(Array.isArray(data) ? data : (data.data || []));
       } catch (e) {
@@ -274,6 +274,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
         if (filters.positionId) params.append('positionId', filters.positionId);
         if (filters.stage) params.append('status', filters.stage);
         if (filters.recruiterId) params.append('recruiterId', filters.recruiterId);
+        params.append('limit', '1000'); // Increase limit to show more candidates
         
           const res = await fetch(`/api/candidates?${params.toString()}`);
           const data = await res.json();

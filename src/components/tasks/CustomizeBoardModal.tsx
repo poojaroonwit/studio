@@ -275,7 +275,7 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
         const stagesData = await stagesRes.json();
         setStages(Array.isArray(stagesData) ? stagesData.map((s: any) => s.name) : []);
         // Fetch candidates to get unique values
-        const candidatesRes = await fetch('/api/candidates');
+        const candidatesRes = await fetch('/api/candidates?limit=1000');
         if (!candidatesRes.ok) throw new Error('Failed to fetch candidates');
         const candidatesData = await candidatesRes.json();
         setCandidates(Array.isArray(candidatesData) ? candidatesData : (candidatesData.data || []));

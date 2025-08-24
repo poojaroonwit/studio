@@ -74,6 +74,26 @@ const StageColumn: React.FC<StageColumnProps> = ({
   cardPreferences,
   getCardWidth
 }) => {
+  // Pagination state for this column
+  const [visibleCount, setVisibleCount] = useState(20);
+  const ITEMS_PER_PAGE = 20;
+  const hasMoreItems = tasks.length > visibleCount;
+
+  // Reset visible count when tasks change
+  React.useEffect(() => {
+    setVisibleCount(ITEMS_PER_PAGE);
+  }, [tasks.length]);
+
+  const handleSeeMore = () => {
+    setVisibleCount(prev => Math.min(prev + ITEMS_PER_PAGE, tasks.length));
+  };
+
+  const handleSeeLess = () => {
+    setVisibleCount(ITEMS_PER_PAGE);
+  };
+
+  const visibleTasks = tasks.slice(0, visibleCount);
+
   return (
     <div
       className={cn(
@@ -136,7 +156,7 @@ const StageColumn: React.FC<StageColumnProps> = ({
           {/* Tasks */}
           <div className="h-full overflow-y-auto">
             <div className="p-4 space-y-3">
-              {tasks.map((task) => (
+              {visibleTasks.map((task) => (
                 <TaskCard
                   key={task.id}
                   task={task}
@@ -147,6 +167,33 @@ const StageColumn: React.FC<StageColumnProps> = ({
                   cardPreferences={cardPreferences}
                 />
               ))}
+              
+              {/* Pagination Controls */}
+              {hasMoreItems && (
+                <div className="pt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full text-xs"
+                    onClick={handleSeeMore}
+                  >
+                    See More ({tasks.length - visibleCount} more)
+                  </Button>
+                </div>
+              )}
+              
+              {visibleCount > ITEMS_PER_PAGE && (
+                <div className="pt-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full text-xs text-muted-foreground hover:text-foreground"
+                    onClick={handleSeeLess}
+                  >
+                    Show Less
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </div>

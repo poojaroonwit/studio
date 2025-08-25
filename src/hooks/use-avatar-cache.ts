@@ -1,5 +1,5 @@
 import { useEffect, useCallback } from 'react';
-import { preloadAvatars, getAvatarCacheStats, clearAvatarCache } from '@/lib/imageUtils';
+import { preloadAvatars } from '@/lib/imageUtils';
 
 interface User {
   id: string;
@@ -22,24 +22,8 @@ export function useAvatarCache() {
     }
   }, []);
 
-  /**
-   * Get cache statistics
-   */
-  const getCacheStats = useCallback(() => {
-    return getAvatarCacheStats();
-  }, []);
-
-  /**
-   * Clear all avatar cache
-   */
-  const clearCache = useCallback(() => {
-    clearAvatarCache();
-  }, []);
-
   return {
-    preloadUserAvatars,
-    getCacheStats,
-    clearCache
+    preloadUserAvatars
   };
 }
 

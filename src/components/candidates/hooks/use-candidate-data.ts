@@ -230,55 +230,44 @@ export function useCandidateData({
     }
   }, [sessionStatus, stableSetAvailableSources]);
 
-  // Helper function to create filters without fit score filters
-  const createFiltersWithoutFitScore = (filters: any) => {
-    if (!filters) return undefined;
-    
-    const { 
-      minAppliedJobFitScore, 
-      maxAppliedJobFitScore, 
-      minMatchingJobFitScore, 
-      maxMatchingJobFitScore,
-      includeNoScoreInApplied,
-      includeNoScoreInMatching,
-      ...filtersWithoutFitScore 
-    } = filters;
-    
-    return filtersWithoutFitScore;
-  };
+
+
+
 
   // Fetch full candidates dataset for accurate count calculations
-  // This function excludes fit score filters to prevent circular dependency
   const fetchAllCandidatesForCounts = useCallback(async (filters?: any) => {
     if (sessionStatus !== 'authenticated') {
       return;
     }
     
     try {
-      // Remove fit score filters to prevent circular dependency
-      const filtersWithoutFitScore = createFiltersWithoutFitScore(filters);
-      
-      // Build query parameters from filters, but EXCLUDE fit score filters
-      // This prevents circular dependency where fit score counts would be affected by selected fit score filters
+      // Build query parameters from ALL filters, INCLUDING fit score filters
       const params = new URLSearchParams();
-      if (filtersWithoutFitScore) {
-        if (filtersWithoutFitScore.name) params.append('name', filtersWithoutFitScore.name);
-        if (filtersWithoutFitScore.email) params.append('email', filtersWithoutFitScore.email);
-        if (filtersWithoutFitScore.phone) params.append('phone', filtersWithoutFitScore.phone);
-        if (filtersWithoutFitScore.location) params.append('location', filtersWithoutFitScore.location);
-        if (filtersWithoutFitScore.selectedPositionIds) params.append('positionId', filtersWithoutFitScore.selectedPositionIds.join(','));
-        if (filtersWithoutFitScore.selectedStatuses) params.append('status', filtersWithoutFitScore.selectedStatuses.join(','));
-        if (filtersWithoutFitScore.selectedSourceIds) params.append('sourceId', filtersWithoutFitScore.selectedSourceIds.join(','));
-        if (filtersWithoutFitScore.selectedRecruiterIds) params.append('recruiterId', filtersWithoutFitScore.selectedRecruiterIds.join(','));
-        if (filtersWithoutFitScore.skills) params.append('skills', filtersWithoutFitScore.skills);
-        if (filtersWithoutFitScore.minExperienceYears) params.append('minExperienceYears', filtersWithoutFitScore.minExperienceYears.toString());
-        if (filtersWithoutFitScore.maxExperienceYears) params.append('maxExperienceYears', filtersWithoutFitScore.maxExperienceYears.toString());
-        if (filtersWithoutFitScore.applicationDateStart) params.append('applicationDateStart', filtersWithoutFitScore.applicationDateStart.toString());
-        if (filtersWithoutFitScore.applicationDateEnd) params.append('applicationDateEnd', filtersWithoutFitScore.applicationDateEnd.toString());
-      }
-      
-      // Add forCounts parameter to get all candidates without pagination
       params.append('forCounts', 'true');
+      
+      if (filters) {
+        if (filters.name) params.append('name', filters.name);
+        if (filters.email) params.append('email', filters.email);
+        if (filters.phone) params.append('phone', filters.phone);
+        if (filters.location) params.append('location', filters.location);
+        if (filters.selectedPositionIds) params.append('positionId', filters.selectedPositionIds.join(','));
+        if (filters.selectedStatuses) params.append('status', filters.selectedStatuses.join(','));
+        if (filters.selectedSourceIds) params.append('sourceId', filters.selectedSourceIds.join(','));
+        if (filters.selectedRecruiterIds) params.append('recruiterId', filters.selectedRecruiterIds.join(','));
+        if (filters.skills) params.append('skills', filters.skills);
+        if (filters.minExperienceYears) params.append('minExperienceYears', filters.minExperienceYears.toString());
+        if (filters.maxExperienceYears) params.append('maxExperienceYears', filters.maxExperienceYears.toString());
+        if (filters.applicationDateStart) params.append('applicationDateStart', filters.applicationDateStart.toString());
+        if (filters.applicationDateEnd) params.append('applicationDateEnd', filters.applicationDateEnd.toString());
+        
+        // Include fit score filters for accurate counts
+        if (filters.minAppliedJobFitScore !== undefined) params.append('minAppliedJobFitScore', filters.minAppliedJobFitScore.toString());
+        if (filters.maxAppliedJobFitScore !== undefined) params.append('maxAppliedJobFitScore', filters.maxAppliedJobFitScore.toString());
+        if (filters.minMatchingJobFitScore !== undefined) params.append('minMatchingJobFitScore', filters.minMatchingJobFitScore.toString());
+        if (filters.maxMatchingJobFitScore !== undefined) params.append('maxMatchingJobFitScore', filters.maxMatchingJobFitScore.toString());
+        if (filters.includeNoScoreInApplied) params.append('includeNoScoreInApplied', 'true');
+        if (filters.includeNoScoreInMatching) params.append('includeNoScoreInMatching', 'true');
+      }
       
       const url = `/api/candidates?${params.toString()}`;
       
@@ -287,23 +276,14 @@ export function useCandidateData({
       if (response.ok) {
         const data = await response.json();
         
-        if (data.total !== undefined && typeof data.total === 'number') {
-          // Store the total count for UI display
-          // The fit score counts now come directly from the database
-          if (data.fitScoreCounts && Array.isArray(data.fitScoreCounts)) {
-            setDatabaseFitScoreCounts(data.fitScoreCounts);
-          }
-          
-          // For count-only responses (data.data is empty), we don't set allCandidatesForCounts
-          // because we're using a more efficient count-only query
-          if (data.data && data.data.length > 0) {
-            // This would be the old behavior with full data
-            stableSetAllCandidatesForCounts(data.data);
-          }
+        // Store the candidates data for accurate fit score count calculations
+        if (data.data && Array.isArray(data.data)) {
+          stableSetAllCandidatesForCounts(data.data);
         }
       }
     } catch (error) {
       // Silently fail - this is for counts only, not critical functionality
+      console.warn('Failed to fetch all candidates for counts:', error);
     }
   }, [sessionStatus, stableSetAllCandidatesForCounts]);
 

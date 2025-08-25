@@ -203,7 +203,7 @@ export const authOptions: NextAuthOptions = {
           try {
             const freshPermissions = await getMergedUserPermissions(token.id as string);
             token.modulePermissions = freshPermissions as PlatformModuleId[];
-            console.log(`[JWT CALLBACK] Loaded permissions for user ${token.id}:`, freshPermissions);
+            // console.log(`[JWT CALLBACK] Loaded permissions for user ${token.id}:`, freshPermissions);
           } catch (e) {
             console.error('[JWT CALLBACK] Error fetching group permissions:', e);
             // Don't set empty permissions, keep existing ones if available

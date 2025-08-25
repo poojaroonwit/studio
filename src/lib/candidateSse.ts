@@ -1,4 +1,9 @@
 // src/lib/candidateSse.ts
+// This file now uses the unified real-time system
+// Import the unified broadcast functions
+import { broadcastToAll, broadcastToUser } from '@/lib/realtime';
+
+// Keep the old controllers for backward compatibility during transition
 const controllers = new Set<ReadableStreamDefaultController<any>>();
 const userControllers = new Map<string, Set<ReadableStreamDefaultController<any>>>();
 
@@ -52,13 +57,19 @@ export function removeSseController(controller: ReadableStreamDefaultController<
 }
 
 export function broadcastCandidateUpdate(candidate: any, actingUserId?: string) {
-  const data = `event: candidate\ndata: ${JSON.stringify({ 
+  const data = { 
     type: 'candidate_update', 
     candidateId: candidate.id, 
     candidate,
     actingUserId 
-  })}\n\n`;
-  const encodedData = new TextEncoder().encode(data);
+  };
+  
+  // Use unified broadcast system
+  broadcastToAll('candidate_update', data);
+  
+  // Keep old system for backward compatibility
+  const oldData = `event: candidate\ndata: ${JSON.stringify(data)}\n\n`;
+  const encodedData = new TextEncoder().encode(oldData);
   
   for (const controller of controllers) {
     try {
@@ -72,8 +83,14 @@ export function broadcastCandidateUpdate(candidate: any, actingUserId?: string) 
 }
 
 export function broadcastCandidateListUpdate() {
-  const data = `event: candidate\ndata: ${JSON.stringify({ type: 'candidate_list_update', timestamp: new Date().toISOString() })}\n\n`;
-  const encodedData = new TextEncoder().encode(data);
+  const data = { type: 'candidate_list_update', timestamp: new Date().toISOString() };
+  
+  // Use unified broadcast system
+  broadcastToAll('candidate_update', data);
+  
+  // Keep old system for backward compatibility
+  const oldData = `event: candidate\ndata: ${JSON.stringify(data)}\n\n`;
+  const encodedData = new TextEncoder().encode(oldData);
   
   for (const controller of controllers) {
     try {
@@ -87,8 +104,14 @@ export function broadcastCandidateListUpdate() {
 }
 
 export function broadcastCandidateCommentUpdate(payload: { candidateId: string, comment: any, action: string }, actingUserId?: string) {
-  const data = `event: comment\ndata: ${JSON.stringify({ ...payload, actingUserId })}\n\n`;
-  const encodedData = new TextEncoder().encode(data);
+  const data = { ...payload, actingUserId };
+  
+  // Use unified broadcast system
+  broadcastToAll('candidate_update', data);
+  
+  // Keep old system for backward compatibility
+  const oldData = `event: comment\ndata: ${JSON.stringify(data)}\n\n`;
+  const encodedData = new TextEncoder().encode(oldData);
   
   for (const controller of controllers) {
     try {
@@ -101,8 +124,14 @@ export function broadcastCandidateCommentUpdate(payload: { candidateId: string, 
 }
 
 export function broadcastCandidateResumeUpdate(payload: { candidateId: string, resume: any, action: string }) {
-  const data = `event: resume\ndata: ${JSON.stringify(payload)}\n\n`;
-  const encodedData = new TextEncoder().encode(data);
+  const data = payload;
+  
+  // Use unified broadcast system
+  broadcastToAll('candidate_update', data);
+  
+  // Keep old system for backward compatibility
+  const oldData = `event: resume\ndata: ${JSON.stringify(payload)}\n\n`;
+  const encodedData = new TextEncoder().encode(oldData);
   
   for (const controller of controllers) {
     try {
@@ -115,8 +144,14 @@ export function broadcastCandidateResumeUpdate(payload: { candidateId: string, r
 }
 
 export function broadcastCandidateTransitionUpdate(payload: { candidateId: string, transition: any, action: string }, actingUserId?: string) {
-  const data = `event: transition\ndata: ${JSON.stringify({ ...payload, actingUserId })}\n\n`;
-  const encodedData = new TextEncoder().encode(data);
+  const data = { ...payload, actingUserId };
+  
+  // Use unified broadcast system
+  broadcastToAll('candidate_update', data);
+  
+  // Keep old system for backward compatibility
+  const oldData = `event: transition\ndata: ${JSON.stringify({ ...payload, actingUserId })}\n\n`;
+  const encodedData = new TextEncoder().encode(oldData);
   
   for (const controller of controllers) {
     try {
@@ -129,8 +164,14 @@ export function broadcastCandidateTransitionUpdate(payload: { candidateId: strin
 }
 
 export function broadcastCandidateAttachmentUpdate(payload: { candidateId: string, attachment: any, action: string }, actingUserId?: string) {
-  const data = `event: attachment\ndata: ${JSON.stringify({ ...payload, actingUserId })}\n\n`;
-  const encodedData = new TextEncoder().encode(data);
+  const data = { ...payload, actingUserId };
+  
+  // Use unified broadcast system
+  broadcastToAll('candidate_update', data);
+  
+  // Keep old system for backward compatibility
+  const oldData = `event: attachment\ndata: ${JSON.stringify({ ...payload, actingUserId })}\n\n`;
+  const encodedData = new TextEncoder().encode(oldData);
   
   for (const controller of controllers) {
     try {
@@ -143,8 +184,14 @@ export function broadcastCandidateAttachmentUpdate(payload: { candidateId: strin
 }
 
 export function broadcastRecruitmentStagesUpdate(stages: any[]) {
-  const data = `event: recruitment-stages\ndata: ${JSON.stringify(stages)}\n\n`;
-  const encodedData = new TextEncoder().encode(data);
+  const data = stages;
+  
+  // Use unified broadcast system
+  broadcastToAll('candidate_update', data);
+  
+  // Keep old system for backward compatibility
+  const oldData = `event: recruitment-stages\ndata: ${JSON.stringify(stages)}\n\n`;
+  const encodedData = new TextEncoder().encode(oldData);
   
   for (const controller of controllers) {
     try {
@@ -158,13 +205,19 @@ export function broadcastRecruitmentStagesUpdate(stages: any[]) {
 }
 
 export function broadcastPositionUpdate(position: any, actingUserId?: string) {
-  const data = `event: position\ndata: ${JSON.stringify({ 
+  const data = { 
     type: 'position_update', 
     positionId: position.id, 
     position,
     actingUserId 
-  })}\n\n`;
-  const encodedData = new TextEncoder().encode(data);
+  };
+  
+  // Use unified broadcast system
+  broadcastToAll('position_update', data);
+  
+  // Keep old system for backward compatibility
+  const oldData = `event: position\ndata: ${JSON.stringify(data)}\n\n`;
+  const encodedData = new TextEncoder().encode(oldData);
   
   for (const controller of controllers) {
     try {
@@ -178,8 +231,14 @@ export function broadcastPositionUpdate(position: any, actingUserId?: string) {
 }
 
 export function broadcastPositionListUpdate() {
-  const data = `event: position\ndata: ${JSON.stringify({ type: 'position_list_update' })}\n\n`;
-  const encodedData = new TextEncoder().encode(data);
+  const data = { type: 'position_list_update' };
+  
+  // Use unified broadcast system
+  broadcastToAll('position_update', data);
+  
+  // Keep old system for backward compatibility
+  const oldData = `event: position\ndata: ${JSON.stringify({ type: 'position_list_update' })}\n\n`;
+  const encodedData = new TextEncoder().encode(oldData);
   
   for (const controller of controllers) {
     try {
@@ -193,8 +252,14 @@ export function broadcastPositionListUpdate() {
 }
 
 export function broadcastPositionStatisticsUpdate(statistics: any) {
-  const data = `event: position-statistics\ndata: ${JSON.stringify({ type: 'position_statistics_update', statistics })}\n\n`;
-  const encodedData = new TextEncoder().encode(data);
+  const data = { type: 'position_statistics_update', statistics };
+  
+  // Use unified broadcast system
+  broadcastToAll('position_update', data);
+  
+  // Keep old system for backward compatibility
+  const oldData = `event: position-statistics\ndata: ${JSON.stringify({ type: 'position_statistics_update', statistics })}\n\n`;
+  const encodedData = new TextEncoder().encode(oldData);
   
   for (const controller of controllers) {
     try {
@@ -208,8 +273,14 @@ export function broadcastPositionStatisticsUpdate(statistics: any) {
 }
 
 export function broadcastNotification(notification: any) {
-  const data = `event: notification\ndata: ${JSON.stringify({ type: 'new_notification', notification })}\n\n`;
-  const encodedData = new TextEncoder().encode(data);
+  const data = { type: 'new_notification', notification };
+  
+  // Use unified broadcast system
+  broadcastToAll('notification_update', data);
+  
+  // Keep old system for backward compatibility
+  const oldData = `event: notification\ndata: ${JSON.stringify({ type: 'new_notification', notification })}\n\n`;
+  const encodedData = new TextEncoder().encode(oldData);
   
   for (const controller of controllers) {
     try {
@@ -223,8 +294,14 @@ export function broadcastNotification(notification: any) {
 }
 
 export function broadcastUserNotification(userId: string, notification: any) {
-  const data = `event: notification\ndata: ${JSON.stringify({ type: 'new_notification', notification, targetUserId: userId })}\n\n`;
-  const encodedData = new TextEncoder().encode(data);
+  const data = { type: 'new_notification', notification, targetUserId: userId };
+  
+  // Use unified broadcast system
+  broadcastToUser(userId, 'notification_update', data);
+  
+  // Keep old system for backward compatibility
+  const oldData = `event: notification\ndata: ${JSON.stringify({ type: 'new_notification', notification, targetUserId: userId })}\n\n`;
+  const encodedData = new TextEncoder().encode(oldData);
   
   // Only send to controllers belonging to the target user
   const userControllerSet = userControllers.get(userId);

@@ -13,7 +13,7 @@ interface RecruiterAvatarProps {
     email?: string;
     personalColor?: string | null;
   };
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
   showTooltip?: boolean;
   forceRefresh?: boolean;
@@ -21,6 +21,7 @@ interface RecruiterAvatarProps {
 }
 
 const sizeClasses = {
+  xs: 'h-4 w-4',
   sm: 'h-8 w-8',
   md: 'h-10 w-10',
   lg: 'h-12 w-12',
@@ -120,14 +121,14 @@ export function RecruiterAvatar({
           color: personalColor
         }}
       >
-        {initials || <UserCircle className="h-4 w-4" />}
+        {initials || <UserCircle className={size === 'xs' ? 'h-2 w-2' : 'h-4 w-4'} />}
       </AvatarFallback>
     </Avatar>
   );
 }
 
 // Compact version for lists and tables
-export function RecruiterAvatarCompact({ user, size = 'sm', className, forceRefresh, showBorder = true }: RecruiterAvatarProps) {
+export function RecruiterAvatarCompact({ user, size = 'xs', className, forceRefresh, showBorder = true }: RecruiterAvatarProps) {
   return (
     <RecruiterAvatar
       user={user}

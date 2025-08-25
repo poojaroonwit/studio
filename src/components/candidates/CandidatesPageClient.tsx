@@ -40,6 +40,7 @@ import { CandidateSettingsDrawer } from './CandidateSettingsDrawer';
 import { useDynamicHeight } from '@/hooks/use-dynamic-height';
 import { useCandidateSettings } from '@/hooks/use-candidate-settings';
 import { useUnifiedRealtime } from '@/hooks/use-unified-realtime';
+import { CandidatePerformanceMonitor } from './CandidatePerformanceMonitor';
 
 // Import our new hooks
 import { useCandidateFilters } from './hooks/use-candidate-filters';
@@ -102,6 +103,9 @@ export function CandidatesPageClient({
   const [aiMatchedCandidateIds, setAiMatchedCandidateIds] = useState<string[] | null>(null);
   const [aiRecordCount, setAiRecordCount] = useState<number>(0);
   const [isAiSearchActive, setIsAiSearchActive] = useState(false);
+
+  // Performance Monitor state
+  const [showPerformanceMonitor, setShowPerformanceMonitor] = useState<boolean>(false);
 
   // Stabilize setter functions to prevent unnecessary re-renders
   const stableSetAiMatchedCandidateIds = useCallback((ids: string[] | null) => {
@@ -565,15 +569,15 @@ export function CandidatesPageClient({
       return result;
     }
     
-    // For regular filtered results, calculate counts based on current filteredCandidates
-    // This ensures counts reflect the current filter state
-    if (filteredCandidates.length > 0) {
+    // For regular filtered results, use allCandidatesForCounts to get accurate counts
+    // This ensures counts reflect the database-level filtering, not just the current page
+    if (allCandidatesForCounts.length > 0) {
       
       const scoreRanges = getScoreRangesForChart();
       const appliedScoreRangeCounts: { [key: string]: number } = {};
       const matchingScoreRangeCounts: { [key: string]: number } = {};
       
-      filteredCandidates.forEach((candidate: Candidate) => {
+      allCandidatesForCounts.forEach((candidate: Candidate) => {
         // Applied fit score calculation
         const appliedScores = [];
         
@@ -735,7 +739,7 @@ export function CandidatesPageClient({
     };
     
     return result;
-  }, [databaseFitScoreCounts, candidatesForFitScoreCounts, normalizeFitScore, getBestMatchingFitScore, isAiSearchActive, aiMatchedCandidateIds, filteredCandidates, filters]);
+  }, [databaseFitScoreCounts, candidatesForFitScoreCounts, normalizeFitScore, getBestMatchingFitScore, isAiSearchActive, aiMatchedCandidateIds, allCandidatesForCounts]);
 
   // Calculate candidate counts by stage for the pipeline stage filter
   const candidateCountsByStage = useMemo(() => {
@@ -831,7 +835,8 @@ export function CandidatesPageClient({
           ...horizontalFilters
         };
         setFilters(newFilters);
-        setPage(1);
+        setPage(1); // Always reset to page 1 when applying fit score filters
+        setTableLoading(true); // Show loading state
         debouncedFetchTableData(newFilters, 1, pageSize);
         fetchAllCandidatesForCounts(newFilters); // Update counts data when horizontal filters change
       } else {
@@ -844,7 +849,9 @@ export function CandidatesPageClient({
           maxMatchingJobFitScore: undefined,
         };
         setFilters(newFilters);
-        debouncedFetchTableData(newFilters, page, pageSize);
+        setPage(1); // Reset to page 1 when clearing fit score filters
+        setTableLoading(true); // Show loading state
+        debouncedFetchTableData(newFilters, 1, pageSize);
         fetchAllCandidatesForCounts(newFilters); // Update counts data when clearing fit score filters
       }
     } else {
@@ -857,10 +864,12 @@ export function CandidatesPageClient({
         maxMatchingJobFitScore: undefined,
       };
       setFilters(newFilters);
-      debouncedFetchTableData(newFilters, page, pageSize);
+      setPage(1); // Reset to page 1 when clearing all fit score filters
+      setTableLoading(true); // Show loading state
+      debouncedFetchTableData(newFilters, 1, pageSize);
       fetchAllCandidatesForCounts(newFilters); // Update counts data when clearing all fit score filters
     }
-  }, [horizontalSelectedFitScoreGrades, horizontalSelectedMatchingFitScoreGrades, applyHorizontalFitScoreFilters, page, pageSize, isClearingFilters, hasInitialDataFetch, fetchAllCandidatesForCounts]);
+  }, [horizontalSelectedFitScoreGrades, horizontalSelectedMatchingFitScoreGrades, applyHorizontalFitScoreFilters, pageSize, isClearingFilters, hasInitialDataFetch, fetchAllCandidatesForCounts]);
 
   // Handle filter changes
   const onFilterChange = useCallback((newFilters: CandidateFilterValues) => {
@@ -1139,13 +1148,13 @@ export function CandidatesPageClient({
     
     // Skip if filters haven't actually changed to prevent unnecessary requests
     const requestId = JSON.stringify({ filters, page, pageSize, sortColumn, sortDirection });
-    if (currentRequestRef.current === requestId) {
+    if (currentRequestRefFromHook.current === requestId) {
       return;
     }
     
     // Add a small delay to prevent rapid successive requests
     const timeoutId = setTimeout(() => {
-      currentRequestRef.current = requestId;
+      currentRequestRefFromHook.current = requestId;
       fetchTableData(filters, page, pageSize);
       fetchAllCandidatesForCounts(filters); // Update counts when filters change
     }, 200); // Increased delay to prevent rapid successive requests
@@ -1191,17 +1200,7 @@ export function CandidatesPageClient({
     <>
       <div className="flex flex-col h-full">
         {/* Realtime Status Indicator */}
-        <div className="flex items-center justify-end px-4 py-2 bg-muted/50 border-b text-xs">
-          <div className={cn(
-            "w-10 h-10 rounded-full flex items-center justify-center",
-            realtimeConnected ? "bg-green-500" : isReconnecting ? "bg-yellow-500" : "bg-red-500"
-          )}>
-            <div className={cn(
-              "w-2 h-2 rounded-full",
-              realtimeConnected ? "bg-white" : isReconnecting ? "bg-white" : "bg-white/50"
-            )} />
-          </div>
-        </div>
+
         
         {/* Main Content */}
         <div className="flex-1 flex overflow-hidden">
@@ -1277,17 +1276,16 @@ export function CandidatesPageClient({
                     
                     <div className="flex items-center space-x-3 ml-3">
                       <Button
-                        size="sm"
                         onClick={() => setIsBulkUploadModalOpen(true)}
                         disabled={isLoading || tableLoading}
-                        className="mb-2"
+                        className="mb-2 h-9 px-3"
                       >
                         Upload CVs
                       </Button>
                       
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="outline" size="sm" disabled={isLoading || tableLoading} className="w-8 p-0 ml-2 mb-2">
+                          <Button disabled={isLoading || tableLoading} className="w-8 p-0 ml-2 mb-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3">
                             <MoreVertical className="h-3 w-3" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -1323,7 +1321,7 @@ export function CandidatesPageClient({
                             <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
                               AI Search Results
                             </span>
-                            <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-200">
+                            <Badge className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-200">
                               {aiRecordCount} matched
                             </Badge>
                           </div>
@@ -1415,37 +1413,35 @@ export function CandidatesPageClient({
                     
                     <div className="flex items-center gap-2">
                       <Button
-                        variant="destructive"
-                        size="sm"
                         onClick={() => handleBulkDelete(Array.from(selectedCandidateIds))}
                         disabled={!canManageCandidates}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90 h-9 px-3"
                       >
                         <Trash2 className="h-4 w-4 mr-1" />
                         Delete Selected
                       </Button>
                       
                       <Button
-                        variant="outline"
-                        size="sm"
                         onClick={() => {
                           setBulkNewStatus('');
                           setBulkTransitionNotes('');
                           setIsBulkStatusModalOpen(true);
+          
                         }}
                         disabled={!canManageCandidates}
+                        className="border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3"
                       >
                         <FileEdit className="h-4 w-4 mr-1" />
                         Change Status
                       </Button>
                       
                       <Button
-                        variant="outline"
-                        size="sm"
                         onClick={() => {
                           setBulkNewRecruiterId(null);
                           setIsBulkRecruiterModalOpen(true);
                         }}
                         disabled={!canManageCandidates}
+                        className="border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3"
                       >
                         <Users className="h-4 w-4 mr-1" />
                         Assign Recruiter
@@ -1454,9 +1450,8 @@ export function CandidatesPageClient({
                   </div>
                   
                   <Button
-                    variant="ghost"
-                    size="sm"
                     onClick={() => setSelectedCandidateIds(new Set())}
+                    className="hover:bg-accent hover:text-accent-foreground h-9 px-3"
                   >
                     Clear Selection
                   </Button>
@@ -1517,13 +1512,12 @@ export function CandidatesPageClient({
                 
                 <div className="flex items-center space-x-2">
                   <Button
-                    variant="outline"
-                    size="sm"
                     onClick={() => setPage(Math.max(1, page - 1))}
                     disabled={(() => {
                       const currentTotal = isAiSearchActive && aiMatchedCandidateIds ? aiRecordCount : total;
                       return page <= 1 || currentTotal === 0;
                     })()}
+                    className="border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3"
                   >
                     <ChevronLeft className="h-4 w-4" />
                     Previous
@@ -1540,13 +1534,18 @@ export function CandidatesPageClient({
                   </span>
                   
                   <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage(Math.min(totalPages, page + 1))}
+                    onClick={() => {
+                      setPage(Math.min(totalPages, page + 1));
+                      // Show Performance Monitor for admin users
+                      if (session?.user?.role === 'Admin') {
+                        setShowPerformanceMonitor(true);
+                      }
+                    }}
                     disabled={(() => {
                       const currentTotal = isAiSearchActive && aiMatchedCandidateIds ? aiRecordCount : total;
                       return page >= totalPages || currentTotal === 0;
                     })()}
+                    className="border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3"
                   >
                     Next
                     <ChevronRight className="h-4 w-4" />
@@ -1709,6 +1708,18 @@ export function CandidatesPageClient({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Performance Monitor - Admin Only */}
+      {session?.user?.role === 'Admin' && (
+        <CandidatePerformanceMonitor 
+          showDetails={showPerformanceMonitor}
+          onMetricsUpdate={(metrics) => {
+            // Optional: Handle metrics updates if needed
+            console.log('Performance metrics updated:', metrics);
+          }}
+          onClose={() => setShowPerformanceMonitor(false)}
+        />
+      )}
     </>
   );
 }

@@ -55,7 +55,7 @@ export async function GET(
     });
 
     const exportData = {
-      configurations: configurations.map(config => ({
+      configurations: configurations.map((config: any) => ({
         name: config.name,
         description: config.description,
         entityType: config.entityType,

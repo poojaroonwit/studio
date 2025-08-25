@@ -1605,7 +1605,7 @@ export default function PositionsPageClient() {
           }
         }}
         positionId={editingPositionId}
-        initialEditMode={true}
+        initialEditMode={false}
       />
     </div>
   );

@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useUnifiedRealtime } from '@/hooks/use-unified-realtime-optimized';
 import { 
   Users, 
   Bell, 
@@ -42,7 +43,6 @@ export function RealtimeCollaboration({
   const [notifications, setNotifications] = useState<any[]>([]);
   const [isVisible, setIsVisible] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
-  const eventSourceRef = useRef<EventSource | null>(null);
 
   // Fetch notifications on mount
   useEffect(() => {
@@ -66,84 +66,34 @@ export function RealtimeCollaboration({
           }));
           setNotifications(validNotifications);
         }
-          } catch (error) {
-      // Error fetching notifications
-    }
+      } catch (error) {
+        // Error fetching notifications
+      }
     };
 
     fetchNotifications();
   }, [session?.user?.id]);
 
-  // Note: User presence is now handled by the useUserPresence hook
-  // This component no longer manages presence directly
-
-  // SSE logic for real-time updates
-  useEffect(() => {
-    // Connect to SSE endpoint
-    const es = new EventSource('/api/candidates/sse');
-    eventSourceRef.current = es;
-
-    es.onopen = () => {
+  // Use unified real-time hook for all real-time updates
+  const { isConnected } = useUnifiedRealtime({
+    onCandidateUpdate: (data) => {
+      // Handle candidate updates as collaboration events
+      setCollaborationEvents((prev) => [data, ...prev].slice(0, maxItems));
       setLastUpdate(new Date());
-    };
-
-    es.onmessage = (event) => {
-      // Default event (no event type) - treat as generic update
-      try {
-        const data = JSON.parse(event.data);
-        // You can customize this logic to update state as needed
-        // For demo, treat as a collaboration event
+    },
+    onPositionUpdate: (data) => {
+      // Handle position updates as collaboration events
+      setCollaborationEvents((prev) => [data, ...prev].slice(0, maxItems));
+      setLastUpdate(new Date());
+    },
+    onNotificationUpdate: (data) => {
+      // Handle notification updates
+      if (data.type === 'new_notification') {
         setCollaborationEvents((prev) => [data, ...prev].slice(0, maxItems));
         setLastUpdate(new Date());
-      } catch {}
-    };
-
-    es.addEventListener('comment', (event: MessageEvent) => {
-      try {
-        const payload = JSON.parse(event.data);
-        setCollaborationEvents((prev) => [payload, ...prev].slice(0, maxItems));
-        setLastUpdate(new Date());
-      } catch {}
-    });
-    es.addEventListener('resume', (event: MessageEvent) => {
-      try {
-        const payload = JSON.parse(event.data);
-        setCollaborationEvents((prev) => [payload, ...prev].slice(0, maxItems));
-        setLastUpdate(new Date());
-      } catch {}
-    });
-    es.addEventListener('transition', (event: MessageEvent) => {
-      try {
-        const payload = JSON.parse(event.data);
-        setCollaborationEvents((prev) => [payload, ...prev].slice(0, maxItems));
-        setLastUpdate(new Date());
-      } catch {}
-    });
-    es.addEventListener('attachment', (event: MessageEvent) => {
-      try {
-        const payload = JSON.parse(event.data);
-        setCollaborationEvents((prev) => [payload, ...prev].slice(0, maxItems));
-        setLastUpdate(new Date());
-      } catch {}
-    });
-    es.addEventListener('recruitment-stages', (event: MessageEvent) => {
-      try {
-        const payload = JSON.parse(event.data);
-        setCollaborationEvents((prev) => [payload, ...prev].slice(0, maxItems));
-        setLastUpdate(new Date());
-      } catch {}
-    });
-    // You can add more event listeners for notifications, online users, etc.
-
-    es.onerror = (err) => {
-      // Optionally handle errors
-    };
-
-    return () => {
-      es.close();
-      eventSourceRef.current = null;
-    };
-  }, [maxItems]);
+      }
+    }
+  });
 
   // Mark notification as read (still uses API)
   const markNotificationAsRead = useCallback(async (notificationId: string) => {

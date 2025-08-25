@@ -285,24 +285,4 @@ export const preloadAvatars = async (users: Array<{
   await Promise.allSettled(preloadPromises);
 };
 
-/**
- * Clears all avatar cache
- */
-export const clearAvatarCache = (): void => {
-  avatarCache.clear();
-};
 
-/**
- * Gets cache statistics
- */
-export const getAvatarCacheStats = (): {
-  size: number;
-  maxSize: number;
-  duration: number;
-} => {
-  return {
-    size: avatarCache.size,
-    maxSize: MAX_CACHE_SIZE,
-    duration: CACHE_DURATION
-  };
-};

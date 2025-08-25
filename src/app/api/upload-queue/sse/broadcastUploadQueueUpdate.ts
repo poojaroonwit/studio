@@ -1,5 +1,7 @@
 import { getPool } from '@/lib/db';
+import { broadcastToAll } from '@/lib/realtime';
 
+// Keep the old controllers for backward compatibility during transition
 const uploadQueueControllers = new Set<ReadableStreamDefaultController<any>>();
 
 export async function sendUploadQueueUpdate(controller: ReadableStreamDefaultController<any>, queryParams?: { fileName?: string, status?: string, dateStart?: string, dateEnd?: string, limit?: number, offset?: number }) {
@@ -81,6 +83,11 @@ export async function sendUploadQueueUpdate(controller: ReadableStreamDefaultCon
 }
 
 export function broadcastUploadQueueUpdate() {
+  // Use unified broadcast system
+  const data = { type: 'queue', summary: { queued: 0, inprocess: 0 } };
+  broadcastToAll('upload_queue_update', data);
+  
+  // Keep old system for backward compatibility
   // Create a copy of controllers to safely iterate over
   const controllersCopy = Array.from(uploadQueueControllers);
   

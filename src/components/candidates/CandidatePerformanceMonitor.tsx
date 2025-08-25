@@ -18,11 +18,13 @@ interface CandidatePerformanceMetrics {
 interface CandidatePerformanceMonitorProps {
   showDetails?: boolean;
   onMetricsUpdate?: (metrics: CandidatePerformanceMetrics) => void;
+  onClose?: () => void;
 }
 
 export function CandidatePerformanceMonitor({ 
   showDetails = false,
-  onMetricsUpdate 
+  onMetricsUpdate,
+  onClose
 }: CandidatePerformanceMonitorProps) {
   const [metrics, setMetrics] = useState<CandidatePerformanceMetrics>({
     filterResponseTime: 0,
@@ -128,8 +130,11 @@ export function CandidatePerformanceMonitor({
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => setIsVisible(true)}
-        className="fixed bottom-4 right-4 z-50 opacity-50 hover:opacity-100"
+        onClick={() => {
+          setIsVisible(true);
+          onClose?.(); // Reset the external control
+        }}
+        className="fixed bottom-4 right-4 z-50 opacity-50 hover:opacity-100 transition-opacity duration-200"
       >
         <Activity className="h-4 w-4 mr-2" />
         Performance
@@ -138,11 +143,11 @@ export function CandidatePerformanceMonitor({
   }
 
   return (
-    <Card className="fixed bottom-4 right-4 z-50 w-80 bg-background/95 backdrop-blur-sm border-2">
+    <Card className="fixed bottom-4 right-4 z-50 w-80 bg-background/95 backdrop-blur-sm border-2 shadow-2xl animate-in slide-in-from-bottom-2 duration-300">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-sm flex items-center">
-            <Activity className="h-4 w-4 mr-2" />
+          <CardTitle className="text-sm flex items-center text-primary">
+            <Activity className="h-4 w-4 mr-2 animate-pulse" />
             Candidates Performance
           </CardTitle>
           <div className="flex items-center gap-2">
@@ -155,8 +160,11 @@ export function CandidatePerformanceMonitor({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setIsVisible(false)}
-              className="h-6 w-6 p-0"
+              onClick={() => {
+                setIsVisible(false);
+                onClose?.();
+              }}
+              className="h-6 w-6 p-0 hover:bg-destructive/10 hover:text-destructive transition-colors"
             >
               ×
             </Button>

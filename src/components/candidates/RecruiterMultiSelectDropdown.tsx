@@ -278,7 +278,7 @@ export function RecruiterMultiSelectDropdown({
                           avatarUrl: recruiter.avatarUrl,
                           personalColor: recruiter.personalColor
                         }}
-                        size="sm"
+                        size="xs"
                         className="mr-2"
                       />
                       <div className="flex flex-col">

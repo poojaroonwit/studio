@@ -45,16 +45,18 @@ export function useDynamicHeight(options: UseDynamicHeightOptions = {}) {
   const addFilterRef = useCallback((ref: HTMLElement | null) => {
     if (ref) {
       filterRefs.current.add(ref);
-      updateHeight();
+      // Use debounced update instead of immediate update to prevent infinite loops
+      debouncedUpdateHeight();
     }
-  }, [updateHeight]);
+  }, [debouncedUpdateHeight]);
 
   const removeFilterRef = useCallback((ref: HTMLElement | null) => {
     if (ref) {
       filterRefs.current.delete(ref);
-      updateHeight();
+      // Use debounced update instead of immediate update to prevent infinite loops
+      debouncedUpdateHeight();
     }
-  }, [updateHeight]);
+  }, [debouncedUpdateHeight]);
 
   useEffect(() => {
     // Initial measurement with a small delay to ensure DOM is ready

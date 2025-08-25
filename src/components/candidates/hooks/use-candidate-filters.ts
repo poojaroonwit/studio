@@ -68,7 +68,7 @@ export function useCandidateFilters(initialFilters?: CandidateFilterValues) {
 
   // Apply horizontal fit score filters
   const applyHorizontalFitScoreFilters = useCallback(() => {
-    const newFilters = { ...filters };
+    const newFilters = { ...filtersRef.current };
 
     // Process applied job fit score grades
     const scoreRanges = getScoreRangesForChart();
@@ -128,7 +128,7 @@ export function useCandidateFilters(initialFilters?: CandidateFilterValues) {
 
     setFilters(newFilters);
     return newFilters;
-  }, [filters, horizontalSelectedFitScoreGrades, horizontalSelectedMatchingFitScoreGrades]);
+  }, [horizontalSelectedFitScoreGrades, horizontalSelectedMatchingFitScoreGrades]);
 
   const handleFilterChange = useCallback((newFilters: CandidateFilterValues, onFilterChange: (filters: CandidateFilterValues) => void) => {
     // Clear any existing timeout

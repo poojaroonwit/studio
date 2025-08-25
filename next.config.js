@@ -45,10 +45,18 @@ function getMinioRemotePattern() {
 
 const nextConfig = {
   reactStrictMode: true,
+  // Performance optimizations
+  swcMinify: true,
+  compress: true,
+  poweredByHeader: false,
+  
   // Disable static generation for API routes that use dynamic features
   experimental: {
     serverComponentsExternalPackages: ['@prisma/client', 'bcryptjs', 'pg', 'jose'],
+    optimizeCss: true,
+    optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
   },
+  
   // Force Node.js runtime for all API routes to avoid Edge Runtime issues
   async rewrites() {
     return [
@@ -58,16 +66,19 @@ const nextConfig = {
       },
     ];
   },
-  // Disable Fast Refresh logs
+  
+  // Optimize page loading and caching
   onDemandEntries: {
     // period (in ms) where the server will keep pages in the buffer
     maxInactiveAge: 25 * 1000,
     // number of pages that should be kept simultaneously without being disposed
-    pagesBufferLength: 2,
+    pagesBufferLength: 4, // Increased from 2 to 4 for better navigation
   },
+  
   // Disable static export to prevent timeout issues
   trailingSlash: false,
   skipTrailingSlashRedirect: true,
+  
   // Disable static generation to prevent timeout issues
   generateBuildId: async () => {
     return 'build-' + Date.now();
@@ -91,10 +102,48 @@ const nextConfig = {
             key: 'Access-Control-Allow-Headers',
             value: 'Content-Type, Authorization, X-Requested-With',
           },
+          {
+            key: 'Access-Control-Allow-Credentials',
+            value: 'true',
+          },
+          // Performance headers
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          {
+            key: 'X-XSS-Protection',
+            value: '1; mode=block',
+          },
+        ],
+      },
+      // Cache static assets
+      {
+        source: '/_next/static/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      // Cache images
+      {
+        source: '/_next/image(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
         ],
       },
     ];
   },
+  
   images: {
     domains: ['localhost', '127.0.0.1'],
     remotePatterns: [
@@ -118,10 +167,17 @@ const nextConfig = {
       },
       getMinioRemotePattern(),
     ],
+    // Performance optimizations for images
+    formats: ['image/webp', 'image/avif'],
+    minimumCacheTTL: 60,
+    dangerouslyAllowSVG: true,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
+  
   // Increase build timeout and handle static generation issues
   staticPageGenerationTimeout: 120, // 2 minutes instead of default 60 seconds
-  // Webpack configuration to handle build issues
+  
+  // Webpack configuration to handle build issues and optimize performance
   webpack: (config, { isServer, dev }) => {
     // Handle build-time connection issues
     if (!dev && isServer) {
@@ -154,6 +210,34 @@ const nextConfig = {
     config.resolve.alias = config.resolve.alias || {};
     config.resolve.alias['jose'] = require.resolve('jose');
 
+    // Performance optimizations
+    if (!dev) {
+      // Enable tree shaking
+      config.optimization = {
+        ...config.optimization,
+        usedExports: true,
+        sideEffects: false,
+      };
+      
+      // Split chunks for better caching
+      config.optimization.splitChunks = {
+        chunks: 'all',
+        cacheGroups: {
+          vendor: {
+            test: /[\\/]node_modules[\\/]/,
+            name: 'vendors',
+            chunks: 'all',
+          },
+          common: {
+            name: 'common',
+            minChunks: 2,
+            chunks: 'all',
+            enforce: true,
+          },
+        },
+      };
+    }
+
     // Suppress Fast Refresh logs in development
     if (dev) {
       config.infrastructureLogging = {
@@ -163,6 +247,7 @@ const nextConfig = {
     
     return config;
   },
+  
   // Disable static optimization for API routes that might cause issues
   async rewrites() {
     return [

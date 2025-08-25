@@ -26,7 +26,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
-import { AvatarCacheDebug } from "@/components/ui/avatar-cache-debug";
+import { PerformanceMonitor } from "@/components/ui/performance-monitor";
 
 const APP_LOGO_DATA_URL_KEY = 'appLogoDataUrl';
 const APP_CONFIG_APP_NAME_KEY = 'appConfigAppName';
@@ -91,7 +91,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [isLogoLoading, setIsLogoLoading] = useState(true);
 
   const { data: session, status } = useSession();
-  const isLoading = usePageLoading();
+  const { isLoading } = usePageLoading();
   
   // Add favicon management
   const { faviconDataUrl } = useFavicon();
@@ -305,7 +305,17 @@ export function AppLayout({ children }: AppLayoutProps) {
           </main>
         </div>
       </div>
-      <AvatarCacheDebug />
+      <PerformanceMonitor 
+        enabled={process.env.NODE_ENV === 'development'} 
+        showDetails={true}
+        threshold={{
+          memory: 150,
+          renderTime: 500,
+          apiCalls: 15,
+          cacheHitRate: 60,
+          navigationTime: 1500
+        }}
+      />
     </SidebarProvider>
   );
 }

@@ -550,17 +550,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   return (
     <div className="flex flex-col h-full bg-background">
       {/* Realtime Status Indicator */}
-      <div className="flex items-center justify-end px-4 py-2 bg-muted/50 border-b text-xs">
-        <div className={cn(
-          "w-10 h-10 rounded-full flex items-center justify-center",
-          realtimeConnected ? "bg-green-500" : "bg-red-500"
-        )}>
-          <div className={cn(
-            "w-2 h-2 rounded-full",
-            realtimeConnected ? "bg-white" : "bg-white/50"
-          )} />
-        </div>
-      </div>
+     
       
       {/* Enhanced Board Header - Always Sticky within main content */}
       <div className="bg-card border-b border-border shadow-sm sticky top-0 z-40 backdrop-blur-sm bg-card/95">
@@ -637,7 +627,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                                      avatarUrl: selectedRecruiter.avatarUrl,
                                      personalColor: selectedRecruiter.personalColor
                                    }}
-                                   size="sm"
+                                   size="xs"
                                  />
                                  <span className="truncate">{selectedRecruiter.name}</span>
                                </>
@@ -687,7 +677,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                                avatarUrl: r.avatarUrl,
                                personalColor: r.personalColor
                              }}
-                             size="sm"
+                             size="xs"
                            />
                            <div className="flex flex-col flex-1">
                              <span className="text-sm font-medium truncate">{r.name}</span>

@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
         select: { educationData: true },
       });
       // Filter out candidates with null educationData
-      candidates = candidates.filter(candidate => candidate.educationData !== null);
+      candidates = candidates.filter((candidate: any) => candidate.educationData !== null);
     } catch (err) {
       // If the field is missing or not JSON, return empty array
       console.error('educationData field missing or not JSON:', err);

@@ -178,7 +178,7 @@ export function MyTasksFilterModal({
                                       avatarUrl: selectedRecruiter.avatarUrl,
                                       personalColor: selectedRecruiter.personalColor
                                     }}
-                                    size="sm"
+                                    size="xs"
                                   />
                                   <span>{selectedRecruiter.name}</span>
                                 </>
@@ -228,7 +228,7 @@ export function MyTasksFilterModal({
                                 avatarUrl: rec.avatarUrl,
                                 personalColor: rec.personalColor
                               }}
-                              size="sm"
+                              size="xs"
                             />
                             <div className="flex flex-col flex-1">
                               <span className="text-sm font-medium">{rec.name}</span>

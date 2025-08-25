@@ -45,11 +45,11 @@ export async function GET(request: NextRequest) {
     });
     
     // Filter for open positions for headcount calculations
-    const openPositions = allPositions.filter(position => position.isOpen);
+    const openPositions = allPositions.filter((position: any) => position.isOpen);
 
     // Calculate vacant headcount for each recruiter
-    const recruiterStats = recruiters.map(recruiter => {
-      const recruiterPositions = openPositions.filter(position => position.recruiterId === recruiter.id);
+    const recruiterStats = recruiters.map((recruiter: any) => {
+      const recruiterPositions = openPositions.filter((position: any) => position.recruiterId === recruiter.id);
       
       let totalVacant = 0;
       recruiterPositions.forEach(position => {
@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Add unassigned positions stats (include both open and closed positions)
-    const unassignedPositions = allPositions.filter(position => !position.recruiterId);
+    const unassignedPositions = allPositions.filter((position: any) => !position.recruiterId);
     let totalUnassignedVacant = 0;
     unassignedPositions.forEach(position => {
       const vacantHeadcounts = position.headcounts.filter(headcount => headcount.status === 'vacant');

@@ -125,7 +125,7 @@ export function RecruiterCell({
                 avatarUrl: currentRecruiter?.avatarUrl,
                 personalColor: currentRecruiter?.personalColor
               }}
-              size="sm"
+              size="xs"
             />
             <div className="flex flex-col min-w-0">
               <span className="text-sm font-medium text-foreground truncate">
@@ -185,7 +185,7 @@ export function RecruiterCell({
                   avatarUrl: currentRecruiter?.avatarUrl,
                   personalColor: currentRecruiter?.personalColor
                 }}
-                size="sm"
+                size="xs"
               />
               <div className="flex flex-col min-w-0 flex-1">
                 <span className="text-sm font-medium text-foreground truncate">
@@ -279,7 +279,7 @@ export function RecruiterCell({
                       avatarUrl: recruiter.avatarUrl,
                       personalColor: recruiter.personalColor
                     }}
-                    size="sm"
+                    size="xs"
                   />
                   <div className="flex flex-col flex-1">
                     <span className="text-sm font-medium">{recruiter.name}</span>

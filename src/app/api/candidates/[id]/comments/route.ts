@@ -34,7 +34,7 @@ async function getAttachmentsMap(ids: string[]) {
   });
   
   const attachmentMap = new Map();
-  attachments.forEach(a => {
+  attachments.forEach((a: typeof attachments[0]) => {
     attachmentMap.set(a.id, {
       ...a,
       url: `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${a.filePath}`
@@ -77,15 +77,15 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     }
     
     // Batch fetch all attachments in one query instead of multiple queries
-    const allAttachmentIds = comments.flatMap(c => c.attachmentIds || []);
+    const allAttachmentIds = comments.flatMap((c: any) => c.attachmentIds || []);
     const attachmentMap = allAttachmentIds.length > 0 
       ? await getAttachmentsMap(allAttachmentIds)
       : new Map();
     
     // Map attachments to comments efficiently
-    const commentsWithAttachments = comments.map(comment => ({
+    const commentsWithAttachments = comments.map((comment: any) => ({
       ...comment,
-      attachments: (comment.attachmentIds || []).map(id => attachmentMap.get(id)).filter(Boolean)
+      attachments: (comment.attachmentIds || []).map((id: string) => attachmentMap.get(id)).filter(Boolean)
     }));
     
     const queryTime = Date.now() - startTime;

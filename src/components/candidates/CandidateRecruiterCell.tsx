@@ -127,7 +127,7 @@ export function CandidateRecruiterCell({
                 avatarUrl: displayRecruiter.avatarUrl,
                 personalColor: displayRecruiter.personalColor || undefined
               }}
-              size="sm"
+              size="xs"
             />
             <span className="text-sm font-medium text-foreground truncate">
               {displayRecruiter.name}
@@ -135,8 +135,8 @@ export function CandidateRecruiterCell({
           </>
         ) : (
           <>
-            <div className="h-6 w-6 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-              <UserX className="h-3 w-3 text-gray-500" />
+            <div className="h-4 w-4 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+              <UserX className="h-2 w-2 text-gray-500" />
             </div>
             <span className="text-sm text-muted-foreground">Unassigned</span>
           </>
@@ -166,8 +166,8 @@ export function CandidateRecruiterCell({
           >
           {isAssigning ? (
             <div className="flex items-center gap-2">
-              <div className="h-6 w-6 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                <Loader2 className="h-3 w-3 animate-spin" />
+              <div className="h-4 w-4 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                <Loader2 className="h-2 w-2 animate-spin" />
               </div>
               <span className="text-xs text-muted-foreground">Updating... (auto-reset in 2s)</span>
             </div>
@@ -180,7 +180,7 @@ export function CandidateRecruiterCell({
                   avatarUrl: displayRecruiter.avatarUrl,
                   personalColor: displayRecruiter.personalColor || undefined
                 }}
-                size="sm"
+                size="xs"
               />
               <span className="text-sm font-medium text-foreground truncate flex-1">
                 {displayRecruiter.name}
@@ -189,8 +189,8 @@ export function CandidateRecruiterCell({
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <div className="h-6 w-6 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                <UserPlus className="h-3 w-3 text-gray-500" />
+              <div className="h-4 w-4 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                <UserPlus className="h-2 w-2 text-gray-500" />
               </div>
               <span className="text-sm text-muted-foreground">Assign recruiter</span>
               <ChevronDown className="h-3 w-3 text-muted-foreground ml-auto" />
@@ -235,8 +235,8 @@ export function CandidateRecruiterCell({
               onClick={() => handleSelect(null)}
               className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-accent text-left"
             >
-              <div className="h-6 w-6 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                <UserX className="h-3 w-3 text-gray-500" />
+              <div className="h-4 w-4 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                <UserX className="h-2 w-2 text-gray-500" />
               </div>
               <div className="flex flex-col flex-1">
                 <span className="text-sm">Unassigned</span>
@@ -267,7 +267,7 @@ export function CandidateRecruiterCell({
                       avatarUrl: recruiter.avatarUrl,
                       personalColor: recruiter.personalColor
                     }}
-                    size="sm"
+                    size="xs"
                   />
                   <div className="flex flex-col flex-1">
                     <span className="text-sm font-medium">{recruiter.name}</span>

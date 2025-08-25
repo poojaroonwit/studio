@@ -85,7 +85,7 @@ const RecruiterAssignmentDropdown: React.FC<RecruiterAssignmentDropdownProps> = 
                         avatarUrl: recruiter.avatarUrl,
                         personalColor: recruiter.personalColor
                       }}
-                      size="sm"
+                      size="xs"
                       className="mr-2"
                     />
                     {recruiter.name}

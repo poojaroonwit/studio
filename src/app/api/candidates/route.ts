@@ -274,12 +274,15 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const isForCounts = searchParams.get('forCounts') === 'true';
     const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
-    const limit = Math.max(1, Math.min(MAX_PAGE_SIZE, parseInt(searchParams.get('limit') || DEFAULT_PAGE_SIZE.toString(), 10)));
+    // When fetching for counts, remove the limit to get all candidates
+    const limit = isForCounts ? Number.MAX_SAFE_INTEGER : Math.max(1, Math.min(MAX_PAGE_SIZE, parseInt(searchParams.get('limit') || DEFAULT_PAGE_SIZE.toString(), 10)));
     const offset = (page - 1) * limit;
 
     // Performance optimization: Set query timeout
     const client = await getPool().connect();
-    await client.query(`SET statement_timeout = ${QUERY_TIMEOUT}`);
+    // Use longer timeout for count queries to handle large datasets
+    const timeout = isForCounts ? QUERY_TIMEOUT * 2 : QUERY_TIMEOUT;
+    await client.query(`SET statement_timeout = ${timeout}`);
 
     // Sorting
     const allowedSortColumns = {
@@ -859,7 +862,29 @@ export async function GET(request: NextRequest) {
       ${whereClause}
     `;
 
-    // Optimized data query with selective column fetching and better joins
+    // For count-only requests, only execute the count query
+    if (isForCounts) {
+      const countResult = await client.query(countQuery, queryParams);
+      const total = parseInt(countResult.rows[0].total);
+      
+      const responseTime = Date.now() - startTime;
+      
+      // Add performance headers
+      const headers = {
+        'Cache-Control': `public, max-age=${CACHE_DURATION}, stale-while-revalidate=${CACHE_DURATION * 2}`,
+        'ETag': `"${Buffer.from(JSON.stringify({ filters, page, limit: 'count-only', total, responseTime })).toString('base64').slice(0, 8)}"`,
+        'X-Response-Time': `${responseTime}ms`,
+        'X-Total-Count': total.toString(),
+        'X-Page-Size': 'count-only',
+      };
+
+      return NextResponse.json({
+        total: total,
+        data: [] // Empty data array for count-only requests
+      }, { headers });
+    }
+
+    // For normal requests, execute both count and data queries
     const dataQuery = `
       SELECT 
         c.id,
@@ -883,13 +908,13 @@ export async function GET(request: NextRequest) {
       LEFT JOIN "CandidateSource" cs ON c."sourceId" = cs.id
       ${whereClause}
       ORDER BY ${sortClause}
-      ${isForCounts ? '' : `LIMIT $${paramIndex++} OFFSET $${paramIndex++}`}
+      LIMIT $${paramIndex++} OFFSET $${paramIndex++}
     `;
 
     // Execute queries in parallel for better performance
     const [countResult, dataResult] = await Promise.all([
       client.query(countQuery, queryParams),
-      client.query(dataQuery, isForCounts ? queryParams : [...queryParams, limit, offset])
+      client.query(dataQuery, [...queryParams, limit, offset])
     ]);
 
     const total = parseInt(countResult.rows[0].total);
@@ -923,15 +948,6 @@ export async function GET(request: NextRequest) {
       'X-Total-Count': total.toString(),
       'X-Page-Size': limit.toString(),
     };
-
-
-
-    if (isForCounts) {
-      return NextResponse.json({
-        data: candidates,
-        total: total
-      }, { headers });
-    }
 
     return NextResponse.json({
       data: candidates,

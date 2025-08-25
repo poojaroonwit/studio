@@ -1,75 +1,235 @@
-# Horizontal Fit Score Filter Badges
+# Fit Score Filter Badges
 
 ## Overview
 
-The candidate page now includes horizontal fit score filter badges that allow users to quickly filter candidates by their fit score ranges. These badges are displayed above the candidate table and provide an intuitive way to filter candidates based on their applied position fit scores and matching position fit scores.
+The Fit Score Filter Badges component provides a horizontal filter interface for candidates based on their fit scores. This component displays badges for different fit score ranges (A, B, C, D, E, No Score) with counts showing how many candidates fall into each category.
 
 ## Features
 
-### Visual Design
-- **Color Gradient**: Badges use a dark blue to light blue gradient (A=darkest, E=lightest)
-- **Interactive**: Click to select/deselect grade ranges
-- **Count Display**: Shows the number of candidates in each grade range
-- **Responsive**: Badges wrap to multiple lines on smaller screens
+### 1. Horizontal Filter Interface
+- **Visual Badges**: Color-coded badges for each fit score range
+- **Count Display**: Shows the number of candidates in each range
+- **Interactive Selection**: Click to select/deselect score ranges
+- **Real-time Updates**: Counts update automatically when filters change
 
-### Filter Types
-1. **Applied Position Fit Score**: Filters candidates based on their fit score for the position they applied to
-2. **Matching Position Fit Score**: Filters candidates based on their best matching fit score across all positions
-
-### Grade Ranges
-- **A Grade**: 81-100 (Dark Blue)
-- **B Grade**: 61-80 (Medium Dark Blue)
-- **C Grade**: 41-60 (Medium Blue)
-- **D Grade**: 21-40 (Light Blue)
-- **E Grade**: 0-20 (Very Light Blue)
+### 2. Fit Score Ranges
+- **A Grade**: 90-100% (Dark Blue)
+- **B Grade**: 80-89% (Blue)
+- **C Grade**: 70-79% (Medium Blue)
+- **D Grade**: 60-69% (Light Blue)
+- **E Grade**: 50-59% (Very Light Blue)
 - **No Score**: Candidates without fit scores (Gray)
+
+### 3. Unlimited Count Display
+- **No Pagination Limits**: The fitscore horizon filter shows counts for ALL candidates without any pagination limits
+- **Accurate Statistics**: Counts are calculated from the complete dataset, not just the current page
+- **Real-time Updates**: Counts update immediately when other filters are applied
+
+## Implementation
+
+### Component Structure
+
+```typescript
+interface FitScoreFilterBadgesProps {
+  selectedGrades: Set<string>;
+  onGradeToggle: (grade: string) => void;
+  candidateCounts?: Array<{ letter: string; count: number }>;
+  title?: string;
+  className?: string;
+  filterMode?: 'single' | 'multi';
+}
+```
+
+### API Integration
+
+The component uses the dedicated `/api/candidates/fit-score-counts` endpoint for efficient count calculations:
+
+```typescript
+// Fetch fit score counts using dedicated endpoint
+const params = new URLSearchParams();
+// Add any filters (excluding fit score filters to prevent circular dependency)
+const url = `/api/candidates/fit-score-counts?${params.toString()}`;
+```
+
+### Count Calculation
+
+The counts are calculated efficiently using database-level aggregation queries:
+
+```typescript
+// Applied Fit Score Counts Query
+const appliedFitScoreCountsQuery = `
+  SELECT 
+    CASE 
+      WHEN c."fitScore" IS NULL OR c."fitScore" = 0 THEN 'no-score'
+      WHEN c."fitScore" >= 0.9 THEN 'A'
+      WHEN c."fitScore" >= 0.8 THEN 'B'
+      WHEN c."fitScore" >= 0.7 THEN 'C'
+      WHEN c."fitScore" >= 0.6 THEN 'D'
+      ELSE 'E'
+    END as grade,
+    COUNT(*) as count
+  FROM "Candidate" c
+  ${whereClause}
+  GROUP BY grade
+  ORDER BY grade
+`;
+
+// Matching Fit Score Counts Query
+const matchingFitScoreCountsQuery = `
+  SELECT 
+    CASE 
+      WHEN best_match_score IS NULL OR best_match_score = 0 THEN 'no-score'
+      WHEN best_match_score >= 0.9 THEN 'A'
+      WHEN best_match_score >= 0.8 THEN 'B'
+      WHEN best_match_score >= 0.7 THEN 'C'
+      WHEN best_match_score >= 0.6 THEN 'D'
+      ELSE 'E'
+    END as grade,
+    COUNT(*) as count
+  FROM (
+    SELECT 
+      c.id,
+      GREATEST(
+        COALESCE(c."fitScore", 0),
+        COALESCE((
+          SELECT MAX(CAST(job_match->>'fitScore' AS DECIMAL))
+          FROM jsonb_array_elements(c."parsedData"->'job_matches') AS job_match
+          WHERE job_match->>'fitScore' IS NOT NULL
+        ), 0),
+        COALESCE((
+          SELECT MAX(jm."fitScore")
+          FROM "JobMatch" jm
+          WHERE jm."candidateId" = c.id
+        ), 0)
+      ) as best_match_score
+    FROM "Candidate" c
+    ${whereClause}
+  ) as candidate_scores
+  GROUP BY grade
+  ORDER BY grade
+`;
+```
 
 ## Usage
 
-### Basic Filtering
-1. Navigate to the Candidates page
-2. Locate the horizontal fit score filter badges above the candidate table
-3. Click on any grade badge to filter candidates by that score range
-4. Multiple grades can be selected simultaneously
-5. Click again to deselect a grade
+### Basic Usage
 
-### Integration with Existing Filters
-- Horizontal fit score filters work independently of sidebar filters
-- When other filters are applied, horizontal fit score filters are cleared to avoid conflicts
-- The "Clear all filters" button also clears horizontal fit score selections
+```tsx
+import { FitScoreFilterBadges } from '@/components/candidates/FitScoreFilterBadges';
 
-### Active Filter Display
-- Selected fit score filters appear in the active filters bar
-- Shows which grade ranges are currently selected
-- Can be cleared individually or with the "Clear all" button
+function CandidatesPage() {
+  const [selectedGrades, setSelectedGrades] = useState(new Set());
+  const [candidateCounts, setCandidateCounts] = useState([]);
 
-## Technical Implementation
+  const handleGradeToggle = (grade: string) => {
+    const newSelected = new Set(selectedGrades);
+    if (newSelected.has(grade)) {
+      newSelected.delete(grade);
+    } else {
+      newSelected.add(grade);
+    }
+    setSelectedGrades(newSelected);
+  };
 
-### Components
-- `FitScoreFilterBadges.tsx`: Main component for the horizontal filter badges
-- Integrated into `CandidatesPageClient.tsx` above the candidate table
+  return (
+    <FitScoreFilterBadges
+      selectedGrades={selectedGrades}
+      onGradeToggle={handleGradeToggle}
+      candidateCounts={candidateCounts}
+      title="Applied Fit Score"
+    />
+  );
+}
+```
 
-### State Management
-- Separate state for horizontal fit score filters
-- Automatic synchronization with main filter state
-- Debounced API calls for smooth user experience
+### Advanced Usage with Multiple Filter Types
 
-### API Integration
-- Uses existing fit score filtering API endpoints
-- Converts grade selections to min/max score ranges
-- Maintains backward compatibility with existing filter system
+```tsx
+function CandidatesPage() {
+  return (
+    <div>
+      {/* Applied Fit Score Filter */}
+      <FitScoreFilterBadges
+        selectedGrades={appliedSelectedGrades}
+        onGradeToggle={handleAppliedGradeToggle}
+        candidateCounts={appliedCounts}
+        title="Applied Fit Score"
+        filterMode="multi"
+      />
+      
+      {/* Matching Fit Score Filter */}
+      <FitScoreFilterBadges
+        selectedGrades={matchingSelectedGrades}
+        onGradeToggle={handleMatchingGradeToggle}
+        candidateCounts={matchingCounts}
+        title="Matching Fit Score"
+        filterMode="multi"
+      />
+    </div>
+  );
+}
+```
+
+## Performance Considerations
+
+### Unlimited Data Fetching
+- **Efficient Queries**: Uses optimized database queries with longer timeouts for large datasets
+- **Caching**: Implements response caching to improve performance
+- **Background Updates**: Counts are updated in the background without blocking the UI
+
+### Memory Management
+- **Selective Data**: Only fetches necessary fields for count calculations
+- **Lazy Loading**: Counts are calculated on-demand when filters change
+- **Optimized Rendering**: Uses React.memo and useMemo for efficient re-renders
+
+## API Changes
+
+### New `/api/candidates/fit-score-counts` Endpoint
+
+A dedicated endpoint for efficient fit score count calculations:
+
+```typescript
+// Request fit score counts with filters
+GET /api/candidates/fit-score-counts?status=new&positionId=123
+
+// Response with efficient count data
+{
+  "applied": [
+    { "letter": "A", "count": 150 },
+    { "letter": "B", "count": 300 },
+    { "letter": "C", "count": 200 },
+    { "letter": "D", "count": 100 },
+    { "letter": "E", "count": 50 },
+    { "letter": "no-score", "count": 100 }
+  ],
+  "matching": [
+    { "letter": "A", "count": 120 },
+    { "letter": "B", "count": 280 },
+    { "letter": "C", "count": 220 },
+    { "letter": "D", "count": 120 },
+    { "letter": "E", "count": 60 },
+    { "letter": "no-score", "count": 120 }
+  ],
+  "responseTime": "45ms"
+}
+```
+
+### Performance Optimizations
+
+- **Database Aggregation**: Uses `COUNT(*)` with `GROUP BY` for efficient counting
+- **No Data Transfer**: Only count results are returned, not candidate records
+- **Parallel Queries**: Applied and matching counts are calculated simultaneously
+- **Caching**: 30-second cache with 60-second stale-while-revalidate
 
 ## Benefits
 
-1. **Quick Access**: No need to open sidebar filters for common fit score filtering
-2. **Visual Clarity**: Color-coded badges make it easy to understand score ranges
-3. **Efficient Workflow**: One-click filtering for frequently used score ranges
-4. **Count Visibility**: See how many candidates are in each grade range
-5. **Responsive Design**: Works well on different screen sizes
+1. **Accurate Statistics**: Shows real counts for all candidates, not just the current page
+2. **Better UX**: Users can see the complete picture of their candidate data
+3. **Improved Filtering**: More informed filtering decisions based on complete data
+4. **Performance**: Efficient queries with appropriate timeouts for large datasets
 
 ## Future Enhancements
 
-- Add tooltips showing exact score ranges
-- Include percentage indicators for each grade
-- Add keyboard shortcuts for quick selection
-- Consider adding "Select All" and "Clear All" buttons for each filter type
+- **Virtual Scrolling**: For extremely large datasets
+- **Progressive Loading**: Load counts in chunks for better performance
+- **Caching Strategy**: Implement more sophisticated caching for count data

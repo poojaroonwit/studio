@@ -11,6 +11,11 @@ interface UnifiedRealtimeOptions {
   onPresenceUpdate?: (presence: any) => void;
 }
 
+// Global connection state to prevent multiple connections
+let globalEventSource: EventSource | null = null;
+let globalConnectionCount = 0;
+let globalReconnectTimeout: NodeJS.Timeout | null = null;
+
 export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
   const { data: session } = useSession();
   const [isConnected, setIsConnected] = useState(false);
@@ -18,6 +23,7 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
   const eventSourceRef = useRef<EventSource | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const healthCheckRef = useRef<NodeJS.Timeout | null>(null);
+  const mountedRef = useRef(true);
 
   const cleanup = useCallback(() => {
     if (eventSourceRef.current) {
@@ -35,108 +41,110 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
   }, []);
 
   const connect = useCallback(() => {
-    if (!session?.user) return;
+    if (!session?.user || !mountedRef.current) return;
+
+    // Use global connection if available
+    if (globalEventSource && globalEventSource.readyState === EventSource.OPEN) {
+      eventSourceRef.current = globalEventSource;
+      setIsConnected(true);
+      setLastUpdate(new Date());
+      globalConnectionCount++;
+      return;
+    }
 
     try {
       const eventSource = new EventSource('/api/realtime/unified');
       eventSourceRef.current = eventSource;
+      globalEventSource = eventSource;
 
       eventSource.onopen = () => {
+        if (!mountedRef.current) return;
         setIsConnected(true);
         setLastUpdate(new Date());
+        globalConnectionCount++;
       };
 
       eventSource.onerror = () => {
+        if (!mountedRef.current) return;
         setIsConnected(false);
-        cleanup();
+        globalConnectionCount = Math.max(0, globalConnectionCount - 1);
         
-        // Reconnect after 5 seconds
-        reconnectTimeoutRef.current = setTimeout(() => {
-          if (session?.user) {
-            connect();
+        // Only cleanup global connection if no other components are using it
+        if (globalConnectionCount === 0) {
+          globalEventSource = null;
+          if (globalReconnectTimeout) {
+            clearTimeout(globalReconnectTimeout);
           }
-        }, 5000);
+          
+          // Reconnect after 5 seconds
+          globalReconnectTimeout = setTimeout(() => {
+            if (session?.user && mountedRef.current) {
+              connect();
+            }
+          }, 5000);
+        }
       };
 
-      // Handle different event types
-      eventSource.addEventListener('candidate_update', (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          options.onCandidateUpdate?.(data);
-          setLastUpdate(new Date());
-        } catch (error) {
-          console.error('Error parsing candidate update:', error);
-        }
-      });
+      // Handle different event types with optimized parsing
+      const handleEvent = (eventType: string, handler?: (data: any) => void) => {
+        return (event: MessageEvent) => {
+          if (!mountedRef.current) return;
+          
+          try {
+            const data = JSON.parse(event.data);
+            handler?.(data);
+            setLastUpdate(new Date());
+          } catch (error) {
+            console.error(`Error parsing ${eventType} update:`, error);
+          }
+        };
+      };
 
-      eventSource.addEventListener('position_update', (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          options.onPositionUpdate?.(data);
-          setLastUpdate(new Date());
-        } catch (error) {
-          console.error('Error parsing position update:', error);
-        }
-      });
-
-      eventSource.addEventListener('warning_update', (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          options.onWarningUpdate?.();
-          setLastUpdate(new Date());
-        } catch (error) {
-          console.error('Error parsing warning update:', error);
-        }
-      });
-
-      eventSource.addEventListener('notification_update', (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          options.onNotificationUpdate?.(data);
-          setLastUpdate(new Date());
-        } catch (error) {
-          console.error('Error parsing notification update:', error);
-        }
-      });
-
-      eventSource.addEventListener('upload_queue_update', (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          options.onUploadQueueUpdate?.(data);
-          setLastUpdate(new Date());
-        } catch (error) {
-          console.error('Error parsing upload queue update:', error);
-        }
-      });
-
-      eventSource.addEventListener('presence_update', (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          options.onPresenceUpdate?.(data);
-          setLastUpdate(new Date());
-        } catch (error) {
-          console.error('Error parsing presence update:', error);
-        }
-      });
-
+      eventSource.addEventListener('candidate_update', handleEvent('candidate', options.onCandidateUpdate));
+      eventSource.addEventListener('position_update', handleEvent('position', options.onPositionUpdate));
+      eventSource.addEventListener('warning_update', handleEvent('warning', options.onWarningUpdate));
+      eventSource.addEventListener('notification_update', handleEvent('notification', options.onNotificationUpdate));
+      eventSource.addEventListener('upload_queue_update', handleEvent('upload_queue', options.onUploadQueueUpdate));
+      eventSource.addEventListener('presence_update', handleEvent('presence', options.onPresenceUpdate));
       eventSource.addEventListener('keepalive', () => {
-        setLastUpdate(new Date());
+        if (mountedRef.current) {
+          setLastUpdate(new Date());
+        }
       });
 
     } catch (error) {
       console.error('Failed to connect to unified real-time:', error);
       setIsConnected(false);
     }
-  }, [session?.user, options, cleanup]);
+  }, [session?.user, options]);
 
   useEffect(() => {
+    mountedRef.current = true;
+    
     if (session?.user) {
       connect();
     } else {
       cleanup();
     }
 
-    return cleanup;
+    return () => {
+      mountedRef.current = false;
+      globalConnectionCount = Math.max(0, globalConnectionCount - 1);
+      
+      // Only cleanup global connection if no other components are using it
+      if (globalConnectionCount === 0) {
+        if (globalEventSource) {
+          globalEventSource.close();
+          globalEventSource = null;
+        }
+        if (globalReconnectTimeout) {
+          clearTimeout(globalReconnectTimeout);
+          globalReconnectTimeout = null;
+        }
+      }
+      
+      cleanup();
+    };
   }, [session?.user, connect, cleanup]);
 
   return {

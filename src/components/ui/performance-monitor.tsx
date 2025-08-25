@@ -1,29 +1,32 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Clock, Zap, Database, AlertTriangle, CheckCircle } from 'lucide-react';
+import React, { useEffect, useState, useRef } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from './card';
+import { Badge } from './badge';
+import { Button } from './button';
+import { AlertTriangle, Clock, Zap, Activity, TrendingUp, TrendingDown } from 'lucide-react';
 
 interface PerformanceMetrics {
-  memoryUsage: number;
+  memory: number;
   renderTime: number;
-  apiCallCount: number;
+  apiCalls: number;
   cacheHitRate: number;
+  navigationTime: number;
   slowQueries: number;
   totalQueries: number;
+  pageLoadTime: number;
+  domContentLoaded: number;
 }
 
 interface PerformanceMonitorProps {
   enabled?: boolean;
   showDetails?: boolean;
   threshold?: {
-    memory: number; // MB
-    renderTime: number; // ms
+    memory: number;
+    renderTime: number;
     apiCalls: number;
-    cacheHitRate: number; // percentage
+    cacheHitRate: number;
+    navigationTime: number;
   };
 }
 
@@ -34,73 +37,165 @@ export function PerformanceMonitor({
     memory: 100,
     renderTime: 1000,
     apiCalls: 10,
-    cacheHitRate: 50
+    cacheHitRate: 50,
+    navigationTime: 2000
   }
 }: PerformanceMonitorProps) {
-  const [metrics, setMetrics] = useState<PerformanceMetrics>({
-    memoryUsage: 0,
-    renderTime: 0,
-    apiCallCount: 0,
-    cacheHitRate: 0,
-    slowQueries: 0,
-    totalQueries: 0
-  });
-
   const [isVisible, setIsVisible] = useState(false);
+  const [metrics, setMetrics] = useState<PerformanceMetrics>({
+    memory: 0,
+    renderTime: 0,
+    apiCalls: 0,
+    cacheHitRate: 0,
+    navigationTime: 0,
+    slowQueries: 0,
+    totalQueries: 0,
+    pageLoadTime: 0,
+    domContentLoaded: 0
+  });
   const [warnings, setWarnings] = useState<string[]>([]);
-  const renderStartTime = useRef<number>(0);
-  const apiCallCount = useRef<number>(0);
-  const cacheHits = useRef<number>(0);
-  const cacheMisses = useRef<number>(0);
+  const [navigationHistory, setNavigationHistory] = useState<Array<{
+    path: string;
+    time: number;
+    duration: number;
+  }>>([]);
+  
+  const apiCallCount = useRef(0);
+  const cacheHits = useRef(0);
+  const cacheMisses = useRef(0);
+  const navigationStartTime = useRef<number | null>(null);
+  const lastPathname = useRef<string>('');
 
-  // Track render performance
+  // Monitor memory usage
   useEffect(() => {
     if (!enabled) return;
 
-    renderStartTime.current = performance.now();
-    
-    const updateMetrics = () => {
-      const renderTime = performance.now() - renderStartTime.current;
-      
-      // Get memory usage if available
-      let memoryUsage = 0;
+    const updateMemoryUsage = () => {
       if ('memory' in performance) {
-        memoryUsage = (performance as any).memory.usedJSHeapSize / (1024 * 1024);
+        const memoryInfo = (performance as any).memory;
+        const usedMB = Math.round(memoryInfo.usedJSHeapSize / 1024 / 1024);
+        setMetrics(prev => ({ ...prev, memory: usedMB }));
       }
-
-      setMetrics(prev => ({
-        ...prev,
-        memoryUsage,
-        renderTime,
-        apiCallCount: apiCallCount.current,
-        cacheHitRate: cacheHits.current + cacheMisses.current > 0 
-          ? (cacheHits.current / (cacheHits.current + cacheMisses.current)) * 100 
-          : 0
-      }));
-
-      // Check for performance warnings
-      const newWarnings: string[] = [];
-      if (memoryUsage > threshold.memory) {
-        newWarnings.push(`High memory usage: ${memoryUsage.toFixed(1)}MB`);
-      }
-      if (renderTime > threshold.renderTime) {
-        newWarnings.push(`Slow render time: ${renderTime.toFixed(0)}ms`);
-      }
-      if (apiCallCount.current > threshold.apiCalls) {
-        newWarnings.push(`Many API calls: ${apiCallCount.current}`);
-      }
-      if (metrics.cacheHitRate < threshold.cacheHitRate) {
-        newWarnings.push(`Low cache hit rate: ${metrics.cacheHitRate.toFixed(1)}%`);
-      }
-
-      setWarnings(newWarnings);
-      setIsVisible(newWarnings.length > 0 || showDetails);
     };
 
-    // Update metrics after render
-    const timeoutId = setTimeout(updateMetrics, 100);
-    return () => clearTimeout(timeoutId);
-  }, [enabled, showDetails, threshold, metrics.cacheHitRate]);
+    const interval = setInterval(updateMemoryUsage, 5000);
+    updateMemoryUsage();
+
+    return () => clearInterval(interval);
+  }, [enabled]);
+
+  // Monitor navigation performance
+  useEffect(() => {
+    if (!enabled) return;
+
+    const handleNavigationStart = () => {
+      navigationStartTime.current = performance.now();
+    };
+
+    const handleNavigationEnd = () => {
+      if (navigationStartTime.current) {
+        const duration = performance.now() - navigationStartTime.current;
+        const currentPath = window.location.pathname;
+        
+        setNavigationHistory(prev => [
+          { path: currentPath, time: Date.now(), duration },
+          ...prev.slice(0, 9) // Keep last 10 navigations
+        ]);
+        
+        setMetrics(prev => ({ ...prev, navigationTime: duration }));
+        navigationStartTime.current = null;
+      }
+    };
+
+    // Monitor page load performance
+    const handlePageLoad = () => {
+      const loadTime = performance.now();
+      setMetrics(prev => ({ ...prev, pageLoadTime: loadTime }));
+    };
+
+    // Monitor DOM content loaded
+    const handleDOMContentLoaded = () => {
+      const domTime = performance.now();
+      setMetrics(prev => ({ ...prev, domContentLoaded: domTime }));
+    };
+
+    // Listen for navigation events
+    window.addEventListener('beforeunload', handleNavigationStart);
+    window.addEventListener('load', handleNavigationEnd);
+    window.addEventListener('load', handlePageLoad);
+    document.addEventListener('DOMContentLoaded', handleDOMContentLoaded);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleNavigationStart);
+      window.removeEventListener('load', handleNavigationEnd);
+      window.removeEventListener('load', handlePageLoad);
+      document.removeEventListener('DOMContentLoaded', handleDOMContentLoaded);
+    };
+  }, [enabled]);
+
+  // Monitor render performance
+  useEffect(() => {
+    if (!enabled) return;
+
+    let frameCount = 0;
+    let lastTime = performance.now();
+
+    const measureRenderTime = () => {
+      frameCount++;
+      const currentTime = performance.now();
+      
+      if (currentTime - lastTime >= 1000) {
+        const fps = Math.round((frameCount * 1000) / (currentTime - lastTime));
+        const renderTime = 1000 / fps;
+        
+        setMetrics(prev => ({ ...prev, renderTime }));
+        frameCount = 0;
+        lastTime = currentTime;
+      }
+      
+      requestAnimationFrame(measureRenderTime);
+    };
+
+    requestAnimationFrame(measureRenderTime);
+  }, [enabled]);
+
+  // Generate warnings based on thresholds
+  useEffect(() => {
+    const newWarnings: string[] = [];
+    
+    if (metrics.memory > threshold.memory) {
+      newWarnings.push(`High memory usage: ${metrics.memory}MB`);
+    }
+    
+    if (metrics.renderTime > threshold.renderTime) {
+      newWarnings.push(`Slow rendering: ${Math.round(metrics.renderTime)}ms`);
+    }
+    
+    if (metrics.apiCalls > threshold.apiCalls) {
+      newWarnings.push(`Too many API calls: ${metrics.apiCalls}`);
+    }
+    
+    if (metrics.cacheHitRate < threshold.cacheHitRate) {
+      newWarnings.push(`Low cache hit rate: ${Math.round(metrics.cacheHitRate)}%`);
+    }
+    
+    if (metrics.navigationTime > threshold.navigationTime) {
+      newWarnings.push(`Slow navigation: ${Math.round(metrics.navigationTime)}ms`);
+    }
+
+    setWarnings(newWarnings);
+  }, [metrics, threshold]);
+
+  // Auto-hide after 10 seconds
+  useEffect(() => {
+    if (warnings.length > 0 && showDetails) {
+      const timeoutId = setTimeout(() => {
+        setIsVisible(false);
+      }, 10000);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [warnings, showDetails]);
 
   // Intercept fetch calls to track API performance
   useEffect(() => {
@@ -150,7 +245,16 @@ export function PerformanceMonitor({
     };
   }, [enabled]);
 
-  if (!isVisible) return null;
+  // Update cache hit rate
+  useEffect(() => {
+    const total = cacheHits.current + cacheMisses.current;
+    if (total > 0) {
+      const hitRate = (cacheHits.current / total) * 100;
+      setMetrics(prev => ({ ...prev, cacheHitRate: hitRate, apiCalls: apiCallCount.current }));
+    }
+  }, [metrics.totalQueries]);
+
+  if (!isVisible && warnings.length === 0) return null;
 
   const getPerformanceStatus = () => {
     const hasWarnings = warnings.length > 0;
@@ -160,81 +264,111 @@ export function PerformanceMonitor({
   const status = getPerformanceStatus();
 
   return (
-    <Card className={`w-full max-w-md ${status === 'warning' ? 'border-orange-200 bg-orange-50' : 'border-green-200 bg-green-50'}`}>
+    <Card className={`w-full max-w-md fixed bottom-4 right-4 z-50 transition-all duration-300 ${
+      isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+    }`}>
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-sm">
-          {status === 'warning' ? <AlertTriangle className="h-4 w-4 text-orange-600" /> : <CheckCircle className="h-4 w-4 text-green-600" />}
-          Performance Monitor
-          <Badge variant={status === 'warning' ? 'destructive' : 'default'} className="ml-auto">
-            {status === 'warning' ? 'Issues' : 'Good'}
-          </Badge>
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Activity className="h-4 w-4" />
+            Performance Monitor
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            <Badge variant={status === 'warning' ? 'destructive' : 'default'} className="text-xs">
+              {status === 'warning' ? <AlertTriangle className="h-3 w-3 mr-1" /> : <Zap className="h-3 w-3 mr-1" />}
+              {status === 'warning' ? warnings.length : 'Good'}
+            </Badge>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsVisible(!isVisible)}
+              className="h-6 w-6 p-0"
+            >
+              {isVisible ? '−' : '+'}
+            </Button>
+          </div>
+        </div>
       </CardHeader>
-      <CardContent className="space-y-3">
-        {warnings.length > 0 && (
-          <Alert className="border-orange-200 bg-orange-50">
-            <AlertTriangle className="h-4 w-4 text-orange-600" />
-            <AlertDescription className="text-orange-800">
-              {warnings.map((warning, index) => (
-                <div key={index} className="text-xs">{warning}</div>
-              ))}
-            </AlertDescription>
-          </Alert>
-        )}
-
-        <div className="grid grid-cols-2 gap-3 text-xs">
-          <div className="flex items-center gap-2">
-            <Database className="h-3 w-3 text-blue-600" />
-            <span>Memory:</span>
-            <span className={`font-mono ${metrics.memoryUsage > threshold.memory ? 'text-orange-600' : 'text-green-600'}`}>
-              {metrics.memoryUsage.toFixed(1)}MB
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Clock className="h-3 w-3 text-purple-600" />
-            <span>Render:</span>
-            <span className={`font-mono ${metrics.renderTime > threshold.renderTime ? 'text-orange-600' : 'text-green-600'}`}>
-              {metrics.renderTime.toFixed(0)}ms
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Database className="h-3 w-3 text-indigo-600" />
-            <span>API Calls:</span>
-            <span className={`font-mono ${metrics.apiCallCount > threshold.apiCalls ? 'text-orange-600' : 'text-green-600'}`}>
-              {metrics.apiCallCount}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Zap className="h-3 w-3 text-yellow-600" />
-            <span>Cache Hit:</span>
-            <span className={`font-mono ${metrics.cacheHitRate < threshold.cacheHitRate ? 'text-orange-600' : 'text-green-600'}`}>
-              {metrics.cacheHitRate.toFixed(1)}%
-            </span>
-          </div>
-        </div>
-
-        {metrics.totalQueries > 0 && (
-          <div className="space-y-1">
-            <div className="flex justify-between text-xs">
-              <span>Query Performance:</span>
-              <span className="font-mono">
-                {metrics.slowQueries}/{metrics.totalQueries} slow
-              </span>
+      
+      {isVisible && (
+        <CardContent className="pt-0">
+          <div className="space-y-3">
+            {/* Current Metrics */}
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                <span>Memory:</span>
+                <span className={metrics.memory > threshold.memory ? 'text-red-500 font-semibold' : ''}>
+                  {metrics.memory}MB
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
+                <TrendingUp className="h-3 w-3" />
+                <span>Render:</span>
+                <span className={metrics.renderTime > threshold.renderTime ? 'text-red-500 font-semibold' : ''}>
+                  {Math.round(metrics.renderTime)}ms
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Activity className="h-3 w-3" />
+                <span>API Calls:</span>
+                <span className={metrics.apiCalls > threshold.apiCalls ? 'text-red-500 font-semibold' : ''}>
+                  {metrics.apiCalls}
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Zap className="h-3 w-3" />
+                <span>Cache:</span>
+                <span className={metrics.cacheHitRate < threshold.cacheHitRate ? 'text-red-500 font-semibold' : ''}>
+                  {Math.round(metrics.cacheHitRate)}%
+                </span>
+              </div>
             </div>
-            <Progress 
-              value={(metrics.slowQueries / metrics.totalQueries) * 100} 
-              className="h-1"
-            />
-          </div>
-        )}
 
-        <div className="text-xs text-gray-500">
-          Last updated: {new Date().toLocaleTimeString()}
-        </div>
-      </CardContent>
+            {/* Navigation Performance */}
+            {metrics.navigationTime > 0 && (
+              <div className="text-xs">
+                <div className="flex items-center gap-1 mb-1">
+                  <TrendingDown className="h-3 w-3" />
+                  <span>Last Navigation:</span>
+                  <span className={metrics.navigationTime > threshold.navigationTime ? 'text-red-500 font-semibold' : ''}>
+                    {Math.round(metrics.navigationTime)}ms
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Warnings */}
+            {warnings.length > 0 && (
+              <div className="space-y-1">
+                <div className="text-xs font-semibold text-red-600">Warnings:</div>
+                {warnings.map((warning, index) => (
+                  <div key={index} className="text-xs text-red-500 bg-red-50 p-1 rounded">
+                    {warning}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Navigation History */}
+            {showDetails && navigationHistory.length > 0 && (
+              <div className="space-y-1">
+                <div className="text-xs font-semibold">Recent Navigation:</div>
+                <div className="max-h-20 overflow-y-auto space-y-1">
+                  {navigationHistory.map((nav, index) => (
+                    <div key={index} className="text-xs flex justify-between">
+                      <span className="truncate">{nav.path}</span>
+                      <span className={nav.duration > threshold.navigationTime ? 'text-red-500' : 'text-green-500'}>
+                        {Math.round(nav.duration)}ms
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      )}
     </Card>
   );
 }

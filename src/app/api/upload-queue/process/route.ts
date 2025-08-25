@@ -145,31 +145,67 @@ export async function POST(request: NextRequest) {
       });
       return NextResponse.json({ error: 'Invalid file_path for job', job }, { status: 500 });
     }
-    // 2. Download file from MinIO
-    const fileStream = await minioClient.getObject(MINIO_BUCKET, job.file_path);
-    const chunks = [];
-    for await (const chunk of fileStream) {
-      chunks.push(chunk);
+
+    // Optimized file download with streaming and memory management
+    let fileBuffer: Buffer | null = null;
+    try {
+      // console.log(`[Webhook] Downloading file from MinIO: ${MINIO_BUCKET}/${job.file_path}`);
+      
+      // Get file info first to check size
+      const fileStats = await minioClient.statObject(MINIO_BUCKET, job.file_path);
+      const fileSize = fileStats.size;
+      
+      // Skip processing if file is too large (e.g., > 50MB)
+      const maxFileSize = 50 * 1024 * 1024; // 50MB
+      if (fileSize > maxFileSize) {
+        console.warn(`File too large (${fileSize} bytes), skipping processing for job ${job.id}`);
+        await client.query(
+          `UPDATE upload_queue SET status = 'error', error = $1, error_details = $2, completed_date = now(), updated_at = now() WHERE id = $3`,
+          ['File too large for processing', `File size: ${fileSize} bytes, max allowed: ${maxFileSize} bytes`, job.id]
+        );
+        return NextResponse.json({ error: 'File too large for processing', job }, { status: 400 });
+      }
+      
+      // Stream download with memory optimization
+      const fileStream = await minioClient.getObject(MINIO_BUCKET, job.file_path);
+      const chunks: Buffer[] = [];
+      let totalSize = 0;
+      
+      for await (const chunk of fileStream) {
+        chunks.push(chunk);
+        totalSize += chunk.length;
+        
+        // Check memory usage and abort if too high
+        if (totalSize > maxFileSize) {
+          console.error(`File download exceeded size limit during streaming for job ${job.id}`);
+          await client.query(
+            `UPDATE upload_queue SET status = 'error', error = $1, error_details = $2, completed_date = now(), updated_at = now() WHERE id = $3`,
+            ['File download exceeded size limit', `Downloaded size: ${totalSize} bytes`, job.id]
+          );
+          return NextResponse.json({ error: 'File download exceeded size limit', job }, { status: 400 });
+        }
+      }
+      
+      fileBuffer = Buffer.concat(chunks);
+      // console.log(`[Webhook] Successfully downloaded file, size: ${fileBuffer.length} bytes`);
+      
+      // Clear chunks array to free memory
+      chunks.length = 0;
+      
+    } catch (minioError) {
+      console.error(`[Webhook] Failed to download file from MinIO:`, minioError);
+      await client.query(
+        `UPDATE upload_queue SET status = 'error', error = $1, error_details = $2, completed_date = now(), updated_at = now() WHERE id = $3`,
+        ['Failed to download file from MinIO', `MinIO error: ${minioError instanceof Error ? minioError.message : String(minioError)}`, job.id]
+      );
+      return NextResponse.json({ error: 'Failed to download file from MinIO', job }, { status: 500 });
     }
-    let fileBuffer: Buffer | null = Buffer.concat(chunks);
     
     // Update status to indicate file downloaded and ready for webhook
     await client.query(
       `UPDATE upload_queue SET status = 'inprocess', updated_at = now() WHERE id = $1`,
       [job.id]
     );
-
-    // Dispatch webhook for upload queue processing event (webhook table only)
-    // DISABLED: This was causing duplicate webhook calls
-    // try {
-    //   const updatedJob = { ...job, status: 'inprocess' };
-    //   await dispatchWebhooks.uploadQueueProcessing(updatedJob);
-    // } catch (webhookError) {
-    //   console.error('Failed to dispatch upload queue processing webhook:', webhookError);
-    //   // Don't fail the request if webhook fails
-    // }
-    
-    // Broadcast file download completion
 
     // Broadcast progress update for real-time UI updates
     try {
@@ -193,7 +229,7 @@ export async function POST(request: NextRequest) {
     // For reprocess jobs, clear the processed_by_external_webhook flag to allow reprocessing
     if (job.source === 'reprocess' || job.webhook_payload?.source === 'reprocess') {
       if (jobAlreadyProcessed) {
-        console.log(`[Webhook] Clearing processed_by_external_webhook flag for reprocess job ${job.id}`);
+        // console.log(`[Webhook] Clearing processed_by_external_webhook flag for reprocess job ${job.id}`);
         await client.query(
           `UPDATE upload_queue SET webhook_payload = jsonb_set(
             COALESCE(webhook_payload, '{}'::jsonb), 
@@ -238,12 +274,12 @@ export async function POST(request: NextRequest) {
     }
     
     if (alreadyProcessed) {
-      console.log(`[Webhook] File ${job.file_path} already processed by another job, skipping to prevent duplicate candidates`);
+      // console.log(`[Webhook] File ${job.file_path} already processed by another job, skipping to prevent duplicate candidates`);
       status = 'success';
       error = null;
       error_details = 'Skipped - file already processed by another job';
     } else if (jobAlreadyProcessed && preventDuplicateProcessing) {
-      console.log(`[Webhook] Job ${job.id} already processed by external webhook, skipping resume processing webhook`);
+      // console.log(`[Webhook] Job ${job.id} already processed by external webhook, skipping resume processing webhook`);
       status = 'success';
       error = null;
       error_details = 'Skipped - already processed by external webhook';
@@ -263,10 +299,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 4. Update job status
-    console.log(`[Database] Updating job ${job.id} with status: ${status}, error: ${error}`);
-    console.log(`[Database] Final status validation - Status: ${status}, Error: ${error}, Error Details: ${error_details}`);
-    
+
     // Validate status before database update
     if (!['success', 'fail', 'error'].includes(status)) {
       console.error(`[Database] Invalid status detected: ${status}, defaulting to 'error'`);
@@ -281,23 +314,7 @@ export async function POST(request: NextRequest) {
     );
     
     const totalProcessingTime = Date.now() - startTime;
-    console.log(`[Database] Job ${job.id} status updated to: ${status} (${(totalProcessingTime / 1000).toFixed(1)}s)`);
-
-    // Dispatch webhook for upload queue completion/failure event
-    // DISABLED: This was causing duplicate webhook calls
-    // try {
-    //   const finalJob = { ...job, status, error, error_details, completed_date: new Date() };
-    //   if (status === 'success') {
-    //     await dispatchWebhooks.uploadQueueCompleted(finalJob, { processing_result: webhookResults });
-    //   } else {
-    //     await dispatchWebhooks.uploadQueueFailed(finalJob, { error_details: error_details || error });
-    //   }
-    // } catch (webhookError) {
-    //   console.error('Failed to dispatch upload queue completion webhook:', webhookError);
-    //   // Don't fail the request if webhook fails
-    // }
-    
-    // Publish queue update event for real-time updates
+    // console.log(`[Database] Job ${job.id} status updated to: ${status} (${(totalProcessingTime / 1000).toFixed(1)}s)`);
 
     // Final broadcast for completion
     try {
@@ -324,9 +341,6 @@ export async function POST(request: NextRequest) {
         processingTimeSeconds: (totalProcessingTime / 1000).toFixed(1)
       });
     }
-    
-    // Remove the unnecessary 3-second delay for better real-time performance
-    // await new Promise((resolve) => setTimeout(resolve, 3000));
     
     return NextResponse.json({ job: { ...job, status, error, error_details }, webhookResults });
   } catch (err) {

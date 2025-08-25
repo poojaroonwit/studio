@@ -56,7 +56,7 @@ export function CandidateSourceCell({
   React.useEffect(() => {
     if (isAssigning) {
       const timeout = setTimeout(() => {
-        console.log('Auto-resetting stuck assigning state for candidate:', candidate.id);
+        // Auto-resetting stuck assigning state for candidate
         if (onResetAssigning) {
           onResetAssigning();
         }
@@ -87,16 +87,7 @@ export function CandidateSourceCell({
   }, [open]);
 
   const handleSelect = async (sourceId: string | null) => {
-    console.log('CandidateSourceCell handleSelect called:', {
-      candidateId: candidate.id,
-      sourceId,
-      subSource,
-      isAssigning,
-      canManageCandidates
-    });
-    
     if (isAssigning) {
-      console.log('Assignment in progress, ignoring selection');
       return;
     }
     

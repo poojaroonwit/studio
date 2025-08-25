@@ -212,29 +212,21 @@ export function useCandidateData({
   }, [sessionStatus, stableSetAvailableRecruiters]);
 
   const fetchSources = useCallback(async () => {
-    console.log('🔍 SOURCE DEBUG: fetchSources called, sessionStatus:', sessionStatus);
     if (sessionStatus !== 'authenticated') {
-      console.log('🔍 SOURCE DEBUG: Session not authenticated, skipping fetch');
       return;
     }
     
     try {
-      console.log('🔍 SOURCE DEBUG: Fetching from /api/settings/candidate-sources');
       const response = await fetch('/api/settings/candidate-sources');
-      console.log('🔍 SOURCE DEBUG: Response status:', response.status);
       
-      if (!response.ok) {
-        console.warn("Failed to fetch candidate sources, continuing with empty list");
-        stableSetAvailableSources([]);
-        return;
+      if (response.ok) {
+        const sourcesData = await response.json();
+        stableSetAvailableSources(sourcesData || []);
+      } else {
+        console.error('Failed to fetch candidate sources:', response.statusText);
       }
-      
-      const sourcesData = await response.json();
-      console.log('🔍 SOURCE DEBUG: Sources data received:', sourcesData);
-      stableSetAvailableSources(sourcesData || []);
     } catch (error) {
-      console.error("Error fetching candidate sources:", error);
-      stableSetAvailableSources([]);
+      console.error('Error fetching candidate sources:', error);
     }
   }, [sessionStatus, stableSetAvailableSources]);
 

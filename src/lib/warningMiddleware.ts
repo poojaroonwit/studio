@@ -20,9 +20,9 @@ export class WarningMiddleware {
     // Use setTimeout to delay the check, allowing the database transaction to complete
     setTimeout(async () => {
       try {
-        console.log(`🔄 Scheduled warning check for ${entityType} ${entityId}`);
+        // console.log(`🔄 Scheduled warning check for ${entityType} ${entityId}`);
         await WarningService.createOrUpdateWarnings(entityType, entityId, userId);
-        console.log(`✅ Completed scheduled warning check for ${entityType} ${entityId}`);
+        // console.log(`✅ Completed scheduled warning check for ${entityType} ${entityId}`);
       } catch (error) {
         console.error(`❌ Error in scheduled warning check for ${entityType} ${entityId}:`, error);
       }
@@ -36,9 +36,7 @@ export class WarningMiddleware {
     const { entityType, entityId, userId } = options;
     
     try {
-      console.log(`🔍 Immediate warning check for ${entityType} ${entityId}`);
       await WarningService.createOrUpdateWarnings(entityType, entityId, userId);
-      console.log(`✅ Completed immediate warning check for ${entityType} ${entityId}`);
     } catch (error) {
       console.error(`❌ Error in immediate warning check for ${entityType} ${entityId}:`, error);
     }
@@ -48,27 +46,15 @@ export class WarningMiddleware {
    * Batch check warnings for multiple entities
    */
   static async batchCheckWarnings(entities: WarningCheckOptions[]): Promise<void> {
-    console.log(`🔄 Starting batch warning check for ${entities.length} entities`);
-    
     const promises = entities.map(async (entity) => {
       try {
         await WarningService.createOrUpdateWarnings(entity.entityType, entity.entityId, entity.userId);
-        return { success: true, entityType: entity.entityType, entityId: entity.entityId };
       } catch (error) {
         console.error(`❌ Error checking warnings for ${entity.entityType} ${entity.entityId}:`, error);
-        return { success: false, entityType: entity.entityType, entityId: entity.entityId, error };
       }
     });
 
-    const results = await Promise.allSettled(promises);
-    
-    const successful = results.filter(result => 
-      result.status === 'fulfilled' && result.value.success
-    ).length;
-    
-    const failed = results.length - successful;
-    
-    console.log(`✅ Batch warning check completed: ${successful} successful, ${failed} failed`);
+    await Promise.allSettled(promises);
   }
 }
 

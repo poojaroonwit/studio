@@ -87,14 +87,14 @@ export async function GET(request: NextRequest) {
     // Handle client disconnect
     webSocket.addEventListener('close', async () => {
       clients.delete(webSocket);
-      await cleanupRedisSubscription(redisSubscription);
+      // await cleanupRedisSubscription(redisSubscription);
     });
 
     // Handle client errors
     webSocket.addEventListener('error', async (error: any) => {
       console.error('[WEBSOCKET] Client error:', error);
       clients.delete(webSocket);
-      await cleanupRedisSubscription(redisSubscription);
+      // await cleanupRedisSubscription(redisSubscription);
     });
 
     // Send initial queue data
@@ -151,21 +151,7 @@ async function setupRedisSubscription(socket: WebSocket, buildWhere: () => { whe
   }
 }
 
-// Cleanup Redis subscription when WebSocket closes
-async function cleanupRedisSubscription(redisSubscription: any) {
-  if (redisSubscription) {
-    try {
-      // Check if client is still connected before attempting operations
-      // No longer needed
-    } catch (error) {
-      console.log('[WEBSOCKET] Redis unsubscribe error (ignored):', error instanceof Error ? error.message : 'Unknown error');
-    }
-    
-    try {
-      // Only disconnect if client is still open
-      // No longer needed
-    } catch (error) {
-      console.log('[WEBSOCKET] Redis disconnect error (ignored):', error instanceof Error ? error.message : 'Unknown error');
-    }
-  }
-} 
+// // Cleanup Redis subscription when WebSocket closes
+// async function cleanupRedisSubscription(redisSubscription: any) {
+
+// } 

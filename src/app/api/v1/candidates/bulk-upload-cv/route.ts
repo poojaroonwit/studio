@@ -20,14 +20,7 @@ export async function POST(req: NextRequest) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: handleCors(req) });
     }
 
-    console.log('Bulk upload CV request from user:', {
-      userId: user.id,
-      userEmail: user.email,
-      userRole: user.role,
-      modulePermissions: user.modulePermissions,
-      hasCandidatesManage: user.modulePermissions?.includes('CANDIDATES_MANAGE'),
-      hasUploadQueueManage: user.modulePermissions?.includes('UPLOAD_QUEUE_MANAGE')
-    });
+ 
     
     if (user.role !== 'Admin' && 
         !user.modulePermissions?.includes('CANDIDATES_MANAGE') && 
@@ -84,10 +77,10 @@ export async function POST(req: NextRequest) {
       );
       
       additionalAttachmentPath = attachmentObjectName;
-      console.log(`Additional attachment '${additionalAttachment.name}' uploaded to MinIO`, {
-        attachmentPath: attachmentObjectName,
-        attachmentSize: attachmentBuffer.length
-      });
+      // console.log(`Additional attachment '${additionalAttachment.name}' uploaded to MinIO`, {
+      //   attachmentPath: attachmentObjectName,
+      //   attachmentSize: attachmentBuffer.length
+      // });
     } catch (attachmentError) {
       console.error('Additional attachment upload error:', attachmentError);
       return new Response(JSON.stringify({ 
@@ -159,17 +152,6 @@ export async function POST(req: NextRequest) {
          RETURNING *`,
         [id, uploadQueueJob.file_name, uploadQueueJob.file_size, uploadQueueJob.status, uploadQueueJob.source, uploadQueueJob.upload_id, user.id, uploadQueueJob.file_path, JSON.stringify(uploadQueueJob.webhook_payload), uploadQueueJob.webhook_payload.targetPositionId]
       );
-      
-      console.log(`File '${uploadQueueJob.file_name}' added to upload queue by ${user.email}`, { 
-        queueId: id,
-        fileName: uploadQueueJob.file_name,
-        fileSize: uploadQueueJob.file_size,
-        status: uploadQueueJob.status,
-        source: uploadQueueJob.source,
-        uploadId: uploadQueueJob.upload_id,
-        filePath: uploadQueueJob.file_path,
-        sourceId: webhookPayload.sourceId // Log sourceId for debugging
-      });
 
       // Note: Removed upload queue created webhook dispatch to prevent duplicate processing flags
       // The upload queue process will handle webhook dispatching when actually processing the file

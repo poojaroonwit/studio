@@ -47,7 +47,7 @@ export default function AutoCloseTab() {
     setSummary(null);
 
     try {
-      console.log('Starting manual auto-close check...');
+      // console.log('Starting manual auto-close check...');
       const response = await fetch('/api/positions/auto-close', {
         method: 'POST',
         headers: {
@@ -62,7 +62,7 @@ export default function AutoCloseTab() {
       }
 
       const data = await response.json();
-      console.log('Auto-close API response:', data);
+      // console.log('Auto-close API response:', data);
       
       setResults(data.results || []);
       setSummary(data.summary || null);

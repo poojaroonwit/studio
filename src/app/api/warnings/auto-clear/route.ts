@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     const actingUserId = session.user.id;
     const actingUserName = session.user.name || 'Unknown User';
 
-    console.log('🔍 Starting automatic warning resolution check...');
+    // console.log('🔍 Starting automatic warning resolution check...');
     
     // Get all active warnings
     const allWarnings = await prisma.warning.findMany({
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    console.log(`📋 Found ${allWarnings.length} total warnings to check`);
+    // console.log(`📋 Found ${allWarnings.length} total warnings to check`);
 
     let resolvedCount = 0;
     let errorCount = 0;
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
           await prisma.warning.delete({
             where: { id: warning.id }
           });
-          console.log(`🗑️ Cleared warning ${warning.id} - entity ${warning.entityType} ${warning.entityId} no longer exists`);
+          // console.log(`🗑️ Cleared warning ${warning.id} - entity ${warning.entityType} ${warning.entityId} no longer exists`);
           resolvedCount++;
           continue;
         }
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
           await prisma.warning.delete({
             where: { id: warning.id }
           });
-          console.log(`✅ Cleared resolved warning ${warning.id} for ${warning.configuration.name}`);
+          // console.log(`✅ Cleared resolved warning ${warning.id} for ${warning.configuration.name}`);
           resolvedCount++;
         }
       } catch (error) {
@@ -60,10 +60,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log(`🎯 Warning resolution check completed:`);
-    console.log(`   - Total warnings checked: ${allWarnings.length}`);
-    console.log(`   - Warnings resolved: ${resolvedCount}`);
-    console.log(`   - Errors encountered: ${errorCount}`);
 
     await logAudit('AUDIT', `Automatic warning resolution completed by ${actingUserName}`, 'API:Warnings:AutoClear', actingUserId, {
       totalWarnings: allWarnings.length,

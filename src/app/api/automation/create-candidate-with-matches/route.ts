@@ -68,12 +68,6 @@ export async function POST(request: NextRequest) {
 
     if (existingCandidateCheck.rows.length > 0) {
       const existingCandidate = existingCandidateCheck.rows[0];
-
-      console.log({
-        existingCandidateId: existingCandidate.id,
-        existingCandidateName: existingCandidate.name,
-        newCandidateName: candidate.name
-      });
       
       await client.query('COMMIT');
       

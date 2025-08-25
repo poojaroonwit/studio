@@ -35,12 +35,7 @@ export async function checkPositionHeadcountStatus(positionId: string) {
     const vacantHeadcounts = headcounts.filter(h => h.status === 'vacant').length;
     const isFilled = vacantHeadcounts === 0 && filledHeadcounts > 0;
 
-    console.log(`Position ${positionId} headcount status:`, {
-      total: headcounts.length,
-      filled: filledHeadcounts,
-      vacant: vacantHeadcounts,
-      isFilled
-    });
+    // Position headcount status logged
 
     return {
       isFilled,
@@ -68,15 +63,10 @@ export async function autoClosePositionIfHeadcountFilled(
   actingUserName: string
 ) {
   try {
-    console.log(`Auto-close check initiated for position ${positionId} by ${actingUserName}`);
-    
     // Check current headcount status
     const headcountStatus = await checkPositionHeadcountStatus(positionId);
     
-    console.log(`Headcount status for position ${positionId}:`, headcountStatus);
-    
     if (!headcountStatus.hasHeadcounts) {
-      console.log(`Position ${positionId} has no headcounts defined - no action needed`);
       return {
         success: false,
         message: 'Position has no headcounts defined',
@@ -85,7 +75,6 @@ export async function autoClosePositionIfHeadcountFilled(
     }
 
     if (!headcountStatus.isFilled) {
-      console.log(`Position ${positionId} still has vacant headcounts - no action needed`);
       return {
         success: false,
         message: 'Position still has vacant headcounts',
@@ -117,7 +106,6 @@ export async function autoClosePositionIfHeadcountFilled(
 
     // If position is already closed, no action needed
     if (!position.isOpen) {
-      console.log(`Position ${positionId} is already closed - no action needed`);
       return {
         success: true,
         message: 'Position is already closed',
@@ -125,8 +113,6 @@ export async function autoClosePositionIfHeadcountFilled(
         headcountStatus,
       };
     }
-
-    console.log(`Closing position ${positionId} (${position.title}) - all headcounts filled`);
 
     // Close the position
     const updatedPosition = await prisma.position.update({
@@ -142,7 +128,7 @@ export async function autoClosePositionIfHeadcountFilled(
       },
     });
 
-    console.log(`Position ${positionId} successfully closed`);
+    // console.log(`Position ${positionId} successfully closed`);
 
     // Log the automatic closure
     await logAudit(
@@ -167,7 +153,6 @@ export async function autoClosePositionIfHeadcountFilled(
     // Dispatch webhook for position update
     try {
       await dispatchWebhooks.positionUpdated(positionWithCustomAttrs);
-      console.log(`Webhook dispatched for position ${positionId} update`);
     } catch (webhookError) {
       console.error('Failed to dispatch position update webhook:', webhookError);
     }
@@ -194,12 +179,9 @@ export async function autoClosePositionIfHeadcountFilled(
         closed: parseInt(stats.closed, 10) 
       };
       broadcastPositionStatisticsUpdate(statistics);
-      console.log(`Real-time updates broadcast for position ${positionId}`);
     } catch (broadcastError) {
       console.error('Failed to broadcast position updates:', broadcastError);
     }
-
-    console.log(`Auto-close completed successfully for position ${positionId}`);
     return {
       success: true,
       message: 'Position automatically closed successfully',
@@ -233,21 +215,16 @@ export async function checkAndAutoCloseAllPositions(
   actingUserName: string
 ) {
   try {
-    console.log(`Starting auto-close check for all positions by ${actingUserName}`);
-    
     // Get all open positions with headcounts
     const openPositions = await prisma.position.findMany({
       where: { isOpen: true },
       select: { id: true, title: true },
     });
 
-    console.log(`Found ${openPositions.length} open positions to check`);
-
     const results = [];
 
     for (const position of openPositions) {
       try {
-        console.log(`Processing position: ${position.title} (${position.id})`);
         const result = await autoClosePositionIfHeadcountFilled(
           position.id,
           actingUserId,
@@ -258,7 +235,7 @@ export async function checkAndAutoCloseAllPositions(
           positionTitle: position.title,
           ...result,
         });
-        console.log(`Position ${position.title} result:`, result);
+        // console.log(`Position ${position.title} result:`, result);
       } catch (error) {
         console.error(`Error processing position ${position.title} (${position.id}):`, error);
         results.push({
@@ -275,7 +252,7 @@ export async function checkAndAutoCloseAllPositions(
     const errorCount = results.filter(r => r.action === 'error').length;
     const noActionCount = results.filter(r => r.action === 'none').length;
 
-    console.log(`Auto-close check completed. Total: ${results.length}, Closed: ${closedCount}, Errors: ${errorCount}, No Action: ${noActionCount}`);
+    // Auto-close check completed
 
     return results;
   } catch (error) {
@@ -445,8 +422,6 @@ export async function assignCandidateToHeadcount(
   actingUserName: string
 ) {
   try {
-    console.log(`Assigning candidate ${candidateId} to headcount for position ${positionId}`);
-    
     // Find vacant headcount for this position
     const vacantHeadcount = await prisma.headcount.findFirst({
       where: {
@@ -459,14 +434,11 @@ export async function assignCandidateToHeadcount(
     });
 
     if (!vacantHeadcount) {
-      console.log(`No vacant headcount available for position ${positionId}`);
       return {
         success: false,
         message: 'No vacant headcount available for this position',
       };
     }
-
-    console.log(`Found vacant headcount ${vacantHeadcount.id} for position ${positionId}`);
 
     // Update the headcount to assign this candidate
     await prisma.headcount.update({
@@ -476,8 +448,6 @@ export async function assignCandidateToHeadcount(
         candidateId: candidateId,
       },
     });
-
-    console.log(`Headcount ${vacantHeadcount.id} assigned to candidate ${candidateId}`);
 
     // Log the assignment
     await logAudit('AUDIT', `Candidate assigned to headcount automatically when status changed to "Hired" by ${actingUserName}.`, 'Headcount:AutoAssign', actingUserId, {
@@ -489,13 +459,11 @@ export async function assignCandidateToHeadcount(
     // Check if all headcounts are now filled and auto-close position if needed
     let autoCloseResult = null;
     try {
-      console.log(`Checking if position ${positionId} should be auto-closed after headcount assignment`);
       autoCloseResult = await autoClosePositionIfHeadcountFilled(
         positionId,
         actingUserId,
         actingUserName
       );
-      console.log(`Auto-close result for position ${positionId}:`, autoCloseResult);
     } catch (autoCloseError) {
       console.error('Error auto-closing position:', autoCloseError);
       // Don't fail the headcount assignment if auto-close fails

@@ -93,7 +93,7 @@ export const JobsTab: React.FC<JobsTabProps> = ({
                   e.currentTarget.style.filter = 'brightness(1)';
                 }}
                 onClick={() => {
-                  console.log('Job Applied card clicked');
+                  // console.log('Job Applied card clicked');
                   const position = Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === appliedJobId) : null;
                   if (position) {
                     let normalizedFitScore = 0;

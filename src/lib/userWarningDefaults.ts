@@ -157,7 +157,7 @@ const DEFAULT_WARNING_CONFIGURATIONS = [
  */
 export async function createDefaultWarningConfigurations(userId: string, createdBy: string) {
   try {
-    console.log(`Creating default warning configurations for user: ${userId}`);
+    // Creating default warning configurations for user
 
     const configurations = await Promise.all(
       DEFAULT_WARNING_CONFIGURATIONS.map(async (config) => {
@@ -170,7 +170,7 @@ export async function createDefaultWarningConfigurations(userId: string, created
       })
     );
 
-    console.log(`Created ${configurations.length} default warning configurations for user: ${userId}`);
+    // Created default warning configurations for user
 
     // Log audit events for the creation
     await Promise.all(

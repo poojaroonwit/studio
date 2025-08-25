@@ -87,13 +87,13 @@ export async function POST() {
 
 export async function GET() {
   try {
-    console.log('🔍 Checking application status...');
+    // console.log('🔍 Checking application status...');
     
     await logAudit('INFO', 'Application status check started via API', 'API:Setup:Initialize:Get', null);
     
     const result = await initializeApplication();
     
-    console.log('✅ Application status check completed');
+    // console.log('✅ Application status check completed');
     
     await logAudit('AUDIT', `Application status check completed via API. Status: ${result.overall}`, 'API:Setup:Initialize:Get', null, { 
       status: result.overall,

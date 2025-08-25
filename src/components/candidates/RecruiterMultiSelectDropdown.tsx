@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { RecruiterAvatarCompact } from "@/components/ui/recruiter-avatar";
 import {
   Popover,
   PopoverContent,
@@ -17,7 +18,7 @@ interface RecruiterMultiSelectDropdownProps {
   placeholder?: string;
   className?: string;
   disabled?: boolean;
-  recruiters: { id: string; name: string; avatarUrl?: string }[];
+  recruiters: { id: string; name: string; avatarUrl?: string; personalColor?: string }[];
 }
 
 export function RecruiterMultiSelectDropdown({
@@ -270,12 +271,16 @@ export function RecruiterMultiSelectDropdown({
                           selectedIds.has(recruiter.id) ? "opacity-100" : "opacity-0"
                         )}
                       />
-                      <Avatar className="h-6 w-6 mr-2">
-                        <AvatarImage src={recruiter.avatarUrl} />
-                        <AvatarFallback className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
-                          {recruiter.name.charAt(0).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
+                      <RecruiterAvatarCompact
+                        user={{
+                          id: recruiter.id,
+                          name: recruiter.name,
+                          avatarUrl: recruiter.avatarUrl,
+                          personalColor: recruiter.personalColor
+                        }}
+                        size="sm"
+                        className="mr-2"
+                      />
                       <div className="flex flex-col">
                         <span className="text-sm font-medium">{recruiter.name}</span>
                         <span className="text-xs text-muted-foreground">

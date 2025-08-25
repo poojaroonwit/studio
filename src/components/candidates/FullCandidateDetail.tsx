@@ -99,6 +99,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
     copiedJobApplied,
     copiedJobMatchIndex,
     isSaving,
+    realtimeConnected,
     control,
     handleSubmit,
     reset,
@@ -378,6 +379,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
         avatarUploading={avatarUploading}
         avatarError={avatarError}
         onAvatarUpload={handleAvatarUpload}
+        realtimeConnected={realtimeConnected}
       />
       
       {/* Pipeline Section - Above main content and sidebar */}

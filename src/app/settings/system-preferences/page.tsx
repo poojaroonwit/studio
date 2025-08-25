@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { setThemeAndColors, applySidebarStyles, getSidebarActiveStyle, setSidebarActiveStyle, type SidebarActiveStyle } from "@/lib/themeUtils";
+import { setThemeAndColors, applySidebarStyles, getSidebarActiveStyle, setSidebarActiveStyle, type SidebarActiveStyle, applySidebarBackgroundSettings } from "@/lib/themeUtils";
 
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -45,6 +45,17 @@ type LoginBackgroundType = 'image' | 'gradient' | 'solid';
 // --- Sidebar color keys/types/utilities ---
 const DEFAULT_PRIMARY_GRADIENT_START = "179 67% 66%";
 const DEFAULT_PRIMARY_GRADIENT_END = "238 74% 61%";
+
+// Add sidebar background type constants
+const SIDEBAR_BACKGROUND_TYPE_KEY = 'sidebarBackgroundType';
+const SIDEBAR_BACKGROUND_IMAGE_KEY = 'sidebarBackgroundImageUrl';
+const SIDEBAR_BACKGROUND_IMAGE_FIT_KEY = 'sidebarBackgroundImageFit';
+const SIDEBAR_BACKGROUND_IMAGE_POSITION_KEY = 'sidebarBackgroundImagePosition';
+
+type SidebarBackgroundType = 'gradient' | 'solid' | 'image';
+type SidebarImageFit = 'cover' | 'contain' | 'fill' | 'none' | 'scale-down';
+type SidebarImagePosition = 'center' | 'top' | 'bottom' | 'left' | 'right' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+
 const DEFAULT_SIDEBAR_COLORS_BASE = {
   // Background colors
   sidebarBgStartL: "220 25% 97%", sidebarBgEndL: "220 20% 94%", sidebarTextL: "220 25% 30%",
@@ -252,6 +263,7 @@ export default function SystemPreferencesPage() {
   const { success, error: showError } = useToast();
   const [isClient, setIsClient] = useState(false);
   const { data: session, status: sessionStatus } = useSession();
+  const [showLogoOnly, setShowLogoOnly] = useState<boolean>(false);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -282,7 +294,6 @@ export default function SystemPreferencesPage() {
   const [savedSidebarLogoExpandedDarkModeUrl, setSavedSidebarLogoExpandedDarkModeUrl] = useState<string | null>(null);
   
   // Branding display settings
-  const [showLogoOnly, setShowLogoOnly] = useState<boolean>(false);
   const [sidebarLogoSize, setSidebarLogoSize] = useState<number>(48); // Default 48px (h-12 w-12)
   
   // App Favicon state
@@ -310,6 +321,14 @@ export default function SystemPreferencesPage() {
   const [sidebarActiveStyle, setSidebarActiveStyle] = useState<SidebarActiveStyle>('gradient');
   const [appMenuIcon, setAppMenuIcon] = useState<string>("");
   const [appMenuIconType, setAppMenuIconType] = useState<"lucide"|"image">("lucide");
+
+  // Add state for sidebar background customization
+  const [sidebarBackgroundType, setSidebarBackgroundType] = useState<SidebarBackgroundType>('gradient');
+  const [selectedSidebarImageFile, setSelectedSidebarImageFile] = useState<File | null>(null);
+  const [sidebarImagePreviewUrl, setSidebarImagePreviewUrl] = useState<string | null>(null);
+  const [savedSidebarImageUrl, setSavedSidebarImageUrl] = useState<string | null>(null);
+  const [sidebarImageFit, setSidebarImageFit] = useState<SidebarImageFit>('cover');
+  const [sidebarImagePosition, setSidebarImagePosition] = useState<SidebarImagePosition>('center');
 
   // Add state for primary button color
   const [primaryGradientStart, setPrimaryGradientStart] = useState<string>(DEFAULT_PRIMARY_GRADIENT_START);
@@ -375,6 +394,13 @@ export default function SystemPreferencesPage() {
           setSidebarColors(newSidebarColors);
           applySidebarStyles(newSidebarColors);
 
+          // Load sidebar background settings
+          setSidebarBackgroundType((data[SIDEBAR_BACKGROUND_TYPE_KEY] as SidebarBackgroundType) || 'gradient');
+          setSavedSidebarImageUrl(data[SIDEBAR_BACKGROUND_IMAGE_KEY] || null);
+          setSidebarImagePreviewUrl(data[SIDEBAR_BACKGROUND_IMAGE_KEY] || null);
+          setSidebarImageFit((data[SIDEBAR_BACKGROUND_IMAGE_FIT_KEY] as SidebarImageFit) || 'cover');
+          setSidebarImagePosition((data[SIDEBAR_BACKGROUND_IMAGE_POSITION_KEY] as SidebarImagePosition) || 'center');
+
           // Initialize sidebar active style from backend or localStorage
           const backendSidebarStyle = data.sidebarActiveStylePreference;
           if (backendSidebarStyle) {
@@ -402,6 +428,16 @@ export default function SystemPreferencesPage() {
   useEffect(() => {
     applySidebarStyles(sidebarColors);
   }, [sidebarColors]);
+
+  // Apply sidebar background settings when they change
+  useEffect(() => {
+    applySidebarBackgroundSettings({
+      sidebarBackgroundType,
+      sidebarBackgroundImageUrl: savedSidebarImageUrl,
+      sidebarBackgroundImageFit: sidebarImageFit,
+      sidebarBackgroundImagePosition: sidebarImagePosition,
+    });
+  }, [sidebarBackgroundType, savedSidebarImageUrl, sidebarImageFit, sidebarImagePosition]);
 
   const handleLogoFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -551,6 +587,84 @@ export default function SystemPreferencesPage() {
     'sidebarLogoExpandedDarkMode',
     'Sidebar expanded dark mode logo uploaded and saved!'
   );
+
+  // Function to remove sidebar background image
+  const removeSidebarBackgroundImage = async () => {
+    try {
+      // Remove from database
+      const saveRes = await fetch('/api/settings/system-settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify([
+          { key: SIDEBAR_BACKGROUND_IMAGE_KEY, value: null }
+        ]),
+      });
+      
+      if (saveRes.ok) {
+        setSidebarImagePreviewUrl(null);
+        setSavedSidebarImageUrl(null);
+        success('Sidebar background image removed!');
+      } else {
+        throw new Error('Failed to remove sidebar background image from database');
+      }
+    } catch (e: any) {
+      showError(e.message || 'Failed to remove sidebar background image');
+    }
+  };
+
+  // Sidebar background image upload handler
+  const handleSidebarImageFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        showError('Sidebar background image file size must be less than 5MB');
+        return;
+      }
+      setSelectedSidebarImageFile(file);
+      
+      // Immediately show preview for instant feedback
+      const previewUrl = URL.createObjectURL(file);
+      setSidebarImagePreviewUrl(previewUrl);
+      
+      // Upload to MinIO
+      const formData = new FormData();
+      formData.append('file', file);
+      try {
+        const res = await fetch('/api/settings/upload-image', {
+          method: 'PUT',
+          body: formData,
+        });
+        if (!res.ok) throw new Error('Failed to upload sidebar background image');
+        const { url } = await res.json();
+        setSidebarImagePreviewUrl(url); // Update with MinIO URL
+        
+        // Immediately save the image URL to the database
+        const saveRes = await fetch('/api/settings/system-settings', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify([
+            { key: SIDEBAR_BACKGROUND_IMAGE_KEY, value: url }
+          ]),
+        });
+        
+        if (saveRes.ok) {
+          setSavedSidebarImageUrl(url);
+          setSelectedSidebarImageFile(null);
+          success('Sidebar background image uploaded and saved!');
+        } else {
+          throw new Error('Failed to save sidebar background image to database');
+        }
+      } catch (e: any) {
+        showError(e.message || 'Failed to upload sidebar background image');
+        // Clear preview on error
+        setSidebarImagePreviewUrl(null);
+      }
+    }
+  };
 
   const handleFaviconFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -712,6 +826,11 @@ export default function SystemPreferencesPage() {
         'loginPageBackgroundImageUrl',
         'primaryGradientStart',
         'primaryGradientEnd',
+        // Sidebar background settings
+        'sidebarBackgroundType',
+        'sidebarBackgroundImageUrl',
+        'sidebarBackgroundImageFit',
+        'sidebarBackgroundImagePosition',
         // Add all sidebar color keys
         ...Object.keys(sidebarColors)
       ];
@@ -734,6 +853,11 @@ export default function SystemPreferencesPage() {
         { key: 'loginBackgroundGradientEnd', value: loginBackgroundGradientEnd },
         { key: 'loginBackgroundColor', value: loginBackgroundColor },
         { key: 'loginPageBackgroundImageUrl', value: savedLoginImageDataUrl },
+        // Sidebar background settings
+        { key: 'sidebarBackgroundType', value: sidebarBackgroundType },
+        { key: 'sidebarBackgroundImageUrl', value: savedSidebarImageUrl },
+        { key: 'sidebarBackgroundImageFit', value: sidebarImageFit },
+        { key: 'sidebarBackgroundImagePosition', value: sidebarImagePosition },
         // Always sync primaryGradientStart/End to sidebar active color
         { key: 'primaryGradientStart', value: primaryGradientStart || DEFAULT_PRIMARY_GRADIENT_START },
         { key: 'primaryGradientEnd', value: primaryGradientEnd || DEFAULT_PRIMARY_GRADIENT_END },
@@ -781,6 +905,14 @@ export default function SystemPreferencesPage() {
         primaryGradientStart: primaryGradientStart || sidebarColors.sidebarActiveBgStartL || DEFAULT_PRIMARY_GRADIENT_START,
         primaryGradientEnd: primaryGradientEnd || sidebarColors.sidebarActiveBgEndL || DEFAULT_PRIMARY_GRADIENT_END,
         sidebarColors,
+      });
+
+      // Apply sidebar background settings
+      applySidebarBackgroundSettings({
+        sidebarBackgroundType,
+        sidebarBackgroundImageUrl: savedSidebarImageUrl,
+        sidebarBackgroundImageFit: sidebarImageFit,
+        sidebarBackgroundImagePosition: sidebarImagePosition,
       });
       
       // Dispatch event for real-time updates with sidebar colors and contextual logos
@@ -891,7 +1023,9 @@ export default function SystemPreferencesPage() {
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">System Preferences</h1>
+          {!showLogoOnly && (
+            <h1 className="text-2xl font-bold text-foreground">System Preferences</h1>
+          )}
           <p className="text-muted-foreground">Manage application appearance, branding, and global settings</p>
         </div>
         <Button 
@@ -1770,6 +1904,174 @@ export default function SystemPreferencesPage() {
               <ScrollArea className="h-full pr-4">
                 <div className="space-y-6">
                   
+                  {/* Sidebar Background */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <SidebarIcon className="h-5 w-5 text-primary" />
+                        Sidebar Background
+                      </CardTitle>
+                      <CardDescription>
+                        Choose between gradient, solid color, or image background for the sidebar
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      {/* Background Type */}
+                      <div className="space-y-3">
+                        <div className="space-y-2">
+                          <Label htmlFor="sidebar-background-type">Background Type</Label>
+                          <Select 
+                            value={sidebarBackgroundType} 
+                            onValueChange={(value) => setSidebarBackgroundType(value as SidebarBackgroundType)}
+                            disabled={!canEdit}
+                          >
+                            <SelectTrigger id="sidebar-background-type" className="w-full">
+                              <SelectValue placeholder="Select background type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="gradient">Gradient</SelectItem>
+                              <SelectItem value="solid">Solid Color</SelectItem>
+                              <SelectItem value="image">Image</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      {/* Background Image */}
+                      {sidebarBackgroundType === 'image' && (
+                        <div className="space-y-3">
+                          <Label>Background Image</Label>
+                          <div className="flex items-center gap-4">
+                            {sidebarImagePreviewUrl && (
+                              <div className="relative">
+                                <img
+                                  src={sidebarImagePreviewUrl}
+                                  alt="Sidebar background preview"
+                                  className="w-32 h-20 object-cover rounded-md border"
+                                />
+                                <Button
+                                  size="icon"
+                                  variant="destructive"
+                                  className="absolute -top-2 -right-2 h-6 w-6"
+                                  onClick={removeSidebarBackgroundImage}
+                                  disabled={!canEdit}
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            )}
+                            <div className="flex-1">
+                              <Input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleSidebarImageFileChange}
+                                disabled={!canEdit}
+                                className="hidden"
+                                id="sidebar-bg-upload"
+                              />
+                              <Label
+                                htmlFor="sidebar-bg-upload"
+                                className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
+                              >
+                                <ImageUp className="mr-2 h-4 w-4" />
+                                Upload Image
+                              </Label>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Recommended: 256x1024, max 5MB
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Image Fit and Position */}
+                      {sidebarBackgroundType === 'image' && sidebarImagePreviewUrl && (
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="sidebar-image-fit">Image Fit</Label>
+                            <Select 
+                              value={sidebarImageFit} 
+                              onValueChange={(value) => setSidebarImageFit(value as SidebarImageFit)}
+                              disabled={!canEdit}
+                            >
+                              <SelectTrigger id="sidebar-image-fit" className="w-full">
+                                <SelectValue placeholder="Select image fit" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="cover">Cover</SelectItem>
+                                <SelectItem value="contain">Contain</SelectItem>
+                                <SelectItem value="fill">Fill</SelectItem>
+                                <SelectItem value="none">None</SelectItem>
+                                <SelectItem value="scale-down">Scale Down</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="sidebar-image-position">Image Position</Label>
+                            <Select 
+                              value={sidebarImagePosition} 
+                              onValueChange={(value) => setSidebarImagePosition(value as SidebarImagePosition)}
+                              disabled={!canEdit}
+                            >
+                              <SelectTrigger id="sidebar-image-position" className="w-full">
+                                <SelectValue placeholder="Select image position" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="center">Center</SelectItem>
+                                <SelectItem value="top">Top</SelectItem>
+                                <SelectItem value="bottom">Bottom</SelectItem>
+                                <SelectItem value="left">Left</SelectItem>
+                                <SelectItem value="right">Right</SelectItem>
+                                <SelectItem value="top-left">Top Left</SelectItem>
+                                <SelectItem value="top-right">Top Right</SelectItem>
+                                <SelectItem value="bottom-left">Bottom Left</SelectItem>
+                                <SelectItem value="bottom-right">Bottom Right</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Preview */}
+                      <div className="space-y-2">
+                        <Label>Preview</Label>
+                        <div className="w-full h-32 bg-muted/30 rounded-lg border flex items-center justify-center relative overflow-hidden">
+                          {sidebarBackgroundType === 'gradient' && (
+                            <div 
+                              className="w-full h-full"
+                              style={{
+                                background: `linear-gradient(135deg, hsl(${sidebarColors.sidebarBgStartL}), hsl(${sidebarColors.sidebarBgEndL}))`
+                              }}
+                            />
+                          )}
+                          {sidebarBackgroundType === 'solid' && (
+                            <div 
+                              className="w-full h-full"
+                              style={{
+                                backgroundColor: `hsl(${sidebarColors.sidebarBgStartL})`
+                              }}
+                            />
+                          )}
+                          {sidebarBackgroundType === 'image' && sidebarImagePreviewUrl && (
+                            <div 
+                              className="w-full h-full"
+                              style={{
+                                backgroundImage: `url(${sidebarImagePreviewUrl})`,
+                                backgroundSize: sidebarImageFit,
+                                backgroundPosition: sidebarImagePosition,
+                                backgroundRepeat: 'no-repeat'
+                              }}
+                            />
+                          )}
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <span className="text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded">
+                              Sidebar Preview
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
 
                   {/* Sidebar Colors */}
                   <Card>

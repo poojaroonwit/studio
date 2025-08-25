@@ -20,6 +20,7 @@ import AiApiKeysTab from '@/components/settings/AiApiKeysTab';
 
 export default function SystemSettingsPage() {
   const { data: session, status: sessionStatus } = useSession();
+  const [showLogoOnly, setShowLogoOnly] = useState<boolean>(false);
   const router = useRouter();
   const pathname = usePathname();
   const [isLoading, setIsLoading] = useState(true);
@@ -71,6 +72,9 @@ export default function SystemSettingsPage() {
 
       // Load default match criteria
       setDefaultMatchCriteria(settings.defaultMatchCriteria || '');
+      
+      // Load showLogoOnly setting
+      setShowLogoOnly(settings.showLogoOnly === 'true' || settings.showLogoOnly === true);
     } catch (error) {
       setFetchError((error as Error).message);
     } finally {
@@ -190,7 +194,9 @@ export default function SystemSettingsPage() {
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">System Settings</h1>
+          {!showLogoOnly && (
+            <h1 className="text-2xl font-bold text-foreground">System Settings</h1>
+          )}
           <p className="text-muted-foreground">Configure system integrations, AI services, and automation workflows</p>
         </div>
         <div className="flex gap-2">

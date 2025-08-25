@@ -89,8 +89,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     }));
     
     const queryTime = Date.now() - startTime;
-    console.log(`[PERF] Comments query completed in ${queryTime}ms (${comments.length} comments)`);
-    
+
     if (queryTime > 3000) {
       console.warn(`[PERF WARNING] Slow comments query: ${queryTime}ms for candidate ${id}`);
     }

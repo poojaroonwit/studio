@@ -4,31 +4,109 @@ import { authOptions } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
+// In-memory storage for user presence (in production, use Redis)
+interface UserPresence {
+  userId: string;
+  userName: string;
+  userRole: string;
+  avatarUrl?: string | null;
+  personalColor?: string | null;
+  currentPage: string;
+  lastSeen: Date;
+  isOnline: boolean;
+}
+
+const userPresenceStore = new Map<string, UserPresence>();
+
+// Clean up offline users (older than 6 hours)
+const OFFLINE_THRESHOLD = 6 * 60 * 60 * 1000; // 6 hours in milliseconds
+
+function cleanupOfflineUsers() {
+  const now = new Date();
+  for (const [userId, presence] of userPresenceStore.entries()) {
+    const timeSinceLastSeen = now.getTime() - presence.lastSeen.getTime();
+    if (timeSinceLastSeen > OFFLINE_THRESHOLD) {
+      userPresenceStore.delete(userId);
+    }
+  }
+}
+
+// Clean up every 5 minutes
+setInterval(cleanupOfflineUsers, 5 * 60 * 1000);
+
 /**
  * @openapi
  * /api/realtime/presence:
  *   get:
- *     summary: Get presence information
+ *     summary: Get presence information for all users
  *     responses:
  *       200:
- *         description: Presence data
+ *         description: Presence data for all users
  *         content:
  *           application/json:
  *             schema:
  *               type: object
+ *               properties:
+ *                 users:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       userId:
+ *                         type: string
+ *                       userName:
+ *                         type: string
+ *                       userRole:
+ *                         type: string
+ *                       avatarUrl:
+ *                         type: string
+ *                       personalColor:
+ *                         type: string
+ *                       currentPage:
+ *                         type: string
+ *                       lastSeen:
+ *                         type: string
+ *                       isOnline:
+ *                         type: boolean
  *   post:
- *     summary: Update presence information
+ *     summary: Update presence information for current user
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *             properties:
+ *               userId:
+ *                 type: string
+ *               userName:
+ *                 type: string
+ *               userRole:
+ *                 type: string
+ *               avatarUrl:
+ *                 type: string
+ *               personalColor:
+ *                 type: string
+ *               currentPage:
+ *                 type: string
  *     responses:
  *       200:
  *         description: Presence updated
+ *   delete:
+ *     summary: Remove presence information for current user
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               userId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Presence removed
  */
-
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -39,15 +117,26 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { userId, userName, userRole, currentPage } = body;
+    const { userId, userName, userRole, avatarUrl, personalColor, currentPage } = body;
 
     if (!userId || !userName) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // In-memory presence update for now
-    // In a real application, you would use Redis or a message queue
-    // For this example, we'll just return success
+    // Update user presence
+    const presence: UserPresence = {
+      userId,
+      userName,
+      userRole: userRole || session.user.role || 'User',
+      avatarUrl: avatarUrl || session.user.avatarUrl || null,
+      personalColor: personalColor || session.user.personalColor || null,
+      currentPage: currentPage || '/',
+      lastSeen: new Date(),
+      isOnline: true
+    };
+
+    userPresenceStore.set(userId, presence);
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error updating presence:', error);
@@ -73,9 +162,14 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Missing userId' }, { status: 400 });
     }
 
-    // In-memory presence removal for now
-    // In a real application, you would use Redis or a message queue
-    // For this example, we'll just return success
+    // Mark user as offline but keep their presence for 6 hours
+    const existingPresence = userPresenceStore.get(userId);
+    if (existingPresence) {
+      existingPresence.isOnline = false;
+      existingPresence.lastSeen = new Date();
+      userPresenceStore.set(userId, existingPresence);
+    }
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error removing presence:', error);
@@ -94,10 +188,22 @@ export async function GET() {
   }
 
   try {
-    // In-memory online users for now
-    // In a real application, you would use Redis or a message queue
-    // For this example, we'll just return an empty array
-    return NextResponse.json([]);
+    // Clean up offline users before returning data
+    cleanupOfflineUsers();
+
+    // Return all users (both online and recently offline)
+    const users = Array.from(userPresenceStore.values()).map(presence => ({
+      userId: presence.userId,
+      userName: presence.userName,
+      userRole: presence.userRole,
+      avatarUrl: presence.avatarUrl,
+      personalColor: presence.personalColor,
+      currentPage: presence.currentPage,
+      lastSeen: presence.lastSeen.toISOString(),
+      isOnline: presence.isOnline
+    }));
+
+    return NextResponse.json({ users });
   } catch (error) {
     console.error('Error getting online users:', error);
     return NextResponse.json({ 

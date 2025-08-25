@@ -66,37 +66,16 @@ export function RealtimeCollaboration({
           }));
           setNotifications(validNotifications);
         }
-      } catch (error) {
-        console.error('Error fetching notifications:', error);
-      }
+          } catch (error) {
+      // Error fetching notifications
+    }
     };
 
     fetchNotifications();
   }, [session?.user?.id]);
 
-  // Update user presence only on mount/unmount
-  useEffect(() => {
-    if (!session?.user?.id) return;
-    fetch('/api/realtime/presence', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userId: session.user.id,
-        userName: session.user.name,
-        userRole: session.user.role,
-        currentPage: window.location.pathname,
-      }),
-    }).catch(console.error);
-    return () => {
-      if (session?.user?.id) {
-        fetch('/api/realtime/presence', {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: session.user.id }),
-        }).catch(console.error);
-      }
-    };
-  }, [session?.user]);
+  // Note: User presence is now handled by the useUserPresence hook
+  // This component no longer manages presence directly
 
   // SSE logic for real-time updates
   useEffect(() => {
@@ -158,7 +137,6 @@ export function RealtimeCollaboration({
 
     es.onerror = (err) => {
       // Optionally handle errors
-      // console.error('SSE error:', err);
     };
 
     return () => {
@@ -182,7 +160,7 @@ export function RealtimeCollaboration({
         ).filter(Boolean) // Remove any null/undefined notifications
       );
     } catch (error) {
-      console.error('Error marking notification as read:', error);
+      // Error marking notification as read
     }
   }, [session?.user?.id]);
 

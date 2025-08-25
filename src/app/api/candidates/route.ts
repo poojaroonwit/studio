@@ -200,7 +200,7 @@ export async function POST(request: NextRequest) {
           actingUserName
         );
         if (syncSuccess) {
-          console.log(`Recruiter auto-assigned to candidate ${newCandidateId} from position ${positionId}`);
+      
           
           // Get the updated candidate with recruiter information
           const updatedCandidateQuery = `
@@ -225,14 +225,12 @@ export async function POST(request: NextRequest) {
                 actingUserId
               );
             } catch (notificationError) {
-              console.error('Failed to send candidate added notification:', notificationError);
-              // Don't fail the entire operation if notification fails
+              // Failed to send candidate added notification
             }
           }
         }
       } catch (syncError) {
-        console.error('Failed to auto-assign recruiter after candidate creation:', syncError);
-        // Don't fail the candidate creation if sync fails
+        // Failed to auto-assign recruiter after candidate creation
       }
     }
     
@@ -240,16 +238,14 @@ export async function POST(request: NextRequest) {
     try {
       await WarningService.createOrUpdateWarnings('candidate', newCandidateId, actingUserId);
     } catch (warningError) {
-      console.error('Failed to check warnings for new candidate:', warningError);
-      // Don't fail the request if warning check fails
+      // Failed to check warnings for new candidate
     }
     
     // Dispatch webhook for candidate creation
     try {
       await dispatchWebhooks.candidateCreated(newCandidate);
     } catch (webhookError) {
-      console.error('Failed to dispatch candidate creation webhook:', webhookError);
-      // Don't fail the request if webhook fails
+      // Failed to dispatch candidate creation webhook
     }
     
     return NextResponse.json({ message: 'Candidate created successfully', candidate: newCandidate }, { status: 201 });
@@ -307,7 +303,7 @@ export async function GET(request: NextRequest) {
       sortDirection = 'DESC';
     }
     
-    console.log('🔍 API SORT DEBUG: Final sortColumn:', sortColumn, 'sortDirection:', sortDirection);
+
     
 
     
@@ -641,70 +637,18 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Debug logging for fit score filters
+    // Check if fit score filters are being used
     const hasFitScoreFilters = filters.minAppliedJobFitScore !== undefined || 
                               filters.maxAppliedJobFitScore !== undefined ||
                               filters.minMatchingJobFitScore !== undefined || 
                               filters.maxMatchingJobFitScore !== undefined;
-    
-    if (hasFitScoreFilters) {
-      console.log('API DEBUG: Fit score filters received:', {
-        appliedJob: {
-          min: filters.minAppliedJobFitScore,
-          max: filters.maxAppliedJobFitScore
-        },
-        matchingJobs: {
-          min: filters.minMatchingJobFitScore,
-          max: filters.maxMatchingJobFitScore
-        }
-      });
-      
-      // Debug: Show what scores exist in the database
-      console.log('API DEBUG: Checking database for fit scores...');
-      const scoreCheckQuery = `
-        SELECT "fitScore", COUNT(*) as count 
-        FROM "Candidate" 
-        WHERE "fitScore" IS NOT NULL 
-        GROUP BY "fitScore" 
-        ORDER BY "fitScore"
-      `;
-      try {
-        const scoreCheckResult = await client.query(scoreCheckQuery);
-        console.log('API DEBUG: Available fit scores in database:', scoreCheckResult.rows);
-        
-        // Also check for scores in the C range (0.41 to 0.60)
-        const cRangeQuery = `
-          SELECT "fitScore", COUNT(*) as count 
-          FROM "Candidate" 
-          WHERE "fitScore" >= 0.41 AND "fitScore" <= 0.60
-          GROUP BY "fitScore" 
-          ORDER BY "fitScore"
-        `;
-        const cRangeResult = await client.query(cRangeQuery);
-        console.log('API DEBUG: Scores in C range (0.41-0.60):', cRangeResult.rows);
-        
-        // Check total count in C range
-        const cRangeCountQuery = `
-          SELECT COUNT(*) as total 
-          FROM "Candidate" 
-          WHERE "fitScore" >= 0.41 AND "fitScore" <= 0.60
-        `;
-        const cRangeCountResult = await client.query(cRangeCountQuery);
-        console.log('API DEBUG: Total candidates in C range:', cRangeCountResult.rows[0].total);
-      } catch (error) {
-        console.log('API DEBUG: Error checking fit scores:', error);
-      }
-    }
 
     // Handle fit score filters - simple approach
     if (filters.minAppliedJobFitScore !== undefined || filters.maxAppliedJobFitScore !== undefined) {
-      console.log('API DEBUG: Processing applied job fit score filters');
-      
       // Check if this is the "no-score" case (both min and max are -1)
       if (filters.minAppliedJobFitScore === -1 && filters.maxAppliedJobFitScore === -1) {
         // Special case: filter for candidates with no fit score
         whereClauses.push(`(c."fitScore" IS NULL OR c."fitScore" = 0)`);
-        console.log('API DEBUG: Added no-score filter for applied job fit score');
       } else if (filters.includeNoScoreInApplied) {
         // Both regular grades and no-score selected - create OR condition
         const regularScoreConditions: string[] = [];
@@ -728,10 +672,8 @@ export async function GET(request: NextRequest) {
         
         if (regularScoreConditions.length > 0) {
           whereClauses.push(`((${regularScoreConditions.join(' AND ')}) OR ${noScoreCondition})`);
-          console.log('API DEBUG: Added OR condition for applied regular grades + no-score');
         } else {
           whereClauses.push(`(${noScoreCondition})`);
-          console.log('API DEBUG: Added applied no-score condition only');
         }
       } else {
         // Handle regular score range filtering
@@ -740,25 +682,18 @@ export async function GET(request: NextRequest) {
           const minScoreDecimal = filters.minAppliedJobFitScore / 100;
           whereClauses.push(`c."fitScore" >= $${paramIndex++}`);
           queryParams.push(minScoreDecimal);
-          console.log('API DEBUG: Added min applied job fit score filter:', filters.minAppliedJobFitScore, 'as decimal:', minScoreDecimal);
         }
         if (filters.maxAppliedJobFitScore !== undefined && filters.maxAppliedJobFitScore !== -1) {
           // Convert percentage to decimal for database comparison
           const maxScoreDecimal = filters.maxAppliedJobFitScore / 100;
           whereClauses.push(`c."fitScore" <= $${paramIndex++}`);
           queryParams.push(maxScoreDecimal);
-          console.log('API DEBUG: Added max applied job fit score filter:', filters.maxAppliedJobFitScore, 'as decimal:', maxScoreDecimal);
         }
-        
-        // Debug: Show the final WHERE clause for fit score filtering
-        console.log('API DEBUG: Final fit score WHERE clause:', whereClauses.slice(-2).join(' AND '));
-        console.log('API DEBUG: Fit score query parameters:', queryParams.slice(-2));
       }
     }
 
     // Handle matching job fit score filters - simple approach
     if (filters.minMatchingJobFitScore !== undefined || filters.maxMatchingJobFitScore !== undefined) {
-      console.log('API DEBUG: Processing matching job fit score filters');
       
       // Check if this is the "no-score" case (both min and max are -1)
       if (filters.minMatchingJobFitScore === -1 && filters.maxMatchingJobFitScore === -1) {
@@ -907,12 +842,6 @@ export async function GET(request: NextRequest) {
 
     // Build the WHERE clause
     const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
-    
-    // Debug: Show the complete WHERE clause and parameters for fit score filters
-    if (hasFitScoreFilters) {
-      console.log('API DEBUG: Complete WHERE clause:', whereClause);
-      console.log('API DEBUG: All query parameters:', queryParams);
-    }
 
 
     // Optimized query with better indexing and reduced complexity
@@ -987,10 +916,7 @@ export async function GET(request: NextRequest) {
       'X-Page-Size': limit.toString(),
     };
 
-    // Log performance metrics for monitoring
-    if (responseTime > 2000) {
-      console.warn(`[PERF] Slow candidates query: ${responseTime}ms for ${candidates.length} candidates`);
-    }
+
 
     if (isForCounts) {
       return NextResponse.json({
@@ -1013,7 +939,6 @@ export async function GET(request: NextRequest) {
 
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
-    console.error(`[ERROR] Candidates API error after ${responseTime}ms:`, error);
     
     return NextResponse.json({ 
       message: 'Error fetching candidates', 

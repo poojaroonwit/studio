@@ -46,19 +46,12 @@ export function useCandidateFetching({
   const latestRequestIdRef = useRef<string | null>(null);
 
   const fetchTableData = useCallback(async (currentFilters: CandidateFilterValues, currentPage: number, currentPageSize: number) => {
-    console.log('🔍 FETCH DEBUG: fetchTableData called with filters:', currentFilters);
-    const requestId = `${Date.now()}-${Math.random()}`;
-    latestRequestIdRef.current = requestId;
-
     if (sessionStatus !== 'authenticated') {
-      console.log('🔍 FETCH DEBUG: Not authenticated, skipping fetch');
-      setTableLoading(false);
       return;
     }
     
     // Prevent multiple simultaneous requests
     if (currentRequestRef.current) {
-      console.log('🔍 FETCH DEBUG: Already fetching, skipping request');
       return;
     }
     
@@ -131,31 +124,7 @@ export function useCandidateFetching({
         query.append('sortDirection', '');
       }
       
-      console.log('🔍 SORT DEBUG: sortColumn:', sortColumn, 'sortDirection:', sortDirection);
-      
-
-      
-      if (currentFilters.location) {
-        query.append('location', currentFilters.location);
-        if (currentFilters.locationOperator) query.append('locationOperator', currentFilters.locationOperator);
-      }
-      if (currentFilters.skills && Array.isArray(currentFilters.skills)) {
-        if (currentFilters.skills.length > 0) query.append('skills', currentFilters.skills.join(','));
-      } else if (typeof currentFilters.skills === 'string' && currentFilters.skills) {
-        query.append('skills', currentFilters.skills);
-      }
-      
-      console.log('🔍 FETCH DEBUG: Fit score filter parameters being sent:', {
-        minAppliedJobFitScore: currentFilters.minAppliedJobFitScore,
-        maxAppliedJobFitScore: currentFilters.maxAppliedJobFitScore,
-        minMatchingJobFitScore: currentFilters.minMatchingJobFitScore,
-        maxMatchingJobFitScore: currentFilters.maxMatchingJobFitScore
-      });
-      
       const apiUrl = `/api/candidates?${query.toString()}`;
-      
-      console.log('🔍 FETCH DEBUG: Making API request to:', apiUrl);
-      console.log('🔍 FETCH DEBUG: Query parameters:', Object.fromEntries(query.entries()));
       
       // Add timeout and retry logic
       const controller = new AbortController();
@@ -175,41 +144,16 @@ export function useCandidateFetching({
       
       const data = await response.json();
       
-      console.log('🔍 FETCH DEBUG: API response received:', {
-        dataLength: data.data?.length || 0,
-        total: data.pagination?.total || 0,
-        hasData: !!data.data
-      });
-      
       // Check if this is still the latest request
       if (latestRequestIdRef.current !== requestId) {
-        console.log('🔍 FETCH DEBUG: Request superseded, ignoring response');
         return;
       }
       
       if (data.data && Array.isArray(data.data)) {
-        console.log('🔍 FETCH DEBUG: About to update candidates state with:', {
-          candidatesCount: data.data.length,
-          firstCandidate: data.data[0],
-          lastCandidate: data.data[data.data.length - 1],
-          totalFromAPI: data.pagination?.total
-        });
-        
-        // Debug: Check fit scores of returned candidates
-        if (currentFilters.minAppliedJobFitScore !== undefined || currentFilters.maxAppliedJobFitScore !== undefined) {
-          console.log('🔍 FETCH DEBUG: Fit score filter applied. Candidates returned:', data.data.map((c: any) => ({
-            id: c.id,
-            name: c.name,
-            fitScore: c.fitScore
-          })));
-        }
-        
         setFilteredCandidates(data.data);
         setTotal(data.pagination?.total || data.data.length);
         setTableError(null);
-        console.log('🔍 FETCH DEBUG: Successfully updated table with', data.data.length, 'candidates');
       } else {
-        console.log('🔍 FETCH DEBUG: No valid data received:', data);
         setFilteredCandidates([]);
         setTotal(0);
         setTableError('Invalid data format received from server');
@@ -233,18 +177,11 @@ export function useCandidateFetching({
       setTableLoading(false);
       setIsFetching(false);
       currentRequestRef.current = null;
-      console.log('🔍 FETCH DEBUG: Request completed');
     }
   }, [sessionStatus, searchParams, sortColumn, sortDirection]);
 
   // Create a debounced version for table refresh
   const debouncedFetchTableData = useCallback((currentFilters: CandidateFilterValues, currentPage: number, currentPageSize: number) => {
-    console.log('🔍 DEBOUNCE DEBUG: debouncedFetchTableData called with:', {
-      filters: currentFilters,
-      page: currentPage,
-      pageSize: currentPageSize
-    });
-    
     // Clear any pending timeout
     if (fetchTimeoutRef.current) {
       clearTimeout(fetchTimeoutRef.current);
@@ -252,7 +189,6 @@ export function useCandidateFetching({
     
     // Set a new timeout - increased for better stability
     fetchTimeoutRef.current = setTimeout(() => {
-      console.log('🔍 DEBOUNCE DEBUG: Executing fetchTableData after debounce');
       fetchTableData(currentFilters, currentPage, currentPageSize);
     }, 200); // Increased debounce for better stability
   }, [fetchTableData]);

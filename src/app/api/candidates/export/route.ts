@@ -169,7 +169,6 @@ export async function GET(request: NextRequest) {
     let advancedFilters: { [key: string]: string | null } = {};
     
     if (advancedQuery) {
-      console.log('Candidates Export API: Processing advanced query:', advancedQuery);
       const parts = advancedQuery.split(' ').filter(part => part.includes(':'));
       
       parts.forEach(part => {
@@ -207,7 +206,6 @@ export async function GET(request: NextRequest) {
             break;
         }
       });
-      console.log('Candidates Export API: Advanced filters parsed:', advancedFilters);
     }
     
     // Get individual parameters, giving priority to explicit parameters over advanced query

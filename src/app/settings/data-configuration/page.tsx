@@ -975,6 +975,7 @@ function CandidateSourcesTab() {
 // Main Component
 export default function DataConfigurationPage() {
   const { data: session, status: sessionStatus } = useSession();
+  const [showLogoOnly, setShowLogoOnly] = useState<boolean>(false);
   const router = useRouter();
   const pathname = usePathname();
   const [activeTab, setActiveTab] = useState('candidate');
@@ -986,6 +987,24 @@ export default function DataConfigurationPage() {
       signIn(undefined, { callbackUrl: pathname });
     }
   }, [sessionStatus, pathname]);
+
+  // Fetch showLogoOnly setting
+  useEffect(() => {
+    if (sessionStatus === 'authenticated') {
+      const fetchShowLogoOnly = async () => {
+        try {
+          const response = await fetch('/api/settings/system-settings');
+          if (response.ok) {
+            const data = await response.json();
+            setShowLogoOnly(data.showLogoOnly === 'true' || data.showLogoOnly === true);
+          }
+        } catch (error) {
+          console.error('Error fetching showLogoOnly setting:', error);
+        }
+      };
+      fetchShowLogoOnly();
+    }
+  }, [sessionStatus]);
 
   if (sessionStatus === 'loading') {
     return (
@@ -1019,7 +1038,9 @@ export default function DataConfigurationPage() {
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Data Configuration</h1>
+          {!showLogoOnly && (
+            <h1 className="text-2xl font-bold text-foreground">Data Configuration</h1>
+          )}
           <p className="text-muted-foreground">Manage custom fields, recruitment stages, and candidate sources</p>
         </div>
       </div>

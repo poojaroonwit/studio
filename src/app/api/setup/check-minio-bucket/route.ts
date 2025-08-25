@@ -46,8 +46,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
     }
 
-    console.log('[MINIO CHECK] Starting MinIO bucket check...');
-    
+  
     // Try to initialize MinIO
     const initResult = await startupMinIOInitialization();
     
@@ -64,8 +63,7 @@ export async function GET() {
     // Get detailed bucket info
     try {
       const bucketInfo = await getBucketInfo();
-      console.log('[MINIO CHECK] Bucket info:', bucketInfo);
-      
+
       return NextResponse.json({
         status: bucketInfo.exists ? 'success' : 'warning',
         message: bucketInfo.message,

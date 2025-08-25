@@ -700,10 +700,7 @@ export class WarningService {
    */
   static async createOrUpdateWarnings(entityType: string, entityId: string, userId?: string): Promise<void> {
     try {
-      console.log(`🔍 Checking warnings for ${entityType} ${entityId}`);
-      
       const results = await this.checkEntityWarnings(entityType, entityId, userId);
-      console.log(`📊 Found ${results.length} active warnings for ${entityType} ${entityId}`);
 
       // Get all existing warnings for this entity
       const existingWarnings = await prisma.warning.findMany({
@@ -712,7 +709,6 @@ export class WarningService {
           entityId
         }
       });
-      console.log(`📋 Found ${existingWarnings.length} existing warnings in database for ${entityType} ${entityId}`);
 
       // Create or update warnings for current conditions
       const processedConfigurationIds = new Set<string>();
@@ -720,7 +716,6 @@ export class WarningService {
         if (result.hasWarning && result.configurationId) {
           await this.createOrUpdateWarning(entityType, entityId, result);
           processedConfigurationIds.add(result.configurationId);
-          console.log(`✅ Processed warning for configuration ${result.configurationId}`);
         }
       }
 
@@ -732,11 +727,8 @@ export class WarningService {
             where: { id: warning.id }
           });
           clearedCount++;
-          console.log(`🗑️ Cleared warning ${warning.id} for configuration ${warning.configuration_id} (condition resolved)`);
         }
       }
-
-      console.log(`🎯 Warning check completed for ${entityType} ${entityId}: ${results.length} active, ${clearedCount} cleared`);
       
     } catch (error) {
       console.error(`❌ Error in createOrUpdateWarnings for ${entityType} ${entityId}:`, error);

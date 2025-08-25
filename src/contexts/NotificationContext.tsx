@@ -156,7 +156,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         setEventSource(es);
 
         es.onopen = () => {
-          console.log('Real-time notifications connected');
+          // Real-time notifications connected
         };
 
         es.onerror = (error) => {

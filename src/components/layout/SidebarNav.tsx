@@ -63,6 +63,13 @@ function getSidebarStyles() {
   let activeBgEnd = localStorage.getItem("sidebarActiveBgEndL") || localStorage.getItem("sidebarActiveBgEndD");
   let activeGradient = activeBg && activeBgEnd ? `linear-gradient(135deg, hsl(${activeBg}), hsl(${activeBgEnd}))` : undefined;
   let activeText = localStorage.getItem("sidebarActiveTextL") || localStorage.getItem("sidebarActiveTextD");
+  
+  // Get sidebar background type and image settings
+  let sidebarBackgroundType = localStorage.getItem("sidebarBackgroundType") || 'gradient';
+  let sidebarBackgroundImage = localStorage.getItem("sidebarBackgroundImageUrl");
+  let sidebarImageFit = localStorage.getItem("sidebarBackgroundImageFit") || 'cover';
+  let sidebarImagePosition = localStorage.getItem("sidebarBackgroundImagePosition") || 'center';
+  
   // Fallback to system settings (window.__systemSettings injected or fetched)
   if (typeof window !== "undefined" && window.__systemSettings) {
     if (!sidebarGradient && window.__systemSettings.sidebarBgStartL && window.__systemSettings.sidebarBgEndL) {
@@ -74,8 +81,31 @@ function getSidebarStyles() {
     if (!activeText && window.__systemSettings.sidebarActiveTextL) {
       activeText = window.__systemSettings.sidebarActiveTextL;
     }
+    
+    // Get background settings from system settings
+    if (window.__systemSettings.sidebarBackgroundType) {
+      sidebarBackgroundType = window.__systemSettings.sidebarBackgroundType;
+    }
+    if (window.__systemSettings.sidebarBackgroundImageUrl) {
+      sidebarBackgroundImage = window.__systemSettings.sidebarBackgroundImageUrl;
+    }
+    if (window.__systemSettings.sidebarBackgroundImageFit) {
+      sidebarImageFit = window.__systemSettings.sidebarBackgroundImageFit;
+    }
+    if (window.__systemSettings.sidebarBackgroundImagePosition) {
+      sidebarImagePosition = window.__systemSettings.sidebarBackgroundImagePosition;
+    }
   }
-  return { sidebarGradient, activeGradient, activeText };
+  
+  return { 
+    sidebarGradient, 
+    activeGradient, 
+    activeText,
+    sidebarBackgroundType,
+    sidebarBackgroundImage,
+    sidebarImageFit,
+    sidebarImagePosition
+  };
 }
 
 // Helper to get app menu icon from system settings
@@ -84,6 +114,38 @@ function getAppMenuIcon() {
     return window.__systemSettings.appMenuIcon || null;
   }
   return null;
+}
+
+// Helper to generate sidebar background style based on background type
+function getSidebarBackgroundStyle(sidebarStyles: any) {
+  const { sidebarBackgroundType, sidebarBackgroundImage, sidebarImageFit, sidebarImagePosition, sidebarGradient } = sidebarStyles;
+  
+  switch (sidebarBackgroundType) {
+    case 'image':
+      if (sidebarBackgroundImage) {
+        return {
+          backgroundImage: `url(${sidebarBackgroundImage})`,
+          backgroundSize: sidebarImageFit,
+          backgroundPosition: sidebarImagePosition,
+          backgroundRepeat: 'no-repeat'
+        };
+      }
+      // Fallback to gradient if no image
+      return sidebarGradient ? { background: sidebarGradient } : {};
+    
+    case 'solid':
+      // Use the start color as solid background
+      const solidColor = localStorage.getItem("sidebarBgStartL") || localStorage.getItem("sidebarBgStartD");
+      if (solidColor) {
+        return { backgroundColor: `hsl(${solidColor})` };
+      }
+      // Fallback to gradient if no solid color
+      return sidebarGradient ? { background: sidebarGradient } : {};
+    
+    case 'gradient':
+    default:
+      return sidebarGradient ? { background: sidebarGradient } : {};
+  }
 }
 
 // Helper to generate active button styles
@@ -224,7 +286,7 @@ const SidebarNavComponent = function SidebarNav() {
               }, delay);
             } else {
               // Fall back to polling if SSE fails completely
-              console.log('[SSE] Max reconnect attempts reached, falling back to polling');
+              // Max reconnect attempts reached, falling back to polling
               if (pollingInterval) clearInterval(pollingInterval);
               pollingInterval = setInterval(() => {
                 if (!ignore) {
@@ -326,7 +388,7 @@ const SidebarNavComponent = function SidebarNav() {
     return (
       <div 
         className="flex flex-col h-full w-full items-center justify-between py-4"
-        style={sidebarStyles.sidebarGradient ? { background: sidebarStyles.sidebarGradient } : {}}
+        style={getSidebarBackgroundStyle(sidebarStyles)}
       >
         {/* App icon/logo at the top - only show if custom icon is set */}
         {menuIcon && (
@@ -547,7 +609,7 @@ const SidebarNavComponent = function SidebarNav() {
   // Expanded mode: keep the current layout
   return (
     <div className="flex flex-col h-full">
-      <SidebarMenu style={sidebarStyles.sidebarGradient ? { background: sidebarStyles.sidebarGradient } : {}} className="flex-1">
+      <SidebarMenu style={getSidebarBackgroundStyle(sidebarStyles)} className="flex-1">
         {/* Group 1: Dashboard, My Task Board */}
         <SidebarGroupLabel>General</SidebarGroupLabel>
         <SidebarMenuItem key={dashboardNavItem.href}>

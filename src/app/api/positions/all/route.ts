@@ -6,6 +6,15 @@ import { authOptions } from '@/lib/auth';
 // Force this route to be dynamic (not statically generated)
 export const dynamic = 'force-dynamic';
 
+// Simple in-memory cache for positions
+let positionsCache: {
+  data: any[];
+  timestamp: number;
+  filterOpenOnly: boolean;
+} | null = null;
+
+const CACHE_DURATION = 2 * 60 * 1000; // 2 minutes
+
 // Types
 interface PositionFilters {
   title?: string;
@@ -204,7 +213,44 @@ export async function GET(request: NextRequest) {
     
     // Parse and validate filters
     const filters = parseFilters(new URL(request.url).searchParams);
-   
+    
+    // Check cache first
+    const now = Date.now();
+    const isFilterOpenOnly = filters.isOpen === "true";
+    
+    if (
+      positionsCache &&
+      now - positionsCache.timestamp < CACHE_DURATION &&
+      positionsCache.filterOpenOnly === isFilterOpenOnly
+    ) {
+      // Return cached data
+      let cachedPositions = positionsCache.data;
+      
+      // Apply additional filters if needed
+      if (filters.title) {
+        cachedPositions = cachedPositions.filter((pos: any) => 
+          pos.title.toLowerCase().includes(filters.title!.toLowerCase())
+        );
+      }
+      if (filters.department) {
+        cachedPositions = cachedPositions.filter((pos: any) => 
+          filters.department!.split(',').includes(pos.department)
+        );
+      }
+      if (filters.positionLevel) {
+        cachedPositions = cachedPositions.filter((pos: any) => 
+          pos.positionLevel && pos.positionLevel.toLowerCase().includes(filters.positionLevel!.toLowerCase())
+        );
+      }
+      
+      return NextResponse.json({ 
+        data: cachedPositions,
+        meta: {
+          count: cachedPositions.length,
+          cached: true
+        }
+      }, { status: 200 });
+    }
 
     // Build query
     const { query, params } = buildQuery(filters);
@@ -212,13 +258,20 @@ export async function GET(request: NextRequest) {
 
     // Execute query
     const positions = await fetchPositionsFromDatabase(query, params);
- 
+    
+    // Update cache
+    positionsCache = {
+      data: positions,
+      timestamp: now,
+      filterOpenOnly: isFilterOpenOnly
+    };
 
     // Return success response
     return NextResponse.json({ 
       data: positions,
       meta: {
-        count: positions.length
+        count: positions.length,
+        cached: false
       }
     }, { status: 200 });
 

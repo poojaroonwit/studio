@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { UserAvatarCompact } from '@/components/ui/user-avatar';
+import { CandidateAvatarCompact } from '@/components/ui/candidate-avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { RecruiterAvatarCompact } from '@/components/ui/recruiter-avatar';
 import { Search, Filter, Kanban, List, Users, RotateCcw, Settings, ChevronDown, Wifi } from 'lucide-react';
 import { TaskBoard, TaskStage } from '@/components/tasks/TaskBoard';
 import { Task } from '@/components/tasks/TaskCard';
@@ -552,6 +553,24 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   // --- UI ---
   return (
     <div className="flex flex-col h-full bg-background">
+      {/* Realtime Status Indicator */}
+      <div className="flex items-center justify-between px-4 py-2 bg-muted/50 border-b text-xs">
+        <div className="flex items-center space-x-2">
+          <div className={cn(
+            "w-2 h-2 rounded-full",
+            realtimeConnected ? "bg-green-500" : "bg-red-500"
+          )} />
+          <span className="text-muted-foreground">
+            {realtimeConnected ? "Live updates connected" : "Live updates disconnected"}
+          </span>
+        </div>
+        {realtimeConnected && (
+          <span className="text-muted-foreground">
+            Real-time collaboration active
+          </span>
+        )}
+      </div>
+      
       {/* Enhanced Board Header - Always Sticky within main content */}
       <div className="bg-card border-b border-border shadow-sm sticky top-0 z-40 backdrop-blur-sm bg-card/95">
         <div className="px-6 py-4 space-y-4">
@@ -620,12 +639,15 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                              const selectedRecruiter = recruiters.find((r: any) => r.id === filters.recruiterId);
                              return selectedRecruiter ? (
                                <>
-                                 <Avatar className="h-4 w-4">
-                                   <AvatarImage src={selectedRecruiter.avatarUrl} />
-                                   <AvatarFallback className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
-                                     {selectedRecruiter.name.charAt(0).toUpperCase()}
-                                   </AvatarFallback>
-                                 </Avatar>
+                                 <RecruiterAvatarCompact
+                                   user={{
+                                     id: selectedRecruiter.id,
+                                     name: selectedRecruiter.name,
+                                     avatarUrl: selectedRecruiter.avatarUrl,
+                                     personalColor: selectedRecruiter.personalColor
+                                   }}
+                                   size="sm"
+                                 />
                                  <span className="truncate">{selectedRecruiter.name}</span>
                                </>
                              ) : (
@@ -667,12 +689,15 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                            onClick={() => setFilters((f: any) => ({ ...f, recruiterId: r.id }))}
                            className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-accent text-left"
                          >
-                           <Avatar className="h-5 w-5">
-                             <AvatarImage src={r.avatarUrl} />
-                             <AvatarFallback className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
-                               {r.name.charAt(0).toUpperCase()}
-                             </AvatarFallback>
-                           </Avatar>
+                           <RecruiterAvatarCompact
+                             user={{
+                               id: r.id,
+                               name: r.name,
+                               avatarUrl: r.avatarUrl,
+                               personalColor: r.personalColor
+                             }}
+                             size="sm"
+                           />
                            <div className="flex flex-col flex-1">
                              <span className="text-sm font-medium truncate">{r.name}</span>
                              <span className="text-xs text-muted-foreground">Recruiter</span>
@@ -917,7 +942,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                       }}>
                         <TableCell>
                           <div className="flex items-center gap-3">
-                            <UserAvatarCompact
+                            <CandidateAvatarCompact
                               user={{
                                 id: candidate.id,
                                 name: candidate.name,
@@ -925,7 +950,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                                 email: candidate.email
                               }}
                               size="lg"
-                              className="border-2 border-border"
+                              className=""
                             />
                             <div>
                               <span className="font-medium text-foreground hover:underline cursor-pointer">{candidate.name}</span>

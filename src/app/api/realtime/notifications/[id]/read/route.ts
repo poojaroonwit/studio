@@ -57,10 +57,6 @@ export async function POST(
   }
 
   // Debug logging to identify UUID issues
-  console.log('🔍 Debug - Notification read request:');
-  console.log('  - actingUserId:', actingUserId, 'type:', typeof actingUserId);
-  console.log('  - notificationId:', notificationId, 'type:', typeof notificationId);
-  console.log('  - actingUserName:', actingUserName);
 
   // Validate UUIDs before proceeding
   if (!validateUuid(actingUserId)) {

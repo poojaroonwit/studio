@@ -101,7 +101,7 @@ function TaskBoardContent() {
     onCandidateUpdate: (updatedCandidate) => {
       try {
         // Handle candidate updates if needed
-        console.log('Candidate updated:', updatedCandidate);
+        // console.log('Candidate updated:', updatedCandidate);
       } catch (error) {
         console.error('Error handling candidate update:', error);
         setHasError(true);
@@ -110,7 +110,7 @@ function TaskBoardContent() {
     onTransitionUpdate: (transition) => {
       try {
         // Handle transition updates if needed
-        console.log('Transition updated:', transition);
+        // console.log('Transition updated:', transition);
       } catch (error) {
         console.error('Error handling transition update:', error);
         setHasError(true);

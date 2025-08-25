@@ -22,11 +22,7 @@ export async function GET(req: NextRequest) {
       return createErrorResponse(req, 'Unauthorized - Invalid or missing Bearer token', 401);
     }
 
-    console.log('Get candidate sources request from user:', {
-      userId: user.id,
-      userEmail: user.email,
-      userRole: user.role
-    });
+ 
 
     // Get candidate sources from database
     const client = await getPool().connect();

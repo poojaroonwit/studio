@@ -304,11 +304,7 @@ export async function sendSLAViolationNotifications(violations: SLAViolationNoti
   // This would integrate with your notification system
   // For now, we'll just log the violations
   for (const violation of violations) {
-    console.log(`SLA Violation Alert: Position "${violation.positionTitle}" is ${violation.daysOverdue} days overdue.`);
-    console.log(`Recruiter: ${violation.recruiterName || 'Unassigned'}`);
-    console.log(`Grade: ${violation.gradeName} (${violation.slaDays} days SLA)`);
-    console.log(`Hiring Date: ${violation.hiringDate}`);
-    console.log('---');
+    // SLA Violation Alert logged
   }
   
   // TODO: Integrate with your notification system

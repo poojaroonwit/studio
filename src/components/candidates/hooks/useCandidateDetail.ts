@@ -5,6 +5,7 @@ import { toast } from 'react-hot-toast';
 import { differenceInMonths } from 'date-fns';
 import * as z from 'zod';
 import type { Candidate, Position, UserProfile, RecruitmentStage, TransitionRecord, CandidateSource } from '@/lib/types';
+import { useRealtimeCollaboration } from '@/hooks/use-realtime-collaboration';
 
 // Form schemas
 const editCandidateDetailSchema = z.object({
@@ -145,6 +146,29 @@ export const useCandidateDetail = (candidateId: string) => {
     keyName: 'field_id',
   });
 
+  // Real-time collaboration hook for candidate detail updates
+  const { isConnected: realtimeConnected } = useRealtimeCollaboration({
+    onCandidateUpdate: (updatedCandidate) => {
+      // If this is the candidate we're viewing, update the candidate data
+      if (updatedCandidate.id === candidateId) {
+        setCandidate(prevCandidate => {
+          if (prevCandidate) {
+            return { ...prevCandidate, ...updatedCandidate };
+          }
+          return updatedCandidate;
+        });
+      }
+    },
+    onCommentUpdate: (commentUpdate) => {
+      // Refresh transition history when there are new comments
+      if (commentUpdate.candidateId === candidateId) {
+        fetchTransitionHistory();
+      }
+    },
+    showNotifications: false, // Disable notifications to prevent conflicts
+    showErrorNotifications: false
+  });
+
   // Memoized fetch function with caching
   const fetchCandidate = useCallback(async (forceRefresh = false) => {
     if (!candidateId) {
@@ -247,14 +271,14 @@ export const useCandidateDetail = (candidateId: string) => {
             setError(err.message);
             break;
           } else {
-            console.log(`Error on attempt ${attempt + 1}, retrying...`);
+            console.error(`Error on attempt ${attempt + 1}, retrying...`);
           }
         } else {
           if (attempt === maxRetries) {
             setError('Failed to fetch candidate. Please check your connection and try again.');
             break;
           }
-          console.log(`Unknown error on attempt ${attempt + 1}, retrying...`);
+          console.error(`Unknown error on attempt ${attempt + 1}, retrying...`);
         }
 
         // Wait before retrying (exponential backoff)
@@ -331,13 +355,26 @@ export const useCandidateDetail = (candidateId: string) => {
     }
   }, []);
 
+  const fetchTransitionHistory = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/candidates/${candidateId}/transitions`);
+      if (res.ok) {
+        const data = await res.json();
+        setTransitionHistory(data || []);
+      }
+    } catch (e) {
+      console.error('Error fetching transition history:', e);
+    }
+  }, [candidateId]);
+
   // Fetch static data only once on mount
   useEffect(() => {
     fetchPositions();
     fetchRecruiters();
     fetchSources();
     fetchStages();
-  }, []);
+    fetchTransitionHistory();
+  }, [fetchTransitionHistory]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -581,6 +618,7 @@ export const useCandidateDetail = (candidateId: string) => {
     copiedJobApplied,
     copiedJobMatchIndex,
     isSaving,
+    realtimeConnected,
     
     // Form
     control,
@@ -624,5 +662,6 @@ export const useCandidateDetail = (candidateId: string) => {
     handleAssignSource,
     handleAvatarUpload,
     fetchCandidate, // Expose the memoized fetch function
+    fetchTransitionHistory,
   };
 };

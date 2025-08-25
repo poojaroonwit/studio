@@ -21,17 +21,20 @@ import { toast } from 'react-hot-toast';
 import { AutoFont } from '@/components/ui/auto-font';
 import { DEFAULT_APP_NAME } from '@/lib/constants';
 import { useAvatarRefresh } from '@/hooks/use-avatar-refresh';
+import { UserPresenceIndicator } from '@/components/ui/user-presence-indicator';
 
 // Function to generate breadcrumb items based on pathname
-function getBreadcrumbItems(pathname: string) {
+function getBreadcrumbItems(pathname: string, showLogoOnly: boolean = false) {
   const items = [{ label: "Home", href: "/" }];
   
   if (pathname === "/") {
-    return [{ label: "Dashboard", href: "/" }];
+    return showLogoOnly ? [] : [{ label: "Dashboard", href: "/" }];
   }
   
   if (pathname.startsWith("/candidates")) {
-    items.push({ label: "Candidates", href: "/candidates" });
+    if (!showLogoOnly) {
+      items.push({ label: "Candidates", href: "/candidates" });
+    }
     
     if (pathname === "/candidates/upload") {
       items.push({ label: "Process queue", href: "/candidates/upload" });
@@ -41,7 +44,9 @@ function getBreadcrumbItems(pathname: string) {
   }
   
   if (pathname.startsWith("/positions")) {
-    items.push({ label: "Positions", href: "/positions" });
+    if (!showLogoOnly) {
+      items.push({ label: "Positions", href: "/positions" });
+    }
     
     if (pathname.split('/').length === 3 && pathname.split('/')[2] !== '') {
       items.push({ label: "Position Details", href: pathname });
@@ -57,7 +62,9 @@ function getBreadcrumbItems(pathname: string) {
   }
   
   if (pathname.startsWith("/settings")) {
-    items.push({ label: "Settings", href: "/settings" });
+    if (!showLogoOnly) {
+      items.push({ label: "Settings", href: "/settings" });
+    }
     
     if (pathname.startsWith("/settings/system-settings")) {
       items.push({ label: "System Settings", href: "/settings/system-settings" });
@@ -97,9 +104,10 @@ function getBreadcrumbItems(pathname: string) {
 
 interface HeaderProps {
   pageTitle: string;
+  showLogoOnly?: boolean;
 }
 
-export function Header({ pageTitle: initialPageTitle }: { pageTitle: string }) {
+export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: HeaderProps) {
   const { isMobile, open } = useSidebar();
   const { data: session, status, update: updateSession } = useSession();
   const router = useRouter();
@@ -204,8 +212,7 @@ export function Header({ pageTitle: initialPageTitle }: { pageTitle: string }) {
 
   const handleEditProfile = async (data: UserFormValues) => {
     if (!session?.user) return;
-    console.log('Header handleEditProfile - Sending data:', data);
-    console.log('Header handleEditProfile - Current session avatarUrl:', session.user.avatarUrl);
+    // Header handleEditProfile - Sending data
     
     try {
       const response = await fetch(`/api/users/${session.user.id}`, {
@@ -214,7 +221,7 @@ export function Header({ pageTitle: initialPageTitle }: { pageTitle: string }) {
         body: JSON.stringify(data),
       });
       const result = await response.json();
-      console.log('Header handleEditProfile - API response:', result);
+              // Header handleEditProfile - API response
       
       if (!response.ok) {
         throw new Error(result.message || 'Failed to update profile');
@@ -228,18 +235,16 @@ export function Header({ pageTitle: initialPageTitle }: { pageTitle: string }) {
         session.user.avatarUrl !== result.avatarUrl ||
         session.user.personalColor !== result.personalColor;
         
-      console.log('Header handleEditProfile - Avatar URL changed:', session.user.avatarUrl !== result.avatarUrl);
-      console.log('Header handleEditProfile - Old avatarUrl:', session.user.avatarUrl);
-      console.log('Header handleEditProfile - New avatarUrl:', result.avatarUrl);
+              // Avatar URL changed
         
       if (needsSessionUpdate) {
         // Trigger a session refresh to update the session with new data
-        console.log('Header handleEditProfile - Triggering session refresh');
+                  // Triggering session refresh
         await updateSession();
         
         // Force refresh the avatar after session update if it was updated
         if (session.user.avatarUrl !== result.avatarUrl) {
-          console.log('Header handleEditProfile - Forcing avatar refresh after session update');
+          // Forcing avatar refresh after session update
           forceRefresh();
         }
       }
@@ -272,9 +277,12 @@ export function Header({ pageTitle: initialPageTitle }: { pageTitle: string }) {
     <>
       <header className="flex h-16 items-center justify-between border-b bg-card px-4 md:px-6 sticky top-0 z-30">
         <div className={`flex items-center gap-2 ${!open ? 'ml-5' : ''}`}>
-          <Breadcrumb items={getBreadcrumbItems(pathname)} />
+          <Breadcrumb items={getBreadcrumbItems(pathname, showLogoOnly)} />
         </div>
         <div className="flex items-center gap-3">
+          {/* User Presence Indicator */}
+          {user && <UserPresenceIndicator />}
+          
           {/* Theme switch is shown inside avatar dropdown, not here */}
           {user && <WarningIcon />}
           {user && <NotificationIcon />}

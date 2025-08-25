@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Check, ChevronsUpDown, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import type { Position } from "@/lib/types";
+import { usePositionsCache } from "@/hooks/use-positions-cache";
 
 interface PositionSelectDropdownProps {
   value?: string;
@@ -33,41 +34,10 @@ export function PositionSelectDropdown({
   showNoneOption = false
 }: PositionSelectDropdownProps) {
   const [open, setOpen] = useState(false);
-  const [positions, setPositions] = useState<Position[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
-  const [fallbackMode, setFallbackMode] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-
-  useEffect(() => {
-    const fetchPositions = async () => {
-      setLoading(true);
-      setError(false);
-      try {
-        const response = await fetch('/api/positions/all');
-        if (!response.ok) {
-          throw new Error('Failed to fetch positions');
-        }
-        const data = await response.json();
-        let fetchedPositions = data.data || [];
-        
-        // Filter for open headcount only if requested
-        if (filterOpenOnly) {
-          fetchedPositions = fetchedPositions.filter((pos: Position) => pos.isOpen);
-        }
-        
-        setPositions(fetchedPositions);
-      } catch (error) {
-        console.error('Error fetching positions:', error);
-        setError(true);
-        setFallbackMode(true);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPositions();
-  }, [filterOpenOnly]);
+  
+  // Use the shared positions cache
+  const { positions, loading, error } = usePositionsCache(filterOpenOnly);
 
   // Filter positions based on search term
   const filteredPositions = positions.filter(position => 
@@ -79,7 +49,7 @@ export function PositionSelectDropdown({
   const selectedPosition = positions.find(position => position.id === value);
 
   // Fallback mode - show simple text input
-  if (fallbackMode) {
+  if (error) {
     return (
       <div className="space-y-2">
         <Input

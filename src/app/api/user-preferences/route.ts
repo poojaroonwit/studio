@@ -68,6 +68,7 @@ export async function GET(request: NextRequest) {
         showSourceColumn: boolean;
         showStatusColumn: boolean;
         showAppliedDateColumn: boolean;
+        showLastUpdateColumn: boolean;
         showFilters: boolean;
         showHorizontalFitScoreFilters: boolean;
         fitScoreType: 'applied' | 'matching';
@@ -118,6 +119,7 @@ export async function GET(request: NextRequest) {
         showSourceColumn: true,
         showStatusColumn: true,
         showAppliedDateColumn: true,
+        showLastUpdateColumn: true,
         showFilters: true,
         showHorizontalFitScoreFilters: true,
         fitScoreType: 'applied',
@@ -248,6 +250,9 @@ export async function GET(request: NextRequest) {
               break;
             case 'showAppliedDateColumn':
               transformedPreferences.candidates.showAppliedDateColumn = value === 'true';
+              break;
+            case 'showLastUpdateColumn':
+              transformedPreferences.candidates.showLastUpdateColumn = value === 'true';
               break;
             case 'showFilters':
               transformedPreferences.candidates.showFilters = value === 'true';

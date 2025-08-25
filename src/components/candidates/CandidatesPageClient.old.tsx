@@ -786,19 +786,19 @@ export function CandidatesPageClient({
 
       // Separate function to fetch only table data for optimized filtering
     const fetchTableData = useCallback(async (currentFilters: CandidateFilterValues, currentPage: number, currentPageSize: number) => {
-      console.log('🔍 FETCH DEBUG: fetchTableData called with filters:', currentFilters);
+      // console.log('🔍 FETCH DEBUG: fetchTableData called with filters:', currentFilters);
       const requestId = `${Date.now()}-${Math.random()}`;
       latestRequestIdRef.current = requestId;
 
     if (sessionStatusRef.current !== 'authenticated') {
-      console.log('🔍 FETCH DEBUG: Not authenticated, skipping fetch');
+     //  console.log('🔍 FETCH DEBUG: Not authenticated, skipping fetch');
       setTableLoading(false);
       return;
     }
     
     // Prevent multiple simultaneous requests
     if (isFetching) {
-      console.log('🔍 FETCH DEBUG: Already fetching, skipping request');
+     //  console.log('🔍 FETCH DEBUG: Already fetching, skipping request');
       return;
     }
     
@@ -872,18 +872,10 @@ export function CandidatesPageClient({
         query.append('skills', currentFilters.skills);
       }
       
-      console.log('🔍 FETCH DEBUG: Fit score filter parameters being sent:', {
-        minAppliedJobFitScore: currentFilters.minAppliedJobFitScore,
-        maxAppliedJobFitScore: currentFilters.maxAppliedJobFitScore,
-        minMatchingJobFitScore: currentFilters.minMatchingJobFitScore,
-        maxMatchingJobFitScore: currentFilters.maxMatchingJobFitScore
-      });
+  
       
       const apiUrl = `/api/candidates?${query.toString()}`;
-      
-      console.log('🔍 FETCH DEBUG: Making API request to:', apiUrl);
-      console.log('🔍 FETCH DEBUG: Query parameters:', Object.fromEntries(query.entries()));
-      
+ 
       // Add timeout and retry logic
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 8000); // Reduced from 15 seconds to 8 seconds for faster response
@@ -902,37 +894,28 @@ export function CandidatesPageClient({
       
       const data = await response.json();
       
-      console.log('🔍 FETCH DEBUG: API response received:', {
-        dataLength: data.data?.length || 0,
-        total: data.pagination?.total || 0,
-        hasData: !!data.data
-      });
+   
       
       // Check if this is still the latest request
       if (latestRequestIdRef.current !== requestId) {
-        console.log('🔍 FETCH DEBUG: Request superseded, ignoring response');
+       //  console.log('🔍 FETCH DEBUG: Request superseded, ignoring response');
         return;
       }
       
       if (data.data && Array.isArray(data.data)) {
-        console.log('🔍 FETCH DEBUG: About to update candidates state with:', {
-          candidatesCount: data.data.length,
-          firstCandidate: data.data[0],
-          lastCandidate: data.data[data.data.length - 1],
-          totalFromAPI: data.pagination?.total
-        });
+     
         setFilteredCandidates(data.data);
         // No need to update tableCandidates since we're using filteredCandidates
         setTotal(data.pagination?.total || data.data.length);
         setTableError(null);
-        console.log('🔍 FETCH DEBUG: Successfully updated table with', data.data.length, 'candidates');
+       //  console.log('🔍 FETCH DEBUG: Successfully updated table with', data.data.length, 'candidates');
       } else {
-        console.log('🔍 FETCH DEBUG: No valid data received:', data);
+       //  console.log('🔍 FETCH DEBUG: No valid data received:', data);
         setFilteredCandidates([]);
         // No need to clear tableCandidates since we're using filteredCandidates
         setTotal(0);
         setTableError('Invalid data format received from server');
-        console.error('🔍 FETCH ERROR: Invalid data format:', data);
+        // console.error('🔍 FETCH ERROR: Invalid data format:', data);
       }
     } catch (error) {
       if (latestRequestIdRef.current !== requestId) {
@@ -952,18 +935,12 @@ export function CandidatesPageClient({
       setTableLoading(false);
       setIsFetching(false);
       currentRequestRef.current = null;
-      console.log('🔍 FETCH DEBUG: Request completed');
+     //  console.log('🔍 FETCH DEBUG: Request completed');
     }
   }, [filters, page, pageSize, sortColumn, sortDirection, sessionStatus, serverAuthError, serverPermissionError, isClearingFilters, hasInitialDataFetch, searchParams]);
 
   // Create a debounced version for table refresh
   const debouncedFetchTableData = useCallback((currentFilters: CandidateFilterValues, currentPage: number, currentPageSize: number) => {
-    console.log('🔍 DEBOUNCE DEBUG: debouncedFetchTableData called with:', {
-      filters: currentFilters,
-      page: currentPage,
-      pageSize: currentPageSize
-    });
-    
     // Clear any pending timeout
     if (fetchTimeoutRef.current) {
       clearTimeout(fetchTimeoutRef.current);
@@ -971,12 +948,11 @@ export function CandidatesPageClient({
     
     // Set a new timeout - reduced for faster response
     fetchTimeoutRef.current = setTimeout(() => {
-      console.log('🔍 DEBOUNCE DEBUG: Executing fetchTableData after debounce');
       const currentFetchTableData = fetchTableData;
       if (currentFetchTableData) {
         currentFetchTableData(currentFilters, currentPage, currentPageSize);
       } else {
-        console.error('🔍 DEBOUNCE ERROR: fetchTableData is not defined');
+        console.error('DEBOUNCE ERROR: fetchTableData is not defined');
       }
     }, 50); // Reduced debounce for faster response
   }, [fetchTableData]);
@@ -1455,12 +1431,7 @@ export function CandidatesPageClient({
         
         const apiUrl = `/api/candidates?${query.toString()}`;
         
-        // Debug log the API request
-        console.log('🔍 CLIENT DEBUG: Making API request:', {
-          url: apiUrl,
-          queryParams: Object.fromEntries(query.entries()),
-          filters: filters
-        });
+    
         
         // Add timeout and retry logic
         const controller = new AbortController();
@@ -1631,12 +1602,7 @@ export function CandidatesPageClient({
       return;
     }
 
-    // Debug: Log the filter change
-    console.log('🔍 FILTER DEBUG: Filter change detected:', {
-      currentFilters: filters,
-      newFilters: newFilters,
-      combinedFilters: combinedFilters
-    });
+
 
     // Always clear AI search state if filters are changed
     if (isAiSearchActive) {
@@ -1756,19 +1722,19 @@ export function CandidatesPageClient({
         const maxScore = Math.max(...selectedRanges.map(r => r.max));
         minMatchingJobFitScore = minScore;
         maxMatchingJobFitScore = maxScore;
-        console.log('🔍 CLIENT DEBUG: Both regular grades and no-score selected for matching job fit score. Using regular grades only.');
+        // console.log('🔍 CLIENT DEBUG: Both regular grades and no-score selected for matching job fit score. Using regular grades only.');
       } else if (selectedRanges.length > 0) {
         // Only regular grades selected
         const minScore = Math.min(...selectedRanges.map(r => r.min));
         const maxScore = Math.max(...selectedRanges.map(r => r.max));
         minMatchingJobFitScore = minScore;
         maxMatchingJobFitScore = maxScore;
-        console.log('🔍 CLIENT DEBUG: Only regular grades selected for matching job fit score:', { minScore, maxScore });
+        // console.log('🔍 CLIENT DEBUG: Only regular grades selected for matching job fit score:', { minScore, maxScore });
       } else if (hasNoScore) {
         // Only no-score selected
         minMatchingJobFitScore = -1;
         maxMatchingJobFitScore = -1; // Set both to -1 for "no-score" case
-        console.log('🔍 CLIENT DEBUG: Only no-score selected for matching job fit score');
+        // console.log('🔍 CLIENT DEBUG: Only no-score selected for matching job fit score');
       }
     }
 
@@ -1780,36 +1746,22 @@ export function CandidatesPageClient({
       maxMatchingJobFitScore,
     };
 
-    console.log('🔍 CLIENT DEBUG: Horizontal fit score filters being applied:', {
-      horizontalSelectedFitScoreGrades: Array.from(horizontalSelectedFitScoreGrades),
-      horizontalSelectedMatchingFitScoreGrades: Array.from(horizontalSelectedMatchingFitScoreGrades),
-      scoreRanges: scoreRanges.map(r => ({ letter: r.letter, min: r.min, max: r.max })),
-      calculatedFilters: {
-        minAppliedJobFitScore,
-        maxAppliedJobFitScore,
-        minMatchingJobFitScore,
-        maxMatchingJobFitScore
-      },
-      newFilters
-    });
+ 
 
     return newFilters;
   }, [horizontalSelectedFitScoreGrades, horizontalSelectedMatchingFitScoreGrades, filters]);
 
   // Apply horizontal filters when selections change
   useEffect(() => {
-    console.log('🔍 CLIENT DEBUG: Horizontal fit score selections changed:', {
-      applied: Array.from(horizontalSelectedFitScoreGrades),
-      matching: Array.from(horizontalSelectedMatchingFitScoreGrades)
-    });
+ 
     
     // Only apply horizontal filters if there are selections
     if (horizontalSelectedFitScoreGrades.size > 0 || horizontalSelectedMatchingFitScoreGrades.size > 0) {
       const newFilters = applyHorizontalFitScoreFilters();
-      console.log('🔍 CLIENT DEBUG: Applying new filters:', newFilters);
+      // console.log('🔍 CLIENT DEBUG: Applying new filters:', newFilters);
       setFilters(newFilters);
       setPage(1);
-      console.log('🔍 CLIENT DEBUG: Calling debouncedFetchTableData with new filters');
+      // console.log('🔍 CLIENT DEBUG: Calling debouncedFetchTableData with new filters');
       debouncedFetchTableData(newFilters, 1, pageSize);
     } else {
       // If no horizontal selections, clear fit score filters from main filters
@@ -1820,7 +1772,7 @@ export function CandidatesPageClient({
         minMatchingJobFitScore: undefined,
         maxMatchingJobFitScore: undefined,
       };
-      console.log('🔍 CLIENT DEBUG: Clearing fit score filters:', newFilters);
+      // console.log('🔍 CLIENT DEBUG: Clearing fit score filters:', newFilters);
       setFilters(newFilters);
       debouncedFetchTableData(newFilters, page, pageSize);
     }
@@ -1828,22 +1780,12 @@ export function CandidatesPageClient({
 
   // Debug fit score filter rendering
   useEffect(() => {
-    console.log('🔍 CLIENT DEBUG: Rendering horizontal fit score filters with settings:', {
-      showHorizontalFitScoreFilters: candidateSettings.showHorizontalFitScoreFilters,
-      fitScoreType: candidateSettings.fitScoreType,
-      horizontalSelectedFitScoreGrades: Array.from(horizontalSelectedFitScoreGrades),
-      horizontalSelectedMatchingFitScoreGrades: Array.from(horizontalSelectedMatchingFitScoreGrades)
-    });
+ 
   }, [candidateSettings.showHorizontalFitScoreFilters, candidateSettings.fitScoreType, horizontalSelectedFitScoreGrades, horizontalSelectedMatchingFitScoreGrades]);
 
   // Debug filteredCandidates state changes
   useEffect(() => {
-    console.log('🔍 CLIENT DEBUG: filteredCandidates state changed:', {
-      count: filteredCandidates.length,
-      firstCandidate: filteredCandidates[0]?.name,
-      lastCandidate: filteredCandidates[filteredCandidates.length - 1]?.name,
-      hasData: filteredCandidates.length > 0
-    });
+
   }, [filteredCandidates]);
 
   const handleClearAllFilters = useCallback(() => {

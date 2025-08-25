@@ -31,9 +31,6 @@ export class WarningAutomation {
       this.config = { ...this.config, ...config };
     }
 
-    console.log('🚀 Initializing Warning Automation System');
-    console.log('Configuration:', this.config);
-
     if (this.config.enableScheduledChecks) {
       this.startScheduledChecks();
     }
@@ -52,8 +49,6 @@ export class WarningAutomation {
         await this.runScheduledCheck();
       }
     }, this.config.checkInterval);
-
-    console.log(`⏰ Scheduled warning checks started (every ${this.config.checkInterval / 1000} seconds)`);
   }
 
   /**
@@ -63,7 +58,6 @@ export class WarningAutomation {
     if (this.intervalId) {
       clearInterval(this.intervalId);
       this.intervalId = null;
-      console.log('⏹️ Scheduled warning checks stopped');
     }
   }
 
@@ -72,20 +66,13 @@ export class WarningAutomation {
    */
   static async runScheduledCheck() {
     if (this.isRunning) {
-      console.log('⚠️ Warning check already running, skipping...');
       return;
     }
 
     this.isRunning = true;
-    console.log('🔄 Starting scheduled warning check...');
 
     try {
-      const startTime = Date.now();
-      const results = await this.checkAllWarnings();
-      const duration = Date.now() - startTime;
-
-      console.log(`✅ Scheduled warning check completed in ${duration}ms`);
-      console.log('Results:', results);
+      await this.checkAllWarnings();
     } catch (error) {
       console.error('❌ Error in scheduled warning check:', error);
     } finally {
@@ -118,15 +105,12 @@ export class WarningAutomation {
       });
 
       results.totalWarnings = allWarnings.length;
-      console.log(`📋 Found ${allWarnings.length} warnings to check`);
 
       // Group warnings by entity type for batch processing
       const warningsByEntity = this.groupWarningsByEntity(allWarnings);
 
       // Process each entity type
       for (const [entityType, warnings] of Object.entries(warningsByEntity)) {
-        console.log(`🔍 Processing ${entityType} warnings: ${warnings.length}`);
-        
         const entityResults = await this.processEntityWarnings(entityType, warnings);
         
         results.warningsCleared += entityResults.cleared;
@@ -198,10 +182,6 @@ export class WarningAutomation {
         results.checked++;
         results.cleared += cleared;
 
-        if (cleared > 0) {
-          console.log(`✅ Cleared ${cleared} warnings for ${entityType} ${entityId}`);
-        }
-
       } catch (error) {
         console.error(`❌ Error processing ${entityType} ${entityId}:`, error);
         results.errors++;
@@ -215,11 +195,8 @@ export class WarningAutomation {
    * Trigger immediate warning check for a specific entity
    */
   static async triggerEntityCheck(entityType: string, entityId: string, userId?: string) {
-    console.log(`🔍 Triggering immediate warning check for ${entityType} ${entityId}`);
-
     try {
       await WarningService.createOrUpdateWarnings(entityType, entityId, userId);
-      console.log(`✅ Warning check completed for ${entityType} ${entityId}`);
     } catch (error) {
       console.error(`❌ Error in warning check for ${entityType} ${entityId}:`, error);
       throw error;
@@ -239,7 +216,6 @@ export class WarningAutomation {
       await this.triggerEntityCheck(entityType, entityId, userId);
     } catch (error) {
       if (attempts < this.config.retryAttempts) {
-        console.log(`🔄 Retrying warning check for ${entityType} ${entityId} (attempt ${attempts + 1})`);
         await new Promise(resolve => setTimeout(resolve, this.config.retryDelay));
         return this.triggerEntityCheckWithRetry(entityType, entityId, userId, attempts + 1);
       } else {
@@ -265,7 +241,6 @@ export class WarningAutomation {
    */
   static updateConfig(newConfig: Partial<WarningAutomationConfig>) {
     this.config = { ...this.config, ...newConfig };
-    console.log('⚙️ Warning automation configuration updated:', this.config);
   }
 }
 

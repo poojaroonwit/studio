@@ -148,7 +148,7 @@ export function useRealtimeCollaboration(options: RealtimeCollaborationOptions =
       maxReconnectDelayMs
     );
 
-    console.log(`Attempting to reconnect in ${delay}ms (attempt ${reconnectAttempts + 1}/${maxReconnectAttempts})`);
+
 
     reconnectTimeoutRef.current = setTimeout(() => {
       setReconnectAttempts(prev => prev + 1);

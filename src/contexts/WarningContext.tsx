@@ -97,7 +97,7 @@ export function WarningProvider({ children }: { children: React.ReactNode }) {
         if (response.ok) {
           const result = await response.json();
           if (result.initialized) {
-            console.log('✅ Warning system initialized automatically');
+            // Warning system initialized automatically
             // Refresh warnings after initialization
             setTimeout(() => fetchWarnings(), 2000);
           }

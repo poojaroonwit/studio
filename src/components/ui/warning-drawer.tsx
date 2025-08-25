@@ -215,7 +215,7 @@ export function WarningDrawer({ isOpen, onClose }: WarningDrawerProps) {
 
       if (clearResponse.ok) {
         const clearResult = await clearResponse.json();
-        console.log('Cleared warnings:', clearResult);
+        // console.log('Cleared warnings:', clearResult);
       }
 
       // Small delay to ensure clear operation completes
@@ -234,7 +234,7 @@ export function WarningDrawer({ isOpen, onClose }: WarningDrawerProps) {
 
       if (triggerResponse.ok) {
         const triggerResult = await triggerResponse.json();
-        console.log('Triggered warning checks:', triggerResult);
+        // console.log('Triggered warning checks:', triggerResult);
       }
 
       // Small delay to ensure trigger operation completes

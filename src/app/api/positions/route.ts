@@ -65,10 +65,11 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0', 10);
     const includeStats = searchParams.get('includeStats') === 'true';
     const includeCandidateStats = searchParams.get('includeCandidateStats') === 'true';
+    const includeHeadcount = searchParams.get('includeHeadcount') === 'true';
 
     // Check if DATABASE_URL is configured
     if (!process.env.DATABASE_URL) {
-      console.error("DATABASE_URL environment variable is not set");
+  
       return NextResponse.json({ 
         message: "Database configuration error", 
         error: "DATABASE_URL environment variable is not set" 
@@ -114,8 +115,8 @@ export async function GET(request: NextRequest) {
 
       const whereClause = conditions.length > 0 ? ` WHERE ${conditions.join(' AND ')}` : '';
 
-      // Build the main query with filtering
-      const mainQuery = `
+      // Build the main query with filtering and optional headcount data
+      let mainQuery = `
         SELECT 
           p.id, 
           p.title, 
@@ -140,10 +141,36 @@ export async function GET(request: NextRequest) {
             'label', g.label,
             'slaDays', g."sla_days",
             'color', g.color
-          ) as grade
+          ) as grade`;
+
+      // Add headcount data if requested
+      if (includeHeadcount) {
+        mainQuery += `,
+          COALESCE(hc_stats.total_headcount, 0) as "totalHeadcount",
+          COALESCE(hc_stats.vacant_headcount, 0) as "vacantHeadcount",
+          COALESCE(hc_stats.filled_headcount, 0) as "filledHeadcount"`;
+      }
+
+      mainQuery += `
         FROM "Position" p 
         LEFT JOIN "User" u ON p."recruiterId" = u.id
-        LEFT JOIN "Grade" g ON p."gradeId" = g.id
+        LEFT JOIN "Grade" g ON p."gradeId" = g.id`;
+
+      // Add headcount subquery if requested
+      if (includeHeadcount) {
+        mainQuery += `
+        LEFT JOIN (
+          SELECT 
+            h."positionId",
+            COUNT(*) as total_headcount,
+            COUNT(CASE WHEN h.status = 'vacant' THEN 1 END) as vacant_headcount,
+            COUNT(CASE WHEN h.status = 'filled' THEN 1 END) as filled_headcount
+          FROM "Headcount" h
+          GROUP BY h."positionId"
+        ) hc_stats ON p.id = hc_stats."positionId"`;
+      }
+
+      mainQuery += `
         ${whereClause}
         ORDER BY p."createdAt" DESC
         LIMIT $${paramIndex++} OFFSET $${paramIndex++}
@@ -161,12 +188,23 @@ export async function GET(request: NextRequest) {
       const countResult = await pool.query(countQuery, queryParams.slice(0, -2)); // Remove limit and offset for count
       const total = parseInt(countResult.rows[0].count, 10);
       
-      let positions = result.rows.map(row => ({
+      let positions = result.rows.map(row => {
+        const position = {
           ...row,
           custom_attributes: row.customAttributes || {},
-      }));
-      
+        };
 
+        // Add headcount data if included
+        if (includeHeadcount) {
+          position.headcountData = {
+            total: parseInt(row.totalHeadcount || '0', 10),
+            vacant: parseInt(row.vacantHeadcount || '0', 10),
+            filled: parseInt(row.filledHeadcount || '0', 10)
+          };
+        }
+
+        return position;
+      });
 
       // Include candidate statistics for each position if requested
       if (includeCandidateStats && positions.length > 0) {
@@ -206,7 +244,6 @@ export async function GET(request: NextRequest) {
         try {
           statsResult = await getPool().query(candidateStatsQuery, [positionIds]);
         } catch (statsError) {
-          console.error("Error fetching candidate statistics:", statsError);
           // Continue without statistics rather than failing the entire request
           statsResult = { rows: [] };
         }
@@ -257,7 +294,6 @@ export async function GET(request: NextRequest) {
             closed: parseInt(stats.closed, 10) 
           };
         } catch (statsError) {
-          console.error("Error fetching position statistics:", statsError);
           // Continue without statistics rather than failing the entire request
           statistics = { total: 0, open: 0, closed: 0 };
         }
@@ -270,14 +306,12 @@ export async function GET(request: NextRequest) {
       
       return NextResponse.json(response, { status: 200, headers: handleCors(request) });
          } catch (dbError) {
-       console.error("Database error:", dbError);
        return NextResponse.json({ 
          message: "Database error", 
          error: (dbError as Error).message 
        }, { status: 500, headers: handleCors(request) });
      }
   } catch (error) {
-    console.error("Failed to fetch positions:", error);
     await logAudit('ERROR', `Failed to fetch positions. Error: ${(error as Error).message}`, 'API:Positions:GetAll', session?.user?.id);
     return NextResponse.json({ message: "Error fetching positions", error: (error as Error).message }, { status: 500, headers: handleCors(request) });
   }
@@ -311,7 +345,6 @@ export async function POST(request: NextRequest) {
   try {
     body = await request.json();
   } catch (error) {
-    console.error("Error parsing request body for new position:", error);
     return NextResponse.json({ message: "Error parsing request body", error: (error as Error).message }, { status: 400, headers: handleCors(request) });
   }
 
@@ -358,16 +391,14 @@ export async function POST(request: NextRequest) {
     try {
       await dispatchWebhooks.positionCreated(newPosition);
     } catch (webhookError) {
-      console.error('Failed to dispatch position creation webhook:', webhookError);
-      // Don't fail the request if webhook fails
+      // Failed to dispatch position creation webhook
     }
     
     // Check for warnings after position creation
     try {
       await WarningService.createOrUpdateWarnings('position', newPosition.id, actingUserId || undefined);
     } catch (warningError) {
-      console.error('Failed to check warnings for new position:', warningError);
-      // Don't fail the request if warning check fails
+      // Failed to check warnings for new position
     }
     
     // Broadcast real-time updates
@@ -391,13 +422,11 @@ export async function POST(request: NextRequest) {
       };
       broadcastPositionStatisticsUpdate(statistics);
     } catch (broadcastError) {
-      console.error('Failed to broadcast position updates:', broadcastError);
-      // Don't fail the request if broadcast fails
+      // Failed to broadcast position updates
     }
     
     return NextResponse.json(newPosition, { status: 201, headers: handleCors(request) });
   } catch (error) {
-    console.error("Failed to create position:", error);
     await logAudit('ERROR', `Failed to create position '${validatedData.title}' by ${actingUserName}. Error: ${(error as Error).message}`, 'API:Positions:Create', actingUserId, { title: validatedData.title });
     return NextResponse.json({ message: "Error creating position", error: (error as Error).message }, { status: 500, headers: handleCors(request) });
   }

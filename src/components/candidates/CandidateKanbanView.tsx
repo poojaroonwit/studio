@@ -6,6 +6,7 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import type { Candidate, CandidateStatus, UserProfile } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { RecruiterAvatarCompact } from '@/components/ui/recruiter-avatar';
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -1423,7 +1424,6 @@ export function SingleRowCandidateView({
                     size="sm"
                     onClick={(e) => {
                       e.stopPropagation();
-                      console.log('Edit candidate:', candidate.id);
                     }}
                     className="flex items-center gap-1 h-7 px-2 text-xs"
                   >
@@ -1757,7 +1757,6 @@ export function SingleRowKanbanView({
                       variant="outline"
                       onClick={() => {
                         // Handle edit action
-                        console.log('Edit candidate:', currentCandidate.id);
                       }}
                       className="flex items-center gap-2"
                     >
@@ -1861,12 +1860,15 @@ export function MultiRecruiterKanbanView({ candidates, stages, recruiters, onMov
           <Card className="flex flex-col h-full shadow-sm border border-border bg-card">
             <CardHeader className="p-4 border-b border-border sticky top-0 bg-card z-10 flex-shrink-0">
               <div className="flex items-center gap-3">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={recruiter.avatarUrl} alt={recruiter.name} />
-                  <AvatarFallback className="bg-primary/10 text-primary text-sm">
-                    {recruiter.name?.charAt(0)?.toUpperCase() || 'R'}
-                  </AvatarFallback>
-                </Avatar>
+                <RecruiterAvatarCompact
+                  user={{
+                    id: recruiter.id,
+                    name: recruiter.name,
+                    avatarUrl: recruiter.avatarUrl,
+                    personalColor: recruiter.personalColor
+                  }}
+                  size="md"
+                />
                 <div>
                   <CardTitle className="text-sm font-semibold text-foreground">{recruiter.name}</CardTitle>
                   <p className="text-xs text-muted-foreground">Recruiter</p>
@@ -2107,7 +2109,6 @@ export function HorizontalStageKanbanView({
         onMoveCandidate?.(draggedCandidate, column);
       } else {
         // For non-status columns, show a warning that drag and drop is not supported
-        console.warn(`Drag and drop not supported for column field type: ${columnField}`);
         toast?.('Drag and drop is only supported for status columns');
       }
     }

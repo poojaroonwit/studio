@@ -194,9 +194,7 @@ const CandidateResumesSection: React.FC<CandidateResumesSectionProps> = ({ candi
       <UploadAttachmentsModal
         isOpen={isUploadModalOpen}
         onOpenChange={(open) => {
-          console.log('Modal onOpenChange called with:', open);
           if (!open && isUploadModalOpen) {
-            console.log('Closing modal from onOpenChange');
             setIsUploadModalOpen(false);
           }
         }}

@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { RecruiterAvatarCompact } from '@/components/ui/recruiter-avatar';
 import { Search, Filter, X, SlidersHorizontal, Target, User, Calendar, TrendingUp, RefreshCw, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PositionSelectDropdown } from '@/components/candidates/PositionSelectDropdown';
@@ -170,12 +171,15 @@ export function MyTasksFilterModal({
                               const selectedRecruiter = recruiters.find((rec: any) => rec.id === localFilters.recruiterId);
                               return selectedRecruiter ? (
                                 <>
-                                  <Avatar className="h-5 w-5">
-                                    <AvatarImage src={selectedRecruiter.avatarUrl} />
-                                    <AvatarFallback className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
-                                      {selectedRecruiter.name.charAt(0).toUpperCase()}
-                                    </AvatarFallback>
-                                  </Avatar>
+                                  <RecruiterAvatarCompact
+                                    user={{
+                                      id: selectedRecruiter.id,
+                                      name: selectedRecruiter.name,
+                                      avatarUrl: selectedRecruiter.avatarUrl,
+                                      personalColor: selectedRecruiter.personalColor
+                                    }}
+                                    size="sm"
+                                  />
                                   <span>{selectedRecruiter.name}</span>
                                 </>
                               ) : (
@@ -217,12 +221,15 @@ export function MyTasksFilterModal({
                             onClick={() => setLocalFilters({ ...localFilters, recruiterId: rec.id })}
                             className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-accent text-left"
                           >
-                            <Avatar className="h-6 w-6">
-                              <AvatarImage src={rec.avatarUrl} />
-                              <AvatarFallback className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
-                                {rec.name.charAt(0).toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
+                            <RecruiterAvatarCompact
+                              user={{
+                                id: rec.id,
+                                name: rec.name,
+                                avatarUrl: rec.avatarUrl,
+                                personalColor: rec.personalColor
+                              }}
+                              size="sm"
+                            />
                             <div className="flex flex-col flex-1">
                               <span className="text-sm font-medium">{rec.name}</span>
                               <span className="text-xs text-muted-foreground">Recruiter</span>

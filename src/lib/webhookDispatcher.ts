@@ -43,7 +43,7 @@ export class WebhookDispatcher {
 
     // Check if webhooks are enabled globally
     if (!areWebhooksEnabled()) {
-      console.log(`[Webhook] Webhooks disabled globally, skipping dispatch for event: ${event}`);
+      // Webhooks disabled globally, skipping dispatch
       return [];
     }
 
@@ -384,7 +384,7 @@ export class WebhookDispatcher {
             ) WHERE id = $1`,
             [uploadQueueItem.id]
           );
-          console.log(`[Webhook] Marked upload queue job ${uploadQueueItem.id} as processed by external webhook for event: ${event}`);
+          // Marked upload queue job as processed by external webhook
         } finally {
           client.release();
         }

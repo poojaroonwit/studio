@@ -51,15 +51,7 @@ export async function POST(request: NextRequest) {
       [id, file_name, file_size, status, source, upload_id, actingUserId, file_path, JSON.stringify(enhancedWebhookPayload), finalPositionId]
     );
     const job = res.rows[0];
-    console.log(`File '${file_name}' added to upload queue (blocking) by ${actingUserName}`, {
-      queueId: id,
-      fileName: file_name,
-      fileSize: file_size,
-      status,
-      source,
-      uploadId: upload_id,
-      filePath: file_path
-    });
+ 
     // Immediately process the job and wait for webhook
     const result = await processSingleUploadQueueJob(job, client);
     return NextResponse.json(result, { status: 200 });

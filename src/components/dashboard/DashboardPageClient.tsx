@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import type { Candidate, Position, CandidateStatus, UserProfile } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { CandidateAvatarCompact } from "@/components/ui/candidate-avatar";
 import { Users, Briefcase, CheckCircle2, UserPlus, FileWarning, UserRoundSearch, ServerCrash, Loader2, ListChecks, CalendarClock, Users2, BarChart3, AlertTriangle, Clock, Star, Target, Code, CalendarIcon, X, Timer, XCircle, ArrowRight } from "lucide-react";
 import { getScoreRangesForChart, formatScoreWithGrade, getScoreColor } from "@/lib/scoreUtils";
 import { formatCandidateName, formatCandidateNameWithLang } from "@/lib/candidateUtils";
@@ -37,6 +38,8 @@ import { SCORE_COLOR_STOPS } from '@/components/ui/score-color';
 import { SLAViolationsWidget } from './SLAViolationsWidget';
 import { useDynamicHeight } from '@/hooks/use-dynamic-height';
 import { PositionDetailDrawer } from '@/components/positions/PositionDetailDrawer';
+import { useRealtimeCollaboration } from '@/hooks/use-realtime-collaboration';
+import { cn } from '@/lib/utils';
 import '@/lib/chartjs-setup';
 
 
@@ -81,6 +84,84 @@ export default function DashboardPageClient({
   // Position drawer state
   const [selectedPositionId, setSelectedPositionId] = useState<string | null>(null);
   const [isPositionDrawerOpen, setIsPositionDrawerOpen] = useState(false);
+
+  // Real-time collaboration hook for dashboard updates
+  const { isConnected: realtimeConnected, isReconnecting, reconnectAttempts } = useRealtimeCollaboration({
+    onCandidateUpdate: (updatedCandidate) => {
+      // Update candidate data in all relevant arrays
+      setFilteredCandidates(prevCandidates => {
+        const existingIndex = prevCandidates.findIndex(c => c.id === updatedCandidate.id);
+        if (existingIndex !== -1) {
+          const updated = [...prevCandidates];
+          updated[existingIndex] = { ...updated[existingIndex], ...updatedCandidate };
+          return updated;
+        }
+        return prevCandidates;
+      });
+      
+      setMyAssignedCandidates(prevCandidates => {
+        const existingIndex = prevCandidates.findIndex(c => c.id === updatedCandidate.id);
+        if (existingIndex !== -1) {
+          const updated = [...prevCandidates];
+          updated[existingIndex] = { ...updated[existingIndex], ...updatedCandidate };
+          return updated;
+        }
+        return prevCandidates;
+      });
+      
+      setMyBacklogCandidates(prevCandidates => {
+        const existingIndex = prevCandidates.findIndex(c => c.id === updatedCandidate.id);
+        if (existingIndex !== -1) {
+          const updated = [...prevCandidates];
+          updated[existingIndex] = { ...updated[existingIndex], ...updatedCandidate };
+          return updated;
+        }
+        return prevCandidates;
+      });
+    },
+    onPositionUpdate: (updatedPosition) => {
+      setAllPositions(prevPositions => {
+        const existingIndex = prevPositions.findIndex(p => p.id === updatedPosition.id);
+        if (existingIndex !== -1) {
+          const updated = [...prevPositions];
+          updated[existingIndex] = { ...updated[existingIndex], ...updatedPosition };
+          return updated;
+        }
+        return prevPositions;
+      });
+    },
+    onTransitionUpdate: (transition) => {
+      // Update candidate status when transitions occur
+      setFilteredCandidates(prevCandidates => {
+        return prevCandidates.map(candidate => {
+          if (candidate.id === transition.candidateId) {
+            return { ...candidate, status: transition.stage };
+          }
+          return candidate;
+        });
+      });
+      
+      setMyAssignedCandidates(prevCandidates => {
+        return prevCandidates.map(candidate => {
+          if (candidate.id === transition.candidateId) {
+            return { ...candidate, status: transition.stage };
+          }
+          return candidate;
+        });
+      });
+      
+      setMyBacklogCandidates(prevCandidates => {
+        return prevCandidates.map(candidate => {
+          if (candidate.id === transition.candidateId) {
+            return { ...candidate, status: transition.stage };
+          }
+          return candidate;
+        });
+      });
+    },
+    showNotifications: true,
+    showErrorNotifications: false // Disable error toast notifications
+  });
 
   // Check permissions
   const canViewDashboard = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('USERS_MANAGE') || 
@@ -499,6 +580,23 @@ export default function DashboardPageClient({
   // Unified Dashboard - Show all metrics to everyone
   return (
     <div className="space-y-8 p-6">
+      {/* Realtime Status Indicator */}
+      <div className="flex items-center justify-between px-4 py-2 bg-muted/50 border-b border-border rounded-lg text-xs">
+        <div className="flex items-center space-x-2">
+          <div className={cn(
+            "w-2 h-2 rounded-full",
+            realtimeConnected ? "bg-green-500" : isReconnecting ? "bg-yellow-500" : "bg-red-500"
+          )} />
+          <span className="text-muted-foreground">
+            {realtimeConnected ? "Live updates connected" : isReconnecting ? `Reconnecting... (${reconnectAttempts})` : "Live updates disconnected"}
+          </span>
+        </div>
+        {realtimeConnected && (
+          <span className="text-muted-foreground">
+            Real-time collaboration active
+          </span>
+        )}
+      </div>
     
       {/* Dashboard Header */}
      
@@ -1205,10 +1303,15 @@ export default function DashboardPageClient({
                           const nameInfo = formatCandidateNameWithLang(candidate);
                           return (
                             <Link href={`/candidates/${candidate.id}`} className="flex items-center space-x-3 hover:underline">
-                              <Avatar size="sm" className="border border-border">
-                                <AvatarImage src={candidate.avatarUrl || `https://placehold.co/32x32.png?text=${nameInfo.name?.charAt(0) || 'C'}`} alt={nameInfo.name} />
-                                <AvatarFallback className="text-xs font-medium">{nameInfo.name?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
-                              </Avatar>
+                              <CandidateAvatarCompact
+                                user={{
+                                  id: candidate.id,
+                                  name: nameInfo.name,
+                                  avatarUrl: candidate.avatarUrl,
+                                  email: candidate.email
+                                }}
+                                size="sm"
+                              />
                               <span 
                                 className={`font-medium ${nameInfo.fontClass}`}
                                 lang={nameInfo.lang}
@@ -1337,10 +1440,15 @@ export default function DashboardPageClient({
                               const nameInfo = formatCandidateNameWithLang(candidate);
                               return (
                                 <Link href={`/candidates/${candidate.id}`} className="flex items-center space-x-3 hover:underline">
-                                  <Avatar size="sm" className="border border-border">
-                                    <AvatarImage src={candidate.avatarUrl || `https://placehold.co/32x32.png?text=${nameInfo.name?.charAt(0) || 'C'}`} alt={nameInfo.name} />
-                                    <AvatarFallback className="text-xs font-medium">{nameInfo.name?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
-                                  </Avatar>
+                                  <CandidateAvatarCompact
+                                    user={{
+                                      id: candidate.id,
+                                      name: nameInfo.name,
+                                      avatarUrl: candidate.avatarUrl,
+                                      email: candidate.email
+                                    }}
+                                    size="sm"
+                                  />
                                   <span 
                                     className={`font-medium ${nameInfo.fontClass}`}
                                     lang={nameInfo.lang}
@@ -1397,10 +1505,15 @@ export default function DashboardPageClient({
                               const nameInfo = formatCandidateNameWithLang(candidate);
                               return (
                                 <Link href={`/candidates/${candidate.id}`} className="flex items-center space-x-3 hover:underline">
-                                  <Avatar size="sm" className="border border-border">
-                                    <AvatarImage src={candidate.avatarUrl || `https://placehold.co/32x32.png?text=${nameInfo.name?.charAt(0) || 'C'}`} alt={nameInfo.name} />
-                                    <AvatarFallback className="text-xs font-medium">{nameInfo.name?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
-                                  </Avatar>
+                                  <CandidateAvatarCompact
+                                    user={{
+                                      id: candidate.id,
+                                      name: nameInfo.name,
+                                      avatarUrl: candidate.avatarUrl,
+                                      email: candidate.email
+                                    }}
+                                    size="sm"
+                                  />
                                   <span 
                                     className={`font-medium ${nameInfo.fontClass}`}
                                     lang={nameInfo.lang}

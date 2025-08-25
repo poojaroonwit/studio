@@ -57,10 +57,7 @@ export const JobSuitabilityTab: React.FC<JobSuitabilityTabProps> = ({
     return hasContent;
   });
 
-  // Debug: Log the full candidate parsedData to see the structure
-  console.log('Full candidate parsedData:', candidate.parsedData);
-  console.log('Original job suitable array:', jobSuitable);
-  console.log('Filtered job suitable array:', filteredJobSuitable);
+ 
 
   const handleAddJobSuitable = () => {
     if (appendJobSuitable) {

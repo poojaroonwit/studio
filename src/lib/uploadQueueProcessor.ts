@@ -31,17 +31,51 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       return { error: 'Invalid file_path for job', job };
     }
     
-    // 2. Download file from MinIO
+    // 2. Download file from MinIO with memory optimization
     let fileBuffer: Buffer;
     try {
-      console.log(`[Webhook] Attempting to download file from MinIO: ${MINIO_BUCKET}/${job.file_path}`);
+    
+      // Get file info first to check size
+      const fileStats = await minioClient.statObject(MINIO_BUCKET, job.file_path);
+      const fileSize = fileStats.size;
+      
+      // Skip processing if file is too large (e.g., > 50MB)
+      const maxFileSize = 50 * 1024 * 1024; // 50MB
+      if (fileSize > maxFileSize) {
+        console.warn(`File too large (${fileSize} bytes), skipping processing for job ${job.id}`);
+        await client.query(
+          `UPDATE upload_queue SET status = 'error', error = $1, error_details = $2, completed_date = now(), updated_at = now() WHERE id = $3`,
+          ['File too large for processing', `File size: ${fileSize} bytes, max allowed: ${maxFileSize} bytes`, job.id]
+        );
+        return { error: 'File too large for processing', job };
+      }
+      
+      // Stream download with memory optimization
       const fileStream = await minioClient.getObject(MINIO_BUCKET, job.file_path);
-      const chunks = [];
+      const chunks: Buffer[] = [];
+      let totalSize = 0;
+      
       for await (const chunk of fileStream) {
         chunks.push(chunk);
+        totalSize += chunk.length;
+        
+        // Check memory usage and abort if too high
+        if (totalSize > maxFileSize) {
+          console.error(`File download exceeded size limit during streaming for job ${job.id}`);
+          await client.query(
+            `UPDATE upload_queue SET status = 'error', error = $1, error_details = $2, completed_date = now(), updated_at = now() WHERE id = $3`,
+            ['File download exceeded size limit', `Downloaded size: ${totalSize} bytes`, job.id]
+          );
+          return { error: 'File download exceeded size limit', job };
+        }
       }
+      
       fileBuffer = Buffer.concat(chunks);
-      console.log(`[Webhook] Successfully downloaded file, size: ${fileBuffer.length} bytes`);
+      // console.log(`[Webhook] Successfully downloaded file, size: ${fileBuffer.length} bytes`);
+      
+      // Clear chunks array to free memory
+      chunks.length = 0;
+      
     } catch (minioError) {
       console.error(`[Webhook] Failed to download file from MinIO:`, minioError);
       await client.query(
@@ -125,9 +159,7 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
         type: additionalAttachment.type
       } : null
     };
-    
-    console.log(`[Webhook] Using response mode: ${responseMode} (no timeout)`);
-    
+  
     const jsonPayload = {
       inputs,
       response_mode: responseMode, // Use configured response mode (blocking/streaming)

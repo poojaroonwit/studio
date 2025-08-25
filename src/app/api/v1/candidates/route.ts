@@ -149,15 +149,7 @@ export async function POST(request: NextRequest) {
   const email = contactInfo.email || 'no-email@example.com';
   const status = candidateInfo.status || 'new';
 
-  console.log('Creating candidate with data:', {
-    name,
-    email,
-    status,
-    personalInfo,
-    contactInfo,
-    educationDataLength: educationData?.length || 0,
-    experienceDataLength: experienceData?.length || 0
-  });
+
 
   // Fetch the first recruitment stage (by sortOrder ASC)
   let appliedStage = 'Applied';
@@ -209,13 +201,7 @@ export async function POST(request: NextRequest) {
       positionId = matchWithJobId.jobId;
     }
   }
-  
-  console.log(`Extracted positionId: ${positionId}`);
-  console.log(`Candidate info job_applied:`, candidateInfo.job_applied);
-  console.log(`Top-level job_applied:`, job_applied);
-  console.log(`Candidate info job_matches:`, candidateInfo.job_matches);
-  console.log(`Top-level job_matches:`, job_matches);
-  
+
   // Validate positionId format if present
   if (positionId && typeof positionId === 'string') {
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -269,7 +255,7 @@ export async function POST(request: NextRequest) {
     let finalCandidate = newCandidate;
     if (positionId && !newCandidate.recruiterId) {
       try {
-        console.log(`Attempting to auto-assign recruiter for candidate ${newCandidateId} with positionId: ${positionId}`);
+        // console.log(`Attempting to auto-assign recruiter for candidate ${newCandidateId} with positionId: ${positionId}`);
         
         // Get position with recruiter using Prisma
         const position = await prisma.position.findUnique({
@@ -285,12 +271,7 @@ export async function POST(request: NextRequest) {
           }
         });
 
-        console.log(`Position found:`, position ? { 
-          id: position.id, 
-          title: position.title, 
-          recruiterId: position.recruiterId, 
-          recruiter: position.recruiter 
-        } : 'null');
+ 
 
         if (position && position.recruiterId && position.recruiter) {
           // Update candidate with recruiter using Prisma
@@ -324,9 +305,7 @@ export async function POST(request: NextRequest) {
             },
           });
 
-          console.log(`✅ Recruiter auto-assigned to candidate ${newCandidateId} from position ${positionId}`);
-          console.log(`   Recruiter: ${position.recruiter.name} (${position.recruiter.email})`);
-          
+ 
           // Send notification to the assigned recruiter
           try {
             await NotificationService.notifyCandidateAdded(
@@ -337,7 +316,7 @@ export async function POST(request: NextRequest) {
               position.recruiterId,
               user.id
             );
-            console.log(`✅ Notification sent to recruiter ${position.recruiter.name} for new candidate ${name}`);
+            // console.log(`✅ Notification sent to recruiter ${position.recruiter.name} for new candidate ${name}`);
           } catch (notificationError) {
             console.error('Failed to send candidate added notification:', notificationError);
             // Don't fail the entire operation if notification fails

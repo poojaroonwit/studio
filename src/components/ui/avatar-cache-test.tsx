@@ -24,15 +24,13 @@ export function AvatarCacheTest({ user }: AvatarCacheTestProps) {
   const handleTestCacheBuster = () => {
     const originalUrl = user.avatarUrl || testUrl;
     const cacheBustedUrl = addCacheBuster(originalUrl, true);
-    console.log('Original URL:', originalUrl);
-    console.log('Cache-busted URL:', cacheBustedUrl);
+  
     alert(`Cache-busted URL: ${cacheBustedUrl}`);
   };
 
   const handleTestGetCacheBustedUrl = () => {
     const cacheBustedUrl = getCacheBustedImageUrl(user, true);
-    console.log('User:', user);
-    console.log('Cache-busted URL:', cacheBustedUrl);
+ 
     alert(`Cache-busted URL: ${cacheBustedUrl}`);
   };
 

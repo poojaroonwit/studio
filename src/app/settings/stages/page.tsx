@@ -62,6 +62,7 @@ export default function RecruitmentStagesPage() {
   const { data: session, status: sessionStatus } = useSession() as { data: Session | null, status: 'loading' | 'authenticated' | 'unauthenticated' };
   const router = useRouter();
   const pathname = usePathname();
+  const [showLogoOnly, setShowLogoOnly] = useState<boolean>(false);
 
   const [stages, setStages] = useState<RecruitmentStage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -112,6 +113,24 @@ export default function RecruitmentStagesPage() {
       fetchStages();
     }
   }, [sessionStatus, pathname, fetchStages]);
+
+  // Fetch showLogoOnly setting
+  useEffect(() => {
+    if (sessionStatus === 'authenticated') {
+      const fetchShowLogoOnly = async () => {
+        try {
+          const response = await fetch('/api/settings/system-settings');
+          if (response.ok) {
+            const data = await response.json();
+            setShowLogoOnly(data.showLogoOnly === 'true' || data.showLogoOnly === true);
+          }
+        } catch (error) {
+          console.error('Error fetching showLogoOnly setting:', error);
+        }
+      };
+      fetchShowLogoOnly();
+    }
+  }, [sessionStatus]);
 
   const handleOpenModal = (stage?: RecruitmentStage) => {
     setEditingStage(stage || null);
@@ -307,7 +326,9 @@ export default function RecruitmentStagesPage() {
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-xl font-bold text-foreground">Recruitment Stages</h1>
+          {!showLogoOnly && (
+            <h1 className="text-xl font-bold text-foreground">Recruitment Stages</h1>
+          )}
                      <p className="text-sm text-muted-foreground">Manage the stages in your recruitment pipeline. Most stages can be deleted, except those with core business logic dependencies.</p>
         </div>
         <Button onClick={() => handleOpenModal()} variant="default">

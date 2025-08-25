@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    console.log('🔧 Initializing warning system for existing data...');
+    // console.log('🔧 Initializing warning system for existing data...');
 
     // Get all entities that need warning checks
     const candidates = await prisma.candidate.findMany({
@@ -59,13 +59,13 @@ export async function POST(request: NextRequest) {
       select: { id: true, type: true, status: true }
     });
 
-    console.log(`📊 Found ${candidates.length} candidates, ${positions.length} positions, ${headcounts.length} headcounts`);
+    // console.log(`📊 Found ${candidates.length} candidates, ${positions.length} positions, ${headcounts.length} headcounts`);
 
     let totalWarningsCreated = 0;
     let errors = 0;
 
     // Check candidates
-    console.log('🔍 Checking candidates...');
+    // console.log('🔍 Checking candidates...');
     for (const candidate of candidates) {
       try {
         await WarningService.createOrUpdateWarnings('candidate', candidate.id, actingUserId);
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check positions
-    console.log('🔍 Checking positions...');
+    // console.log('🔍 Checking positions...');
     for (const position of positions) {
       try {
         await WarningService.createOrUpdateWarnings('position', position.id, actingUserId);
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check headcounts
-    console.log('🔍 Checking headcounts...');
+    // console.log('🔍 Checking headcounts...');
     for (const headcount of headcounts) {
       try {
         await WarningService.createOrUpdateWarnings('headcount', headcount.id, actingUserId);
@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
       errors
     });
 
-    console.log('✅ Warning system initialization completed');
+    // console.log('✅ Warning system initialization completed');
 
     return NextResponse.json({ 
       success: true, 

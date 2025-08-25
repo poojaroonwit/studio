@@ -370,7 +370,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     
     if (hasPositionChanged && newPositionId) {
       try {
-        console.log(`Position changed for candidate ${id}: ${oldPositionId} -> ${newPositionId}`);
+        // console.log(`Position changed for candidate ${id}: ${oldPositionId} -> ${newPositionId}`);
         
         // Get position with recruiter using Prisma
         const position = await prisma.position.findUnique({
@@ -386,12 +386,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
           }
         });
 
-        console.log(`New position found:`, position ? { 
-          id: position.id, 
-          title: position.title, 
-          recruiterId: position.recruiterId, 
-          recruiter: position.recruiter 
-        } : 'null');
+
 
         if (position && position.recruiterId && position.recruiter && !updatedCandidate.recruiterId) {
           // Update candidate with recruiter using Prisma
@@ -425,8 +420,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
             },
           });
 
-          console.log(`✅ Recruiter auto-assigned to candidate ${id} from position ${newPositionId}`);
-          console.log(`   Recruiter: ${position.recruiter.name} (${position.recruiter.email})`);
+          // console.log(`✅ Recruiter auto-assigned to candidate ${id} from position ${newPositionId}`);
+          // console.log(`   Recruiter: ${position.recruiter.name} (${position.recruiter.email})`);
         } else if (position && !position.recruiterId) {
           console.log(`⚠️ New position ${newPositionId} exists but has no recruiter assigned`);
         } else if (!position) {

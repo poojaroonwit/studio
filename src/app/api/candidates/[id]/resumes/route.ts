@@ -50,8 +50,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     }));
     
     const queryTime = Date.now() - startTime;
-    console.log(`[PERF] Resumes query completed in ${queryTime}ms (${attachments.length} attachments)`);
-    
+
     if (queryTime > 3000) {
       console.warn(`[PERF WARNING] Slow resumes query: ${queryTime}ms for candidate ${id}`);
     }

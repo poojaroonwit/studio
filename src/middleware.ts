@@ -41,7 +41,7 @@ export async function middleware(req: NextRequest) {
 
     return NextResponse.next();
   } catch (error) {
-    console.error('[MIDDLEWARE] Error in middleware:', error);
+
     // On error, allow the request to continue to prevent blocking the application
     return NextResponse.next();
   }

@@ -292,21 +292,17 @@ export const CandidateImportUploadQueue: React.FC<{
       if (dateRange.start) params.set('date_start', format(dateRange.start, 'yyyy-MM-dd'));
       if (dateRange.end) params.set('date_end', format(dateRange.end, 'yyyy-MM-dd'));
       if (positionIdFilter) params.set('position_id', positionIdFilter);
-      console.log('Fetching upload queue with params:', params.toString());
       const res = await fetch(`/api/upload-queue?${params.toString()}`);
-      
-      console.log('Upload queue response status:', res.status);
       
       if (!res.ok) {
         let errorMsg = `Failed to fetch jobs: ${res.status} ${res.statusText}`;
         try {
           const errorData = await res.json();
-          console.log('Upload queue error data:', errorData);
           if (errorData && errorData.error) {
             errorMsg += ` - ${errorData.error}`;
           }
         } catch (parseError) {
-          console.log('Failed to parse error response:', parseError);
+          // Silent parse error
         }
         
         // If it's a 401 error, provide more specific guidance
@@ -445,18 +441,12 @@ export const CandidateImportUploadQueue: React.FC<{
     if (sessionStatus === 'authenticated' && session) {
       fetchJobs();
     } else if (sessionStatus === 'unauthenticated') {
-      console.log('User is not authenticated, skipping fetch');
       setFetchError('Please sign in to view the upload queue');
     }
     return () => {
       // No cleanup needed here
     };
   }, [sessionStatus, session]); // Removed fetchJobs to prevent infinite loop
-
-  // Log session status for debugging
-  useEffect(() => {
-    console.log('Session status:', sessionStatus, 'Session:', session ? 'Present' : 'Not present');
-  }, [sessionStatus, session]);
 
   // Fetch status summary separately - only when date/position filters change, not status filter
   useEffect(() => {
@@ -509,7 +499,6 @@ export const CandidateImportUploadQueue: React.FC<{
     const connectSSE = () => {
       // Only connect if session is authenticated
       if (sessionStatus !== 'authenticated' || !session) {
-        console.log('Session not ready for SSE connection');
         return;
       }
       
@@ -532,12 +521,10 @@ export const CandidateImportUploadQueue: React.FC<{
         params.set('limit', String(pageSize));
         params.set('offset', String((page - 1) * pageSize));
         const sseUrl = `/api/upload-queue/sse?${params.toString()}`;
-        console.log('Connecting to SSE:', sseUrl);
         
         eventSource = new EventSource(sseUrl);
 
         eventSource.onopen = () => {
-          console.log('[SSE] Connection established');
           isConnected = true;
           setIsRealtimeActive(true);
           setIsLoading(false); // Ensure loading is off as soon as SSE connects
@@ -545,7 +532,6 @@ export const CandidateImportUploadQueue: React.FC<{
         };
 
         eventSource.onerror = (error) => {
-          console.warn('[SSE] Connection error:', error);
           isConnected = false;
           setIsRealtimeActive(false);
 
@@ -553,7 +539,6 @@ export const CandidateImportUploadQueue: React.FC<{
           if (reconnectAttempts < maxReconnectAttempts) {
             reconnectAttempts++;
             const delay = Math.min(baseReconnectDelay * reconnectAttempts, maxReconnectDelay);
-            console.log(`[SSE] Attempting to reconnect in ${delay}ms (attempt ${reconnectAttempts}/${maxReconnectAttempts})`);
            
             setTimeout(() => {
               if (eventSource && !isConnected) {
@@ -562,7 +547,6 @@ export const CandidateImportUploadQueue: React.FC<{
               }
             }, delay);
           } else {
-            console.warn('[SSE] Max reconnect attempts reached, falling back to polling');
             // Fall back to polling if SSE fails completely
             const pollInterval = setInterval(() => {
               if (!isConnected) {
@@ -584,14 +568,14 @@ export const CandidateImportUploadQueue: React.FC<{
               debounceTimeout = setTimeout(applySSEUpdate, 100);
               
             } else if (msg.type === 'error') {
-              console.error('[SSE] Error:', msg.message);
+              // Silent error handling
             }
           } catch (error) {
-            console.warn('[SSE] Error parsing message:', error);
+            // Silent parse error
           }
         };
       } catch (error) {
-        console.error('[SSE] Failed to create connection:', error);
+        // Silent connection error
       }
     };
 

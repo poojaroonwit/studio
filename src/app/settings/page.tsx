@@ -105,10 +105,29 @@ export default function SettingsPage() {
   const router = useRouter();
   const { data: session, status: sessionStatus } = useSession();
   const [isClient, setIsClient] = useState(false);
+  const [showLogoOnly, setShowLogoOnly] = useState<boolean>(false);
 
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  // Fetch showLogoOnly setting
+  useEffect(() => {
+    if (sessionStatus === 'authenticated' && isClient) {
+      const fetchShowLogoOnly = async () => {
+        try {
+          const response = await fetch('/api/settings/system-settings');
+          if (response.ok) {
+            const data = await response.json();
+            setShowLogoOnly(data.showLogoOnly === 'true' || data.showLogoOnly === true);
+          }
+        } catch (error) {
+          console.error('Error fetching showLogoOnly setting:', error);
+        }
+      };
+      fetchShowLogoOnly();
+    }
+  }, [sessionStatus, isClient]);
 
   const canAccess = (item: { adminOnly?: boolean, permissionId?: PlatformModuleId, adminOnlyOrPermission?: boolean }) => {
     if (!isClient || sessionStatus !== 'authenticated') return false;
@@ -144,7 +163,9 @@ export default function SettingsPage() {
             <Settings className="h-6 w-6 text-primary" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
+            {!showLogoOnly && (
+              <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
+            )}
             <p className="text-muted-foreground">
               Manage your application settings and configurations
             </p>

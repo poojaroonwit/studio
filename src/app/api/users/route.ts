@@ -240,16 +240,6 @@ export async function POST(request: NextRequest) {
 
   const { name, email, password, role, modulePermissions, userTeamIds, authenticationMethod, forcePasswordChange, personalColor } = validationResult.data;
 
-  console.log('Creating user with data:', {
-    name,
-    email,
-    role,
-    modulePermissions,
-    userTeamIds,
-    authenticationMethod,
-    forcePasswordChange,
-    personalColor
-  });
 
   const saltRounds = 10;
   let hashedPassword;
@@ -273,8 +263,6 @@ export async function POST(request: NextRequest) {
     const defaultAvatarUrl = `https://placehold.co/100x100.png?text=${name?.charAt(0)?.toUpperCase() || 'U'}`;
     const defaultDataAiHint = "profile person";
 
-    console.log('About to create user with Prisma...');
-    
     // Define role to group ID mappings
     const roleToGroupId = {
       'Admin': '00000000-0000-0000-0000-000000000001',
@@ -309,12 +297,10 @@ export async function POST(request: NextRequest) {
       } as any
     });
 
-    console.log('User created successfully:', newUser.id);
-
     // Create default warning configurations for the new user
     try {
       await createDefaultWarningConfigurations(newUser.id, session.user.id);
-      console.log('Default warning configurations created for user:', newUser.id);
+      // console.log('Default warning configurations created for user:', newUser.id);
     } catch (warningError) {
       console.error('Error creating default warning configurations:', warningError);
       // Don't fail the user creation if warning config creation fails

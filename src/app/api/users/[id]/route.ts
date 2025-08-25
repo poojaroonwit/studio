@@ -169,10 +169,10 @@ export async function PUT(request: NextRequest) {
         return NextResponse.json({ message: "Error parsing request body", error: error.message }, { status: 400 });
     }
 
-    console.log('User update request body:', JSON.stringify(body, null, 2));
+    // console.log('User update request body:', JSON.stringify(body, null, 2));
     const validationResult = updateUserSchema.safeParse(body);
     if (!validationResult.success) {
-        console.log('Validation errors:', JSON.stringify(validationResult.error.flatten().fieldErrors, null, 2));
+        // console.log('Validation errors:', JSON.stringify(validationResult.error.flatten().fieldErrors, null, 2));
         return NextResponse.json({ message: "Invalid input", errors: validationResult.error.flatten().fieldErrors }, { status: 400 });
     }
 

@@ -81,7 +81,7 @@ export function UploadQueueStatus() {
     
     eventSource.onopen = () => {
       setIsRealtimeActive(true);
-      console.log('SSE connection established');
+      // console.log('SSE connection established');
     };
     
     eventSource.onmessage = (event) => {
@@ -99,7 +99,7 @@ export function UploadQueueStatus() {
     
     eventSource.onerror = () => {
       setIsRealtimeActive(false);
-      console.log('SSE connection error, falling back to polling');
+      // console.log('SSE connection error, falling back to polling');
     };
 
     return () => eventSource.close();

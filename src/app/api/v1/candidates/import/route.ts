@@ -71,16 +71,16 @@ export async function POST(req: NextRequest) {
         const csvString = buffer.toString('utf-8');
         const records = parseCsv(csvString, { columns: true, skip_empty_lines: true });
         candidates = records.map((row: any) => ({
-          name: row.name || row.Name || '',
-          email: row.email || row.Email || '',
-          phone: row.phone || row.Phone || null,
-          status: row.status || row.Status || 'Applied',
-          positionId: row.positionId || row.position_id || null,
-          recruiterId: row.recruiterId || row.recruiter_id || null,
+          name: String(row.name || row.Name || ''),
+          email: String(row.email || row.Email || ''),
+          phone: row.phone || row.Phone ? String(row.phone || row.Phone) : null,
+          status: String(row.status || row.Status || 'Applied'),
+          positionId: row.positionId || row.position_id ? String(row.positionId || row.position_id) : null,
+          recruiterId: row.recruiterId || row.recruiter_id ? String(row.recruiterId || row.recruiter_id) : null,
           fitScore: row.fitScore ? parseFloat(row.fitScore) : null,
           custom_attributes: safeJsonParse(row.custom_attributes, {}),
           parsedData: safeJsonParse(row.parsedData, null),
-          resumePath: row.resumePath || row.resume_path || null,
+          resumePath: row.resumePath || row.resume_path ? String(row.resumePath || row.resume_path) : null,
         }));
       } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
         // Parse Excel
@@ -89,16 +89,16 @@ export async function POST(req: NextRequest) {
         const sheet = workbook.Sheets[sheetName];
         const json = XLSX.utils.sheet_to_json(sheet, { defval: '' });
         candidates = json.map((row: any) => ({
-          name: row.name || row.Name || '',
-          email: row.email || row.Email || '',
-          phone: row.phone || row.Phone || null,
-          status: row.status || row.Status || 'Applied',
-          positionId: row.positionId || row.position_id || null,
-          recruiterId: row.recruiterId || row.recruiter_id || null,
+          name: String(row.name || row.Name || ''),
+          email: String(row.email || row.Email || ''),
+          phone: row.phone || row.Phone ? String(row.phone || row.Phone) : null,
+          status: String(row.status || row.Status || 'Applied'),
+          positionId: row.positionId || row.position_id ? String(row.positionId || row.position_id) : null,
+          recruiterId: row.recruiterId || row.recruiter_id ? String(row.recruiterId || row.recruiter_id) : null,
           fitScore: row.fitScore ? parseFloat(row.fitScore) : null,
           custom_attributes: safeJsonParse(row.custom_attributes, {}),
           parsedData: safeJsonParse(row.parsedData, null),
-          resumePath: row.resumePath || row.resume_path || null,
+          resumePath: row.resumePath || row.resume_path ? String(row.resumePath || row.resume_path) : null,
         }));
       } else {
         return new Response(JSON.stringify({ error: 'Unsupported file type. Please upload CSV or Excel files.' }), { status: 400, headers: handleCors(req) });
@@ -218,9 +218,7 @@ export async function POST(req: NextRequest) {
                 },
               });
 
-              console.log(`✅ Recruiter auto-assigned to imported candidate ${candidateId} from position ${candidate.positionId}`);
-              console.log(`   Recruiter: ${position.recruiter.name} (${position.recruiter.email})`);
-              
+         
               // Send notification to the assigned recruiter
               try {
                 await NotificationService.notifyCandidateAdded(
@@ -231,7 +229,7 @@ export async function POST(req: NextRequest) {
                   position.recruiterId,
                   user.id
                 );
-                console.log(`✅ Notification sent to recruiter ${position.recruiter.name} for imported candidate ${candidate.name}`);
+                // console.log(`✅ Notification sent to recruiter ${position.recruiter.name} for imported candidate ${candidate.name}`);
               } catch (notificationError) {
                 console.error('Failed to send candidate added notification:', notificationError);
                 // Don't fail the import if notification fails

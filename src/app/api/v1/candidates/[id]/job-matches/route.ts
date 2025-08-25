@@ -220,7 +220,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
-  console.log(`[JOB-MATCHES] PATCH request to: ${req.nextUrl.pathname}`);
+  // console.log(`[JOB-MATCHES] PATCH request to: ${req.nextUrl.pathname}`);
   const authHeader = req.headers.get('authorization');
   const token = authHeader?.split(' ')[1];
   const user = token ? await verifyApiToken(token) : null;
@@ -237,7 +237,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   
   try {
     body = await req.json();
-    console.log('[JOB-MATCHES] PATCH Request body:', JSON.stringify(body, null, 2));
+    // console.log('[JOB-MATCHES] PATCH Request body:', JSON.stringify(body, null, 2));
     body = normalizePayloadTypes(body);
   } catch (error) {
     console.error('[JOB-MATCHES] JSON parse error:', error);

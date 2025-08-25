@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
     // Auto-assign recruiters for assign_position action
     if (action === 'assign_position' && data?.positionId) {
       try {
-        console.log(`Bulk assigning position ${data.positionId} to ${candidateIds.length} candidates`);
+        // console.log(`Bulk assigning position ${data.positionId} to ${candidateIds.length} candidates`);
         
         // Get position with recruiter using Prisma
         const position = await prisma.position.findUnique({
@@ -114,12 +114,7 @@ export async function POST(req: NextRequest) {
           }
         });
 
-        console.log(`Position found:`, position ? { 
-          id: position.id, 
-          title: position.title, 
-          recruiterId: position.recruiterId, 
-          recruiter: position.recruiter 
-        } : 'null');
+   
 
         if (position && position.recruiterId && position.recruiter) {
           let syncCount = 0;
@@ -192,10 +187,7 @@ export async function POST(req: NextRequest) {
               // Don't fail the bulk action if sync fails
             }
           }
-          if (syncCount > 0) {
-            console.log(`✅ Recruiter auto-assigned to ${syncCount} candidates from position ${data.positionId}`);
-            console.log(`   Recruiter: ${position.recruiter.name} (${position.recruiter.email})`);
-          }
+         
         } else if (position && !position.recruiterId) {
           console.log(`⚠️ Position ${data.positionId} exists but has no recruiter assigned`);
         } else if (!position) {

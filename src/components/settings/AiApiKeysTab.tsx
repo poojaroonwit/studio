@@ -255,11 +255,7 @@ export default function AiApiKeysTab() {
     setShowDiagnostics(true);
     const hasPermission = await checkPermissions();
     
-    console.log('API Key Diagnostics:', {
-      hasPermission,
-      apiKeysCount: apiKeys.length,
-      stats
-    });
+  
     
     if (!hasPermission) {
       toast.error('You need SYSTEM_SETTINGS_MANAGE permission or Admin role to reorder API keys');

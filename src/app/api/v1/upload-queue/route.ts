@@ -190,7 +190,7 @@ export async function GET(request: NextRequest) {
       }, { status: 401 });
     }
 
-    console.log(`V1 Upload queue accessed by ${user.email}`);
+    // console.log(`V1 Upload queue accessed by ${user.email}`);
 
     // Parse query parameters
     const url = new URL(request.url);
@@ -296,12 +296,7 @@ export async function GET(request: NextRequest) {
         url: job.file_path ? `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${job.file_path}` : null,
       }));
 
-      console.log(`V1 Upload queue: Retrieved ${dataRes.rows.length} items for ${user.email}`, { 
-        limit, 
-        offset, 
-        totalCount: parseInt(countRes.rows[0].count, 10),
-        returnedCount: dataRes.rows.length 
-      });
+  
 
       return NextResponse.json({
         success: true,

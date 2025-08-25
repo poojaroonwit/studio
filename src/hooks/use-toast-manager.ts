@@ -52,7 +52,6 @@ export function useToastManager(options: ToastManagerOptions = {}) {
 
   const showToast = useCallback((message: string, type: 'success' | 'error' | 'loading' | 'info' = 'info', options?: ToastOptions) => {
     if (isDuplicate(message, type)) {
-      console.log(`Toast deduplicated: ${message} (${type})`);
       return;
     }
 

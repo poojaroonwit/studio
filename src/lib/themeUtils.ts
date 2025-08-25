@@ -331,4 +331,44 @@ export function initializeSidebarStyles() {
   setTimeout(() => {
     reapplyCurrentSidebarColors();
   }, 50);
+}
+
+// Function to apply sidebar background settings
+export function applySidebarBackgroundSettings(settings: {
+  sidebarBackgroundType?: string;
+  sidebarBackgroundImageUrl?: string;
+  sidebarBackgroundImageFit?: string;
+  sidebarBackgroundImagePosition?: string;
+}) {
+  if (typeof window === 'undefined') return;
+  
+  // Store settings in localStorage for persistence
+  if (settings.sidebarBackgroundType) {
+    localStorage.setItem('sidebarBackgroundType', settings.sidebarBackgroundType);
+  }
+  if (settings.sidebarBackgroundImageUrl) {
+    localStorage.setItem('sidebarBackgroundImageUrl', settings.sidebarBackgroundImageUrl);
+  }
+  if (settings.sidebarBackgroundImageFit) {
+    localStorage.setItem('sidebarBackgroundImageFit', settings.sidebarBackgroundImageFit);
+  }
+  if (settings.sidebarBackgroundImagePosition) {
+    localStorage.setItem('sidebarBackgroundImagePosition', settings.sidebarBackgroundImagePosition);
+  }
+  
+  // Update system settings for immediate access
+  if (typeof window !== "undefined" && window.__systemSettings) {
+    if (settings.sidebarBackgroundType) {
+      window.__systemSettings.sidebarBackgroundType = settings.sidebarBackgroundType;
+    }
+    if (settings.sidebarBackgroundImageUrl) {
+      window.__systemSettings.sidebarBackgroundImageUrl = settings.sidebarBackgroundImageUrl;
+    }
+    if (settings.sidebarBackgroundImageFit) {
+      window.__systemSettings.sidebarBackgroundImageFit = settings.sidebarBackgroundImageFit;
+    }
+    if (settings.sidebarBackgroundImagePosition) {
+      window.__systemSettings.sidebarBackgroundImagePosition = settings.sidebarBackgroundImagePosition;
+    }
+  }
 } 

@@ -61,6 +61,7 @@ export default function RolesPermissionsPage() {
   const { data: session, status: sessionStatus } = useSession();
   const router = useRouter();
   const pathname = usePathname();
+  const [showLogoOnly, setShowLogoOnly] = useState<boolean>(false);
 
   const [roles, setRoles] = useState<UserGroup[]>([]); // UserGroups are now "Roles"
   const [selectedRole, setSelectedRole] = useState<UserGroup | null>(null);
@@ -118,6 +119,24 @@ export default function RolesPermissionsPage() {
       toast.error(fetchError);
     }
   }, [fetchError]);
+
+  // Fetch showLogoOnly setting
+  useEffect(() => {
+    if (sessionStatus === 'authenticated') {
+      const fetchShowLogoOnly = async () => {
+        try {
+          const response = await fetch('/api/settings/system-settings');
+          if (response.ok) {
+            const data = await response.json();
+            setShowLogoOnly(data.showLogoOnly === 'true' || data.showLogoOnly === true);
+          }
+        } catch (error) {
+          console.error('Error fetching showLogoOnly setting:', error);
+        }
+      };
+      fetchShowLogoOnly();
+    }
+  }, [sessionStatus]);
 
   const handleSelectRole = (role: UserGroup) => {
     setSelectedRole(role);
@@ -199,7 +218,9 @@ export default function RolesPermissionsPage() {
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Roles & Permissions</h1>
+          {!showLogoOnly && (
+            <h1 className="text-2xl font-bold text-foreground">Roles & Permissions</h1>
+          )}
           <p className="text-muted-foreground">Manage user roles and their associated permissions</p>
         </div>
         <Button onClick={() => handleOpenModal()} variant="default">

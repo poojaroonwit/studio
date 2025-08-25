@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     const actingUserId = session.user.id;
     const actingUserName = session.user.name || 'Unknown User';
 
-    console.log(`🔍 Triggering warning check for ${entityType || 'all'} ${entityId || 'entities'}`);
+    // Triggering warning check
 
     if (checkAll) {
       // Check all entities for warnings

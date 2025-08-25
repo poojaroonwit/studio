@@ -59,6 +59,7 @@ type CandidateSourceFormValues = z.infer<typeof candidateSourceFormSchema>;
 
 export default function CandidateSourcesPage() {
   const { data: session, status: sessionStatus } = useSession();
+  const [showLogoOnly, setShowLogoOnly] = useState<boolean>(false);
   const router = useRouter();
 
   const [sources, setSources] = useState<CandidateSource[]>([]);
@@ -108,6 +109,24 @@ export default function CandidateSourcesPage() {
       fetchSources();
     }
   }, [sessionStatus, fetchSources]);
+
+  // Fetch showLogoOnly setting
+  useEffect(() => {
+    if (sessionStatus === 'authenticated') {
+      const fetchShowLogoOnly = async () => {
+        try {
+          const response = await fetch('/api/settings/system-settings');
+          if (response.ok) {
+            const data = await response.json();
+            setShowLogoOnly(data.showLogoOnly === 'true' || data.showLogoOnly === true);
+          }
+        } catch (error) {
+          console.error('Error fetching showLogoOnly setting:', error);
+        }
+      };
+      fetchShowLogoOnly();
+    }
+  }, [sessionStatus]);
 
   const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -288,7 +307,9 @@ export default function CandidateSourcesPage() {
     <div className="container mx-auto px-4 py-8 space-y-8">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Candidate Sources</h1>
+          {!showLogoOnly && (
+            <h1 className="text-3xl font-bold tracking-tight">Candidate Sources</h1>
+          )}
           <p className="text-muted-foreground mt-2">
             Manage candidate source options and settings for tracking where candidates come from.
           </p>

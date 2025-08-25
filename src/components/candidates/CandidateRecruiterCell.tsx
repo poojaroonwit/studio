@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { RecruiterAvatarCompact } from '@/components/ui/recruiter-avatar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
 import { Check, ChevronDown, Loader2, User, UserPlus, UserX, Search, X } from 'lucide-react';
@@ -16,12 +17,14 @@ interface CandidateRecruiterCellProps {
       id: string;
       name: string;
       avatarUrl?: string;
+      personalColor?: string;
     } | null;
   };
   availableRecruiters: Array<{
     id: string;
     name: string;
     avatarUrl?: string;
+    personalColor?: string;
   }>;
   canManageCandidates: boolean;
   isAssigning: boolean;
@@ -117,12 +120,15 @@ export function CandidateRecruiterCell({
       <div className="flex items-center gap-2">
         {displayRecruiter?.name ? (
           <>
-            <Avatar className="h-6 w-6 rounded-full">
-              <AvatarImage src={displayRecruiter?.avatarUrl} />
-              <AvatarFallback className="text-xs font-medium rounded-full">
-                {displayRecruiter.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
-              </AvatarFallback>
-            </Avatar>
+            <RecruiterAvatarCompact
+              user={{
+                id: displayRecruiter.id,
+                name: displayRecruiter.name,
+                avatarUrl: displayRecruiter.avatarUrl,
+                personalColor: displayRecruiter.personalColor || undefined
+              }}
+              size="sm"
+            />
             <span className="text-sm font-medium text-foreground truncate">
               {displayRecruiter.name}
             </span>
@@ -167,12 +173,15 @@ export function CandidateRecruiterCell({
             </div>
           ) : displayRecruiter?.name ? (
             <div className="flex items-center gap-2 min-w-0">
-              <Avatar className="h-6 w-6 flex-shrink-0 rounded-full">
-                <AvatarImage src={displayRecruiter?.avatarUrl} />
-                <AvatarFallback className="text-xs font-medium rounded-full">
-                  {displayRecruiter.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
-                </AvatarFallback>
-              </Avatar>
+              <RecruiterAvatarCompact
+                user={{
+                  id: displayRecruiter.id,
+                  name: displayRecruiter.name,
+                  avatarUrl: displayRecruiter.avatarUrl,
+                  personalColor: displayRecruiter.personalColor || undefined
+                }}
+                size="sm"
+              />
               <span className="text-sm font-medium text-foreground truncate flex-1">
                 {displayRecruiter.name}
               </span>
@@ -251,12 +260,15 @@ export function CandidateRecruiterCell({
                   onClick={() => handleSelect(recruiter.id)}
                   className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-accent text-left"
                 >
-                  <Avatar className="h-6 w-6 rounded-full">
-                    <AvatarImage src={recruiter.avatarUrl} />
-                    <AvatarFallback className="text-xs font-medium rounded-full">
-                      {recruiter.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
-                    </AvatarFallback>
-                  </Avatar>
+                  <RecruiterAvatarCompact
+                    user={{
+                      id: recruiter.id,
+                      name: recruiter.name,
+                      avatarUrl: recruiter.avatarUrl,
+                      personalColor: recruiter.personalColor
+                    }}
+                    size="sm"
+                  />
                   <div className="flex flex-col flex-1">
                     <span className="text-sm font-medium">{recruiter.name}</span>
                     <span className="text-xs text-muted-foreground">Recruiter</span>

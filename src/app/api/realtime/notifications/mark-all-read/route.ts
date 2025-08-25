@@ -43,10 +43,6 @@ export async function POST(request: NextRequest) {
     }, { status: 401 });
   }
 
-  // Debug logging to identify UUID issues
-  console.log('🔍 Debug - Mark all notifications read request:');
-  console.log('  - actingUserId:', actingUserId, 'type:', typeof actingUserId);
-  console.log('  - actingUserName:', actingUserName);
 
   // Validate UUID before proceeding
   if (!validateUuid(actingUserId)) {

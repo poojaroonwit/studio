@@ -138,24 +138,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     
     if (!file || typeof file === 'string') {
       const availableFields = Array.from(formData.keys());
-      console.log(`[ATTACHMENTS] No valid file found. Available fields:`, availableFields);
+      // console.log(`[ATTACHMENTS] No valid file found. Available fields:`, availableFields);
       
       // Check if there are any files at all
       const allFiles = formData.getAll('attachment').concat(formData.getAll('attachments'));
       const validFiles = allFiles.filter(f => f instanceof File && f.size > 0);
       
       if (validFiles.length === 0) {
-        console.log(`[ATTACHMENTS] ERROR: Empty form field detected. This might be from an external client or automation tool.`);
-        console.log(`[ATTACHMENTS] Request details:`, {
-          url: req.nextUrl.toString(),
-          method: req.method,
-          userAgent: req.headers.get('user-agent'),
-          referer: req.headers.get('referer'),
-          origin: req.headers.get('origin'),
-          availableFields,
-          totalFiles: allFiles.length,
-          validFiles: validFiles.length
-        });
+       
         
         return handleApiError(req, createValidationError('Invalid input', { 
           attachment: [
@@ -279,7 +269,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 
   try {
-    console.log(`[ATTACHMENTS] Downloading file from URL: ${fileUrl}`);
+    // console.log(`[ATTACHMENTS] Downloading file from URL: ${fileUrl}`);
     
     // Download file from URL
     const { buffer, fileName, contentType } = await downloadFileFromUrl(fileUrl);

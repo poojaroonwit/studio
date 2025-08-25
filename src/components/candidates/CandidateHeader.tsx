@@ -31,6 +31,7 @@ interface CandidateHeaderProps {
   avatarUploading: boolean;
   avatarError: string | null;
   onAvatarUpload: (file: File) => void;
+  realtimeConnected?: boolean;
 }
 
 const getStatusBadgeVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
@@ -64,12 +65,25 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
   avatarInputRef,
   avatarUploading,
   avatarError,
-  onAvatarUpload
+  onAvatarUpload,
+  realtimeConnected
 }) => {
   const nameInfo = formatCandidateNameWithLang(candidate);
 
   return (
     <div className="bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-100/20 dark:from-slate-900 dark:via-slate-800/50 dark:to-slate-700/30 shadow-lg backdrop-blur-sm border-b border-border p-4 sticky top-0 z-50 pointer-events-auto">
+      {/* Realtime Status Indicator */}
+      {realtimeConnected !== undefined && (
+        <div className="flex items-center justify-end mb-2">
+          <div className="flex items-center space-x-2 text-xs">
+            <div className={`w-2 h-2 rounded-full ${realtimeConnected ? 'bg-green-500' : 'bg-red-500'}`} />
+            <span className="text-muted-foreground">
+              {realtimeConnected ? 'Live updates active' : 'Live updates disconnected'}
+            </span>
+          </div>
+        </div>
+      )}
+      
       <div className="grid grid-cols-1 lg:grid-cols-10 gap-6 relative">
         {/* Modal Close Button in header */}
         {isModal && typeof onClose === 'function' && (
@@ -95,11 +109,7 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
               <div className="relative group">
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5 rounded-full blur-xl group-hover:blur-2xl transition-all duration-300"></div>
                                  <Avatar 
-                   className="w-20 h-20 text-3xl relative ring-4 shadow-xl bg-gradient-to-br from-blue-100 to-indigo-200 dark:from-blue-900/30 dark:to-indigo-800/30"
-                   style={{
-                     '--tw-ring-color': '#3b82f6' + '80',
-                     '--tw-ring-opacity': '0.8'
-                   } as React.CSSProperties}
+                   className="w-20 h-20 text-3xl relative bg-gradient-to-br from-blue-100 to-indigo-200 dark:from-blue-900/30 dark:to-indigo-800/30"
                  >
                   {candidate.avatarUrl ? (
                     <AvatarImage src={candidate.avatarUrl} alt={nameInfo.name} className="object-cover object-top" />

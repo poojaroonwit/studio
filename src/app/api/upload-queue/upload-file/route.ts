@@ -404,13 +404,6 @@ export async function POST(request: NextRequest) {
     
     // Step 7: Log audit events
     const processingTime = Date.now() - startTime;
-    console.log(`Bulk file upload completed by ${actingUserName}`, {
-      totalFiles: files.length,
-      successfulUploads: successCount,
-      failedUploads: failureCount,
-      processingTimeMs: processingTime,
-      batchId: batch_id
-    });
 
     // Step 8: Webhooks disabled for simplicity
     // (Webhooks can be re-enabled later when external services are available)

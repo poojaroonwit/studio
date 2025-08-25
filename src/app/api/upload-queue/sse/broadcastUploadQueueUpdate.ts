@@ -66,7 +66,7 @@ export async function sendUploadQueueUpdate(controller: ReadableStreamDefaultCon
     const total = Number(countRes.rows[0]?.count) || 0;
     client.release();
     const data = JSON.stringify({ type: 'queue', data: res.rows, total, summary: safeSummary });
-    console.log(`[Broadcast] Sending update with summary:`, safeSummary);
+    // console.log(`[Broadcast] Sending update with summary:`, safeSummary);
     controller.enqueue(encoder.encode(`data: ${data}\n\n`));
   } catch (error) {
     const encoder = new TextEncoder();
@@ -84,10 +84,9 @@ export function broadcastUploadQueueUpdate() {
   // Create a copy of controllers to safely iterate over
   const controllersCopy = Array.from(uploadQueueControllers);
   
-  console.log(`[Broadcast] Broadcasting upload queue update to ${controllersCopy.length} clients`);
-  
+
   if (controllersCopy.length === 0) {
-    console.log('[Broadcast] No clients connected to receive updates');
+    // console.log('[Broadcast] No clients connected to receive updates');
     return;
   }
   

@@ -43,23 +43,22 @@ export const dynamic = 'force-dynamic';
  */
 export async function POST(request: NextRequest) {
   try {
-    console.log('Auto-close API endpoint called');
-    
+
     const session = await getServerSession(authOptions);
     if (!session?.user) {
-      console.log('Auto-close API: Unauthorized access attempt');
+      // console.log('Auto-close API: Unauthorized access attempt');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Check if user has admin permissions
     if (session.user.role !== 'Admin') {
-      console.log(`Auto-close API: Forbidden access attempt by ${session.user.name} (role: ${session.user.role})`);
+      // console.log(`Auto-close API: Forbidden access attempt by ${session.user.name} (role: ${session.user.role})`);
       return NextResponse.json({ 
         error: 'Forbidden - Admin permissions required' 
       }, { status: 403 });
     }
 
-    console.log(`Auto-close API: Starting auto-close check for user ${session.user.name}`);
+    // console.log(`Auto-close API: Starting auto-close check for user ${session.user.name}`);
 
     const results = await checkAndAutoCloseAllPositions(
       session.user.id,
@@ -71,7 +70,7 @@ export async function POST(request: NextRequest) {
     const errorCount = results.filter(r => r.action === 'error').length;
     const noActionCount = results.filter(r => r.action === 'none').length;
 
-    console.log(`Auto-close API: Completed. Processed: ${totalProcessed}, Closed: ${closedCount}, Errors: ${errorCount}, No Action: ${noActionCount}`);
+    // console.log(`Auto-close API: Completed. Processed: ${totalProcessed}, Closed: ${closedCount}, Errors: ${errorCount}, No Action: ${noActionCount}`);
 
     return NextResponse.json({
       message: `Auto-close check completed. Processed ${totalProcessed} positions, closed ${closedCount} positions.`,

@@ -118,11 +118,6 @@ export async function GET(request: NextRequest) {
 
   const validation = await validateUserSession(session);
   if (!validation.isValid) {
-    console.error(`Upload queue access attempted with invalid session by ${validation.userName || 'Unknown'}`, { 
-      invalidUserId: validation.userId,
-      sessionUser: validation.userName,
-      error: validation.error
-    });
     return NextResponse.json({ error: validation.error }, { status: 401 });
   }
 
@@ -242,12 +237,7 @@ export async function GET(request: NextRequest) {
       safeSummary.total = totalCount;
     }
 
-    console.log(`Upload queue accessed by ${actingUserName}. Retrieved ${dataRes.rows.length} items.`, { 
-      limit: safeLimit, 
-      offset: safeOffset, 
-      totalCount,
-      returnedCount: dataRes.rows.length 
-    });
+
 
     // Add url field to each job
     const jobsWithUrl = dataRes.rows.map(job => ({
@@ -261,11 +251,6 @@ export async function GET(request: NextRequest) {
       summary: safeSummary 
     });
   } catch (error) {
-    console.error(`Failed to fetch upload queue by ${actingUserName}. Error: ${(error as Error).message}`, { 
-      actingUserId,
-      actingUserName,
-      error: (error as Error).message
-    });
     
     // Return a more specific error for timeouts
     if ((error as any).code === '57014') { // PostgreSQL statement timeout
@@ -293,17 +278,11 @@ export async function POST(request: NextRequest) {
     (session.user.modulePermissions?.includes('UPLOAD_QUEUE_MANAGE') || false);
   
   if (!canManageUploadQueue) {
-    console.warn(`Forbidden attempt to add to upload queue by ${session.user.name || session.user.email || 'Unknown'}`);
     return NextResponse.json({ error: 'Forbidden: Insufficient permissions to manage upload queue' }, { status: 403 });
   }
 
   const validation = await validateUserSession(session);
   if (!validation.isValid) {
-    console.error(`Upload queue entry attempted with invalid session by ${validation.userName || 'Unknown'}`, { 
-      invalidUserId: validation.userId,
-      sessionUser: validation.userName,
-      error: validation.error
-    });
     return NextResponse.json({ error: validation.error }, { status: 401 });
   }
 
@@ -323,10 +302,8 @@ export async function POST(request: NextRequest) {
   if (!finalPositionId && webhook_payload && typeof webhook_payload === 'object' && webhook_payload.targetPositionId) {
     finalPositionId = webhook_payload.targetPositionId;
   }
-  console.log('Upload queue POST received:', data);
-  console.log('Parsed values:', { file_name, file_size, status, source, upload_id, file_path, position_id, applied_position_id, webhook_payload, finalPositionId });
+
   if (!file_path) {
-    console.warn(`Upload queue entry attempted without file_path by ${actingUserName}`, { data });
     return NextResponse.json({ error: 'file_path is required' }, { status: 400 });
   }
   
@@ -350,7 +327,6 @@ export async function POST(request: NextRequest) {
       } catch (insertError: any) {
         // If unique constraint violation, try to update the existing job instead
         if (insertError.code === '23505' && insertError.constraint === 'upload_queue_file_path_status_key') {
-          console.log(`[Reprocess] Unique constraint violation for file_path: ${file_path}, updating existing job`);
           
           // Update the existing job to be a reprocess job
           res = await client.query(
@@ -378,28 +354,19 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    console.log(`File '${file_name}' added to upload queue by ${actingUserName}`, { 
-      queueId: id,
-      fileName: file_name,
-      fileSize: file_size,
-      status,
-      source,
-      uploadId: upload_id,
-      filePath: file_path
-    });
+
 
     // Dispatch webhook for upload queue created event
     try {
       await dispatchWebhooks.uploadQueueCreated(res.rows[0]);
     } catch (webhookError) {
-      console.error('Failed to dispatch upload queue created webhook:', webhookError);
-      // Don't fail the request if webhook fails
+      // Failed to dispatch upload queue created webhook
     }
     // Broadcast SSE update for real-time updates
     try {
       broadcastUploadQueueUpdate();
     } catch (sseError) {
-      console.error('Failed to broadcast upload queue update via SSE:', sseError);
+      // Failed to broadcast upload queue update via SSE
     }
 
     // Automatically trigger processing of the queue (fire-and-forget)
@@ -414,19 +381,14 @@ export async function POST(request: NextRequest) {
           'x-api-key': process.env.PROCESSOR_API_KEY || '',
         },
       }).catch(autoProcessError => {
-        console.error('Failed to auto-trigger upload queue processing:', autoProcessError);
+        // Failed to auto-trigger upload queue processing
       });
     } catch (autoProcessError) {
-      console.error('Failed to auto-trigger upload queue processing:', autoProcessError);
+      // Failed to auto-trigger upload queue processing
     }
     
     return NextResponse.json(res.rows[0], { status: 201 });
   } catch (error) {
-    console.error(`Failed to add file '${file_name}' to upload queue by ${actingUserName}. Error: ${(error as Error).message}`, { 
-      fileName: file_name,
-      error: (error as Error).message 
-    });
-    console.error('Upload queue POST error:', error);
     return NextResponse.json({ 
       error: (error as Error).message || 'Internal server error',
       details: 'Failed to add file to upload queue'

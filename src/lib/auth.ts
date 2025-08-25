@@ -18,12 +18,6 @@ const isAzureADConfigured = () => {
   const hasClientSecret = process.env.AZURE_AD_CLIENT_SECRET && process.env.AZURE_AD_CLIENT_SECRET !== 'your_azure_ad_client_secret_value';
   const hasTenantId = process.env.AZURE_AD_TENANT_ID && process.env.AZURE_AD_TENANT_ID !== 'your_azure_ad_directory_tenant_id';
   
-  // Commented out to reduce log spam
-  // console.log('Checking Azure AD configuration:');
-  // console.log(' - AZURE_AD_CLIENT_ID:', hasClientId ? 'SET' : 'NOT SET');
-  // console.log(' - AZURE_AD_CLIENT_SECRET:', hasClientSecret ? 'SET' : 'NOT SET');
-  // console.log(' - AZURE_AD_TENANT_ID:', hasTenantId ? 'SET' : 'NOT SET');
-  // console.log('Azure AD is configured:', hasClientId && hasClientSecret && hasTenantId);
 
   return hasClientId && hasClientSecret && hasTenantId;
 };
@@ -135,11 +129,10 @@ export const authOptions: NextAuthOptions = {
           try {
             const result = await client.query('SELECT * FROM "User" WHERE email = $1', [credentials.email]);
             const user = result.rows[0];
-            // console.log('[AUTH DEBUG] User lookup result:', user);
-  
+          
             if (user && user.password) {
               const isValid = await bcrypt.compare(credentials.password, user.password);
-              // console.log('[AUTH DEBUG] bcrypt.compare result:', isValid);
+            
               if (isValid) {
                 // Fetch group permissions only
                 const groupPermissions = await getMergedUserPermissions(user.id) as PlatformModuleId[];
@@ -185,15 +178,15 @@ export const authOptions: NextAuthOptions = {
         }
         // If token.id is not a valid UUID (e.g., Azure AD providerAccountId), fetch the user by email or azure_oid
         if (typeof token.id === "string" && !validateUuid(token.id)) {
-          console.log('[JWT CALLBACK] Non-UUID token.id detected:', token.id, 'profile:', profile?.email);
+          // Non-UUID token.id detected
           const client = await getPool().connect();
           try {
             const oid = (profile as any)?.oid ?? (profile as any)?.sub ?? profile?.email;
-            console.log('[JWT CALLBACK] Looking up user with oid:', oid, 'email:', profile?.email);
+            // Looking up user with oid
             const res = await client.query('SELECT id FROM "User" WHERE email = $1 OR "azure_oid" = $2', [profile?.email, oid]);
             const dbUser = res.rows[0];
             if (dbUser) {
-              console.log('[JWT CALLBACK] Found user with UUID:', dbUser.id);
+              // Found user with UUID
               token.id = dbUser.id;
             } else {
               console.error('[JWT CALLBACK] No user found for oid:', oid, 'email:', profile?.email);

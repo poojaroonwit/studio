@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
       };
       
       await minioClient.setBucketPolicy(MINIO_BUCKET, JSON.stringify(policy));
-      console.log('[UPLOAD-IMAGE] Bucket policy set for public read access');
+      // console.log('[UPLOAD-IMAGE] Bucket policy set for public read access');
     } catch (minioError) {
       console.error('[UPLOAD-IMAGE] MinIO bucket error:', minioError);
       return NextResponse.json(
@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
       objectName = `profile-images/${timestamp}-${randomUUID()}.${extension}`;
     }
     
-    console.log('[UPLOAD-IMAGE] Uploading to MinIO:', objectName);
+    // console.log('[UPLOAD-IMAGE] Uploading to MinIO:', objectName);
 
     // Convert file to buffer and upload to MinIO
     const buffer = Buffer.from(await file.arrayBuffer());
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
 
     // Return the public URL with cache-busting parameter
     const publicUrl = `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${objectName}`;
-    console.log('[UPLOAD-IMAGE] File uploaded successfully:', publicUrl);
+    // console.log('[UPLOAD-IMAGE] File uploaded successfully:', publicUrl);
 
     // Create response with cache-busting headers
     const response = NextResponse.json({

@@ -297,7 +297,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           </SidebarContent>
         </Sidebar>
         <div className="flex-1 flex flex-col min-w-0">
-          <Header pageTitle={pageTitle} />
+          <Header pageTitle={pageTitle} showLogoOnly={showLogoOnly} />
           <main className="flex-1 overflow-auto p-0">
             {isLoading && <GlobalLoadingOverlay />}
             {children}

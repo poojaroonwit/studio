@@ -4,6 +4,7 @@ import React, { useState, useMemo, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { RecruiterAvatarCompact } from '@/components/ui/recruiter-avatar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
 import { Check, ChevronDown, Loader2, User, UserPlus, UserX, Search, X } from 'lucide-react';
@@ -117,12 +118,15 @@ export function RecruiterCell({
       <div className="flex items-center gap-2">
         {position.recruiterName ? (
           <>
-                         <Avatar className="h-6 w-6 rounded-full">
-              <AvatarImage src={currentRecruiter?.avatarUrl} />
-              <AvatarFallback className="text-xs font-medium rounded-full">
-                {position.recruiterName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
-              </AvatarFallback>
-            </Avatar>
+            <RecruiterAvatarCompact
+              user={{
+                id: currentRecruiter?.id || position.recruiterId || '',
+                name: position.recruiterName,
+                avatarUrl: currentRecruiter?.avatarUrl,
+                personalColor: currentRecruiter?.personalColor
+              }}
+              size="sm"
+            />
             <div className="flex flex-col min-w-0">
               <span className="text-sm font-medium text-foreground truncate">
                 {position.recruiterName}
@@ -174,12 +178,15 @@ export function RecruiterCell({
             </div>
           ) : position.recruiterName ? (
             <div className="flex items-center gap-2 min-w-0">
-                             <Avatar className="h-6 w-6 flex-shrink-0 rounded-full">
-                <AvatarImage src={currentRecruiter?.avatarUrl} />
-                <AvatarFallback className="text-xs font-medium rounded-full">
-                  {position.recruiterName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
-                </AvatarFallback>
-              </Avatar>
+              <RecruiterAvatarCompact
+                user={{
+                  id: currentRecruiter?.id || position.recruiterId || '',
+                  name: position.recruiterName,
+                  avatarUrl: currentRecruiter?.avatarUrl,
+                  personalColor: currentRecruiter?.personalColor
+                }}
+                size="sm"
+              />
               <div className="flex flex-col min-w-0 flex-1">
                 <span className="text-sm font-medium text-foreground truncate">
                   {position.recruiterName}
@@ -265,12 +272,15 @@ export function RecruiterCell({
                   onClick={() => handleSelect(recruiter.id)}
                   className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-accent text-left"
                 >
-                                 <Avatar className="h-6 w-6 rounded-full">
-                    <AvatarImage src={recruiter.avatarUrl} />
-                    <AvatarFallback className="text-xs font-medium rounded-full">
-                      {recruiter.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
-                    </AvatarFallback>
-                  </Avatar>
+                  <RecruiterAvatarCompact
+                    user={{
+                      id: recruiter.id,
+                      name: recruiter.name,
+                      avatarUrl: recruiter.avatarUrl,
+                      personalColor: recruiter.personalColor
+                    }}
+                    size="sm"
+                  />
                   <div className="flex flex-col flex-1">
                     <span className="text-sm font-medium">{recruiter.name}</span>
                     <span className="text-xs text-muted-foreground">

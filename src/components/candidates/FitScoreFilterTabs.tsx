@@ -113,7 +113,7 @@ export function FitScoreFilterTabs({
       <div className="flex w-full border-b border-border/50">
         <div
           onClick={() => {
-            console.log('🔍 FITSCORE TAB DEBUG: All tab clicked');
+            // FITSCORE TAB DEBUG: All tab clicked
             // Clear all selections to show "All"
             safeOnClearAll();
           }}
@@ -130,17 +130,14 @@ export function FitScoreFilterTabs({
           <div
             key={grade.letter}
             onClick={() => {
-              console.log('🔍 FITSCORE TAB DEBUG: Grade clicked:', grade.letter, 'filterMode:', filterMode);
               if (filterMode === 'single') {
                 // In single mode, clear all other selections first
                 safeSelectedGrades.forEach(selectedGrade => {
                   if (selectedGrade !== grade.letter) {
-                    console.log('🔍 FITSCORE TAB DEBUG: Clearing other selection:', selectedGrade);
                     safeOnGradeToggle(selectedGrade);
                   }
                 });
               }
-              console.log('🔍 FITSCORE TAB DEBUG: Calling onGradeToggle for:', grade.letter);
               safeOnGradeToggle(grade.letter);
             }}
             className={cn(
@@ -155,17 +152,14 @@ export function FitScoreFilterTabs({
         ))}
         <div
           onClick={() => {
-            console.log('🔍 FITSCORE TAB DEBUG: No Score tab clicked');
             if (filterMode === 'single') {
               // In single mode, clear all other selections first
               safeSelectedGrades.forEach(selectedGrade => {
                 if (selectedGrade !== 'no-score') {
-                  console.log('🔍 FITSCORE TAB DEBUG: Clearing other selection for no-score:', selectedGrade);
                   safeOnGradeToggle(selectedGrade);
                 }
               });
             }
-            console.log('🔍 FITSCORE TAB DEBUG: Calling onGradeToggle for no-score');
             safeOnGradeToggle('no-score');
           }}
           className={cn(

@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { Users, UserCheck, UserX, User, Search, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { RecruiterAvatarCompact } from '@/components/ui/recruiter-avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 
@@ -201,28 +202,32 @@ export function RecruiterFilterSidebar({
                       onClick={() => onRecruiterSelect(recruiterId)}
                     >
                       <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div 
-                          className={cn(
-                            "rounded-full transition-colors shrink-0 border-4",
-                            isActive 
-                              ? "bg-muted/20"
-                              : "bg-muted/20 group-hover:bg-muted/30"
-                          )}
-                          style={{
-                            borderColor: isActive ? recruiterColor : 'transparent'
-                          }}
-                        >
-                          {recruiterAvatar ? (
-                            <Avatar className="h-10 w-10 rounded-full">
-                              <AvatarImage src={recruiterAvatar} alt={recruiterName} className="rounded-full" />
-                              <AvatarFallback className="text-sm font-medium rounded-full">
-                                {recruiterName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
-                              </AvatarFallback>
-                            </Avatar>
-                          ) : (
+                        {recruiterAvatar ? (
+                          <RecruiterAvatarCompact
+                            user={{
+                              id: recruiterId,
+                              name: recruiterName,
+                              avatarUrl: recruiterAvatar,
+                              personalColor: recruiterColor
+                            }}
+                            size="md"
+                            showBorder={isActive}
+                          />
+                        ) : (
+                          <div 
+                            className={cn(
+                              "rounded-full transition-colors shrink-0 border-4",
+                              isActive 
+                                ? "bg-muted/20"
+                                : "bg-muted/20 group-hover:bg-muted/30"
+                            )}
+                            style={{
+                              borderColor: isActive ? recruiterColor : 'transparent'
+                            }}
+                          >
                             <User className="h-10 w-10" />
-                          )}
-                        </div>
+                          </div>
+                        )}
                         <div className="flex-1 min-w-0">
                           <div className="mb-1">
                             <span className="truncate font-semibold text-base">{recruiterName}</span>

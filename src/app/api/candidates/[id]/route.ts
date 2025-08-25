@@ -115,8 +115,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     // Check cache first (implement Redis or in-memory cache in production)
     const cacheKey = `candidate:${id}:${session.user.id}`;
     
-    console.log(`[PERF] Starting candidate fetch for ID: ${id}`);
-    
+  
     // Optimized query with selective data fetching
     const candidateQuery = `
       SELECT 
@@ -138,8 +137,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const candidateStartTime = Date.now();
     const candidateResult = await client.query(candidateQuery, [id]);
     const candidateQueryTime = Date.now() - candidateStartTime;
-    console.log(`[PERF] Candidate query completed in ${candidateQueryTime}ms`);
-    
+ 
     if (candidateResult.rows.length === 0) {
       return NextResponse.json({ message: 'Candidate not found' }, { status: 404 });
     }
@@ -168,7 +166,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const jobMatchesStartTime = Date.now();
     const jobMatchesResult = await client.query(jobMatchesQuery, [id]);
     const jobMatchesQueryTime = Date.now() - jobMatchesStartTime;
-    console.log(`[PERF] Job matches query completed in ${jobMatchesQueryTime}ms`);
+    // console.log(`[PERF] Job matches query completed in ${jobMatchesQueryTime}ms`);
     const jobMatches = jobMatchesResult.rows || [];
 
     // Fetch recent attachments only (reduced limit for performance)
@@ -195,12 +193,11 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const attachmentsStartTime = Date.now();
     const attachmentsResult = await client.query(attachmentsQuery, [id]);
     const attachmentsQueryTime = Date.now() - attachmentsStartTime;
-    console.log(`[PERF] Attachments query completed in ${attachmentsQueryTime}ms`);
+    // console.log(`[PERF] Attachments query completed in ${attachmentsQueryTime}ms`);
     const attachments = attachmentsResult.rows || [];
 
     const totalTime = Date.now() - startTime;
-    console.log(`[PERF] Total candidate fetch completed in ${totalTime}ms for ID: ${id}`);
-
+  
     const responseData = {
       ...candidate,
       fitScore: normalizeFitScore(candidate.fitScore),
@@ -491,9 +488,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     `;
     updateValues.push(id);
 
-    console.log('Update query:', updateQuery);
-    console.log('Update values:', updateValues);
-
+  
     const updateResult = await client.query(updateQuery, updateValues);
     
     // Fetch updated candidate with source information
@@ -564,14 +559,14 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW(), NOW());
       `;
       try {
-        console.log('Creating transition record:', {
-          transitionId: newTransitionId,
-          candidateId: id,
-          positionId: safePositionId,
-          stage: status,
-          notes: transitionMessage,
-          actingUserId
-        });
+        // console.log('Creating transition record:', {
+        //   transitionId: newTransitionId,
+        //   candidateId: id,
+        //   positionId: safePositionId,
+        //   stage: status,
+        //   notes: transitionMessage,
+        //   actingUserId
+        // });
         
         await client.query(insertTransitionQuery, [
           newTransitionId, id, safePositionId, status, transitionMessage, actingUserId
@@ -770,9 +765,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     
     // Broadcast update with safe candidate data
     broadcastCandidateUpdate({ ...candidate, customAttributes }, actingUserId);
-    
-    console.log('Successfully updated candidate:', id, 'new status:', status ?? existingCandidate.status);
-    
+  
     return NextResponse.json({
       ...candidate,
       assignmentJustification: candidate.assignmentJustification || null,

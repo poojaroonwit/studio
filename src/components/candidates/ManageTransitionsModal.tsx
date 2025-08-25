@@ -124,19 +124,15 @@ export function ManageTransitionsModal({
         return;
     }
     
-    console.log('Form submitted with data:', data);
-    console.log('Candidate:', candidate);
-    console.log('onUpdateCandidate function exists:', !!onUpdateCandidate);
-    console.log('onOpenChange function exists:', !!onOpenChange);
-    
+
     setIsSaving(true);
     try {
-        console.log('Starting transition update:', { candidateId: candidate.id, newStatus: data.newStatus, notes: trimmedNotes });
+        // console.log('Starting transition update:', { candidateId: candidate.id, newStatus: data.newStatus, notes: trimmedNotes });
         
         // Call the onUpdateCandidate function
         if (onUpdateCandidate) {
             await onUpdateCandidate(candidate.id, data.newStatus, trimmedNotes, true);
-            console.log('Transition update completed successfully');
+            // console.log('Transition update completed successfully');
         } else {
             console.error('onUpdateCandidate function is not provided');
             throw new Error('Update function not available');
@@ -148,46 +144,46 @@ export function ManageTransitionsModal({
         setIsSaving(false);
         
         // Refresh data and comments
-        console.log('Refreshing candidate data...');
+        // console.log('Refreshing candidate data...');
         if (onRefreshCandidateData) {
             await onRefreshCandidateData(candidate.id);
-            console.log('Candidate data refreshed successfully');
+            // console.log('Candidate data refreshed successfully');
         } else {
             console.warn('onRefreshCandidateData function is not provided');
         }
         
-        console.log('Refreshing comments...');
+        // console.log('Refreshing comments...');
         if (onCommentsChange) {
             onCommentsChange();
-            console.log('Comments refreshed successfully');
+            // console.log('Comments refreshed successfully');
         } else {
             console.warn('onCommentsChange function is not provided');
         }
         
         // Show success message and close modal
         toast.success("Candidate details updated successfully.");
-        console.log('Attempting to close modal with onOpenChange...');
+        // console.log('Attempting to close modal with onOpenChange...');
         
         try {
             // Try multiple approaches to close the modal
-            console.log('Calling onOpenChange(false) to close modal');
+            // console.log('Calling onOpenChange(false) to close modal');
             onOpenChange(false); // Close modal on success
-            console.log('onOpenChange called');
+            // console.log('onOpenChange called');
             
             // Force a small delay and try again
             setTimeout(() => {
                 try {
-                    console.log('Trying to close modal again after timeout');
+                    
                     if (onOpenChange) {
                         onOpenChange(false);
-                        console.log('onOpenChange called again');
+                       
                     }
                     
                     // Force the modal closed by manipulating DOM (last resort)
                     const closeButtons = document.querySelectorAll('[aria-label="Close"]');
-                    console.log('Found close buttons:', closeButtons.length);
+                   
                     if (closeButtons.length > 0) {
-                        console.log('Clicking close button');
+                      
                         (closeButtons[0] as HTMLElement).click();
                     }
                 } catch (closeError) {
@@ -275,10 +271,10 @@ export function ManageTransitionsModal({
       <Dialog 
         open={isOpen} 
         onOpenChange={(open) => {
-          console.log('Dialog onOpenChange called with:', open);
+       
           onOpenChange(open);
           if (!open) {
-            console.log('Dialog closing, resetting state');
+           
             setEditingTransitionId(null);
             setStatusSearchQuery('');
           }
@@ -331,13 +327,13 @@ export function ManageTransitionsModal({
               variant="default" 
               disabled={isSaving}
               onClick={async () => {
-                console.log('Save button clicked directly');
+                // console.log('Save button clicked directly');
                 const formValues = form.getValues();
-                console.log('Form values:', formValues);
+                // console.log('Form values:', formValues);
                 
                 // Manually trigger validation
                 const isValid = await form.trigger();
-                console.log('Form validation result:', isValid);
+                // console.log('Form validation result:', isValid);
                 
                 if (isValid) {
                   // Manually call the submit handler

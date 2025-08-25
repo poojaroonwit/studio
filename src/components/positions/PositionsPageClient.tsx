@@ -347,21 +347,6 @@ export default function PositionsPageClient() {
   // Calculate total pages for pagination
   const totalPages = Math.ceil(total / pageSize);
   
-  // Debug pagination state
-  if (typeof window !== 'undefined') {
-    console.log('Pagination State:', {
-      total,
-      pageSize,
-      totalPages,
-      page,
-      positionsLength: positions.length,
-      shouldShowPagination: total > 0 || totalPages > 0
-    });
-  }
-  
-
-  
-
 
   // Auto-reset search state if stuck for too long
   useEffect(() => {
@@ -485,6 +470,7 @@ export default function PositionsPageClient() {
       query.append('offset', String(((customPage ?? filters.page) - 1) * filters.pageSize));
       query.append('includeStats', 'true'); // Include statistics in the same call
       query.append('includeCandidateStats', 'true'); // Include candidate statistics for each position
+      query.append('includeHeadcount', 'true'); // Include headcount data in the same call
       
       const url = `/api/positions?${query.toString()}`;
   
@@ -497,21 +483,24 @@ export default function PositionsPageClient() {
       const data = await response.json();
       const positionsData = data.data || [];
       
-      // Debug API response
-      console.log('API Response for pagination:', {
-        data,
-        positionsData,
-        total: data.total,
-        responseStatus: response.status
-      });
+     
       
       setPositions(positionsData);
       setTotal(data.total || 0);
       
-      // Fetch headcount data for the loaded positions
+      // Process headcount data from the API response
       if (positionsData.length > 0) {
-        const positionIds = positionsData.map((p: Position) => p.id);
-        fetchHeadcountData(positionIds);
+        const headcountMap: { [positionId: string]: { total: number; vacant: number; filled: number } } = {};
+        positionsData.forEach((position: Position & { headcountData?: any }) => {
+          if (position.headcountData) {
+            headcountMap[position.id] = {
+              total: position.headcountData.total || 0,
+              vacant: position.headcountData.vacant || 0,
+              filled: position.headcountData.filled || 0
+            };
+          }
+        });
+        setHeadcountData(headcountMap);
       }
         
         // Update statistics if included in response
@@ -534,42 +523,7 @@ export default function PositionsPageClient() {
     }
   }, []); // Remove selectedRecruiterId dependency to prevent circular dependency
 
-  // Fetch headcount data for positions
-  const fetchHeadcountData = useCallback(async (positionIds: string[]) => {
-    if (positionIds.length === 0) return;
-    
-    setIsLoadingHeadcount(true);
-    try {
-      const headcountPromises = positionIds.map(async (positionId) => {
-        const response = await fetch(`/api/headcount?positionId=${positionId}`);
-        if (response.ok) {
-          const headcounts = await response.json();
-          const total = headcounts.length;
-          const vacant = headcounts.filter((h: any) => h.status === 'vacant').length;
-          const filled = headcounts.filter((h: any) => h.status === 'filled').length;
-          return { positionId, total, vacant, filled };
-        }
-        return { positionId, total: 0, vacant: 0, filled: 0 };
-      });
 
-      const results = await Promise.all(headcountPromises);
-      const headcountMap: { [positionId: string]: { total: number; vacant: number; filled: number } } = {};
-      
-      results.forEach(result => {
-        headcountMap[result.positionId] = {
-          total: result.total,
-          vacant: result.vacant,
-          filled: result.filled
-        };
-      });
-
-      setHeadcountData(headcountMap);
-    } catch (error) {
-      console.error('Error fetching headcount data:', error);
-    } finally {
-      setIsLoadingHeadcount(false);
-    }
-  }, []);
 
   // Calculate vacant headcount from open positions
   useEffect(() => {

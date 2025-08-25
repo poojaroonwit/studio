@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
-import { UserAvatarCompact } from '@/components/ui/user-avatar';
+import { CandidateAvatarCompact } from '@/components/ui/candidate-avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, FileEdit, Trash2, Eye, Users, UploadCloud, Briefcase, MoreVertical, ChevronUp, ChevronDown } from 'lucide-react';
 import { formatScoreWithGrade, getScoreColor, getScoreBgColor } from "@/lib/scoreUtils";
@@ -335,7 +335,7 @@ export function CandidateTable({
     try {
       onAssignRecruiter(candidateId, recruiterId);
     } catch (error) {
-      console.error('Error assigning recruiter:', error);
+      // Error assigning recruiter
     } finally {
       // Reset after a short delay to allow for UI updates
       setTimeout(() => {
@@ -351,7 +351,7 @@ export function CandidateTable({
     try {
       await onAssignSource(candidateId, sourceId, subSource);
     } catch (error) {
-      console.error('Failed to assign source:', error);
+      // Failed to assign source
     } finally {
       // Reset after a short delay to allow for UI updates
       setTimeout(() => {
@@ -675,14 +675,12 @@ export function CandidateTable({
                 try {
                   displayDate = format(parseISO(dateValue), "MMM d, yyyy");
                 } catch (e) {
-                  console.error("Failed to parse date for candidate " + candidate.id + ": " + dateValue, e);
                   displayDate = 'Invalid Date';
                 }
               } else if (dateValue) {
                 try {
                   displayDate = format(new Date(dateValue as any), "MMM d, yyyy");
                 } catch (e) {
-                   console.error("Failed to format non-string date for candidate " + candidate.id + ": " + dateValue, e);
                    displayDate = 'Invalid Date';
                 }
               }
@@ -706,7 +704,7 @@ export function CandidateTable({
                           const nameInfo = formatCandidateNameWithLang(candidate);
                           return (
                             <>
-                              <UserAvatarCompact
+                              <CandidateAvatarCompact
                                 user={{
                                   id: candidate.id,
                                   name: nameInfo.name,
@@ -714,7 +712,7 @@ export function CandidateTable({
                                   email: candidate.email
                                 }}
                                 size="lg"
-                                className="border-2 border-border"
+                                className=""
                               />
                               <div className="min-w-0 flex-1">
                                 <Link href={`/candidates/${candidate.id}`} passHref>
@@ -901,7 +899,7 @@ export function CandidateTable({
                                   const isValidId = candidate.id && uuidSchema.safeParse(candidate.id).success;
                                   return (
                                     <>
-                                      <UserAvatarCompact
+                                      <CandidateAvatarCompact
                                         user={{
                                           id: candidate.id,
                                           name: nameInfo.name,
@@ -909,7 +907,7 @@ export function CandidateTable({
                                           email: candidate.email
                                         }}
                                         size="lg"
-                                        className="border-2 border-border"
+                                        className=""
                                       />
                                       <div>
                                         {isValidId ? (

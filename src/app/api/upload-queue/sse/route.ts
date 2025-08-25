@@ -109,14 +109,12 @@ export async function GET(request: NextRequest) {
   const limit = parseInt(url.searchParams.get('limit') || '20', 10);
   const offset = parseInt(url.searchParams.get('offset') || '0', 10);
 
-  console.log('[SSE] New client connected to upload queue SSE');
-
+ 
   const stream = new ReadableStream({
     async start(controller) {
       let isClosed = false;
       uploadQueueControllers.add(controller);
-      console.log(`[SSE] Client added to controllers. Total clients: ${uploadQueueControllers.size}`);
-      
+ 
       // Send initial data
       await sendUploadQueueUpdate(controller, { fileName, status, dateStart, dateEnd, positionId, limit, offset });
       
@@ -139,7 +137,7 @@ export async function GET(request: NextRequest) {
         isClosed = true;
         clearInterval(keepaliveInterval);
         uploadQueueControllers.delete(controller);
-        console.log(`[SSE] Client disconnected. Remaining clients: ${uploadQueueControllers.size}`);
+        // console.log(`[SSE] Client disconnected. Remaining clients: ${uploadQueueControllers.size}`);
         try { controller.close(); } catch {}
       });
     }

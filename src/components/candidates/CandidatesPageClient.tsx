@@ -39,6 +39,7 @@ import { FitScoreFilterTabs } from './FitScoreFilterTabs';
 import { CandidateSettingsDrawer } from './CandidateSettingsDrawer';
 import { useDynamicHeight } from '@/hooks/use-dynamic-height';
 import { useCandidateSettings } from '@/hooks/use-candidate-settings';
+import { useRealtimeCollaboration } from '@/hooks/use-realtime-collaboration';
 
 // Import our new hooks
 import { useCandidateFilters } from './hooks/use-candidate-filters';
@@ -237,6 +238,57 @@ export function CandidatesPageClient({
     aiMatchedCandidateIds
   });
 
+  // Real-time collaboration hook
+  const { isConnected: realtimeConnected, isReconnecting, reconnectAttempts } = useRealtimeCollaboration({
+    onCandidateUpdate: (updatedCandidate) => {
+      setFilteredCandidates(prevCandidates => {
+        const existingIndex = prevCandidates.findIndex(c => c.id === updatedCandidate.id);
+        if (existingIndex !== -1) {
+          const updated = [...prevCandidates];
+          updated[existingIndex] = { ...updated[existingIndex], ...updatedCandidate };
+          return updated;
+        } else {
+          return [...prevCandidates, updatedCandidate];
+        }
+      });
+      
+      setAllCandidatesForCounts(prevCandidates => {
+        const existingIndex = prevCandidates.findIndex(c => c.id === updatedCandidate.id);
+        if (existingIndex !== -1) {
+          const updated = [...prevCandidates];
+          updated[existingIndex] = { ...updated[existingIndex], ...updatedCandidate };
+          return updated;
+        } else {
+          return [...prevCandidates, updatedCandidate];
+        }
+      });
+    },
+    onTransitionUpdate: (transition) => {
+      setFilteredCandidates(prevCandidates => {
+        return prevCandidates.map(candidate => {
+          if (candidate.id === transition.candidateId) {
+            return { ...candidate, status: transition.stage };
+          }
+          return candidate;
+        });
+      });
+      
+      setAllCandidatesForCounts(prevCandidates => {
+        return prevCandidates.map(candidate => {
+          if (candidate.id === transition.candidateId) {
+            return { ...candidate, status: transition.stage };
+          }
+          return candidate;
+        });
+      });
+    },
+    onRecruitmentStagesUpdate: (updatedStages) => {
+      setAvailableStages(updatedStages);
+    },
+    showNotifications: true,
+    showErrorNotifications: false // Disable error toast notifications
+  });
+
   // Bulk action handlers
   const handleBulkDelete = useCallback(async (candidateIds: string[]) => {
     try {
@@ -408,10 +460,7 @@ export function CandidatesPageClient({
     // 2. The current total is 0 (meaning no valid total from main table fetch)
     // 3. We're not currently clearing filters (to avoid race conditions)
     if (allCandidatesForCounts.length > 0 && total === 0 && !isClearingFilters) {
-      console.log('🔍 TOTAL DEBUG: Updating total from allCandidatesForCounts (fallback):', allCandidatesForCounts.length);
       setTotal(allCandidatesForCounts.length);
-    } else {
-      console.log('🔍 TOTAL DEBUG: allCandidatesForCounts length:', allCandidatesForCounts.length, 'current total:', total, 'isClearingFilters:', isClearingFilters);
     }
   }, [allCandidatesForCounts, total, isClearingFilters]);
   */
@@ -757,41 +806,28 @@ export function CandidatesPageClient({
 
   // Apply horizontal filters when selections change
   useEffect(() => {
-    console.log('🔍 HORIZONTAL FILTER DEBUG: useEffect triggered', {
-      horizontalSelectedFitScoreGrades: Array.from(horizontalSelectedFitScoreGrades),
-      horizontalSelectedMatchingFitScoreGrades: Array.from(horizontalSelectedMatchingFitScoreGrades),
-      isClearingFilters,
-      hasInitialDataFetch
-    });
-
     // Skip if we're currently clearing filters to prevent conflicts
     if (isClearingFilters) {
-      console.log('🔍 HORIZONTAL FILTER DEBUG: Skipping due to isClearingFilters');
       return;
     }
     
     // Skip if we haven't completed initial data fetch yet
     if (!hasInitialDataFetch) {
-      console.log('🔍 HORIZONTAL FILTER DEBUG: Skipping due to !hasInitialDataFetch');
       return;
     }
     
     // Only apply horizontal filters if there are selections
     if (horizontalSelectedFitScoreGrades.size > 0 || horizontalSelectedMatchingFitScoreGrades.size > 0) {
-      console.log('🔍 HORIZONTAL FILTER DEBUG: Applying horizontal filters');
       const horizontalFilters = applyHorizontalFitScoreFilters();
-      console.log('🔍 HORIZONTAL FILTER DEBUG: Generated horizontal filters:', horizontalFilters);
       
       // Check if horizontal filters have any actual values
       const hasValidFilters = Object.values(horizontalFilters).some(value => value !== undefined);
-      console.log('🔍 HORIZONTAL FILTER DEBUG: hasValidFilters:', hasValidFilters);
       
       if (hasValidFilters) {
         const newFilters = {
           ...currentFiltersRef.current,
           ...horizontalFilters
         };
-        console.log('🔍 HORIZONTAL FILTER DEBUG: Setting new filters:', newFilters);
         setFilters(newFilters);
         setPage(1);
         debouncedFetchTableData(newFilters, 1, pageSize);
@@ -805,7 +841,6 @@ export function CandidatesPageClient({
           minMatchingJobFitScore: undefined,
           maxMatchingJobFitScore: undefined,
         };
-        console.log('🔍 HORIZONTAL FILTER DEBUG: Clearing fit score filters:', newFilters);
         setFilters(newFilters);
         debouncedFetchTableData(newFilters, page, pageSize);
         fetchAllCandidatesForCounts(newFilters); // Update counts data when clearing fit score filters
@@ -819,7 +854,6 @@ export function CandidatesPageClient({
         minMatchingJobFitScore: undefined,
         maxMatchingJobFitScore: undefined,
       };
-      console.log('🔍 HORIZONTAL FILTER DEBUG: No horizontal selections, clearing fit score filters:', newFilters);
       setFilters(newFilters);
       debouncedFetchTableData(newFilters, page, pageSize);
       fetchAllCandidatesForCounts(newFilters); // Update counts data when clearing all fit score filters
@@ -1150,6 +1184,24 @@ export function CandidatesPageClient({
   return (
     <>
       <div className="flex flex-col h-full">
+        {/* Realtime Status Indicator */}
+        <div className="flex items-center justify-between px-4 py-2 bg-muted/50 border-b text-xs">
+          <div className="flex items-center space-x-2">
+            <div className={cn(
+              "w-2 h-2 rounded-full",
+              realtimeConnected ? "bg-green-500" : isReconnecting ? "bg-yellow-500" : "bg-red-500"
+            )} />
+            <span className="text-muted-foreground">
+              {realtimeConnected ? "Live updates connected" : isReconnecting ? `Reconnecting... (${reconnectAttempts})` : "Live updates disconnected"}
+            </span>
+          </div>
+          {realtimeConnected && (
+            <span className="text-muted-foreground">
+              Real-time collaboration active
+            </span>
+          )}
+        </div>
+        
         {/* Main Content */}
         <div className="flex-1 flex overflow-hidden">
           {/* Filters Sidebar */}

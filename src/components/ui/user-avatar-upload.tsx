@@ -143,15 +143,19 @@ export function UserAvatarUpload({
           <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5 rounded-full blur-xl group-hover:blur-2xl transition-all duration-300"></div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Avatar 
-                className={cn(
-                  'relative ring-4 ring-background/80 shadow-xl bg-gradient-to-br from-blue-100 to-indigo-200 dark:from-blue-900/30 dark:to-indigo-800/30 cursor-pointer',
-                  sizeClasses[size]
-                )}
-                style={{ pointerEvents: disabled || isUploading ? 'none' : 'auto' }}
-              >
+                             <Avatar 
+                 className={cn(
+                   'relative ring-4 shadow-xl bg-gradient-to-br from-blue-100 to-indigo-200 dark:from-blue-900/30 dark:to-indigo-800/30 cursor-pointer',
+                   sizeClasses[size]
+                 )}
+                 style={{ 
+                   pointerEvents: disabled || isUploading ? 'none' : 'auto',
+                   '--tw-ring-color': '#3b82f6' + '80',
+                   '--tw-ring-opacity': '0.8'
+                 } as React.CSSProperties}
+               >
                 {displayImageUrl ? (
-                  <AvatarImage src={displayImageUrl || undefined} alt={user.name} className="object-cover" />
+                  <AvatarImage src={displayImageUrl || undefined} alt={user.name} className="object-cover object-top" />
                 ) : (
                   <AvatarFallback className="bg-gradient-to-br from-blue-500/20 to-indigo-600/20 text-blue-700 dark:text-blue-300 font-bold">
                     {initials}

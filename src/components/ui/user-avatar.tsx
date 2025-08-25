@@ -72,17 +72,21 @@ export function UserAvatar({
       <Avatar 
         className={cn(
           sizeClasses[size],
-          'relative ring-4 ring-background/80 shadow-xl bg-gradient-to-br from-blue-100 to-indigo-200 dark:from-blue-900/30 dark:to-indigo-800/30',
-          'group-hover:shadow-2xl group-hover:ring-primary/20 transition-all duration-300',
+          'relative ring-4 shadow-xl bg-gradient-to-br from-blue-100 to-indigo-200 dark:from-blue-900/30 dark:to-indigo-800/30',
+          'group-hover:shadow-2xl transition-all duration-300',
           className
         )}
+        style={{
+          '--tw-ring-color': personalColor + '80',
+          '--tw-ring-opacity': '0.8'
+        } as React.CSSProperties}
         title={tooltipText}
       >
         {cacheBustedImageUrl ? (
           <AvatarImage 
             src={cacheBustedImageUrl} 
             alt={user.name}
-            className="object-cover"
+            className="object-cover object-top"
             key={`${user.id}-${refreshTrigger}`} // Force re-render on refresh
           />
         ) : null}
@@ -140,17 +144,21 @@ export function UserAvatarLarge({ user, className }: UserAvatarProps) {
       <Avatar 
         className={cn(
           'h-16 w-16',
-          'relative ring-4 ring-background/80 shadow-xl bg-gradient-to-br from-blue-100 to-indigo-200 dark:from-blue-900/30 dark:to-indigo-800/30',
-          'group-hover:shadow-2xl group-hover:ring-primary/20 transition-all duration-300',
+          'relative ring-4 shadow-xl bg-gradient-to-br from-blue-100 to-indigo-200 dark:from-blue-900/30 dark:to-indigo-800/30',
+          'group-hover:shadow-2xl transition-all duration-300',
           className
         )}
+        style={{
+          '--tw-ring-color': personalColor + '80',
+          '--tw-ring-opacity': '0.8'
+        } as React.CSSProperties}
         title={tooltipText}
       >
         {cacheBustedImageUrl ? (
           <AvatarImage 
             src={cacheBustedImageUrl} 
             alt={user.name}
-            className="object-cover"
+            className="object-cover object-top"
           />
         ) : null}
         <AvatarFallback 

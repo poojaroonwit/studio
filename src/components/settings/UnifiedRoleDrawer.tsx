@@ -116,6 +116,10 @@ export function UnifiedRoleDrawer({
   const [isSavingRole, setIsSavingRole] = useState(false);
   const [currentPermissions, setCurrentPermissions] = useState<PlatformModuleId[]>([]);
 
+  // Calculate isAdminRole early to avoid scope issues
+  const isSystemRole = role?.is_system_role || false;
+  const isAdminRole = isSystemRole && role?.name === 'Admin';
+
   const form = useForm<RoleFormValues>({
     resolver: zodResolver(roleFormSchema),
     defaultValues: { name: '', description: '', is_default: false },
@@ -337,9 +341,6 @@ export function UnifiedRoleDrawer({
   };
 
   if (!role) return null;
-
-  const isSystemRole = role.is_system_role;
-  const isAdminRole = isSystemRole && role.name === 'Admin';
 
   return (
     <>

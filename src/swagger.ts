@@ -1,8 +1,17 @@
 // Comprehensive OpenAPI 3.0 specification for Studio API
 
 export function getSwaggerSpec() {
+  // Debug environment variables
+  console.log('🔍 Swagger Debug - Environment Variables:');
+  console.log('  PRODUCTION_HOST:', process.env.PRODUCTION_HOST);
+  console.log('  API_BASE_URL:', process.env.API_BASE_URL);
+  console.log('  NODE_ENV:', process.env.NODE_ENV);
+  
   // Use production server URL for Swagger API testing
   const serverUrl = process.env.PRODUCTION_HOST || process.env.API_BASE_URL || 'http://app:8021';
+  
+  console.log('  Final serverUrl:', serverUrl);
+  
   return {
     openapi: '3.0.0',
     info: {

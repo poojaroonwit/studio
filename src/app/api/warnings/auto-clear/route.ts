@@ -38,7 +38,6 @@ export async function POST(request: NextRequest) {
           await prisma.warning.delete({
             where: { id: warning.id }
           });
-          // console.log(`🗑️ Cleared warning ${warning.id} - entity ${warning.entityType} ${warning.entityId} no longer exists`);
           resolvedCount++;
           continue;
         }

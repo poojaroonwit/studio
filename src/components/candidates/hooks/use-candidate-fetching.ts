@@ -60,6 +60,10 @@ export function useCandidateFetching({
       clearTimeout(fetchTimeoutRef.current);
     }
     
+    // Generate a unique request ID for this request
+    const requestId = Math.random().toString(36).substring(2, 15);
+    latestRequestIdRef.current = requestId;
+    
     setIsFetching(true);
     setTableLoading(true);
     setTableError(null);

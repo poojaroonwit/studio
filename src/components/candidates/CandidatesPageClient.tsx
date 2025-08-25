@@ -757,28 +757,41 @@ export function CandidatesPageClient({
 
   // Apply horizontal filters when selections change
   useEffect(() => {
+    console.log('🔍 HORIZONTAL FILTER DEBUG: useEffect triggered', {
+      horizontalSelectedFitScoreGrades: Array.from(horizontalSelectedFitScoreGrades),
+      horizontalSelectedMatchingFitScoreGrades: Array.from(horizontalSelectedMatchingFitScoreGrades),
+      isClearingFilters,
+      hasInitialDataFetch
+    });
+
     // Skip if we're currently clearing filters to prevent conflicts
     if (isClearingFilters) {
+      console.log('🔍 HORIZONTAL FILTER DEBUG: Skipping due to isClearingFilters');
       return;
     }
     
     // Skip if we haven't completed initial data fetch yet
     if (!hasInitialDataFetch) {
+      console.log('🔍 HORIZONTAL FILTER DEBUG: Skipping due to !hasInitialDataFetch');
       return;
     }
     
     // Only apply horizontal filters if there are selections
     if (horizontalSelectedFitScoreGrades.size > 0 || horizontalSelectedMatchingFitScoreGrades.size > 0) {
+      console.log('🔍 HORIZONTAL FILTER DEBUG: Applying horizontal filters');
       const horizontalFilters = applyHorizontalFitScoreFilters();
+      console.log('🔍 HORIZONTAL FILTER DEBUG: Generated horizontal filters:', horizontalFilters);
       
       // Check if horizontal filters have any actual values
       const hasValidFilters = Object.values(horizontalFilters).some(value => value !== undefined);
+      console.log('🔍 HORIZONTAL FILTER DEBUG: hasValidFilters:', hasValidFilters);
       
       if (hasValidFilters) {
         const newFilters = {
           ...currentFiltersRef.current,
           ...horizontalFilters
         };
+        console.log('🔍 HORIZONTAL FILTER DEBUG: Setting new filters:', newFilters);
         setFilters(newFilters);
         setPage(1);
         debouncedFetchTableData(newFilters, 1, pageSize);
@@ -792,6 +805,7 @@ export function CandidatesPageClient({
           minMatchingJobFitScore: undefined,
           maxMatchingJobFitScore: undefined,
         };
+        console.log('🔍 HORIZONTAL FILTER DEBUG: Clearing fit score filters:', newFilters);
         setFilters(newFilters);
         debouncedFetchTableData(newFilters, page, pageSize);
         fetchAllCandidatesForCounts(newFilters); // Update counts data when clearing fit score filters
@@ -805,6 +819,7 @@ export function CandidatesPageClient({
         minMatchingJobFitScore: undefined,
         maxMatchingJobFitScore: undefined,
       };
+      console.log('🔍 HORIZONTAL FILTER DEBUG: No horizontal selections, clearing fit score filters:', newFilters);
       setFilters(newFilters);
       debouncedFetchTableData(newFilters, page, pageSize);
       fetchAllCandidatesForCounts(newFilters); // Update counts data when clearing all fit score filters
@@ -1175,7 +1190,11 @@ export function CandidatesPageClient({
                         <FitScoreFilterTabs
                           selectedGrades={horizontalSelectedFitScoreGrades}
                           onGradeToggle={handleHorizontalFitScoreGradeToggle}
-                          onClearAll={clearAllHorizontalFitScoreFilters}
+                          onClearAll={() => {
+                            clearAllHorizontalFitScoreFilters(() => setIsClearingFilters(true));
+                            // Reset the flag after a short delay
+                            setTimeout(() => setIsClearingFilters(false), 100);
+                          }}
                           candidateCounts={candidateScoreCounts?.applied || []}
                           className=""
                           filterMode={candidateSettings.fitScoreFilterMode}
@@ -1187,7 +1206,11 @@ export function CandidatesPageClient({
                         <FitScoreFilterTabs
                           selectedGrades={horizontalSelectedMatchingFitScoreGrades}
                           onGradeToggle={handleHorizontalMatchingFitScoreGradeToggle}
-                          onClearAll={clearAllHorizontalFitScoreFilters}
+                          onClearAll={() => {
+                            clearAllHorizontalFitScoreFilters(() => setIsClearingFilters(true));
+                            // Reset the flag after a short delay
+                            setTimeout(() => setIsClearingFilters(false), 100);
+                          }}
                           candidateCounts={candidateScoreCounts?.matching || []}
                           className=""
                           filterMode={candidateSettings.fitScoreFilterMode}

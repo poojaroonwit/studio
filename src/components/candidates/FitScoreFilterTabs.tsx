@@ -113,6 +113,7 @@ export function FitScoreFilterTabs({
       <div className="flex w-full border-b border-border/50">
         <div
           onClick={() => {
+            console.log('🔍 FITSCORE TAB DEBUG: All tab clicked');
             // Clear all selections to show "All"
             safeOnClearAll();
           }}
@@ -129,14 +130,17 @@ export function FitScoreFilterTabs({
           <div
             key={grade.letter}
             onClick={() => {
+              console.log('🔍 FITSCORE TAB DEBUG: Grade clicked:', grade.letter, 'filterMode:', filterMode);
               if (filterMode === 'single') {
                 // In single mode, clear all other selections first
                 safeSelectedGrades.forEach(selectedGrade => {
                   if (selectedGrade !== grade.letter) {
+                    console.log('🔍 FITSCORE TAB DEBUG: Clearing other selection:', selectedGrade);
                     safeOnGradeToggle(selectedGrade);
                   }
                 });
               }
+              console.log('🔍 FITSCORE TAB DEBUG: Calling onGradeToggle for:', grade.letter);
               safeOnGradeToggle(grade.letter);
             }}
             className={cn(
@@ -151,22 +155,25 @@ export function FitScoreFilterTabs({
         ))}
         <div
           onClick={() => {
+            console.log('🔍 FITSCORE TAB DEBUG: No Score tab clicked');
             if (filterMode === 'single') {
               // In single mode, clear all other selections first
               safeSelectedGrades.forEach(selectedGrade => {
                 if (selectedGrade !== 'no-score') {
+                  console.log('🔍 FITSCORE TAB DEBUG: Clearing other selection for no-score:', selectedGrade);
                   safeOnGradeToggle(selectedGrade);
                 }
               });
             }
+            console.log('🔍 FITSCORE TAB DEBUG: Calling onGradeToggle for no-score');
             safeOnGradeToggle('no-score');
           }}
-                      className={cn(
-              "flex items-center gap-2 px-2 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer rounded-t-lg",
-              safeSelectedGrades.has('no-score')
-                ? cn("text-white border-b-2", getGradeBorderColor('no-score'))
-                : cn("hover:bg-muted/30", getGradeTextColor('no-score'))
-            )}
+          className={cn(
+            "flex items-center gap-2 px-2 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer rounded-t-lg",
+            safeSelectedGrades.has('no-score')
+              ? cn("text-white border-b-2", getGradeBorderColor('no-score'))
+              : cn("hover:bg-muted/30", getGradeTextColor('no-score'))
+          )}
         >
           No Score {formatCount(getCount('no-score')) && <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0.5 h-5 min-w-5 flex items-center justify-center text-foreground">{formatCount(getCount('no-score'))}</Badge>}
         </div>

@@ -409,9 +409,7 @@ export async function POST(request: NextRequest) {
       successfulUploads: successCount,
       failedUploads: failureCount,
       processingTimeMs: processingTime,
-      batchId: batch_id,
-      positionId: position_id,
-      source: source
+      batchId: batch_id
     });
 
     // Step 8: Webhooks disabled for simplicity
@@ -478,8 +476,7 @@ export async function POST(request: NextRequest) {
     try {
       console.error(`Bulk file upload failed`, {
         error: errorMessage,
-        processingTimeMs: processingTime,
-        stack: error instanceof Error ? error.stack : undefined
+        processingTimeMs: processingTime
       });
     } catch (logError) {
       console.error('[UPLOAD] Failed to log audit event:', logError);

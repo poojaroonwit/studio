@@ -207,18 +207,19 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
           // Any non-200 status is considered a failure
           status = 'fail';
           error = `Webhook responded with status ${webhookResStatus}`;
-          error_details = `The external resume processing service returned status ${webhookResStatus}. This could indicate:
+          // Truncate response text if it's too long (likely HTML error page)
+        const truncatedResponse = webhookResponseText && webhookResponseText.length > 200 
+          ? webhookResponseText.substring(0, 200) + '...' 
+          : webhookResponseText;
+          
+        error_details = `The external resume processing service returned status ${webhookResStatus}. This could indicate:
 1. The external service is experiencing issues
 2. The request was malformed or invalid
 3. The service is temporarily unavailable
 4. Authentication or authorization issues
 
 Status: ${webhookResStatus}
-Response: ${webhookResponseText || 'No response body'}
-Consider:
-- Checking the external service status
-- Verifying webhook configuration
-- Contact the service provider for assistance`;
+Response: ${truncatedResponse || 'No response body'}`;
           
         }
         
@@ -234,11 +235,7 @@ Consider:
           if (fetchError.isTimeout) {
             error_details += `
 
-This appears to be a timeout issue. Consider:
-- Reducing the webhook timeout setting
-- Checking if the external service is slow or overloaded
-- Verifying network connectivity to the webhook URL
-- Contacting the external service provider`;
+This appears to be a timeout issue. Consider reducing the webhook timeout setting or checking if the external service is slow.`;
           }
         } else {
           error = 'Webhook fetch error';
@@ -291,7 +288,6 @@ This appears to be a timeout issue. Consider:
         fileName: job.file_name,
         webhookStatus: webhookResStatus,
         error,
-        errorDetails: error_details,
         processingTimeMs: Date.now() - startTime,
         processingTimeSeconds: ((Date.now() - startTime) / 1000).toFixed(1)
       });

@@ -281,7 +281,7 @@ export async function POST(request: NextRequest) {
     );
     
     const totalProcessingTime = Date.now() - startTime;
-    console.log(`[Database] Job ${job.id} status updated successfully to: ${status} (Total processing time: ${totalProcessingTime}ms / ${(totalProcessingTime / 1000).toFixed(1)}s)`);
+    console.log(`[Database] Job ${job.id} status updated to: ${status} (${(totalProcessingTime / 1000).toFixed(1)}s)`);
 
     // Dispatch webhook for upload queue completion/failure event
     // DISABLED: This was causing duplicate webhook calls
@@ -320,7 +320,6 @@ export async function POST(request: NextRequest) {
         jobId: job.id,
         fileName: job.file_name,
         error,
-        errorDetails: error_details,
         processingTimeMs: totalProcessingTime,
         processingTimeSeconds: (totalProcessingTime / 1000).toFixed(1)
       });

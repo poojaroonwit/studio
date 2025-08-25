@@ -952,7 +952,7 @@ export async function GET(request: NextRequest) {
     // Execute queries in parallel for better performance
     const [countResult, dataResult] = await Promise.all([
       client.query(countQuery, queryParams),
-      client.query(dataQuery, [...queryParams, limit, offset])
+      client.query(dataQuery, isForCounts ? queryParams : [...queryParams, limit, offset])
     ]);
 
     const total = parseInt(countResult.rows[0].total);

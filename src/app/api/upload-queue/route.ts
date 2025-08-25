@@ -136,7 +136,11 @@ export async function GET(request: NextRequest) {
   const status = url.searchParams.get('status');
   const dateStart = url.searchParams.get('date_start');
   const dateEnd = url.searchParams.get('date_end');
-  const positionId = url.searchParams.get('position_id'); // <-- Add this line
+  const positionId = url.searchParams.get('position_id');
+
+  // Validate and cap limit to prevent performance issues
+  const safeLimit = Math.min(Math.max(limit, 1), 100); // Between 1 and 100
+  const safeOffset = Math.max(offset, 0);
 
   // Build dynamic WHERE clause
   const whereClauses = [];
@@ -166,71 +170,111 @@ export async function GET(request: NextRequest) {
     whereClauses.push(`upload_date <= $${paramIdx++}`);
     values.push(dateEnd);
   }
-  if (positionId) { // <-- Add this block
+  if (positionId) {
     whereClauses.push(`position_id = $${paramIdx++}`);
     values.push(positionId);
   }
   const whereSQL = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
 
   // Add pagination
-  values.push(limit);
-  values.push(offset);
+  values.push(safeLimit);
+  values.push(safeOffset);
 
   const client = await getPool().connect();
   try {
+    // Set a shorter statement timeout for this specific request
+    await client.query('SET statement_timeout = 15000'); // 15 seconds
+
+    // Main query - only fetches records for the current page using LIMIT and OFFSET
     const dataRes = await client.query(
       `SELECT uq.*, p.title as position_title 
        FROM upload_queue uq 
        LEFT JOIN "Position" p ON uq.position_id = p.id 
-       ${whereSQL} ORDER BY uq.upload_date DESC LIMIT $${paramIdx++} OFFSET $${paramIdx++}`,
+       ${whereSQL} 
+       ORDER BY uq.upload_date DESC 
+       LIMIT $${paramIdx++} OFFSET $${paramIdx++}`,
       values
     );
-    const countRes = await client.query(
-      `SELECT COUNT(*) 
-       FROM upload_queue uq 
-       LEFT JOIN "Position" p ON uq.position_id = p.id 
-       ${whereSQL}`,
-      values.slice(0, values.length - 2)
-    );
-    // Add summary counts by status
-    const summaryRes = await client.query(
-      `SELECT 
-        COUNT(*) as total,
-        COUNT(*) FILTER (WHERE uq.status = 'queued') as queued,
-        COUNT(*) FILTER (WHERE uq.status = 'inprocess') as inprocess,
-        COUNT(*) FILTER (WHERE uq.status = 'success') as success,
-        COUNT(*) FILTER (WHERE uq.status = 'error' OR uq.status = 'fail') as error
-      FROM upload_queue uq 
-      LEFT JOIN "Position" p ON uq.position_id = p.id 
-      ${whereSQL}`,
-      values.slice(0, values.length - 2)
-    );
-    const summary = summaryRes.rows[0];
-    const safeSummary = {
-      total: Number(summary.total) || 0,
-      queued: Number(summary.queued) || 0,
-      inprocess: Number(summary.inprocess) || 0,
-      success: Number(summary.success) || 0,
-      error: Number(summary.error) || 0,
+
+    // Get total count for pagination (only if needed)
+    let totalCount = 0;
+    let safeSummary = {
+      total: 0,
+      queued: 0,
+      inprocess: 0,
+      success: 0,
+      error: 0,
     };
+
+    // For first page, get both count and summary in one query
+    if (safeOffset === 0) {
+      const summaryRes = await client.query(
+        `SELECT 
+          COUNT(*) as total,
+          COUNT(*) FILTER (WHERE uq.status = 'queued') as queued,
+          COUNT(*) FILTER (WHERE uq.status = 'inprocess') as inprocess,
+          COUNT(*) FILTER (WHERE uq.status = 'success') as success,
+          COUNT(*) FILTER (WHERE uq.status = 'error' OR uq.status = 'fail') as error
+        FROM upload_queue uq 
+        ${whereSQL}`,
+        values.slice(0, values.length - 2)
+      );
+      const summary = summaryRes.rows[0];
+      totalCount = parseInt(summary.total, 10);
+      safeSummary = {
+        total: totalCount,
+        queued: Number(summary.queued) || 0,
+        inprocess: Number(summary.inprocess) || 0,
+        success: Number(summary.success) || 0,
+        error: Number(summary.error) || 0,
+      };
+    } else {
+      // For non-first pages, only get count if we have results
+      if (dataRes.rows.length > 0) {
+        const countRes = await client.query(
+          `SELECT COUNT(*) 
+           FROM upload_queue uq 
+           ${whereSQL}`,
+          values.slice(0, values.length - 2)
+        );
+        totalCount = parseInt(countRes.rows[0].count, 10);
+      }
+      safeSummary.total = totalCount;
+    }
+
     console.log(`Upload queue accessed by ${actingUserName}. Retrieved ${dataRes.rows.length} items.`, { 
-      limit, 
-      offset, 
-      totalCount: parseInt(countRes.rows[0].count, 10),
+      limit: safeLimit, 
+      offset: safeOffset, 
+      totalCount,
       returnedCount: dataRes.rows.length 
     });
+
     // Add url field to each job
     const jobsWithUrl = dataRes.rows.map(job => ({
       ...job,
       url: job.file_path ? `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${job.file_path}` : null,
     }));
-    return NextResponse.json({ data: jobsWithUrl, total: parseInt(countRes.rows[0].count, 10), summary: safeSummary });
+
+    return NextResponse.json({ 
+      data: jobsWithUrl, 
+      total: totalCount, 
+      summary: safeSummary 
+    });
   } catch (error) {
     console.error(`Failed to fetch upload queue by ${actingUserName}. Error: ${(error as Error).message}`, { 
       actingUserId,
       actingUserName,
       error: (error as Error).message
     });
+    
+    // Return a more specific error for timeouts
+    if ((error as any).code === '57014') { // PostgreSQL statement timeout
+      return NextResponse.json({ 
+        error: 'Request timeout - the query took too long to complete. Please try with a smaller limit or different filters.',
+        details: 'Database query timeout'
+      }, { status: 504 });
+    }
+    
     throw error;
   } finally {
     client.release();

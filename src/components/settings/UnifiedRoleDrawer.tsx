@@ -129,12 +129,19 @@ export function UnifiedRoleDrawer({
         description: role.description || '',
         is_default: role.is_default || false
       });
-      setCurrentPermissions(role.permissions || []);
+      
+      // For Admin role, always show all permissions
+      if (isAdminRole) {
+        setCurrentPermissions(PLATFORM_MODULES.map(p => p.id));
+      } else {
+        setCurrentPermissions(role.permissions || []);
+      }
+      
       if (activeTab === 'members') {
         loadGroupMembers();
       }
     }
-  }, [isOpen, role, form, activeTab]);
+  }, [isOpen, role, form, activeTab, isAdminRole]);
 
   // Load group members when members tab is selected
   useEffect(() => {
@@ -226,7 +233,9 @@ export function UnifiedRoleDrawer({
   const handlePermissionUpdate = async (permissions: PlatformModuleId[]) => {
     if (!role) return;
     
+    // Update local state immediately for better UX
     setCurrentPermissions(permissions);
+    
     try {
       const response = await fetch(`/api/settings/user-groups/${role.id}`, {
         method: 'PUT',
@@ -244,8 +253,14 @@ export function UnifiedRoleDrawer({
         throw new Error(errorData.message || 'Failed to update permissions');
       }
       
+      // Update the role object locally to avoid reload
+      if (role) {
+        role.permissions = permissions;
+      }
+      
       toast.success('Permissions updated successfully');
-      onRoleChange?.();
+      // Don't call onRoleChange to avoid drawer reload
+      // onRoleChange?.();
     } catch (error) {
       console.error('Error updating permissions:', error);
       toast.error((error as Error).message);

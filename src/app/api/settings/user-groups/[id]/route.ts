@@ -20,7 +20,7 @@ const updateGroupFormSchema = z.object({
 const userGroupUpdateSchema = z.object({
   name: z.string().min(1, 'Group name cannot be empty.').optional(),
   description: z.string().optional().nullable(),
-  permissions: z.array(z.string()).optional(),
+  permissions: z.array(z.enum(platformModuleIds)).optional(),
 });
 
 function extractIdFromUrl(request: NextRequest): string | null {
@@ -137,6 +137,12 @@ export async function PUT(request: NextRequest) {
     const session = await getServerSession(authOptions);
     const actingUserId = session?.user?.id;
     if (!actingUserId) return new NextResponse('Unauthorized', { status: 401 });
+
+    // Check permissions - only Admin or users with USER_GROUPS_MANAGE can update user groups
+    if (session?.user?.role !== 'Admin' && !session?.user?.modulePermissions?.includes('USER_GROUPS_MANAGE')) {
+        await logAudit('WARN', `Forbidden attempt to UPDATE user group (ID: ${id}) by user ${session?.user?.email || 'Unknown'}.`, 'API:UserGroups:Update', session?.user?.id, { targetGroupId: id });
+        return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
+    }
 
     let body;
     try {

@@ -37,38 +37,60 @@ export function useCandidateFilters(initialFilters?: CandidateFilterValues) {
 
   // Horizontal fit score filter handlers
   const handleHorizontalFitScoreGradeToggle = useCallback((grade: string) => {
+    console.log('🔍 HORIZONTAL TOGGLE DEBUG: handleHorizontalFitScoreGradeToggle called with grade:', grade);
     setHorizontalSelectedFitScoreGrades(prev => {
       const newSet = new Set(prev);
       if (newSet.has(grade)) {
         newSet.delete(grade);
+        console.log('🔍 HORIZONTAL TOGGLE DEBUG: Removed grade:', grade);
       } else {
         newSet.add(grade);
+        console.log('🔍 HORIZONTAL TOGGLE DEBUG: Added grade:', grade);
       }
+      console.log('🔍 HORIZONTAL TOGGLE DEBUG: New set:', Array.from(newSet));
       return newSet;
     });
   }, []);
 
   const handleHorizontalMatchingFitScoreGradeToggle = useCallback((grade: string) => {
+    console.log('🔍 HORIZONTAL TOGGLE DEBUG: handleHorizontalMatchingFitScoreGradeToggle called with grade:', grade);
     setHorizontalSelectedMatchingFitScoreGrades(prev => {
       const newSet = new Set(prev);
       if (newSet.has(grade)) {
         newSet.delete(grade);
+        console.log('🔍 HORIZONTAL TOGGLE DEBUG: Removed matching grade:', grade);
       } else {
         newSet.add(grade);
+        console.log('🔍 HORIZONTAL TOGGLE DEBUG: Added matching grade:', grade);
       }
+      console.log('🔍 HORIZONTAL TOGGLE DEBUG: New matching set:', Array.from(newSet));
       return newSet;
     });
   }, []);
 
   // Clear all horizontal fit score filters
-  const clearAllHorizontalFitScoreFilters = useCallback(() => {
+  const clearAllHorizontalFitScoreFilters = useCallback((onClear?: () => void) => {
+    console.log('🔍 HORIZONTAL CLEAR DEBUG: clearAllHorizontalFitScoreFilters called');
+    
+    // Call the optional callback to set isClearingFilters flag
+    if (onClear) {
+      onClear();
+    }
+    
     setHorizontalSelectedFitScoreGrades(new Set());
     setHorizontalSelectedMatchingFitScoreGrades(new Set());
+    console.log('🔍 HORIZONTAL CLEAR DEBUG: Cleared all horizontal fit score filters');
   }, []);
 
   // Apply horizontal fit score filters
   const applyHorizontalFitScoreFilters = useCallback(() => {
+    console.log('🔍 APPLY HORIZONTAL FILTERS DEBUG: Function called', {
+      horizontalSelectedFitScoreGrades: Array.from(horizontalSelectedFitScoreGrades),
+      horizontalSelectedMatchingFitScoreGrades: Array.from(horizontalSelectedMatchingFitScoreGrades)
+    });
+
     const scoreRanges = getScoreRangesForChart();
+    console.log('🔍 APPLY HORIZONTAL FILTERS DEBUG: Score ranges:', scoreRanges);
     
     let minAppliedJobFitScore: number | undefined = undefined;
     let maxAppliedJobFitScore: number | undefined = undefined;
@@ -77,8 +99,11 @@ export function useCandidateFilters(initialFilters?: CandidateFilterValues) {
 
     // Handle applied job fit score grades
     if (horizontalSelectedFitScoreGrades.size > 0) {
+      console.log('🔍 APPLY HORIZONTAL FILTERS DEBUG: Processing applied job fit score grades');
       const selectedRanges = scoreRanges.filter(range => horizontalSelectedFitScoreGrades.has(range.letter));
       const hasNoScore = horizontalSelectedFitScoreGrades.has('no-score');
+      
+      console.log('🔍 APPLY HORIZONTAL FILTERS DEBUG: Selected ranges:', selectedRanges, 'hasNoScore:', hasNoScore);
       
       if (selectedRanges.length > 0 && hasNoScore) {
         // Both regular grades and no-score selected - this is a complex case
@@ -87,6 +112,7 @@ export function useCandidateFilters(initialFilters?: CandidateFilterValues) {
         const maxScore = Math.max(...selectedRanges.map(r => r.max));
         minAppliedJobFitScore = minScore;
         maxAppliedJobFitScore = maxScore;
+        console.log('🔍 APPLY HORIZONTAL FILTERS DEBUG: Both regular grades and no-score selected:', { minScore, maxScore });
         // Add a special flag to indicate that no-score should also be included
         // This will be handled by the API to create an OR condition
       } else if (selectedRanges.length > 0) {
@@ -95,17 +121,22 @@ export function useCandidateFilters(initialFilters?: CandidateFilterValues) {
         const maxScore = Math.max(...selectedRanges.map(r => r.max));
         minAppliedJobFitScore = minScore;
         maxAppliedJobFitScore = maxScore;
+        console.log('🔍 APPLY HORIZONTAL FILTERS DEBUG: Only regular grades selected:', { minScore, maxScore });
       } else if (hasNoScore) {
         // Only no-score selected
         minAppliedJobFitScore = -1;
         maxAppliedJobFitScore = -1; // Set both to -1 for "no-score" case
+        console.log('🔍 APPLY HORIZONTAL FILTERS DEBUG: Only no-score selected');
       }
     }
 
     // Handle matching job fit score grades
     if (horizontalSelectedMatchingFitScoreGrades.size > 0) {
+      console.log('🔍 APPLY HORIZONTAL FILTERS DEBUG: Processing matching job fit score grades');
       const selectedRanges = scoreRanges.filter(range => horizontalSelectedMatchingFitScoreGrades.has(range.letter));
       const hasNoScore = horizontalSelectedMatchingFitScoreGrades.has('no-score');
+      
+      console.log('🔍 APPLY HORIZONTAL FILTERS DEBUG: Selected matching ranges:', selectedRanges, 'hasNoScore:', hasNoScore);
       
       if (selectedRanges.length > 0 && hasNoScore) {
         // Both regular grades and no-score selected - this is a complex case
@@ -115,6 +146,7 @@ export function useCandidateFilters(initialFilters?: CandidateFilterValues) {
         const maxScore = Math.max(...selectedRanges.map(r => r.max));
         minMatchingJobFitScore = minScore;
         maxMatchingJobFitScore = maxScore;
+        console.log('🔍 APPLY HORIZONTAL FILTERS DEBUG: Both regular matching grades and no-score selected:', { minScore, maxScore });
         // Add a special flag to indicate that no-score should also be included
         // This will be handled by the API to create an OR condition
       } else if (selectedRanges.length > 0) {
@@ -123,10 +155,12 @@ export function useCandidateFilters(initialFilters?: CandidateFilterValues) {
         const maxScore = Math.max(...selectedRanges.map(r => r.max));
         minMatchingJobFitScore = minScore;
         maxMatchingJobFitScore = maxScore;
+        console.log('🔍 APPLY HORIZONTAL FILTERS DEBUG: Only regular matching grades selected:', { minScore, maxScore });
       } else if (hasNoScore) {
         // Only no-score selected
         minMatchingJobFitScore = -1;
         maxMatchingJobFitScore = -1; // Set both to -1 for "no-score" case
+        console.log('🔍 APPLY HORIZONTAL FILTERS DEBUG: Only no-score selected for matching');
       }
     }
 
@@ -141,7 +175,7 @@ export function useCandidateFilters(initialFilters?: CandidateFilterValues) {
       ...(horizontalSelectedMatchingFitScoreGrades.has('no-score') && horizontalSelectedMatchingFitScoreGrades.size > 1 && { includeNoScoreInMatching: true }),
     };
 
-
+    console.log('🔍 APPLY HORIZONTAL FILTERS DEBUG: Final newFilters:', newFilters);
 
     return newFilters;
   }, [horizontalSelectedFitScoreGrades, horizontalSelectedMatchingFitScoreGrades]);

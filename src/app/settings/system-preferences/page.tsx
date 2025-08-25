@@ -433,7 +433,7 @@ export default function SystemPreferencesPage() {
   useEffect(() => {
     applySidebarBackgroundSettings({
       sidebarBackgroundType,
-      sidebarBackgroundImageUrl: savedSidebarImageUrl,
+      sidebarBackgroundImageUrl: savedSidebarImageUrl || undefined,
       sidebarBackgroundImageFit: sidebarImageFit,
       sidebarBackgroundImagePosition: sidebarImagePosition,
     });
@@ -910,7 +910,7 @@ export default function SystemPreferencesPage() {
       // Apply sidebar background settings
       applySidebarBackgroundSettings({
         sidebarBackgroundType,
-        sidebarBackgroundImageUrl: savedSidebarImageUrl,
+        sidebarBackgroundImageUrl: savedSidebarImageUrl || undefined,
         sidebarBackgroundImageFit: sidebarImageFit,
         sidebarBackgroundImagePosition: sidebarImagePosition,
       });

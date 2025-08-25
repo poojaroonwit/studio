@@ -1243,7 +1243,8 @@ export function CandidatesPageClient({
                           selectedGrades={horizontalSelectedFitScoreGrades}
                           onGradeToggle={handleHorizontalFitScoreGradeToggle}
                           onClearAll={() => {
-                            clearAllHorizontalFitScoreFilters(() => setIsClearingFilters(true));
+                            clearAllHorizontalFitScoreFilters();
+                            setIsClearingFilters(true);
                             // Reset the flag after a short delay
                             setTimeout(() => setIsClearingFilters(false), 100);
                           }}
@@ -1259,7 +1260,8 @@ export function CandidatesPageClient({
                           selectedGrades={horizontalSelectedMatchingFitScoreGrades}
                           onGradeToggle={handleHorizontalMatchingFitScoreGradeToggle}
                           onClearAll={() => {
-                            clearAllHorizontalFitScoreFilters(() => setIsClearingFilters(true));
+                            clearAllHorizontalFitScoreFilters();
+                            setIsClearingFilters(true);
                             // Reset the flag after a short delay
                             setTimeout(() => setIsClearingFilters(false), 100);
                           }}

@@ -127,6 +127,7 @@ export function useCandidateFilters(initialFilters?: CandidateFilterValues) {
     }
 
     setFilters(newFilters);
+    return newFilters;
   }, [filters, horizontalSelectedFitScoreGrades, horizontalSelectedMatchingFitScoreGrades]);
 
   const handleFilterChange = useCallback((newFilters: CandidateFilterValues, onFilterChange: (filters: CandidateFilterValues) => void) => {

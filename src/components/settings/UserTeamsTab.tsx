@@ -571,8 +571,8 @@ export function UserTeamsTab() {
                           {members.map((member) => (
                             <div key={member.id} className="flex items-center justify-between p-3 border rounded-lg">
                               <div className="flex items-center gap-3">
-                                <Avatar className="h-8 w-8">
-                                  <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
+                                <Avatar className="h-8 w-8 rounded-full">
+                                  <AvatarFallback className="rounded-full">{member.name.charAt(0)}</AvatarFallback>
                                 </Avatar>
                                 <div>
                                   <p className="font-medium text-sm">{member.name}</p>
@@ -711,8 +711,8 @@ export function UserTeamsTab() {
                       onClick={() => setSelectedUserId(user.id)}
                     >
                       <div className="flex items-center gap-3">
-                        <Avatar className="h-8 w-8">
-                          <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                        <Avatar className="h-8 w-8 rounded-full">
+                          <AvatarFallback className="rounded-full">{user.name.charAt(0)}</AvatarFallback>
                         </Avatar>
                         <div>
                           <p className="font-medium text-sm">{user.name}</p>

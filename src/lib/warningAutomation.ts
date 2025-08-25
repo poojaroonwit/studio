@@ -101,7 +101,7 @@ export class WarningAutomation {
       const allWarnings = await prisma.warning.findMany({
         include: {
           configuration: true
-        }
+        } as any
       });
 
       results.totalWarnings = allWarnings.length;

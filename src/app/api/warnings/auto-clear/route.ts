@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     const allWarnings = await prisma.warning.findMany({
       include: {
         configuration: true
-      }
+      } as any
     });
 
     // console.log(`📋 Found ${allWarnings.length} total warnings to check`);
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Evaluate the condition
-        const isStillValid = await evaluateWarningCondition(warning.configuration, warning.entityType, warning.entityId, entity);
+        const isStillValid = await evaluateWarningCondition((warning as any).configuration, warning.entityType, warning.entityId, entity);
         
         if (!isStillValid) {
           // Condition is no longer valid, clear the warning

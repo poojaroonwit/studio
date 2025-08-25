@@ -177,8 +177,8 @@ export async function GET(request: NextRequest) {
 
   const client = await getPool().connect();
   try {
-    // Set a shorter statement timeout for this specific request
-    await client.query('SET statement_timeout = 15000'); // 15 seconds
+    // Set a longer statement timeout for this specific request to prevent 504 errors
+    await client.query('SET statement_timeout = 60000'); // 60 seconds (increased from 15)
 
     // Main query - only fetches records for the current page using LIMIT and OFFSET
     const dataRes = await client.query(
@@ -251,13 +251,33 @@ export async function GET(request: NextRequest) {
       summary: safeSummary 
     });
   } catch (error) {
+    console.error('Upload queue API error:', error);
     
     // Return a more specific error for timeouts
     if ((error as any).code === '57014') { // PostgreSQL statement timeout
       return NextResponse.json({ 
         error: 'Request timeout - the query took too long to complete. Please try with a smaller limit or different filters.',
-        details: 'Database query timeout'
+        details: 'Database query timeout - the upload queue query exceeded the 60-second timeout limit. This may be due to a large number of records or missing database indexes.',
+        suggestion: 'Try reducing the page size, adding more specific filters, or contact an administrator to optimize the database.'
       }, { status: 504 });
+    }
+    
+    // Handle connection errors
+    if ((error as any).code === 'ECONNREFUSED' || (error as any).code === 'ENOTFOUND') {
+      return NextResponse.json({ 
+        error: 'Database connection failed',
+        details: 'Unable to connect to the database. Please check if the database is running and accessible.',
+        suggestion: 'Contact an administrator to check database connectivity.'
+      }, { status: 503 });
+    }
+    
+    // Handle other database errors
+    if ((error as any).code && (error as any).code.startsWith('5')) {
+      return NextResponse.json({ 
+        error: 'Database error occurred',
+        details: `Database error: ${(error as any).message || 'Unknown database error'}`,
+        suggestion: 'Please try again later or contact an administrator if the problem persists.'
+      }, { status: 500 });
     }
     
     throw error;

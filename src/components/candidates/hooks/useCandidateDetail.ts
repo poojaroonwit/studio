@@ -5,7 +5,7 @@ import { toast } from 'react-hot-toast';
 import { differenceInMonths } from 'date-fns';
 import * as z from 'zod';
 import type { Candidate, Position, UserProfile, RecruitmentStage, TransitionRecord, CandidateSource } from '@/lib/types';
-import { useRealtimeCollaboration } from '@/hooks/use-realtime-collaboration';
+import { useUnifiedRealtime } from '@/hooks/use-unified-realtime';
 
 // Form schemas
 const editCandidateDetailSchema = z.object({
@@ -146,27 +146,20 @@ export const useCandidateDetail = (candidateId: string) => {
     keyName: 'field_id',
   });
 
-  // Real-time collaboration hook for candidate detail updates
-  const { isConnected: realtimeConnected } = useRealtimeCollaboration({
+  // Unified realtime hook
+  const { isConnected: realtimeConnected } = useUnifiedRealtime({
     onCandidateUpdate: (updatedCandidate) => {
-      // If this is the candidate we're viewing, update the candidate data
       if (updatedCandidate.id === candidateId) {
-        setCandidate(prevCandidate => {
-          if (prevCandidate) {
-            return { ...prevCandidate, ...updatedCandidate };
-          }
-          return updatedCandidate;
-        });
-      }
-    },
-    onCommentUpdate: (commentUpdate) => {
-      // Refresh transition history when there are new comments
-      if (commentUpdate.candidateId === candidateId) {
+        // Refresh candidate data when updated
+        fetchCandidate(true); // Force refresh
         fetchTransitionHistory();
       }
     },
+    onNotification: (notification) => {
+      // Handle notifications if needed
+    },
     showNotifications: false, // Disable notifications to prevent conflicts
-    showErrorNotifications: false
+    showErrorNotifications: false // Disable error toast notifications
   });
 
   // Memoized fetch function with caching

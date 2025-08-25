@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Clock, Zap, Database, Memory, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Clock, Zap, Database, AlertTriangle, CheckCircle } from 'lucide-react';
 
 interface PerformanceMetrics {
   memoryUsage: number;
@@ -184,7 +184,7 @@ export function PerformanceMonitor({
 
         <div className="grid grid-cols-2 gap-3 text-xs">
           <div className="flex items-center gap-2">
-            <Memory className="h-3 w-3 text-blue-600" />
+            <Database className="h-3 w-3 text-blue-600" />
             <span>Memory:</span>
             <span className={`font-mono ${metrics.memoryUsage > threshold.memory ? 'text-orange-600' : 'text-green-600'}`}>
               {metrics.memoryUsage.toFixed(1)}MB

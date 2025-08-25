@@ -40,8 +40,8 @@ import { getPool } from '@/lib/db';
 import { handleCors } from '@/lib/cors';
 import { dispatchWebhooks } from '@/lib/webhookDispatcher';
 import { getDefaultMatchCriteria } from '@/lib/systemSettings';
-import { broadcastPositionUpdate, broadcastPositionListUpdate, broadcastPositionStatisticsUpdate } from '@/lib/candidateSse';
 import { WarningService } from '@/lib/warningService';
+import { unifiedBroadcaster } from '@/lib/unified-realtime-broadcaster';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -401,29 +401,12 @@ export async function POST(request: NextRequest) {
       // Failed to check warnings for new position
     }
     
-    // Broadcast real-time updates
-    try {
-      broadcastPositionUpdate(newPosition, actingUserId || undefined);
-      broadcastPositionListUpdate();
-      // Broadcast statistics update
-      const statsQuery = `
-        SELECT 
-          COUNT(*) as total,
-          COUNT(CASE WHEN "isOpen" = TRUE THEN 1 END) as open,
-          COUNT(CASE WHEN "isOpen" = FALSE THEN 1 END) as closed
-        FROM "Position"
-      `;
-      const statsResult = await getPool().query(statsQuery);
-      const stats = statsResult.rows[0];
-      const statistics = { 
-        total: parseInt(stats.total, 10), 
-        open: parseInt(stats.open, 10), 
-        closed: parseInt(stats.closed, 10) 
-      };
-      broadcastPositionStatisticsUpdate(statistics);
-    } catch (broadcastError) {
-      // Failed to broadcast position updates
-    }
+    // Broadcast to unified SSE clients
+    await unifiedBroadcaster.broadcastPositionCreated(newPosition, actingUserId || undefined, {
+      priority: 'high',
+      retryOnFailure: true,
+      maxRetries: 3
+    });
     
     return NextResponse.json(newPosition, { status: 201, headers: handleCors(request) });
   } catch (error) {

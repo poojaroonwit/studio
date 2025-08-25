@@ -150,6 +150,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       return;
     }
 
+    let reconnectTimeout: NodeJS.Timeout | null = null;
+
     const connectSSE = () => {
       try {
         const es = new EventSource('/api/candidates/sse');
@@ -165,7 +167,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           setEventSource(null);
           
           // Attempt to reconnect after 5 seconds
-          setTimeout(() => {
+          reconnectTimeout = setTimeout(() => {
             if (session?.user) {
               connectSSE();
             }
@@ -295,6 +297,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       if (eventSource) {
         eventSource.close();
         setEventSource(null);
+      }
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
       }
     };
   }, [session?.user, addNotification]);

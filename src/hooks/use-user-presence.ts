@@ -114,9 +114,11 @@ export function useUserPresence() {
     return () => {
       if (presenceIntervalRef.current) {
         clearInterval(presenceIntervalRef.current);
+        presenceIntervalRef.current = null;
       }
       if (updateIntervalRef.current) {
         clearInterval(updateIntervalRef.current);
+        updateIntervalRef.current = null;
       }
       removePresence();
     };

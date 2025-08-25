@@ -27,7 +27,7 @@ import { toast } from 'react-hot-toast';
 import CandidateDetailModal from '@/components/candidates/CandidateDetailModal';
 import { PositionSelectDropdown } from '@/components/candidates/PositionSelectDropdown';
 import { RealtimeIndicator } from '@/components/ui/realtime-indicator';
-import { useRealtimeCollaboration } from '@/hooks/use-realtime-collaboration';
+import { useUnifiedRealtime } from '@/hooks/use-unified-realtime';
 import { getErrorMessage, retryWithBackoff, isRetryableError } from '@/lib/networkUtils';
 import { NetworkDiagnostics } from '@/components/ui/network-diagnostics';
 import { formatScoreWithGrade } from '@/lib/scoreUtils';
@@ -92,8 +92,8 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     selectedStages: [] 
   });
 
-  // Real-time collaboration hook
-  const { isConnected: realtimeConnected } = useRealtimeCollaboration({
+  // Unified realtime hook
+  const { isConnected: realtimeConnected } = useUnifiedRealtime({
     onCandidateUpdate: (updatedCandidate) => {
       setCandidates(prevCandidates => {
         const existingIndex = prevCandidates.findIndex(c => c.id === updatedCandidate.id);
@@ -106,18 +106,14 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
         }
       });
     },
-    onTransitionUpdate: (transition) => {
-      setCandidates(prevCandidates => {
-        return prevCandidates.map(candidate => {
-          if (candidate.id === transition.candidateId) {
-            return { ...candidate, status: transition.stage };
-          }
-          return candidate;
-        });
-      });
+    onPositionUpdate: (updatedPosition) => {
+      // Handle position updates if needed
     },
-    onRecruitmentStagesUpdate: (updatedStages) => {
-      setStages(updatedStages.map((s: any) => s.name));
+    onPresenceUpdate: (presence) => {
+      // Handle presence updates if needed
+    },
+    onNotification: (notification) => {
+      // Handle notifications if needed
     },
     showErrorNotifications: false // Disable error toast notifications
   });
@@ -554,21 +550,16 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   return (
     <div className="flex flex-col h-full bg-background">
       {/* Realtime Status Indicator */}
-      <div className="flex items-center justify-between px-4 py-2 bg-muted/50 border-b text-xs">
-        <div className="flex items-center space-x-2">
+      <div className="flex items-center justify-end px-4 py-2 bg-muted/50 border-b text-xs">
+        <div className={cn(
+          "w-10 h-10 rounded-full flex items-center justify-center",
+          realtimeConnected ? "bg-green-500" : "bg-red-500"
+        )}>
           <div className={cn(
             "w-2 h-2 rounded-full",
-            realtimeConnected ? "bg-green-500" : "bg-red-500"
+            realtimeConnected ? "bg-white" : "bg-white/50"
           )} />
-          <span className="text-muted-foreground">
-            {realtimeConnected ? "Live updates connected" : "Live updates disconnected"}
-          </span>
         </div>
-        {realtimeConnected && (
-          <span className="text-muted-foreground">
-            Real-time collaboration active
-          </span>
-        )}
       </div>
       
       {/* Enhanced Board Header - Always Sticky within main content */}

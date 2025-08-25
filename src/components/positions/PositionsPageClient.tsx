@@ -39,7 +39,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Command, CommandEmpty, CommandInput, CommandList, CommandItem } from '@/components/ui/command';
 import { ChevronsUpDown, Check, UserX, User, RotateCcw } from 'lucide-react';
 import { useUserPreferences } from '@/hooks/use-user-preferences';
-import { useRealtimeCollaboration } from '@/hooks/use-realtime-collaboration';
+import { useUnifiedRealtime } from '@/hooks/use-unified-realtime';
 import { checkSLAViolation, getSLABadgeVariant, formatSLAMessage, getSLARemainingDays } from '@/lib/slaUtils';
 import { Pagination } from '@/components/ui/pagination';
 
@@ -98,8 +98,8 @@ export default function PositionsPageClient() {
   const [isLoadingDepartments, setIsLoadingDepartments] = useState(false);
   const { data: session } = useSession();
   
-  // Real-time collaboration hook
-  const { isConnected: realtimeConnected } = useRealtimeCollaboration({
+  // Unified realtime hook
+  const { isConnected: realtimeConnected } = useUnifiedRealtime({
     onPositionUpdate: (updatedPosition) => {
       setPositions(prevPositions => {
         const existingIndex = prevPositions.findIndex(p => p.id === updatedPosition.id);
@@ -112,12 +112,14 @@ export default function PositionsPageClient() {
         }
       });
     },
-    onPositionListUpdate: () => {
-      // Refresh the entire position list
-      fetchPositions();
+    onDashboardUpdate: (dashboardData) => {
+      // Refresh the entire position list when dashboard updates
+      if (dashboardData.type === 'position_list_update') {
+        fetchPositions();
+      }
     },
-    onPositionStatisticsUpdate: (updatedStatistics) => {
-      setStatistics(updatedStatistics);
+    onNotification: (notification) => {
+      // Handle position-related notifications
     },
     showErrorNotifications: false // Disable error toast notifications
   });

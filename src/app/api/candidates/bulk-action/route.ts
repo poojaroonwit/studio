@@ -6,7 +6,7 @@ import { getServerSession } from 'next-auth/next';
 import { v4 as uuidv4 } from 'uuid';
 import { getPool } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
-import { broadcastCandidateUpdate, broadcastCandidateTransitionUpdate } from '@/lib/candidateSse';
+import { unifiedBroadcaster } from '@/lib/unified-realtime-broadcaster';
 import { validateCandidateHiringStatus, assignCandidateToHeadcount, autoClosePositionIfHeadcountFilled } from '@/lib/headcountUtils';
 
 
@@ -207,7 +207,7 @@ export async function POST(request: NextRequest) {
               if (transitionResult.rows.length > 0) {
                 const newTransition = transitionResult.rows[0];
                 // Broadcast the new transition
-                broadcastCandidateTransitionUpdate({
+                await unifiedBroadcaster.broadcastCandidateTransitionUpdated({
                   candidateId: candidate.id,
                   transition: newTransition,
                   action: 'add'

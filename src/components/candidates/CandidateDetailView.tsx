@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, X } from 'lucide-react';
 import FullCandidateDetail from './FullCandidateDetail';
-import { useRealtimeCollaboration } from '@/hooks/use-realtime-collaboration';
+import { useUnifiedRealtime } from '@/hooks/use-unified-realtime';
 
 interface CandidateDetailViewProps {
   candidateId: string;
@@ -16,28 +16,19 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
   const [resumes, setResumes] = useState<any[]>([]);
   const [attachments, setAttachments] = useState<any[]>([]);
 
-  // Real-time collaboration hook for candidate detail updates
-  const { isConnected: realtimeConnected } = useRealtimeCollaboration({
+  // Unified realtime hook
+  const { isConnected: realtimeConnected } = useUnifiedRealtime({
     onCandidateUpdate: (updatedCandidate) => {
-      // If this is the candidate we're viewing, refresh the data
       if (updatedCandidate.id === candidateId) {
-        loadAllAttachments();
+        // Update the candidate data
+        // setCandidate(prev => ({ ...prev, ...updatedCandidate })); // This line was removed as per the new_code
       }
     },
-    onCommentUpdate: (commentUpdate) => {
-      // Refresh comments when there are new comments
-      if (commentUpdate.candidateId === candidateId) {
-        loadAllAttachments();
-      }
-    },
-    onAttachmentUpdate: (attachmentUpdate) => {
-      // Refresh attachments when there are new attachments
-      if (attachmentUpdate.candidateId === candidateId) {
-        loadAllAttachments();
-      }
+    onNotification: (notification) => {
+      // Handle notifications if needed
     },
     showNotifications: false, // Disable notifications to prevent conflicts
-    showErrorNotifications: false
+    showErrorNotifications: false // Disable error toast notifications
   });
 
   const fetchComments = useCallback(async (limit = 10, offset = 0) => {

@@ -39,7 +39,7 @@ import { FitScoreFilterTabs } from './FitScoreFilterTabs';
 import { CandidateSettingsDrawer } from './CandidateSettingsDrawer';
 import { useDynamicHeight } from '@/hooks/use-dynamic-height';
 import { useCandidateSettings } from '@/hooks/use-candidate-settings';
-import { useRealtimeCollaboration } from '@/hooks/use-realtime-collaboration';
+import { useUnifiedRealtime } from '@/hooks/use-unified-realtime';
 
 // Import our new hooks
 import { useCandidateFilters } from './hooks/use-candidate-filters';
@@ -238,8 +238,8 @@ export function CandidatesPageClient({
     aiMatchedCandidateIds
   });
 
-  // Real-time collaboration hook
-  const { isConnected: realtimeConnected, isReconnecting, reconnectAttempts } = useRealtimeCollaboration({
+  // Unified realtime hook
+  const { isConnected: realtimeConnected, isReconnecting, reconnectAttempts } = useUnifiedRealtime({
     onCandidateUpdate: (updatedCandidate) => {
       setFilteredCandidates(prevCandidates => {
         const existingIndex = prevCandidates.findIndex(c => c.id === updatedCandidate.id);
@@ -263,30 +263,32 @@ export function CandidatesPageClient({
         }
       });
     },
-    onTransitionUpdate: (transition) => {
-      setFilteredCandidates(prevCandidates => {
-        return prevCandidates.map(candidate => {
-          if (candidate.id === transition.candidateId) {
-            return { ...candidate, status: transition.stage };
-          }
-          return candidate;
-        });
-      });
-      
-      setAllCandidatesForCounts(prevCandidates => {
-        return prevCandidates.map(candidate => {
-          if (candidate.id === transition.candidateId) {
-            return { ...candidate, status: transition.stage };
-          }
-          return candidate;
-        });
+    onPositionUpdate: (updatedPosition) => {
+      setAvailablePositions(prevPositions => {
+        const existingIndex = prevPositions.findIndex(p => p.id === updatedPosition.id);
+        if (existingIndex !== -1) {
+          const updated = [...prevPositions];
+          updated[existingIndex] = { ...updated[existingIndex], ...updatedPosition };
+          return updated;
+        } else {
+          return [...prevPositions, updatedPosition];
+        }
       });
     },
-    onRecruitmentStagesUpdate: (updatedStages) => {
-      setAvailableStages(updatedStages);
+    onPresenceUpdate: (presence) => {
+      // Handle presence updates if needed
+    },
+    onUserListUpdate: (users) => {
+      // Handle user list updates if needed
+    },
+    onNotification: (notification) => {
+      // Handle notifications if needed
     },
     showNotifications: true,
-    showErrorNotifications: false // Disable error toast notifications
+    showErrorNotifications: false, // Disable error toast notifications
+    maxReconnectAttempts: 15, // More reconnection attempts
+    reconnectDelayMs: 500, // Faster initial reconnection
+    maxReconnectDelayMs: 15000, // Shorter max delay
   });
 
   // Bulk action handlers
@@ -938,11 +940,15 @@ export function CandidatesPageClient({
     
     // Fetch candidates with default filters to restore original state
     // Use a small delay to ensure state updates are processed
-    setTimeout(() => {
+    const clearTimeoutId = setTimeout(() => {
       fetchTableData(defaultFilters, 1, pageSize);
       fetchAllCandidatesForCounts(defaultFilters); // Update counts data when clearing all filters
       setIsClearingFilters(false);
     }, 100);
+    
+    return () => {
+      clearTimeout(clearTimeoutId);
+    };
   }, [clearAllFilters, pageSize, fetchTableData, fetchAllCandidatesForCounts, filterChangeTimeoutRef]);
 
   // Handle export candidates
@@ -1185,21 +1191,16 @@ export function CandidatesPageClient({
     <>
       <div className="flex flex-col h-full">
         {/* Realtime Status Indicator */}
-        <div className="flex items-center justify-between px-4 py-2 bg-muted/50 border-b text-xs">
-          <div className="flex items-center space-x-2">
+        <div className="flex items-center justify-end px-4 py-2 bg-muted/50 border-b text-xs">
+          <div className={cn(
+            "w-10 h-10 rounded-full flex items-center justify-center",
+            realtimeConnected ? "bg-green-500" : isReconnecting ? "bg-yellow-500" : "bg-red-500"
+          )}>
             <div className={cn(
               "w-2 h-2 rounded-full",
-              realtimeConnected ? "bg-green-500" : isReconnecting ? "bg-yellow-500" : "bg-red-500"
+              realtimeConnected ? "bg-white" : isReconnecting ? "bg-white" : "bg-white/50"
             )} />
-            <span className="text-muted-foreground">
-              {realtimeConnected ? "Live updates connected" : isReconnecting ? `Reconnecting... (${reconnectAttempts})` : "Live updates disconnected"}
-            </span>
           </div>
-          {realtimeConnected && (
-            <span className="text-muted-foreground">
-              Real-time collaboration active
-            </span>
-          )}
         </div>
         
         {/* Main Content */}

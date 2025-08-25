@@ -84,6 +84,7 @@ export function useDynamicHeight(options: UseDynamicHeightOptions = {}) {
       clearTimeout(initialTimer);
       if (resizeTimeoutRef.current) {
         clearTimeout(resizeTimeoutRef.current);
+        resizeTimeoutRef.current = null;
       }
       resizeObserver.disconnect();
       window.removeEventListener('resize', handleResize);

@@ -2,6 +2,17 @@
  * Image utility functions for handling profile images and cache busting
  */
 
+// Avatar cache for storing preloaded images
+const avatarCache = new Map<string, {
+  url: string;
+  timestamp: number;
+  promise: Promise<string>;
+}>();
+
+// Cache configuration
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const MAX_CACHE_SIZE = 100; // Maximum number of cached avatars
+
 /**
  * Adds a cache-busting parameter to image URLs to prevent browser caching issues
  * @param url - The image URL to add cache busting to
@@ -103,15 +114,15 @@ export const getCacheBustedImageUrl = (
  * @param url - The image URL to preload
  * @returns Promise that resolves when the image is loaded
  */
-export const preloadImage = (url: string): Promise<void> => {
+export const preloadImage = (url: string): Promise<string> => {
   return new Promise((resolve, reject) => {
     if (!url) {
-      resolve();
+      reject(new Error('No URL provided'));
       return;
     }
 
     const img = new Image();
-    img.onload = () => resolve();
+    img.onload = () => resolve(url);
     img.onerror = () => reject(new Error(`Failed to preload image: ${url}`));
     img.src = url;
   });
@@ -180,4 +191,118 @@ export const refreshImage = async (url: string): Promise<void> => {
   } catch (error) {
     console.warn('Failed to refresh image:', error);
   }
+};
+
+/**
+ * Cleans up expired cache entries
+ */
+const cleanupCache = (): void => {
+  const now = Date.now();
+  const expiredKeys: string[] = [];
+
+  for (const [key, entry] of avatarCache.entries()) {
+    if (now - entry.timestamp > CACHE_DURATION) {
+      expiredKeys.push(key);
+    }
+  }
+
+  expiredKeys.forEach(key => avatarCache.delete(key));
+
+  // If cache is still too large, remove oldest entries
+  if (avatarCache.size > MAX_CACHE_SIZE) {
+    const entries = Array.from(avatarCache.entries());
+    entries.sort((a, b) => a[1].timestamp - b[1].timestamp);
+    
+    const toRemove = entries.slice(0, avatarCache.size - MAX_CACHE_SIZE);
+    toRemove.forEach(([key]) => avatarCache.delete(key));
+  }
+};
+
+/**
+ * Gets a cached avatar URL or preloads it if not cached
+ * @param user - User object with potential image URLs
+ * @param forceRefresh - If true, forces a new cache entry
+ * @returns Promise that resolves to the cached/preloaded image URL
+ */
+export const getCachedAvatarUrl = async (
+  user: {
+    id: string;
+    avatarUrl?: string | null;
+    image?: string | null;
+  },
+  forceRefresh: boolean = false
+): Promise<string | null> => {
+  const imageUrl = getBestImageUrl(user);
+  if (!imageUrl) return null;
+
+  const cacheKey = `${user.id}-${imageUrl}`;
+  const now = Date.now();
+
+  // Clean up expired cache entries periodically
+  if (now % 30000 === 0) { // Every 30 seconds
+    cleanupCache();
+  }
+
+  // Check if we have a valid cached entry
+  const cached = avatarCache.get(cacheKey);
+  if (cached && !forceRefresh && (now - cached.timestamp) < CACHE_DURATION) {
+    return cached.url;
+  }
+
+  // Create cache-busted URL
+  const cacheBustedUrl = addCacheBuster(imageUrl, forceRefresh);
+
+  // Preload the image
+  const preloadPromise = preloadImage(cacheBustedUrl).catch(error => {
+    console.warn('Failed to preload avatar:', error);
+    return imageUrl; // Fallback to original URL
+  });
+
+  // Store in cache
+  avatarCache.set(cacheKey, {
+    url: cacheBustedUrl,
+    timestamp: now,
+    promise: preloadPromise
+  });
+
+  return preloadPromise;
+};
+
+/**
+ * Preloads multiple avatars for faster loading
+ * @param users - Array of user objects
+ * @returns Promise that resolves when all avatars are preloaded
+ */
+export const preloadAvatars = async (users: Array<{
+  id: string;
+  avatarUrl?: string | null;
+  image?: string | null;
+}>): Promise<void> => {
+  const preloadPromises = users
+    .filter(user => getBestImageUrl(user))
+    .map(user => getCachedAvatarUrl(user).catch(() => null));
+
+  await Promise.allSettled(preloadPromises);
+};
+
+/**
+ * Clears all avatar cache
+ */
+export const clearAvatarCache = (): void => {
+  avatarCache.clear();
+};
+
+/**
+ * Gets cache statistics
+ */
+export const getAvatarCacheStats = (): {
+  size: number;
+  maxSize: number;
+  duration: number;
+} => {
+  return {
+    size: avatarCache.size,
+    maxSize: MAX_CACHE_SIZE,
+    duration: CACHE_DURATION
+  };
 };

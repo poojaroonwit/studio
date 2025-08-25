@@ -21,18 +21,28 @@ const config = {
   logIntervalMs: parseInt(process.env.LOG_INTERVAL_MS) || 30000,
   batchLimit: parseInt(process.env.PROCESSOR_BATCH_LIMIT) || 10, // Reduced from 25 to 10 for better performance
   maxRetries: 3,
-  retryDelayMs: 1000
+  retryDelayMs: 1000,
+  quietMode: process.env.PROCESSOR_QUIET_MODE === 'true' || false,
+  emptyBatchLogIntervalMs: parseInt(process.env.EMPTY_BATCH_LOG_INTERVAL_MS) || 60000 // Log empty batches only every minute
 };
 
 // State
 let isRunning = true;
 let lastLogTime = Date.now();
+let lastEmptyBatchLogTime = 0;
 let processedCount = 0;
 let errorCount = 0;
 let consecutiveErrors = 0;
+let emptyBatchCount = 0;
 
 // Logging utility
 function log(level, message, data = {}) {
+  // Skip INFO logs in quiet mode unless they're important
+  if (config.quietMode && level === 'INFO' && 
+      (message === 'Batch processed' || message.includes('No queued jobs'))) {
+    return;
+  }
+  
   const timestamp = new Date().toISOString();
   const logData = {
     timestamp,
@@ -52,6 +62,7 @@ function log(level, message, data = {}) {
       processedCount,
       errorCount,
       consecutiveErrors,
+      emptyBatchCount,
       uptime: Math.floor((Date.now() - startTime) / 1000)
     }));
     lastLogTime = Date.now();
@@ -186,7 +197,23 @@ async function processBatch() {
     if (response.status === 200) {
       const processedCount = response.data.processed_count || 0;
       const msgs = response.data.messages || [];
-      log('INFO', 'Batch processed', { processedCount, messages: msgs });
+      
+      // Only log empty batches periodically to reduce noise
+      const now = Date.now();
+      const isEmptyBatch = processedCount === 0 && msgs.some(m => (m || '').includes('No queued jobs'));
+      
+      if (isEmptyBatch) {
+        emptyBatchCount++;
+        // Only log empty batches every minute to reduce noise
+        if (now - lastEmptyBatchLogTime > config.emptyBatchLogIntervalMs) {
+          log('INFO', 'Batch processed', { processedCount, messages: msgs, emptyBatchCount });
+          lastEmptyBatchLogTime = now;
+        }
+      } else {
+        // Log non-empty batches immediately
+        log('INFO', 'Batch processed', { processedCount, messages: msgs });
+        emptyBatchCount = 0; // Reset empty batch counter when we process something
+      }
 
       // Update counters heuristically
       if (processedCount > 0) {

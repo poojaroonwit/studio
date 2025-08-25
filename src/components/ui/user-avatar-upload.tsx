@@ -145,7 +145,7 @@ export function UserAvatarUpload({
             <DropdownMenuTrigger asChild>
                              <Avatar 
                  className={cn(
-                   'relative ring-4 shadow-xl bg-gradient-to-br from-blue-100 to-indigo-200 dark:from-blue-900/30 dark:to-indigo-800/30 cursor-pointer',
+                   'relative ring-4 shadow-xl bg-gradient-to-br from-blue-100 to-indigo-200 dark:from-blue-900/30 dark:to-indigo-800/30 cursor-pointer rounded-full',
                    sizeClasses[size]
                  )}
                  style={{ 
@@ -155,9 +155,9 @@ export function UserAvatarUpload({
                  } as React.CSSProperties}
                >
                 {displayImageUrl ? (
-                  <AvatarImage src={displayImageUrl || undefined} alt={user.name} className="object-cover object-top" />
+                  <AvatarImage src={displayImageUrl || undefined} alt={user.name} className="object-cover object-top rounded-full" />
                 ) : (
-                  <AvatarFallback className="bg-gradient-to-br from-blue-500/20 to-indigo-600/20 text-blue-700 dark:text-blue-300 font-bold">
+                  <AvatarFallback className="bg-gradient-to-br from-blue-500/20 to-indigo-600/20 text-blue-700 dark:text-blue-300 font-bold rounded-full">
                     {initials}
                   </AvatarFallback>
                 )}

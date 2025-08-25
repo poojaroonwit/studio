@@ -5,7 +5,7 @@ import { authOptions } from '@/lib/auth';
 import { minioClient, MINIO_BUCKET } from '@/lib/minio';
 import { MINIO_PUBLIC_BASE_URL } from '@/lib/minio-constants';
 import { v4 as uuidv4 } from 'uuid';
-import { broadcastCandidateCommentUpdate } from '@/lib/candidateSse';
+import { unifiedBroadcaster } from '@/lib/unified-realtime-broadcaster';
 import { dispatchWebhooks } from '@/lib/webhookDispatcher';
 import { z } from 'zod';
 
@@ -197,7 +197,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       include: { author: { select: { id: true, name: true, email: true } } },
     });
     // Broadcast SSE event for new comment
-    broadcastCandidateCommentUpdate({ candidateId: id, comment: newComment, action: 'added' }, session.user.id);
+    await unifiedBroadcaster.broadcastCandidateUpdated({ id, comment: newComment, action: 'comment_added' }, session.user.id, {
+      priority: 'normal',
+      retryOnFailure: true,
+      maxRetries: 2
+    });
     
     // Dispatch webhook for comment creation
     try {
@@ -311,7 +315,11 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       include: { author: { select: { id: true, name: true, email: true } } },
     });
     // Broadcast SSE event for updated comment
-    broadcastCandidateCommentUpdate({ candidateId: id, comment: updatedComment, action: 'updated' }, session.user.id);
+    await unifiedBroadcaster.broadcastCandidateUpdated({ id, comment: updatedComment, action: 'comment_updated' }, session.user.id, {
+      priority: 'normal',
+      retryOnFailure: true,
+      maxRetries: 2
+    });
     
     // Dispatch webhook for comment update
     try {
@@ -357,7 +365,11 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     }
     await prisma.candidateComment.delete({ where: { id: commentId, candidateId: id } });
     // After successful deletion
-    broadcastCandidateCommentUpdate({ candidateId: id, comment: { id: commentId }, action: 'deleted' }, session.user.id);
+    await unifiedBroadcaster.broadcastCandidateUpdated({ id, comment: { id: commentId }, action: 'comment_deleted' }, session.user.id, {
+      priority: 'normal',
+      retryOnFailure: true,
+      maxRetries: 2
+    });
     
     // Dispatch webhook for comment deletion
     try {

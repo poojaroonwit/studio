@@ -1,7 +1,6 @@
 import prisma from '@/lib/prisma';
 import { logAudit } from '@/lib/auditLog';
-import { broadcastPositionUpdate, broadcastPositionListUpdate, broadcastPositionStatisticsUpdate } from '@/lib/candidateSse';
-import { dispatchWebhooks } from '@/lib/webhookDispatcher';
+import { unifiedBroadcaster } from '@/lib/unified-realtime-broadcaster';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
@@ -151,37 +150,48 @@ export async function autoClosePositionIfHeadcountFilled(
     };
 
     // Dispatch webhook for position update
-    try {
-      await dispatchWebhooks.positionUpdated(positionWithCustomAttrs);
-    } catch (webhookError) {
-      console.error('Failed to dispatch position update webhook:', webhookError);
-    }
+    // try {
+    //   await dispatchWebhooks.positionUpdated(positionWithCustomAttrs);
+    // } catch (webhookError) {
+    //   console.error('Failed to dispatch position update webhook:', webhookError);
+    // }
 
-    // Broadcast real-time updates
-    try {
-      broadcastPositionUpdate(positionWithCustomAttrs);
-      broadcastPositionListUpdate();
-      
-      // Broadcast statistics update
-      const statsQuery = `
-        SELECT 
-          COUNT(*) as total,
-          COUNT(CASE WHEN "isOpen" = TRUE THEN 1 END) as open,
-          COUNT(CASE WHEN "isOpen" = FALSE THEN 1 END) as closed
-        FROM "Position"
-      `;
-      const { getPool } = await import('@/lib/db');
-      const statsResult = await getPool().query(statsQuery);
-      const stats = statsResult.rows[0];
-      const statistics = { 
-        total: parseInt(stats.total, 10), 
-        open: parseInt(stats.open, 10), 
-        closed: parseInt(stats.closed, 10) 
-      };
-      broadcastPositionStatisticsUpdate(statistics);
-    } catch (broadcastError) {
-      console.error('Failed to broadcast position updates:', broadcastError);
-    }
+    // Broadcast position update to unified SSE clients
+    await unifiedBroadcaster.broadcastPositionUpdated(positionWithCustomAttrs, actingUserId, {
+      priority: 'high',
+      retryOnFailure: true,
+      maxRetries: 3
+    });
+
+         // Broadcast position list update to unified SSE clients
+     await unifiedBroadcaster.broadcastPositionListUpdated({
+       priority: 'normal',
+       retryOnFailure: true,
+       maxRetries: 3
+     });
+
+     // Broadcast statistics update to unified SSE clients
+     const statsQuery = `
+       SELECT 
+         COUNT(*) as total,
+         COUNT(CASE WHEN "isOpen" = TRUE THEN 1 END) as open,
+         COUNT(CASE WHEN "isOpen" = FALSE THEN 1 END) as closed
+       FROM "Position"
+     `;
+     const { getPool } = await import('@/lib/db');
+     const statsResult = await getPool().query(statsQuery);
+     const stats = statsResult.rows[0];
+     const statistics = { 
+       total: parseInt(stats.total, 10), 
+       open: parseInt(stats.open, 10), 
+       closed: parseInt(stats.closed, 10) 
+     };
+     await unifiedBroadcaster.broadcastPositionStatisticsUpdated(statistics, {
+       priority: 'normal',
+       retryOnFailure: true,
+       maxRetries: 3
+     });
+
     return {
       success: true,
       message: 'Position automatically closed successfully',

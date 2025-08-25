@@ -14,7 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Plus, Search, Filter, RotateCcw } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useUserPreferences } from '@/hooks/use-user-preferences';
-import { useRealtimeCollaboration } from '@/hooks/use-realtime-collaboration';
+import { useUnifiedRealtime } from '@/hooks/use-unified-realtime';
 import { RealtimeIndicator } from '@/components/ui/realtime-indicator';
 
 // Default stages - will be populated from real data source
@@ -96,8 +96,8 @@ function TaskBoardContent() {
     isLoaded 
   } = useUserPreferences();
 
-  // Real-time collaboration hook with error handling
-  const { isConnected: realtimeConnected, isReconnecting, reconnectAttempts } = useRealtimeCollaboration({
+  // Unified realtime hook
+  const { isConnected: realtimeConnected, isReconnecting, reconnectAttempts } = useUnifiedRealtime({
     onCandidateUpdate: (updatedCandidate) => {
       try {
         // Handle candidate updates if needed
@@ -107,12 +107,21 @@ function TaskBoardContent() {
         setHasError(true);
       }
     },
-    onTransitionUpdate: (transition) => {
+    onPositionUpdate: (updatedPosition) => {
       try {
-        // Handle transition updates if needed
-        // console.log('Transition updated:', transition);
+        // Handle position updates if needed
+        // console.log('Position updated:', updatedPosition);
       } catch (error) {
-        console.error('Error handling transition update:', error);
+        console.error('Error handling position update:', error);
+        setHasError(true);
+      }
+    },
+    onNotification: (notification) => {
+      try {
+        // Handle notifications if needed
+        // console.log('Notification received:', notification);
+      } catch (error) {
+        console.error('Error handling notification:', error);
         setHasError(true);
       }
     },

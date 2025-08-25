@@ -243,9 +243,9 @@ export function TaskDetailModal({
                   {assignees.map((assignee) => (
                     <SelectItem key={assignee.id} value={assignee.id}>
                       <div className="flex items-center gap-2">
-                        <Avatar className="w-6 h-6">
-                          <AvatarImage src={assignee.avatarUrl} alt={assignee.name} />
-                          <AvatarFallback className="text-xs">
+                        <Avatar className="w-6 h-6 rounded-full">
+                          <AvatarImage src={assignee.avatarUrl} alt={assignee.name} className="rounded-full" />
+                          <AvatarFallback className="text-xs rounded-full">
                             {assignee.name.charAt(0).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
@@ -259,12 +259,13 @@ export function TaskDetailModal({
               <div className="flex items-center gap-2 mt-1">
                 {task.assignee ? (
                   <>
-                    <Avatar className="w-8 h-8">
+                    <Avatar className="w-8 h-8 rounded-full">
                       <AvatarImage
                         src={task.assignee.avatarUrl}
                         alt={task.assignee.name}
+                        className="rounded-full"
                       />
-                      <AvatarFallback>
+                      <AvatarFallback className="rounded-full">
                         {task.assignee.name.charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>

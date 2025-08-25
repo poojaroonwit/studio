@@ -296,10 +296,19 @@ export const CandidateImportUploadQueue: React.FC<{
       
       if (!res.ok) {
         let errorMsg = `Failed to fetch jobs: ${res.status} ${res.statusText}`;
+        let errorDetails = '';
+        let suggestion = '';
+        
         try {
           const errorData = await res.json();
           if (errorData && errorData.error) {
-            errorMsg += ` - ${errorData.error}`;
+            errorMsg = errorData.error;
+            if (errorData.details) {
+              errorDetails = errorData.details;
+            }
+            if (errorData.suggestion) {
+              suggestion = errorData.suggestion;
+            }
           }
         } catch (parseError) {
           // Silent parse error
@@ -310,7 +319,23 @@ export const CandidateImportUploadQueue: React.FC<{
           errorMsg = 'Your session has expired. Please refresh the page and sign in again.';
         }
         
-        throw new Error(errorMsg);
+        // If it's a 504 error, provide specific guidance
+        if (res.status === 504) {
+          errorMsg = 'Request timeout - the query took too long to complete.';
+          if (!errorDetails) {
+            errorDetails = 'The upload queue query exceeded the timeout limit. This may be due to a large number of records or database performance issues.';
+          }
+          if (!suggestion) {
+            suggestion = 'Try reducing the page size, adding more specific filters, or contact an administrator to optimize the database.';
+          }
+        }
+        
+        // Create a more detailed error message
+        const fullErrorMsg = suggestion 
+          ? `${errorMsg} ${suggestion}`
+          : errorMsg;
+        
+        throw new Error(fullErrorMsg);
       }
       const { data, total, summary } = await res.json();
       if (isMounted) {

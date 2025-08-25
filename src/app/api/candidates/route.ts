@@ -4,7 +4,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getPool } from '@/lib/db';
 import { logAudit } from '@/lib/auditLog';
-import { broadcastCandidateUpdate } from '@/lib/candidateSse';
+import { unifiedBroadcaster } from '@/lib/unified-realtime-broadcaster';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 import { createDateInTimezone } from '@/lib/dateUtils';
@@ -188,7 +188,13 @@ export async function POST(request: NextRequest) {
     ]);
     await client.query('COMMIT');
     await logAudit('AUDIT', `New candidate '${name}' created by ${actingUserName}.`, 'API:Candidates:Create', actingUserId, { candidateId: newCandidateId });
-    broadcastCandidateUpdate(newCandidate, actingUserId); // Broadcast to SSE clients
+    
+    // Broadcast to unified SSE clients
+    await unifiedBroadcaster.broadcastCandidateCreated(newCandidate, actingUserId, {
+      priority: 'high',
+      retryOnFailure: true,
+      maxRetries: 3
+    });
     
     // Auto-assign recruiter if candidate has a position and no recruiter
     if (positionId && !newCandidate.recruiterId) {

@@ -14,14 +14,19 @@ const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-// Configuration for Docker environments
+// Configuration
 const config = {
-  connectionString: process.env.DATABASE_URL,
-  checkIntervalMs: 30000, // Check every 30 seconds (more frequent in containers)
-  stuckJobThresholdHours: 0.5, // Consider jobs stuck after 30 minutes
-  processorScript: 'scripts/process-upload-queue.cjs',
-  logFile: './logs/health-check-docker.log'
+  connectionString: process.env.DATABASE_URL || 'postgresql://localhost:5432/studio',
+  checkIntervalMs: parseInt(process.env.HEALTH_CHECK_INTERVAL_MS) || 60000, // Check every minute
+  stuckJobThresholdHours: parseInt(process.env.STUCK_JOB_THRESHOLD_HOURS) || 1,
+  processorScript: process.env.PROCESSOR_SCRIPT || 'scripts/process-upload-queue.cjs',
+  quietMode: process.env.HEALTH_CHECK_QUIET_MODE === 'true' || false,
+  maxConsecutiveErrors: parseInt(process.env.MAX_CONSECUTIVE_ERRORS) || 3
 };
+
+// State
+let consecutiveErrors = 0;
+let lastErrorLogTime = 0;
 
 // Ensure logs directory exists
 const logsDir = path.dirname(config.logFile);
@@ -30,12 +35,20 @@ if (!fs.existsSync(logsDir)) {
 }
 
 function log(message, level = 'INFO') {
-  const timestamp = new Date().toISOString();
-  const logMessage = `[${timestamp}] [${level}] [DOCKER] ${message}`;
-  console.log(logMessage);
+  // Skip repetitive error messages in quiet mode
+  if (config.quietMode && level === 'ERROR' && 
+      (message.includes('Queue processor is not running') || 
+       message.includes('Failed to start queue processor'))) {
+    const now = Date.now();
+    // Only log these errors every 5 minutes to reduce noise
+    if (now - lastErrorLogTime < 300000) { // 5 minutes
+      return;
+    }
+    lastErrorLogTime = now;
+  }
   
-  // Also write to log file
-  fs.appendFileSync(config.logFile, logMessage + '\n');
+  const timestamp = new Date().toISOString();
+  console.log(`[${timestamp}] [${level}] ${message}`);
 }
 
 async function checkQueueHealth() {
@@ -88,10 +101,22 @@ async function checkQueueHealth() {
     }
     
     if (!isProcessorRunning) {
+      consecutiveErrors++;
       log('ERROR: Queue processor is not running!', 'ERROR');
-      await startProcessorDocker();
+      
+      // Only attempt to start if we haven't had too many consecutive failures
+      if (consecutiveErrors <= config.maxConsecutiveErrors) {
+        await startProcessorDocker();
+      } else {
+        log(`WARNING: Skipping processor start attempt due to ${consecutiveErrors} consecutive failures`, 'WARN');
+      }
     } else {
-      log('Queue processor is running normally', 'INFO');
+      if (consecutiveErrors > 0) {
+        log(`Queue processor is running normally (recovered from ${consecutiveErrors} consecutive failures)`, 'INFO');
+        consecutiveErrors = 0; // Reset error counter
+      } else {
+        log('Queue processor is running normally', 'INFO');
+      }
     }
     
   } catch (error) {

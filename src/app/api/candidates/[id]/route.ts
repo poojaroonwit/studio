@@ -6,7 +6,7 @@ import { logAudit } from '@/lib/auditLog';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { v4 as uuidv4 } from 'uuid';
-import { broadcastCandidateUpdate, broadcastCandidateTransitionUpdate } from '@/lib/candidateSse';
+import { unifiedBroadcaster } from '@/lib/unified-realtime-broadcaster';
 import { normalizeFitScore } from '@/lib/scoreUtils';
 import { syncRecruiterForCandidate } from '@/lib/recruiterSync';
 import { NotificationService } from '@/lib/notificationService';
@@ -578,7 +578,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         if (transitionResult.rows.length > 0) {
           const newTransition = transitionResult.rows[0];
           // Broadcast the new transition
-          broadcastCandidateTransitionUpdate({
+          await unifiedBroadcaster.broadcastCandidateTransitionUpdated({
             candidateId: id,
             transition: newTransition,
             action: 'add'
@@ -654,7 +654,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         const transitionResult = await client.query(getTransitionQuery, [newTransitionId]);
         if (transitionResult.rows.length > 0) {
           const newTransition = transitionResult.rows[0];
-          broadcastCandidateTransitionUpdate({
+          await unifiedBroadcaster.broadcastCandidateTransitionUpdated({
             candidateId: id,
             transition: newTransition,
             action: 'add'
@@ -764,7 +764,11 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     }
     
     // Broadcast update with safe candidate data
-    broadcastCandidateUpdate({ ...candidate, customAttributes }, actingUserId);
+    await unifiedBroadcaster.broadcastCandidateUpdated({ ...candidate, customAttributes }, actingUserId, {
+      priority: 'high',
+      retryOnFailure: true,
+      maxRetries: 3
+    });
   
     return NextResponse.json({
       ...candidate,
@@ -842,7 +846,11 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     const candidateName = result.rows[0].name;
     await client.query('COMMIT');
     await logAudit('AUDIT', `Candidate '${candidateName}' deleted by ${actingUserName}.`, 'API:Candidates:Delete', actingUserId, { candidateId: id });
-    broadcastCandidateUpdate({ id, deleted: true }, actingUserId); // Broadcast removal
+    await unifiedBroadcaster.broadcastCandidateDeleted(id, actingUserId, {
+      priority: 'high',
+      retryOnFailure: true,
+      maxRetries: 3
+    });
     return NextResponse.json({ message: 'Candidate deleted successfully' });
   } catch (error: any) {
     await client.query('ROLLBACK');

@@ -109,12 +109,12 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
               <div className="relative group">
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5 rounded-full blur-xl group-hover:blur-2xl transition-all duration-300"></div>
                                  <Avatar 
-                   className="w-20 h-20 text-3xl relative bg-gradient-to-br from-blue-100 to-indigo-200 dark:from-blue-900/30 dark:to-indigo-800/30"
+                   className="w-20 h-20 text-3xl relative bg-gradient-to-br from-blue-100 to-indigo-200 dark:from-blue-900/30 dark:to-indigo-800/30 rounded-full"
                  >
                   {candidate.avatarUrl ? (
-                    <AvatarImage src={candidate.avatarUrl} alt={nameInfo.name} className="object-cover object-top" />
+                    <AvatarImage src={candidate.avatarUrl} alt={nameInfo.name} className="object-cover object-top rounded-full" />
                   ) : (
-                    <AvatarFallback className="bg-gradient-to-br from-blue-500/20 to-indigo-600/20 text-blue-700 dark:text-blue-300 font-bold">
+                    <AvatarFallback className="bg-gradient-to-br from-blue-500/20 to-indigo-600/20 text-blue-700 dark:text-blue-300 font-bold rounded-full">
                       {nameInfo.name?.[0] || '?'}
                     </AvatarFallback>
                   )}

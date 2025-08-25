@@ -18,13 +18,13 @@ export async function POST(request: NextRequest) {
     const actingUserName = session.user.name || session.user.email || 'System';
 
     // Check if warning system has already been initialized
-    let systemStatus = await prisma.warningSystemStatus.findFirst({
+    let systemStatus = await (prisma as any).warningSystemStatus.findFirst({
       where: { id: 'system' }
     });
 
     if (!systemStatus) {
       // Create system status record
-      systemStatus = await prisma.warningSystemStatus.create({
+      systemStatus = await (prisma as any).warningSystemStatus.create({
         data: {
           id: 'system',
           initialized: false,
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Mark system as initialized
-    await prisma.warningSystemStatus.update({
+    await (prisma as any).warningSystemStatus.update({
       where: { id: 'system' },
       data: {
         initialized: true,

@@ -545,8 +545,8 @@ export function UnifiedRoleDrawer({
                                    <TableRow key={member.id}>
                                      <TableCell className="w-[40%] min-w-[200px]">
                                        <div className="flex items-center gap-3">
-                                         <Avatar className="h-8 w-8 flex-shrink-0">
-                                           <AvatarFallback className="text-xs">
+                                         <Avatar className="h-8 w-8 flex-shrink-0 rounded-full">
+                                           <AvatarFallback className="text-xs rounded-full">
                                              {getInitials(member.name)}
                                            </AvatarFallback>
                                          </Avatar>
@@ -648,8 +648,8 @@ export function UnifiedRoleDrawer({
                             className={isAlreadyMember ? 'opacity-60 cursor-not-allowed' : ''}
                           >
                             <div className="flex items-center gap-2 w-full">
-                              <Avatar className="h-6 w-6 flex-shrink-0">
-                                <AvatarFallback className="text-xs">
+                              <Avatar className="h-6 w-6 flex-shrink-0 rounded-full">
+                                <AvatarFallback className="text-xs rounded-full">
                                   {getInitials(user.name)}
                                 </AvatarFallback>
                               </Avatar>

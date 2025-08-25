@@ -38,7 +38,7 @@ import { SCORE_COLOR_STOPS } from '@/components/ui/score-color';
 import { SLAViolationsWidget } from './SLAViolationsWidget';
 import { useDynamicHeight } from '@/hooks/use-dynamic-height';
 import { PositionDetailDrawer } from '@/components/positions/PositionDetailDrawer';
-import { useRealtimeCollaboration } from '@/hooks/use-realtime-collaboration';
+import { useUnifiedRealtime } from '@/hooks/use-unified-realtime';
 import { cn } from '@/lib/utils';
 import '@/lib/chartjs-setup';
 
@@ -85,109 +85,42 @@ export default function DashboardPageClient({
   const [selectedPositionId, setSelectedPositionId] = useState<string | null>(null);
   const [isPositionDrawerOpen, setIsPositionDrawerOpen] = useState(false);
 
-  // Real-time collaboration hook for dashboard updates
-  const { isConnected: realtimeConnected, isReconnecting, reconnectAttempts } = useRealtimeCollaboration({
+  // Unified realtime hook
+  const { isConnected: realtimeConnected, isReconnecting, reconnectAttempts } = useUnifiedRealtime({
     onCandidateUpdate: (updatedCandidate) => {
-      // Update candidate data in all relevant arrays
-      setFilteredCandidates(prevCandidates => {
-        const existingIndex = prevCandidates.findIndex(c => c.id === updatedCandidate.id);
-        if (existingIndex !== -1) {
-          const updated = [...prevCandidates];
-          updated[existingIndex] = { ...updated[existingIndex], ...updatedCandidate };
-          return updated;
-        }
-        return prevCandidates;
-      });
-      
-      setMyAssignedCandidates(prevCandidates => {
-        const existingIndex = prevCandidates.findIndex(c => c.id === updatedCandidate.id);
-        if (existingIndex !== -1) {
-          const updated = [...prevCandidates];
-          updated[existingIndex] = { ...updated[existingIndex], ...updatedCandidate };
-          return updated;
-        }
-        return prevCandidates;
-      });
-      
-      setMyBacklogCandidates(prevCandidates => {
-        const existingIndex = prevCandidates.findIndex(c => c.id === updatedCandidate.id);
-        if (existingIndex !== -1) {
-          const updated = [...prevCandidates];
-          updated[existingIndex] = { ...updated[existingIndex], ...updatedCandidate };
-          return updated;
-        }
-        return prevCandidates;
-      });
+      // Refresh dashboard data when candidates are updated
+      fetchDataClientSide();
     },
     onPositionUpdate: (updatedPosition) => {
-      setAllPositions(prevPositions => {
-        const existingIndex = prevPositions.findIndex(p => p.id === updatedPosition.id);
-        if (existingIndex !== -1) {
-          const updated = [...prevPositions];
-          updated[existingIndex] = { ...updated[existingIndex], ...updatedPosition };
-          return updated;
-        }
-        return prevPositions;
-      });
+      // Refresh dashboard data when positions are updated
+      fetchDataClientSide();
     },
-    onTransitionUpdate: (transition) => {
-      // Update candidate status when transitions occur
-      setFilteredCandidates(prevCandidates => {
-        return prevCandidates.map(candidate => {
-          if (candidate.id === transition.candidateId) {
-            return { ...candidate, status: transition.stage };
-          }
-          return candidate;
-        });
-      });
-      
-      setMyAssignedCandidates(prevCandidates => {
-        return prevCandidates.map(candidate => {
-          if (candidate.id === transition.candidateId) {
-            return { ...candidate, status: transition.stage };
-          }
-          return candidate;
-        });
-      });
-      
-      setMyBacklogCandidates(prevCandidates => {
-        return prevCandidates.map(candidate => {
-          if (candidate.id === transition.candidateId) {
-            return { ...candidate, status: transition.stage };
-          }
-          return candidate;
-        });
-      });
+    onDashboardUpdate: (dashboardData) => {
+      // Handle specific dashboard updates
+      if (dashboardData.type === 'metrics') {
+        // Refresh all data when metrics update
+        fetchDataClientSide();
+      } else if (dashboardData.type === 'chart_update') {
+        // Handle specific chart updates
+        fetchDataClientSide();
+      }
+    },
+    onNotification: (notification) => {
+      // Handle dashboard-related notifications
     },
     showNotifications: true,
-    showErrorNotifications: false // Disable error toast notifications
+    showErrorNotifications: false, // Disable error toast notifications
+    maxReconnectAttempts: 15, // More reconnection attempts
+    reconnectDelayMs: 500, // Faster initial reconnection
+    maxReconnectDelayMs: 15000, // Shorter max delay
   });
 
-  // Check permissions
-  const canViewDashboard = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('USERS_MANAGE') || 
-    session?.user?.modulePermissions?.includes('DASHBOARD_VIEW');
-  
-  // EARLY RETURNS MOVED TO AFTER ALL HOOKS
-  if (status === 'loading') {
-    return <div>Loading...</div>;
-  }
-
-  if (status === 'unauthenticated') {
-    return <div>Please sign in to view the dashboard.</div>;
-  }
-
-  if (!canViewDashboard) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-destructive mb-4">Access Denied</h1>
-          <p className="text-muted-foreground">
-            You don't have permission to view the dashboard. Please contact your administrator.
-          </p>
-        </div>
-      </div>
-    );
-  }
+  // Check permissions for dashboard access
+  const canViewDashboard = session?.user?.role === 'Admin' || 
+                          session?.user?.role === 'Hiring Manager' || 
+                          session?.user?.role === 'Recruiter' ||
+                          session?.user?.modulePermissions?.includes('USERS_MANAGE') ||
+                          session?.user?.modulePermissions?.includes('DASHBOARD_VIEW');
 
   // Function to re-fetch data on client if needed (e.g., after an action or for a refresh button)
   const fetchDataClientSide = useCallback(async () => {
@@ -571,31 +504,94 @@ export default function DashboardPageClient({
     return map;
   }, [allUsers]);
 
-  if (authError) return ( <div className="flex flex-col items-center justify-center h-[calc(100vh-10rem)] text-center p-4"> <ServerCrash className="w-16 h-16 text-destructive mb-4" /> <h2 className="text-2xl font-semibold text-foreground mb-2">Authentication Error</h2> <p className="text-muted-foreground mb-4 max-w-md">{fetchError || "You need to be signed in to view the dashboard."}</p> <Button onClick={() => signIn(undefined, { callbackUrl: window.location.pathname })} className="btn-hover-primary-gradient">Sign In</Button> </div> );
-  if (permissionError) return ( <div className="flex flex-col items-center justify-center h-[calc(100vh-10rem)] text-center p-4"> <ServerCrash className="w-16 h-16 text-destructive mb-4" /> <h2 className="text-2xl font-semibold text-foreground mb-2">Permission Denied</h2> <p className="text-muted-foreground mb-4 max-w-md">{fetchError || "You do not have permission to view this page."}</p> <Button onClick={() => router.push('/')} className="btn-hover-primary-gradient">Go to Home</Button> </div> );
-  if (fetchError && !isLoading && initialFetchError) return ( <div className="flex flex-col items-center justify-center h-[calc(100vh-10rem)] text-center"> <ServerCrash className="w-16 h-16 text-destructive mb-4" /> <h2 className="text-2xl font-semibold text-foreground mb-2">Data Loading Error</h2> <p className="text-muted-foreground mb-6 max-w-md"> Could not load dashboard data: {fetchError} </p> <Button onClick={fetchDataClientSide} className="btn-hover-primary-gradient">Try Again</Button> </div> );
+
+
+  // Handle conditional rendering based on status and errors
+  if (status === 'loading') {
+    return <div>Loading...</div>;
+  }
+
+  if (status === 'unauthenticated') {
+    return <div>Please sign in to view the dashboard.</div>;
+  }
+
+  if (!canViewDashboard) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-destructive mb-4">Access Denied</h1>
+          <p className="text-muted-foreground">
+            You don't have permission to view the dashboard. Please contact your administrator.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (authError) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-10rem)] text-center p-4">
+        <ServerCrash className="w-16 h-16 text-destructive mb-4" />
+        <h2 className="text-2xl font-semibold text-foreground mb-2">Authentication Error</h2>
+        <p className="text-muted-foreground mb-4 max-w-md">{fetchError || "You need to be signed in to view the dashboard."}</p>
+        <Button onClick={() => signIn(undefined, { callbackUrl: window.location.pathname })} className="btn-hover-primary-gradient">
+          Sign In
+        </Button>
+      </div>
+    );
+  }
+
+  if (permissionError) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-10rem)] text-center p-4">
+        <ServerCrash className="w-16 h-16 text-destructive mb-4" />
+        <h2 className="text-2xl font-semibold text-foreground mb-2">Permission Denied</h2>
+        <p className="text-muted-foreground mb-4 max-w-md">{fetchError || "You do not have permission to view this page."}</p>
+        <Button onClick={() => router.push('/')} className="btn-hover-primary-gradient">
+          Go to Home
+        </Button>
+      </div>
+    );
+  }
+
+  if (fetchError && !isLoading && initialFetchError) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-10rem)] text-center">
+        <ServerCrash className="w-16 h-16 text-destructive mb-4" />
+        <h2 className="text-2xl font-semibold text-foreground mb-2">Data Loading Error</h2>
+        <p className="text-muted-foreground mb-6 max-w-md">
+          Could not load dashboard data: {fetchError}
+        </p>
+        <Button onClick={fetchDataClientSide} className="btn-hover-primary-gradient">
+          Try Again
+        </Button>
+      </div>
+    );
+  }
+
   // Show loading state only for initial load, not for statistics calculations
-  if (isLoading && (!filteredCandidates.length && !allPositions.length)) return ( <div className="flex h-screen w-screen items-center justify-center bg-background fixed inset-0 z-50"> <Loader2 className="h-16 w-16 animate-spin text-primary" /> </div> );
+  if (isLoading && (!filteredCandidates.length && !allPositions.length)) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-background fixed inset-0 z-50">
+        <Loader2 className="h-16 w-16 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   // Unified Dashboard - Show all metrics to everyone
   return (
     <div className="space-y-8 p-6">
       {/* Realtime Status Indicator */}
-      <div className="flex items-center justify-between px-4 py-2 bg-muted/50 border-b border-border rounded-lg text-xs">
-        <div className="flex items-center space-x-2">
+      <div className="flex items-center justify-end px-4 py-2 bg-muted/50 border-b border-border rounded-lg text-xs">
+        <div className={cn(
+          "w-10 h-10 rounded-full flex items-center justify-center",
+          realtimeConnected ? "bg-green-500" : isReconnecting ? "bg-yellow-500" : "bg-red-500"
+        )}>
           <div className={cn(
             "w-2 h-2 rounded-full",
-            realtimeConnected ? "bg-green-500" : isReconnecting ? "bg-yellow-500" : "bg-red-500"
+            realtimeConnected ? "bg-white" : isReconnecting ? "bg-white" : "bg-white/50"
           )} />
-          <span className="text-muted-foreground">
-            {realtimeConnected ? "Live updates connected" : isReconnecting ? `Reconnecting... (${reconnectAttempts})` : "Live updates disconnected"}
-          </span>
         </div>
-        {realtimeConnected && (
-          <span className="text-muted-foreground">
-            Real-time collaboration active
-          </span>
-        )}
       </div>
     
       {/* Dashboard Header */}

@@ -99,6 +99,7 @@ export function useRealtimeCollaboration(options: RealtimeCollaborationOptions =
       eventSourceRef.current = null;
     }
     
+    // Clear all timeouts and intervals
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;
@@ -108,6 +109,11 @@ export function useRealtimeCollaboration(options: RealtimeCollaborationOptions =
       clearInterval(healthCheckIntervalRef.current);
       healthCheckIntervalRef.current = null;
     }
+    
+    // Reset state
+    setIsConnected(false);
+    setIsReconnecting(false);
+    setReconnectAttempts(0);
   }, []);
 
   const startHealthCheck = useCallback(() => {

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { UserCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { getCacheBustedImageUrl, refreshImage } from '@/lib/imageUtils';
+import { getCachedAvatarUrl } from '@/lib/imageUtils';
 
 interface CandidateAvatarProps {
   user: {
@@ -33,19 +33,44 @@ export function CandidateAvatar({
   showTooltip = false,
   forceRefresh = false 
 }: CandidateAvatarProps) {
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
-  
-  // Handle force refresh
-  useEffect(() => {
-    if (forceRefresh && user.avatarUrl) {
-      // Trigger a refresh of the image
-      refreshImage(user.avatarUrl);
-      setRefreshTrigger(prev => prev + 1);
-    }
-  }, [forceRefresh, user.avatarUrl]);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Get cache-busted image URL to prevent browser caching issues
-  const cacheBustedImageUrl = getCacheBustedImageUrl(user, refreshTrigger > 0);
+  // Handle avatar loading with caching
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadAvatar = async () => {
+      if (!user.avatarUrl && !user.image) {
+        if (isMounted) {
+          setImageUrl(null);
+          setIsLoading(false);
+        }
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        const cachedUrl = await getCachedAvatarUrl(user, forceRefresh);
+        if (isMounted) {
+          setImageUrl(cachedUrl);
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.warn('Failed to load avatar:', error);
+        if (isMounted) {
+          setImageUrl(null);
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadAvatar();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user.id, user.avatarUrl, user.image, forceRefresh]);
   
   // Generate initials from name
   const getInitials = (name: string) => {
@@ -68,21 +93,21 @@ export function CandidateAvatar({
       className={cn(
         sizeClasses[size],
         'relative bg-gradient-to-br from-blue-100 to-indigo-200 dark:from-blue-900/30 dark:to-indigo-800/30',
-        'transition-all duration-300',
+        'transition-all duration-300 rounded-full',
+        isLoading && 'animate-pulse',
         className
       )}
       title={tooltipText}
     >
-      {cacheBustedImageUrl ? (
+      {imageUrl ? (
         <AvatarImage 
-          src={cacheBustedImageUrl} 
+          src={imageUrl} 
           alt={user.name}
-          className="object-cover object-top"
-          key={`${user.id}-${refreshTrigger}`} // Force re-render on refresh
+          className="object-cover object-top rounded-full"
         />
       ) : null}
       <AvatarFallback 
-        className="bg-gradient-to-br from-blue-500/20 to-indigo-600/20 text-blue-700 dark:text-blue-300 font-bold"
+        className="bg-gradient-to-br from-blue-500/20 to-indigo-600/20 text-blue-700 dark:text-blue-300 font-bold rounded-full"
         style={{ 
           backgroundColor: personalColor + '20',
           color: personalColor
@@ -108,8 +133,44 @@ export function CandidateAvatarCompact({ user, size = 'sm', className, forceRefr
 
 // Large version for profile pages
 export function CandidateAvatarLarge({ user, className }: CandidateAvatarProps) {
-  // Get cache-busted image URL to prevent browser caching issues
-  const cacheBustedImageUrl = getCacheBustedImageUrl(user, false);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Handle avatar loading with caching
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadAvatar = async () => {
+      if (!user.avatarUrl && !user.image) {
+        if (isMounted) {
+          setImageUrl(null);
+          setIsLoading(false);
+        }
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        const cachedUrl = await getCachedAvatarUrl(user, false);
+        if (isMounted) {
+          setImageUrl(cachedUrl);
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.warn('Failed to load avatar:', error);
+        if (isMounted) {
+          setImageUrl(null);
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadAvatar();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user.id, user.avatarUrl, user.image]);
   
   // Generate initials from name
   const getInitials = (name: string) => {
@@ -130,20 +191,21 @@ export function CandidateAvatarLarge({ user, className }: CandidateAvatarProps) 
       className={cn(
         'h-16 w-16',
         'relative bg-gradient-to-br from-blue-100 to-indigo-200 dark:from-blue-900/30 dark:to-indigo-800/30',
-        'transition-all duration-300',
+        'transition-all duration-300 rounded-full',
+        isLoading && 'animate-pulse',
         className
       )}
       title={tooltipText}
     >
-      {cacheBustedImageUrl ? (
+      {imageUrl ? (
         <AvatarImage 
-          src={cacheBustedImageUrl} 
+          src={imageUrl} 
           alt={user.name}
-          className="object-cover object-top"
+          className="object-cover object-top rounded-full"
         />
       ) : null}
       <AvatarFallback 
-        className="bg-gradient-to-br from-blue-500/20 to-indigo-600/20 text-blue-700 dark:text-blue-300 font-bold text-lg"
+        className="bg-gradient-to-br from-blue-500/20 to-indigo-600/20 text-blue-700 dark:text-blue-300 font-bold text-lg rounded-full"
         style={{ 
           backgroundColor: personalColor + '20',
           color: personalColor

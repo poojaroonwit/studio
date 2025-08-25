@@ -99,7 +99,11 @@ export function WarningProvider({ children }: { children: React.ReactNode }) {
           if (result.initialized) {
             // Warning system initialized automatically
             // Refresh warnings after initialization
-            setTimeout(() => fetchWarnings(), 2000);
+            const refreshTimeout = setTimeout(() => fetchWarnings(), 2000);
+            
+            return () => {
+              clearTimeout(refreshTimeout);
+            };
           }
         }
       } catch (error) {

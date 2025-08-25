@@ -26,6 +26,12 @@ const config = {
   emptyBatchLogIntervalMs: parseInt(process.env.EMPTY_BATCH_LOG_INTERVAL_MS) || 60000 // Log empty batches only every minute
 };
 
+// Override baseUrl for local development if it's set to Docker service name
+if (config.baseUrl.includes('app:8021') || config.baseUrl.includes('172.21.0.2:8021')) {
+  config.baseUrl = 'http://localhost:8021';
+  console.log(`[INFO] Overriding PROCESSOR_URL to localhost for local development: ${config.baseUrl}`);
+}
+
 // State
 let isRunning = true;
 let lastLogTime = Date.now();
@@ -40,6 +46,12 @@ function log(level, message, data = {}) {
   // Skip INFO logs in quiet mode unless they're important
   if (config.quietMode && level === 'INFO' && 
       (message === 'Batch processed' || message.includes('No queued jobs'))) {
+    return;
+  }
+  
+  // Additional check: if it's an empty batch with "No queued jobs", skip logging entirely
+  if (level === 'INFO' && message === 'Batch processed' && 
+      data.messages && data.messages.some(m => (m || '').includes('No queued jobs'))) {
     return;
   }
   
@@ -204,8 +216,8 @@ async function processBatch() {
       
       if (isEmptyBatch) {
         emptyBatchCount++;
-        // Only log empty batches every minute to reduce noise
-        if (now - lastEmptyBatchLogTime > config.emptyBatchLogIntervalMs) {
+        // Skip logging empty batches entirely when quiet mode is enabled
+        if (!config.quietMode && now - lastEmptyBatchLogTime > config.emptyBatchLogIntervalMs) {
           log('INFO', 'Batch processed', { processedCount, messages: msgs, emptyBatchCount });
           lastEmptyBatchLogTime = now;
         }

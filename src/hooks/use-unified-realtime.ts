@@ -88,9 +88,8 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
   const showNotification = useCallback((message: string, icon: string = '🔄') => {
     if (showNotifications) {
       try {
-        showToast(message, {
-          duration: 3000,
-          icon
+        showToast(message, 'info', {
+          duration: 3000
         });
       } catch (error) {
         console.error('Error showing toast notification:', error);
@@ -426,7 +425,7 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
       console.error('Failed to connect to unified SSE:', error);
       handleReconnect();
     }
-  }, [session?.user, onCandidateUpdate, onPositionUpdate, onPresenceUpdate, onUserListUpdate, onNotification, onUploadQueueUpdate, onDashboardUpdate, onWarningUpdate, onSessionExpired, onHealthCheck, showNotification, showErrorNotification, handleReconnect, startHealthCheck, state.isReconnecting]);
+  }, [session?.user, showNotification, showErrorNotification, handleReconnect, startHealthCheck, state.isReconnecting]);
 
   // Connect on mount and session change
   useEffect(() => {

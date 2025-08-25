@@ -41,6 +41,7 @@ import { PositionDetailDrawer } from '@/components/positions/PositionDetailDrawe
 import { useUnifiedRealtime } from '@/hooks/use-unified-realtime';
 import { cn } from '@/lib/utils';
 import '@/lib/chartjs-setup';
+import '../../app/dashboard/dashboard.css';
 
 
 interface DashboardPageClientProps {
@@ -84,36 +85,6 @@ export default function DashboardPageClient({
   // Position drawer state
   const [selectedPositionId, setSelectedPositionId] = useState<string | null>(null);
   const [isPositionDrawerOpen, setIsPositionDrawerOpen] = useState(false);
-
-  // Unified realtime hook
-  const { isConnected: realtimeConnected, isReconnecting, reconnectAttempts } = useUnifiedRealtime({
-    onCandidateUpdate: (updatedCandidate) => {
-      // Refresh dashboard data when candidates are updated
-      fetchDataClientSide();
-    },
-    onPositionUpdate: (updatedPosition) => {
-      // Refresh dashboard data when positions are updated
-      fetchDataClientSide();
-    },
-    onDashboardUpdate: (dashboardData) => {
-      // Handle specific dashboard updates
-      if (dashboardData.type === 'metrics') {
-        // Refresh all data when metrics update
-        fetchDataClientSide();
-      } else if (dashboardData.type === 'chart_update') {
-        // Handle specific chart updates
-        fetchDataClientSide();
-      }
-    },
-    onNotification: (notification) => {
-      // Handle dashboard-related notifications
-    },
-    showNotifications: true,
-    showErrorNotifications: false, // Disable error toast notifications
-    maxReconnectAttempts: 15, // More reconnection attempts
-    reconnectDelayMs: 500, // Faster initial reconnection
-    maxReconnectDelayMs: 15000, // Shorter max delay
-  });
 
   // Check permissions for dashboard access
   const canViewDashboard = session?.user?.role === 'Admin' || 
@@ -205,6 +176,36 @@ export default function DashboardPageClient({
     }
   }, [status, session?.user?.id, session?.user?.role]);
 
+  // Unified realtime hook
+  const { isConnected: realtimeConnected, isReconnecting, reconnectAttempts } = useUnifiedRealtime({
+    onCandidateUpdate: (updatedCandidate) => {
+      // Refresh dashboard data when candidates are updated
+      fetchDataClientSide();
+    },
+    onPositionUpdate: (updatedPosition) => {
+      // Refresh dashboard data when positions are updated
+      fetchDataClientSide();
+    },
+    onDashboardUpdate: (dashboardData) => {
+      // Handle specific dashboard updates
+      if (dashboardData.type === 'metrics') {
+        // Refresh all data when metrics update
+        fetchDataClientSide();
+      } else if (dashboardData.type === 'chart_update') {
+        // Handle specific chart updates
+        fetchDataClientSide();
+      }
+    },
+    onNotification: (notification) => {
+      // Handle dashboard-related notifications
+    },
+    showNotifications: true,
+    showErrorNotifications: false, // Disable error toast notifications
+    maxReconnectAttempts: 15, // More reconnection attempts
+    reconnectDelayMs: 500, // Faster initial reconnection
+    maxReconnectDelayMs: 15000, // Shorter max delay
+  });
+
   useEffect(() => {
     // Handle initial state passed from server component
     setFilteredCandidates(initialCandidates || []);
@@ -225,7 +226,7 @@ export default function DashboardPageClient({
     if (initialFetchError) {
       toast.error(initialFetchError);
     }
-  }, [initialCandidates, initialPositions, initialUsers, initialFetchError, serverAuthError, serverPermissionError, status, session?.user?.role, toast]);
+  }, [initialCandidates, initialPositions, initialUsers, initialFetchError, serverAuthError, serverPermissionError, status, session?.user?.role]);
 
   // Fetch data when session is authenticated and initial data is empty
   useEffect(() => {

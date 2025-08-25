@@ -27,7 +27,6 @@ import {
 } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { AvatarCacheDebug } from "@/components/ui/avatar-cache-debug";
-import { MemoryLeakFix } from "@/components/ui/memory-leak-fix";
 
 const APP_LOGO_DATA_URL_KEY = 'appLogoDataUrl';
 const APP_CONFIG_APP_NAME_KEY = 'appConfigAppName';
@@ -307,7 +306,6 @@ export function AppLayout({ children }: AppLayoutProps) {
         </div>
       </div>
       <AvatarCacheDebug />
-      <MemoryLeakFix />
     </SidebarProvider>
   );
 }

@@ -145,7 +145,7 @@ export function UserAvatarUpload({
             <DropdownMenuTrigger asChild>
                              <Avatar 
                  className={cn(
-                   'relative ring-4 shadow-xl bg-gradient-to-br from-blue-100 to-indigo-200 dark:from-blue-900/30 dark:to-indigo-800/30 cursor-pointer rounded-full',
+                   'relative ring-4 shadow-xl bg-gradient-to-br from-blue-100 to-indigo-200 dark:from-blue-900/30 dark:to-indigo-800/30 cursor-pointer rounded-lg',
                    sizeClasses[size]
                  )}
                  style={{ 
@@ -155,15 +155,15 @@ export function UserAvatarUpload({
                  } as React.CSSProperties}
                >
                 {displayImageUrl ? (
-                  <AvatarImage src={displayImageUrl || undefined} alt={user.name} className="object-cover object-top rounded-full" />
+                  <AvatarImage src={displayImageUrl || undefined} alt={user.name} className="object-cover object-top rounded-lg" />
                 ) : (
-                  <AvatarFallback className="bg-gradient-to-br from-blue-500/20 to-indigo-600/20 text-blue-700 dark:text-blue-300 font-bold rounded-full">
+                  <AvatarFallback className="bg-gradient-to-br from-blue-500/20 to-indigo-600/20 text-blue-700 dark:text-blue-300 font-bold rounded-lg">
                     {initials}
                   </AvatarFallback>
                 )}
                 {/* Pencil edit affordance */}
                 {!disabled && !isUploading && (
-                  <div className="absolute -bottom-1 -right-1 p-1.5 bg-background/95 backdrop-blur-sm border border-border/50 rounded-full shadow-sm pointer-events-none opacity-90 group-hover:opacity-100 transition-opacity duration-200">
+                  <div className="absolute -bottom-1 -right-1 p-1.5 bg-background/95 backdrop-blur-sm border border-border/50 rounded-lg shadow-sm pointer-events-none opacity-90 group-hover:opacity-100 transition-opacity duration-200">
                     <Edit className="w-3.5 h-3.5 text-primary" />
                   </div>
                 )}

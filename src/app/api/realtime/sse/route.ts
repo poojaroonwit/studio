@@ -36,7 +36,9 @@ export async function OPTIONS() {
     headers: {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Allow-Credentials': 'true',
+      'Access-Control-Max-Age': '86400',
     },
   });
 }
@@ -46,11 +48,21 @@ export async function GET(request: NextRequest) {
   let thisController: ReadableStreamDefaultController<any>;
 
   // Get user session for user-specific notifications
-  const session = await getServerSession(authOptions);
-  const userId = session?.user?.id;
+  let userId: string;
+  
+  try {
+    const session = await getServerSession(authOptions);
+    userId = session?.user?.id;
 
-  if (!userId) {
-    return new Response('Unauthorized', { status: 401 });
+    if (!userId) {
+      console.error('[SSE] Unauthorized access attempt from:', request.headers.get('user-agent'));
+      return new Response('Unauthorized', { status: 401 });
+    }
+
+    console.log(`[SSE] User ${userId} connecting to SSE endpoint`);
+  } catch (error) {
+    console.error('[SSE] Error during session validation:', error);
+    return new Response('Internal Server Error', { status: 500 });
   }
 
   const stream = new ReadableStream({
@@ -129,9 +141,12 @@ export async function GET(request: NextRequest) {
       'Connection': 'keep-alive',
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Allow-Credentials': 'true',
       'X-Accel-Buffering': 'no',
       'Keep-Alive': 'timeout=120, max=1000',
+      'X-Frame-Options': 'DENY',
+      'X-Content-Type-Options': 'nosniff',
     },
   });
 }

@@ -289,8 +289,8 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0 bg-transparent hover:bg-transparent border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0">
-                  <UserAvatarCompact user={user} size="md" forceRefresh={refreshKey > 0} />
+                <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0 bg-transparent hover:bg-transparent border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0">
+                  <UserAvatarCompact user={user} size="sm" forceRefresh={refreshKey > 0} />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">

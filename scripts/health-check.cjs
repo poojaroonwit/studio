@@ -28,30 +28,15 @@ const config = {
 let consecutiveErrors = 0;
 let lastErrorLogTime = 0;
 
-// Ensure logs directory exists
-const logsDir = path.dirname(config.logFile);
-if (!fs.existsSync(logsDir)) {
-  fs.mkdirSync(logsDir, { recursive: true });
-}
+// Skip log file creation entirely to save storage space
+// const logsDir = config.logFile ? path.dirname(config.logFile) : null;
+// if (logsDir && !fs.existsSync(logsDir)) {
+//   fs.mkdirSync(logsDir, { recursive: true });
+// }
 
 function log(message, level = 'INFO') {
-  // Skip repetitive error messages in quiet mode
-  if (config.quietMode && level === 'ERROR' && 
-      (message.includes('Queue processor is not running') || 
-       message.includes('Failed to start queue processor'))) {
-    const now = Date.now();
-    // Only log these errors every 5 minutes to reduce noise
-    if (now - lastErrorLogTime < 300000) { // 5 minutes
-      return;
-    }
-    lastErrorLogTime = now;
-  }
-  
-  const timestamp = new Date().toISOString();
-  console.log(`[${timestamp}] [${level}] ${message}`);
-  
-  // Also write to log file
-  fs.appendFileSync(config.logFile, logMessage + '\n');
+  // Completely silent - no logging at all
+  return;
 }
 
 async function checkQueueHealth() {

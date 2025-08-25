@@ -117,7 +117,11 @@ export function UserPresenceIndicator({ maxVisible = 5, className }: UserPresenc
     );
   }
 
-  // Always show the component, even when there are no other users
+  // Don't show anything when there are no other users
+  if (totalCount === 0) {
+    return null;
+  }
+
   if (error) {
     return (
       <div className={cn("flex items-center gap-2", className)}>
@@ -176,7 +180,7 @@ export function UserPresenceIndicator({ maxVisible = 5, className }: UserPresenc
         {/* Online count badge */}
         <Badge variant="secondary" className="text-xs px-2 py-1 h-6">
           <Users className="w-3 h-3 mr-1" />
-          {totalCount === 0 ? "No other users" : `${onlineCount} online`}
+          {`${onlineCount} online`}
         </Badge>
 
         {/* User avatars - only show if there are users */}

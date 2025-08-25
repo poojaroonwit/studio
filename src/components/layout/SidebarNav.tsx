@@ -2,7 +2,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, Briefcase, Settings, UsersRound, Code2, ListOrdered, Palette, Zap, ListTodo, DatabaseZap, SlidersHorizontal, KanbanSquare, Settings2, UserCog, UploadCloud, Loader2, XCircle } from "lucide-react"; 
+import { LayoutDashboard, Users, Briefcase, Settings, UsersRound, Code2, ListOrdered, Palette, Zap, ListTodo, DatabaseZap, SlidersHorizontal, KanbanSquare, Settings2, UserCog, UploadCloud, Loader2, XCircle, Database } from "lucide-react"; 
 import { cn } from "@/lib/utils";
 import {
   SidebarMenu,
@@ -40,8 +40,9 @@ const candidatesNavItem = { href: "/candidates", label: "Candidates", icon: User
 const positionsNavItem = { href: "/positions", label: "Positions", icon: Briefcase };
 const bulkUploadNavItem = { href: "/candidates/upload", label: "Process queue", icon: UploadCloud };
 const settingsNavItem = { href: "/settings", label: "Settings", icon: Settings };
+const memoryMonitorNavItem = { href: "/admin/memory-monitor", label: "Memory Monitor", icon: Database, adminOnly: true };
 
-const mainNavItems = [dashboardNavItem, myTaskBoardNavItem, candidatesNavItem, positionsNavItem, bulkUploadNavItem, settingsNavItem];
+const mainNavItems = [dashboardNavItem, myTaskBoardNavItem, candidatesNavItem, positionsNavItem, bulkUploadNavItem, settingsNavItem, memoryMonitorNavItem];
 
 // Helper to get the most specific active menu item
 function getActiveMenuItem(pathname: string, items: { href: string }[]): { href: string } | undefined {
@@ -184,9 +185,7 @@ const MenuItemWithTooltip = ({ children, label }: { children: React.ReactNode; l
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <span>
-            {children}
-          </span>
+          {children}
         </TooltipTrigger>
         <TooltipContent side="right" className="z-[100]">{label}</TooltipContent>
       </Tooltip>
@@ -600,6 +599,32 @@ const SidebarNavComponent = function SidebarNav() {
               </SidebarMenuButton>
             </Link>
           </MenuItemWithTooltip>
+          
+          {/* Admin Memory Monitor - only show for admin users */}
+          {isClient && userRole && (userRole === 'Admin' || session?.user?.modulePermissions?.includes('USERS_MANAGE')) && (
+            <MenuItemWithTooltip label={memoryMonitorNavItem.label}>
+              <Link href={memoryMonitorNavItem.href} passHref legacyBehavior>
+                <SidebarMenuButton
+                  asChild
+                  isActive={pathname.startsWith(memoryMonitorNavItem.href)}
+                  className={cn(
+                    "rounded-full p-2 mx-auto flex items-center justify-center",
+                    pathname.startsWith(memoryMonitorNavItem.href) ? "shadow" : "hover:bg-accent"
+                  )}
+                  style={pathname.startsWith(memoryMonitorNavItem.href) ? getActiveButtonStyles(sidebarStyles) : {}}
+                  size="default"
+                  data-active={pathname.startsWith(memoryMonitorNavItem.href)}
+                >
+                  <a>
+                    <memoryMonitorNavItem.icon 
+                      className="h-4 w-4" 
+                      style={pathname.startsWith(memoryMonitorNavItem.href) ? getActiveIconStyles(sidebarStyles) : {}}
+                    />
+                  </a>
+                </SidebarMenuButton>
+              </Link>
+            </MenuItemWithTooltip>
+          )}
 
         </div>
       </div>
@@ -826,6 +851,32 @@ const SidebarNavComponent = function SidebarNav() {
               </Link>
             </MenuItemWithTooltip>
           </SidebarMenuItem>
+          
+          {/* Admin Memory Monitor - only show for admin users */}
+          {isClient && userRole && (userRole === 'Admin' || session?.user?.modulePermissions?.includes('USERS_MANAGE')) && (
+            <SidebarMenuItem>
+              <MenuItemWithTooltip label={memoryMonitorNavItem.label}>
+                <Link href={memoryMonitorNavItem.href} passHref legacyBehavior>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={pathname.startsWith(memoryMonitorNavItem.href)}
+                    className="w-full justify-start"
+                    style={pathname.startsWith(memoryMonitorNavItem.href) ? getActiveButtonStyles(sidebarStyles) : {}}
+                    size="default"
+                    data-active={pathname.startsWith(memoryMonitorNavItem.href)}
+                  >
+                    <a>
+                      <memoryMonitorNavItem.icon 
+                        className="h-5 w-5" 
+                        style={pathname.startsWith(memoryMonitorNavItem.href) ? getActiveIconStyles(sidebarStyles) : {}}
+                      />
+                      <span className="truncate group-data-[collapsible=icon]:hidden">{memoryMonitorNavItem.label}</span>
+                    </a>
+                  </SidebarMenuButton>
+                </Link>
+              </MenuItemWithTooltip>
+            </SidebarMenuItem>
+          )}
           
 
         </SidebarMenu>

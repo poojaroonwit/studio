@@ -26,7 +26,7 @@ export function useToastManager(options: ToastManagerOptions = {}) {
     
     // Remove old toasts outside the deduplication window
     const validToasts = recentToasts.filter(
-      toast => (now - toast.timestamp) < deduplicationWindowMs
+      recentToast => (now - recentToast.timestamp) < deduplicationWindowMs
     );
     
     // Check if this exact message and type was shown recently

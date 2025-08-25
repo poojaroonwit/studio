@@ -1,29 +1,42 @@
-"use client";
-
+// src/app/dashboard/page.tsx - Server Component
+import { getServerSession } from 'next-auth/next';
 import DashboardPageClient from '@/components/dashboard/DashboardPageClient';
-import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getPool } from '@/lib/db';
 import { safeJsonParse } from '@/lib/utils';
 import type { Candidate, Position, UserProfile } from '@/lib/types';
-import './dashboard.css';
+import { Suspense } from 'react';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
+import SafeComponentWrapper from '@/components/ui/safe-component-wrapper';
+// CSS import moved to client component
 
-export default async function DashboardPage() {
+export default async function DashboardPageServer() {
   let initialCandidates: Candidate[] = [];
   let initialPositions: Position[] = [];
   let initialUsers: UserProfile[] = [];
-  let fetchError: string | undefined = undefined;
+  let initialFetchError: string | undefined = undefined;
 
   try {
     // Only fetch session on the server side, not during build
     const session = await getServerSession(authOptions);
     if (!session?.user) {
-      return <DashboardPageClient 
-               initialCandidates={[]} 
-               initialPositions={[]} 
-               initialUsers={[]} 
-               authError={true} 
-             />;
+      return (
+        <ErrorBoundary>
+          <Suspense fallback={<div>Loading dashboard...</div>}>
+            <SafeComponentWrapper 
+              fallbackTitle="Dashboard Page Error"
+              fallbackDescription="There was an issue loading the dashboard page. This may be due to a temporary initialization problem."
+            >
+              <DashboardPageClient 
+                initialCandidates={[]} 
+                initialPositions={[]} 
+                initialUsers={[]} 
+                authError={true} 
+              />
+            </SafeComponentWrapper>
+          </Suspense>
+        </ErrorBoundary>
+      );
     }
     
     // Fetch data on server side
@@ -131,20 +144,42 @@ export default async function DashboardPage() {
       client.release();
     }
     
-    return <DashboardPageClient 
-             initialCandidates={initialCandidates} 
-             initialPositions={initialPositions} 
-             initialUsers={initialUsers} 
-             initialFetchError={undefined}
-           />;
+    return (
+      <ErrorBoundary>
+        <Suspense fallback={<div>Loading dashboard...</div>}>
+          <SafeComponentWrapper 
+            fallbackTitle="Dashboard Page Error"
+            fallbackDescription="There was an issue loading the dashboard page. This may be due to a temporary initialization problem."
+          >
+            <DashboardPageClient 
+              initialCandidates={initialCandidates} 
+              initialPositions={initialPositions} 
+              initialUsers={initialUsers} 
+              initialFetchError={undefined}
+            />
+          </SafeComponentWrapper>
+        </Suspense>
+      </ErrorBoundary>
+    );
            
   } catch (error) {
-    fetchError = (error as Error).message || "Failed to load initial dashboard data.";
-    return <DashboardPageClient 
-             initialCandidates={[]} 
-             initialPositions={[]} 
-             initialUsers={[]} 
-             initialFetchError={fetchError}
-           />;
+    initialFetchError = (error as Error).message || "Failed to load initial dashboard data.";
+    return (
+      <ErrorBoundary>
+        <Suspense fallback={<div>Loading dashboard...</div>}>
+          <SafeComponentWrapper 
+            fallbackTitle="Dashboard Page Error"
+            fallbackDescription="There was an issue loading the dashboard page. This may be due to a temporary initialization problem."
+          >
+            <DashboardPageClient 
+              initialCandidates={[]} 
+              initialPositions={[]} 
+              initialUsers={[]} 
+              initialFetchError={initialFetchError}
+            />
+          </SafeComponentWrapper>
+        </Suspense>
+      </ErrorBoundary>
+    );
   }
 }

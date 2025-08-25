@@ -28,11 +28,7 @@ const config = {
 let consecutiveErrors = 0;
 let lastErrorLogTime = 0;
 
-// Ensure logs directory exists
-const logsDir = path.dirname(config.logFile);
-if (!fs.existsSync(logsDir)) {
-  fs.mkdirSync(logsDir, { recursive: true });
-}
+// Skip log file creation entirely - no logging to files
 
 function log(message, level = 'INFO') {
   // Skip repetitive error messages in quiet mode

@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
   let thisController: ReadableStreamDefaultController<any>;
 
   // Get user session for user-specific notifications
-  let userId: string;
+  let userId: string | undefined;
   
   try {
     const session = await getServerSession(authOptions);
@@ -67,17 +67,18 @@ export async function GET(request: NextRequest) {
 
   const stream = new ReadableStream({
     start(controller) {
+      const ensuredUserId = userId!;
       thisController = controller;
       
       // Add to global controllers
-      const controllerId = `${userId}-${Date.now()}-${Math.random()}`;
+      const controllerId = `${ensuredUserId}-${Date.now()}-${Math.random()}`;
       sseControllers.set(controllerId, controller);
       
       // Add to user-specific controllers
-      if (!userControllers.has(userId)) {
-        userControllers.set(userId, new Set());
+      if (!userControllers.has(ensuredUserId)) {
+        userControllers.set(ensuredUserId, new Set());
       }
-      userControllers.get(userId)!.add(controller);
+      userControllers.get(ensuredUserId)!.add(controller);
 
       // Send initial connection event
       try {
@@ -86,7 +87,7 @@ export async function GET(request: NextRequest) {
           type: 'connected', 
           message: 'Unified SSE connection established',
           timestamp: new Date().toISOString(),
-          userId
+          userId: ensuredUserId
         });
         controller.enqueue(encoder.encode(`data: ${data}\n\n`));
       } catch (error) {
@@ -122,9 +123,9 @@ export async function GET(request: NextRequest) {
         clearInterval(keepaliveInterval);
         clearInterval(heartbeatInterval);
         sseControllers.delete(controllerId);
-        userControllers.get(userId)?.delete(controller);
-        if (userControllers.get(userId)?.size === 0) {
-          userControllers.delete(userId);
+        userControllers.get(ensuredUserId)?.delete(controller);
+        if (userControllers.get(ensuredUserId)?.size === 0) {
+          userControllers.delete(ensuredUserId);
         }
         try { controller.close(); } catch {}
       });

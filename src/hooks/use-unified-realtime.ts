@@ -62,7 +62,7 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
   } = options;
 
   const { data: session } = useSession();
-  const { success: showToast, error: showErrorToast } = useToastManager({ deduplicationWindowMs: 2000 });
+  const { info: showInfoToast, error: showErrorToast } = useToastManager({ deduplicationWindowMs: 2000 });
 
   // State
   const [state, setState] = useState<RealtimeState>({
@@ -88,14 +88,14 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
   const showNotification = useCallback((message: string, icon: string = '🔄') => {
     if (showNotifications) {
       try {
-        showToast(message, 'info', {
+        showInfoToast(message, {
           duration: 3000
         });
       } catch (error) {
         console.error('Error showing toast notification:', error);
       }
     }
-  }, [showNotifications, showToast]);
+  }, [showNotifications, showInfoToast]);
 
   const showErrorNotification = useCallback((message: string) => {
     const now = Date.now();

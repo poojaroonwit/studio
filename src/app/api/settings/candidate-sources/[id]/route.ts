@@ -8,6 +8,7 @@ import { authOptions } from '@/lib/auth';
 const updateCandidateSourceSchema = z.object({
   name: z.string().min(1, "Source name is required").optional(),
   description: z.string().optional().nullable(),
+  email: z.string().optional().nullable(),
   logo: z.string().optional().nullable(),
   allowSubSource: z.boolean().optional(),
   sortOrder: z.number().int().optional(),
@@ -56,6 +57,8 @@ const updateCandidateSourceSchema = z.object({
  *               name:
  *                 type: string
  *               description:
+ *                 type: string
+ *               email:
  *                 type: string
  *               logo:
  *                 type: string
@@ -112,7 +115,7 @@ export async function GET(
   try {
     const result = await getPool().query(`
       SELECT 
-        id, name, description, logo, allow_sub_source as "allowSubSource", 
+        id, name, description, email, logo, allow_sub_source as "allowSubSource", 
         sort_order as "sortOrder", is_active as "isActive", 
         "createdAt", "updatedAt"
       FROM "CandidateSource"
@@ -185,6 +188,10 @@ export async function PUT(
       updateFields.push(`description = $${paramIndex++}`);
       updateValues.push(validatedData.description);
     }
+    if (validatedData.email !== undefined) {
+      updateFields.push(`email = $${paramIndex++}`);
+      updateValues.push(validatedData.email);
+    }
     if (validatedData.logo !== undefined) {
       updateFields.push(`logo = $${paramIndex++}`);
       updateValues.push(validatedData.logo);
@@ -213,7 +220,7 @@ export async function PUT(
       UPDATE "CandidateSource"
       SET ${updateFields.join(', ')}
       WHERE id = $${paramIndex}
-      RETURNING id, name, description, logo, allow_sub_source as "allowSubSource", 
+      RETURNING id, name, description, email, logo, allow_sub_source as "allowSubSource", 
                 sort_order as "sortOrder", is_active as "isActive", 
                 "createdAt", "updatedAt"
     `, updateValues);

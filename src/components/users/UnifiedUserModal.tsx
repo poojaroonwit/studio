@@ -53,7 +53,7 @@ const unifiedUserFormSchema = z.object({
   forcePasswordChange: z.boolean().optional().default(false),
   authenticationMethod: z.enum(['basic', 'azure']).optional().default('basic'),
 
-  groupIds: z.union([z.string().uuid(), z.array(z.string().uuid())]).optional().default([]),
+  userTeamIds: z.array(z.string()).optional().default([]),
   modulePermissions: z.array(z.string()).optional().default([]),
   avatarUrl: z.string().optional(),
   personalColor: z.string().optional(),
@@ -90,7 +90,7 @@ export function UnifiedUserModal({
 }: UnifiedUserModalProps) {
   const { data: session } = useSession();
   const [activeTab, setActiveTab] = useState('personal');
-  const [availableGroups, setAvailableGroups] = useState<UserGroup[]>([]);
+  const [userTeams, setUserTeams] = useState<Array<{ id: string; name: string; color?: string }>>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<UnifiedUserFormValues>({
@@ -104,7 +104,7 @@ export function UnifiedUserModal({
       forcePasswordChange: false, 
       authenticationMethod: 'basic', 
 
-      groupIds: mode === 'create' ? [] : '', 
+      userTeamIds: [], 
       modulePermissions: [],
       avatarUrl: '', 
       personalColor: '#3B82F6',
@@ -120,14 +120,14 @@ export function UnifiedUserModal({
   const isEditingSelf = user?.id === session?.user?.id;
   
   const canManageUsers = isAdmin || hasUserManagePermission;
-  const canManageGroups = isAdmin || hasUserManagePermission;
+  const canManageTeams = isAdmin || hasUserManagePermission;
   const canForcePasswordChange = isAdmin || hasUserManagePermission;
   const canManageAuthentication = isAdmin || hasUserManagePermission;
   
   // Admin users can always modify their own permissions, but with restrictions
   const canModifyOwnPermissions = isAdmin && isEditingSelf;
 
-  // Load user data and groups when modal opens
+  // Load user data and teams when modal opens
   useEffect(() => {
     if (isOpen) {
       if (mode === 'edit' || mode === 'profile') {
@@ -139,7 +139,7 @@ export function UnifiedUserModal({
             newPassword: '',
             forcePasswordChange: false,
             authenticationMethod: user.authenticationMethod || 'basic',
-            groupIds: user.teams?.map(t => t.id) || [],
+            userTeamIds: user.teams?.map(t => t.id) || [],
             modulePermissions: user.modulePermissions || [],
             avatarUrl: user.avatarUrl || '',
             personalColor: user.personalColor || '#3B82F6',
@@ -156,7 +156,7 @@ export function UnifiedUserModal({
           newPassword: '',
           forcePasswordChange: false,
           authenticationMethod: 'basic',
-          groupIds: [],
+          userTeamIds: [],
           modulePermissions: [],
           avatarUrl: '',
           personalColor: '#3B82F6',
@@ -165,23 +165,23 @@ export function UnifiedUserModal({
       }
       setActiveTab('personal');
 
-      // Load available groups if user can manage groups or for profile mode (to show current groups)
-      if (canManageGroups || mode === 'profile') {
-        const fetchGroups = async () => {
+      // Load available teams if user can manage teams or for profile mode (to show current teams)
+      if (canManageTeams || mode === 'profile') {
+        const fetchTeams = async () => {
           try {
-            const response = await fetch('/api/settings/user-groups');
-            if (!response.ok) throw new Error('Failed to fetch user groups');
-            const data: UserGroup[] = await response.json();
-            setAvailableGroups(data);
+            const response = await fetch('/api/settings/user-teams');
+            if (!response.ok) throw new Error('Failed to fetch user teams');
+            const data = await response.json();
+            setUserTeams(data);
           } catch (error) {
-            console.error("Error fetching groups:", error);
-            toast.error("Could not load user groups for selection.");
+            console.error("Error fetching teams:", error);
+            toast.error("Could not load user teams for selection.");
           }
         };
-        fetchGroups();
+        fetchTeams();
       }
     }
-  }, [isOpen, user, mode, form, canManageGroups]);
+  }, [isOpen, user, mode, form, canManageTeams]);
 
   const onSubmit = async (data: UnifiedUserFormValues) => {
     setIsLoading(true);
@@ -211,13 +211,13 @@ export function UnifiedUserModal({
       case 'create':
         return {
           title: 'Add New User',
-          description: 'Create a new user account with appropriate group assignments',
+          description: 'Create a new user account with appropriate team assignments',
           icon: UserPlus,
         };
       case 'edit':
         return {
           title: `Edit User: ${user?.name || 'N/A'}`,
-          description: 'Update user details, assign roles, and groups.',
+          description: 'Update user details, assign roles, and teams.',
           icon: Edit3,
         };
       case 'profile':
@@ -335,18 +335,6 @@ export function UnifiedUserModal({
                     <Lock className="h-4 w-4" />
                     Security
                   </div>
-                  <div
-                    onClick={() => setActiveTab('groups')}
-                    className={cn(
-                      "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
-                      activeTab === 'groups'
-                        ? "text-primary border-b-2 border-primary"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-                    )}
-                  >
-                    <Users className="h-4 w-4" />
-                    Groups
-                  </div>
                   {canModifyOwnPermissions && (
                     <div
                       onClick={() => setActiveTab('permissions')}
@@ -367,7 +355,7 @@ export function UnifiedUserModal({
                 <div className="flex-1 overflow-hidden min-h-0">
                   {activeTab === 'personal' && (
                     <ScrollArea className="h-full pr-4">
-                      <div className="space-y-6">
+                      <div className="space-y-6 p-6">
                         {/* Personal Information */}
                         <div className="space-y-4">
                           <div>
@@ -523,13 +511,67 @@ export function UnifiedUserModal({
                             </div>
                           </div>
                         </div>
+
+                        {/* User Teams */}
+                        <div className="space-y-4">
+                          <div>
+                            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                              <Users className="h-5 w-5 text-primary" />
+                              User Teams
+                            </h3>
+                            <p className="text-sm text-slate-600 dark:text-slate-400">
+                              Assign user to teams for better organization
+                            </p>
+                          </div>
+                          <div>
+                            <FormField 
+                              control={form.control} 
+                              name="userTeamIds" 
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormControl>
+                                    <Select
+                                      value={field.value?.length ? field.value[0] : ""}
+                                      onValueChange={(value) => {
+                                        if (value) {
+                                          field.onChange([value]);
+                                        } else {
+                                          field.onChange([]);
+                                        }
+                                      }}
+                                      disabled={mode === 'profile'}
+                                    >
+                                      <SelectTrigger className="h-10 transition-all duration-200 focus:ring-2 focus:ring-primary/20">
+                                        <SelectValue placeholder="Select a team" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {userTeams.map((team) => (
+                                          <SelectItem key={team.id} value={team.id}>
+                                            <div className="flex items-center gap-2">
+                                              <div 
+                                                className="w-3 h-3 rounded-full border border-slate-300"
+                                                style={{ backgroundColor: team.color || '#3B82F6' }}
+                                              />
+                                              {team.name}
+                                            </div>
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        </div>
                       </div>
                     </ScrollArea>
                   )}
 
                   {activeTab === 'account' && (
                     <ScrollArea className="h-full pr-4">
-                      <div className="space-y-6">
+                      <div className="space-y-6 p-6">
                         {/* Account Configuration */}
                         <div className="space-y-4">
                           <div>
@@ -602,7 +644,7 @@ export function UnifiedUserModal({
 
                   {activeTab === 'security' && (
                     <ScrollArea className="h-full pr-4">
-                      <div className="space-y-6">
+                      <div className="space-y-6 p-6">
                         {/* Security Settings */}
                         <div className="space-y-4">
                           <div>
@@ -683,54 +725,9 @@ export function UnifiedUserModal({
                     </ScrollArea>
                   )}
 
-                  {activeTab === 'groups' && (
-                    <ScrollArea className="h-full pr-4">
-                      <div className="space-y-6">
-                        {/* Group Assignment */}
-                        <div className="space-y-4">
-                          <div>
-                            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                              <Users className="h-5 w-5 text-primary" />
-                              Permission Groups
-                            </h3>
-                            <p className="text-sm text-slate-600 dark:text-slate-400">
-                              Assign user to permission groups for granular access control
-                            </p>
-                          </div>
-                          <div>
-                            <FormField 
-                              control={form.control} 
-                              name="groupIds" 
-                              render={({ field }) => (
-                                <FormItem className="h-full">
-                                  <FormControl>
-                                    <div className="h-full min-h-0">
-                                      <RoleSelector
-                                        availableRoles={availableGroups}
-                                        selectedRoleIds={Array.isArray(field.value) ? field.value : []}
-                                        onRolesChange={(roleIds) => field.onChange(roleIds)}
-                                        title="Permission Groups"
-                                        description="Choose which permission groups should be assigned to this user."
-                                        multiple={true}
-                                        className="h-full"
-                                        noCard={true}
-                                        disabled={mode === 'profile'}
-                                      />
-                                    </div>
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )} 
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </ScrollArea>
-                  )}
-
                   {activeTab === 'permissions' && canModifyOwnPermissions && (
                     <ScrollArea className="h-full pr-4">
-                      <div className="space-y-6">
+                      <div className="space-y-6 p-6">
                         {/* Direct Permissions */}
                         <div className="space-y-4">
                           <div>

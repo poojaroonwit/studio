@@ -1,0 +1,16 @@
+[2025-08-25T07:40:08.255Z] [INFO] Starting health check service...
+[2025-08-25T07:40:08.433Z] [INFO] Queue Status: {"queued":3}
+[2025-08-25T07:40:09.840Z] [INFO] Queue processor is running normally
+[2025-08-25T07:41:09.905Z] [INFO] Queue Status: {"queued":3}
+[2025-08-25T07:41:10.291Z] [INFO] Queue processor is running normally
+[2025-08-25T07:42:09.925Z] [INFO] Queue Status: {"queued":3}
+[2025-08-25T07:42:10.293Z] [INFO] Queue processor is running normally
+[2025-08-25T07:43:09.924Z] [INFO] Queue Status: {"queued":3}
+[2025-08-25T07:43:10.300Z] [INFO] Queue processor is running normally
+[2025-08-25T07:44:09.951Z] [INFO] Queue Status: {"queued":3}
+[2025-08-25T07:44:10.640Z] [INFO] Queue processor is running normally
+[2025-08-25T07:45:09.950Z] [INFO] Queue Status: {"queued":3}
+[2025-08-25T07:45:10.547Z] [INFO] Queue processor is running normally
+[2025-08-25T07:46:09.963Z] [INFO] Queue Status: {"queued":3}
+[2025-08-25T07:46:10.515Z] [INFO] Queue processor is running normally
+[2025-08-25T07:46:12.790Z] [INFO] Health check service stopped

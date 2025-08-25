@@ -1,14 +1,6 @@
-import { NextResponse, type NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { z } from 'zod';
-
-export const dynamic = 'force-dynamic';
-
-
-const checkPermissionsSchema = z.object({
-  permissions: z.array(z.string()).min(1, 'At least one permission is required'),
-});
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,40 +9,44 @@ export async function POST(request: NextRequest) {
     if (!session?.user?.id) {
       return NextResponse.json({ 
         hasPermission: false, 
-        message: 'Authentication required' 
+        error: 'Not authenticated' 
       }, { status: 401 });
     }
 
     const body = await request.json();
-    const validation = checkPermissionsSchema.safeParse(body);
-    
-    if (!validation.success) {
+    const { permissions } = body;
+
+    if (!Array.isArray(permissions)) {
       return NextResponse.json({ 
         hasPermission: false, 
-        message: 'Invalid request body' 
+        error: 'Invalid permissions format' 
       }, { status: 400 });
     }
 
-    const { permissions } = validation.data;
-    const userRole = session.user.role;
+    const userRole = session.user.role || 'Recruiter';
     const userModulePermissions = session.user.modulePermissions || [];
 
-    // Check if user has admin role or specific permissions
-    const hasPermission = userRole === 'Admin' || session.user.modulePermissions?.includes('USERS_MANAGE') || 
-      permissions.some(permission => userModulePermissions.includes(permission));
+    // Check if user has any of the requested permissions
+    const hasAnyPermission = permissions.some(permission => {
+      // Admin role has all permissions
+      if (userRole === 'Admin') return true;
+      
+      // Check specific module permissions
+      return userModulePermissions.includes(permission);
+    });
 
     return NextResponse.json({
-      hasPermission,
+      hasPermission: hasAnyPermission,
       userRole,
       userModulePermissions,
       requestedPermissions: permissions
     });
 
   } catch (error) {
-    console.error('Error checking permissions:', error);
+    console.error('Permission check failed:', error);
     return NextResponse.json({ 
       hasPermission: false, 
-      message: 'Internal server error' 
+      error: 'Internal server error' 
     }, { status: 500 });
   }
 }

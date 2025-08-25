@@ -67,6 +67,11 @@ export function SidebarHeaderContent({ currentAppName, appLogoUrl, isClient, isL
     const logoToUse = getContextualLogo(isCollapsed);
     
     if (isClient && logoToUse) {
+      // Calculate responsive logo size based on sidebar state and available space
+      const effectiveLogoSize = isCollapsed 
+        ? Math.min(sidebarLogoSize, 64) // In collapsed mode, limit to sidebar width
+        : sidebarLogoSize; // In expanded mode, use full size up to 500px
+      
       return (
         <div className="relative">
           <img
@@ -75,8 +80,8 @@ export function SidebarHeaderContent({ currentAppName, appLogoUrl, isClient, isL
             width={100}
             height={100}
             style={{
-              maxWidth: `${sidebarLogoSize}px`,
-              maxHeight: `${sidebarLogoSize}px`,
+              maxWidth: `${effectiveLogoSize}px`,
+              maxHeight: `${effectiveLogoSize}px`,
               width: 'auto',
               height: 'auto',
             }}
@@ -112,17 +117,17 @@ export function SidebarHeaderContent({ currentAppName, appLogoUrl, isClient, isL
 
   // Expanded mode: logo, app name, and collapse button in top right
   return (
-    <div className="flex items-center justify-between gap-2 px-2 py-1 min-h-[48px]">
-      <div className="flex items-center gap-2">
+    <div className="flex items-center justify-between gap-2 px-2 py-1 min-h-[48px] flex-wrap">
+      <div className="flex items-center gap-2 flex-1 min-w-0">
         {renderLogo(false)}
-        {!showLogoOnly && <span className="font-semibold text-lg">{currentAppName}</span>}
+        {!showLogoOnly && <span className="font-semibold text-lg truncate">{currentAppName}</span>}
       </div>
       <Button
         variant="ghost"
         size="icon"
         onClick={handleToggle}
         aria-label="Collapse sidebar"
-        className="rounded-full bg-transparent hover:bg-transparent shadow-lg h-8 w-8"
+        className="rounded-full bg-transparent hover:bg-transparent shadow-lg h-8 w-8 flex-shrink-0"
       >
         <ChevronLeft className="h-4 w-4" />
       </Button>

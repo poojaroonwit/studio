@@ -65,7 +65,7 @@ async function sendUploadQueueUpdate(controller: ReadableStreamDefaultController
        ${whereSQL}`,
       values.slice(0, values.length - 2)
     );
-    // Add summary counts by status
+    // Add summary counts by status - optimized query
     const summaryRes = await client.query(
       `SELECT 
         COUNT(*) as total,

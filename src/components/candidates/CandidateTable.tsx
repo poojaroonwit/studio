@@ -384,17 +384,7 @@ export function CandidateTable({
   };
 
 
-  // Debug logging
-  console.log('🔍 TABLE DEBUG: CandidateTable received:', {
-    candidatesLength: candidates?.length || 0,
-    candidatesType: typeof candidates,
-    isArray: Array.isArray(candidates),
-    isLoading,
-    firstCandidate: candidates?.[0]
-  });
-
   if (isLoading) {
-    console.log('🔍 TABLE DEBUG: Showing loading state');
     return (
       <div className="flex flex-col items-center justify-center h-64 border rounded-lg bg-card shadow">
         <Users className="w-16 h-16 text-muted-foreground animate-pulse mb-4" />
@@ -408,7 +398,6 @@ export function CandidateTable({
   }
 
   if (!Array.isArray(candidates) || candidates.length === 0) {
-    console.log('🔍 TABLE DEBUG: Showing no candidates found state');
     return (
       <div className="flex flex-col items-center justify-center h-64 border rounded-lg bg-card shadow">
         <Users className="w-16 h-16 text-muted-foreground mb-4" />
@@ -890,7 +879,7 @@ export function CandidateTable({
                               {isExpanded ? <ChevronDown /> : <ChevronUp />}
                             </Button>
                             <span className="font-semibold">{email}</span>
-                            <span className="text-xs text-muted-foreground">({group.length} candidates)</span>
+                            <span className="text-xs text-muted-foreground">({group.length} position)</span>
                           </div>
                         </TableCell>
                       </TableRow>

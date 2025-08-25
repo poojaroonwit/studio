@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Save, RefreshCw, AlertCircle, CheckCircle, Clock, XCircle, GripVertical, Edit2, X } from 'lucide-react';
+import { Plus, Trash2, Save, RefreshCw, AlertCircle, CheckCircle, Clock, XCircle, GripVertical, Edit2, X, Bug } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -36,6 +36,7 @@ export default function AiApiKeysTab() {
   const [stats, setStats] = useState<ApiKeyStats | null>(null);
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
 
   const fetchApiKeys = async () => {
     setIsLoading(true);
@@ -179,13 +180,29 @@ export default function AiApiKeysTab() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to update API key order');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('API reorder failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorData
+        });
+        
+        let errorMessage = 'Failed to update API key order';
+        if (response.status === 403) {
+          errorMessage = 'Permission denied. You need SYSTEM_SETTINGS_MANAGE permission or Admin role.';
+        } else if (response.status === 400) {
+          errorMessage = errorData.error || errorData.message || 'Invalid request data';
+        } else if (response.status === 500) {
+          errorMessage = 'Server error occurred. Please try again.';
+        }
+        
+        throw new Error(errorMessage);
       }
 
       toast.success('API key order updated successfully');
     } catch (error) {
       console.error('Failed to reorder:', error);
-      toast.error('Failed to update API key order');
+      toast.error(error instanceof Error ? error.message : 'Failed to update API key order');
       fetchApiKeys(); // Revert to original order
     }
   };
@@ -215,6 +232,40 @@ export default function AiApiKeysTab() {
     return `${key.substring(0, 8)}...${key.substring(key.length - 4)}`;
   };
 
+  const checkPermissions = async () => {
+    try {
+      const response = await fetch('/api/auth/check-permissions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ permissions: ['SYSTEM_SETTINGS_MANAGE'] })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        return data.hasPermission;
+      }
+      return false;
+    } catch (error) {
+      console.error('Failed to check permissions:', error);
+      return false;
+    }
+  };
+
+  const runDiagnostics = async () => {
+    setShowDiagnostics(true);
+    const hasPermission = await checkPermissions();
+    
+    console.log('API Key Diagnostics:', {
+      hasPermission,
+      apiKeysCount: apiKeys.length,
+      stats
+    });
+    
+    if (!hasPermission) {
+      toast.error('You need SYSTEM_SETTINGS_MANAGE permission or Admin role to reorder API keys');
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -232,8 +283,17 @@ export default function AiApiKeysTab() {
             <AlertCircle className="h-5 w-5 text-primary" />
             API Key Statistics
           </CardTitle>
-          <CardDescription>
-            Overview of your AI API key configuration and usage
+          <CardDescription className="flex items-center justify-between">
+            <span>Overview of your AI API key configuration and usage</span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={runDiagnostics}
+              className="ml-auto"
+            >
+              <Bug className="h-4 w-4 mr-2" />
+              Troubleshoot
+            </Button>
           </CardDescription>
         </CardHeader>
         <CardContent>

@@ -48,6 +48,7 @@ import type { CandidateSource } from '@/lib/types';
 const candidateSourceFormSchema = z.object({
   name: z.string().min(1, "Source name is required"),
   description: z.string().optional(),
+  email: z.string().optional(),
   allowSubSource: z.boolean().default(false),
   sortOrder: z.coerce.number().int().optional().default(0),
   isActive: z.boolean().default(true),
@@ -76,6 +77,7 @@ export default function CandidateSourcesPage() {
     defaultValues: { 
       name: '', 
       description: '', 
+      email: '', 
       allowSubSource: false, 
       sortOrder: 0, 
       isActive: true 
@@ -251,7 +253,7 @@ export default function CandidateSourcesPage() {
   const openCreateModal = () => {
     setEditingSource(null);
     setLogoPreview(null);
-    form.reset({ name: '', description: '', allowSubSource: false, sortOrder: 0, isActive: true });
+    form.reset({ name: '', description: '', email: '', allowSubSource: false, sortOrder: 0, isActive: true });
     setIsModalOpen(true);
   };
 
@@ -261,6 +263,7 @@ export default function CandidateSourcesPage() {
     form.reset({
       name: source.name,
       description: source.description || '',
+      email: source.email || '',
       allowSubSource: source.allowSubSource,
       sortOrder: source.sortOrder,
       isActive: source.isActive,
@@ -317,6 +320,7 @@ export default function CandidateSourcesPage() {
               <TableHead>Logo</TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Description</TableHead>
+              <TableHead>Email</TableHead>
               <TableHead>Sub Source</TableHead>
               <TableHead>Order</TableHead>
               <TableHead>Status</TableHead>
@@ -326,13 +330,13 @@ export default function CandidateSourcesPage() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8">
+                <TableCell colSpan={9} className="text-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin mx-auto" />
                 </TableCell>
               </TableRow>
             ) : sources.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                   No candidate sources found. Create your first source to get started.
                 </TableCell>
               </TableRow>
@@ -358,6 +362,9 @@ export default function CandidateSourcesPage() {
                   <TableCell className="font-medium">{source.name}</TableCell>
                   <TableCell className="text-muted-foreground">
                     {source.description || '-'}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {source.email || '-'}
                   </TableCell>
                   <TableCell>
                     {source.allowSubSource ? (
@@ -476,6 +483,18 @@ export default function CandidateSourcesPage() {
                 placeholder="Optional description of this source"
                 rows={3}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="email">Email List</Label>
+              <Input
+                id="email"
+                {...form.register('email')}
+                placeholder="e.g., source@company.com, contact@source.com"
+              />
+              <p className="text-sm text-muted-foreground">
+                Comma-separated list of email addresses for this source
+              </p>
             </div>
 
             <div className="space-y-4">

@@ -601,6 +601,7 @@ model CandidateSource {
   id             String      @id @default(uuid()) @db.Uuid
   name           String      @unique
   description    String?
+  email          String?     // Email list for the source
   allowSubSource Boolean     @default(false) @map("allow_sub_source")
   sortOrder      Int         @default(0) @map("sort_order")
   isActive       Boolean     @default(true) @map("is_active")

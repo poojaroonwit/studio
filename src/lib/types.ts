@@ -376,6 +376,7 @@ export interface CandidateSource {
   id: string;
   name: string;
   description?: string | null;
+  email?: string | null;
   logo?: string | null;
   allowSubSource: boolean;
   sortOrder: number;

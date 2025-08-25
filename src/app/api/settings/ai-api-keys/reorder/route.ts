@@ -100,10 +100,42 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     console.error("Failed to reorder AI API keys:", error);
+    
+    // Handle specific error types
     if (error.name === 'ZodError') {
-      return NextResponse.json({ message: "Validation error", errors: error.errors }, { status: 400 });
+      console.error('Validation error details:', error.errors);
+      return NextResponse.json({ 
+        message: "Validation error", 
+        error: "Invalid request format",
+        details: error.errors 
+      }, { status: 400 });
     }
-    await logAudit('ERROR', `Failed to reorder AI API keys by ${session.user.name}. Error: ${error.message}`, 'API:AiApiKeys:Reorder', session.user.id);
-    return NextResponse.json({ message: "Error reordering AI API keys", error: error.message }, { status: 500 });
+    
+    // Handle database connection errors
+    if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
+      console.error('Database connection error:', error);
+      return NextResponse.json({ 
+        message: "Database connection error", 
+        error: "Unable to connect to database" 
+      }, { status: 500 });
+    }
+    
+    // Handle transaction errors
+    if (error.code === '23505') { // Unique constraint violation
+      return NextResponse.json({ 
+        message: "Database constraint error", 
+        error: "Duplicate data detected" 
+      }, { status: 400 });
+    }
+    
+    await logAudit('ERROR', `Failed to reorder AI API keys by ${session.user.name}. Error: ${error.message}`, 'API:AiApiKeys:Reorder', session.user.id, {
+      error: error.message,
+      stack: error.stack
+    });
+    
+    return NextResponse.json({ 
+      message: "Error reordering AI API keys", 
+      error: error.message 
+    }, { status: 500 });
   }
 }

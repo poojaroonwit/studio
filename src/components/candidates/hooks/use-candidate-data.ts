@@ -26,11 +26,7 @@ export function useCandidateData({
   const safeInitialAvailablePositions = Array.isArray(initialAvailablePositions) ? initialAvailablePositions : [];
   const safeInitialAvailableStages = Array.isArray(initialAvailableStages) ? initialAvailableStages : [];
 
-  console.log('🔍 HOOK DEBUG: useCandidateData initialized with:', {
-    initialCandidatesLength: initialCandidates?.length || 0,
-    safeInitialCandidatesLength: safeInitialCandidates.length,
-    isArray: Array.isArray(initialCandidates)
-  });
+
 
   // Main candidates data - filtered and paginated for display
   const [filteredCandidates, setFilteredCandidates] = useState<Candidate[]>(safeInitialCandidates || []);
@@ -58,11 +54,6 @@ export function useCandidateData({
 
   // Memoize setter functions to prevent unnecessary re-renders
   const stableSetFilteredCandidates = useCallback((candidates: Candidate[] | ((prev: Candidate[]) => Candidate[])) => {
-    console.log('🔍 HOOK DEBUG: setFilteredCandidates called with:', {
-      candidatesType: typeof candidates,
-      candidatesLength: Array.isArray(candidates) ? candidates.length : 'function',
-      firstCandidate: Array.isArray(candidates) ? candidates[0] : null
-    });
     setFilteredCandidates(candidates);
   }, []);
 
@@ -114,18 +105,11 @@ export function useCandidateData({
     setPermissionError(error);
   }, []);
 
-  // Debug: Monitor filteredCandidates changes
-  useEffect(() => {
-    console.log('🔍 HOOK DEBUG: filteredCandidates changed:', {
-      length: filteredCandidates.length,
-      firstCandidate: filteredCandidates[0]
-    });
-  }, [filteredCandidates]);
+
 
   // Ensure loading state is properly managed when we have initial data
   useEffect(() => {
     if (safeInitialCandidates.length > 0 && isLoading) {
-      console.log('🔍 HOOK DEBUG: Setting loading to false because we have initial candidates');
       setIsLoading(false);
     }
   }, [safeInitialCandidates.length, isLoading]);
@@ -133,7 +117,6 @@ export function useCandidateData({
   // Ensure initial candidates are properly set to filteredCandidates
   useEffect(() => {
     if (safeInitialCandidates.length > 0 && filteredCandidates.length === 0) {
-      console.log('🔍 HOOK DEBUG: Setting filteredCandidates to initial candidates:', safeInitialCandidates.length);
       setFilteredCandidates(safeInitialCandidates);
     }
   }, [safeInitialCandidates, filteredCandidates.length]);
@@ -275,21 +258,13 @@ export function useCandidateData({
   // Fetch full candidates dataset for accurate count calculations
   // This function excludes fit score filters to prevent circular dependency
   const fetchAllCandidatesForCounts = useCallback(async (filters?: any) => {
-    console.log('🔍 FETCH COUNTS DEBUG: fetchAllCandidatesForCounts CALLED with filters:', filters);
-    console.log('🔍 FETCH COUNTS DEBUG: Session status:', sessionStatus);
-    
     if (sessionStatus !== 'authenticated') {
-      console.log('🔍 FETCH COUNTS DEBUG: Session not authenticated, skipping fetch');
       return;
     }
     
     try {
-      console.log('🔍 FETCH COUNTS DEBUG: Starting fetchAllCandidatesForCounts');
-      
       // Remove fit score filters to prevent circular dependency
       const filtersWithoutFitScore = createFiltersWithoutFitScore(filters);
-      console.log('🔍 FETCH COUNTS DEBUG: Original filters:', filters);
-      console.log('🔍 FETCH COUNTS DEBUG: Filters without fit score:', filtersWithoutFitScore);
       
       // Build query parameters from filters, but EXCLUDE fit score filters
       // This prevents circular dependency where fit score counts would be affected by selected fit score filters
@@ -308,44 +283,22 @@ export function useCandidateData({
         if (filtersWithoutFitScore.maxExperienceYears) params.append('maxExperienceYears', filtersWithoutFitScore.maxExperienceYears.toString());
         if (filtersWithoutFitScore.applicationDateStart) params.append('applicationDateStart', filtersWithoutFitScore.applicationDateStart.toString());
         if (filtersWithoutFitScore.applicationDateEnd) params.append('applicationDateEnd', filtersWithoutFitScore.applicationDateEnd.toString());
-        
-        console.log('🔍 FETCH COUNTS DEBUG: Excluding fit score filters to prevent circular dependency');
       }
       
       // Add forCounts parameter to get all candidates without pagination
       params.append('forCounts', 'true');
       
       const url = `/api/candidates?${params.toString()}`;
-      console.log('🔍 FETCH COUNTS DEBUG: Fetching from URL:', url);
-      console.log('🔍 FETCH COUNTS DEBUG: Parameters:', Object.fromEntries(params.entries()));
-      console.log('🔍 FETCH COUNTS DEBUG: forCounts parameter present:', params.has('forCounts'));
       
       const response = await fetch(url);
-      console.log('🔍 FETCH COUNTS DEBUG: Response status:', response.status);
-      console.log('🔍 FETCH COUNTS DEBUG: Response headers:', Object.fromEntries(response.headers.entries()));
       
       if (response.ok) {
         const data = await response.json();
-        console.log('🔍 FETCH COUNTS DEBUG: Response data:', {
-          hasData: !!data.data,
-          dataLength: data.data?.length || 0,
-          total: data.total || 0
-        });
-        
-        console.log('🔍 FETCH COUNTS DEBUG: Response structure:', {
-          hasData: !!data.data,
-          dataLength: data.data?.length || 0,
-          total: data.total || 0,
-          isCountOnlyResponse: data.data?.length === 0 && data.total > 0
-        });
         
         if (data.total !== undefined && typeof data.total === 'number') {
-          console.log('🔍 FETCH COUNTS DEBUG: Got total count from API:', data.total);
-          
           // Store the total count for UI display
           // The fit score counts now come directly from the database
           if (data.fitScoreCounts && Array.isArray(data.fitScoreCounts)) {
-            console.log('🔍 FETCH COUNTS DEBUG: Got fit score counts from database:', data.fitScoreCounts);
             setDatabaseFitScoreCounts(data.fitScoreCounts);
           }
           
@@ -354,19 +307,11 @@ export function useCandidateData({
           if (data.data && data.data.length > 0) {
             // This would be the old behavior with full data
             stableSetAllCandidatesForCounts(data.data);
-            console.log('🔍 FETCH COUNTS DEBUG: Set allCandidatesForCounts with', data.data.length, 'candidates');
-          } else {
-            console.log('🔍 FETCH COUNTS DEBUG: Count-only response - not setting candidate data');
           }
-        } else {
-          console.warn('🔍 FETCH COUNTS DEBUG: No valid total in response');
         }
-      } else {
-        console.error('🔍 FETCH COUNTS DEBUG: Response not ok:', response.status, response.statusText);
       }
     } catch (error) {
       // Silently fail - this is for counts only, not critical functionality
-      console.error('🔍 FETCH COUNTS DEBUG: Error fetching all candidates for counts:', error);
     }
   }, [sessionStatus, stableSetAllCandidatesForCounts]);
 
@@ -425,16 +370,9 @@ export function useCandidateData({
 
   // Fetch positions and stages on mount if not provided initially
   useEffect(() => {
-    console.log('🔍 HOOK DEBUG: Stages fetch effect triggered:', {
-      sessionStatus,
-      safeInitialAvailablePositionsLength: safeInitialAvailablePositions.length,
-      shouldFetch: sessionStatus === 'authenticated' && safeInitialAvailablePositions.length === 0
-    });
-    
     if (sessionStatus === 'authenticated' && safeInitialAvailablePositions.length === 0) {
       const fetchPositionsAndStages = async () => {
         try {
-          console.log('🔍 HOOK DEBUG: Fetching positions and stages...');
           const [posResponse, stagesResponse] = await Promise.all([
             fetch('/api/positions/all'),
             fetch('/api/recruitment-stages')
@@ -449,11 +387,6 @@ export function useCandidateData({
 
           if (stagesResponse.ok) {
             const stagesData = await stagesResponse.json();
-            console.log('🔍 HOOK DEBUG: Stages response received:', {
-              stagesData,
-              isArray: Array.isArray(stagesData),
-              length: stagesData?.length || 0
-            });
             stableSetAvailableStages(Array.isArray(stagesData) ? stagesData : (stagesData.stages || []));
           } else {
             toast.error("Could not load recruitment stages.");
@@ -468,25 +401,13 @@ export function useCandidateData({
 
   // Fetch stages independently if not provided initially
   useEffect(() => {
-    console.log('🔍 HOOK DEBUG: Independent stages fetch effect triggered:', {
-      sessionStatus,
-      safeInitialAvailableStagesLength: safeInitialAvailableStages.length,
-      shouldFetch: sessionStatus === 'authenticated' && safeInitialAvailableStages.length === 0
-    });
-    
     if (sessionStatus === 'authenticated' && safeInitialAvailableStages.length === 0) {
       const fetchStages = async () => {
         try {
-          console.log('🔍 HOOK DEBUG: Fetching stages independently...');
           const stagesResponse = await fetch('/api/recruitment-stages');
 
           if (stagesResponse.ok) {
             const stagesData = await stagesResponse.json();
-            console.log('🔍 HOOK DEBUG: Independent stages response received:', {
-              stagesData,
-              isArray: Array.isArray(stagesData),
-              length: stagesData?.length || 0
-            });
             stableSetAvailableStages(Array.isArray(stagesData) ? stagesData : (stagesData.stages || []));
           } else {
             console.error("Could not load recruitment stages.");
@@ -502,16 +423,12 @@ export function useCandidateData({
   // Fetch full candidates on mount and when session changes
   useEffect(() => {
     if (sessionStatus === 'authenticated' && safeInitialCandidates.length === 0) {
-      console.log('🔍 INIT DEBUG: Session authenticated and no initial data, calling fetchAllCandidatesForCounts');
       // Use a delay to ensure the component is fully mounted
       const timeoutId = setTimeout(() => {
-        console.log('🔍 INIT DEBUG: Executing fetchAllCandidatesForCounts for full dataset');
         fetchAllCandidatesForCounts();
       }, 200);
       
       return () => clearTimeout(timeoutId);
-    } else if (sessionStatus === 'authenticated' && safeInitialCandidates.length > 0) {
-      console.log('🔍 INIT DEBUG: Session authenticated and we have initial data, skipping fetchAllCandidatesForCounts');
     }
   }, [sessionStatus, fetchAllCandidatesForCounts, safeInitialCandidates.length]);
 
@@ -528,16 +445,10 @@ export function useCandidateData({
     stableSetFilteredCandidates(safeInitialCandidates || []); 
     // Don't set allCandidatesForCounts here - let the client-side fetch handle it
     // This prevents the 50-record limit from affecting the counts
-    console.log('🔍 INIT DEBUG: Setting filteredCandidates with', safeInitialCandidates?.length || 0, 'candidates');
   }, [safeInitialCandidates, stableSetFilteredCandidates]);
 
   useEffect(() => { stableSetAvailablePositions(safeInitialAvailablePositions || []); }, [safeInitialAvailablePositions, stableSetAvailablePositions]);
   useEffect(() => { 
-    console.log('🔍 HOOK DEBUG: Setting availableStages from initial data:', {
-      safeInitialAvailableStages,
-      safeInitialAvailableStagesLength: safeInitialAvailableStages?.length || 0,
-      isArray: Array.isArray(safeInitialAvailableStages)
-    });
     stableSetAvailableStages(safeInitialAvailableStages || []); 
   }, [safeInitialAvailableStages, stableSetAvailableStages]);
 

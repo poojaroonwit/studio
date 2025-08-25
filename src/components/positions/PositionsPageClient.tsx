@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Briefcase, Edit, Trash2, Search, Filter, Loader2, ChevronLeft, ChevronRight, X, MoreVertical, ChevronUp, ChevronDown, Users, Eye, Download, Upload } from "lucide-react";
+import { PlusCircle, Briefcase, Edit, Trash2, Search, Filter, Loader2, X, MoreVertical, ChevronUp, ChevronDown, Users, Eye, Download, Upload } from "lucide-react";
 import type { Position } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -41,6 +41,7 @@ import { ChevronsUpDown, Check, UserX, User, RotateCcw } from 'lucide-react';
 import { useUserPreferences } from '@/hooks/use-user-preferences';
 import { useRealtimeCollaboration } from '@/hooks/use-realtime-collaboration';
 import { checkSLAViolation, getSLABadgeVariant, formatSLAMessage, getSLARemainingDays } from '@/lib/slaUtils';
+import { Pagination } from '@/components/ui/pagination';
 
 
 export default function PositionsPageClient() {
@@ -346,6 +347,20 @@ export default function PositionsPageClient() {
   // Calculate total pages for pagination
   const totalPages = Math.ceil(total / pageSize);
   
+  // Debug pagination state
+  if (typeof window !== 'undefined') {
+    console.log('Pagination State:', {
+      total,
+      pageSize,
+      totalPages,
+      page,
+      positionsLength: positions.length,
+      shouldShowPagination: total > 0 || totalPages > 0
+    });
+  }
+  
+
+  
 
 
   // Auto-reset search state if stuck for too long
@@ -481,6 +496,14 @@ export default function PositionsPageClient() {
       
       const data = await response.json();
       const positionsData = data.data || [];
+      
+      // Debug API response
+      console.log('API Response for pagination:', {
+        data,
+        positionsData,
+        total: data.total,
+        responseStatus: response.status
+      });
       
       setPositions(positionsData);
       setTotal(data.total || 0);
@@ -1523,82 +1546,26 @@ export default function PositionsPageClient() {
       </div>
       
       {/* Pagination Controls */}
-      {positions.length > 0 && (
-        <div className="flex items-center justify-between mt-4 flex-shrink-0">
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => {
-                setPage(1);
-                updateURL(1);
-              }}
-              disabled={page === 1}
-              aria-label="First page"
-            >
-              <ChevronLeft className="h-4 w-4" />
-              <ChevronLeft className="h-4 w-4 -ml-2" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => {
-                const newPage = page - 1;
-                setPage(newPage);
-                updateURL(newPage);
-              }}
-              disabled={page === 1}
-              aria-label="Previous page"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="text-sm">
-              Page {page} of {totalPages}
-            </span>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => {
-                const newPage = page + 1;
-                setPage(newPage);
-                updateURL(newPage);
-              }}
-              disabled={page === totalPages}
-              aria-label="Next page"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => {
-                setPage(totalPages);
-                updateURL(totalPages);
-              }}
-              disabled={page === totalPages}
-              aria-label="Last page"
-            >
-              <ChevronRight className="h-4 w-4" />
-              <ChevronRight className="h-4 w-4 -ml-2" />
-            </Button>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm">Rows per page:</span>
-            <select
-              value={pageSize}
-              onChange={e => {
-                const newPageSize = Number(e.target.value);
-                setPageSize(newPageSize);
-                setPage(1); // Reset to first page when changing page size
-                updateURL(1, newPageSize); // Update URL with new page size
-              }}
-              className="border rounded-md px-2 py-1 text-sm bg-background text-foreground"
-            >
-              {[10, 20, 50, 100].map(size => (
-                <option key={size} value={size}>{size}</option>
-              ))}
-            </select>
-          </div>
+      {(total > 0 || totalPages > 0) && (
+        <div className="pagination-container">
+          <Pagination
+            currentPage={page}
+            totalPages={Math.max(1, totalPages)}
+            pageSize={pageSize}
+            total={total}
+            onPageChange={(newPage) => {
+              setPage(newPage);
+              updateURL(newPage);
+            }}
+            onPageSizeChange={(newPageSize) => {
+              setPageSize(newPageSize);
+              setPage(1);
+              updateURL(1, newPageSize);
+            }}
+            pageSizeOptions={[10, 20, 50, 100]}
+            showPageSizeSelector={true}
+            className="mt-4"
+          />
         </div>
       )}
           </div> {/* Close content div */}

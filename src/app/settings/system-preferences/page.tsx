@@ -1637,7 +1637,7 @@ export default function SystemPreferencesPage() {
                                     id="sidebar-logo-size"
                                     type="range"
                                     min="24"
-                                    max="96"
+                                    max="500"
                                     step="8"
                                     value={sidebarLogoSize}
                                     onChange={(e) => setSidebarLogoSize(parseInt(e.target.value))}
@@ -1651,7 +1651,12 @@ export default function SystemPreferencesPage() {
                                 <div className="flex items-center justify-center p-4 bg-muted/30 rounded-lg border">
                                   <div 
                                     className="bg-background border rounded-lg p-2 flex items-center justify-center"
-                                    style={{ width: `${sidebarLogoSize}px`, height: `${sidebarLogoSize}px` }}
+                                    style={{ 
+                                      width: `${Math.min(sidebarLogoSize, 200)}px`, 
+                                      height: `${Math.min(sidebarLogoSize, 200)}px`,
+                                      transform: sidebarLogoSize > 200 ? `scale(${200 / sidebarLogoSize})` : 'scale(1)',
+                                      transformOrigin: 'center'
+                                    }}
                                   >
                                     {logoPreviewUrl ? (
                                       <img
@@ -1665,7 +1670,7 @@ export default function SystemPreferencesPage() {
                                   </div>
                                 </div>
                                 <p className="text-xs text-muted-foreground">
-                                  Adjust the size of the logo in the sidebar. Range: 24px - 96px
+                                  Adjust the size of the logo in the sidebar. Range: 24px - 500px. In collapsed mode, logos larger than 64px will be scaled down to fit.
                                 </p>
                               </div>
                             </div>

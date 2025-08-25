@@ -9,6 +9,7 @@ import { authOptions } from '@/lib/auth';
 const createCandidateSourceSchema = z.object({
   name: z.string().min(1, "Source name is required"),
   description: z.string().optional().nullable(),
+  email: z.string().optional().nullable(),
   logo: z.string().optional().nullable(),
   allowSubSource: z.boolean().default(false),
   sortOrder: z.number().int().default(0),
@@ -50,6 +51,8 @@ const updateCandidateSourceSchema = createCandidateSourceSchema.partial().omit({
  *                 type: string
  *               description:
  *                 type: string
+ *               email:
+ *                 type: string
  *               logo:
  *                 type: string
  *               allowSubSource:
@@ -79,7 +82,7 @@ export async function GET(request: NextRequest) {
   try {
     const result = await getPool().query(`
       SELECT 
-        id, name, description, logo, allow_sub_source as "allowSubSource", 
+        id, name, description, email, logo, allow_sub_source as "allowSubSource", 
         sort_order as "sortOrder", is_active as "isActive", 
         "createdAt", "updatedAt"
       FROM "CandidateSource"
@@ -123,16 +126,17 @@ export async function POST(request: NextRequest) {
     const id = uuidv4();
     const result = await getPool().query(`
       INSERT INTO "CandidateSource" (
-        id, name, description, logo, allow_sub_source, sort_order, is_active, 
+        id, name, description, email, logo, allow_sub_source, sort_order, is_active, 
         "createdAt", "updatedAt"
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
-      RETURNING id, name, description, logo, allow_sub_source as "allowSubSource", 
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+      RETURNING id, name, description, email, logo, allow_sub_source as "allowSubSource", 
                 sort_order as "sortOrder", is_active as "isActive", 
                 "createdAt", "updatedAt"
     `, [
       id,
       validatedData.name,
       validatedData.description,
+      validatedData.email,
       validatedData.logo,
       validatedData.allowSubSource,
       validatedData.sortOrder,

@@ -42,14 +42,21 @@ export function UploadQueueStatus() {
   const [showDetails, setShowDetails] = useState(false);
   const [isRealtimeActive, setIsRealtimeActive] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [total, setTotal] = useState(0);
 
-  const fetchQueue = async () => {
+  const fetchQueue = async (currentPage = page, currentPageSize = pageSize) => {
     setLoading(true);
     try {
-      const response = await fetch('/api/upload-queue?limit=50');
+      const offset = (currentPage - 1) * currentPageSize;
+      const response = await fetch(`/api/upload-queue?limit=${currentPageSize}&offset=${offset}`);
       if (response.ok) {
         const data = await response.json();
         setQueueItems(data.data || []);
+        setTotal(data.total || 0);
         setQueueStatus({
           total: data.summary?.total || 0,
           queued: data.summary?.queued || 0,
@@ -81,15 +88,8 @@ export function UploadQueueStatus() {
       try {
         const data = JSON.parse(event.data);
         if (data.type === 'queue') {
-          setQueueItems(data.data || []);
-          setQueueStatus({
-            total: data.summary?.total || 0,
-            queued: data.summary?.queued || 0,
-            inprocess: data.summary?.inprocess || 0,
-            success: data.summary?.success || 0,
-            error: data.summary?.error || 0
-          });
-          setLastUpdate(new Date());
+          // For real-time updates, we'll refresh the current page
+          fetchQueue(page, pageSize);
           setIsRealtimeActive(true);
         }
       } catch (error) {
@@ -103,7 +103,7 @@ export function UploadQueueStatus() {
     };
 
     return () => eventSource.close();
-  }, []);
+  }, [page, pageSize]); // Add pagination dependencies
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -228,15 +228,15 @@ export function UploadQueueStatus() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
-            Recent Queue Items
-            <Button variant="outline" size="sm" onClick={fetchQueue} disabled={loading}>
+            Queue Items
+            <Button variant="outline" size="sm" onClick={() => fetchQueue()} disabled={loading}>
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Refresh'}
             </Button>
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            {queueItems.slice(0, 10).map((item) => (
+            {queueItems.map((item) => (
               <div key={item.id} className="flex items-center justify-between p-2 border rounded">
                 <div className="flex items-center gap-2">
                   {getStatusIcon(item.status)}
@@ -258,6 +258,38 @@ export function UploadQueueStatus() {
               </div>
             )}
           </div>
+          
+          {/* Pagination Controls */}
+          {total > pageSize && (
+            <div className="flex items-center justify-between mt-4">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">
+                  Showing {((page - 1) * pageSize) + 1} - {Math.min(page * pageSize, total)} of {total}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(prev => Math.max(1, prev - 1))}
+                  disabled={page === 1 || loading}
+                >
+                  Previous
+                </Button>
+                <span className="text-sm">
+                  Page {page} of {Math.ceil(total / pageSize)}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(prev => Math.min(Math.ceil(total / pageSize), prev + 1))}
+                  disabled={page >= Math.ceil(total / pageSize) || loading}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

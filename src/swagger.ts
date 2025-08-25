@@ -2320,6 +2320,7 @@ export function getSwaggerSpec() {
                           id: { type: 'string', format: 'uuid' },
                           name: { type: 'string' },
                           description: { type: 'string', nullable: true },
+                          email: { type: 'string', nullable: true },
                           logo: { type: 'string', format: 'uri', nullable: true }
                         }
                       }
@@ -3220,17 +3221,18 @@ export function getSwaggerSpec() {
                         type: 'array',
                         items: {
                           type: 'object',
-                          properties: {
-                            id: { type: 'string', format: 'uuid' },
-                            name: { type: 'string' },
-                            description: { type: 'string', nullable: true },
-                            logo: { type: 'string', nullable: true },
-                            allowSubSource: { type: 'boolean' },
-                            sortOrder: { type: 'integer' },
-                            isActive: { type: 'boolean' },
-                            createdAt: { type: 'string', format: 'date-time' },
-                            updatedAt: { type: 'string', format: 'date-time' }
-                          }
+                                                      properties: {
+                              id: { type: 'string', format: 'uuid' },
+                              name: { type: 'string' },
+                              description: { type: 'string', nullable: true },
+                              email: { type: 'string', nullable: true },
+                              logo: { type: 'string', nullable: true },
+                              allowSubSource: { type: 'boolean' },
+                              sortOrder: { type: 'integer' },
+                              isActive: { type: 'boolean' },
+                              createdAt: { type: 'string', format: 'date-time' },
+                              updatedAt: { type: 'string', format: 'date-time' }
+                            }
                         }
                       },
                       timestamp: { type: 'string', format: 'date-time' },

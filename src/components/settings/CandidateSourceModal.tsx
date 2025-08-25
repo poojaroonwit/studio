@@ -26,6 +26,7 @@ import type { CandidateSource } from '@/lib/types';
 const candidateSourceFormSchema = z.object({
   name: z.string().min(1, "Source name is required"),
   description: z.string().optional(),
+  email: z.string().optional(),
   allowSubSource: z.boolean().default(false),
   sortOrder: z.coerce.number().int().optional().default(0),
   isActive: z.boolean().default(true),
@@ -55,6 +56,7 @@ export default function CandidateSourceModal({
     defaultValues: { 
       name: '', 
       description: '', 
+      email: '', 
       allowSubSource: false, 
       sortOrder: 0, 
       isActive: true 
@@ -66,6 +68,7 @@ export default function CandidateSourceModal({
       form.reset({
         name: source.name,
         description: source.description || '',
+        email: source.email || '',
         allowSubSource: source.allowSubSource,
         sortOrder: source.sortOrder,
         isActive: source.isActive,
@@ -75,6 +78,7 @@ export default function CandidateSourceModal({
       form.reset({ 
         name: '', 
         description: '', 
+        email: '', 
         allowSubSource: false, 
         sortOrder: 0, 
         isActive: true 
@@ -148,6 +152,18 @@ export default function CandidateSourceModal({
               placeholder="Optional description of this source"
               rows={3}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="email">Email List</Label>
+            <Input
+              id="email"
+              {...form.register('email')}
+              placeholder="e.g., source@company.com, contact@source.com"
+            />
+            <p className="text-sm text-muted-foreground">
+              Comma-separated list of email addresses for this source
+            </p>
           </div>
 
           <div className="space-y-4">

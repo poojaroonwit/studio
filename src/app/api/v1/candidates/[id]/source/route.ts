@@ -95,7 +95,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   try {
     const candidateQuery = `
       SELECT c.id, c.name, c."sourceId", c."subSource",
-             cs.name as "sourceName", cs.description as "sourceDescription", cs.logo as "sourceLogo"
+             cs.name as "sourceName", cs.description as "sourceDescription", cs.email as "sourceEmail", cs.logo as "sourceLogo"
       FROM "Candidate" c
       LEFT JOIN "CandidateSource" cs ON c."sourceId" = cs.id
       WHERE c.id = $1;
@@ -118,6 +118,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         id: candidate.sourceId,
         name: candidate.sourceName,
         description: candidate.sourceDescription,
+        email: candidate.sourceEmail,
         logo: candidate.sourceLogo
       } : null,
     }, 200);

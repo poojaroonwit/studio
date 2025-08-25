@@ -118,6 +118,7 @@ function transformCandidateForExport(candidate: any): any {
   const parsedData = candidate.parsedData || {};
   
   return {
+    'ID': candidate.id || '', // Include ID for import/export compatibility
     'Name*': candidate.name || '',
     'Email*': candidate.email || '',
     'Phone': candidate.phone || '',
@@ -125,7 +126,7 @@ function transformCandidateForExport(candidate: any): any {
     'Position Name': candidate.position_title || '',
     'Recruiter ID': candidate.recruiterId || '',
     'Recruiter Name': candidate.recruiter_name || '',
-    'Fit Score (0-100)': candidate.fitScore?.toString() || '',
+    'Fit Score (0-100)': candidate.fitScore ? Math.round((candidate.fitScore * 100)).toString() : '',
     'Status*': candidate.status || '',
     'Application Date': formatDateForExport(candidate.applicationDate),
     'Applied Job': candidate.position_title || '',
@@ -360,6 +361,7 @@ export async function GET(request: NextRequest) {
       
       // Set column widths for better readability
       const columnWidths = [
+        { wch: 36 }, // ID
         { wch: 20 }, // Name
         { wch: 25 }, // Email
         { wch: 15 }, // Phone

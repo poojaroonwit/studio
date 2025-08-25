@@ -85,7 +85,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   try {
     const candidateQuery = `
       SELECT c.*, p.title as "positionTitle", p.department as "positionDepartment", r.name as "recruiterName", r."avatarUrl" as "recruiterAvatarUrl",
-             cs.name as "sourceName", cs.description as "sourceDescription", cs.logo as "sourceLogo"
+             cs.name as "sourceName", cs.description as "sourceDescription", cs.email as "sourceEmail", cs.logo as "sourceLogo"
       FROM "Candidate" c
       LEFT JOIN "Position" p ON c."positionId" = p.id
       LEFT JOIN "User" r ON c."recruiterId" = r.id
@@ -134,6 +134,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         id: candidate.sourceId,
         name: candidate.sourceName,
         description: candidate.sourceDescription,
+        email: candidate.sourceEmail,
         logo: candidate.sourceLogo
       } : null,
       jobMatches: jobMatchesResult.rows.map(match => ({
@@ -443,7 +444,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     
     // Fetch updated candidate with source information for response
     const updatedCandidateWithSource = await client.query(`
-      SELECT c.*, cs.name as "sourceName", cs.description as "sourceDescription", cs.logo as "sourceLogo"
+      SELECT c.*, cs.name as "sourceName", cs.description as "sourceDescription", cs.email as "sourceEmail", cs.logo as "sourceLogo"
       FROM "Candidate" c
       LEFT JOIN "CandidateSource" cs ON c."sourceId" = cs.id
       WHERE c.id = $1
@@ -460,6 +461,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
           id: candidateWithSource.sourceId,
           name: candidateWithSource.sourceName,
           description: candidateWithSource.sourceDescription,
+          email: candidateWithSource.sourceEmail,
           logo: candidateWithSource.sourceLogo
         } : null,
       },

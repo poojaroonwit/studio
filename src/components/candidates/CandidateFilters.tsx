@@ -308,35 +308,19 @@ export function CandidateFilters({
   
   // Update ref when onFilterChange changes
   useEffect(() => {
-    console.log('🔍 REF DEBUG: onFilterChange prop updated:', onFilterChange);
     onFilterChangeRef.current = onFilterChange;
-    console.log('🔍 REF DEBUG: onFilterChangeRef.current set to:', onFilterChangeRef.current);
   }, [onFilterChange]);
 
   // Define handleApplyStandardFilters early to avoid temporal dead zone issues
   const handleApplyStandardFilters = useCallback(() => {
-    console.log('🔍 FILTERS DEBUG: handleApplyStandardFilters called');
-    console.log('🔍 FILTERS DEBUG: Current filter values:', {
-      name, email, phone, location,
-      selectedPositionIds: Array.from(selectedPositionIds),
-      selectedStatuses: Array.from(selectedStatuses),
-      selectedSourceIds: Array.from(selectedSourceIds),
-      skills: Array.from(skills),
-      experienceYearsRange,
-      applicationDateRange,
-      selectedRecruiterIds: Array.from(selectedRecruiterIds)
-    });
-    
     // Skip if we're already applying filters
     if (isApplyingFilters) {
-      console.log('🔍 FILTERS DEBUG: Already applying filters, skipping');
       return;
     }
     
     // Rate limiting: prevent applying filters more than once every 300ms
     const now = Date.now();
     if (now - lastFilterApplyTimeRef.current < 300) {
-      console.log('🔍 FILTERS DEBUG: Rate limited, skipping filter application');
       return;
     }
     
@@ -391,7 +375,6 @@ export function CandidateFilters({
 
     const newFiltersString = JSON.stringify(newFilters);
     if (lastAppliedFiltersRef.current === newFiltersString) {
-      console.log('🔍 FILTERS DEBUG: Filters unchanged, skipping update');
       setIsApplyingFilters(false);
       return;
     }
@@ -409,28 +392,14 @@ export function CandidateFilters({
 
     // Always apply filters if we have any values or empty strings
     if (Object.keys(newFilters).length > 0 || hasEmptyStrings) {
-      console.log('🔍 FILTERS DEBUG: Applying new filters:', newFilters);
-      console.log('🔍 FILTERS DEBUG: Filter object keys:', Object.keys(newFilters));
-      console.log('🔍 FILTERS DEBUG: Filter object values:', Object.values(newFilters));
-      console.log('🔍 FILTERS DEBUG: Calling onFilterChange with:', newFilters);
-      console.log('🔍 FILTERS DEBUG: onFilterChangeRef.current type:', typeof onFilterChangeRef.current);
-      console.log('🔍 FILTERS DEBUG: onFilterChangeRef.current value:', onFilterChangeRef.current);
       lastAppliedFiltersRef.current = newFiltersString;
       lastFilterApplyTimeRef.current = Date.now();
       if (typeof onFilterChangeRef.current === 'function') {
         onFilterChangeRef.current(newFilters);
-        console.log('🔍 FILTERS DEBUG: onFilterChange called successfully');
-      } else {
-        console.error('🔍 FILTERS DEBUG: onFilterChangeRef.current is not a function!');
       }
     } else {
-      console.log('🔍 FILTERS DEBUG: No filters to apply, sending empty filter object');
-      console.log('🔍 FILTERS DEBUG: Calling onFilterChange with empty object');
       if (typeof onFilterChangeRef.current === 'function') {
         onFilterChangeRef.current({});
-        console.log('🔍 FILTERS DEBUG: onFilterChange called successfully with empty object');
-      } else {
-        console.error('🔍 FILTERS DEBUG: onFilterChangeRef.current is not a function!');
       }
     }
     
@@ -443,7 +412,6 @@ export function CandidateFilters({
   // Single auto-apply effect for all filter changes
   useEffect(() => {
     if (!isInitialLoadRef.current && !isSyncingFromInitialFiltersRef.current && isComponentInitializedRef.current) {
-      console.log('🔍 AUTO-APPLY DEBUG: Filter values changed, applying filters');
       handleApplyStandardFilters();
     }
   }, [
@@ -820,13 +788,6 @@ export function CandidateFilters({
   // Auto-apply filters when input values change (immediate)
   // Note: Fit score ranges are now handled separately through debounced handlers
   useEffect(() => {
-    console.log('🔍 AUTO-APPLY DEBUG: Auto-apply useEffect triggered with values:', {
-      name, email, phone, selectedPositionIds: Array.from(selectedPositionIds), 
-      selectedStatuses: Array.from(selectedStatuses), skills: Array.from(skills), 
-      location, experienceYearsRange, applicationDateRange, 
-      selectedRecruiterIds: Array.from(selectedRecruiterIds), advancedQueryInput
-    });
-    
     // Clear any existing timeout
     if (autoApplyTimeoutRef.current) {
       clearTimeout(autoApplyTimeoutRef.current);
@@ -834,25 +795,21 @@ export function CandidateFilters({
     
     // Skip auto-apply if we're currently syncing state from incoming props or not fully initialized
     if (isSyncingFromInitialFiltersRef.current || !isComponentInitializedRef.current) {
-      console.log('🔍 AUTO-APPLY DEBUG: Skipping due to syncing or not initialized');
       return;
     }
     
     // Skip if we're currently handling position changes directly
     if (isHandlingPositionChangeRef.current) {
-      console.log('🔍 AUTO-APPLY DEBUG: Skipping due to position change in progress');
       return;
     }
     
     // Skip if we're currently applying filters
     if (isApplyingFilters) {
-      console.log('🔍 AUTO-APPLY DEBUG: Skipping due to filters being applied');
       return;
     }
     
     // Skip if there's an advanced query active
     if (advancedQueryInput.trim()) {
-      console.log('🔍 AUTO-APPLY DEBUG: Skipping due to advanced query');
       return;
     }
     
@@ -882,12 +839,11 @@ export function CandidateFilters({
       
       const currentFiltersString = JSON.stringify(currentFilters);
       if (lastAppliedFiltersRef.current === currentFiltersString) {
-        console.log('🔍 AUTO-APPLY DEBUG: Filters unchanged, skipping update');
         return;
       }
     }
     
-             // Check if we have any meaningful filters
+    // Check if we have any meaningful filters
     const hasFilters = name || email || phone || 
                        selectedPositionIds.size > 0 || 
                        selectedStatuses.size > 0 || 
@@ -900,25 +856,18 @@ export function CandidateFilters({
                        applicationDateRange?.to ||
                        selectedRecruiterIds.size > 0;
     
-    console.log('🔍 AUTO-APPLY DEBUG: Has filters:', hasFilters, 'name:', name, 'email:', email, 'phone:', phone);
-    
     // Always apply filters when any filter value changes, even if it's empty (to clear previous filters)
     // This ensures that when you clear a field, it properly clears the filter
-    console.log('🔍 AUTO-APPLY DEBUG: Applying filters immediately for testing');
     handleApplyStandardFilters();
      }, [name, email, phone, selectedPositionIds, selectedStatuses, selectedSourceIds, skills, location, experienceYearsRange, applicationDateRange, selectedRecruiterIds, advancedQueryInput]);
 
   // Component initialization
   useEffect(() => {
-    console.log('🔍 INIT DEBUG: Component initialization started');
-    
     // Mark component as initialized immediately
     isComponentInitializedRef.current = true;
     isInitialLoadRef.current = false;
-    console.log('🔍 INIT DEBUG: Component initialized');
     
     // Apply filters immediately to ensure proper state
-    console.log('🔍 INIT DEBUG: Applying initial filters to ensure proper state');
     handleApplyStandardFilters();
 
     return () => {
@@ -957,8 +906,6 @@ export function CandidateFilters({
 
   // Wrapper functions to apply filters when dropdown values change
   const handlePositionChange = (newSelectedIds: Set<string>) => {
-    console.log('🔍 POSITION DEBUG: handlePositionChange called with:', Array.from(newSelectedIds));
-    
     // Set flag to prevent auto-apply useEffect from triggering
     isHandlingPositionChangeRef.current = true;
     
@@ -986,12 +933,10 @@ export function CandidateFilters({
     // Convert to string to compare and prevent duplicate calls
     const newFiltersString = JSON.stringify(newFilters);
     if (lastAppliedFiltersRef.current === newFiltersString) {
-      console.log('🔍 POSITION DEBUG: Filters unchanged, skipping application');
       isHandlingPositionChangeRef.current = false;
       return;
     }
 
-    console.log('🔍 POSITION DEBUG: Applying new position filters:', newFilters);
     lastAppliedFiltersRef.current = newFiltersString;
     onFilterChange(newFilters);
     

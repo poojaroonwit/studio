@@ -22,6 +22,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import BulkUploadCVsModal from '@/components/BulkUploadCVsModal';
+import CandidateImportModal from '@/components/candidates/CandidateImportModal';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -85,7 +86,7 @@ export function CandidatesPageClient({
 
   // Local state for pagination and UI
   const [page, setPage] = useState<number>(1);
-  const [pageSize, setPageSize] = useState<number>(100);
+  const [pageSize, setPageSize] = useState<number>(50); // Use reasonable limit for efficiency
   const [total, setTotal] = useState<number>(0);
   const [sortColumn, setSortColumn] = useState<string>('lastUpdate');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc' | null>('desc');
@@ -349,6 +350,7 @@ export function CandidatesPageClient({
   const [isBulkActionConfirmOpen, setIsBulkActionConfirmOpen] = useState(false);
   const [bulkActionType, setBulkActionType] = useState<'delete' | 'change_status' | 'assign_recruiter' | null>(null);
   const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   const [showFilters, setShowFilters] = useState(true);
   const [missingPositions, setMissingPositions] = useState<string[]>([]);
@@ -388,19 +390,13 @@ export function CandidatesPageClient({
   }, [isAiSearchActive, aiMatchedCandidateIds, aiRecordCount, pageSize, total]);
 
   // Get candidates for fit score counts
-  // Note: With the new efficient count-only API, we use filteredCandidates for fit score calculation
-  // and rely on the API's total count for the "All" tab
+  // Note: Use allCandidatesForCounts for fit score calculation to get accurate counts for all candidates
+  // This allows the fitscore horizon filter to show counts for unlimited candidates
   const candidatesForFitScoreCounts = useMemo(() => {
-    console.log('🔍 CANDIDATES DEBUG: Using filteredCandidates for fit score counts (efficient approach)');
-    console.log('🔍 CANDIDATES DEBUG: filteredCandidates length:', filteredCandidates.length);
-    console.log('🔍 CANDIDATES DEBUG: total from API:', total);
-    console.log('🔍 CANDIDATES DEBUG: isLoading:', isLoading, 'tableLoading:', tableLoading);
-    
-    // Use filteredCandidates for fit score badge calculations
-    // This is more efficient as we don't need to fetch all candidates
-    // The total count comes from the count-only API call
-    return filteredCandidates;
-  }, [filteredCandidates, total, isLoading, tableLoading]);
+    // Use allCandidatesForCounts for fit score badge calculations
+    // This provides accurate counts for all candidates, not just the current page
+    return allCandidatesForCounts;
+  }, [allCandidatesForCounts]);
 
   // Update total count when allCandidatesForCounts changes
   // Only update if we don't have a valid total from the main table fetch
@@ -422,27 +418,17 @@ export function CandidatesPageClient({
 
   // Use database-level fit score counts for accurate badge display
   const candidateScoreCounts = useMemo(() => {
-    console.log('🔍 COUNTS DEBUG: Recalculating candidateScoreCounts');
-    console.log('🔍 COUNTS DEBUG: Database fit score counts:', databaseFitScoreCounts);
-    console.log('🔍 COUNTS DEBUG: filteredCandidates length:', filteredCandidates.length);
-    console.log('🔍 COUNTS DEBUG: Current filters:', filters);
-    console.log('🔍 COUNTS DEBUG: isAiSearchActive:', isAiSearchActive);
-    console.log('🔍 COUNTS DEBUG: aiMatchedCandidateIds length:', aiMatchedCandidateIds?.length || 0);
-    
     // If AI search is active, calculate counts based on AI-matched candidates only
     if (isAiSearchActive && aiMatchedCandidateIds && aiMatchedCandidateIds.length > 0) {
-      console.log('🔍 COUNTS DEBUG: AI search active, calculating counts for AI-matched candidates only');
       
       const scoreRanges = getScoreRangesForChart();
       const appliedScoreRangeCounts: { [key: string]: number } = {};
       const matchingScoreRangeCounts: { [key: string]: number } = {};
       
       // Get AI-matched candidates from the full candidate list
-      const aiMatchedCandidates = filteredCandidates.filter(candidate => 
+      const aiMatchedCandidates = allCandidatesForCounts.filter(candidate => 
         aiMatchedCandidateIds.includes(candidate.id)
       );
-      
-      console.log('🔍 COUNTS DEBUG: Processing', aiMatchedCandidates.length, 'AI-matched candidates for score counts');
       
       aiMatchedCandidates.forEach((candidate: Candidate) => {
         // Applied fit score - count each applied position record separately
@@ -452,7 +438,6 @@ export function CandidatesPageClient({
         if (candidate.fitScore !== null && candidate.fitScore !== undefined) {
           const normalizedScore = normalizeFitScore(candidate.fitScore);
           appliedScores.push(normalizedScore);
-          console.log('🔍 COUNTS DEBUG: AI-matched candidate', candidate.name, 'has fit score:', candidate.fitScore, 'normalized to:', normalizedScore);
         }
         
         // Add fit scores from parsedData.job_applied if available
@@ -466,17 +451,14 @@ export function CandidatesPageClient({
         if (appliedScores.length > 0) {
           // Count each candidate once based on their best applied score
           const bestAppliedScore = Math.max(...appliedScores);
-          console.log('🔍 COUNTS DEBUG: AI-matched candidate', candidate.name, 'best applied score:', bestAppliedScore);
           scoreRanges.forEach(range => {
             if (bestAppliedScore >= range.min && bestAppliedScore <= range.max) {
               appliedScoreRangeCounts[range.letter] = (appliedScoreRangeCounts[range.letter] || 0) + 1;
-              console.log('🔍 COUNTS DEBUG: Added to grade', range.letter, 'for AI-matched candidate', candidate.name);
             }
           });
         } else {
           // Count candidates with no applied fit score
           appliedScoreRangeCounts['no-score'] = (appliedScoreRangeCounts['no-score'] || 0) + 1;
-          console.log('🔍 COUNTS DEBUG: Added to no-score for AI-matched candidate', candidate.name);
         }
         
         // Matching fit score - count each job match record separately
@@ -529,20 +511,12 @@ export function CandidatesPageClient({
         ]
       };
       
-      console.log('🔍 COUNTS DEBUG: AI search fit score counts:', {
-        applied: result.applied,
-        matching: result.matching,
-        totalApplied: result.applied.reduce((sum, item) => sum + item.count, 0),
-        totalMatching: result.matching.reduce((sum, item) => sum + item.count, 0)
-      });
-      
       return result;
     }
     
     // For regular filtered results, calculate counts based on current filteredCandidates
     // This ensures counts reflect the current filter state
     if (filteredCandidates.length > 0) {
-      console.log('🔍 COUNTS DEBUG: Calculating counts from filteredCandidates:', filteredCandidates.length);
       
       const scoreRanges = getScoreRangesForChart();
       const appliedScoreRangeCounts: { [key: string]: number } = {};
@@ -617,37 +591,26 @@ export function CandidatesPageClient({
         ]
       };
       
-      console.log('🔍 COUNTS DEBUG: Filtered candidates fit score counts:', {
-        applied: result.applied,
-        matching: result.matching,
-        totalApplied: result.applied.reduce((sum, item) => sum + item.count, 0),
-        totalMatching: result.matching.reduce((sum, item) => sum + item.count, 0)
-      });
-      
       return result;
     }
     
     // Fallback to client-side calculation if database counts not available
-    console.log('🔍 COUNTS DEBUG: Fallback to client-side calculation with', candidatesForFitScoreCounts.length, 'candidates');
-    console.log('🔍 COUNTS DEBUG: These counts exclude fit score filters to show accurate counts for all grades');
     const scoreRanges = getScoreRangesForChart();
     
     const appliedScoreRangeCounts: { [key: string]: number } = {};
     const matchingScoreRangeCounts: { [key: string]: number } = {};
     
     const candidatesToProcess = candidatesForFitScoreCounts;
-    console.log('🔍 COUNTS DEBUG: Processing', candidatesToProcess.length, 'candidates for score counts');
     
     candidatesToProcess.forEach((candidate: Candidate) => {
       // Applied fit score - count each applied position record separately
       const appliedScores = [];
       
       // Add main fit score if available
-      if (candidate.fitScore !== null && candidate.fitScore !== undefined) {
-        const normalizedScore = normalizeFitScore(candidate.fitScore);
-        appliedScores.push(normalizedScore);
-        console.log('🔍 COUNTS DEBUG: Candidate', candidate.name, 'has fit score:', candidate.fitScore, 'normalized to:', normalizedScore);
-      }
+              if (candidate.fitScore !== null && candidate.fitScore !== undefined) {
+          const normalizedScore = normalizeFitScore(candidate.fitScore);
+          appliedScores.push(normalizedScore);
+        }
       
       // Add fit scores from parsedData.job_applied if available
       if (candidate.parsedData && typeof candidate.parsedData === 'object') {
@@ -657,21 +620,18 @@ export function CandidatesPageClient({
         }
       }
       
-      if (appliedScores.length > 0) {
-        // Count each candidate once based on their best applied score
-        const bestAppliedScore = Math.max(...appliedScores);
-        console.log('🔍 COUNTS DEBUG: Candidate', candidate.name, 'best applied score:', bestAppliedScore);
-        scoreRanges.forEach(range => {
-          if (bestAppliedScore >= range.min && bestAppliedScore <= range.max) {
-            appliedScoreRangeCounts[range.letter] = (appliedScoreRangeCounts[range.letter] || 0) + 1;
-            console.log('🔍 COUNTS DEBUG: Added to grade', range.letter, 'for candidate', candidate.name);
-          }
-        });
-      } else {
-        // Count candidates with no applied fit score
-        appliedScoreRangeCounts['no-score'] = (appliedScoreRangeCounts['no-score'] || 0) + 1;
-        console.log('🔍 COUNTS DEBUG: Added to no-score for candidate', candidate.name);
-      }
+              if (appliedScores.length > 0) {
+          // Count each candidate once based on their best applied score
+          const bestAppliedScore = Math.max(...appliedScores);
+          scoreRanges.forEach(range => {
+            if (bestAppliedScore >= range.min && bestAppliedScore <= range.max) {
+              appliedScoreRangeCounts[range.letter] = (appliedScoreRangeCounts[range.letter] || 0) + 1;
+            }
+          });
+        } else {
+          // Count candidates with no applied fit score
+          appliedScoreRangeCounts['no-score'] = (appliedScoreRangeCounts['no-score'] || 0) + 1;
+        }
       
       // Matching fit score - count each job match record separately
       const jobMatches = candidate.jobMatches || [];
@@ -723,20 +683,6 @@ export function CandidatesPageClient({
       ]
     };
     
-    console.log('🔍 COUNTS DEBUG: Final count results:', {
-      applied: result.applied,
-      matching: result.matching,
-      appliedScoreRangeCounts,
-      matchingScoreRangeCounts
-    });
-    
-    console.log('🔍 COUNTS DEBUG: Final candidate score counts:', {
-      applied: result.applied,
-      matching: result.matching,
-      totalApplied: result.applied.reduce((sum, item) => sum + item.count, 0),
-      totalMatching: result.matching.reduce((sum, item) => sum + item.count, 0)
-    });
-    
     return result;
   }, [databaseFitScoreCounts, candidatesForFitScoreCounts, normalizeFitScore, getBestMatchingFitScore, isAiSearchActive, aiMatchedCandidateIds, filteredCandidates, filters]);
 
@@ -754,13 +700,6 @@ export function CandidatesPageClient({
 
   // Map candidates for display
   const mappedCandidates = useMemo(() => {
-    console.log('🔍 MAPPING DEBUG: Mapping candidates:', {
-      filteredCandidatesLength: filteredCandidates.length,
-      availablePositionsLength: availablePositions.length,
-      availableRecruitersLength: availableRecruiters.length,
-      availableSourcesLength: availableSources.length
-    });
-    
     const candidates = filteredCandidates.map((candidate: Candidate) => {
       const position = availablePositions.find(p => p.id === candidate.positionId);
       const recruiter = availableRecruiters.find(r => r.id === candidate.recruiterId);
@@ -774,7 +713,6 @@ export function CandidatesPageClient({
       };
     });
     
-    console.log('🔍 MAPPING DEBUG: Mapped candidates result:', candidates.length);
     return candidates;
   }, [filteredCandidates, availablePositions, availableRecruiters, availableSources, isAiSearchActive, aiMatchedCandidateIds]);
 
@@ -798,21 +736,7 @@ export function CandidatesPageClient({
 
   // For row numbering in table
   const displayedCandidates = useMemo(() => {
-    console.log('🔍 DISPLAY DEBUG: Calculating displayedCandidates:', {
-      isAiSearchActive,
-      aiMatchedCandidateIds: aiMatchedCandidateIds?.length || 0,
-      mappedCandidatesLength: mappedCandidates.length,
-      filteredCandidatesLength: filteredCandidates.length,
-      paginatedCandidatesLength: paginatedCandidates.length,
-      page,
-      pageSize,
-      total,
-      isLoading,
-      tableLoading
-    });
-    
     if (isAiSearchActive && aiMatchedCandidateIds) {
-      console.log('🔍 DISPLAY DEBUG: Returning AI search results:', paginatedCandidates.length);
       return paginatedCandidates;
     }
     
@@ -825,21 +749,14 @@ export function CandidatesPageClient({
       const startIndex = (safePage - 1) * safePageSize;
       const endIndex = startIndex + safePageSize;
       const fallbackCandidates = filteredCandidates.slice(startIndex, endIndex);
-      console.log('🔍 DISPLAY DEBUG: Using fallback candidates:', fallbackCandidates.length);
       return fallbackCandidates;
     }
     
-    console.log('🔍 DISPLAY DEBUG: Returning paginated candidates:', paginatedCandidates.length);
     return paginatedCandidates;
   }, [isAiSearchActive, aiMatchedCandidateIds, mappedCandidates, filteredCandidates, page, pageSize, total, paginatedCandidates, isLoading, tableLoading]);
 
   // Apply horizontal filters when selections change
   useEffect(() => {
-    console.log('🔍 CLIENT DEBUG: Horizontal fit score selections changed:', {
-      applied: Array.from(horizontalSelectedFitScoreGrades),
-      matching: Array.from(horizontalSelectedMatchingFitScoreGrades)
-    });
-    
     // Skip if we're currently clearing filters to prevent conflicts
     if (isClearingFilters) {
       return;
@@ -847,14 +764,12 @@ export function CandidatesPageClient({
     
     // Skip if we haven't completed initial data fetch yet
     if (!hasInitialDataFetch) {
-      console.log('🔍 CLIENT DEBUG: Skipping horizontal filter application - initial data fetch not complete');
       return;
     }
     
     // Only apply horizontal filters if there are selections
     if (horizontalSelectedFitScoreGrades.size > 0 || horizontalSelectedMatchingFitScoreGrades.size > 0) {
       const horizontalFilters = applyHorizontalFitScoreFilters();
-      console.log('🔍 CLIENT DEBUG: Horizontal filters calculated:', horizontalFilters);
       
       // Check if horizontal filters have any actual values
       const hasValidFilters = Object.values(horizontalFilters).some(value => value !== undefined);
@@ -864,14 +779,11 @@ export function CandidatesPageClient({
           ...currentFiltersRef.current,
           ...horizontalFilters
         };
-        console.log('🔍 CLIENT DEBUG: Applying new filters with horizontal filters:', newFilters);
         setFilters(newFilters);
         setPage(1);
-        console.log('🔍 CLIENT DEBUG: Calling debouncedFetchTableData with new filters');
         debouncedFetchTableData(newFilters, 1, pageSize);
         fetchAllCandidatesForCounts(newFilters); // Update counts data when horizontal filters change
       } else {
-        console.log('🔍 CLIENT DEBUG: No valid horizontal filters to apply, clearing fit score filters');
         // Clear fit score filters if no valid horizontal filters
         const newFilters = {
           ...currentFiltersRef.current,
@@ -893,7 +805,6 @@ export function CandidatesPageClient({
         minMatchingJobFitScore: undefined,
         maxMatchingJobFitScore: undefined,
       };
-      console.log('🔍 CLIENT DEBUG: Clearing fit score filters (no horizontal selections):', newFilters);
       setFilters(newFilters);
       debouncedFetchTableData(newFilters, page, pageSize);
       fetchAllCandidatesForCounts(newFilters); // Update counts data when clearing all fit score filters
@@ -902,8 +813,6 @@ export function CandidatesPageClient({
 
   // Handle filter changes
   const onFilterChange = useCallback((newFilters: CandidateFilterValues) => {
-    console.log('🔍 CLIENT DEBUG: onFilterChange called with:', newFilters);
-    
     // Clear any existing timeout
     if (filterChangeTimeoutRef.current) {
       clearTimeout(filterChangeTimeoutRef.current);
@@ -911,7 +820,6 @@ export function CandidatesPageClient({
     
     // Skip if we're currently clearing filters to prevent conflicts
     if (isClearingFilters) {
-      console.log('🔍 CLIENT DEBUG: Skipping filter change - currently clearing filters');
       return;
     }
     
@@ -920,9 +828,7 @@ export function CandidatesPageClient({
     
     // Debounce the filter change to prevent excessive calls
     filterChangeTimeoutRef.current = setTimeout(() => {
-      console.log('🔍 CLIENT DEBUG: Applying filter change after debounce');
       handleFilterChange(newFilters, (filters) => {
-        console.log('🔍 CLIENT DEBUG: handleFilterChange callback called with:', filters);
         setTableLoading(true);
         debouncedFetchTableData(filters, 1, pageSize);
         fetchAllCandidatesForCounts(filters); // Update counts data when filters change
@@ -935,15 +841,12 @@ export function CandidatesPageClient({
     if (!isLoading && !tableLoading && !isClearingFilters) {
       // For AI search, use aiRecordCount
       if (isAiSearchActive && aiMatchedCandidateIds) {
-        console.log('🔍 PAGINATION DEBUG: AI search active, using aiRecordCount:', aiRecordCount);
         setTotal(aiRecordCount);
       } else {
         // For regular search, use the length of filtered candidates
         const newTotal = filteredCandidates.length;
-        console.log('🔍 PAGINATION DEBUG: Updating total from filteredCandidates:', newTotal, 'previous total:', total);
         if (newTotal !== total) {
           setTotal(newTotal);
-          console.log('🔍 PAGINATION DEBUG: Total updated to:', newTotal);
         }
       }
     }
@@ -952,7 +855,6 @@ export function CandidatesPageClient({
   // Update fit score counts when filteredCandidates changes
   useEffect(() => {
     if (!isLoading && !tableLoading && !isClearingFilters) {
-      console.log('🔍 COUNTS DEBUG: filteredCandidates changed, updating fit score counts');
       // The candidateScoreCounts will be recalculated automatically via useMemo
       // when filteredCandidates changes, so we don't need to do anything here
     }
@@ -961,7 +863,6 @@ export function CandidatesPageClient({
   // Update fit score counts when database fit score counts change
   useEffect(() => {
     if (!isLoading && !tableLoading && !isClearingFilters) {
-      console.log('🔍 COUNTS DEBUG: databaseFitScoreCounts changed, updating fit score counts');
       // The candidateScoreCounts will be recalculated automatically via useMemo
       // when databaseFitScoreCounts changes, so we don't need to do anything here
     }
@@ -969,7 +870,6 @@ export function CandidatesPageClient({
 
   // Handle clear all filters
   const handleClearAllFilters = useCallback(() => {
-    console.log('🔍 CLIENT DEBUG: handleClearAllFilters called - setting isClearingFilters to true');
     setIsClearingFilters(true);
     
     // Clear AI search state
@@ -990,10 +890,8 @@ export function CandidatesPageClient({
     // Fetch candidates with default filters to restore original state
     // Use a small delay to ensure state updates are processed
     setTimeout(() => {
-      console.log('🔍 CLIENT DEBUG: Clearing filters - fetching data with default filters:', defaultFilters);
       fetchTableData(defaultFilters, 1, pageSize);
       fetchAllCandidatesForCounts(defaultFilters); // Update counts data when clearing all filters
-      console.log('🔍 CLIENT DEBUG: Setting isClearingFilters to false');
       setIsClearingFilters(false);
     }, 100);
   }, [clearAllFilters, pageSize, fetchTableData, fetchAllCandidatesForCounts, filterChangeTimeoutRef]);
@@ -1023,8 +921,8 @@ export function CandidatesPageClient({
       if (filters.applicationDateStart) params.append('applicationDateStart', filters.applicationDateStart.toString());
       if (filters.applicationDateEnd) params.append('applicationDateEnd', filters.applicationDateEnd.toString());
       
-      // Add format parameter (CSV by default)
-      params.append('format', 'csv');
+      // Add format parameter (XLSX by default)
+      params.append('format', 'excel');
       
       const response = await fetch(`/api/candidates/export?${params.toString()}`);
       
@@ -1036,7 +934,7 @@ export function CandidatesPageClient({
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `candidates-export-${new Date().toISOString().split('T')[0]}.csv`;
+      a.download = `candidates-export-${new Date().toISOString().split('T')[0]}.xlsx`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -1053,12 +951,8 @@ export function CandidatesPageClient({
 
   // Handle import candidates
   const handleImportCandidates = useCallback(() => {
-    // Open import modal or redirect to import page
-    toast.success('Import functionality - please use the import template from /api/candidates/import/template');
-    
-    // You can implement a modal here or redirect to a dedicated import page
-    // For now, we'll just show a toast with instructions
-  }, [toast]);
+    setIsImportModalOpen(true);
+  }, []);
 
   // Add filter refs to the dynamic height hook
   useEffect(() => {
@@ -1134,14 +1028,6 @@ export function CandidatesPageClient({
 
   // Single client-side fetch - no server-side initial data
   useEffect(() => {
-    console.log('🔍 INITIAL DATA DEBUG: useEffect triggered with:', {
-      sessionStatus,
-      serverAuthError: !!serverAuthError,
-      serverPermissionError: !!serverPermissionError,
-      hasInitialDataFetch,
-      filters
-    });
-    
     if (
       sessionStatus === 'authenticated' &&
       !serverAuthError &&
@@ -1149,36 +1035,22 @@ export function CandidatesPageClient({
       !hasInitialDataFetch &&
       initialCandidates.length === 0
     ) {
-      console.log('🔍 INITIAL DATA DEBUG: Triggering single client-side fetch for full data');
-      console.log('🔍 INITIAL DATA DEBUG: Current filters:', filters);
-      console.log('🔍 INITIAL DATA DEBUG: Current page:', page, 'pageSize:', pageSize);
       setHasInitialDataFetch(true);
       setIsLoading(true);
       setTableLoading(true);
       
       // Fetch both table data and full dataset for counts in parallel
-      console.log('🔍 INITIAL DATA DEBUG: Calling fetchTableData...');
       fetchTableData(filters, page, pageSize);
-      console.log('🔍 INITIAL DATA DEBUG: Calling fetchAllCandidatesForCounts...');
       fetchAllCandidatesForCounts(filters);
     } else {
       // If we have initial data from server, mark as fetched
       if (initialCandidates.length > 0 && !hasInitialDataFetch) {
-        console.log('🔍 INITIAL DATA DEBUG: Setting hasInitialDataFetch to true because we have server data');
         setHasInitialDataFetch(true);
         // Ensure loading states are reset when we have initial data
         setIsLoading(false);
         setTableLoading(false);
         // Don't fetch data immediately if we have initial candidates
         // The initial candidates are already loaded and will be used
-      } else {
-        console.log('🔍 INITIAL DATA DEBUG: No action taken - conditions not met:', {
-          sessionStatus,
-          serverAuthError,
-          serverPermissionError,
-          hasInitialDataFetch,
-          initialCandidatesLength: initialCandidates.length
-        });
       }
     }
   }, [sessionStatus, serverAuthError, serverPermissionError, hasInitialDataFetch, fetchTableData, fetchAllCandidatesForCounts, initialCandidates.length]);
@@ -1207,7 +1079,6 @@ export function CandidatesPageClient({
     
     // Only skip fetch if we have initial candidates, no active filters, page is 1, and sort is default
     if (initialCandidates.length > 0 && !hasActiveFilters && page === 1 && sortColumn === 'lastUpdate' && (sortDirection === 'desc' || sortDirection === null)) {
-      console.log('🔍 FILTER CHANGE DEBUG: Skipping fetch - using initial candidates with default sort');
       return;
     }
     
@@ -1219,7 +1090,6 @@ export function CandidatesPageClient({
     
     // Add a small delay to prevent rapid successive requests
     const timeoutId = setTimeout(() => {
-      console.log('🔍 FILTER CHANGE DEBUG: Calling fetchTableData and fetchAllCandidatesForCounts');
       currentRequestRef.current = requestId;
       fetchTableData(filters, page, pageSize);
       fetchAllCandidatesForCounts(filters); // Update counts when filters change
@@ -1247,7 +1117,6 @@ export function CandidatesPageClient({
   // Ensure loading states are properly managed when we have initial data
   useEffect(() => {
     if (initialCandidates.length > 0 && (isLoading || tableLoading)) {
-      console.log('🔍 LOADING DEBUG: Resetting loading states because we have initial candidates');
       setIsLoading(false);
       setTableLoading(false);
     }
@@ -1256,15 +1125,11 @@ export function CandidatesPageClient({
   // Ensure total is set when we have initial candidates
   useEffect(() => {
     if (initialCandidates.length > 0 && total === 0) {
-      console.log('🔍 TOTAL DEBUG: Setting total to initial candidates length:', initialCandidates.length);
       setTotal(initialCandidates.length);
     }
   }, [initialCandidates.length, total, setTotal]);
 
-  // Monitor isClearingFilters state for debugging
-  useEffect(() => {
-    console.log('🔍 CLIENT DEBUG: isClearingFilters changed to:', isClearingFilters);
-  }, [isClearingFilters]);
+
 
   // Render the component
   return (
@@ -1355,7 +1220,7 @@ export function CandidatesPageClient({
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={handleExportCandidates}>
                             <FileDown className="mr-2 h-4 w-4" />
-                            Export Data
+                            Export to Excel
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={handleImportCandidates}>
                             <FileSpreadsheet className="mr-2 h-4 w-4" />
@@ -1565,7 +1430,8 @@ export function CandidatesPageClient({
                         <SelectItem value="20">20</SelectItem>
                         <SelectItem value="50">50</SelectItem>
                         <SelectItem value="100">100</SelectItem>
-                        <SelectItem value="1000">Show All</SelectItem>
+                        <SelectItem value="1000">1000</SelectItem>
+                        <SelectItem value="1000000">Show All</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -1628,6 +1494,14 @@ export function CandidatesPageClient({
         isOpen={isBulkUploadModalOpen}
         onOpenChange={setIsBulkUploadModalOpen}
         onUploadSuccess={() => {
+          fetchTableData(filters, page, pageSize);
+        }}
+      />
+
+      <CandidateImportModal
+        isOpen={isImportModalOpen}
+        onOpenChange={setIsImportModalOpen}
+        onImportSuccess={() => {
           fetchTableData(filters, page, pageSize);
         }}
       />

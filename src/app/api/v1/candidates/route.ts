@@ -427,7 +427,7 @@ export async function GET(request: NextRequest) {
       // Get candidates with pagination
       const candidatesQuery = `
         SELECT c.*, p.title as "positionTitle", p.department as "positionDepartment", r.name as "recruiterName", r."avatarUrl" as "recruiterAvatarUrl",
-               cs.name as "sourceName", cs.description as "sourceDescription", cs.logo as "sourceLogo"
+               cs.name as "sourceName", cs.description as "sourceDescription", cs.email as "sourceEmail", cs.logo as "sourceLogo"
         FROM "Candidate" c
         LEFT JOIN "Position" p ON c."positionId" = p.id
         LEFT JOIN "User" r ON c."recruiterId" = r.id
@@ -465,6 +465,7 @@ export async function GET(request: NextRequest) {
           id: candidate.sourceId,
           name: candidate.sourceName,
           description: candidate.sourceDescription,
+          email: candidate.sourceEmail,
           logo: candidate.sourceLogo
         } : null
       }));

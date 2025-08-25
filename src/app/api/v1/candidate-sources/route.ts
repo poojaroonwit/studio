@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
     try {
       const result = await client.query(`
         SELECT 
-          id, name, description, logo, allow_sub_source as "allowSubSource", 
+          id, name, description, email, logo, allow_sub_source as "allowSubSource", 
           sort_order as "sortOrder", is_active as "isActive", 
           "createdAt", "updatedAt"
         FROM "CandidateSource"

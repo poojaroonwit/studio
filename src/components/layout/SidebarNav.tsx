@@ -162,12 +162,10 @@ const SidebarNavComponent = function SidebarNav() {
     
     async function fetchPending() {
       try {
-        const res = await fetch("/api/upload-queue?limit=100");
+        const res = await fetch("/api/upload-queue/count");
         if (!res.ok) throw new Error("Failed to fetch");
         const data = await res.json();
-        const count = Array.isArray(data.data)
-          ? data.data.filter((item: any) => item.status === "queued" || item.status === "inprocess").length
-          : 0;
+        const count = data.pending || 0;
         if (!ignore) {
           setPendingCount(count);
           setPendingError(false);

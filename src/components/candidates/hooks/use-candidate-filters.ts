@@ -37,40 +37,31 @@ export function useCandidateFilters(initialFilters?: CandidateFilterValues) {
 
   // Horizontal fit score filter handlers
   const handleHorizontalFitScoreGradeToggle = useCallback((grade: string) => {
-    console.log('🔍 CLIENT DEBUG: handleHorizontalFitScoreGradeToggle called with grade:', grade);
     setHorizontalSelectedFitScoreGrades(prev => {
       const newSet = new Set(prev);
       if (newSet.has(grade)) {
         newSet.delete(grade);
-        console.log('🔍 CLIENT DEBUG: Removed grade from applied fit score selection:', grade);
       } else {
         newSet.add(grade);
-        console.log('🔍 CLIENT DEBUG: Added grade to applied fit score selection:', grade);
       }
-      console.log('🔍 CLIENT DEBUG: New applied fit score selection:', Array.from(newSet));
       return newSet;
     });
   }, []);
 
   const handleHorizontalMatchingFitScoreGradeToggle = useCallback((grade: string) => {
-    console.log('🔍 CLIENT DEBUG: handleHorizontalMatchingFitScoreGradeToggle called with grade:', grade);
     setHorizontalSelectedMatchingFitScoreGrades(prev => {
       const newSet = new Set(prev);
       if (newSet.has(grade)) {
         newSet.delete(grade);
-        console.log('🔍 CLIENT DEBUG: Removed grade from matching fit score selection:', grade);
       } else {
         newSet.add(grade);
-        console.log('🔍 CLIENT DEBUG: Added grade to matching fit score selection:', grade);
       }
-      console.log('🔍 CLIENT DEBUG: New matching fit score selection:', Array.from(newSet));
       return newSet;
     });
   }, []);
 
   // Clear all horizontal fit score filters
   const clearAllHorizontalFitScoreFilters = useCallback(() => {
-    console.log('🔍 CLIENT DEBUG: Clearing all horizontal fit score filters');
     setHorizontalSelectedFitScoreGrades(new Set());
     setHorizontalSelectedMatchingFitScoreGrades(new Set());
   }, []);
@@ -89,12 +80,6 @@ export function useCandidateFilters(initialFilters?: CandidateFilterValues) {
       const selectedRanges = scoreRanges.filter(range => horizontalSelectedFitScoreGrades.has(range.letter));
       const hasNoScore = horizontalSelectedFitScoreGrades.has('no-score');
       
-      console.log('🔍 CLIENT DEBUG: Processing applied job fit score grades:', {
-        selectedRanges: selectedRanges.map(r => ({ letter: r.letter, min: r.min, max: r.max })),
-        hasNoScore,
-        totalSelected: horizontalSelectedFitScoreGrades.size
-      });
-      
       if (selectedRanges.length > 0 && hasNoScore) {
         // Both regular grades and no-score selected - this is a complex case
         // We need to handle this as an OR condition: (regular grades) OR (no-score)
@@ -104,20 +89,16 @@ export function useCandidateFilters(initialFilters?: CandidateFilterValues) {
         maxAppliedJobFitScore = maxScore;
         // Add a special flag to indicate that no-score should also be included
         // This will be handled by the API to create an OR condition
-        console.log('🔍 CLIENT DEBUG: Both regular grades and no-score selected for applied job fit score. Setting up OR condition.');
       } else if (selectedRanges.length > 0) {
         // Only regular grades selected
         const minScore = Math.min(...selectedRanges.map(r => r.min));
         const maxScore = Math.max(...selectedRanges.map(r => r.max));
         minAppliedJobFitScore = minScore;
         maxAppliedJobFitScore = maxScore;
-        console.log('🔍 CLIENT DEBUG: Only regular grades selected for applied job fit score:', { minScore, maxScore });
-        console.log('🔍 CLIENT DEBUG: This will filter for candidates with fit scores between', minScore, 'and', maxScore, 'percent');
       } else if (hasNoScore) {
         // Only no-score selected
         minAppliedJobFitScore = -1;
         maxAppliedJobFitScore = -1; // Set both to -1 for "no-score" case
-        console.log('🔍 CLIENT DEBUG: Only no-score selected for applied job fit score');
       }
     }
 
@@ -125,12 +106,6 @@ export function useCandidateFilters(initialFilters?: CandidateFilterValues) {
     if (horizontalSelectedMatchingFitScoreGrades.size > 0) {
       const selectedRanges = scoreRanges.filter(range => horizontalSelectedMatchingFitScoreGrades.has(range.letter));
       const hasNoScore = horizontalSelectedMatchingFitScoreGrades.has('no-score');
-      
-      console.log('🔍 CLIENT DEBUG: Processing matching job fit score grades:', {
-        selectedRanges: selectedRanges.map(r => ({ letter: r.letter, min: r.min, max: r.max })),
-        hasNoScore,
-        totalSelected: horizontalSelectedMatchingFitScoreGrades.size
-      });
       
       if (selectedRanges.length > 0 && hasNoScore) {
         // Both regular grades and no-score selected - this is a complex case
@@ -142,19 +117,16 @@ export function useCandidateFilters(initialFilters?: CandidateFilterValues) {
         maxMatchingJobFitScore = maxScore;
         // Add a special flag to indicate that no-score should also be included
         // This will be handled by the API to create an OR condition
-        console.log('🔍 CLIENT DEBUG: Both regular grades and no-score selected for matching job fit score. Setting up OR condition.');
       } else if (selectedRanges.length > 0) {
         // Only regular grades selected
         const minScore = Math.min(...selectedRanges.map(r => r.min));
         const maxScore = Math.max(...selectedRanges.map(r => r.max));
         minMatchingJobFitScore = minScore;
         maxMatchingJobFitScore = maxScore;
-        console.log('🔍 CLIENT DEBUG: Only regular grades selected for matching job fit score:', { minScore, maxScore });
       } else if (hasNoScore) {
         // Only no-score selected
         minMatchingJobFitScore = -1;
         maxMatchingJobFitScore = -1; // Set both to -1 for "no-score" case
-        console.log('🔍 CLIENT DEBUG: Only no-score selected for matching job fit score');
       }
     }
 
@@ -169,25 +141,12 @@ export function useCandidateFilters(initialFilters?: CandidateFilterValues) {
       ...(horizontalSelectedMatchingFitScoreGrades.has('no-score') && horizontalSelectedMatchingFitScoreGrades.size > 1 && { includeNoScoreInMatching: true }),
     };
 
-    console.log('🔍 CLIENT DEBUG: Horizontal fit score filters being applied:', {
-      horizontalSelectedFitScoreGrades: Array.from(horizontalSelectedFitScoreGrades),
-      horizontalSelectedMatchingFitScoreGrades: Array.from(horizontalSelectedMatchingFitScoreGrades),
-      scoreRanges: scoreRanges.map(r => ({ letter: r.letter, min: r.min, max: r.max })),
-      calculatedFilters: {
-        minAppliedJobFitScore,
-        maxAppliedJobFitScore,
-        minMatchingJobFitScore,
-        maxMatchingJobFitScore
-      },
-      newFilters
-    });
+
 
     return newFilters;
   }, [horizontalSelectedFitScoreGrades, horizontalSelectedMatchingFitScoreGrades]);
 
   const handleFilterChange = useCallback((newFilters: CandidateFilterValues, onFilterChange: (filters: CandidateFilterValues) => void) => {
-    console.log('🔍 FILTERS DEBUG: handleFilterChange called with:', newFilters);
-    
     // Clear any existing timeout
     if (filterChangeTimeoutRef.current) {
       clearTimeout(filterChangeTimeoutRef.current);
@@ -198,14 +157,10 @@ export function useCandidateFilters(initialFilters?: CandidateFilterValues) {
     const currentFilters = filtersRef.current;
     const combinedFilters = { ...currentFilters, ...newFilters, aiSearchQuery: undefined };
     
-    console.log('🔍 FILTERS DEBUG: Current filters:', currentFilters);
-    console.log('🔍 FILTERS DEBUG: Combined filters:', combinedFilters);
-    
     // Check if filters have actually changed to prevent unnecessary updates
     const currentFiltersString = JSON.stringify(currentFilters);
     const newFiltersString = JSON.stringify(combinedFilters);
     if (currentFiltersString === newFiltersString) {
-      console.log('🔍 FILTERS DEBUG: Filters unchanged, skipping update');
       return;
     }
 
@@ -215,17 +170,14 @@ export function useCandidateFilters(initialFilters?: CandidateFilterValues) {
     
     // Immediate UI update for better responsiveness
     setFilters(combinedFilters);
-    console.log('🔍 FILTERS DEBUG: Set filters to:', combinedFilters);
     
     // Debounce the callback to prevent excessive calls
     filterChangeTimeoutRef.current = setTimeout(() => {
-      console.log('🔍 FILTERS DEBUG: Calling onFilterChange with:', combinedFilters);
       onFilterChange(combinedFilters);
     }, 100); // 100ms debounce
   }, []); // Removed filters from dependency array to prevent infinite loop
 
   const clearAllFilters = useCallback(() => {
-    console.log('🔍 CLIENT DEBUG: clearAllFilters called');
     // Clear horizontal fit score filters
     setHorizontalSelectedFitScoreGrades(new Set());
     setHorizontalSelectedMatchingFitScoreGrades(new Set());
@@ -260,7 +212,6 @@ export function useCandidateFilters(initialFilters?: CandidateFilterValues) {
       aiSearchQuery: undefined,
     };
     
-    console.log('🔍 CLIENT DEBUG: Setting default filters:', defaultFilters);
     setFilters(defaultFilters);
     return defaultFilters;
   }, []);

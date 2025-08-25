@@ -435,7 +435,17 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
       cleanupConnection();
     }
 
-    return cleanupConnection;
+    return () => {
+      cleanupConnection();
+      if (healthCheckIntervalRef.current) {
+        clearInterval(healthCheckIntervalRef.current);
+        healthCheckIntervalRef.current = null;
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+    };
   }, [session?.user, connectSSE, cleanupConnection]);
 
   // Update connection health periodically

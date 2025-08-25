@@ -109,9 +109,9 @@ function ErrorFallback({ error }: ErrorFallbackProps) {
             </details>
           )}
           <div className="flex gap-2 mt-6">
-            <button className="btn btn-primary" onClick={handleReload}>Reload</button>
-            <button className="btn btn-secondary" onClick={handleGoHome}>Go Home</button>
-            <button className="btn btn-outline" onClick={handleReportError}>Report Error</button>
+            <Button onClick={handleReload}>Reload</Button>
+            <Button variant="secondary" onClick={handleGoHome}>Go Home</Button>
+            <Button variant="outline" onClick={handleReportError}>Report Error</Button>
           </div>
         </CardContent>
       </Card>

@@ -132,43 +132,7 @@ export function throttle<T extends (...args: any[]) => any>(
   };
 }
 
-// Memory usage monitoring
-export function getMemoryUsage() {
-  if (typeof performance !== 'undefined' && 'memory' in performance) {
-    const memory = (performance as any).memory;
-    return {
-      used: memory.usedJSHeapSize,
-      total: memory.totalJSHeapSize,
-      limit: memory.jsHeapSizeLimit,
-      usedMB: memory.usedJSHeapSize / (1024 * 1024),
-      totalMB: memory.totalJSHeapSize / (1024 * 1024),
-      limitMB: memory.jsHeapSizeLimit / (1024 * 1024),
-      percentage: (memory.usedJSHeapSize / memory.jsHeapSizeLimit) * 100,
-    };
-  }
-  return null;
-}
 
-// Performance monitoring
-export function createPerformanceMonitor() {
-  let startTime: number;
-  let measurements: { name: string; duration: number }[] = [];
-
-  return {
-    start: () => {
-      startTime = performance.now();
-    },
-    measure: (name: string) => {
-      const duration = performance.now() - startTime;
-      measurements.push({ name, duration });
-      return duration;
-    },
-    getMeasurements: () => measurements,
-    clear: () => {
-      measurements = [];
-    },
-  };
-}
 
 // Initialize resource tracking on module load
 if (typeof window !== 'undefined') {

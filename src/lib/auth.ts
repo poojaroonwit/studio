@@ -201,10 +201,15 @@ export const authOptions: NextAuthOptions = {
         // Always fetch fresh group permissions if token.id is a UUID
         if (typeof token.id === 'string' && validateUuid(token.id)) {
           try {
-            token.modulePermissions = await getMergedUserPermissions(token.id as string) as PlatformModuleId[];
+            const freshPermissions = await getMergedUserPermissions(token.id as string);
+            token.modulePermissions = freshPermissions as PlatformModuleId[];
+            console.log(`[JWT CALLBACK] Loaded permissions for user ${token.id}:`, freshPermissions);
           } catch (e) {
             console.error('[JWT CALLBACK] Error fetching group permissions:', e);
-            token.modulePermissions = [];
+            // Don't set empty permissions, keep existing ones if available
+            if (!token.modulePermissions) {
+              token.modulePermissions = [];
+            }
           }
         }
         return token;
@@ -220,7 +225,20 @@ export const authOptions: NextAuthOptions = {
             session.user.id = token.id as string;
           }
           session.user.role = token.role as UserProfile['role'];
-          session.user.modulePermissions = token.modulePermissions as PlatformModuleId[];
+          
+          // Always fetch fresh permissions to ensure they're up to date
+          if (token.id && validateUuid(token.id as string)) {
+            try {
+              const freshPermissions = await getMergedUserPermissions(token.id as string);
+              session.user.modulePermissions = freshPermissions as PlatformModuleId[];
+            } catch (error) {
+              console.error('[SESSION CALLBACK] Error fetching fresh permissions:', error);
+              // Fallback to token permissions if fresh fetch fails
+              session.user.modulePermissions = token.modulePermissions as PlatformModuleId[] || [];
+            }
+          } else {
+            session.user.modulePermissions = token.modulePermissions as PlatformModuleId[] || [];
+          }
           
           // Fetch user data including avatarUrl and personalColor from database
           if (token.id) {

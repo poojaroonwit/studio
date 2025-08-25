@@ -11,9 +11,9 @@ interface LiveBadgeProps {
 
 export function LiveBadge({ className, size = 'sm', showText = false }: LiveBadgeProps) {
   const dotSizeClasses = {
-    sm: 'w-1.5 h-1.5',
-    md: 'w-2 h-2',
-    lg: 'w-2.5 h-2.5'
+    sm: 'w-2 h-2',
+    md: 'w-2.5 h-2.5',
+    lg: 'w-3 h-3'
   };
 
   return (
@@ -22,7 +22,8 @@ export function LiveBadge({ className, size = 'sm', showText = false }: LiveBadg
       className
     )}>
       <div className={cn(
-        "rounded-full bg-green-500 animate-pulse",
+        "rounded-full bg-green-500 animate-pulse shadow-sm",
+        "ring-1 ring-green-400/30",
         dotSizeClasses[size]
       )} />
       {showText && (

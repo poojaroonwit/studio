@@ -2125,6 +2125,13 @@ audio::-webkit-scrollbar-button {
   width: 100%;
   min-width: max-content;
   table-layout: auto;
+  overflow: hidden;
+}
+
+/* Ensure table body can scroll */
+.table-content-expandable tbody {
+  overflow-y: auto;
+  max-height: calc(100vh - 600px);
 }
 
 /* Positions page layout improvements */
@@ -2154,6 +2161,27 @@ audio::-webkit-scrollbar-button {
   flex: 1;
   min-height: 0;
   overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
+  max-height: calc(100vh - 500px);
+}
+
+.positions-table-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.positions-table-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.positions-table-scroll::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 4px;
+}
+
+.positions-table-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: hsl(var(--muted-foreground) / 0.5);
 }
 
 /* Responsive table behavior */
@@ -2161,6 +2189,12 @@ audio::-webkit-scrollbar-button {
   .table-content-expandable {
     table-layout: fixed;
     min-width: 800px; /* Minimum width for mobile scrolling */
+  }
+  
+  /* Adjust table height for mobile */
+  .positions-table-container .table-container-responsive {
+    height: calc(100vh - 300px) !important;
+    min-height: 300px !important;
   }
   
   /* Mobile-specific table improvements */
@@ -2198,6 +2232,12 @@ audio::-webkit-scrollbar-button {
 @media (max-width: 640px) {
   .table-mobile-responsive {
     font-size: 0.75rem;
+  }
+  
+  /* Adjust table height for very small screens */
+  .positions-table-container .table-container-responsive {
+    height: calc(100vh - 250px) !important;
+    min-height: 250px !important;
   }
   
   .table-mobile-responsive th,

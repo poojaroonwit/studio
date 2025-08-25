@@ -37,7 +37,7 @@ export function Breadcrumb({ items, className }: BreadcrumbProps) {
               {Icon && <Icon className="mr-1 h-4 w-4" />}
               <AutoFont>{item.label}</AutoFont>
               {isLivePage && (
-                <LiveBadge className="ml-1.5" size="sm" showText={false} />
+                <LiveBadge className="ml-2" size="sm" showText={false} />
               )}
             </span>
           );

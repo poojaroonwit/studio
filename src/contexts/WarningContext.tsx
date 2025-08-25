@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
+import { useUnifiedRealtime } from '@/hooks/use-unified-realtime-optimized';
 
 interface Warning {
   id: string;
@@ -56,8 +57,6 @@ export function WarningProvider({ children }: { children: React.ReactNode }) {
     }
   }, [session?.user]);
 
-
-
   const checkEntityWarnings = useCallback(async (entityType: string, entityId: string) => {
     try {
       const response = await fetch('/api/warnings/check', {
@@ -99,10 +98,16 @@ export function WarningProvider({ children }: { children: React.ReactNode }) {
           if (result.initialized) {
             // Warning system initialized automatically
             // Refresh warnings after initialization
-            const refreshTimeout = setTimeout(() => fetchWarnings(), 2000);
+            let refreshTimeout: NodeJS.Timeout | null = setTimeout(() => {
+              fetchWarnings();
+              refreshTimeout = null;
+            }, 2000);
             
             return () => {
-              clearTimeout(refreshTimeout);
+              if (refreshTimeout) {
+                clearTimeout(refreshTimeout);
+                refreshTimeout = null;
+              }
             };
           }
         }
@@ -114,35 +119,13 @@ export function WarningProvider({ children }: { children: React.ReactNode }) {
     initializeWarningSystem();
   }, [session?.user, fetchWarnings]);
 
-  // Set up real-time updates using Server-Sent Events
-  useEffect(() => {
-    if (!session?.user) return;
-
-    const eventSource = new EventSource('/api/warnings/stream');
-
-    eventSource.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === 'warning_update') {
-          fetchWarnings();
-        }
-      } catch (error) {
-        console.error('Error parsing warning event:', error);
-      }
-    };
-
-    eventSource.onerror = (error) => {
-      console.error('Warning SSE error:', error);
-      eventSource.close();
-    };
-
-    // Initial fetch
-    fetchWarnings();
-
-    return () => {
-      eventSource.close();
-    };
-  }, [session?.user, fetchWarnings]);
+  // Use unified real-time hook instead of individual SSE connection
+  const { isConnected } = useUnifiedRealtime({
+    onWarningUpdate: () => {
+      // Refresh warnings when warning updates are received
+      fetchWarnings();
+    }
+  });
 
   return (
     <WarningContext.Provider value={{

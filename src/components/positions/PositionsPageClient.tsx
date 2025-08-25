@@ -1212,7 +1212,8 @@ export default function PositionsPageClient() {
         </div>
       ) : (
         <div 
-          className="border rounded-lg shadow overflow-hidden relative table-container-responsive h-full"
+          className="border rounded-lg shadow overflow-hidden relative table-container-responsive"
+          style={{ height: 'calc(100vh - 400px)', minHeight: '400px' }}
         >
           
           {/* Table Loading Overlay */}

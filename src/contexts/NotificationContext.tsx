@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { useSession } from 'next-auth/react';
 import { useToastManager } from '@/hooks/use-toast-manager';
 import { Bell } from 'lucide-react';
+import { useUnifiedRealtime } from '@/hooks/use-unified-realtime-optimized';
 
 interface Notification {
   id: string;
@@ -36,7 +37,6 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  const [eventSource, setEventSource] = useState<EventSource | null>(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
   const fetchNotifications = useCallback(async () => {
@@ -129,7 +129,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         },
       });
     }
-  }, []);
+  }, [notificationsEnabled, showToast]);
 
   const clearNotifications = useCallback(() => {
     setNotifications([]);
@@ -140,169 +140,59 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     setNotificationsEnabled(enabled);
   }, []);
 
-  // Set up real-time notifications via SSE
-  useEffect(() => {
-    if (!session?.user) {
-      if (eventSource) {
-        eventSource.close();
-        setEventSource(null);
+  // Use unified real-time hook instead of individual SSE connection
+  const { isConnected } = useUnifiedRealtime({
+    onNotificationUpdate: (data) => {
+      if (data.type === 'new_notification') {
+        // Only show notifications meant for the current user
+        if (data.targetUserId && data.targetUserId !== session?.user?.id) {
+          return; // Skip notifications not meant for this user
+        }
+        
+        // Prevent self-notifications: don't show notifications about user's own actions
+        if (data.notification.data?.actingUserId && data.notification.data.actingUserId === session?.user?.id) {
+          return; // Skip notifications about user's own actions
+        }
+        
+        addNotification({
+          type: data.notification.type,
+          title: data.notification.title,
+          message: data.notification.message,
+          data: data.notification.data || {},
+        });
       }
-      return;
+    },
+    onCandidateUpdate: (data) => {
+      if (data.type === 'candidate_update' && data.candidate) {
+        // Prevent self-notifications: don't show notifications about user's own actions
+        if (data.actingUserId && data.actingUserId === session?.user?.id) {
+          return; // Skip notifications about user's own actions
+        }
+        
+        addNotification({
+          type: 'candidate_update',
+          title: 'Candidate Updated',
+          message: `Candidate ${data.candidate.name || data.candidate.email} has been updated`,
+          data: { candidateId: data.candidate.id, ...data },
+        });
+      }
+    },
+    onPositionUpdate: (data) => {
+      if (data.type === 'position_update' && data.position) {
+        // Prevent self-notifications: don't show notifications about user's own actions
+        if (data.actingUserId && data.actingUserId === session?.user?.id) {
+          return; // Skip notifications about user's own actions
+        }
+        
+        addNotification({
+          type: 'position_update',
+          title: 'Position Updated',
+          message: `Position "${data.position.title}" has been updated`,
+          data: { positionId: data.position.id, ...data },
+        });
+      }
     }
-
-    let reconnectTimeout: NodeJS.Timeout | null = null;
-
-    const connectSSE = () => {
-      try {
-        const es = new EventSource('/api/candidates/sse');
-        setEventSource(es);
-
-        es.onopen = () => {
-          // Real-time notifications connected
-        };
-
-        es.onerror = (error) => {
-          console.error('❌ Real-time notifications error:', error);
-          es.close();
-          setEventSource(null);
-          
-          // Attempt to reconnect after 5 seconds
-          reconnectTimeout = setTimeout(() => {
-            if (session?.user) {
-              connectSSE();
-            }
-          }, 5000);
-        };
-
-        // Listen for notification events
-        es.addEventListener('notification', (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            if (data.type === 'new_notification') {
-              // Only show notifications meant for the current user
-              if (data.targetUserId && data.targetUserId !== session?.user?.id) {
-                return; // Skip notifications not meant for this user
-              }
-              
-              // Prevent self-notifications: don't show notifications about user's own actions
-              if (data.notification.data?.actingUserId && data.notification.data.actingUserId === session?.user?.id) {
-                return; // Skip notifications about user's own actions
-              }
-              
-              addNotification({
-                type: data.notification.type,
-                title: data.notification.title,
-                message: data.notification.message,
-                data: data.notification.data || {},
-              });
-            }
-          } catch (error) {
-            console.error('Error parsing notification event:', error);
-          }
-        });
-
-        // Listen for general updates that should trigger notifications
-        es.addEventListener('candidate', (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            if (data.type === 'candidate_update' && data.candidate) {
-              // Prevent self-notifications: don't show notifications about user's own actions
-              if (data.actingUserId && data.actingUserId === session?.user?.id) {
-                return; // Skip notifications about user's own actions
-              }
-              
-              addNotification({
-                type: 'candidate_update',
-                title: 'Candidate Updated',
-                message: `Candidate ${data.candidate.name || data.candidate.email} has been updated`,
-                data: { candidateId: data.candidate.id, ...data },
-              });
-            }
-          } catch (error) {
-            console.error('Error parsing candidate event:', error);
-          }
-        });
-
-        es.addEventListener('position', (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            if (data.type === 'position_update' && data.position) {
-              // Prevent self-notifications: don't show notifications about user's own actions
-              if (data.actingUserId && data.actingUserId === session?.user?.id) {
-                return; // Skip notifications about user's own actions
-              }
-              
-              addNotification({
-                type: 'position_update',
-                title: 'Position Updated',
-                message: `Position "${data.position.title}" has been updated`,
-                data: { positionId: data.position.id, ...data },
-              });
-            }
-          } catch (error) {
-            console.error('Error parsing position event:', error);
-          }
-        });
-
-        es.addEventListener('comment', (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            if (data.type === 'new_comment') {
-              // Prevent self-notifications: don't show notifications about user's own actions
-              if (data.actingUserId && data.actingUserId === session?.user?.id) {
-                return; // Skip notifications about user's own actions
-              }
-              
-              addNotification({
-                type: 'new_comment',
-                title: 'New Comment',
-                message: `New comment added by ${data.comment.authorName || 'Team member'}`,
-                data: { commentId: data.comment.id, ...data },
-              });
-            }
-          } catch (error) {
-            console.error('Error parsing comment event:', error);
-          }
-        });
-
-        es.addEventListener('transition', (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            if (data.type === 'candidate_transition') {
-              // Prevent self-notifications: don't show notifications about user's own actions
-              if (data.actingUserId && data.actingUserId === session?.user?.id) {
-                return; // Skip notifications about user's own actions
-              }
-              
-              addNotification({
-                type: 'candidate_transition',
-                title: 'Candidate Moved',
-                message: `Candidate moved to ${data.toStage || 'new stage'}`,
-                data: { candidateId: data.candidateId, ...data },
-              });
-            }
-          } catch (error) {
-            console.error('Error parsing transition event:', error);
-          }
-        });
-
-      } catch (error) {
-        console.error('Error setting up SSE connection:', error);
-      }
-    };
-
-    connectSSE();
-
-    return () => {
-      if (eventSource) {
-        eventSource.close();
-        setEventSource(null);
-      }
-      if (reconnectTimeout) {
-        clearTimeout(reconnectTimeout);
-      }
-    };
-  }, [session?.user, addNotification]);
+  });
 
   // Fetch notifications on mount and when session changes
   useEffect(() => {

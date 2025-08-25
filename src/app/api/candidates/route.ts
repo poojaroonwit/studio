@@ -598,10 +598,12 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Recruiter auto-filter: If user is a Recruiter, only show their assigned candidates unless recruiterId is explicitly set
-    const isRecruiter = session.user.role === 'Recruiter';
+    // Auto-filter: If user can't view all candidates, only show their assigned candidates unless recruiterId is explicitly set
+    const canViewAllCandidates = session.user.role === 'Admin' || 
+                                 session.user.modulePermissions?.includes('USERS_MANAGE') || 
+                                 session.user.modulePermissions?.includes('CANDIDATES_VIEW');
     const recruiterIdFromFilter = filters.recruiterId;
-    if (isRecruiter && !recruiterIdFromFilter) {
+    if (!canViewAllCandidates && !recruiterIdFromFilter) {
       whereClauses.push(`c."recruiterId" = $${paramIndex++}`);
       queryParams.push(session.user.id);
     }

@@ -22,7 +22,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import type { Position } from '@/lib/types';
 import { FileViewerModal } from "@/components/ui/file-viewer-modal";
-import { PositionSelectDropdown } from "@/components/candidates/PositionSelectDropdown";
+
 
 
 export type CandidateJobType = "upload" | "import";
@@ -146,8 +146,8 @@ export const CandidateImportUploadQueue: React.FC<{
     fileSize?: number;
   } | null>(null);
 
-  // Add state for position assignment
-  const [assigningPositionId, setAssigningPositionId] = useState<string | null>(null);
+
+
 
   // Function to generate curl command from webhook payload
   const generateCurlCommand = (webhookPayload: any): string => {
@@ -888,34 +888,7 @@ export const CandidateImportUploadQueue: React.FC<{
     fetchPositions();
   }, []);
 
-  // Handle position assignment
-  const handlePositionAssignment = async (jobId: string, positionId: string | null) => {
-    if (assigningPositionId === jobId) {
-      return;
-    }
-    
-    setAssigningPositionId(jobId);
-    
-    try {
-      const response = await fetch(`/api/upload-queue/${jobId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ position_id: positionId })
-      });
-      
-      if (response.ok) {
-        success('Position assigned successfully!');
-        fetchJobs(); // Refresh the data
-      } else {
-        const errorData = await response.json();
-        showError(errorData.error || 'Failed to assign position');
-      }
-    } catch (error) {
-      showError('Failed to assign position');
-    } finally {
-      setAssigningPositionId(null);
-    }
-  };
+
 
 
 
@@ -1434,16 +1407,15 @@ export const CandidateImportUploadQueue: React.FC<{
                     </TableCell>
                     <TableCell>{formatBytes(item.file_size)}</TableCell>
                     <TableCell>
-                      <PositionSelectDropdown
-                        value={item.position_id || ""}
-                        onValueChange={(positionId) => handlePositionAssignment(item.id, positionId || null)}
-                        placeholder="Assign position..."
-                        disabled={assigningPositionId === item.id}
-                        className="w-full min-w-[200px]"
-                        showOpenStatus={false}
-                        filterOpenOnly={false}
-                        showNoneOption={true}
-                      />
+                      {item.position_title ? (
+                        <span className="text-sm font-medium" title={item.position_title}>
+                          {item.position_title}
+                        </span>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">
+                          No position assigned
+                        </span>
+                      )}
                     </TableCell>
                     <TableCell>
                       {(() => {

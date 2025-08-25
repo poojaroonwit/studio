@@ -28,13 +28,13 @@ function getBreadcrumbItems(pathname: string, showLogoOnly: boolean = false) {
   const items = [{ label: "Home", href: "/" }];
   
   if (pathname === "/") {
-    return showLogoOnly ? [] : [{ label: "Dashboard", href: "/" }];
+    // Always show Dashboard breadcrumb to allow realtime indicator to appear
+    return [{ label: "Dashboard", href: "/" }];
   }
   
   if (pathname.startsWith("/candidates")) {
-    if (!showLogoOnly) {
-      items.push({ label: "Candidates", href: "/candidates" });
-    }
+    // Always show Candidates breadcrumb to allow realtime indicator to appear
+    items.push({ label: "Candidates", href: "/candidates" });
     
     if (pathname === "/candidates/upload") {
       items.push({ label: "Process queue", href: "/candidates/upload" });
@@ -44,9 +44,8 @@ function getBreadcrumbItems(pathname: string, showLogoOnly: boolean = false) {
   }
   
   if (pathname.startsWith("/positions")) {
-    if (!showLogoOnly) {
-      items.push({ label: "Positions", href: "/positions" });
-    }
+    // Always show Positions breadcrumb to allow realtime indicator to appear
+    items.push({ label: "Job Positions", href: "/positions" });
     
     if (pathname.split('/').length === 3 && pathname.split('/')[2] !== '') {
       items.push({ label: "Position Details", href: pathname });
@@ -62,9 +61,8 @@ function getBreadcrumbItems(pathname: string, showLogoOnly: boolean = false) {
   }
   
   if (pathname.startsWith("/settings")) {
-    if (!showLogoOnly) {
-      items.push({ label: "Settings", href: "/settings" });
-    }
+    // Always show Settings breadcrumb to allow realtime indicator to appear
+    items.push({ label: "Settings", href: "/settings" });
     
     if (pathname.startsWith("/settings/system-settings")) {
       items.push({ label: "System Settings", href: "/settings/system-settings" });
@@ -258,7 +256,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
 
   // Only show loading skeleton if not mounted or if we're loading and have no session data
   // This prevents the avatar from disappearing during session updates
-  if (!mounted || status === "loading") { 
+  if (!mounted) { 
     return (
       <header className="flex h-16 items-center justify-between border-b bg-card px-4 md:px-6 sticky top-0 z-30">
         <div className="flex items-center gap-2">
@@ -280,6 +278,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
           <Breadcrumb items={getBreadcrumbItems(pathname, showLogoOnly)} />
         </div>
         <div className="flex items-center gap-3">
+          
           {/* User Presence Indicator */}
           {user && <UserPresenceIndicator />}
           
@@ -289,9 +288,9 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0 bg-transparent hover:bg-transparent border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0">
+                <div className="relative h-8 w-8 rounded-full cursor-pointer hover:bg-accent/50 transition-colors">
                   <UserAvatarCompact user={user} size="sm" forceRefresh={refreshKey > 0} />
-                </Button>
+                </div>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel className="font-normal">

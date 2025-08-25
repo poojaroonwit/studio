@@ -434,23 +434,25 @@ export function CandidateTable({
                     <DropdownMenu open={openMenu === 'candidate'} onOpenChange={handleOpenChange('candidate')}>
                       <DropdownMenuTrigger>
                         {sortColumn === 'name' ? (
-                          <button
-                            type="button"
-                            className="text-primary font-bold p-1 rounded hover:bg-muted"
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-primary font-bold p-1 rounded hover:bg-muted h-auto w-auto"
                             onClick={handleMenuClick('candidate')}
                             aria-label="Sort options"
                           >
                             {sortDirection === 'asc' ? <ChevronUp size={16} /> : sortDirection === 'desc' ? <ChevronDown size={16} /> : <MoreVertical size={16} />}
-                          </button>
+                          </Button>
                         ) : (
-                          <button
-                            type="button"
-                            className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted"
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted h-auto w-auto"
                             onClick={handleMenuClick('candidate')}
                             aria-label="Sort options"
                           >
                             <MoreVertical size={16} />
-                          </button>
+                          </Button>
                         )}
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
@@ -480,23 +482,25 @@ export function CandidateTable({
                     <DropdownMenu open={openMenu === 'fitScore'} onOpenChange={handleOpenChange('fitScore')}>
                       <DropdownMenuTrigger>
                         {sortColumn === 'fitScore' ? (
-                          <button
-                            type="button"
-                            className="text-primary font-bold p-1 rounded hover:bg-muted"
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-primary font-bold p-1 rounded hover:bg-muted h-auto w-auto"
                             onClick={handleMenuClick('fitScore')}
                             aria-label="Sort options"
                           >
                             {sortDirection === 'asc' ? <ChevronUp size={16} /> : sortDirection === 'desc' ? <ChevronDown size={16} /> : <MoreVertical size={16} />}
-                          </button>
+                          </Button>
                         ) : (
-                          <button
-                            type="button"
-                            className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted"
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted h-auto w-auto"
                             onClick={handleMenuClick('fitScore')}
                             aria-label="Sort options"
                           >
                             <MoreVertical size={16} />
-                          </button>
+                          </Button>
                         )}
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
@@ -521,23 +525,25 @@ export function CandidateTable({
                     <DropdownMenu open={openMenu === 'source'} onOpenChange={handleOpenChange('source')}>
                       <DropdownMenuTrigger>
                         {sortColumn === 'source' ? (
-                          <button
-                            type="button"
-                            className="text-primary font-bold p-1 rounded hover:bg-muted"
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-primary font-bold p-1 rounded hover:bg-muted h-auto w-auto"
                             onClick={handleMenuClick('source')}
                             aria-label="Sort options"
                           >
                             {sortDirection === 'asc' ? <ChevronUp size={16} /> : sortDirection === 'desc' ? <ChevronDown size={16} /> : <MoreVertical size={16} />}
-                          </button>
+                          </Button>
                         ) : (
-                          <button
-                            type="button"
-                            className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted"
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted h-auto w-auto"
                             onClick={handleMenuClick('source')}
                             aria-label="Sort options"
                           >
                             <MoreVertical size={16} />
-                          </button>
+                          </Button>
                         )}
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
@@ -557,23 +563,25 @@ export function CandidateTable({
                     <DropdownMenu open={openMenu === 'status'} onOpenChange={handleOpenChange('status')}>
                       <DropdownMenuTrigger>
                         {sortColumn === 'status' ? (
-                          <button
-                            type="button"
-                            className="text-primary font-bold p-1 rounded hover:bg-muted"
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-primary font-bold p-1 rounded hover:bg-muted h-auto w-auto"
                             onClick={handleMenuClick('status')}
                             aria-label="Sort options"
                           >
                             {sortDirection === 'asc' ? <ChevronUp size={16} /> : sortDirection === 'desc' ? <ChevronDown size={16} /> : <MoreVertical size={16} />}
-                          </button>
+                          </Button>
                         ) : (
-                          <button
-                            type="button"
-                            className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted"
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted h-auto w-auto"
                             onClick={handleMenuClick('status')}
                             aria-label="Sort options"
                           >
                             <MoreVertical size={16} />
-                          </button>
+                          </Button>
                         )}
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
@@ -593,23 +601,25 @@ export function CandidateTable({
                     <DropdownMenu open={openMenu === 'applicationDate'} onOpenChange={handleOpenChange('applicationDate')}>
                       <DropdownMenuTrigger>
                         {sortColumn === 'applicationDate' ? (
-                          <button
-                            type="button"
-                            className="text-primary font-bold p-1 rounded hover:bg-muted"
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-primary font-bold p-1 rounded hover:bg-muted h-auto w-auto"
                             onClick={handleMenuClick('applicationDate')}
                             aria-label="Sort options"
                           >
                             {sortDirection === 'asc' ? <ChevronUp size={16} /> : sortDirection === 'desc' ? <ChevronDown size={16} /> : <MoreVertical size={16} />}
-                          </button>
+                          </Button>
                         ) : (
-                          <button
-                            type="button"
-                            className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted"
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted h-auto w-auto"
                             onClick={handleMenuClick('applicationDate')}
                             aria-label="Sort options"
                           >
                             <MoreVertical size={16} />
-                          </button>
+                          </Button>
                         )}
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
@@ -629,23 +639,25 @@ export function CandidateTable({
                     <DropdownMenu open={openMenu === 'lastUpdate'} onOpenChange={handleOpenChange('lastUpdate')}>
                       <DropdownMenuTrigger>
                         {sortColumn === 'lastUpdate' ? (
-                          <button
-                            type="button"
-                            className="text-primary font-bold p-1 rounded hover:bg-muted"
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-primary font-bold p-1 rounded hover:bg-muted h-auto w-auto"
                             onClick={handleMenuClick('lastUpdate')}
                             aria-label="Sort options"
                           >
                             {sortDirection === 'asc' ? <ChevronUp size={16} /> : sortDirection === 'desc' ? <ChevronDown size={16} /> : <MoreVertical size={16} />}
-                          </button>
+                          </Button>
                         ) : (
-                          <button
-                            type="button"
-                            className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted"
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted h-auto w-auto"
                             onClick={handleMenuClick('lastUpdate')}
                             aria-label="Sort options"
                           >
                             <MoreVertical size={16} />
-                          </button>
+                          </Button>
                         )}
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
@@ -737,9 +749,10 @@ export function CandidateTable({
                     <TableCell key={`${candidate.id}-position`} className="max-w-[200px]">
                       {candidate.position?.title ? (
                         <div className="space-y-1">
-                          <button
+                          <Button
+                            variant="link"
                             onClick={() => onEditPosition(candidate.position!)}
-                            className="font-medium text-primary hover:underline cursor-pointer text-left w-full"
+                            className="font-medium text-primary hover:underline cursor-pointer text-left w-full h-auto p-0"
                             title={`View ${candidate.position.title} details`}
                             style={{
                               display: '-webkit-box',
@@ -751,7 +764,7 @@ export function CandidateTable({
                             }}
                           >
                             {candidate.position.title}
-                          </button>
+                          </Button>
                         </div>
                       ) : candidate.positionId ? (
                         <span className="text-warning-foreground bg-warning/20 px-2 py-1 rounded text-xs font-semibold">Missing Job Info</span>
@@ -934,9 +947,10 @@ export function CandidateTable({
                               <TableCell key={`${candidate.id}-position`} className="max-w-[200px]">
                                 {candidate.position?.title ? (
                                   <div className="space-y-1">
-                                    <button
+                                    <Button
+                                      variant="link"
                                       onClick={() => onEditPosition(candidate.position!)}
-                                      className="font-medium text-primary hover:underline cursor-pointer text-left w-full"
+                                      className="font-medium text-primary hover:underline cursor-pointer text-left w-full h-auto p-0"
                                       title={`View ${candidate.position.title} details`}
                                       style={{
                                         display: '-webkit-box',
@@ -948,7 +962,7 @@ export function CandidateTable({
                                       }}
                                     >
                                       {candidate.position.title}
-                                    </button>
+                                    </Button>
                                   </div>
                                 ) : candidate.positionId ? (
                                   <span className="text-warning-foreground bg-warning/20 px-2 py-1 rounded text-xs font-semibold">Missing Job Info</span>

@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import type { Candidate, Position, CandidateStatus, UserProfile } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CandidateAvatarCompact } from "@/components/ui/candidate-avatar";
-import { Users, Briefcase, CheckCircle2, UserPlus, FileWarning, UserRoundSearch, ServerCrash, Loader2, ListChecks, CalendarClock, Users2, BarChart3, AlertTriangle, Clock, Star, Target, Code, CalendarIcon, X, Timer, XCircle, ArrowRight } from "lucide-react";
+import { Users, Briefcase, CheckCircle2, UserPlus, FileWarning, UserRoundSearch, ServerCrash, Loader2, ListChecks, CalendarClock, Users2, BarChart3, AlertTriangle, Clock, Star, Target, Code, CalendarIcon, X, Timer, XCircle, ArrowRight, RefreshCw } from "lucide-react";
 import { getScoreRangesForChart, formatScoreWithGrade, getScoreColor } from "@/lib/scoreUtils";
 import { formatCandidateName, formatCandidateNameWithLang } from "@/lib/candidateUtils";
 import { isToday } from 'date-fns';
@@ -39,6 +39,7 @@ import { SLAViolationsWidget } from './SLAViolationsWidget';
 import { useDynamicHeight } from '@/hooks/use-dynamic-height';
 import { PositionDetailDrawer } from '@/components/positions/PositionDetailDrawer';
 import { useUnifiedRealtime } from '@/hooks/use-unified-realtime';
+import { usePermissionRefresh } from '@/hooks/use-permission-refresh';
 import { cn } from '@/lib/utils';
 import '@/lib/chartjs-setup';
 import '../../app/dashboard/dashboard.css';
@@ -86,12 +87,18 @@ export default function DashboardPageClient({
   const [selectedPositionId, setSelectedPositionId] = useState<string | null>(null);
   const [isPositionDrawerOpen, setIsPositionDrawerOpen] = useState(false);
 
-  // Check permissions for dashboard access
-  const canViewDashboard = session?.user?.role === 'Admin' || 
-                          session?.user?.role === 'Hiring Manager' || 
-                          session?.user?.role === 'Recruiter' ||
-                          session?.user?.modulePermissions?.includes('USERS_MANAGE') ||
-                          session?.user?.modulePermissions?.includes('DASHBOARD_VIEW');
+  // Permission refresh hook
+  const { refreshPermissions } = usePermissionRefresh();
+
+  // Check permissions for dashboard access - based on actual permissions, not hardcoded roles
+  const canViewDashboard = session?.user?.modulePermissions?.includes('USERS_MANAGE') ||
+                          session?.user?.modulePermissions?.includes('DASHBOARD_VIEW') ||
+                          session?.user?.modulePermissions?.includes('CANDIDATES_VIEW') ||
+                          session?.user?.modulePermissions?.includes('POSITIONS_VIEW');
+
+  // Check if user can view all candidates (for conditional rendering)
+  const canViewAllCandidates = session?.user?.modulePermissions?.includes('USERS_MANAGE') || 
+                               session?.user?.modulePermissions?.includes('CANDIDATES_VIEW');
 
   // Function to re-fetch data on client if needed (e.g., after an action or for a refresh button)
   const fetchDataClientSide = useCallback(async () => {
@@ -108,16 +115,29 @@ export default function DashboardPageClient({
     try {
       const fetchOptions = { credentials: 'include' as const };
       const promises = [];
-      if (userRole === 'Admin' || userRole === 'Hiring Manager' || session?.user?.modulePermissions?.includes('USERS_MANAGE')) {
+      // Check permissions to determine what data to fetch
+      const canViewAllCandidates = session?.user?.modulePermissions?.includes('USERS_MANAGE') || 
+                                   session?.user?.modulePermissions?.includes('CANDIDATES_VIEW');
+      const canViewAllUsers = session?.user?.modulePermissions?.includes('USERS_MANAGE');
+      
+      if (canViewAllCandidates) {
         promises.push(fetch('/api/candidates', fetchOptions));
-        promises.push(fetch('/api/users', fetchOptions));
-        promises.push(Promise.resolve(null));
-      } else if (userRole === 'Recruiter') {
-        promises.push(fetch(`/api/candidates?assignedRecruiterId=${userId}`, fetchOptions));
-        promises.push(Promise.resolve(null));
-        promises.push(fetch(`/api/candidates?assignedRecruiterId=${userId}`, fetchOptions));
       } else {
-        promises.push(Promise.resolve(null)); promises.push(Promise.resolve(null)); promises.push(Promise.resolve(null));
+        // User can only see their assigned candidates
+        promises.push(fetch(`/api/candidates?assignedRecruiterId=${userId}`, fetchOptions));
+      }
+      
+      if (canViewAllUsers) {
+        promises.push(fetch('/api/users', fetchOptions));
+      } else {
+        promises.push(Promise.resolve(null));
+      }
+      
+      // For backlog candidates, use the same logic as main candidates
+      if (canViewAllCandidates) {
+        promises.push(fetch('/api/candidates', fetchOptions));
+      } else {
+        promises.push(fetch(`/api/candidates?assignedRecruiterId=${userId}`, fetchOptions));
       }
       promises.push(fetch('/api/positions', fetchOptions));
 
@@ -126,11 +146,11 @@ export default function DashboardPageClient({
       if (candidatesResOrNull && !candidatesResOrNull.ok) {
         const errorText = candidatesResOrNull.statusText || `Status: ${candidatesResOrNull.status}`;
         accumulatedFetchError += `Failed to fetch candidates: ${errorText}. `;
-        if (userRole === 'Admin' || userRole === 'Hiring Manager' || session?.user?.modulePermissions?.includes('USERS_MANAGE')) setFilteredCandidates([]); else setMyAssignedCandidates([]);
+        if (canViewAllCandidates) setFilteredCandidates([]); else setMyAssignedCandidates([]);
       } else if (candidatesResOrNull) {
         const response = await candidatesResOrNull.json();
         const candidatesData: Candidate[] = Array.isArray(response.data) ? response.data : (Array.isArray(response) ? response : []);
-        if (userRole === 'Admin' || userRole === 'Hiring Manager' || session?.user?.modulePermissions?.includes('USERS_MANAGE')) setFilteredCandidates(candidatesData); else setMyAssignedCandidates(candidatesData);
+        if (canViewAllCandidates) setFilteredCandidates(candidatesData); else setMyAssignedCandidates(candidatesData);
       }
 
       if (usersResOrNull && !usersResOrNull.ok) { 
@@ -209,8 +229,14 @@ export default function DashboardPageClient({
   useEffect(() => {
     // Handle initial state passed from server component
     setFilteredCandidates(initialCandidates || []);
-    if (session?.user?.role === 'Recruiter') {
-      setMyAssignedCandidates(initialCandidates || []); // For recruiter, initial IS their assigned
+    
+    // Check if user can view all candidates or only their assigned ones
+    const canViewAllCandidates = session?.user?.modulePermissions?.includes('USERS_MANAGE') || 
+                                 session?.user?.modulePermissions?.includes('CANDIDATES_VIEW');
+    
+    if (!canViewAllCandidates) {
+      // User can only see their assigned candidates
+      setMyAssignedCandidates(initialCandidates || []);
       setMyBacklogCandidates((initialCandidates || []).filter(c => !BACKLOG_EXCLUSION_STATUSES.includes(c.status)));
     }
     setAllPositions(initialPositions || []);
@@ -222,11 +248,25 @@ export default function DashboardPageClient({
     if ((status as string) === 'unauthenticated' && !serverAuthError) {
         signIn(undefined, { callbackUrl: window.location.pathname });
     }
+    
+    // Auto-refresh permissions if they're missing for authenticated users
+    if (status === 'authenticated' && session?.user?.id && (!session.user.modulePermissions || session.user.modulePermissions.length === 0)) {
+      console.log('[DASHBOARD] Detected missing permissions, attempting to refresh...');
+      refreshPermissions().then(result => {
+        if (result.success) {
+          console.log('[DASHBOARD] Permissions refreshed successfully');
+          toast.success('Permissions updated');
+        } else {
+          console.error('[DASHBOARD] Failed to refresh permissions:', result.error);
+        }
+      });
+    }
+    
     // Show error as toast popup if present
     if (initialFetchError) {
       toast.error(initialFetchError);
     }
-  }, [initialCandidates, initialPositions, initialUsers, initialFetchError, serverAuthError, serverPermissionError, status, session?.user?.role]);
+  }, [initialCandidates, initialPositions, initialUsers, initialFetchError, serverAuthError, serverPermissionError, status, session?.user?.role, session?.user?.modulePermissions, refreshPermissions]);
 
   // Fetch data when session is authenticated and initial data is empty
   useEffect(() => {
@@ -290,7 +330,12 @@ export default function DashboardPageClient({
   }, [filteredCandidates]);
   const totalActiveRecruiters = useMemo(() => {
     const safeAllUsers = Array.isArray(allUsers) ? allUsers : [];
-    return safeAllUsers.filter((u: UserProfile) => u.role === 'Recruiter').length;
+    // Count users who can manage candidates (not just hardcoded 'Recruiter' role)
+    return safeAllUsers.filter((u: UserProfile) => 
+      u.role === 'Recruiter' || 
+      u.modulePermissions?.includes('CANDIDATES_MANAGE') ||
+      u.modulePermissions?.includes('CANDIDATES_VIEW')
+    ).length;
   }, [allUsers]);
   const newCandidatesTodayAdminList = useMemo(() => {
     const safeAllCandidates = Array.isArray(filteredCandidates)? filteredCandidates : [];
@@ -546,11 +591,30 @@ export default function DashboardPageClient({
     return (
       <div className="flex flex-col items-center justify-center h-[calc(100vh-10rem)] text-center p-4">
         <ServerCrash className="w-16 h-16 text-destructive mb-4" />
-        <h2 className="text-2xl font-semibold text-foreground mb-2">Permission Denied</h2>
-        <p className="text-muted-foreground mb-4 max-w-md">{fetchError || "You do not have permission to view this page."}</p>
-        <Button onClick={() => router.push('/')} className="btn-hover-primary-gradient">
-          Go to Home
-        </Button>
+        <h2 className="text-2xl font-semibold text-foreground mb-2">Permission Issue Detected</h2>
+        <p className="text-muted-foreground mb-4 max-w-md">
+          {fetchError || "There seems to be an issue with your permissions. This can happen if your role or permissions were recently updated."}
+        </p>
+        <div className="flex gap-2">
+          <Button 
+            onClick={async () => {
+              const result = await refreshPermissions();
+              if (result.success) {
+                toast.success('Permissions refreshed successfully');
+                window.location.reload();
+              } else {
+                toast.error('Failed to refresh permissions');
+              }
+            }} 
+            className="btn-hover-primary-gradient"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh Permissions
+          </Button>
+          <Button onClick={() => router.push('/')} variant="outline">
+            Go to Home
+          </Button>
+        </div>
       </div>
     );
   }
@@ -582,22 +646,7 @@ export default function DashboardPageClient({
   // Unified Dashboard - Show all metrics to everyone
   return (
     <div className="space-y-8 p-6">
-      {/* Realtime Status Indicator */}
-      <div className="flex items-center justify-end px-4 py-2 bg-muted/50 border-b border-border rounded-lg text-xs">
-        <div className={cn(
-          "w-10 h-10 rounded-full flex items-center justify-center",
-          realtimeConnected ? "bg-green-500" : isReconnecting ? "bg-yellow-500" : "bg-red-500"
-        )}>
-          <div className={cn(
-            "w-2 h-2 rounded-full",
-            realtimeConnected ? "bg-white" : isReconnecting ? "bg-white" : "bg-white/50"
-          )} />
-        </div>
-      </div>
-    
-      {/* Dashboard Header */}
-     
-
+   
       {/* Section 1: Key Statics - Row 1 */}
       <div className="space-y-6">
    
@@ -981,7 +1030,7 @@ export default function DashboardPageClient({
             <div className="lg:col-span-5" ref={sharedRef}>
               <div className="relative space-y-4 overflow-y-auto max-h-[1200px]" style={{ height: `${sharedHeight}px` }}>
                 <SLAViolationsWidget />
-                {session?.user?.role === 'Recruiter' && (
+                {!canViewAllCandidates && session?.user?.id && (
                   <SLAViolationsWidget recruiterId={session.user.id} />
                 )}
               </div>
@@ -992,8 +1041,8 @@ export default function DashboardPageClient({
       {/* Separator */}
       <div className="border-t border-border/50 my-8"></div>
 
-      {/* Section 3: Recruiter Performance (if applicable) */}
-      {session?.user?.role === 'Recruiter' && (
+      {/* Section 3: Personal Performance (if user can't view all candidates) */}
+      {!canViewAllCandidates && (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -1397,8 +1446,8 @@ export default function DashboardPageClient({
         </div>
       </div>
 
-      {/* Section 6: Recruiter Action Items (if applicable) */}
-      {session?.user?.role === 'Recruiter' && (
+      {/* Section 6: Personal Action Items (if user can't view all candidates) */}
+      {!canViewAllCandidates && (
         <div className="space-y-4">
           <div className="flex items-center space-x-2">
             <div className="h-6 w-1 bg-red-500 rounded-full"></div>

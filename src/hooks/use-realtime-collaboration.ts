@@ -417,6 +417,15 @@ export function useRealtimeCollaboration(options: RealtimeCollaborationOptions =
     // Cleanup on unmount
     return () => {
       cleanupConnection();
+      // Additional cleanup for intervals and timeouts
+      if (healthCheckIntervalRef.current) {
+        clearInterval(healthCheckIntervalRef.current);
+        healthCheckIntervalRef.current = null;
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
     };
   }, [connectSSE, cleanupConnection]);
 

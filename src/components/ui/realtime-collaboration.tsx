@@ -181,21 +181,6 @@ export function RealtimeCollaboration({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => {
-                  if (eventSourceRef.current) {
-                    eventSourceRef.current.close();
-                    eventSourceRef.current = null;
-                  }
-                  // Reconnect or handle error
-                }}
-                disabled={!eventSourceRef.current}
-                className="h-6 w-6 p-0"
-              >
-                <RefreshCw className={cn("w-3 h-3", !eventSourceRef.current && "animate-spin")} />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
                 onClick={() => setIsVisible(false)}
                 className="h-6 w-6 p-0"
               >

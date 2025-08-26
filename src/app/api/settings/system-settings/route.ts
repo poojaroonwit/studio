@@ -56,7 +56,8 @@ const systemSettingKeyEnum = z.enum([
     'loginPageLayoutType',
     // Alternative keys used by system preferences page
     'themePreference', 'loginBackgroundType', 'loginBackgroundGradientStart', 
-    'loginBackgroundGradientEnd', 'loginBackgroundColor', 'showLogoOnly', 'sidebarLogoSize',
+    'loginBackgroundGradientEnd', 'loginBackgroundColor', 'showLogoOnly', 'sidebarLogoSize', 'loginPageLogoSize',
+    'sidebarBackgroundType', 'sidebarBackgroundImageUrl', 'sidebarBackgroundImageFit', 'sidebarBackgroundImagePosition',
     // Sidebar Light Theme - Background colors
     'sidebarBgStartL', 'sidebarBgEndL', 'sidebarTextL',
     'sidebarActiveBgStartL', 'sidebarActiveBgEndL', 'sidebarActiveTextL',

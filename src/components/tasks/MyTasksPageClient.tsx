@@ -93,7 +93,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   });
 
   // Unified realtime hook
-  const { isConnected: realtimeConnected } = useUnifiedRealtime({
+  const { isConnected: realtimeConnected, isReconnecting, reconnectAttempts } = useUnifiedRealtime({
     onCandidateUpdate: (updatedCandidate) => {
       setCandidates(prevCandidates => {
         const existingIndex = prevCandidates.findIndex(c => c.id === updatedCandidate.id);
@@ -550,7 +550,15 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   return (
     <div className="flex flex-col h-full bg-background">
       {/* Realtime Status Indicator */}
-     
+      <div className="flex items-center justify-end p-4 pb-2">
+        <RealtimeIndicator 
+          isConnected={realtimeConnected}
+          isReconnecting={isReconnecting}
+          reconnectAttempts={reconnectAttempts}
+          size="sm"
+          showText={true}
+        />
+      </div>
       
       {/* Enhanced Board Header - Always Sticky within main content */}
       <div className="bg-card border-b border-border shadow-sm sticky top-0 z-40 backdrop-blur-sm bg-card/95">

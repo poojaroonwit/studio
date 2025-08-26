@@ -1,58 +1,20 @@
-import { 
-  LayoutDashboard, 
-  Users, 
-  Briefcase, 
-  Settings, 
-  ListTodo, 
-  UploadCloud,
-  FileText,
-  BarChart3,
-  Calendar,
-  MessageSquare,
-  Shield,
-  Database,
-  Zap,
-  Target,
-  Kanban,
-  AlertTriangle
-} from "lucide-react";
-
-export interface SidebarNavItem {
+// Sidebar configuration data for API routes (no React components)
+export interface SidebarNavItemData {
   label: string;
-  icon: any;
+  icon: string;
   href: string;
   adminOnly?: boolean;
   badge?: string;
   description?: string;
 }
 
-export interface SidebarNavGroup {
+export interface SidebarNavGroupData {
   label: string;
-  items: SidebarNavItem[];
+  items: SidebarNavItemData[];
 }
 
-// Icon mapping for API serialization
-export const iconMap = {
-  LayoutDashboard,
-  Users,
-  Briefcase,
-  Settings,
-  ListTodo,
-  UploadCloud,
-  FileText,
-  BarChart3,
-  Calendar,
-  MessageSquare,
-  Shield,
-  Database,
-  Zap,
-  Target,
-  Kanban,
-  AlertTriangle
-};
-
 // Config with icon names instead of components for API serialization
-export const sidebarConfigData = [
+export const sidebarConfigData: SidebarNavGroupData[] = [
   {
     label: "Overview",
     items: [
@@ -117,12 +79,3 @@ export const sidebarConfigData = [
     ],
   },
 ];
-
-// Full config with actual icon components for client-side use
-export const sidebarConfig: SidebarNavGroup[] = sidebarConfigData.map(group => ({
-  ...group,
-  items: group.items.map(item => ({
-    ...item,
-    icon: iconMap[item.icon as keyof typeof iconMap]
-  }))
-})); 

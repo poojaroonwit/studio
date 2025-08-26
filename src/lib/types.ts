@@ -579,6 +579,7 @@ export type SystemSettingKey =
   | 'loginPageBackgroundColor1'
   | 'loginPageBackgroundColor2'
   | 'loginPageLayoutType'
+  | 'loginPageLogoSize'
   // Branding display settings
   | 'showLogoOnly'
   // Sidebar Light Theme

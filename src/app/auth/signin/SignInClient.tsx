@@ -26,6 +26,10 @@ const DEFAULT_PRIMARY_GRADIENT_START_SIGNIN = "179 67% 66%";
 const DEFAULT_PRIMARY_GRADIENT_END_SIGNIN = "238 74% 61%";
 const DEFAULT_LOGIN_LAYOUT_TYPE: LoginPageLayoutType = 'center';
 
+// Login page logo size configuration
+const LOGIN_PAGE_LOGO_SIZE_KEY = 'loginPageLogoSize';
+const DEFAULT_LOGIN_PAGE_LOGO_SIZE = 100; // Default 100px for login page (reduced from 150px)
+
 // Login background settings keys
 const LOGIN_BACKGROUND_TYPE_KEY = 'loginPageBackgroundType';
 const LOGIN_BACKGROUND_IMAGE_KEY = 'loginPageBackgroundImageUrl';
@@ -68,6 +72,13 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
     }
     return DEFAULT_LOGIN_LAYOUT_TYPE;
   });
+  const [loginPageLogoSize, setLoginPageLogoSize] = useState<number>(() => {
+    if (initialSettings) {
+      const setting = initialSettings.find(s => s.key === LOGIN_PAGE_LOGO_SIZE_KEY);
+      return setting && setting.value ? parseInt(setting.value) || DEFAULT_LOGIN_PAGE_LOGO_SIZE : DEFAULT_LOGIN_PAGE_LOGO_SIZE;
+    }
+    return DEFAULT_LOGIN_PAGE_LOGO_SIZE;
+  });
 
   const callbackUrl = nextSearchParams.get('callbackUrl') || "/";
 
@@ -95,6 +106,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
         let primaryStart = DEFAULT_PRIMARY_GRADIENT_START_SIGNIN;
         let primaryEnd = DEFAULT_PRIMARY_GRADIENT_END_SIGNIN;
         let loginLayoutTypeSetting: LoginPageLayoutType = DEFAULT_LOGIN_LAYOUT_TYPE;
+        let loginPageLogoSizeSetting: number = DEFAULT_LOGIN_PAGE_LOGO_SIZE;
 
         try {
           const response = await fetch('/api/settings/system-settings');
@@ -128,11 +140,13 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
             loginLayoutTypeSetting = settings.loginPageLayoutType as LoginPageLayoutType || DEFAULT_LOGIN_LAYOUT_TYPE;
             primaryStart = settings.primaryGradientStart || DEFAULT_PRIMARY_GRADIENT_START_SIGNIN;
             primaryEnd = settings.primaryGradientEnd || DEFAULT_PRIMARY_GRADIENT_END_SIGNIN;
+            loginPageLogoSizeSetting = settings.loginPageLogoSize || DEFAULT_LOGIN_PAGE_LOGO_SIZE;
 
             setCurrentAppName(appName);
             setAppLogoUrl(logoUrl);
             setShowLogoOnly(settings.showLogoOnly === 'true' || settings.showLogoOnly === true);
             setLoginLayoutType(loginLayoutTypeSetting);
+            setLoginPageLogoSize(loginPageLogoSizeSetting);
 
             // Apply primary colors and theme dynamically for login page
             if (typeof document !== 'undefined') {
@@ -195,6 +209,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
       let loginBgColor1: string | null = initialSettings.find(s => s.key === LOGIN_BACKGROUND_GRADIENT_START_KEY)?.value || null;
       let loginBgColor2: string | null = initialSettings.find(s => s.key === LOGIN_BACKGROUND_GRADIENT_END_KEY)?.value || null;
       let loginLayoutTypeSetting: LoginPageLayoutType = (initialSettings.find(s => s.key === 'loginPageLayoutType')?.value as LoginPageLayoutType) || DEFAULT_LOGIN_LAYOUT_TYPE;
+              let loginPageLogoSizeSetting: number = parseInt(initialSettings.find(s => s.key === LOGIN_PAGE_LOGO_SIZE_KEY)?.value || DEFAULT_LOGIN_PAGE_LOGO_SIZE.toString());
       // Set style
       const newStyle: React.CSSProperties = {
         minHeight: '100vh',
@@ -227,6 +242,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
         primaryGradientStart: primaryStart,
         primaryGradientEnd: primaryEnd,
       });
+      setLoginPageLogoSize(loginPageLogoSizeSetting);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isThemeDark, initialSettings]);
@@ -300,6 +316,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
       // Just force a re-render by updating a dummy state
       setAppLogoUrl(prev => prev ? prev + '' : prev);
       setLoginLayoutType(prev => prev ? prev : DEFAULT_LOGIN_LAYOUT_TYPE);
+      setLoginPageLogoSize(prev => prev ? prev : DEFAULT_LOGIN_PAGE_LOGO_SIZE);
       // Optionally, you can refetch settings or reload the page if needed
     };
     window.addEventListener('appConfigChanged', handleAppConfigChange);
@@ -433,8 +450,8 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
                 <img
                   src={appLogoUrl}
                   alt="Application Logo"
-                  width={80}
-                  height={80}
+                  width={loginPageLogoSize}
+                  height={loginPageLogoSize}
                   className="rounded-xl mx-auto mb-4 feature-icon"
                 />
               ) : (
@@ -502,12 +519,18 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
               <img
                 src={logoToUse}
                 alt="Application Logo"
-                width={100}
-                height={100}
+                width={loginPageLogoSize}
+                height={loginPageLogoSize}
                 className="rounded-2xl mx-auto mb-6 feature-icon"
               />
             ) : (
-              <div className="w-24 h-24 bg-gradient-to-br from-primary to-primary/80 rounded-2xl mx-auto mb-6 flex items-center justify-center feature-icon">
+              <div 
+                className="bg-gradient-to-br from-primary to-primary/80 rounded-2xl mx-auto mb-6 flex items-center justify-center feature-icon"
+                style={{
+                  width: `${loginPageLogoSize}px`,
+                  height: `${loginPageLogoSize}px`,
+                }}
+              >
                 <span className="text-3xl font-bold text-primary-foreground">CT</span>
               </div>
             );

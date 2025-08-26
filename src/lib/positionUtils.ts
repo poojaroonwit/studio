@@ -1,7 +1,6 @@
 /**
  * Utilities for position-related operations and styling
  */
-import { CheckCircle, XCircle } from 'lucide-react';
 
 export interface PositionStatusBadgeProps {
   isOpen: boolean;

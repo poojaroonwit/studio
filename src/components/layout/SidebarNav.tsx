@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, Users, Briefcase, Settings, UsersRound, Code2, ListOrdered, Palette, Zap, ListTodo, DatabaseZap, SlidersHorizontal, KanbanSquare, Settings2, UserCog, UploadCloud, Loader2, XCircle, Database } from "lucide-react"; 
 import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 import {
   SidebarMenu,
   SidebarMenuItem,
@@ -155,7 +156,7 @@ const usePendingCount = () => {
 
   // Use unified real-time hook for upload queue updates with optimized callbacks
   const { isConnected } = useUnifiedRealtime({
-    onUploadQueueUpdate: useCallback((data) => {
+    onUploadQueueUpdate: useCallback((data: any) => {
       if (data.type === 'queue' && data.summary) {
         const count = (data.summary.queued || 0) + (data.summary.inprocess || 0);
         setPendingCount(count);
@@ -295,9 +296,9 @@ const SidebarNavComponent = function SidebarNav() {
                         style={pathname === bulkUploadNavItem.href ? getActiveIconStyles(sidebarStyles) : {}}
                       />
                       {pendingCount !== null && (
-                        <SidebarMenuBadge 
+                        <Badge 
                           variant={pendingError ? "destructive" : "default"}
-                          className="ml-auto"
+                          className="ml-auto h-5 min-w-5 px-0.5 text-xs"
                         >
                           {isPendingLoading ? (
                             <Loader2 className="h-3 w-3 animate-spin" />
@@ -306,7 +307,7 @@ const SidebarNavComponent = function SidebarNav() {
                           ) : (
                             pendingCount || 0
                           )}
-                        </SidebarMenuBadge>
+                        </Badge>
                       )}
                     </a>
                   </SidebarMenuButton>
@@ -394,9 +395,9 @@ const SidebarNavComponent = function SidebarNav() {
                     />
                     <span className="truncate group-data-[collapsible=icon]:hidden">{bulkUploadNavItem.label}</span>
                     {pendingCount !== null && (
-                      <SidebarMenuBadge 
+                      <Badge 
                         variant={pendingError ? "destructive" : "default"}
-                        className="ml-auto"
+                        className="ml-auto h-5 min-w-5 px-0.5 text-xs"
                       >
                         {isPendingLoading ? (
                           <Loader2 className="h-3 w-3 animate-spin" />
@@ -405,7 +406,7 @@ const SidebarNavComponent = function SidebarNav() {
                         ) : (
                           pendingCount || 0
                         )}
-                      </SidebarMenuBadge>
+                      </Badge>
                     )}
                   </a>
                 </SidebarMenuButton>

@@ -48,6 +48,7 @@ import { useCandidateData } from './hooks/use-candidate-data';
 import { useCandidateFetching } from './hooks/use-candidate-fetching';
 import { useCandidateActions } from './hooks/use-candidate-actions';
 import { useCandidateAiSearch } from './hooks/use-candidate-ai-search';
+import { RealtimeIndicator } from '@/components/ui/realtime-indicator';
 
 interface CandidatesPageClientProps {
   initialCandidates: Candidate[];
@@ -1200,7 +1201,15 @@ export function CandidatesPageClient({
     <>
       <div className="flex flex-col h-full">
         {/* Realtime Status Indicator */}
-
+        <div className="flex items-center justify-end p-4 pb-2">
+          <RealtimeIndicator 
+            isConnected={realtimeConnected}
+            isReconnecting={isReconnecting}
+            reconnectAttempts={reconnectAttempts}
+            size="sm"
+            showText={true}
+          />
+        </div>
         
         {/* Main Content */}
         <div className="flex-1 flex overflow-hidden">

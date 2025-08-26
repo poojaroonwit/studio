@@ -38,6 +38,7 @@ const LOGIN_BACKGROUND_IMAGE_KEY = 'loginPageBackgroundImageUrl';
 const LOGIN_BACKGROUND_GRADIENT_START_KEY = 'loginBackgroundGradientStart';
 const LOGIN_BACKGROUND_GRADIENT_END_KEY = 'loginBackgroundGradientEnd';
 const LOGIN_BACKGROUND_COLOR_KEY = 'loginBackgroundColor';
+const LOGIN_PAGE_LOGO_SIZE_KEY = 'loginPageLogoSize';
 
 type ThemePreference = "light" | "dark" | "system";
 type LoginBackgroundType = 'image' | 'gradient' | 'solid';
@@ -311,6 +312,7 @@ export default function SystemPreferencesPage() {
   
   // Branding display settings
   const [sidebarLogoSize, setSidebarLogoSize] = useState<number>(48); // Default 48px (h-12 w-12)
+  const [loginPageLogoSize, setLoginPageLogoSize] = useState<number>(100); // Default 100px for login page (reduced from 150px)
   
   // App Favicon state
   const [selectedFaviconFile, setSelectedFaviconFile] = useState<File | null>(null);
@@ -391,6 +393,7 @@ export default function SystemPreferencesPage() {
           // Load branding display settings
           setShowLogoOnly(data.showLogoOnly === 'true' || data.showLogoOnly === true);
           setSidebarLogoSize(data.sidebarLogoSize ? parseInt(data.sidebarLogoSize) : 48);
+          setLoginPageLogoSize(data[LOGIN_PAGE_LOGO_SIZE_KEY] ? parseInt(data[LOGIN_PAGE_LOGO_SIZE_KEY]) : 100);
           
           // Load login page design settings
           setLoginBackgroundType((data[LOGIN_BACKGROUND_TYPE_KEY] as LoginBackgroundType) || DEFAULT_LOGIN_BACKGROUND_TYPE);
@@ -835,6 +838,7 @@ export default function SystemPreferencesPage() {
         // Branding display settings
         'showLogoOnly',
         'sidebarLogoSize',
+        'loginPageLogoSize',
         'loginBackgroundType',
         'loginBackgroundGradientStart',
         'loginBackgroundGradientEnd',
@@ -864,6 +868,7 @@ export default function SystemPreferencesPage() {
         { key: 'sidebarLogoExpandedDarkMode', value: savedSidebarLogoExpandedDarkModeUrl },
         { key: 'showLogoOnly', value: showLogoOnly.toString() },
         { key: 'sidebarLogoSize', value: sidebarLogoSize.toString() },
+        { key: 'loginPageLogoSize', value: loginPageLogoSize.toString() },
         { key: 'loginBackgroundType', value: loginBackgroundType },
         { key: 'loginBackgroundGradientStart', value: loginBackgroundGradientStart },
         { key: 'loginBackgroundGradientEnd', value: loginBackgroundGradientEnd },
@@ -1821,6 +1826,52 @@ export default function SystemPreferencesPage() {
                                 </div>
                                 <p className="text-xs text-muted-foreground">
                                   Adjust the size of the logo in the sidebar. Range: 24px - 500px. In collapsed mode, logos larger than 64px will be scaled down to fit.
+                                </p>
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <Label htmlFor="login-logo-size" className="text-sm font-medium">
+                                  Login Page Logo Size
+                                </Label>
+                                <div className="flex items-center gap-4">
+                                  <Input
+                                    id="login-logo-size"
+                                    type="range"
+                                    min="50"
+                                    max="300"
+                                    step="10"
+                                    value={loginPageLogoSize}
+                                    onChange={(e) => setLoginPageLogoSize(parseInt(e.target.value))}
+                                    disabled={!canEdit}
+                                    className="flex-1"
+                                  />
+                                  <div className="flex items-center gap-2 min-w-[60px]">
+                                    <span className="text-sm font-mono">{loginPageLogoSize}px</span>
+                                  </div>
+                                </div>
+                                <div className="flex items-center justify-center p-4 bg-muted/30 rounded-lg border">
+                                  <div 
+                                    className="bg-background border rounded-lg p-2 flex items-center justify-center"
+                                    style={{ 
+                                      width: `${Math.min(loginPageLogoSize, 200)}px`, 
+                                      height: `${Math.min(loginPageLogoSize, 200)}px`,
+                                      transform: loginPageLogoSize > 200 ? `scale(${200 / loginPageLogoSize})` : 'scale(1)',
+                                      transformOrigin: 'center'
+                                    }}
+                                  >
+                                    {logoPreviewUrl ? (
+                                      <img
+                                        src={logoPreviewUrl}
+                                        alt="Login logo size preview"
+                                        className="max-w-full max-h-full object-contain"
+                                      />
+                                    ) : (
+                                      <div className="w-6 h-6 bg-muted rounded" />
+                                    )}
+                                  </div>
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                  Adjust the size of the logo on the login page. Range: 50px - 300px. Default: 100px.
                                 </p>
                               </div>
                             </div>

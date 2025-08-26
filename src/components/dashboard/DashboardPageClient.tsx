@@ -41,6 +41,7 @@ import { PositionDetailDrawer } from '@/components/positions/PositionDetailDrawe
 import { useUnifiedRealtime } from '@/hooks/use-unified-realtime';
 import { usePermissionRefresh } from '@/hooks/use-permission-refresh';
 import { cn } from '@/lib/utils';
+import { RealtimeIndicator } from '@/components/ui/realtime-indicator';
 import '@/lib/chartjs-setup';
 import '../../app/dashboard/dashboard.css';
 
@@ -646,6 +647,16 @@ export default function DashboardPageClient({
   // Unified Dashboard - Show all metrics to everyone
   return (
     <div className="space-y-8 p-6">
+      {/* Realtime Status Indicator */}
+      <div className="flex items-center justify-end">
+        <RealtimeIndicator 
+          isConnected={realtimeConnected}
+          isReconnecting={isReconnecting}
+          reconnectAttempts={reconnectAttempts}
+          size="sm"
+          showText={true}
+        />
+      </div>
    
       {/* Section 1: Key Statics - Row 1 */}
       <div className="space-y-6">

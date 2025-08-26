@@ -30,7 +30,7 @@ export function DevMemoryMonitor({ enabled = true }: DevMemoryMonitorProps) {
       try {
         const { getResourceStats } = require('@/lib/performance-utils-core');
         const stats = getResourceStats();
-        resourceCount = Object.values(stats).reduce((sum: number, count: number) => sum + count, 0);
+        resourceCount = Object.values(stats).reduce((sum: number, count: unknown) => sum + (typeof count === 'number' ? count : 0), 0);
       } catch (e) {
         // Resource tracking not available
       }

@@ -61,6 +61,13 @@ export function RolePermissionSelector({
 
   const clearAllPermissions = () => {
     if (disabled) return;
+    
+    // If there are no protected permissions, clear all
+    if (protectedPermissions.length === 0) {
+      onPermissionsChange([]);
+      return;
+    }
+    
     // Preserve protected permissions when clearing all
     const preservedPermissions = selectedPermissions.filter(p => protectedPermissions.includes(p));
     onPermissionsChange(preservedPermissions);

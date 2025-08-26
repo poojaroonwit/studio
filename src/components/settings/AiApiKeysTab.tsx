@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Save, RefreshCw, AlertCircle, CheckCircle, Clock, XCircle, GripVertical, Edit2, X, Bug } from 'lucide-react';
+import { Plus, Trash2, Save, RefreshCw, AlertCircle, CheckCircle, Clock, XCircle, GripVertical, Edit2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -36,7 +36,6 @@ export default function AiApiKeysTab() {
   const [stats, setStats] = useState<ApiKeyStats | null>(null);
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
-  const [showDiagnostics, setShowDiagnostics] = useState(false);
 
   const fetchApiKeys = async () => {
     setIsLoading(true);
@@ -232,36 +231,6 @@ export default function AiApiKeysTab() {
     return `${key.substring(0, 8)}...${key.substring(key.length - 4)}`;
   };
 
-  const checkPermissions = async () => {
-    try {
-      const response = await fetch('/api/auth/check-permissions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ permissions: ['SYSTEM_SETTINGS_MANAGE'] })
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        return data.hasPermission;
-      }
-      return false;
-    } catch (error) {
-      console.error('Failed to check permissions:', error);
-      return false;
-    }
-  };
-
-  const runDiagnostics = async () => {
-    setShowDiagnostics(true);
-    const hasPermission = await checkPermissions();
-    
-  
-    
-    if (!hasPermission) {
-      toast.error('You need SYSTEM_SETTINGS_MANAGE permission or Admin role to reorder API keys');
-    }
-  };
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -272,52 +241,6 @@ export default function AiApiKeysTab() {
 
   return (
     <div className="space-y-6">
-      {/* Statistics Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <AlertCircle className="h-5 w-5 text-primary" />
-            API Key Statistics
-          </CardTitle>
-          <CardDescription className="flex items-center justify-between">
-            <span>Overview of your AI API key configuration and usage</span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={runDiagnostics}
-              className="ml-auto"
-            >
-              <Bug className="h-4 w-4 mr-2" />
-              Troubleshoot
-            </Button>
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-primary">{stats?.totalKeys || 0}</div>
-              <div className="text-sm text-muted-foreground">Total Keys</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">{stats?.activeKeys || 0}</div>
-              <div className="text-sm text-muted-foreground">Active Keys</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">
-                {apiKeys.filter(k => k.errorCount > 0).length}
-              </div>
-              <div className="text-sm text-muted-foreground">Keys with Errors</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-orange-600">
-                {stats?.environmentKey ? 'Yes' : 'No'}
-              </div>
-              <div className="text-sm text-muted-foreground">Env Key Available</div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Add New API Key */}
       <Card>
         <CardHeader>

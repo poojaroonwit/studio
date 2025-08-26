@@ -314,6 +314,8 @@ export function setupSidebarStyleListener() {
     }
     // Also reapply colors when config changes
     reapplyCurrentSidebarColors();
+    // Reapply background settings when config changes
+    applySidebarBackgroundToCSS();
   });
 }
 
@@ -326,6 +328,9 @@ export function initializeSidebarStyles() {
   
   // Setup listeners
   setupSidebarStyleListener();
+  
+  // Initialize sidebar background
+  initializeSidebarBackground();
   
   // Force a re-application of colors
   setTimeout(() => {
@@ -371,4 +376,142 @@ export function applySidebarBackgroundSettings(settings: {
       window.__systemSettings.sidebarBackgroundImagePosition = settings.sidebarBackgroundImagePosition;
     }
   }
+
+  // Apply the background settings to CSS
+  applySidebarBackgroundToCSS();
+}
+
+// Function to apply sidebar background settings to CSS
+export function applySidebarBackgroundToCSS() {
+  if (typeof window === 'undefined') return;
+  
+  const root = document.documentElement;
+  const sidebarElement = document.querySelector('[data-sidebar="sidebar"]') as HTMLElement;
+  
+  if (!sidebarElement) {
+    console.log('Sidebar element not found');
+    return;
+  }
+  
+  // Get background settings from localStorage or system settings
+  const backgroundType = localStorage.getItem('sidebarBackgroundType') || 'gradient';
+  const backgroundImageUrl = localStorage.getItem('sidebarBackgroundImageUrl') || '';
+  const backgroundImageFit = localStorage.getItem('sidebarBackgroundImageFit') || 'cover';
+  const backgroundImagePosition = localStorage.getItem('sidebarBackgroundImagePosition') || 'center';
+  
+  console.log('Applying sidebar background:', { backgroundType, backgroundImageUrl, backgroundImageFit, backgroundImagePosition });
+  
+  // Reset all background properties
+  sidebarElement.style.backgroundImage = '';
+  sidebarElement.style.backgroundColor = '';
+  sidebarElement.style.backgroundSize = '';
+  sidebarElement.style.backgroundPosition = '';
+  sidebarElement.style.backgroundRepeat = '';
+  
+  // Remove custom background class initially
+  sidebarElement.classList.remove('custom-background');
+  
+  // Apply background based on type
+  switch (backgroundType) {
+    case 'gradient':
+      // Use the existing CSS variables for gradient - no custom class needed
+      sidebarElement.style.backgroundImage = '';
+      sidebarElement.style.backgroundColor = '';
+      break;
+      
+    case 'solid':
+      // Use solid color from CSS variables
+      const isDark = root.classList.contains('dark');
+      const bgStartVar = isDark ? '--sidebar-background-start-d' : '--sidebar-background-start-l';
+      const bgStartValue = getComputedStyle(root).getPropertyValue(bgStartVar);
+      sidebarElement.style.backgroundColor = `hsl(${bgStartValue})`;
+      sidebarElement.classList.add('custom-background');
+      break;
+      
+    case 'image':
+      if (backgroundImageUrl) {
+        sidebarElement.style.backgroundImage = `url(${backgroundImageUrl})`;
+        sidebarElement.style.backgroundSize = backgroundImageFit;
+        sidebarElement.style.backgroundPosition = backgroundImagePosition;
+        sidebarElement.style.backgroundRepeat = 'no-repeat';
+        sidebarElement.classList.add('custom-background');
+      }
+      break;
+  }
+}
+
+// Function to initialize sidebar background on page load
+export function initializeSidebarBackground() {
+  if (typeof window === 'undefined') return;
+  
+  // Apply background settings after a short delay to ensure DOM is ready
+  setTimeout(() => {
+    applySidebarBackgroundToCSS();
+  }, 100);
+  
+  // Also listen for DOM changes to handle dynamic sidebar creation
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      if (mutation.type === 'childList') {
+        mutation.addedNodes.forEach((node) => {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            const element = node as Element;
+            if (element.querySelector('[data-sidebar="sidebar"]')) {
+              // Sidebar was added, apply background settings
+              setTimeout(() => {
+                applySidebarBackgroundToCSS();
+              }, 50);
+            }
+          }
+        });
+      }
+    });
+  });
+  
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
+}
+
+// Test function to set sample background settings (for debugging)
+export function setTestSidebarBackground() {
+  if (typeof window === 'undefined') return;
+  
+  // Set test solid background
+  localStorage.setItem('sidebarBackgroundType', 'solid');
+  localStorage.removeItem('sidebarBackgroundImageUrl');
+  localStorage.removeItem('sidebarBackgroundImageFit');
+  localStorage.removeItem('sidebarBackgroundImagePosition');
+  
+  console.log('Set test solid background');
+  applySidebarBackgroundToCSS();
+}
+
+// Test function to set test image background
+export function setTestImageBackground() {
+  if (typeof window === 'undefined') return;
+  
+  // Set test image background
+  localStorage.setItem('sidebarBackgroundType', 'image');
+  localStorage.setItem('sidebarBackgroundImageUrl', 'https://picsum.photos/400/600');
+  localStorage.setItem('sidebarBackgroundImageFit', 'cover');
+  localStorage.setItem('sidebarBackgroundImagePosition', 'center');
+  
+  console.log('Set test image background');
+  applySidebarBackgroundToCSS();
+}
+
+// Test function to reset to gradient
+export function resetToGradientBackground() {
+  if (typeof window === 'undefined') return;
+  
+  // Reset to gradient
+  localStorage.setItem('sidebarBackgroundType', 'gradient');
+  localStorage.removeItem('sidebarBackgroundImageUrl');
+  localStorage.removeItem('sidebarBackgroundImageFit');
+  localStorage.removeItem('sidebarBackgroundImagePosition');
+  
+  console.log('Reset to gradient background');
+  applySidebarBackgroundToCSS();
 } 

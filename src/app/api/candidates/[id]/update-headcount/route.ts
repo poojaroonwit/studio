@@ -35,11 +35,14 @@ export async function POST(
 
     // If candidate status is being changed to "Hired", update headcount
     if (newStatus === 'Hired' && candidate.positionId) {
-      // Find vacant headcount for this position
+      // Find vacant headcount for this position (status is vacant OR no candidate assigned)
       const vacantHeadcount = await prisma.headcount.findFirst({
         where: {
           positionId: candidate.positionId,
-          status: 'vacant',
+          OR: [
+            { status: 'vacant' },
+            { candidateId: null }
+          ],
         },
         orderBy: {
           createdAt: 'asc', // Get the oldest vacant headcount

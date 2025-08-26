@@ -39,6 +39,7 @@ export async function GET(request: NextRequest) {
           select: {
             id: true,
             status: true,
+            candidateId: true,
           },
         },
       },
@@ -53,7 +54,10 @@ export async function GET(request: NextRequest) {
       
       let totalVacant = 0;
       recruiterPositions.forEach(position => {
-        const vacantHeadcounts = position.headcounts.filter(headcount => headcount.status === 'vacant');
+        // A headcount is only considered vacant if status is 'vacant' OR no candidate assigned
+        const vacantHeadcounts = position.headcounts.filter(headcount => 
+          headcount.status === 'vacant' || !headcount.candidateId
+        );
         totalVacant += vacantHeadcounts.length;
       });
 
@@ -71,7 +75,10 @@ export async function GET(request: NextRequest) {
     const unassignedPositions = allPositions.filter((position: any) => !position.recruiterId);
     let totalUnassignedVacant = 0;
     unassignedPositions.forEach(position => {
-      const vacantHeadcounts = position.headcounts.filter(headcount => headcount.status === 'vacant');
+      // A headcount is only considered vacant if status is 'vacant' OR no candidate assigned
+      const vacantHeadcounts = position.headcounts.filter(headcount => 
+        headcount.status === 'vacant' || !headcount.candidateId
+      );
       totalUnassignedVacant += vacantHeadcounts.length;
     });
 

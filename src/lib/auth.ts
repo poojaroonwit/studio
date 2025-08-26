@@ -184,11 +184,11 @@ export const authOptions: NextAuthOptions = {
           }
         }
         // Only fetch fresh permissions if we don't have them or if this is a new sign-in
-        if (typeof token.id === 'string' && validateUuid(token.id) && (!token.modulePermissions || account)) {
+        if (typeof token.id === 'string' && validateUuid(token.id) && (!token.modulePermissions || token.modulePermissions.length === 0 || account)) {
           try {
             const freshPermissions = await getUserPermissions(token.id as string);
             token.modulePermissions = freshPermissions as PlatformModuleId[];
-            // console.log(`[JWT CALLBACK] Loaded permissions for user ${token.id}:`, freshPermissions);
+            console.log(`[JWT CALLBACK] Loaded permissions for user ${token.id}:`, freshPermissions);
           } catch (e) {
             console.error('[JWT CALLBACK] Error fetching group permissions:', e);
             // Don't set empty permissions, keep existing ones if available

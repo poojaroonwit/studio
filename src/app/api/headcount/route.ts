@@ -88,6 +88,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Position ID and type are required' }, { status: 400 });
     }
 
+    // Validate that if status is 'filled', a candidateId must be provided
+    if (status === 'filled' && !candidateId) {
+      return NextResponse.json({ error: 'Candidate ID is required when status is "filled"' }, { status: 400 });
+    }
+
     // Verify position exists
     const position = await prisma.position.findUnique({
       where: { id: positionId },

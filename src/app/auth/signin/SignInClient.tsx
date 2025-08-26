@@ -258,6 +258,25 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
     console.log('[SIGNIN CLIENT] Status:', status, 'Session:', session?.user?.id);
     if (status === "authenticated" && session) {
       console.log('[SIGNIN CLIENT] Redirecting to:', callbackUrl);
+      
+      // Check if user has any permissions before redirecting
+      const hasAnyPermissions = session?.user?.modulePermissions && session.user.modulePermissions.length > 0;
+      const isAdmin = session?.user?.role === 'Admin';
+      
+      // If user has no permissions and is not admin, redirect to a fallback page
+      if (!hasAnyPermissions && !isAdmin && callbackUrl === '/') {
+        console.log('[SIGNIN CLIENT] User has no permissions, redirecting to my-tasks instead of dashboard');
+        const timer = setTimeout(() => {
+          try {
+            router.replace('/my-tasks');
+          } catch (error) {
+            console.error('[SIGNIN CLIENT] Router error:', error);
+            window.location.href = '/my-tasks';
+          }
+        }, 100);
+        return () => clearTimeout(timer);
+      }
+      
       // Add a small delay to ensure the session is fully established
       const timer = setTimeout(() => {
         try {

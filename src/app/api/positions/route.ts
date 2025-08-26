@@ -163,8 +163,8 @@ export async function GET(request: NextRequest) {
           SELECT 
             h."positionId",
             COUNT(*) as total_headcount,
-            COUNT(CASE WHEN h.status = 'vacant' THEN 1 END) as vacant_headcount,
-            COUNT(CASE WHEN h.status = 'filled' THEN 1 END) as filled_headcount
+            COUNT(CASE WHEN h.status = 'vacant' OR h."candidateId" IS NULL THEN 1 END) as vacant_headcount,
+            COUNT(CASE WHEN h.status = 'filled' AND h."candidateId" IS NOT NULL THEN 1 END) as filled_headcount
           FROM "Headcount" h
           GROUP BY h."positionId"
         ) hc_stats ON p.id = hc_stats."positionId"`;

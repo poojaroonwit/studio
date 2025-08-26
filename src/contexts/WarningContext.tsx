@@ -83,6 +83,8 @@ export function WarningProvider({ children }: { children: React.ReactNode }) {
     // Fetch current warnings
     fetchWarnings();
 
+    let timeoutId: NodeJS.Timeout | null = null;
+
     // Check if warning system needs initialization
     const initializeWarningSystem = async () => {
       try {
@@ -98,11 +100,9 @@ export function WarningProvider({ children }: { children: React.ReactNode }) {
           if (result.initialized) {
             // Warning system initialized automatically
             // Refresh warnings after initialization
-            const refreshTimeout = setTimeout(() => {
+            timeoutId = setTimeout(() => {
               fetchWarnings();
             }, 2000);
-            
-            return refreshTimeout; // Return the timeout ID for cleanup
           }
         }
       } catch (error) {
@@ -110,12 +110,7 @@ export function WarningProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
-    let timeoutId: NodeJS.Timeout | null = null;
-    initializeWarningSystem().then(id => {
-      if (id) {
-        timeoutId = id;
-      }
-    });
+    initializeWarningSystem();
     
     // Cleanup function
     return () => {

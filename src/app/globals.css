@@ -711,6 +711,11 @@ audio::-webkit-scrollbar-button {
     color: hsl(var(--sidebar-foreground-l));
     border-right: 1px solid hsl(var(--sidebar-border-l));
   }
+  
+  /* Override background when custom settings are applied */
+  :root:not(.dark) [data-sidebar="sidebar"].custom-background {
+    background-image: none !important;
+  }
   /* Light theme: Hover on non-active items */
   :root:not(.dark) [data-sidebar="menu-button"]:not([data-active="true"]):hover {
     background-color: hsl(var(--sidebar-accent-l));
@@ -760,6 +765,11 @@ audio::-webkit-scrollbar-button {
     background-image: var(--sidebar-background-d);
     color: hsl(var(--sidebar-foreground-d));
     border-right: 1px solid hsl(var(--sidebar-border-d));
+  }
+  
+  /* Override background when custom settings are applied */
+  .dark [data-sidebar="sidebar"].custom-background {
+    background-image: none !important;
   }
   /* Dark theme: Hover on non-active items */
   .dark [data-sidebar="menu-button"]:not([data-active="true"]):hover {
@@ -2215,7 +2225,7 @@ audio::-webkit-scrollbar-button {
   overflow: auto;
   scrollbar-width: thin;
   scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
-  max-height: calc(100vh - 500px);
+  max-height: calc(100vh);
 }
 
 .positions-table-scroll::-webkit-scrollbar {

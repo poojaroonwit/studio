@@ -57,6 +57,13 @@ export async function GET(request: NextRequest) {
       location: searchParams.get('location'),
       locationOperator: searchParams.get('locationOperator') || 'contains',
       skills: searchParams.get('skills'),
+      // Fit score filters
+      minAppliedJobFitScore: searchParams.get('minAppliedJobFitScore') ? parseFloat(searchParams.get('minAppliedJobFitScore')!) : undefined,
+      maxAppliedJobFitScore: searchParams.get('maxAppliedJobFitScore') ? parseFloat(searchParams.get('maxAppliedJobFitScore')!) : undefined,
+      minMatchingJobFitScore: searchParams.get('minMatchingJobFitScore') ? parseFloat(searchParams.get('minMatchingJobFitScore')!) : undefined,
+      maxMatchingJobFitScore: searchParams.get('maxMatchingJobFitScore') ? parseFloat(searchParams.get('maxMatchingJobFitScore')!) : undefined,
+      includeNoScoreInApplied: searchParams.get('includeNoScoreInApplied') === 'true',
+      includeNoScoreInMatching: searchParams.get('includeNoScoreInMatching') === 'true',
     };
 
     // Build WHERE clauses and parameters (same logic as main endpoint)
@@ -332,6 +339,10 @@ export async function GET(request: NextRequest) {
         paramIndex += skills.length;
       }
     }
+
+    // Note: We do NOT include fit score filters in the WHERE clause to prevent circular dependency
+    // The fit score counts API should return counts for ALL candidates based on other filters only
+    // The client-side logic will handle filtering the counts based on the current fit score filter state
 
     // Build the WHERE clause
     const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';

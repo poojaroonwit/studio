@@ -58,6 +58,7 @@ export const useCandidateDetail = (candidateId: string) => {
   // Add refs for caching
   const cacheRef = useRef<Map<string, { data: any; timestamp: number }>>(new Map());
   const lastFetchRef = useRef<number>(0);
+  const avatarForceRefreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Cache duration: 30 seconds
   const CACHE_DURATION = 30000;
@@ -373,7 +374,9 @@ export const useCandidateDetail = (candidateId: string) => {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      // Cleanup any ongoing operations if needed
+      if (avatarForceRefreshTimeoutRef.current) {
+        clearTimeout(avatarForceRefreshTimeoutRef.current);
+      }
     };
   }, []);
 
@@ -591,7 +594,13 @@ export const useCandidateDetail = (candidateId: string) => {
       
       // Force refresh the avatar display
       setAvatarForceRefresh(true);
-      setTimeout(() => setAvatarForceRefresh(false), 1000);
+      const timeoutId = setTimeout(() => setAvatarForceRefresh(false), 1000);
+      
+      // Store timeout ID for cleanup
+      if (avatarForceRefreshTimeoutRef.current) {
+        clearTimeout(avatarForceRefreshTimeoutRef.current);
+      }
+      avatarForceRefreshTimeoutRef.current = timeoutId;
       
       toast.success('Avatar updated successfully');
     } catch (err) {

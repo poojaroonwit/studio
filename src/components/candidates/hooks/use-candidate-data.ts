@@ -54,6 +54,7 @@ export function useCandidateData({
   const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const currentRequestRef = useRef<string | null>(null);
   const latestRequestIdRef = useRef<string | null>(null);
+  const fetchRecruitersTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Memoize setter functions to prevent unnecessary re-renders
   const stableSetFilteredCandidates = useCallback((candidates: Candidate[] | ((prev: Candidate[]) => Candidate[])) => {
@@ -160,7 +161,7 @@ export function useCandidateData({
     try {
       const params = new URLSearchParams();
       
-      // Add filters to the params (excluding fit score filters to prevent circular dependency)
+      // Add filters to the params (EXCLUDING fit score filters to prevent circular dependency)
       if (filters) {
         if (filters.name) params.append('name', filters.name);
         if (filters.nameOperator) params.append('nameOperator', filters.nameOperator);
@@ -180,6 +181,10 @@ export function useCandidateData({
         if (filters.location) params.append('location', filters.location);
         if (filters.locationOperator) params.append('locationOperator', filters.locationOperator);
         if (filters.skills) params.append('skills', filters.skills);
+        
+        // DO NOT include fit score filters to prevent circular dependency
+        // The API will return counts for all candidates based on other filters
+        // Client-side logic will handle fit score filtering
       }
       
       const url = `/api/candidates/fit-score-counts?${params.toString()}`;
@@ -229,7 +234,13 @@ export function useCandidateData({
           // Retry on server errors (5xx) but not on client errors (4xx)
           if (response.status >= 500 && retryCount < maxRetries) {
             console.warn(`Recruiter fetch failed (attempt ${retryCount + 1}/${maxRetries}), retrying in ${retryDelay}ms:`, detailedErrorMessage);
-            setTimeout(() => fetchRecruiters(retryCount + 1), retryDelay);
+            const timeoutId = setTimeout(() => fetchRecruiters(retryCount + 1), retryDelay);
+            
+            // Store timeout ID for cleanup
+            if (fetchRecruitersTimeoutRef.current) {
+              clearTimeout(fetchRecruitersTimeoutRef.current);
+            }
+            fetchRecruitersTimeoutRef.current = timeoutId;
             return;
           }
           
@@ -265,6 +276,15 @@ export function useCandidateData({
       stableSetAvailableRecruiters([]);
     }
   }, [sessionStatus, stableSetAvailableRecruiters]);
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (fetchRecruitersTimeoutRef.current) {
+        clearTimeout(fetchRecruitersTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const fetchSources = useCallback(async () => {
     if (sessionStatus !== 'authenticated') {

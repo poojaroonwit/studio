@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -59,6 +59,9 @@ export default function JobMatchModal({ isOpen, onClose, jobMatch }: JobMatchMod
     matchingNotApplied: 0
   });
 
+  // Ref for timeout cleanup
+  const routerTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // Check permissions
   const canViewJobMatches = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('USERS_MANAGE') || 
     session?.user?.modulePermissions?.includes('JOB_MATCH_VIEW');
@@ -70,6 +73,15 @@ export default function JobMatchModal({ isOpen, onClose, jobMatch }: JobMatchMod
       fetchStatistics();
     }
   }, [isOpen, jobMatch?.jobId]);
+
+  // Cleanup timeout on component unmount
+  useEffect(() => {
+    return () => {
+      if (routerTimeoutRef.current) {
+        clearTimeout(routerTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const fetchStatistics = async () => {
     if (!jobMatch?.jobId) return;
@@ -110,10 +122,16 @@ export default function JobMatchModal({ isOpen, onClose, jobMatch }: JobMatchMod
     }
     
     // Use setTimeout to prevent rapid state changes
-    setTimeout(() => {
+    const timeoutId = setTimeout(() => {
       router.replace(`/candidates?query=${encodeURIComponent(advancedQuery)}`);
       onClose();
     }, 100);
+    
+    // Store timeout ID for cleanup
+    if (routerTimeoutRef.current) {
+      clearTimeout(routerTimeoutRef.current);
+    }
+    routerTimeoutRef.current = timeoutId;
   };
 
   if (!jobMatch) return null;

@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Save, Palette, ImageUp, Trash2, Loader2, XCircle, PenSquare, ServerCrash, ShieldAlert, Settings2, Wallpaper, Droplets, Type, Sidebar as SidebarIcon, RotateCcw, Eye, EyeOff, Monitor, Sun, Moon, Zap, StickyNote, Paintbrush, LayoutDashboard, Sidebar as SidebarMenuIcon, LogIn, Edit3, Users, ShieldCheck, ChevronsUpDown, User, ChevronRight, UserCheck, Bell, Eye as EyeIcon, Palette as PaletteIcon, UserPlus, Database, Filter, Layout, Lock, Shield, Mail, KeyRound, Settings, AlertTriangle } from 'lucide-react';
+import { Save, Loader2, User, UserPlus, Lock, Shield, Mail, Palette, Users, Edit3 } from 'lucide-react';
 import Image from 'next/image';
 import { signIn, useSession } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
@@ -36,7 +36,6 @@ import type { UserProfile, PlatformModuleId, UserGroup, PlatformModuleCategory }
 import { PLATFORM_MODULES, PLATFORM_MODULE_CATEGORIES } from '@/lib/types';
 import { toast } from 'react-hot-toast';
 import { RoleSelector } from '@/components/settings/RoleSelector';
-import { RolePermissionSelector } from '@/components/settings/RolePermissionSelector';
 import { UserAvatarUpload } from '@/components/ui/user-avatar-upload';
 import { PersonalColorPicker } from '@/components/settings/PersonalColorPicker';
 
@@ -123,9 +122,6 @@ export function UnifiedUserModal({
   const canManageTeams = isAdmin || hasUserManagePermission;
   const canForcePasswordChange = isAdmin || hasUserManagePermission;
   const canManageAuthentication = isAdmin || hasUserManagePermission;
-  
-  // Admin users can always modify their own permissions, but with restrictions
-  const canModifyOwnPermissions = isAdmin && isEditingSelf;
 
   // Load user data and teams when modal opens
   useEffect(() => {
@@ -258,15 +254,6 @@ export function UnifiedUserModal({
             </div>
             <div className="flex gap-2">
               <Button 
-                variant="outline" 
-                onClick={() => form.reset()}
-                disabled={isSubmitting || isLoading}
-                className="flex items-center gap-2"
-              >
-                <RotateCcw className="h-4 w-4" />
-                Reset
-              </Button>
-              <Button 
                 onClick={form.handleSubmit(onSubmit)} 
                 disabled={isSubmitting || isLoading}
                 variant="default"
@@ -296,65 +283,53 @@ export function UnifiedUserModal({
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
             <div className="flex-1 overflow-hidden min-h-0">
-              <div className="h-full flex flex-col min-h-0">
-                {/* Tab Navigation - Following system settings pattern */}
-                <div className="flex w-full border-b border-border/50 mb-6">
-                  <div
-                    onClick={() => setActiveTab('personal')}
-                    className={cn(
-                      "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
-                      activeTab === 'personal'
-                        ? "text-primary border-b-2 border-primary"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-                    )}
-                  >
-                    <User className="h-4 w-4" />
-                    Personal Info
-                  </div>
-                  <div
-                    onClick={() => setActiveTab('account')}
-                    className={cn(
-                      "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
-                      activeTab === 'account'
-                        ? "text-primary border-b-2 border-primary"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-                    )}
-                  >
-                    <Shield className="h-4 w-4" />
-                    Account Settings
-                  </div>
-                  <div
-                    onClick={() => setActiveTab('security')}
-                    className={cn(
-                      "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
-                      activeTab === 'security'
-                        ? "text-primary border-b-2 border-primary"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-                    )}
-                  >
-                    <Lock className="h-4 w-4" />
-                    Security
-                  </div>
-                  {canModifyOwnPermissions && (
+              <div className="h-full flex min-h-0">
+                {/* Vertical Tab Navigation - Left Side */}
+                <div className="w-64 border-r border-border/50 flex-shrink-0">
+                  <div className="p-4 space-y-2">
                     <div
-                      onClick={() => setActiveTab('permissions')}
+                      onClick={() => setActiveTab('personal')}
                       className={cn(
-                        "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
-                        activeTab === 'permissions'
-                          ? "text-primary border-b-2 border-primary"
+                        "flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer rounded-lg",
+                        activeTab === 'personal'
+                          ? "text-primary bg-primary/10 border border-primary/20"
                           : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
                       )}
                     >
-                      <Settings className="h-4 w-4" />
-                      Permissions
+                      <User className="h-4 w-4" />
+                      Personal Info
                     </div>
-                  )}
+                    <div
+                      onClick={() => setActiveTab('account')}
+                      className={cn(
+                        "flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer rounded-lg",
+                        activeTab === 'account'
+                          ? "text-primary bg-primary/10 border border-primary/20"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                      )}
+                    >
+                      <Shield className="h-4 w-4" />
+                      Account Settings
+                    </div>
+                    <div
+                      onClick={() => setActiveTab('security')}
+                      className={cn(
+                        "flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer rounded-lg",
+                        activeTab === 'security'
+                          ? "text-primary bg-primary/10 border border-primary/20"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                      )}
+                    >
+                      <Lock className="h-4 w-4" />
+                      Security
+                    </div>
+                  </div>
                 </div>
 
                 {/* Tab Content */}
                 <div className="flex-1 overflow-hidden min-h-0">
                   {activeTab === 'personal' && (
-                    <ScrollArea className="h-full pr-4">
+                    <ScrollArea className="h-full">
                       <div className="space-y-6 p-6">
                         {/* Personal Information */}
                         <div className="space-y-4">
@@ -566,7 +541,7 @@ export function UnifiedUserModal({
                   )}
 
                   {activeTab === 'account' && (
-                    <ScrollArea className="h-full pr-4">
+                    <ScrollArea className="h-full">
                       <div className="space-y-6 p-6">
                         {/* Account Configuration */}
                         <div className="space-y-4">
@@ -639,7 +614,7 @@ export function UnifiedUserModal({
                   )}
 
                   {activeTab === 'security' && (
-                    <ScrollArea className="h-full pr-4">
+                    <ScrollArea className="h-full">
                       <div className="space-y-6 p-6">
                         {/* Security Settings */}
                         <div className="space-y-4">
@@ -721,60 +696,7 @@ export function UnifiedUserModal({
                     </ScrollArea>
                   )}
 
-                  {activeTab === 'permissions' && canModifyOwnPermissions && (
-                    <ScrollArea className="h-full pr-4">
-                      <div className="space-y-6 p-6">
-                        {/* Direct Permissions */}
-                        <div className="space-y-4">
-                          <div>
-                            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                              <Settings className="h-5 w-5 text-primary" />
-                              Direct Permissions
-                            </h3>
-                            <p className="text-sm text-slate-600 dark:text-slate-400">
-                              Manage your individual permissions. Critical permissions (USERS_MANAGE, USER_GROUPS_MANAGE) cannot be removed for security reasons.
-                            </p>
-                          </div>
-                          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
-                            <div className="flex items-start gap-3">
-                              <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5" />
-                              <div>
-                                <h4 className="text-sm font-medium text-amber-800 dark:text-amber-200">Security Notice</h4>
-                                <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
-                                  You are editing your own permissions. Critical permissions (USERS_MANAGE, USER_GROUPS_MANAGE) are protected and cannot be removed to ensure system security.
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                          <div>
-                            <FormField 
-                              control={form.control} 
-                              name="modulePermissions" 
-                              render={({ field }) => (
-                                <FormItem className="h-full">
-                                  <FormControl>
-                                    <div className="h-full min-h-0">
-                                      <RolePermissionSelector
-                                        selectedPermissions={field.value || []}
-                                        onPermissionsChange={(permissions) => field.onChange(permissions)}
-                                        disabled={false}
-                                        title="Your Permissions"
-                                        description="Select which permissions you want to have. Critical permissions are protected."
-                                        className="h-full"
-                                        noCard={true}
-                                        protectedPermissions={['USERS_MANAGE', 'USER_GROUPS_MANAGE']}
-                                      />
-                                    </div>
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )} 
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </ScrollArea>
-                  )}
+
                 </div>
               </div>
             </div>

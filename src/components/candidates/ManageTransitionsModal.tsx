@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -79,6 +79,9 @@ export function ManageTransitionsModal({
   const [stages, setStages] = useState<RecruitmentStage[]>(initialAvailableStages || []);
   const [loadingStages, setLoadingStages] = useState(false);
 
+  // Ref for timeout cleanup
+  const modalCloseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // Fetch latest stages every time modal opens
   useEffect(() => {
     if (isOpen) {
@@ -112,6 +115,15 @@ export function ManageTransitionsModal({
       setStatusSearchQuery('');
     }
   }, [candidate, isOpen, form, stages, preselectedStage]);
+
+  // Cleanup timeout on component unmount
+  useEffect(() => {
+    return () => {
+      if (modalCloseTimeoutRef.current) {
+        clearTimeout(modalCloseTimeoutRef.current);
+      }
+    };
+  }, []);
 
   if (!candidate) return null;
 
@@ -171,7 +183,7 @@ export function ManageTransitionsModal({
             // console.log('onOpenChange called');
             
             // Force a small delay and try again
-            setTimeout(() => {
+            const timeoutId = setTimeout(() => {
                 try {
                     
                     if (onOpenChange) {
@@ -190,6 +202,12 @@ export function ManageTransitionsModal({
                     console.error('Error in delayed modal close:', closeError);
                 }
             }, 300);
+            
+            // Store timeout ID for cleanup
+            if (modalCloseTimeoutRef.current) {
+                clearTimeout(modalCloseTimeoutRef.current);
+            }
+            modalCloseTimeoutRef.current = timeoutId;
         } catch (closeError) {
             console.error('Error closing modal:', closeError);
         }

@@ -123,7 +123,7 @@ export async function GET(request: NextRequest) {
         showFilters: true,
         showHorizontalFitScoreFilters: true,
         fitScoreType: 'applied',
-        fitScoreFilterMode: 'multi',
+        fitScoreFilterMode: 'single',
       }
     };
 

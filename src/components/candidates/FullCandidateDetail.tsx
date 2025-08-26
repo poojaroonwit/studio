@@ -80,6 +80,10 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
 
   const [activeTab, setActiveTab] = useState<string>('jobs');
 
+  // Refs for timeout cleanup
+  const copiedJobAppliedTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const copiedJobMatchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // Use custom hook for candidate detail logic
   const {
     candidate,
@@ -141,6 +145,18 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
 
   // Validate candidateId
   const isValidCandidateId = candidateId && uuidSchema.safeParse(candidateId).success;
+
+  // Cleanup timeouts on component unmount
+  React.useEffect(() => {
+    return () => {
+      if (copiedJobAppliedTimeoutRef.current) {
+        clearTimeout(copiedJobAppliedTimeoutRef.current);
+      }
+      if (copiedJobMatchTimeoutRef.current) {
+        clearTimeout(copiedJobMatchTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Early return for invalid candidate ID
   if (!isValidCandidateId) {
@@ -244,7 +260,13 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
     try {
       await navigator.clipboard.writeText(textToCopy);
       setCopiedJobApplied(true);
-      setTimeout(() => setCopiedJobApplied(false), 2000);
+      
+      // Clear any existing timeout
+      if (copiedJobAppliedTimeoutRef.current) {
+        clearTimeout(copiedJobAppliedTimeoutRef.current);
+      }
+      
+      copiedJobAppliedTimeoutRef.current = setTimeout(() => setCopiedJobApplied(false), 2000);
     } catch (err) {
       console.error('Failed to copy to clipboard:', err);
     }
@@ -268,7 +290,13 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
     try {
       await navigator.clipboard.writeText(textToCopy);
       setCopiedJobMatchIndex(index);
-      setTimeout(() => setCopiedJobMatchIndex(null), 2000);
+      
+      // Clear any existing timeout
+      if (copiedJobMatchTimeoutRef.current) {
+        clearTimeout(copiedJobMatchTimeoutRef.current);
+      }
+      
+      copiedJobMatchTimeoutRef.current = setTimeout(() => setCopiedJobMatchIndex(null), 2000);
     } catch (err) {
       console.error('Failed to copy to clipboard:', err);
     }

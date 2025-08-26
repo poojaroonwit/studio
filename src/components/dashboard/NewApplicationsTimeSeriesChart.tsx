@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -39,6 +39,7 @@ const PERIOD_UNITS = [
 
 export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, dynamicHeight }: NewApplicationsTimeSeriesChartProps) {
   const [chartReady, setChartReady] = useState(false);
+  const chartSetupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Setup Chart.js on component mount
   useEffect(() => {
@@ -51,11 +52,17 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
         } else {
           console.warn('Chart.js setup reported complete but isChartJSSetup() returned false');
           // Retry after a short delay
-          setTimeout(() => {
+          const timeoutId = setTimeout(() => {
             if (isChartJSSetup()) {
               setChartReady(true);
             }
           }, 100);
+          
+          // Store timeout ID for cleanup
+          if (chartSetupTimeoutRef.current) {
+            clearTimeout(chartSetupTimeoutRef.current);
+          }
+          chartSetupTimeoutRef.current = timeoutId;
         }
       } catch (error) {
         console.error('Failed to setup Chart.js:', error);
@@ -63,6 +70,15 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
     };
     
     setupChart();
+  }, []);
+
+  // Cleanup timeout on component unmount
+  useEffect(() => {
+    return () => {
+      if (chartSetupTimeoutRef.current) {
+        clearTimeout(chartSetupTimeoutRef.current);
+      }
+    };
   }, []);
 
   // New state for period selection

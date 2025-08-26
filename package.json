@@ -67,7 +67,8 @@
     "add-toeic-field": "node scripts/add-toeic-custom-field.cjs",
     "init-ai-prompt": "node scripts/init-ai-power-search-prompt.cjs",
     "init-warning-conditions": "node scripts/initialize-warning-conditions.cjs",
-    "perf:check": "node scripts/performance-check.js"
+    "perf:check": "node scripts/performance-check.js",
+    "monitor:connections": "node scripts/monitor-connection-pool.js"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -195,7 +196,8 @@
     "tailwindcss": "^3.4.1",
     "types-ramda": "^0.30.1",
     "typescript": "^5",
-    "undici-types": "^7.11.0"
+    "undici-types": "^7.11.0",
+    "vitest": "^3.2.4"
   },
   "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }

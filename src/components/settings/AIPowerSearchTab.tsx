@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { TiptapEditor } from '@/components/ui/wysiwyg-editors';
+import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'react-hot-toast';
@@ -291,11 +291,11 @@ export default function AIPowerSearchTab() {
               <div className="space-y-2">
                 <Label>System Prompt Content</Label>
                 {isEditing ? (
-                  <TiptapEditor
+                  <Textarea
                     value={currentPrompt}
-                    onChange={setCurrentPrompt}
+                    onChange={(e) => setCurrentPrompt(e.target.value)}
                     placeholder="Enter the system prompt content..."
-                    className="min-h-[600px] border rounded-md"
+                    className="min-h-[600px] font-mono text-sm"
                   />
                 ) : (
                   <div className="border rounded-md p-4 bg-muted/30 min-h-[600px] overflow-auto">

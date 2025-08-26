@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
 import {
   Table,
   TableBody,
@@ -219,6 +219,10 @@ export function CandidateTable({
   const [selectedCandidateForUpload, setSelectedCandidateForUpload] = useState<Candidate | null>(null);
   const [assigningRecruiter, setAssigningRecruiter] = useState<string | null>(null);
   const [assigningSource, setAssigningSource] = useState<string | null>(null);
+  
+  // Refs for timeout cleanup
+  const assigningRecruiterTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const assigningSourceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Group candidates by email for grouping functionality
   const candidatesByEmail = useMemo(() => {
@@ -338,9 +342,15 @@ export function CandidateTable({
       // Error assigning recruiter
     } finally {
       // Reset after a short delay to allow for UI updates
-      setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         setAssigningRecruiter(null);
       }, 1000);
+      
+      // Store timeout ID for cleanup
+      if (assigningRecruiterTimeoutRef.current) {
+        clearTimeout(assigningRecruiterTimeoutRef.current);
+      }
+      assigningRecruiterTimeoutRef.current = timeoutId;
     }
   };
 
@@ -354,9 +364,15 @@ export function CandidateTable({
       // Failed to assign source
     } finally {
       // Reset after a short delay to allow for UI updates
-      setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         setAssigningSource(null);
       }, 1000);
+      
+      // Store timeout ID for cleanup
+      if (assigningSourceTimeoutRef.current) {
+        clearTimeout(assigningSourceTimeoutRef.current);
+      }
+      assigningSourceTimeoutRef.current = timeoutId;
     }
   };
 
@@ -364,6 +380,18 @@ export function CandidateTable({
     setAssigningRecruiter(null);
     setAssigningSource(null);
   };
+
+  // Cleanup timeouts on component unmount
+  React.useEffect(() => {
+    return () => {
+      if (assigningRecruiterTimeoutRef.current) {
+        clearTimeout(assigningRecruiterTimeoutRef.current);
+      }
+      if (assigningSourceTimeoutRef.current) {
+        clearTimeout(assigningSourceTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Bulk action handlers - removed since they're now handled in parent component
 

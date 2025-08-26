@@ -257,11 +257,13 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
     );
   };
 
-  const getStatusBadge = (status: HeadcountStatus) => {
-    const option = HEADCOUNT_STATUS_OPTIONS.find(opt => opt.value === status);
+  const getStatusBadge = (headcount: Headcount) => {
+    // A headcount is only considered filled if it has status 'filled' AND has a candidate assigned
+    const actualStatus = (headcount.status === 'filled' && headcount.candidateId !== null) ? 'filled' : 'vacant';
+    const option = HEADCOUNT_STATUS_OPTIONS.find(opt => opt.value === actualStatus);
     return (
       <Badge className={option?.color || 'bg-gray-100 text-gray-800'}>
-        {option?.label || status}
+        {option?.label || actualStatus}
       </Badge>
     );
   };
@@ -417,7 +419,7 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
                       {getTypeBadge(headcount.type)}
                     </TableCell>
                     <TableCell>
-                      {getStatusBadge(headcount.status)}
+                      {getStatusBadge(headcount)}
                     </TableCell>
                     <TableCell>
                       {headcount.candidate ? (

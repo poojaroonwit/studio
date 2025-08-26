@@ -246,7 +246,7 @@ export default function CustomFieldsPage() {
           ) : definitions.length === 0 && !fetchError ? (
             <p className="text-muted-foreground text-center py-8">No custom field definitions yet.</p>
           ) : (
-            <div className="border rounded-lg overflow-hidden">
+            <div className="rounded-lg overflow-hidden">
               <CustomFieldTable
                 fields={definitions}
                 isLoading={isLoading}

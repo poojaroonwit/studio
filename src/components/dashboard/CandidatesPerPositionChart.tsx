@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useMemo, useEffect, useState } from 'react';
+import React, { useMemo, useEffect, useState, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import type { Candidate, Position } from "@/lib/types"
@@ -17,6 +17,7 @@ interface CandidatesPerPositionChartProps {
 
 export function CandidatesPerPositionChart({ candidates, positions }: CandidatesPerPositionChartProps) {
   const [chartReady, setChartReady] = useState(false);
+  const chartSetupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Setup Chart.js on component mount
   useEffect(() => {
@@ -29,11 +30,17 @@ export function CandidatesPerPositionChart({ candidates, positions }: Candidates
         } else {
           console.warn('Chart.js setup reported complete but isChartJSSetup() returned false');
           // Retry after a short delay
-          setTimeout(() => {
+          const timeoutId = setTimeout(() => {
             if (isChartJSSetup()) {
               setChartReady(true);
             }
           }, 100);
+          
+          // Store timeout ID for cleanup
+          if (chartSetupTimeoutRef.current) {
+            clearTimeout(chartSetupTimeoutRef.current);
+          }
+          chartSetupTimeoutRef.current = timeoutId;
         }
       } catch (error) {
         console.error('Failed to setup Chart.js:', error);
@@ -41,6 +48,15 @@ export function CandidatesPerPositionChart({ candidates, positions }: Candidates
     };
     
     setupChart();
+  }, []);
+
+  // Cleanup timeout on component unmount
+  useEffect(() => {
+    return () => {
+      if (chartSetupTimeoutRef.current) {
+        clearTimeout(chartSetupTimeoutRef.current);
+      }
+    };
   }, []);
 
   // Memoize the data processing to prevent unnecessary recalculations

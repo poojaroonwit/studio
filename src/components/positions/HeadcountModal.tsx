@@ -13,8 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { 
   User, 
   Loader2,
-  Check,
-  X
+  Check
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -57,8 +56,7 @@ export function HeadcountModal({
     memoId: '',
     customFields: {} as Record<string, any>,
   });
-  const [candidateSearchTerm, setCandidateSearchTerm] = useState('');
-  const [showCandidateDropdown, setShowCandidateDropdown] = useState(false);
+
 
   const isEdit = Boolean(headcount);
 
@@ -115,6 +113,12 @@ export function HeadcountModal({
       return;
     }
 
+    // Validate that if status is 'filled', a candidateId must be provided
+    if (formData.status === 'filled' && !formData.candidateId) {
+      toast.error('A candidate must be assigned when status is "filled". Please assign the candidate through the candidate details page first.');
+      return;
+    }
+
     setLoading(true);
     try {
       await onSave({
@@ -136,15 +140,8 @@ export function HeadcountModal({
       memoId: '',
       customFields: {},
     });
-    setCandidateSearchTerm('');
-    setShowCandidateDropdown(false);
     onClose();
   };
-
-  const filteredCandidates = candidates.filter(candidate =>
-    candidate.name.toLowerCase().includes(candidateSearchTerm.toLowerCase()) ||
-    candidate.email.toLowerCase().includes(candidateSearchTerm.toLowerCase())
-  );
 
   const selectedCandidate = formData.candidateId ? candidates.find(c => c.id === formData.candidateId) : null;
 
@@ -193,86 +190,49 @@ export function HeadcountModal({
                 </SelectTrigger>
                 <SelectContent>
                   {HEADCOUNT_STATUS_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
+                    <SelectItem 
+                      key={option.value} 
+                      value={option.value}
+                      disabled={option.value === 'filled' && !formData.candidateId}
+                    >
                       {option.label}
+                      {option.value === 'filled' && !formData.candidateId && ' (requires candidate assignment)'}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {formData.status === 'filled' && !formData.candidateId && (
+                <p className="text-xs text-amber-600 dark:text-amber-400">
+                  Note: Status "filled" requires a candidate assignment. Assign the candidate through the candidate details page first.
+                </p>
+              )}
             </div>
           </div>
 
-          {/* Candidate Assignment - Only show in edit mode */}
+          {/* Candidate Assignment - Only show in edit mode and display current assignment */}
           {isEdit && (
             <div className="space-y-2">
               <Label>Candidate Assignment</Label>
-              <div className="relative">
-                <Input
-                  placeholder="Search for a candidate..."
-                  value={candidateSearchTerm}
-                  onChange={(e) => {
-                    setCandidateSearchTerm(e.target.value);
-                    setShowCandidateDropdown(true);
-                  }}
-                  onFocus={() => setShowCandidateDropdown(true)}
-                />
-                
-                {selectedCandidate && (
-                  <div className="mt-2 p-3 border rounded-lg bg-muted/50">
-                    <div className="flex items-center gap-3">
-                      <CandidateAvatar 
-                        user={selectedCandidate}
-                        size="md"
-                        className="h-8 w-8"
-                      />
-                      <div className="flex-1">
-                        <div className="font-medium">{selectedCandidate.name}</div>
-                        <div className="text-sm text-muted-foreground">{selectedCandidate.email}</div>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setFormData(prev => ({ ...prev, candidateId: null }));
-                          setCandidateSearchTerm('');
-                        }}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
+              <div className="p-3 border rounded-lg bg-muted/50">
+                {selectedCandidate ? (
+                  <div className="flex items-center gap-3">
+                    <CandidateAvatar 
+                      user={selectedCandidate}
+                      size="md"
+                      className="h-8 w-8"
+                    />
+                    <div className="flex-1">
+                      <div className="font-medium">{selectedCandidate.name}</div>
+                      <div className="text-sm text-muted-foreground">{selectedCandidate.email}</div>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      (Assignment managed via candidate details)
                     </div>
                   </div>
-                )}
-
-                {showCandidateDropdown && !selectedCandidate && (
-                  <div className="absolute z-50 w-full mt-1 bg-background border rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                    {filteredCandidates.length > 0 ? (
-                      filteredCandidates.map((candidate) => (
-                        <div
-                          key={candidate.id}
-                          className="flex items-center gap-3 p-3 hover:bg-muted cursor-pointer"
-                          onClick={() => {
-                            setFormData(prev => ({ ...prev, candidateId: candidate.id }));
-                            setCandidateSearchTerm(candidate.name);
-                            setShowCandidateDropdown(false);
-                          }}
-                        >
-                          <CandidateAvatar 
-                            user={candidate}
-                            size="md"
-                            className="h-8 w-8"
-                          />
-                          <div>
-                            <div className="font-medium">{candidate.name}</div>
-                            <div className="text-sm text-muted-foreground">{candidate.email}</div>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="p-3 text-muted-foreground text-center">
-                        No candidates found
-                      </div>
-                    )}
+                ) : (
+                  <div className="text-center text-muted-foreground">
+                    <div className="text-sm">No candidate assigned</div>
+                    <div className="text-xs mt-1">Assign candidates through candidate details page</div>
                   </div>
                 )}
               </div>

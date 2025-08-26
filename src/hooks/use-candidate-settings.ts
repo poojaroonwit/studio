@@ -15,7 +15,7 @@ const defaultSettings: CandidateSettings = {
   showFilters: true,
   showHorizontalFitScoreFilters: true,
   fitScoreType: 'applied',
-  fitScoreFilterMode: 'multi'
+  fitScoreFilterMode: 'single'
 };
 
 export function useCandidateSettings() {

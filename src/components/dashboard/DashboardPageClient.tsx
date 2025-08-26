@@ -13,7 +13,7 @@ import { isToday } from 'date-fns';
 import parseISO from 'date-fns/parseISO';
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { signIn, useSession } from "next-auth/react";
+import { signIn, useSession, signOut } from "next-auth/react";
 import { CandidatesPerPositionChart } from '@/components/dashboard/CandidatesPerPositionChart';
 import { useRouter } from 'next/navigation';
 import { toast } from "react-hot-toast";
@@ -106,10 +106,15 @@ export default function DashboardPageClient({
   }, []);
 
   // Check permissions for dashboard access - based on actual permissions, not hardcoded roles
+  // Allow access if user has any permissions or is authenticated (more permissive)
   const canViewDashboard = session?.user?.modulePermissions?.includes('USERS_MANAGE') ||
                           session?.user?.modulePermissions?.includes('DASHBOARD_VIEW') ||
                           session?.user?.modulePermissions?.includes('CANDIDATES_VIEW') ||
-                          session?.user?.modulePermissions?.includes('POSITIONS_VIEW');
+                          session?.user?.modulePermissions?.includes('POSITIONS_VIEW') ||
+                          session?.user?.modulePermissions?.includes('TASK_BOARD_VIEW') ||
+                          session?.user?.modulePermissions?.includes('LOGS_VIEW') ||
+                          (session?.user?.modulePermissions && session.user.modulePermissions.length > 0) ||
+                          session?.user?.role === 'Admin';
 
   // Check if user can view all candidates (for conditional rendering)
   const canViewAllCandidates = session?.user?.modulePermissions?.includes('USERS_MANAGE') || 
@@ -579,11 +584,66 @@ export default function DashboardPageClient({
   if (!canViewDashboard) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-destructive mb-4">Access Denied</h1>
-          <p className="text-muted-foreground">
-            You don't have permission to view the dashboard. Please contact your administrator.
+        <div className="text-center max-w-md mx-auto p-6">
+          <h1 className="text-2xl font-bold text-destructive mb-4">Dashboard Access Restricted</h1>
+          <p className="text-muted-foreground mb-6">
+            You don't have permission to view the dashboard. This could be because:
           </p>
+          <ul className="text-sm text-muted-foreground mb-6 text-left space-y-2">
+            <li>• Your account doesn't have the required permissions assigned</li>
+            <li>• Your role or permissions were recently updated</li>
+            <li>• You need to be assigned to a user group with dashboard access</li>
+          </ul>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Button 
+              onClick={async () => {
+                const result = await refreshPermissions();
+                if (result.success) {
+                  toast.success('Permissions refreshed successfully');
+                  window.location.reload();
+                } else {
+                  toast.error('Failed to refresh permissions');
+                }
+              }} 
+              className="btn-hover-primary-gradient"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh Permissions
+            </Button>
+            <Button 
+              onClick={() => router.push('/my-tasks')} 
+              variant="outline"
+            >
+              Go to My Tasks
+            </Button>
+            <Button 
+              onClick={() => signOut({ callbackUrl: '/auth/signin' })} 
+              variant="ghost"
+            >
+              Sign Out
+            </Button>
+            <Button 
+              onClick={async () => {
+                try {
+                  const response = await fetch('/api/auth/force-refresh-session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                  });
+                  if (response.ok) {
+                    toast.success('Session cleared. Please sign in again.');
+                    window.location.href = '/auth/signin';
+                  } else {
+                    toast.error('Failed to clear session');
+                  }
+                } catch (error) {
+                  toast.error('Error clearing session');
+                }
+              }} 
+              variant="destructive"
+            >
+              Force Session Refresh
+            </Button>
+          </div>
         </div>
       </div>
     );

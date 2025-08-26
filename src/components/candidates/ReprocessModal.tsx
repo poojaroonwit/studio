@@ -46,6 +46,7 @@ export default function ReprocessModal({
   const [positionSearchTerm, setPositionSearchTerm] = useState('');
   const [previewMode, setPreviewMode] = useState<'thumbnail' | 'fullscreen'>('thumbnail');
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const searchFocusTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Helper function to check if file is PDF
   const isPDFFile = (fileName: string) => {
@@ -75,6 +76,15 @@ export default function ReprocessModal({
 
     }
   }, [isOpen, candidatePositionId, positions, isProcessing]);
+
+  // Cleanup timeout on component unmount
+  useEffect(() => {
+    return () => {
+      if (searchFocusTimeoutRef.current) {
+        clearTimeout(searchFocusTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleReprocess = async () => {
     if (!selectedAttachment) {
@@ -324,11 +334,17 @@ export default function ReprocessModal({
                     onBlur={(e) => {
                       e.stopPropagation();
                       // Prevent the Select from closing when search input loses focus
-                      setTimeout(() => {
+                      const timeoutId = setTimeout(() => {
                         if (searchInputRef.current) {
                           searchInputRef.current.focus();
                         }
                       }, 0);
+                      
+                      // Store timeout ID for cleanup
+                      if (searchFocusTimeoutRef.current) {
+                        clearTimeout(searchFocusTimeoutRef.current);
+                      }
+                      searchFocusTimeoutRef.current = timeoutId;
                     }}
                     onClick={(e) => {
                       e.stopPropagation();

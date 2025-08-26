@@ -473,7 +473,7 @@ export function CandidatesPageClient({
   }, [allCandidatesForCounts, total, isClearingFilters]);
   */
 
-  // Use database-level fit score counts for accurate badge display
+    // Use database-level fit score counts for accurate badge display
   const candidateScoreCounts = useMemo(() => {
     // If AI search is active, calculate counts based on AI-matched candidates only
     if (isAiSearchActive && aiMatchedCandidateIds && aiMatchedCandidateIds.length > 0) {
@@ -594,10 +594,10 @@ export function CandidatesPageClient({
       const appliedScores = [];
       
       // Add main fit score if available
-              if (candidate.fitScore !== null && candidate.fitScore !== undefined) {
-          const normalizedScore = normalizeFitScore(candidate.fitScore);
-          appliedScores.push(normalizedScore);
-        }
+      if (candidate.fitScore !== null && candidate.fitScore !== undefined) {
+        const normalizedScore = normalizeFitScore(candidate.fitScore);
+        appliedScores.push(normalizedScore);
+      }
       
       // Add fit scores from parsedData.job_applied if available
       if (candidate.parsedData && typeof candidate.parsedData === 'object') {
@@ -607,18 +607,18 @@ export function CandidatesPageClient({
         }
       }
       
-              if (appliedScores.length > 0) {
-          // Count each candidate once based on their best applied score
-          const bestAppliedScore = Math.max(...appliedScores);
-          scoreRanges.forEach(range => {
-            if (bestAppliedScore >= range.min && bestAppliedScore <= range.max) {
-              appliedScoreRangeCounts[range.letter] = (appliedScoreRangeCounts[range.letter] || 0) + 1;
-            }
-          });
-        } else {
-          // Count candidates with no applied fit score
-          appliedScoreRangeCounts['no-score'] = (appliedScoreRangeCounts['no-score'] || 0) + 1;
-        }
+      if (appliedScores.length > 0) {
+        // Count each candidate once based on their best applied score
+        const bestAppliedScore = Math.max(...appliedScores);
+        scoreRanges.forEach(range => {
+          if (bestAppliedScore >= range.min && bestAppliedScore <= range.max) {
+            appliedScoreRangeCounts[range.letter] = (appliedScoreRangeCounts[range.letter] || 0) + 1;
+          }
+        });
+      } else {
+        // Count candidates with no applied fit score
+        appliedScoreRangeCounts['no-score'] = (appliedScoreRangeCounts['no-score'] || 0) + 1;
+      }
       
       // Matching fit score - count each job match record separately
       const jobMatches = candidate.jobMatches || [];
@@ -742,7 +742,7 @@ export function CandidatesPageClient({
     return paginatedCandidates;
   }, [isAiSearchActive, aiMatchedCandidateIds, mappedCandidates, filteredCandidates, page, pageSize, total, paginatedCandidates, isLoading, tableLoading]);
 
-  // Apply horizontal filters when selections change
+  // Apply horizontal filters when selections change (debounced to prevent resource leaks)
   useEffect(() => {
     // Skip if we're currently clearing filters to prevent conflicts
     if (isClearingFilters) {
@@ -754,24 +754,45 @@ export function CandidatesPageClient({
       return;
     }
     
-    // Only apply horizontal filters if there are selections
-    if (horizontalSelectedFitScoreGrades.size > 0 || horizontalSelectedMatchingFitScoreGrades.size > 0) {
-      const horizontalFilters = applyHorizontalFitScoreFilters();
-      
-      // Check if horizontal filters have any actual values
-      const hasValidFilters = Object.values(horizontalFilters).some(value => value !== undefined);
-      
-      if (hasValidFilters) {
-        const newFilters = {
-          ...currentFiltersRef.current,
-          ...horizontalFilters
-        };
-        setFilters(newFilters);
-        setPage(1); // Always reset to page 1 when applying fit score filters
-        setTableLoading(true); // Show loading state; central filters effect will fetch
-        // Avoid double-fetch here; fetching is handled by the filters change effects
+    // Clear any existing timeout to prevent multiple filter applications
+    if (filterChangeTimeoutRef.current) {
+      clearTimeout(filterChangeTimeoutRef.current);
+    }
+    
+    // Debounce the filter application to prevent resource leaks
+    filterChangeTimeoutRef.current = setTimeout(() => {
+      // Only apply horizontal filters if there are selections
+      if (horizontalSelectedFitScoreGrades.size > 0 || horizontalSelectedMatchingFitScoreGrades.size > 0) {
+        const horizontalFilters = applyHorizontalFitScoreFilters();
+        
+        // Check if horizontal filters have any actual values
+        const hasValidFilters = Object.values(horizontalFilters).some(value => value !== undefined);
+        
+        if (hasValidFilters) {
+          const newFilters = {
+            ...currentFiltersRef.current,
+            ...horizontalFilters
+          };
+          setFilters(newFilters);
+          setPage(1); // Always reset to page 1 when applying fit score filters
+          setTableLoading(true); // Show loading state; central filters effect will fetch
+          // Avoid double-fetch here; fetching is handled by the filters change effects
+        } else {
+          // Clear fit score filters if no valid horizontal filters
+          const newFilters = {
+            ...currentFiltersRef.current,
+            minAppliedJobFitScore: undefined,
+            maxAppliedJobFitScore: undefined,
+            minMatchingJobFitScore: undefined,
+            maxMatchingJobFitScore: undefined,
+          };
+          setFilters(newFilters);
+          setPage(1); // Reset to page 1 when clearing fit score filters
+          setTableLoading(true); // Show loading state; central filters effect will fetch
+          // Avoid double-fetch here; fetching is handled by the filters change effects
+        }
       } else {
-        // Clear fit score filters if no valid horizontal filters
+        // If no horizontal selections, clear fit score filters from main filters
         const newFilters = {
           ...currentFiltersRef.current,
           minAppliedJobFitScore: undefined,
@@ -780,24 +801,19 @@ export function CandidatesPageClient({
           maxMatchingJobFitScore: undefined,
         };
         setFilters(newFilters);
-        setPage(1); // Reset to page 1 when clearing fit score filters
+        setPage(1); // Reset to page 1 when clearing all fit score filters
         setTableLoading(true); // Show loading state; central filters effect will fetch
         // Avoid double-fetch here; fetching is handled by the filters change effects
       }
-    } else {
-      // If no horizontal selections, clear fit score filters from main filters
-      const newFilters = {
-        ...currentFiltersRef.current,
-        minAppliedJobFitScore: undefined,
-        maxAppliedJobFitScore: undefined,
-        minMatchingJobFitScore: undefined,
-        maxMatchingJobFitScore: undefined,
-      };
-      setFilters(newFilters);
-      setPage(1); // Reset to page 1 when clearing all fit score filters
-      setTableLoading(true); // Show loading state; central filters effect will fetch
-      // Avoid double-fetch here; fetching is handled by the filters change effects
-    }
+    }, 200); // 200ms debounce
+    
+    // Cleanup timeout on unmount or when dependencies change
+    return () => {
+      if (filterChangeTimeoutRef.current) {
+        clearTimeout(filterChangeTimeoutRef.current);
+        filterChangeTimeoutRef.current = null;
+      }
+    };
   }, [horizontalSelectedFitScoreGrades, horizontalSelectedMatchingFitScoreGrades, applyHorizontalFitScoreFilters, pageSize, isClearingFilters, hasInitialDataFetch, fetchAllCandidatesForCounts]);
 
   // Handle filter changes
@@ -1118,21 +1134,38 @@ export function CandidatesPageClient({
     }
   }, [initialCandidates.length, total, setTotal]);
 
-  // Refresh fit score counts when filters change
+  // Refresh fit score counts when filters change (debounced to prevent resource leaks)
   useEffect(() => {
     if (sessionStatus === 'authenticated' && !isClearingFilters) {
-      // Refresh fit score counts when filters change (excluding fit score filters to prevent circular dependency)
-      const filtersForCounts = { ...filters };
-      // Remove fit score filters to prevent circular dependency
-      delete filtersForCounts.minAppliedJobFitScore;
-      delete filtersForCounts.maxAppliedJobFitScore;
-      delete filtersForCounts.minMatchingJobFitScore;
-      delete filtersForCounts.maxMatchingJobFitScore;
-      delete filtersForCounts.includeNoScoreInApplied;
-      delete filtersForCounts.includeNoScoreInMatching;
+      // Clear any existing timeout to prevent multiple API calls
+      if (filterChangeTimeoutRef.current) {
+        clearTimeout(filterChangeTimeoutRef.current);
+      }
       
-      fetchFitScoreCounts(filtersForCounts);
+      // Debounce the fit score counts fetch to prevent resource leaks
+      filterChangeTimeoutRef.current = setTimeout(() => {
+        // Create a copy of filters without fit score filters to prevent circular dependency
+        const filtersForCounts = { ...filters };
+        
+        // Remove fit score filters to prevent circular dependency
+        delete filtersForCounts.minAppliedJobFitScore;
+        delete filtersForCounts.maxAppliedJobFitScore;
+        delete filtersForCounts.minMatchingJobFitScore;
+        delete filtersForCounts.maxMatchingJobFitScore;
+        delete filtersForCounts.includeNoScoreInApplied;
+        delete filtersForCounts.includeNoScoreInMatching;
+        
+        fetchFitScoreCounts(filtersForCounts);
+      }, 300); // 300ms debounce
     }
+    
+    // Cleanup timeout on unmount or when dependencies change
+    return () => {
+      if (filterChangeTimeoutRef.current) {
+        clearTimeout(filterChangeTimeoutRef.current);
+        filterChangeTimeoutRef.current = null;
+      }
+    };
   }, [sessionStatus, filters, isClearingFilters, fetchFitScoreCounts]);
 
 
@@ -1184,7 +1217,7 @@ export function CandidatesPageClient({
                             clearAllHorizontalFitScoreFilters();
                             setIsClearingFilters(true);
                             // Reset the flag after a short delay
-                            setTimeout(() => setIsClearingFilters(false), 100);
+                            setTimeout(() => setIsClearingFilters(false), 200);
                           }}
                           candidateCounts={candidateScoreCounts?.applied || []}
                           className=""
@@ -1201,7 +1234,7 @@ export function CandidatesPageClient({
                             clearAllHorizontalFitScoreFilters();
                             setIsClearingFilters(true);
                             // Reset the flag after a short delay
-                            setTimeout(() => setIsClearingFilters(false), 100);
+                            setTimeout(() => setIsClearingFilters(false), 200);
                           }}
                           candidateCounts={candidateScoreCounts?.matching || []}
                           className=""

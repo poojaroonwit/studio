@@ -5,6 +5,9 @@
  * 
  * This script automatically processes the upload queue by calling the process endpoint
  * at regular intervals. It runs continuously and handles graceful shutdown.
+ * 
+ * IMPROVED: Added connection pooling, longer intervals, and better error handling
+ * to prevent database connection pool exhaustion.
  */
 
 // Load environment variables from .env.local
@@ -13,17 +16,22 @@ require('dotenv').config({ path: '.env.local' });
 const https = require('https');
 const http = require('http');
 
-// Configuration
+// Configuration with improved defaults to prevent connection pool exhaustion
 const config = {
   baseUrl: process.env.PROCESSOR_URL || 'http://localhost:8021',
   apiKey: process.env.PROCESSOR_API_KEY || 'dev-key',
-  intervalMs: parseInt(process.env.PROCESSOR_INTERVAL_MS) || 5000,
-  logIntervalMs: parseInt(process.env.LOG_INTERVAL_MS) || 30000,
-  batchLimit: parseInt(process.env.PROCESSOR_BATCH_LIMIT) || 10, // Reduced from 25 to 10 for better performance
+  intervalMs: parseInt(process.env.PROCESSOR_INTERVAL_MS) || 30000, // Increased from 5000 to 30000 (30 seconds)
+  logIntervalMs: parseInt(process.env.LOG_INTERVAL_MS) || 60000, // Increased from 30000 to 60000 (1 minute)
+  batchLimit: parseInt(process.env.PROCESSOR_BATCH_LIMIT) || 5, // Reduced from 10 to 5 for better performance
   maxRetries: 3,
-  retryDelayMs: 1000,
+  retryDelayMs: 5000, // Increased from 1000 to 5000 (5 seconds)
   quietMode: process.env.PROCESSOR_QUIET_MODE === 'true' || false,
-  emptyBatchLogIntervalMs: parseInt(process.env.EMPTY_BATCH_LOG_INTERVAL_MS) || 60000 // Log empty batches only every minute
+  emptyBatchLogIntervalMs: parseInt(process.env.EMPTY_BATCH_LOG_INTERVAL_MS) || 120000, // Increased to 2 minutes
+  maxConsecutiveErrors: 5, // New: limit consecutive errors before backing off
+  backoffMultiplier: 2, // New: exponential backoff multiplier
+  maxBackoffMs: 300000, // New: maximum backoff of 5 minutes
+  connectionTimeoutMs: 10000, // New: 10 second connection timeout
+  requestTimeoutMs: 30000 // New: 30 second request timeout
 };
 
 // Override baseUrl for local development if it's set to Docker service name
@@ -40,6 +48,8 @@ let processedCount = 0;
 let errorCount = 0;
 let consecutiveErrors = 0;
 let emptyBatchCount = 0;
+let currentBackoffMs = config.retryDelayMs; // New: dynamic backoff
+const startTime = Date.now();
 
 // Logging utility
 function log(level, message, data = {}) {
@@ -75,13 +85,14 @@ function log(level, message, data = {}) {
       errorCount,
       consecutiveErrors,
       emptyBatchCount,
+      currentBackoffMs,
       uptime: Math.floor((Date.now() - startTime) / 1000)
     }));
     lastLogTime = Date.now();
   }
 }
 
-// HTTP request utility
+// HTTP request utility with improved timeout and connection management
 function makeRequest(url, options) {
   return new Promise((resolve, reject) => {
     const urlObj = new URL(url);
@@ -97,34 +108,47 @@ function makeRequest(url, options) {
         'Content-Type': 'application/json',
         'x-api-key': config.apiKey,
         ...options.headers
-      }
+      },
+      timeout: config.requestTimeoutMs, // Add request timeout
+      keepAlive: true, // Enable keep-alive to reuse connections
+      keepAliveMsecs: 1000, // Keep connections alive for 1 second
+      maxSockets: 5, // Limit concurrent connections
+      maxFreeSockets: 5 // Limit free connections in pool
     };
     
     const req = client.request(requestOptions, (res) => {
       let data = '';
+      
       res.on('data', (chunk) => {
         data += chunk;
       });
+      
       res.on('end', () => {
         try {
           const jsonData = JSON.parse(data);
           resolve({
             status: res.statusCode,
-            data: jsonData,
-            headers: res.headers
+            data: jsonData
           });
-        } catch (e) {
-          resolve({
-            status: res.statusCode,
-            data: data,
-            headers: res.headers
-          });
+        } catch (error) {
+          reject(new Error(`Failed to parse response: ${error.message}`));
         }
       });
     });
     
     req.on('error', (error) => {
       reject(error);
+    });
+    
+    req.on('timeout', () => {
+      req.destroy();
+      reject(new Error('Request timeout'));
+    });
+    
+    // Set connection timeout
+    req.setTimeout(config.connectionTimeoutMs, () => {
+      req.destroy();
+      reject(new Error('Connection timeout'));
     });
     
     if (options.body) {
@@ -155,6 +179,7 @@ async function processJob() {
         if (job.status === 'success') {
           processedCount++;
           consecutiveErrors = 0;
+          currentBackoffMs = config.retryDelayMs; // Reset backoff on success
         } else {
           errorCount++;
           consecutiveErrors++;
@@ -162,17 +187,20 @@ async function processJob() {
       } else if (response.data.message === 'No queued jobs') {
         // No jobs to process, this is normal
         consecutiveErrors = 0;
+        currentBackoffMs = config.retryDelayMs; // Reset backoff
       } else if (response.data.message && response.data.message.includes('Max concurrent')) {
         // Max concurrent jobs running, wait and try again
         log('INFO', 'Max concurrent jobs running, waiting', {
           message: response.data.message
         });
         consecutiveErrors = 0;
+        currentBackoffMs = config.retryDelayMs; // Reset backoff
       } else {
         log('INFO', 'No jobs processed', {
           response: response.data
         });
         consecutiveErrors = 0;
+        currentBackoffMs = config.retryDelayMs; // Reset backoff
       }
     } else {
       throw new Error(`HTTP ${response.status}: ${JSON.stringify(response.data)}`);
@@ -186,13 +214,13 @@ async function processJob() {
       consecutiveErrors
     });
     
-    // If we have too many consecutive errors, wait longer
-    if (consecutiveErrors >= config.maxRetries) {
-      log('WARN', 'Too many consecutive errors, waiting longer', {
+    // Implement exponential backoff
+    if (consecutiveErrors >= config.maxConsecutiveErrors) {
+      currentBackoffMs = Math.min(currentBackoffMs * config.backoffMultiplier, config.maxBackoffMs);
+      log('WARN', 'Too many consecutive errors, backing off', {
         consecutiveErrors,
-        waitTimeMs: config.retryDelayMs * 2
+        backoffMs: currentBackoffMs
       });
-      await new Promise(resolve => setTimeout(resolve, config.retryDelayMs * 2));
     }
   }
 }
@@ -200,9 +228,8 @@ async function processJob() {
 // Process a batch of jobs in one call (uses new endpoint if available)
 async function processBatch() {
   try {
-    // Use a high limit to ensure we utilize full concurrent capacity
-    // The endpoint will automatically limit to maxConcurrentProcessors setting
-    const response = await makeRequest(`${config.baseUrl}/api/upload-queue/process-all?limit=100`, {
+    // Use a reasonable limit to prevent overwhelming the system
+    const response = await makeRequest(`${config.baseUrl}/api/upload-queue/process-all?limit=${config.batchLimit}`, {
       method: 'POST'
     });
 
@@ -227,12 +254,14 @@ async function processBatch() {
         emptyBatchCount = 0; // Reset empty batch counter when we process something
       }
 
-      // Update counters heuristically
+      // Update counters and reset backoff on success
       if (processedCount > 0) {
         processedCount; // no-op variable reference to keep linter calm in some environments
         consecutiveErrors = 0;
+        currentBackoffMs = config.retryDelayMs; // Reset backoff
       } else if (msgs.some(m => (m || '').includes('No queued jobs'))) {
         consecutiveErrors = 0;
+        currentBackoffMs = config.retryDelayMs; // Reset backoff
       }
       return processedCount;
     } else if (response.status === 404) {
@@ -247,33 +276,52 @@ async function processBatch() {
     errorCount++;
     consecutiveErrors++;
     log('ERROR', 'Failed to process batch', { error: error.message, consecutiveErrors });
-    if (consecutiveErrors >= config.maxRetries) {
-      log('WARN', 'Too many consecutive errors, waiting longer', {
+    
+    // Implement exponential backoff
+    if (consecutiveErrors >= config.maxConsecutiveErrors) {
+      currentBackoffMs = Math.min(currentBackoffMs * config.backoffMultiplier, config.maxBackoffMs);
+      log('WARN', 'Too many consecutive errors, backing off', {
         consecutiveErrors,
-        waitTimeMs: config.retryDelayMs * 2
+        backoffMs: currentBackoffMs
       });
-      await new Promise(resolve => setTimeout(resolve, config.retryDelayMs * 2));
     }
+    
     return 0;
   }
 }
 
-// Main processing loop
+// Main processing loop with improved error handling and backoff
 async function processLoop() {
   while (isRunning) {
     try {
       // Prefer batch endpoint for efficiency; falls back automatically
       const count = await processBatch();
       
+      // Use dynamic backoff based on error state
+      const waitTime = consecutiveErrors >= config.maxConsecutiveErrors ? currentBackoffMs : config.intervalMs;
+      
+      log('DEBUG', 'Waiting before next iteration', {
+        waitTime,
+        consecutiveErrors,
+        currentBackoffMs
+      });
+      
       // Wait before next iteration
-      await new Promise(resolve => setTimeout(resolve, config.intervalMs));
+      await new Promise(resolve => setTimeout(resolve, waitTime));
     } catch (error) {
       log('ERROR', 'Unexpected error in process loop', {
         error: error.message
       });
       
+      consecutiveErrors++;
+      
+      // Use exponential backoff for unexpected errors
+      if (consecutiveErrors >= config.maxConsecutiveErrors) {
+        currentBackoffMs = Math.min(currentBackoffMs * config.backoffMultiplier, config.maxBackoffMs);
+      }
+      
       // Wait before retrying
-      await new Promise(resolve => setTimeout(resolve, config.retryDelayMs));
+      await new Promise(resolve => setTimeout(resolve, currentBackoffMs));
     }
   }
 }
@@ -287,10 +335,11 @@ function shutdown(signal) {
   setTimeout(() => {
     log('INFO', 'Processor shutdown complete', {
       totalProcessed: processedCount,
-      totalErrors: errorCount
+      totalErrors: errorCount,
+      finalBackoffMs: currentBackoffMs
     });
     process.exit(0);
-  }, 1000);
+  }, 2000); // Increased from 1000 to 2000ms
 }
 
 // Signal handlers
@@ -299,43 +348,31 @@ process.on('SIGTERM', () => shutdown('SIGTERM'));
 
 // Unhandled error handlers
 process.on('uncaughtException', (error) => {
-  log('ERROR', 'Uncaught exception', {
-    error: error.message,
-    stack: error.stack
-  });
-  process.exit(1);
+  log('ERROR', 'Uncaught exception', { error: error.message, stack: error.stack });
+  shutdown('uncaughtException');
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  log('ERROR', 'Unhandled rejection', {
-    reason: reason?.message || reason,
-    promise: promise
-  });
-  process.exit(1);
+  log('ERROR', 'Unhandled rejection', { reason: reason?.message || reason, promise });
+  shutdown('unhandledRejection');
 });
 
 // Start the processor
-const startTime = Date.now();
-
-log('INFO', 'Starting Upload Queue Processor', {
-  baseUrl: config.baseUrl,
-  intervalMs: config.intervalMs,
-  logIntervalMs: config.logIntervalMs,
-  maxRetries: config.maxRetries
+log('INFO', 'Upload queue processor starting', {
+  config: {
+    baseUrl: config.baseUrl,
+    intervalMs: config.intervalMs,
+    batchLimit: config.batchLimit,
+    maxRetries: config.maxRetries,
+    retryDelayMs: config.retryDelayMs,
+    maxConsecutiveErrors: config.maxConsecutiveErrors,
+    maxBackoffMs: config.maxBackoffMs,
+    connectionTimeoutMs: config.connectionTimeoutMs,
+    requestTimeoutMs: config.requestTimeoutMs
+  }
 });
 
-log('INFO', 'Configuration', {
-  baseUrl: config.baseUrl,
-  interval: `${config.intervalMs}ms`,
-  logInterval: `${config.logIntervalMs}ms`,
-  maxRetries: config.maxRetries
-});
-
-// Start the main processing loop
 processLoop().catch((error) => {
-  log('ERROR', 'Fatal error in main process loop', {
-    error: error.message,
-    stack: error.stack
-  });
+  log('ERROR', 'Fatal error in process loop', { error: error.message, stack: error.stack });
   process.exit(1);
 });

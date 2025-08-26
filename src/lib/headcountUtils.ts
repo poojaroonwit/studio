@@ -30,8 +30,9 @@ export async function checkPositionHeadcountStatus(positionId: string) {
       };
     }
 
-    const filledHeadcounts = headcounts.filter(h => h.status === 'filled').length;
-    const vacantHeadcounts = headcounts.filter(h => h.status === 'vacant').length;
+    // A headcount is only considered filled if it has status 'filled' AND has a candidate assigned
+    const filledHeadcounts = headcounts.filter(h => h.status === 'filled' && h.candidateId !== null).length;
+    const vacantHeadcounts = headcounts.filter(h => h.status === 'vacant' || h.candidateId === null).length;
     const isFilled = vacantHeadcounts === 0 && filledHeadcounts > 0;
 
     // Position headcount status logged
@@ -303,8 +304,9 @@ export async function validateCandidateHiringStatus(candidateId: string, positio
       };
     }
 
-    const vacantHeadcounts = headcounts.filter(h => h.status === 'vacant');
-    const filledHeadcounts = headcounts.filter(h => h.status === 'filled');
+    // A headcount is only considered filled if it has status 'filled' AND has a candidate assigned
+    const vacantHeadcounts = headcounts.filter(h => h.status === 'vacant' || h.candidateId === null);
+    const filledHeadcounts = headcounts.filter(h => h.status === 'filled' && h.candidateId !== null);
 
     if (vacantHeadcounts.length === 0) {
       return {
@@ -432,11 +434,14 @@ export async function assignCandidateToHeadcount(
   actingUserName: string
 ) {
   try {
-    // Find vacant headcount for this position
+    // Find vacant headcount for this position (status is vacant OR no candidate assigned)
     const vacantHeadcount = await prisma.headcount.findFirst({
       where: {
         positionId,
-        status: 'vacant',
+        OR: [
+          { status: 'vacant' },
+          { candidateId: null }
+        ],
       },
       orderBy: {
         createdAt: 'asc', // Get the oldest vacant headcount

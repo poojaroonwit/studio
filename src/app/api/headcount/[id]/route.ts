@@ -81,6 +81,11 @@ export async function PUT(
       return NextResponse.json({ error: 'Headcount not found' }, { status: 404 });
     }
 
+    // Validate that if status is 'filled', a candidateId must be provided
+    if (status === 'filled' && !candidateId) {
+      return NextResponse.json({ error: 'Candidate ID is required when status is "filled"' }, { status: 400 });
+    }
+
     // If candidateId is provided, verify candidate exists
     if (candidateId) {
       const candidate = await prisma.candidate.findUnique({

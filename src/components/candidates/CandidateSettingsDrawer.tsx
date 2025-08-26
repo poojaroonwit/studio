@@ -55,7 +55,7 @@ const defaultSettings: CandidateSettings = {
   showFilters: true,
   showHorizontalFitScoreFilters: true,
   fitScoreType: 'applied',
-  fitScoreFilterMode: 'multi'
+  fitScoreFilterMode: 'single'
 } as const;
 
 export function CandidateSettingsDrawer({

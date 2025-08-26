@@ -21,17 +21,33 @@ interface AdvancedQuerySyntaxModalProps {
 
 export function AdvancedQuerySyntaxModal({ isOpen, onOpenChange }: AdvancedQuerySyntaxModalProps) {
   const [copiedExample, setCopiedExample] = React.useState<string | null>(null);
+  const timeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
   const copyToClipboard = async (text: string, exampleName: string) => {
     try {
       await navigator.clipboard.writeText(text);
       setCopiedExample(exampleName);
       toast.success('Example copied to clipboard!');
-      setTimeout(() => setCopiedExample(null), 2000);
+      
+      // Clear any existing timeout
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      
+      timeoutRef.current = setTimeout(() => setCopiedExample(null), 2000);
     } catch (err) {
       toast.error('Failed to copy to clipboard');
     }
   };
+
+  // Cleanup timeout on component unmount
+  React.useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   const examples = [
     {

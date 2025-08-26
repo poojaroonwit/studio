@@ -133,6 +133,7 @@ const EnhancedCandidateCard = ({ candidate, isDragged = false, onClick, onDragSt
   recruiters?: UserProfile[];
 }) => {
   const [isDragStarting, setIsDragStarting] = useState(false);
+  const dragImageTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Validate candidate data
   if (!candidate || !candidate.id) {
@@ -171,11 +172,17 @@ const EnhancedCandidateCard = ({ candidate, isDragged = false, onClick, onDragSt
       e.dataTransfer.setDragImage(dragImage, 100, 50);
       
       // Remove the drag image after a short delay
-      setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         if (document.body.contains(dragImage)) {
           document.body.removeChild(dragImage);
         }
       }, 100);
+      
+      // Store timeout ID for cleanup
+      if (dragImageTimeoutRef.current) {
+        clearTimeout(dragImageTimeoutRef.current);
+      }
+      dragImageTimeoutRef.current = timeoutId;
     }
   };
 
@@ -183,6 +190,15 @@ const EnhancedCandidateCard = ({ candidate, isDragged = false, onClick, onDragSt
     setIsDragStarting(false);
     onDragEnd();
   };
+
+  // Cleanup timeout on component unmount
+  useEffect(() => {
+    return () => {
+      if (dragImageTimeoutRef.current) {
+        clearTimeout(dragImageTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <Card 

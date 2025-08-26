@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './card';
 import { Badge } from './badge';
 import { Button } from './button';
-import { AlertTriangle, Clock, Zap, Activity, TrendingUp, TrendingDown } from 'lucide-react';
+import { AlertTriangle, Clock, Zap, Activity, TrendingUp, TrendingDown, Move, X } from 'lucide-react';
 
 interface PerformanceMetrics {
   memory: number;
@@ -30,6 +30,11 @@ interface PerformanceMonitorProps {
   };
 }
 
+interface Position {
+  x: number;
+  y: number;
+}
+
 export function PerformanceMonitor({ 
   enabled = true, 
   showDetails = false,
@@ -42,6 +47,10 @@ export function PerformanceMonitor({
   }
 }: PerformanceMonitorProps) {
   const [isVisible, setIsVisible] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [position, setPosition] = useState<Position>({ x: 20, y: 20 });
+  const [dragOffset, setDragOffset] = useState<Position>({ x: 0, y: 0 });
+  const [isMinimized, setIsMinimized] = useState(false);
   const [metrics, setMetrics] = useState<PerformanceMetrics>({
     memory: 0,
     renderTime: 0,
@@ -65,6 +74,87 @@ export function PerformanceMonitor({
   const cacheMisses = useRef(0);
   const navigationStartTime = useRef<number | null>(null);
   const lastPathname = useRef<string>('');
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  // Load saved position from localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedPosition = localStorage.getItem('performance-monitor-position');
+      if (savedPosition) {
+        try {
+          const parsed = JSON.parse(savedPosition);
+          setPosition(parsed);
+        } catch (e) {
+          console.warn('Failed to parse saved position:', e);
+        }
+      }
+    }
+  }, []);
+
+  // Save position to localStorage
+  const savePosition = useCallback((newPosition: Position) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('performance-monitor-position', JSON.stringify(newPosition));
+    }
+  }, []);
+
+  // Drag handlers
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (!cardRef.current) return;
+    
+    const rect = cardRef.current.getBoundingClientRect();
+    setDragOffset({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top
+    });
+    setIsDragging(true);
+    e.preventDefault();
+  }, []);
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!isDragging) return;
+
+    const newX = e.clientX - dragOffset.x;
+    const newY = e.clientY - dragOffset.y;
+
+    // Constrain to viewport bounds
+    const maxX = window.innerWidth - (cardRef.current?.offsetWidth || 320);
+    const maxY = window.innerHeight - (cardRef.current?.offsetHeight || 200);
+
+    const constrainedX = Math.max(0, Math.min(newX, maxX));
+    const constrainedY = Math.max(0, Math.min(newY, maxY));
+
+    setPosition({ x: constrainedX, y: constrainedY });
+  }, [isDragging, dragOffset]);
+
+  const handleMouseUp = useCallback(() => {
+    if (isDragging) {
+      setIsDragging(false);
+      savePosition(position);
+    }
+  }, [isDragging, position, savePosition]);
+
+  // Add/remove global mouse event listeners
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'grabbing';
+      document.body.style.userSelect = 'none';
+    } else {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [isDragging, handleMouseMove, handleMouseUp]);
 
   // Monitor memory usage
   useEffect(() => {
@@ -254,8 +344,6 @@ export function PerformanceMonitor({
     }
   }, [metrics.totalQueries]);
 
-  if (!isVisible && warnings.length === 0) return null;
-
   const getPerformanceStatus = () => {
     const hasWarnings = warnings.length > 0;
     return hasWarnings ? 'warning' : 'good';
@@ -263,113 +351,192 @@ export function PerformanceMonitor({
 
   const status = getPerformanceStatus();
 
-  return (
-    <Card className={`w-full max-w-md fixed bottom-4 right-4 z-50 transition-all duration-300 ${
-      isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-    }`}>
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Activity className="h-4 w-4" />
-            Performance Monitor
-          </CardTitle>
-          <div className="flex items-center gap-2">
-            <Badge variant={status === 'warning' ? 'destructive' : 'default'} className="text-xs">
-              {status === 'warning' ? <AlertTriangle className="h-3 w-3 mr-1" /> : <Zap className="h-3 w-3 mr-1" />}
-              {status === 'warning' ? warnings.length : 'Good'}
+  // If minimized, show just the floating button
+  if (isMinimized) {
+    return (
+      <div
+        style={{
+          position: 'fixed',
+          left: position.x,
+          top: position.y,
+          zIndex: 9999,
+          cursor: 'pointer'
+        }}
+        onMouseDown={handleMouseDown}
+        className="transition-all duration-200 hover:scale-110"
+      >
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setIsMinimized(false)}
+          className="bg-background/95 backdrop-blur-sm border-2 shadow-lg hover:shadow-xl transition-all duration-200 floating-performance-button"
+          style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
+        >
+          <Activity className="h-4 w-4 mr-2" />
+          Performance
+          {warnings.length > 0 && (
+            <Badge variant="destructive" className="ml-2 text-xs">
+              {warnings.length}
             </Badge>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsVisible(!isVisible)}
-              className="h-6 w-6 p-0"
-            >
-              {isVisible ? '−' : '+'}
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
-      
-      {isVisible && (
-        <CardContent className="pt-0">
-          <div className="space-y-3">
-            {/* Current Metrics */}
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <div className="flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                <span>Memory:</span>
-                <span className={metrics.memory > threshold.memory ? 'text-red-500 font-semibold' : ''}>
-                  {metrics.memory}MB
-                </span>
-              </div>
-              <div className="flex items-center gap-1">
-                <TrendingUp className="h-3 w-3" />
-                <span>Render:</span>
-                <span className={metrics.renderTime > threshold.renderTime ? 'text-red-500 font-semibold' : ''}>
-                  {Math.round(metrics.renderTime)}ms
-                </span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Activity className="h-3 w-3" />
-                <span>API Calls:</span>
-                <span className={metrics.apiCalls > threshold.apiCalls ? 'text-red-500 font-semibold' : ''}>
-                  {metrics.apiCalls}
-                </span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Zap className="h-3 w-3" />
-                <span>Cache:</span>
-                <span className={metrics.cacheHitRate < threshold.cacheHitRate ? 'text-red-500 font-semibold' : ''}>
-                  {Math.round(metrics.cacheHitRate)}%
-                </span>
-              </div>
-            </div>
+          )}
+        </Button>
+      </div>
+    );
+  }
 
-            {/* Navigation Performance */}
-            {metrics.navigationTime > 0 && (
-              <div className="text-xs">
-                <div className="flex items-center gap-1 mb-1">
-                  <TrendingDown className="h-3 w-3" />
-                  <span>Last Navigation:</span>
-                  <span className={metrics.navigationTime > threshold.navigationTime ? 'text-red-500 font-semibold' : ''}>
-                    {Math.round(metrics.navigationTime)}ms
+  // If not visible and no warnings, show minimized button
+  if (!isVisible && warnings.length === 0) {
+    return (
+      <div
+        style={{
+          position: 'fixed',
+          left: position.x,
+          top: position.y,
+          zIndex: 9999,
+          cursor: 'pointer'
+        }}
+        onMouseDown={handleMouseDown}
+        className="transition-all duration-200 hover:scale-110"
+      >
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setIsVisible(true)}
+          className="bg-background/95 backdrop-blur-sm border-2 shadow-lg hover:shadow-xl transition-all duration-200 floating-performance-button"
+          style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
+        >
+          <Activity className="h-4 w-4 mr-2" />
+          Performance
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+          <div
+        ref={cardRef}
+        style={{
+          position: 'fixed',
+          left: position.x,
+          top: position.y,
+          zIndex: 9999,
+          cursor: isDragging ? 'grabbing' : 'default'
+        }}
+        className={`transition-all duration-200 floating-performance-monitor ${isDragging ? 'dragging' : ''}`}
+      >
+        <Card className={`w-80 bg-background/95 backdrop-blur-sm border-2 shadow-2xl transition-all duration-300 ${
+          isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+        }`}>
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <div 
+                className="flex items-center gap-2 performance-drag-handle"
+                onMouseDown={handleMouseDown}
+              >
+              <Move className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Activity className="h-4 w-4" />
+                Performance Monitor
+              </CardTitle>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant={status === 'warning' ? 'destructive' : 'default'} className="text-xs">
+                {status === 'warning' ? <AlertTriangle className="h-3 w-3 mr-1" /> : <Zap className="h-3 w-3 mr-1" />}
+                {status === 'warning' ? warnings.length : 'Good'}
+              </Badge>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsMinimized(true)}
+                className="h-6 w-6 p-0 hover:bg-muted"
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        
+        {isVisible && (
+          <CardContent className="pt-0">
+            <div className="space-y-3">
+              {/* Current Metrics */}
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  <span>Memory:</span>
+                  <span className={metrics.memory > threshold.memory ? 'text-red-500 font-semibold' : ''}>
+                    {metrics.memory}MB
+                  </span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <TrendingUp className="h-3 w-3" />
+                  <span>Render:</span>
+                  <span className={metrics.renderTime > threshold.renderTime ? 'text-red-500 font-semibold' : ''}>
+                    {Math.round(metrics.renderTime)}ms
+                  </span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Activity className="h-3 w-3" />
+                  <span>API Calls:</span>
+                  <span className={metrics.apiCalls > threshold.apiCalls ? 'text-red-500 font-semibold' : ''}>
+                    {metrics.apiCalls}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Zap className="h-3 w-3" />
+                  <span>Cache:</span>
+                  <span className={metrics.cacheHitRate < threshold.cacheHitRate ? 'text-red-500 font-semibold' : ''}>
+                    {Math.round(metrics.cacheHitRate)}%
                   </span>
                 </div>
               </div>
-            )}
 
-            {/* Warnings */}
-            {warnings.length > 0 && (
-              <div className="space-y-1">
-                <div className="text-xs font-semibold text-red-600">Warnings:</div>
-                {warnings.map((warning, index) => (
-                  <div key={index} className="text-xs text-red-500 bg-red-50 p-1 rounded">
-                    {warning}
+              {/* Navigation Performance */}
+              {metrics.navigationTime > 0 && (
+                <div className="text-xs">
+                  <div className="flex items-center gap-1 mb-1">
+                    <TrendingDown className="h-3 w-3" />
+                    <span>Last Navigation:</span>
+                    <span className={metrics.navigationTime > threshold.navigationTime ? 'text-red-500 font-semibold' : ''}>
+                      {Math.round(metrics.navigationTime)}ms
+                    </span>
                   </div>
-                ))}
-              </div>
-            )}
+                </div>
+              )}
 
-            {/* Navigation History */}
-            {showDetails && navigationHistory.length > 0 && (
-              <div className="space-y-1">
-                <div className="text-xs font-semibold">Recent Navigation:</div>
-                <div className="max-h-20 overflow-y-auto space-y-1">
-                  {navigationHistory.map((nav, index) => (
-                    <div key={index} className="text-xs flex justify-between">
-                      <span className="truncate">{nav.path}</span>
-                      <span className={nav.duration > threshold.navigationTime ? 'text-red-500' : 'text-green-500'}>
-                        {Math.round(nav.duration)}ms
-                      </span>
+              {/* Warnings */}
+              {warnings.length > 0 && (
+                <div className="space-y-1">
+                  <div className="text-xs font-semibold text-red-600">Warnings:</div>
+                  {warnings.map((warning, index) => (
+                    <div key={index} className="text-xs text-red-500 bg-red-50 p-1 rounded">
+                      {warning}
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      )}
-    </Card>
+              )}
+
+              {/* Navigation History */}
+              {showDetails && navigationHistory.length > 0 && (
+                <div className="space-y-1">
+                  <div className="text-xs font-semibold">Recent Navigation:</div>
+                  <div className="max-h-20 overflow-y-auto space-y-1">
+                    {navigationHistory.map((nav, index) => (
+                      <div key={index} className="text-xs flex justify-between">
+                        <span className="truncate">{nav.path}</span>
+                        <span className={nav.duration > threshold.navigationTime ? 'text-red-500' : 'text-green-500'}>
+                          {Math.round(nav.duration)}ms
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        )}
+      </Card>
+    </div>
   );
 }
 

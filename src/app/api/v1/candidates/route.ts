@@ -325,9 +325,9 @@ export async function POST(request: NextRequest) {
           // Use the updated candidate for the response
           finalCandidate = updatedCandidate;
         } else if (position && !position.recruiterId) {
-          console.log(`⚠️ Position ${positionId} exists but has no recruiter assigned`);
+          // console.log(`⚠️ Position ${positionId} exists but has no recruiter assigned`);
         } else if (!position) {
-          console.log(`❌ Position ${positionId} not found in database`);
+          // console.log(`❌ Position ${positionId} not found in database`);
         }
       } catch (syncError) {
         console.error('Failed to auto-assign recruiter after candidate creation:', syncError);

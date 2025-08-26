@@ -2,7 +2,7 @@
 -- This script works with the postgres user and studio_production database
 
 -- Create default admin user (password: nccadmin)
-INSERT INTO "User" (id, name, email, password, role, "authenticationMethod", "forcePasswordChange", "createdAt", "updatedAt") 
+INSERT INTO "User" (id, name, email, password, role, "authentication_method", "force_password_change", "createdAt", "updatedAt") 
 VALUES (
   gen_random_uuid(),
   'Admin User',

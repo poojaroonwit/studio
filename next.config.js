@@ -1,6 +1,11 @@
 /** @type {import('next').NextConfig} */
 const process = require('process');
 
+// Polyfill for self global to fix build issues
+if (typeof global !== 'undefined' && !global.self) {
+  global.self = global;
+}
+
 // Suppress Fast Refresh logs
 const originalConsoleLog = console.log;
 const originalConsoleInfo = console.info;
@@ -53,8 +58,8 @@ const nextConfig = {
   // Disable static generation for API routes that use dynamic features
   experimental: {
     serverComponentsExternalPackages: ['@prisma/client', 'bcryptjs', 'pg', 'jose'],
-    // optimizeCss: true, // Temporarily disabled
-    // optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'], // Temporarily disabled
+    optimizeCss: true,
+    // optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'], // Disabled due to self reference issue
   },
   
   // Force Node.js runtime for all API routes to avoid Edge Runtime issues
@@ -213,29 +218,30 @@ const nextConfig = {
     // Performance optimizations
     if (!dev) {
       // Enable tree shaking
-      // config.optimization = {
-      //   ...config.optimization,
-      //   usedExports: true,
-      //   sideEffects: false,
-      // };
+      config.optimization = {
+        ...config.optimization,
+        usedExports: true,
+        sideEffects: false,
+      };
       
       // Split chunks for better caching
-      // config.optimization.splitChunks = {
-      //   chunks: 'all',
-      //   cacheGroups: {
-      //     vendor: {
-      //       test: /[\\/]node_modules[\\/]/,
-      //       name: 'vendors',
-      //       chunks: 'all',
-      //     },
-      //     common: {
-      //       name: 'common',
-      //       minChunks: 2,
-      //       chunks: 'all',
-      //       enforce: true,
-      //     },
-      //   },
-      // };
+      config.optimization.splitChunks = {
+        chunks: 'all',
+        cacheGroups: {
+          vendor: {
+            test: /[\\/]node_modules[\\/]/,
+            name: 'vendors',
+            chunks: 'all',
+            exclude: /[\\/]node_modules[\\/](chart\.js|chartjs-adapter-date-fns|chartjs-plugin-datalabels)[\\/]/,
+          },
+          common: {
+            name: 'common',
+            minChunks: 2,
+            chunks: 'all',
+            enforce: true,
+          },
+        },
+      };
     }
 
     // Suppress Fast Refresh logs in development

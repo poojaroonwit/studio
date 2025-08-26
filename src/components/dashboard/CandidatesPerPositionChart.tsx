@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import type { Candidate, Position } from "@/lib/types"
@@ -16,7 +16,7 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
-import '@/lib/chartjs-setup';
+import { setupChartJS } from '@/lib/chartjs-setup';
 
 
 interface CandidatesPerPositionChartProps {
@@ -25,6 +25,11 @@ interface CandidatesPerPositionChartProps {
 }
 
 export function CandidatesPerPositionChart({ candidates, positions }: CandidatesPerPositionChartProps) {
+  // Setup Chart.js on component mount
+  useEffect(() => {
+    setupChartJS();
+  }, []);
+
   // Memoize the data processing to prevent unnecessary recalculations
   const data = useMemo(() => {
     // Ensure inputs are arrays before processing

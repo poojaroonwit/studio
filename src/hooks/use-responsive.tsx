@@ -38,6 +38,11 @@ export function useResponsive(): ResponsiveState {
   }));
 
   const updateState = useCallback(() => {
+    // Ensure we're in a browser environment
+    if (typeof window === 'undefined') {
+      return;
+    }
+
     const width = window.innerWidth;
     const height = window.innerHeight;
     const orientation = width > height ? 'landscape' : 'portrait';
@@ -67,6 +72,11 @@ export function useResponsive(): ResponsiveState {
   }, []);
 
   useEffect(() => {
+    // Ensure we're in a browser environment
+    if (typeof window === 'undefined') {
+      return;
+    }
+
     // Set initial state
     updateState();
 

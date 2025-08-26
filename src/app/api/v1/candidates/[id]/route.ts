@@ -423,11 +423,11 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
           // console.log(`✅ Recruiter auto-assigned to candidate ${id} from position ${newPositionId}`);
           // console.log(`   Recruiter: ${position.recruiter.name} (${position.recruiter.email})`);
         } else if (position && !position.recruiterId) {
-          console.log(`⚠️ New position ${newPositionId} exists but has no recruiter assigned`);
+          // console.log(`⚠️ New position ${newPositionId} exists but has no recruiter assigned`);
         } else if (!position) {
-          console.log(`❌ New position ${newPositionId} not found in database`);
+          // console.log(`❌ New position ${newPositionId} not found in database`);
         } else if (updatedCandidate.recruiterId) {
-          console.log(`ℹ️ Candidate ${id} already has a recruiter assigned, skipping auto-assignment`);
+          // console.log(`ℹ️ Candidate ${id} already has a recruiter assigned, skipping auto-assignment`);
         }
       } catch (syncError) {
         console.error('Failed to auto-assign recruiter after position update:', syncError);

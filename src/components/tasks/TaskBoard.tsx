@@ -406,7 +406,7 @@ export function TaskBoard({
           <button
             onClick={scrollLeft}
             aria-label="Scroll left"
-            className="fixed left-74 top-1/2 transform -translate-y-1/2 z-50 w-10 h-10 bg-blue-600/10 hover:bg-blue-600/20 text-blue-600 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 backdrop-blur-sm"
+            className="fixed left-74 top-1/2 transform -translate-y-1/2 z-50 w-12 h-12 bg-blue-600/10 hover:bg-blue-600/20 text-blue-600 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 backdrop-blur-sm"
           >
             <ChevronLeft className="h-5 w-5" />
           </button>
@@ -416,7 +416,7 @@ export function TaskBoard({
           <button
             onClick={scrollRight}
             aria-label="Scroll right"
-            className="fixed right-8 top-1/2 transform -translate-y-1/2 z-50 w-10 h-10 bg-blue-600/10 hover:bg-blue-600/20 text-blue-600 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 backdrop-blur-sm"
+            className="fixed right-8 top-1/2 transform -translate-y-1/2 z-50 w-12 h-12 bg-blue-600/10 hover:bg-blue-600/20 text-blue-600 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 backdrop-blur-sm"
           >
             <ChevronRight className="h-5 w-5" />
           </button>

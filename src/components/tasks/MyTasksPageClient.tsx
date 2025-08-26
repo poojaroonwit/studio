@@ -26,7 +26,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
 import CandidateDetailModal from '@/components/candidates/CandidateDetailModal';
 import { PositionSelectDropdown } from '@/components/candidates/PositionSelectDropdown';
-import { RealtimeIndicator } from '@/components/ui/realtime-indicator';
+
 import { useUnifiedRealtime } from '@/hooks/use-unified-realtime';
 import { getErrorMessage, retryWithBackoff, isRetryableError } from '@/lib/networkUtils';
 import { NetworkDiagnostics } from '@/components/ui/network-diagnostics';
@@ -92,8 +92,8 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     selectedStages: [] 
   });
 
-  // Unified realtime hook
-  const { isConnected: realtimeConnected, isReconnecting, reconnectAttempts } = useUnifiedRealtime({
+      // Unified realtime hook
+    const { isConnected: realtimeConnected } = useUnifiedRealtime({
     onCandidateUpdate: (updatedCandidate) => {
       setCandidates(prevCandidates => {
         const existingIndex = prevCandidates.findIndex(c => c.id === updatedCandidate.id);
@@ -548,19 +548,8 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
 
   // --- UI ---
   return (
-    <div className="flex flex-col h-full bg-background">
-      {/* Realtime Status Indicator */}
-      <div className="flex items-center justify-end p-4 pb-2">
-        <RealtimeIndicator 
-          isConnected={realtimeConnected}
-          isReconnecting={isReconnecting}
-          reconnectAttempts={reconnectAttempts}
-          size="sm"
-          showText={true}
-        />
-      </div>
-      
-      {/* Enhanced Board Header - Always Sticky within main content */}
+                  <div className="flex flex-col h-full bg-background">
+                {/* Enhanced Board Header - Always Sticky within main content */}
       <div className="bg-card border-b border-border shadow-sm sticky top-0 z-40 backdrop-blur-sm bg-card/95">
         <div className="px-6 py-4 space-y-4">
                      {/* Main Controls Row */}

@@ -27,52 +27,56 @@ export function Pagination({
 }: PaginationProps) {
   return (
     <div className={`flex items-center justify-between mt-4 ${className}`}>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         <Button
           variant="ghost"
-          size="icon"
+          size="sm"
           onClick={() => onPageChange(1)}
           disabled={currentPage === 1}
           aria-label="First page"
+          className="h-8 w-8 p-0 hover:bg-muted/50 transition-colors duration-200"
         >
-          <ChevronLeft className="h-4 w-4" />
-          <ChevronLeft className="h-4 w-4 -ml-2" />
+          <ChevronLeft className="h-3.5 w-3.5 text-muted-foreground" />
+          <ChevronLeft className="h-3.5 w-3.5 text-muted-foreground -ml-1" />
         </Button>
         <Button
           variant="ghost"
-          size="icon"
+          size="sm"
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
           aria-label="Previous page"
+          className="h-8 w-8 p-0 hover:bg-muted/50 transition-colors duration-200"
         >
-          <ChevronLeft className="h-4 w-4" />
+          <ChevronLeft className="h-3.5 w-3.5 text-muted-foreground" />
         </Button>
-        <span className="text-sm">
+        <span className="text-sm text-muted-foreground min-w-[80px] text-center">
           Page {currentPage} of {totalPages}
         </span>
         <Button
           variant="ghost"
-          size="icon"
+          size="sm"
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
           aria-label="Next page"
+          className="h-8 w-8 p-0 hover:bg-muted/50 transition-colors duration-200"
         >
-          <ChevronRight className="h-4 w-4" />
+          <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
         </Button>
         <Button
           variant="ghost"
-          size="icon"
+          size="sm"
           onClick={() => onPageChange(totalPages)}
           disabled={currentPage === totalPages}
           aria-label="Last page"
+          className="h-8 w-8 p-0 hover:bg-muted/50 transition-colors duration-200"
         >
-          <ChevronRight className="h-4 w-4" />
-          <ChevronRight className="h-4 w-4 -ml-2" />
+          <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+          <ChevronRight className="h-3.5 w-3.5 text-muted-foreground -ml-1" />
         </Button>
       </div>
       {showPageSizeSelector && (
         <div className="flex items-center gap-2">
-          <span className="text-sm">Rows per page:</span>
+          <span className="text-sm text-muted-foreground">Rows per page:</span>
           <select
             value={pageSize}
             onChange={e => {
@@ -80,7 +84,7 @@ export function Pagination({
               onPageSizeChange(newPageSize);
               onPageChange(1); // Reset to first page when changing page size
             }}
-            className="border rounded-md px-2 py-1 text-sm bg-background text-foreground"
+            className="border border-border rounded-md px-2 py-1 text-sm bg-background text-foreground hover:bg-muted/50 transition-colors duration-200"
           >
             {pageSizeOptions.map(size => (
               <option key={size} value={size}>{size}</option>

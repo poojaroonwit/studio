@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { useSession } from 'next-auth/react';
 import { formatDistanceToNow } from 'date-fns';
 import { useNotifications } from '@/contexts/NotificationContext';
+import { useToastManager } from '@/hooks/use-toast-manager';
 
 interface NotificationDrawerProps {
   isOpen: boolean;
@@ -17,20 +18,59 @@ interface NotificationDrawerProps {
   onNotificationRead: () => void;
 }
 
-export function NotificationDrawer({ isOpen, onClose }: NotificationDrawerProps) {
+export function NotificationDrawer({ isOpen, onClose, onNotificationRead }: NotificationDrawerProps) {
   const { data: session } = useSession();
   const { notifications, unreadCount, isLoading, markAsRead, markAllAsRead } = useNotifications();
+  const { success: showSuccessToast, error: showErrorToast } = useToastManager();
   const [activeTab, setActiveTab] = useState('unread');
+  const [markingAsRead, setMarkingAsRead] = useState<string | null>(null);
+  const [markingAllAsRead, setMarkingAllAsRead] = useState(false);
 
   const unreadNotifications = notifications.filter(n => !n.isRead);
   const readNotifications = notifications.filter(n => n.isRead);
 
+  // Debug logging
+  console.log('🔍 NotificationDrawer: Total notifications:', notifications.length);
+  console.log('🔍 NotificationDrawer: Unread notifications:', unreadNotifications.length);
+  console.log('🔍 NotificationDrawer: Read notifications:', readNotifications.length);
+  console.log('🔍 NotificationDrawer: Sample notification:', notifications[0]);
+
   const handleMarkAsRead = async (notificationId: string) => {
-    await markAsRead(notificationId);
+    console.log('🔍 Mark as read clicked for notification:', notificationId);
+    setMarkingAsRead(notificationId);
+    try {
+      await markAsRead(notificationId);
+      console.log('✅ Mark as read completed for notification:', notificationId);
+      showSuccessToast('Notification marked as read');
+      // Call the onNotificationRead callback if provided
+      if (onNotificationRead) {
+        onNotificationRead();
+      }
+    } catch (error) {
+      console.error('❌ Error marking notification as read:', error);
+      showErrorToast('Failed to mark notification as read');
+    } finally {
+      setMarkingAsRead(null);
+    }
   };
 
   const handleMarkAllAsRead = async () => {
-    await markAllAsRead();
+    console.log('🔍 Mark all as read clicked');
+    setMarkingAllAsRead(true);
+    try {
+      await markAllAsRead();
+      console.log('✅ Mark all as read completed');
+      showSuccessToast('All notifications marked as read');
+      // Call the onNotificationRead callback if provided
+      if (onNotificationRead) {
+        onNotificationRead();
+      }
+    } catch (error) {
+      console.error('❌ Error marking all notifications as read:', error);
+      showErrorToast('Failed to mark all notifications as read');
+    } finally {
+      setMarkingAllAsRead(false);
+    }
   };
 
   return (
@@ -45,21 +85,8 @@ export function NotificationDrawer({ isOpen, onClose }: NotificationDrawerProps)
           <div className="flex items-center gap-2">
             <Bell className="h-5 w-5 text-foreground" />
             <SheetTitle className="text-lg font-semibold text-foreground">Notifications</SheetTitle>
-            {unreadCount > 0 && (
-              <Badge variant="secondary" className="ml-2">
-                {unreadCount} unread
-              </Badge>
-            )}
-            {unreadCount > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleMarkAllAsRead}
-                className="text-xs ml-6 -mt-1"
-              >
-                Mark all read
-              </Button>
-            )}
+            
+           
           </div>
           <Button
             variant="ghost"
@@ -90,7 +117,7 @@ export function NotificationDrawer({ isOpen, onClose }: NotificationDrawerProps)
               </div>
             ) : (
               <div className="w-full">
-                <div className="flex w-full border-b border-border/50 mb-6">
+                <div className="flex w-full border-b border-border/50 mb-2">
                   <div
                     onClick={() => setActiveTab('unread')}
                     className={cn(
@@ -146,14 +173,19 @@ export function NotificationDrawer({ isOpen, onClose }: NotificationDrawerProps)
                           size="sm"
                           onClick={handleMarkAllAsRead}
                           className="text-xs mr-2"
+                          disabled={markingAllAsRead}
                         >
-                          Mark all read
+                          {markingAllAsRead ? (
+                            <div className="animate-spin h-4 w-4 mr-1" />
+                          ) : (
+                            "Mark all read"
+                          )}
                         </Button>
                       </div>
                       {unreadNotifications.map((notification, index) => (
                         <div
                           key={notification.id}
-                          className="notification-item flex items-start gap-3 p-3 rounded-lg border transition-all duration-200 cursor-pointer hover:shadow-md bg-blue-50 hover:bg-blue-100 border-blue-200 hover:border-blue-300"
+                          className="notification-item flex items-start gap-3 p-3 rounded-lg border transition-all duration-200 cursor-pointer hover:shadow-md bg-blue-50 hover:bg-blue-100 border-blue-200 hover:border-blue-300 mb-2"
                           style={{ animationDelay: `${index * 0.05}s` }}
                         >
                           <div className="flex-shrink-0 mt-1">
@@ -183,8 +215,13 @@ export function NotificationDrawer({ isOpen, onClose }: NotificationDrawerProps)
                                     handleMarkAsRead(notification.id);
                                   }}
                                   className="h-6 px-3 text-xs hover:bg-primary/10 ml-2"
+                                  disabled={markingAsRead === notification.id}
                                 >
-                                  <Check className="h-3 w-3 mr-1" />
+                                  {markingAsRead === notification.id ? (
+                                    <div className="animate-spin h-3 w-3 mr-1" />
+                                  ) : (
+                                    <Check className="h-3 w-3 mr-1" />
+                                  )}
                                   Mark read
                                 </Button>
                               </div>

@@ -126,6 +126,11 @@ export function useUserPresence() {
 
   // Handle page visibility changes
   useEffect(() => {
+    // Ensure we're in a browser environment
+    if (typeof document === 'undefined') {
+      return;
+    }
+
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         updatePresence();
@@ -140,6 +145,11 @@ export function useUserPresence() {
 
   // Handle beforeunload (user closing tab/window)
   useEffect(() => {
+    // Ensure we're in a browser environment
+    if (typeof window === 'undefined') {
+      return;
+    }
+
     const handleBeforeUnload = () => {
       removePresence();
     };

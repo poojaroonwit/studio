@@ -37,15 +37,22 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  console.log('🔍 API: Mark read request received for notification ID:', params.id);
+  
   const session = await getServerSession(authOptions);
 
   if (!session?.user) {
+    console.log('❌ API: Unauthorized request');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });       
   }
 
   const actingUserId = session.user.id;
   const actingUserName = session.user.name || session.user.email || 'System';   
   const notificationId = params.id;
+
+  console.log('🔍 API: Acting user ID:', actingUserId);
+  console.log('🔍 API: Acting user name:', actingUserName);
+  console.log('🔍 API: Notification ID:', notificationId);
 
   // Check if user ID is empty (invalid session)
   if (!actingUserId) {
@@ -76,6 +83,8 @@ export async function POST(
   }
 
   try {
+    console.log('🔍 API: Attempting to update notification in database');
+    
     // Update the notification to mark it as read
     const updatedNotification = await prisma.notification.update({
       where: {
@@ -87,6 +96,8 @@ export async function POST(
       }
     });
 
+    console.log('✅ API: Notification updated successfully:', updatedNotification.id);
+
     await logAudit('AUDIT', `Notification '${updatedNotification.title}' marked as read by ${actingUserName}`, 'API:Realtime:Notifications:MarkRead', actingUserId, {
       notificationId,
       notificationTitle: updatedNotification.title
@@ -97,7 +108,7 @@ export async function POST(
       notification: updatedNotification 
     });
   } catch (error) {
-    console.error('Error marking notification as read:', error);
+    console.error('❌ API: Error marking notification as read:', error);
     await logAudit('ERROR', `Failed to mark notification as read for ${actingUserName}. Error: ${(error as Error).message}`, 'API:Realtime:Notifications:MarkRead', actingUserId, {
       notificationId,
       error: (error as Error).message

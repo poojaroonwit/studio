@@ -48,7 +48,6 @@ import { useCandidateData } from './hooks/use-candidate-data';
 import { useCandidateFetching } from './hooks/use-candidate-fetching';
 import { useCandidateActions } from './hooks/use-candidate-actions';
 import { useCandidateAiSearch } from './hooks/use-candidate-ai-search';
-import { RealtimeIndicator } from '@/components/ui/realtime-indicator';
 
 interface CandidatesPageClientProps {
   initialCandidates: Candidate[];
@@ -191,7 +190,8 @@ export function CandidatesPageClient({
     refreshCandidateInList,
     applyOptimisticUpdate,
     revertOptimisticUpdate,
-    databaseFitScoreCounts
+    databaseFitScoreCounts,
+    fetchFitScoreCounts
   } = useCandidateData({
     initialCandidates,
     initialAvailablePositions,
@@ -244,7 +244,7 @@ export function CandidatesPageClient({
   });
 
   // Unified realtime hook
-  const { isConnected: realtimeConnected, isReconnecting, reconnectAttempts } = useUnifiedRealtime({
+  const { isConnected: realtimeConnected } = useUnifiedRealtime({
     onCandidateUpdate: (updatedCandidate) => {
       setFilteredCandidates(prevCandidates => {
         const existingIndex = prevCandidates.findIndex(c => c.id === updatedCandidate.id);
@@ -570,84 +570,14 @@ export function CandidatesPageClient({
       return result;
     }
     
-    // For regular filtered results, use allCandidatesForCounts to get accurate counts
-    // This ensures counts reflect the database-level filtering, not just the current page
-    if (allCandidatesForCounts.length > 0) {
-      
-      const scoreRanges = getScoreRangesForChart();
-      const appliedScoreRangeCounts: { [key: string]: number } = {};
-      const matchingScoreRangeCounts: { [key: string]: number } = {};
-      
-      allCandidatesForCounts.forEach((candidate: Candidate) => {
-        // Applied fit score calculation
-        const appliedScores = [];
-        
-        // Add main fit score if available
-        if (candidate.fitScore !== null && candidate.fitScore !== undefined) {
-          const normalizedScore = normalizeFitScore(candidate.fitScore);
-          appliedScores.push(normalizedScore);
-        }
-        
-        // Add fit scores from parsedData.job_applied if available
-        if (candidate.parsedData && typeof candidate.parsedData === 'object') {
-          const parsedData = candidate.parsedData as any;
-          if (parsedData.job_applied && parsedData.job_applied.fitScore) {
-            appliedScores.push(normalizeFitScore(parsedData.job_applied.fitScore));
-          }
-        }
-        
-        if (appliedScores.length > 0) {
-          // Count each candidate once based on their best applied score
-          const bestAppliedScore = Math.max(...appliedScores);
-          scoreRanges.forEach(range => {
-            if (bestAppliedScore >= range.min && bestAppliedScore <= range.max) {
-              appliedScoreRangeCounts[range.letter] = (appliedScoreRangeCounts[range.letter] || 0) + 1;
-            }
-          });
-        } else {
-          // Count candidates with no applied fit score
-          appliedScoreRangeCounts['no-score'] = (appliedScoreRangeCounts['no-score'] || 0) + 1;
-        }
-        
-        // Matching fit score calculation
-        const matchingScore = getBestMatchingFitScore(candidate);
-        
-        if (matchingScore > 0) {
-          scoreRanges.forEach(range => {
-            if (matchingScore >= range.min && matchingScore <= range.max) {
-              matchingScoreRangeCounts[range.letter] = (matchingScoreRangeCounts[range.letter] || 0) + 1;
-            }
-          });
-        } else {
-          // Count candidates with no matching fit score
-          matchingScoreRangeCounts['no-score'] = (matchingScoreRangeCounts['no-score'] || 0) + 1;
-        }
-      });
-      
-      const result = {
-        applied: [
-          ...scoreRanges.map(range => ({
-            letter: range.letter,
-            count: appliedScoreRangeCounts[range.letter] || 0
-          })),
-          {
-            letter: 'no-score',
-            count: appliedScoreRangeCounts['no-score'] || 0
-          }
-        ],
-        matching: [
-          ...scoreRanges.map(range => ({
-            letter: range.letter,
-            count: matchingScoreRangeCounts[range.letter] || 0
-          })),
-          {
-            letter: 'no-score',
-            count: matchingScoreRangeCounts['no-score'] || 0
-          }
-        ]
-      };
-      
-      return result;
+    // For regular filtered results, use database fit score counts from API
+    if (databaseFitScoreCounts && 
+        typeof databaseFitScoreCounts === 'object' && 
+        'applied' in databaseFitScoreCounts && 
+        'matching' in databaseFitScoreCounts &&
+        Array.isArray(databaseFitScoreCounts.applied) && 
+        Array.isArray(databaseFitScoreCounts.matching)) {
+      return databaseFitScoreCounts;
     }
     
     // Fallback to client-side calculation if database counts not available
@@ -1194,24 +1124,29 @@ export function CandidatesPageClient({
     }
   }, [initialCandidates.length, total, setTotal]);
 
+  // Refresh fit score counts when filters change
+  useEffect(() => {
+    if (sessionStatus === 'authenticated' && !isClearingFilters) {
+      // Refresh fit score counts when filters change (excluding fit score filters to prevent circular dependency)
+      const filtersForCounts = { ...filters };
+      // Remove fit score filters to prevent circular dependency
+      delete filtersForCounts.minAppliedJobFitScore;
+      delete filtersForCounts.maxAppliedJobFitScore;
+      delete filtersForCounts.minMatchingJobFitScore;
+      delete filtersForCounts.maxMatchingJobFitScore;
+      delete filtersForCounts.includeNoScoreInApplied;
+      delete filtersForCounts.includeNoScoreInMatching;
+      
+      fetchFitScoreCounts(filtersForCounts);
+    }
+  }, [sessionStatus, filters, isClearingFilters, fetchFitScoreCounts]);
 
 
   // Render the component
   return (
     <>
-      <div className="flex flex-col h-full">
-        {/* Realtime Status Indicator */}
-        <div className="flex items-center justify-end p-4 pb-2">
-          <RealtimeIndicator 
-            isConnected={realtimeConnected}
-            isReconnecting={isReconnecting}
-            reconnectAttempts={reconnectAttempts}
-            size="sm"
-            showText={true}
-          />
-        </div>
-        
-        {/* Main Content */}
+              <div className="flex flex-col h-full">
+          {/* Main Content */}
         <div className="flex-1 flex overflow-hidden">
           {/* Filters Sidebar */}
           {showFilters && (
@@ -1294,24 +1229,41 @@ export function CandidatesPageClient({
                       
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button disabled={isLoading || tableLoading} className="w-8 p-0 ml-2 mb-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3">
-                            <MoreVertical className="h-3 w-3" />
+                          <Button 
+                            disabled={isLoading || tableLoading} 
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 ml-2 mb-2 hover:bg-muted/50 transition-colors duration-200"
+                          >
+                            <MoreVertical className="h-3.5 w-3.5 text-muted-foreground" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => setIsAddModalOpen(true)}>
+                        <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuItem 
+                            onClick={() => setIsAddModalOpen(true)}
+                            className="text-sm py-2"
+                          >
                             <PlusCircle className="mr-2 h-4 w-4" />
                             Add Candidate
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={handleExportCandidates}>
+                          <DropdownMenuItem 
+                            onClick={handleExportCandidates}
+                            className="text-sm py-2"
+                          >
                             <FileDown className="mr-2 h-4 w-4" />
                             Export to Excel
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={handleImportCandidates}>
+                          <DropdownMenuItem 
+                            onClick={handleImportCandidates}
+                            className="text-sm py-2"
+                          >
                             <FileSpreadsheet className="mr-2 h-4 w-4" />
                             Import Data
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setIsSettingsDrawerOpen(true)}>
+                          <DropdownMenuItem 
+                            onClick={() => setIsSettingsDrawerOpen(true)}
+                            className="text-sm py-2"
+                          >
                             <Settings className="mr-2 h-4 w-4" />
                             Settings Page
                           </DropdownMenuItem>
@@ -1519,20 +1471,22 @@ export function CandidatesPageClient({
                   </div>
                 </div>
                 
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-3">
                   <Button
                     onClick={() => setPage(Math.max(1, page - 1))}
                     disabled={(() => {
                       const currentTotal = isAiSearchActive && aiMatchedCandidateIds ? aiRecordCount : total;
                       return page <= 1 || currentTotal === 0;
                     })()}
-                    className="border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3"
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-3 hover:bg-muted/50 transition-colors duration-200"
                   >
-                    <ChevronLeft className="h-4 w-4" />
+                    <ChevronLeft className="h-3.5 w-3.5 text-muted-foreground mr-2" />
                     Previous
                   </Button>
                   
-                  <span className="text-sm">
+                  <span className="text-sm text-muted-foreground min-w-[80px] text-center">
                     {(() => {
                       const currentTotal = isAiSearchActive && aiMatchedCandidateIds ? aiRecordCount : total;
                       if (currentTotal === 0) {
@@ -1554,10 +1508,12 @@ export function CandidatesPageClient({
                       const currentTotal = isAiSearchActive && aiMatchedCandidateIds ? aiRecordCount : total;
                       return page >= totalPages || currentTotal === 0;
                     })()}
-                    className="border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3"
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-3 hover:bg-muted/50 transition-colors duration-200"
                   >
                     Next
-                    <ChevronRight className="h-4 w-4" />
+                    <ChevronRight className="h-3.5 w-3.5 text-muted-foreground ml-2" />
                   </Button>
                 </div>
               </div>
@@ -1724,7 +1680,7 @@ export function CandidatesPageClient({
           showDetails={showPerformanceMonitor}
           onMetricsUpdate={(metrics) => {
             // Optional: Handle metrics updates if needed
-            console.log('Performance metrics updated:', metrics);
+            // console.log('Performance metrics updated:', metrics);
           }}
           onClose={() => setShowPerformanceMonitor(false)}
         />

@@ -33,7 +33,10 @@ export function useCandidateData({
   // Complete candidates data for counts and statistics (unfiltered)
   const [allCandidatesForCounts, setAllCandidatesForCounts] = useState<Candidate[]>(safeInitialCandidates || []);
   // Database-level fit score counts for accurate badge display
-  const [databaseFitScoreCounts, setDatabaseFitScoreCounts] = useState<Array<{letter: string, count: number}>>([]);
+  const [databaseFitScoreCounts, setDatabaseFitScoreCounts] = useState<{
+    applied: Array<{letter: string, count: number}>;
+    matching: Array<{letter: string, count: number}>;
+  } | null>(null);
   const [availablePositions, setAvailablePositions] = useState<Position[]>(safeInitialAvailablePositions || []);
   const [availableStages, setAvailableStages] = useState<RecruitmentStage[]>(safeInitialAvailableStages || []);
   const [availableRecruiters, setAvailableRecruiters] = useState<Pick<UserProfile, 'id' | 'name' | 'email' | 'avatarUrl'>[]>([]);
@@ -147,6 +150,58 @@ export function useCandidateData({
     
     return 0;
   };
+
+  // Fetch fit score counts from the dedicated API endpoint
+  const fetchFitScoreCounts = useCallback(async (filters?: any) => {
+    if (sessionStatus !== 'authenticated') {
+      return;
+    }
+
+    try {
+      const params = new URLSearchParams();
+      
+      // Add filters to the params (excluding fit score filters to prevent circular dependency)
+      if (filters) {
+        if (filters.name) params.append('name', filters.name);
+        if (filters.nameOperator) params.append('nameOperator', filters.nameOperator);
+        if (filters.email) params.append('email', filters.email);
+        if (filters.emailOperator) params.append('emailOperator', filters.emailOperator);
+        if (filters.phone) params.append('phone', filters.phone);
+        if (filters.phoneOperator) params.append('phoneOperator', filters.phoneOperator);
+        if (filters.positionId) params.append('positionId', filters.positionId);
+        if (filters.status) params.append('status', filters.status);
+        if (filters.education) params.append('education', filters.education);
+        if (filters.minExperienceYears !== undefined) params.append('minExperienceYears', filters.minExperienceYears.toString());
+        if (filters.maxExperienceYears !== undefined) params.append('maxExperienceYears', filters.maxExperienceYears.toString());
+        if (filters.applicationDateStart) params.append('applicationDateStart', filters.applicationDateStart);
+        if (filters.applicationDateEnd) params.append('applicationDateEnd', filters.applicationDateEnd);
+        if (filters.recruiterId) params.append('recruiterId', filters.recruiterId);
+        if (filters.sourceId) params.append('sourceId', filters.sourceId);
+        if (filters.location) params.append('location', filters.location);
+        if (filters.locationOperator) params.append('locationOperator', filters.locationOperator);
+        if (filters.skills) params.append('skills', filters.skills);
+      }
+      
+      const url = `/api/candidates/fit-score-counts?${params.toString()}`;
+      
+      const response = await fetch(url);
+      
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Transform the data to match the expected format
+        // Update the database fit score counts
+        setDatabaseFitScoreCounts({
+          applied: data.applied || [],
+          matching: data.matching || []
+        });
+      } else {
+        console.warn('Failed to fetch fit score counts:', response.status, response.statusText);
+      }
+    } catch (error) {
+      console.warn('Error fetching fit score counts:', error);
+    }
+  }, [sessionStatus]);
 
   const fetchRecruiters = useCallback(async (retryCount = 0) => {
     if (sessionStatus !== 'authenticated') return;
@@ -412,6 +467,18 @@ export function useCandidateData({
     }
   }, [sessionStatus, fetchSources, fetchRecruiters]);
 
+  // Fetch fit score counts on mount
+  useEffect(() => {
+    if (sessionStatus === 'authenticated') {
+      // Use a delay to ensure the component is fully mounted
+      const timeoutId = setTimeout(() => {
+        fetchFitScoreCounts();
+      }, 300);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [sessionStatus, fetchFitScoreCounts]);
+
   // Set initial data
   useEffect(() => { 
     stableSetFilteredCandidates(safeInitialCandidates || []); 
@@ -469,6 +536,7 @@ export function useCandidateData({
     applyOptimisticUpdate,
     revertOptimisticUpdate,
     // Database-level fit score counts
-    databaseFitScoreCounts
+    databaseFitScoreCounts,
+    fetchFitScoreCounts
   };
 }

@@ -404,10 +404,14 @@ export function CandidateFilters({
     }
     
     // Reset flag after a delay
-    setTimeout(() => {
+    const timeoutId = setTimeout(() => {
       setIsApplyingFilters(false);
     }, 100);
-     }, [name, nameOperator, email, emailOperator, phone, phoneOperator, selectedPositionIds, selectedStatuses, selectedSourceIds, skills, location, locationOperator, experienceYearsRange, applicationDateRange, selectedRecruiterIds]); // Removed onFilterChange from dependencies
+    
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [name, nameOperator, email, emailOperator, phone, phoneOperator, selectedPositionIds, selectedStatuses, selectedSourceIds, skills, location, locationOperator, experienceYearsRange, applicationDateRange, selectedRecruiterIds]); // Removed onFilterChange from dependencies
 
   // Single auto-apply effect for all filter changes
   useEffect(() => {

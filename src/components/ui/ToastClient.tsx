@@ -16,6 +16,9 @@ export default function ToastClient() {
     <Toaster
       position="top-right"
       gutter={16}
+      containerStyle={{
+        zIndex: 10001, // Higher than modal z-index (10000)
+      }}
       toastOptions={{
         duration: 4000,
         style: {

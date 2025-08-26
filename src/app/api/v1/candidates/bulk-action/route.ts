@@ -189,9 +189,9 @@ export async function POST(req: NextRequest) {
           }
          
         } else if (position && !position.recruiterId) {
-          console.log(`⚠️ Position ${data.positionId} exists but has no recruiter assigned`);
+          // console.log(`⚠️ Position ${data.positionId} exists but has no recruiter assigned`);
         } else if (!position) {
-          console.log(`❌ Position ${data.positionId} not found in database`);
+          // console.log(`❌ Position ${data.positionId} not found in database`);
         }
       } catch (error) {
         console.error('Failed to get position for recruiter assignment:', error);

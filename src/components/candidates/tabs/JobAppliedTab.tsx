@@ -69,7 +69,7 @@ export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
                 e.currentTarget.style.filter = 'brightness(1)';
               }}
             >
-              <div className="rounded-lg p-4 h-full border shadow-lg bg-card">
+              <div className="rounded-lg p-4 h-full shadow-lg bg-card">
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="font-semibold text-foreground text-lg">
                     {Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === appliedJobId)?.title || 'Unknown Position' : 'Unknown Position'}

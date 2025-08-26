@@ -14,6 +14,11 @@ export function useTheme() {
   useEffect(() => {
     setMounted(true);
     
+    // Ensure we're in a browser environment
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+      return;
+    }
+    
     // Get initial theme from localStorage or system preference
     const savedTheme = localStorage.getItem('theme') as ThemePreference | null;
     const initialPreference = savedTheme || 'system';
@@ -38,6 +43,11 @@ export function useTheme() {
   useEffect(() => {
     if (themePreference !== 'system') return;
 
+    // Ensure we're in a browser environment
+    if (typeof window === 'undefined') {
+      return;
+    }
+
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const handleChange = (e: MediaQueryListEvent) => {
       const newTheme = e.matches ? 'dark' : 'light';
@@ -61,7 +71,11 @@ export function useTheme() {
           const userThemePreference = data.appearance?.themePreference as ThemePreference;
           if (userThemePreference && userThemePreference !== themePreference) {
             setThemePreference(userThemePreference);
-            localStorage.setItem('theme', userThemePreference);
+            
+            // Ensure we're in a browser environment
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('theme', userThemePreference);
+            }
             
             // Apply the new theme
             let newTheme: 'light' | 'dark' = 'light';
@@ -70,7 +84,10 @@ export function useTheme() {
             } else if (userThemePreference === 'light') {
               newTheme = 'light';
             } else {
-              newTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+              // Ensure we're in a browser environment
+              if (typeof window !== 'undefined') {
+                newTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+              }
             }
             
             setCurrentTheme(newTheme);
@@ -86,6 +103,11 @@ export function useTheme() {
   }, [session?.user?.id, themePreference]);
 
   const applyTheme = useCallback((theme: 'light' | 'dark') => {
+    // Ensure we're in a browser environment
+    if (typeof document === 'undefined') {
+      return;
+    }
+
     const root = document.documentElement;
     if (theme === 'dark') {
       root.classList.add('dark');

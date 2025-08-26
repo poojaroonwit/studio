@@ -93,7 +93,7 @@ export function CandidateAvatar({
       className={cn(
         sizeClasses[size],
         'relative bg-gradient-to-br from-blue-100 to-indigo-200 dark:from-blue-900/30 dark:to-indigo-800/30',
-        'transition-all duration-300 rounded-full',
+        'transition-all duration-300 rounded-md',
         isLoading && 'animate-pulse',
         className
       )}
@@ -103,11 +103,11 @@ export function CandidateAvatar({
         <AvatarImage 
           src={imageUrl} 
           alt={user.name}
-          className="object-cover object-top rounded-full"
+          className="object-cover object-top rounded-md"
         />
       ) : null}
       <AvatarFallback 
-        className="bg-gradient-to-br from-blue-500/20 to-indigo-600/20 text-blue-700 dark:text-blue-300 font-bold rounded-full"
+        className="bg-gradient-to-br from-blue-500/20 to-indigo-600/20 text-blue-700 dark:text-blue-300 font-bold rounded-md"
         style={{ 
           backgroundColor: personalColor + '20',
           color: personalColor
@@ -191,7 +191,7 @@ export function CandidateAvatarLarge({ user, className }: CandidateAvatarProps) 
       className={cn(
         'h-16 w-16',
         'relative bg-gradient-to-br from-blue-100 to-indigo-200 dark:from-blue-900/30 dark:to-indigo-800/30',
-        'transition-all duration-300 rounded-full',
+        'transition-all duration-300 rounded-md',
         isLoading && 'animate-pulse',
         className
       )}
@@ -201,11 +201,11 @@ export function CandidateAvatarLarge({ user, className }: CandidateAvatarProps) 
         <AvatarImage 
           src={imageUrl} 
           alt={user.name}
-          className="object-cover object-top rounded-full"
+          className="object-cover object-top rounded-md"
         />
       ) : null}
       <AvatarFallback 
-        className="bg-gradient-to-br from-blue-500/20 to-indigo-600/20 text-blue-700 dark:text-blue-300 font-bold text-lg rounded-full"
+        className="bg-gradient-to-br from-blue-500/20 to-indigo-600/20 text-blue-700 dark:text-blue-300 font-bold text-lg rounded-md"
         style={{ 
           backgroundColor: personalColor + '20',
           color: personalColor

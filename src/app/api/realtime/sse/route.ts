@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
       return new Response('Unauthorized', { status: 401 });
     }
 
-    console.log(`[SSE] User ${userId} connecting to SSE endpoint`);
+    // console.log(`[SSE] User ${userId} connecting to SSE endpoint`);
   } catch (error) {
     console.error('[SSE] Error during session validation:', error);
     return new Response('Internal Server Error', { status: 500 });

@@ -2,6 +2,8 @@
  * Performance utilities for memory management and optimization
  */
 
+import { useRef, useCallback, useEffect, useState } from 'react';
+
 // Global registry for tracking resources
 const resourceRegistry = {
   timeouts: new Set<number>(),
@@ -9,19 +11,59 @@ const resourceRegistry = {
   eventListeners: new Set<{ target: EventTarget; type: string; listener: EventListener }>(),
   eventSources: new Set<EventSource>(),
   observers: new Set<ResizeObserver>(),
+  abortControllers: new Set<AbortController>(),
 };
+
+// Performance monitoring state
+let performanceMonitorActive = false;
+let memoryCheckInterval: NodeJS.Timeout | null = null;
+let lastMemoryUsage = 0;
+let memoryLeakThreshold = 50; // MB
+let consecutiveMemoryIncreases = 0;
 
 // Override global functions to track resources
 export function initializeResourceTracking() {
   if (typeof window === 'undefined') return;
 
-  // TODO: Fix TypeScript issues with resource tracking
-  // Temporarily disabled to allow build to complete
-  console.warn('Resource tracking temporarily disabled due to TypeScript compatibility issues');
+  // Store original functions
+  const originalSetTimeout = window.setTimeout;
+  const originalSetInterval = window.setInterval;
+  const originalClearTimeout = window.clearTimeout;
+  const originalClearInterval = window.clearInterval;
+
+  // Override setTimeout
+  (window as any).setTimeout = function(callback: TimerHandler, delay?: number, ...args: any[]) {
+    const timeoutId = originalSetTimeout(callback, delay, ...args);
+    resourceRegistry.timeouts.add(timeoutId);
+    return timeoutId;
+  };
+
+  // Override setInterval
+  (window as any).setInterval = function(callback: TimerHandler, delay?: number, ...args: any[]) {
+    const intervalId = originalSetInterval(callback, delay, ...args);
+    resourceRegistry.intervals.add(intervalId);
+    return intervalId;
+  };
+
+  // Override clearTimeout
+  (window as any).clearTimeout = function(timeoutId: number) {
+    resourceRegistry.timeouts.delete(timeoutId);
+    return originalClearTimeout(timeoutId);
+  };
+
+  // Override clearInterval
+  (window as any).clearInterval = function(intervalId: number) {
+    resourceRegistry.intervals.delete(intervalId);
+    return originalClearInterval(intervalId);
+  };
+
+  console.log('🔧 Resource tracking initialized');
 }
 
 // Cleanup all tracked resources
 export function cleanupAllResources() {
+  console.log('🧹 Cleaning up all tracked resources...');
+  
   // Clear all timeouts
   resourceRegistry.timeouts.forEach(id => {
     clearTimeout(id);
@@ -54,8 +96,17 @@ export function cleanupAllResources() {
   });
   resourceRegistry.observers.clear();
 
-  // Note: Event listeners are harder to clean up automatically
-  // They should be manually removed by components
+  // Abort all AbortControllers
+  resourceRegistry.abortControllers.forEach(controller => {
+    try {
+      controller.abort();
+    } catch (error) {
+      console.error('Error aborting controller:', error);
+    }
+  });
+  resourceRegistry.abortControllers.clear();
+
+  console.log('✅ All resources cleaned up');
 }
 
 // Get resource statistics
@@ -63,78 +114,134 @@ export function getResourceStats() {
   return {
     timeouts: resourceRegistry.timeouts.size,
     intervals: resourceRegistry.intervals.size,
-    eventSources: resourceRegistry.eventSources.size,
     eventListeners: resourceRegistry.eventListeners.size,
+    eventSources: resourceRegistry.eventSources.size,
     observers: resourceRegistry.observers.size,
+    abortControllers: resourceRegistry.abortControllers.size,
   };
 }
 
-// Memory optimization utilities
-export function optimizeMemory() {
-  // Force garbage collection if available
-  if ('gc' in window) {
-    (window as any).gc();
+// Memory leak detection
+export function startMemoryLeakDetection(thresholdMB = 50, checkIntervalMs = 10000) {
+  if (performanceMonitorActive) {
+    console.warn('Memory leak detection already active');
+    return;
   }
 
-  // Clear console to free memory
-  if (typeof console !== 'undefined' && console.clear) {
-    console.clear();
+  if (typeof window === 'undefined' || !('memory' in performance)) {
+    console.warn('Memory API not available');
+    return;
   }
 
-  // Clear any cached data
-  if (typeof sessionStorage !== 'undefined') {
-    // Keep only essential data
-    const essentialKeys = ['theme', 'user-preferences'];
-    const keysToRemove = Object.keys(sessionStorage).filter(key => !essentialKeys.includes(key));
-    keysToRemove.forEach(key => sessionStorage.removeItem(key));
-  }
+  performanceMonitorActive = true;
+  memoryLeakThreshold = thresholdMB;
+  lastMemoryUsage = 0;
+  consecutiveMemoryIncreases = 0;
 
-  // Clear any cached images
-  if (typeof window !== 'undefined' && 'caches' in window) {
-    caches.keys().then(cacheNames => {
-      cacheNames.forEach(cacheName => {
-        if (!cacheName.includes('essential')) {
-          caches.delete(cacheName);
+  memoryCheckInterval = setInterval(() => {
+    const memoryInfo = (performance as any).memory;
+    const currentMemoryMB = Math.round(memoryInfo.usedJSHeapSize / 1024 / 1024);
+    
+    if (lastMemoryUsage > 0) {
+      const memoryIncrease = currentMemoryMB - lastMemoryUsage;
+      
+      if (memoryIncrease > 0) {
+        consecutiveMemoryIncreases++;
+        
+        if (consecutiveMemoryIncreases >= 3 && memoryIncrease > memoryLeakThreshold) {
+          console.warn(`🚨 Potential memory leak detected! Memory increased by ${memoryIncrease}MB over 3 checks`);
+          console.warn('Current resource stats:', getResourceStats());
+          
+          // Force garbage collection if available
+          if ('gc' in window) {
+            (window as any).gc();
+          }
         }
-      });
-    });
+      } else {
+        consecutiveMemoryIncreases = 0;
+      }
+    }
+    
+    lastMemoryUsage = currentMemoryMB;
+  }, checkIntervalMs);
+
+  console.log(`🔍 Memory leak detection started (threshold: ${thresholdMB}MB, interval: ${checkIntervalMs}ms)`);
+}
+
+export function stopMemoryLeakDetection() {
+  if (memoryCheckInterval) {
+    clearInterval(memoryCheckInterval);
+    memoryCheckInterval = null;
   }
+  performanceMonitorActive = false;
+  console.log('🛑 Memory leak detection stopped');
 }
 
-// Debounce utility for performance
-export function debounce<T extends (...args: any[]) => any>(
-  func: T,
-  wait: number
-): (...args: Parameters<T>) => void {
-  let timeout: NodeJS.Timeout | null = null;
+// Utility functions for components
+export function trackTimeout(timeoutId: number) {
+  resourceRegistry.timeouts.add(timeoutId);
+}
+
+export function trackInterval(intervalId: number) {
+  resourceRegistry.intervals.add(intervalId);
+}
+
+export function trackEventSource(eventSource: EventSource) {
+  resourceRegistry.eventSources.add(eventSource);
+}
+
+export function trackAbortController(controller: AbortController) {
+  resourceRegistry.abortControllers.add(controller);
+}
+
+// React hook for automatic cleanup
+export function useResourceCleanup() {
+  const cleanupRef = useRef<(() => void) | null>(null);
   
-  return (...args: Parameters<T>) => {
-    if (timeout) {
-      clearTimeout(timeout);
-    }
-    timeout = setTimeout(() => func(...args), wait);
-  };
-}
-
-// Throttle utility for performance
-export function throttle<T extends (...args: any[]) => any>(
-  func: T,
-  limit: number
-): (...args: Parameters<T>) => void {
-  let inThrottle: boolean = false;
+  const registerCleanup = useCallback((cleanup: () => void) => {
+    cleanupRef.current = cleanup;
+  }, []);
   
-  return (...args: Parameters<T>) => {
-    if (!inThrottle) {
-      func(...args);
-      inThrottle = true;
-      setTimeout(() => inThrottle = false, limit);
-    }
-  };
+  useEffect(() => {
+    return () => {
+      if (cleanupRef.current) {
+        cleanupRef.current();
+      }
+    };
+  }, []);
+  
+  return registerCleanup;
 }
 
+// Performance monitoring hook
+export function usePerformanceMonitor(enabled = true) {
+  const [metrics, setMetrics] = useState({
+    memory: 0,
+    resourceCount: 0,
+    lastUpdate: Date.now(),
+  });
 
+  useEffect(() => {
+    if (!enabled || typeof window === 'undefined') return;
 
-// Initialize resource tracking on module load
-if (typeof window !== 'undefined') {
-  initializeResourceTracking();
+    const updateMetrics = () => {
+      const memoryInfo = (performance as any).memory;
+      const memoryMB = memoryInfo ? Math.round(memoryInfo.usedJSHeapSize / 1024 / 1024) : 0;
+      const stats = getResourceStats();
+      const totalResources = Object.values(stats).reduce((sum, count) => sum + count, 0);
+
+      setMetrics({
+        memory: memoryMB,
+        resourceCount: totalResources,
+        lastUpdate: Date.now(),
+      });
+    };
+
+    const interval = setInterval(updateMetrics, 5000);
+    updateMetrics();
+
+    return () => clearInterval(interval);
+  }, [enabled]);
+
+  return metrics;
 }

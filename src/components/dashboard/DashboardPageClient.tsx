@@ -41,8 +41,7 @@ import { PositionDetailDrawer } from '@/components/positions/PositionDetailDrawe
 import { useUnifiedRealtime } from '@/hooks/use-unified-realtime';
 import { usePermissionRefresh } from '@/hooks/use-permission-refresh';
 import { cn } from '@/lib/utils';
-import { RealtimeIndicator } from '@/components/ui/realtime-indicator';
-import '@/lib/chartjs-setup';
+import { setupChartJS } from '@/lib/chartjs-setup';
 import '../../app/dashboard/dashboard.css';
 
 
@@ -90,6 +89,11 @@ export default function DashboardPageClient({
 
   // Permission refresh hook
   const { refreshPermissions } = usePermissionRefresh();
+
+  // Setup Chart.js on component mount
+  useEffect(() => {
+    setupChartJS();
+  }, []);
 
   // Check permissions for dashboard access - based on actual permissions, not hardcoded roles
   const canViewDashboard = session?.user?.modulePermissions?.includes('USERS_MANAGE') ||
@@ -198,7 +202,7 @@ export default function DashboardPageClient({
   }, [status, session?.user?.id, session?.user?.role]);
 
   // Unified realtime hook
-  const { isConnected: realtimeConnected, isReconnecting, reconnectAttempts } = useUnifiedRealtime({
+  const { isConnected: realtimeConnected } = useUnifiedRealtime({
     onCandidateUpdate: (updatedCandidate) => {
       // Refresh dashboard data when candidates are updated
       fetchDataClientSide();
@@ -252,10 +256,10 @@ export default function DashboardPageClient({
     
     // Auto-refresh permissions if they're missing for authenticated users
     if (status === 'authenticated' && session?.user?.id && (!session.user.modulePermissions || session.user.modulePermissions.length === 0)) {
-      console.log('[DASHBOARD] Detected missing permissions, attempting to refresh...');
+              // console.log('[DASHBOARD] Detected missing permissions, attempting to refresh...');
       refreshPermissions().then(result => {
         if (result.success) {
-          console.log('[DASHBOARD] Permissions refreshed successfully');
+          // console.log('[DASHBOARD] Permissions refreshed successfully');
           toast.success('Permissions updated');
         } else {
           console.error('[DASHBOARD] Failed to refresh permissions:', result.error);
@@ -647,17 +651,6 @@ export default function DashboardPageClient({
   // Unified Dashboard - Show all metrics to everyone
   return (
     <div className="space-y-8 p-6">
-      {/* Realtime Status Indicator */}
-      <div className="flex items-center justify-end">
-        <RealtimeIndicator 
-          isConnected={realtimeConnected}
-          isReconnecting={isReconnecting}
-          reconnectAttempts={reconnectAttempts}
-          size="sm"
-          showText={true}
-        />
-      </div>
-   
       {/* Section 1: Key Statics - Row 1 */}
       <div className="space-y-6">
    

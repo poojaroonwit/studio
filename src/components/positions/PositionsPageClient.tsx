@@ -40,7 +40,6 @@ import { Command, CommandEmpty, CommandInput, CommandList, CommandItem } from '@
 import { ChevronsUpDown, Check, UserX, User, RotateCcw } from 'lucide-react';
 import { useUserPreferences } from '@/hooks/use-user-preferences';
 import { useUnifiedRealtime } from '@/hooks/use-unified-realtime';
-import { RealtimeIndicator } from '@/components/ui/realtime-indicator';
 import { checkSLAViolation, getSLABadgeVariant, formatSLAMessage, getSLARemainingDays } from '@/lib/slaUtils';
 import { Pagination } from '@/components/ui/pagination';
 
@@ -99,8 +98,8 @@ export default function PositionsPageClient() {
   const [isLoadingDepartments, setIsLoadingDepartments] = useState(false);
   const { data: session } = useSession();
   
-  // Unified realtime hook
-  const { isConnected: realtimeConnected, isReconnecting, reconnectAttempts } = useUnifiedRealtime({
+      // Unified realtime hook
+    const { isConnected: realtimeConnected } = useUnifiedRealtime({
     onPositionUpdate: (updatedPosition) => {
       setPositions(prevPositions => {
         const existingIndex = prevPositions.findIndex(p => p.id === updatedPosition.id);
@@ -965,18 +964,8 @@ export default function PositionsPageClient() {
 
         {/* Main Content */}
         <div className="flex-1 positions-content-area">
-          <div ref={contentRef} className="p-6 flex flex-col overflow-hidden h-full">
-            {/* Realtime Status Indicator */}
-            <div className="flex items-center justify-end mb-4">
-              <RealtimeIndicator 
-                isConnected={realtimeConnected}
-                isReconnecting={isReconnecting}
-                reconnectAttempts={reconnectAttempts}
-                size="sm"
-                showText={true}
-              />
-            </div>
-            {/* Filters on top */}
+                      <div ref={contentRef} className="p-6 flex flex-col overflow-hidden h-full">
+              {/* Filters on top */}
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 flex-shrink-0">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
           <div className="relative">
@@ -1224,7 +1213,7 @@ export default function PositionsPageClient() {
       ) : (
         <div 
           className="border rounded-lg shadow overflow-hidden relative table-container-responsive"
-          style={{ height: 'calc(100vh - 400px)', minHeight: '400px' }}
+        
         >
           
           {/* Table Loading Overlay */}

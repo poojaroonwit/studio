@@ -98,17 +98,11 @@ export function WarningProvider({ children }: { children: React.ReactNode }) {
           if (result.initialized) {
             // Warning system initialized automatically
             // Refresh warnings after initialization
-            let refreshTimeout: NodeJS.Timeout | null = setTimeout(() => {
+            const refreshTimeout = setTimeout(() => {
               fetchWarnings();
-              refreshTimeout = null;
             }, 2000);
             
-            return () => {
-              if (refreshTimeout) {
-                clearTimeout(refreshTimeout);
-                refreshTimeout = null;
-              }
-            };
+            return refreshTimeout; // Return the timeout ID for cleanup
           }
         }
       } catch (error) {
@@ -116,7 +110,19 @@ export function WarningProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
-    initializeWarningSystem();
+    let timeoutId: NodeJS.Timeout | null = null;
+    initializeWarningSystem().then(id => {
+      if (id) {
+        timeoutId = id;
+      }
+    });
+    
+    // Cleanup function
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
   }, [session?.user, fetchWarnings]);
 
   // Use unified real-time hook instead of individual SSE connection

@@ -844,32 +844,61 @@ export function CandidateTable({
                     </TableCell>
                   )}
                   <TableCell key={`${candidate.id}-actions`} className="text-right max-w-[100px]">
-                    <div className="flex items-center justify-end gap-2">
+                    <div className="flex items-center justify-end">
                       <DropdownMenu>
-                        <DropdownMenuTrigger>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreHorizontal className="h-4 w-4" />
+                        <DropdownMenuTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-7 w-7 p-0 hover:bg-muted/50 transition-colors duration-200"
+                          >
+                            <MoreHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
                             <span className="sr-only">Actions</span>
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem key="upload-resume" onSelect={() => handleUploadResumeClick(candidate)}>
-                            <UploadCloud className="mr-2 h-4 w-4" /> Upload Resume
+                        <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuItem 
+                            key="upload-resume" 
+                            onSelect={() => handleUploadResumeClick(candidate)}
+                            className="text-sm py-2"
+                          >
+                            <UploadCloud className="mr-2 h-4 w-4" /> 
+                            Upload Resume
                           </DropdownMenuItem>
-                          <DropdownMenuItem key="view-details" onSelect={() => { setSelectedCandidateSummary({ id: candidate.id, name: candidate.name }); setIsDetailModalOpen(true); }}>
-                            <Eye className="mr-2 h-4 w-4" /> View Details
+                          <DropdownMenuItem 
+                            key="view-details" 
+                            onSelect={() => { setSelectedCandidateSummary({ id: candidate.id, name: candidate.name }); setIsDetailModalOpen(true); }}
+                            className="text-sm py-2"
+                          >
+                            <Eye className="mr-2 h-4 w-4" /> 
+                            View Details
                           </DropdownMenuItem>
-                          <DropdownMenuItem key="manage-transitions" onSelect={() => handleManageTransitionsClick(candidate)}>
-                            <FileEdit className="mr-2 h-4 w-4" /> Manage Transitions
+                          <DropdownMenuItem 
+                            key="manage-transitions" 
+                            onSelect={() => handleManageTransitionsClick(candidate)}
+                            className="text-sm py-2"
+                          >
+                            <FileEdit className="mr-2 h-4 w-4" /> 
+                            Manage Transitions
                           </DropdownMenuItem>
                           {candidate.positionId && (
-                            <DropdownMenuItem key="edit-position" onSelect={() => handleEditPositionClick(candidate.positionId)}>
-                              <Briefcase className="mr-2 h-4 w-4" /> Edit Applied Job
+                            <DropdownMenuItem 
+                              key="edit-position" 
+                              onSelect={() => handleEditPositionClick(candidate.positionId)}
+                              className="text-sm py-2"
+                            >
+                              <Briefcase className="mr-2 h-4 w-4" /> 
+                              Edit Applied Job
                             </DropdownMenuItem>
                           )}
                           <DropdownMenuSeparator key="separator" />
-                          <DropdownMenuItem key="delete" onSelect={() => confirmDelete(candidate)} className="text-destructive hover:!bg-destructive/10 focus:!bg-destructive/10 focus:!text-destructive">
-                            <Trash2 className="mr-2 h-4 w-4" /> Delete
+                          <DropdownMenuItem 
+                            key="delete" 
+                            onSelect={() => confirmDelete(candidate)} 
+                            className="text-destructive hover:!bg-destructive/10 focus:!bg-destructive/10 focus:!text-destructive text-sm py-2"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" /> 
+                            Delete
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -1042,32 +1071,61 @@ export function CandidateTable({
                               </TableCell>
                             )}
                             <TableCell key={`${candidate.id}-actions`} className="text-right">
-                              <div className="flex items-center justify-end gap-2">
+                              <div className="flex items-center justify-end">
                                 <DropdownMenu>
-                                  <DropdownMenuTrigger>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                                      <MoreHorizontal className="h-4 w-4" />
+                                  <DropdownMenuTrigger asChild>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      className="h-7 w-7 p-0 hover:bg-muted/50 transition-colors duration-200"
+                                    >
+                                      <MoreHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
                                       <span className="sr-only">Actions</span>
                                     </Button>
                                   </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    <DropdownMenuItem key="upload-resume" onSelect={() => handleUploadResumeClick(candidate)}>
-                                      <UploadCloud className="mr-2 h-4 w-4" /> Upload Resume
+                                  <DropdownMenuContent align="end" className="w-48">
+                                    <DropdownMenuItem 
+                                      key="upload-resume" 
+                                      onSelect={() => handleUploadResumeClick(candidate)}
+                                      className="text-sm py-2"
+                                    >
+                                      <UploadCloud className="mr-2 h-4 w-4" /> 
+                                      Upload Resume
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem key="view-details" onSelect={() => { setSelectedCandidateSummary({ id: candidate.id, name: candidate.name }); setIsDetailModalOpen(true); }}>
-                                      <Eye className="mr-2 h-4 w-4" /> View Details
+                                    <DropdownMenuItem 
+                                      key="view-details" 
+                                      onSelect={() => { setSelectedCandidateSummary({ id: candidate.id, name: candidate.name }); setIsDetailModalOpen(true); }}
+                                      className="text-sm py-2"
+                                    >
+                                      <Eye className="mr-2 h-4 w-4" /> 
+                                      View Details
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem key="manage-transitions" onSelect={() => handleManageTransitionsClick(candidate)}>
-                                      <FileEdit className="mr-2 h-4 w-4" /> Manage Transitions
+                                    <DropdownMenuItem 
+                                      key="manage-transitions" 
+                                      onSelect={() => handleManageTransitionsClick(candidate)}
+                                      className="text-sm py-2"
+                                    >
+                                      <FileEdit className="mr-2 h-4 w-4" /> 
+                                      Manage Transitions
                                     </DropdownMenuItem>
                                     {candidate.positionId && (
-                                      <DropdownMenuItem key="edit-position" onSelect={() => handleEditPositionClick(candidate.positionId)}>
-                                        <Briefcase className="mr-2 h-4 w-4" /> Edit Applied Job
+                                      <DropdownMenuItem 
+                                        key="edit-position" 
+                                        onSelect={() => handleEditPositionClick(candidate.positionId)}
+                                        className="text-sm py-2"
+                                      >
+                                        <Briefcase className="mr-2 h-4 w-4" /> 
+                                        Edit Applied Job
                                       </DropdownMenuItem>
                                     )}
                                     <DropdownMenuSeparator key="separator" />
-                                    <DropdownMenuItem key="delete" onSelect={() => confirmDelete(candidate)} className="text-destructive hover:!bg-destructive/10 focus:!bg-destructive/10 focus:!text-destructive">
-                                      <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                    <DropdownMenuItem 
+                                      key="delete" 
+                                      onSelect={() => confirmDelete(candidate)} 
+                                      className="text-destructive hover:!bg-destructive/10 focus:!bg-destructive/10 focus:!text-destructive text-sm py-2"
+                                    >
+                                      <Trash2 className="mr-2 h-4 w-4" /> 
+                                      Delete
                                     </DropdownMenuItem>
                                   </DropdownMenuContent>
                                 </DropdownMenu>

@@ -232,27 +232,44 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
               {!isEditing ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="h-10 px-3">
-                      <MoreHorizontal className="h-4 w-4 mr-2" />
-                      Action
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-8 px-3 hover:bg-muted/50 transition-colors duration-200"
+                    >
+                      <MoreHorizontal className="h-3.5 w-3.5 text-muted-foreground mr-2" />
+                      Actions
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={onEditClick}>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem 
+                      onClick={onEditClick}
+                      className="text-sm py-2"
+                    >
                       <Edit3 className="mr-2 h-4 w-4" />
                       Edit Candidate Profile
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={onManageTransitions} disabled={availableStages.length === 0}>
+                    <DropdownMenuItem 
+                      onClick={onManageTransitions} 
+                      disabled={availableStages.length === 0}
+                      className="text-sm py-2"
+                    >
                       <Users className="mr-2 h-4 w-4" />
                       Manage Transitions
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={onReprocess}>
+                    <DropdownMenuItem 
+                      onClick={onReprocess}
+                      className="text-sm py-2"
+                    >
                       <RefreshCw className="mr-2 h-4 w-4" />
                       Re-process
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={onGenerativeAI}>
+                    <DropdownMenuItem 
+                      onClick={onGenerativeAI}
+                      className="text-sm py-2"
+                    >
                       <BrainCircuit className="mr-2 h-4 w-4" />
                       Generative AI
                     </DropdownMenuItem>

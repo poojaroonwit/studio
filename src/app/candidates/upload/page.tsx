@@ -19,8 +19,6 @@ import { UploadQueueStatus } from "@/components/UploadQueueStatus";
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { useUnifiedRealtime } from '@/hooks/use-unified-realtime';
-import { RealtimeIndicator } from '@/components/ui/realtime-indicator';
 
 const CandidateImportUploadQueue = dynamic(
   () => import('@/components/candidates/CandidateImportUploadQueue').then(mod => mod.CandidateImportUploadQueue),
@@ -54,14 +52,8 @@ function UploadPageContent() {
   const [availablePositions, setAvailablePositions] = useState<Position[]>([]);
   const [uploading, setUploading] = useState(false);
   const { data: session } = useSession();
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
-  // Unified realtime hook for connection status
-  const { isConnected: realtimeConnected, isReconnecting, reconnectAttempts } = useUnifiedRealtime({
-    showNotifications: false,
-    showErrorNotifications: false
-  });
+      const router = useRouter();
+    const searchParams = useSearchParams();
 
   // Get initial pagination state from URL
   const initialPage = parseInt(searchParams.get('page') || '1', 10);
@@ -202,17 +194,6 @@ function UploadPageContent() {
 
   return (
     <div className="mx-auto py-3 p-6">
-      {/* Realtime Status Indicator */}
-      <div className="flex items-center justify-end mb-4">
-        <RealtimeIndicator 
-          isConnected={realtimeConnected}
-          isReconnecting={isReconnecting}
-          reconnectAttempts={reconnectAttempts}
-          size="sm"
-          showText={true}
-        />
-      </div>
-      
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">Process Queue</h1>

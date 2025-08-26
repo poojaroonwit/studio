@@ -494,69 +494,55 @@ export const CandidateImportUploadQueue: React.FC<{
   // Server-Sent Events (SSE) for real-time updates
   useEffect(() => {
     let eventSource: EventSource | null = null;
-    let reconnectAttempts = 0;
-    const maxReconnectAttempts = 5;
-    const baseReconnectDelay = 1000;
-    const maxReconnectDelay = 15000; // Reduced from 30 seconds for faster reconnection
     let debounceTimeout: NodeJS.Timeout | null = null;
-    let latestSSEData: any = null;
+    let pollInterval: NodeJS.Timeout | null = null;
     let isConnected = false;
-
-    // Helper to format date as yyyy-MM-dd
-    function formatDate(date: Date) {
-      return date ? format(date, 'yyyy-MM-dd') : '';
-    }
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 3;
+    const baseReconnectDelay = 1000;
+    const maxReconnectDelay = 10000;
+    let latestSSEData: any = null;
 
     const applySSEUpdate = () => {
       if (latestSSEData) {
-        setJobs(latestSSEData.data);
-        if (typeof latestSSEData.total === 'number') {
-          setTotal(latestSSEData.total);
-        }
-        if (latestSSEData.summary) {
-          setStatusSummary(latestSSEData.summary);
-        }
+        setJobs(latestSSEData.jobs || []);
+        setSummary(latestSSEData.summary || { total: 0 });
+        setStatusSummary(latestSSEData.statusSummary || {});
+        setTotal(latestSSEData.total || 0);
         latestSSEData = null;
-        setIsLoading(false); // Set isLoading to false when SSE update is applied
       }
     };
 
     const connectSSE = () => {
-      // Only connect if session is authenticated
-      if (sessionStatus !== 'authenticated' || !session) {
-        return;
-      }
-      
       try {
-        const params = new URLSearchParams();
-        if (debouncedFilter) params.set('file_name', debouncedFilter);
-        if (statusFilter) {
-          // Convert display label to actual status codes for backend
-          const codes = statusLabelToCodes[statusFilter] || [];
-          if (codes.length === 1) {
-            params.set('status', codes[0]);
-          } else if (codes.length > 1) {
-            // For multiple codes (like Error: ['error', 'fail']), send all codes
-            params.set('status', codes.join(','));
+        // Prepare URLSearchParams with proper string values
+        const params = new URLSearchParams({
+          filter: debouncedFilter || '',
+          status: statusFilter || '',
+          page: page.toString(),
+          pageSize: pageSize.toString(),
+          positionId: positionIdFilter || ''
+        });
+
+        // Handle dateRange separately since it's an object
+        if (dateRange) {
+          if (dateRange.start) {
+            params.append('dateRangeStart', dateRange.start.toISOString());
+          }
+          if (dateRange.end) {
+            params.append('dateRangeEnd', dateRange.end.toISOString());
           }
         }
-        if (dateRange.start) params.set('date_start', formatDate(dateRange.start));
-        if (dateRange.end) params.set('date_end', formatDate(dateRange.end));
-        if (positionIdFilter) params.set('position_id', positionIdFilter);
-        params.set('limit', String(pageSize));
-        params.set('offset', String((page - 1) * pageSize));
-        const sseUrl = `/api/upload-queue/sse?${params.toString()}`;
-        
-        eventSource = new EventSource(sseUrl);
+
+        eventSource = new EventSource(`/api/upload-queue/sse?${params}`);
 
         eventSource.onopen = () => {
           isConnected = true;
           setIsRealtimeActive(true);
-          setIsLoading(false); // Ensure loading is off as soon as SSE connects
-          reconnectAttempts = 0; // Reset reconnect attempts on successful connection
+          reconnectAttempts = 0;
         };
 
-        eventSource.onerror = (error) => {
+        eventSource.onerror = () => {
           isConnected = false;
           setIsRealtimeActive(false);
 
@@ -573,11 +559,14 @@ export const CandidateImportUploadQueue: React.FC<{
             }, delay);
           } else {
             // Fall back to polling if SSE fails completely
-            const pollInterval = setInterval(() => {
+            pollInterval = setInterval(() => {
               if (!isConnected) {
                 fetchJobs();
               } else {
-                clearInterval(pollInterval);
+                if (pollInterval) {
+                  clearInterval(pollInterval);
+                  pollInterval = null;
+                }
               }
             }, 10000); // Poll every 10 seconds as fallback
           }
@@ -612,7 +601,12 @@ export const CandidateImportUploadQueue: React.FC<{
       if (eventSource) {
         eventSource.close();
       }
-      if (debounceTimeout) clearTimeout(debounceTimeout);
+      if (debounceTimeout) {
+        clearTimeout(debounceTimeout);
+      }
+      if (pollInterval) {
+        clearInterval(pollInterval);
+      }
     };
   }, [debouncedFilter, statusFilter, dateRange, page, pageSize, positionIdFilter, sessionStatus, session]); // Keep all dependencies as they affect the SSE connection
 

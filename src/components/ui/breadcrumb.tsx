@@ -5,8 +5,9 @@ import { ChevronRight, Home } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { AutoFont } from "./auto-font";
-import { LiveBadge } from "./live-badge";
+import { RealtimeIndicator } from "./realtime-indicator";
 import { useLivePageDetection } from "@/hooks/use-live-page-detection";
+import { useUnifiedRealtime } from "@/hooks/use-unified-realtime";
 
 export interface BreadcrumbItem {
   label: string;
@@ -21,6 +22,12 @@ interface BreadcrumbProps {
 
 export function Breadcrumb({ items, className }: BreadcrumbProps) {
   const { isLivePage } = useLivePageDetection();
+  
+  // Get real-time connection status for live pages
+  const { isConnected, isReconnecting, reconnectAttempts } = useUnifiedRealtime({
+    showNotifications: false,
+    showErrorNotifications: false
+  });
 
   return (
     <nav className={cn("flex items-center space-x-1 text-sm text-muted-foreground", className)}>
@@ -37,7 +44,14 @@ export function Breadcrumb({ items, className }: BreadcrumbProps) {
               {Icon && <Icon className="mr-1 h-4 w-4" />}
               <AutoFont>{item.label}</AutoFont>
               {isLivePage && (
-                <LiveBadge className="ml-2" size="sm" showText={false} />
+                <RealtimeIndicator 
+                  isConnected={isConnected}
+                  isReconnecting={isReconnecting}
+                  reconnectAttempts={reconnectAttempts}
+                  size="sm"
+                  showText={false}
+                  className="ml-2"
+                />
               )}
             </span>
           );

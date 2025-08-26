@@ -104,10 +104,7 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
       eventSource.addEventListener('position_update', handleEvent('position', options.onPositionUpdate));
       eventSource.addEventListener('warning_update', handleEvent('warning', options.onWarningUpdate));
       eventSource.addEventListener('notification_update', handleEvent('notification', options.onNotificationUpdate));
-      eventSource.addEventListener('upload_queue_update', (event) => {
-        console.log('[UnifiedRealtime] Received upload_queue_update event:', event);
-        handleEvent('upload_queue', options.onUploadQueueUpdate)(event);
-      });
+      eventSource.addEventListener('upload_queue_update', handleEvent('upload_queue', options.onUploadQueueUpdate));
       eventSource.addEventListener('presence_update', handleEvent('presence', options.onPresenceUpdate));
       eventSource.addEventListener('keepalive', () => {
         if (mountedRef.current) {

@@ -109,31 +109,35 @@ export function startMemoryLeakDetection(thresholdMB = 50, checkIntervalMs = 300
   performanceMonitorActive = true;
   memoryLeakThreshold = thresholdMB;
 
-  memoryCheckInterval = setInterval(() => {
-    const memoryInfo = (performance as any).memory;
-    if (!memoryInfo) return;
+  // Guard against dev hot-reloads
+  const __perfGlobal = globalThis as unknown as { __perfMemoryCheckInterval?: NodeJS.Timeout };
+  if (!__perfGlobal.__perfMemoryCheckInterval) {
+    __perfGlobal.__perfMemoryCheckInterval = setInterval(() => {
+      const memoryInfo = (performance as any).memory;
+      if (!memoryInfo) return;
 
-    const currentMemoryMB = Math.round(memoryInfo.usedJSHeapSize / 1024 / 1024);
-    const memoryIncrease = currentMemoryMB - lastMemoryUsage;
+      const currentMemoryMB = Math.round(memoryInfo.usedJSHeapSize / 1024 / 1024);
+      const memoryIncrease = currentMemoryMB - lastMemoryUsage;
 
-    if (memoryIncrease > 0) {
-      consecutiveMemoryIncreases++;
-      
-      if (consecutiveMemoryIncreases >= 3 && memoryIncrease > memoryLeakThreshold) {
-        console.warn(`🚨 Potential memory leak detected! Memory increased by ${memoryIncrease}MB over 3 checks`);
-        console.warn('Current resource stats:', getResourceStats());
+      if (memoryIncrease > 0) {
+        consecutiveMemoryIncreases++;
         
-        // Force garbage collection if available
-        if ('gc' in window) {
-          (window as any).gc();
+        if (consecutiveMemoryIncreases >= 3 && memoryIncrease > memoryLeakThreshold) {
+          console.warn(`🚨 Potential memory leak detected! Memory increased by ${memoryIncrease}MB over 3 checks`);
+          console.warn('Current resource stats:', getResourceStats());
+          
+          // Force garbage collection if available
+          if ('gc' in window) {
+            (window as any).gc();
+          }
         }
+      } else {
+        consecutiveMemoryIncreases = 0;
       }
-    } else {
-      consecutiveMemoryIncreases = 0;
-    }
-    
-    lastMemoryUsage = currentMemoryMB;
-  }, checkIntervalMs);
+      
+      lastMemoryUsage = currentMemoryMB;
+    }, checkIntervalMs);
+  }
 
   console.log(`🔍 Memory leak detection started (threshold: ${thresholdMB}MB, interval: ${checkIntervalMs}ms)`);
 }

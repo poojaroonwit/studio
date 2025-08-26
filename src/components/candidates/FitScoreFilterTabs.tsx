@@ -45,7 +45,6 @@ export function FitScoreFilterTabs({
   };
 
   const formatCount = (count: number) => {
-    if (count === 0) return null; // Return null to hide badge
     if (count >= 1000) {
       return (count / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
     }
@@ -124,7 +123,7 @@ export function FitScoreFilterTabs({
               : "text-black hover:text-foreground hover:bg-muted/30 border-b-2 border-gray-300"
           )}
         >
-          {isAiSearchActive && aiMatchedCount > 0 ? "AI Matched" : "All (0-100)"} {formatCount(getTotalCount()) && <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0.5 h-5 min-w-5 flex items-center justify-center text-foreground">{formatCount(getTotalCount())}</Badge>}
+          {isAiSearchActive && aiMatchedCount > 0 ? "AI Matched" : "All (0-100)"} <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0.5 h-5 min-w-5 flex items-center justify-center text-foreground">{formatCount(getTotalCount())}</Badge>
         </div>
         {scoreRanges.map((grade) => (
           <div
@@ -147,7 +146,7 @@ export function FitScoreFilterTabs({
                 : cn("hover:bg-muted/30", getGradeTextColor(grade.letter))
             )}
           >
-            {grade.letter} ({grade.min}-{grade.max}) {formatCount(getCount(grade.letter)) && <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0.5 h-5 min-w-5 flex items-center justify-center text-foreground">{formatCount(getCount(grade.letter))}</Badge>}
+            {grade.letter} ({grade.min}-{grade.max}) <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0.5 h-5 min-w-5 flex items-center justify-center text-foreground">{formatCount(getCount(grade.letter))}</Badge>
           </div>
         ))}
         <div
@@ -169,7 +168,7 @@ export function FitScoreFilterTabs({
               : cn("hover:bg-muted/30", getGradeTextColor('no-score'))
           )}
         >
-          No Score {formatCount(getCount('no-score')) && <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0.5 h-5 min-w-5 flex items-center justify-center text-foreground">{formatCount(getCount('no-score'))}</Badge>}
+          No Score <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0.5 h-5 min-w-5 flex items-center justify-center text-foreground">{formatCount(getCount('no-score'))}</Badge>
         </div>
       </div>
     </div>

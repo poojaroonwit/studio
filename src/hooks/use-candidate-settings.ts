@@ -28,21 +28,20 @@ export function useCandidateSettings() {
   const loadSettings = useCallback(async () => {
     // If session is still loading, wait a bit and try again
     if (status === 'loading') {
-      // Add a small delay to ensure session is fully established
-      setTimeout(() => {
-        loadSettings();
-      }, 100);
+      // Don't make recursive calls - let the useEffect handle retries
       return;
     }
 
     // If not authenticated, set loading to false and use defaults
     if (status !== 'authenticated' || !session?.user?.id) {
+      console.log('🔧 SETTINGS: Not authenticated, using defaults');
       setIsLoading(false);
       setSettings(defaultSettings);
       return;
     }
 
     try {
+      console.log('🔧 SETTINGS: Loading settings for user:', session.user.id);
       setIsLoading(true);
       setError(null);
 
@@ -66,13 +65,16 @@ export function useCandidateSettings() {
       }
 
       const data = await response.json();
+      console.log('🔧 SETTINGS: Received data:', data);
       
       // Merge with defaults in case some settings are missing
       const candidateSettings = data.candidates || {};
-      setSettings({
+      const mergedSettings = {
         ...defaultSettings,
         ...candidateSettings
-      });
+      };
+      console.log('🔧 SETTINGS: Merged settings:', mergedSettings);
+      setSettings(mergedSettings);
     } catch (err) {
       console.error('Error loading candidate settings:', err);
       if (err instanceof Error && err.name === 'AbortError') {
@@ -90,10 +92,12 @@ export function useCandidateSettings() {
   // Save settings to database
   const saveSettings = useCallback(async (newSettings: CandidateSettings) => {
     if (status !== 'authenticated' || !session?.user?.id) {
+      console.log('🔧 SETTINGS: Cannot save - not authenticated');
       return;
     }
 
     try {
+      console.log('🔧 SETTINGS: Saving settings:', newSettings);
       setError(null);
 
       const response = await fetch('/api/user-preferences', {
@@ -111,6 +115,7 @@ export function useCandidateSettings() {
         throw new Error('Failed to save settings');
       }
 
+      console.log('🔧 SETTINGS: Settings saved successfully');
       // Update local state
       setSettings(newSettings);
     } catch (err) {
@@ -122,8 +127,11 @@ export function useCandidateSettings() {
 
   // Load settings when session changes
   useEffect(() => {
-    loadSettings();
-  }, [loadSettings]);
+    // Only load settings when status is not loading and we have a user
+    if (status !== 'loading') {
+      loadSettings();
+    }
+  }, [session?.user?.id, status]); // Remove loadSettings from dependencies to prevent infinite loops
 
   return {
     settings,

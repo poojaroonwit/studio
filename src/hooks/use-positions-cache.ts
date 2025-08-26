@@ -40,7 +40,12 @@ export function usePositionsCache(filterOpenOnly: boolean = false) {
     setCache(globalCache);
 
     try {
-      const response = await fetch('/api/positions/all');
+      // Add a timeout so the UI won't hang indefinitely if the request stalls
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      const response = await fetch('/api/positions/all', { signal: controller.signal });
+      clearTimeout(timeoutId);
       if (!response.ok) {
         throw new Error('Failed to fetch positions');
       }

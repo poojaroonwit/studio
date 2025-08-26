@@ -428,6 +428,7 @@ export function CandidatesPageClient({
 
   // Stable callback for settings change
   const handleSettingsChange = useCallback(async (settings: any) => {
+    console.log('🔧 CANDIDATES PAGE: Settings changed:', settings);
     setCandidateSettings(settings);
   }, [setCandidateSettings]);
 
@@ -767,9 +768,8 @@ export function CandidatesPageClient({
         };
         setFilters(newFilters);
         setPage(1); // Always reset to page 1 when applying fit score filters
-        setTableLoading(true); // Show loading state
-        debouncedFetchTableData(newFilters, 1, pageSize);
-        fetchAllCandidatesForCounts(newFilters); // Update counts data when horizontal filters change
+        setTableLoading(true); // Show loading state; central filters effect will fetch
+        // Avoid double-fetch here; fetching is handled by the filters change effects
       } else {
         // Clear fit score filters if no valid horizontal filters
         const newFilters = {
@@ -781,9 +781,8 @@ export function CandidatesPageClient({
         };
         setFilters(newFilters);
         setPage(1); // Reset to page 1 when clearing fit score filters
-        setTableLoading(true); // Show loading state
-        debouncedFetchTableData(newFilters, 1, pageSize);
-        fetchAllCandidatesForCounts(newFilters); // Update counts data when clearing fit score filters
+        setTableLoading(true); // Show loading state; central filters effect will fetch
+        // Avoid double-fetch here; fetching is handled by the filters change effects
       }
     } else {
       // If no horizontal selections, clear fit score filters from main filters
@@ -796,9 +795,8 @@ export function CandidatesPageClient({
       };
       setFilters(newFilters);
       setPage(1); // Reset to page 1 when clearing all fit score filters
-      setTableLoading(true); // Show loading state
-      debouncedFetchTableData(newFilters, 1, pageSize);
-      fetchAllCandidatesForCounts(newFilters); // Update counts data when clearing all fit score filters
+      setTableLoading(true); // Show loading state; central filters effect will fetch
+      // Avoid double-fetch here; fetching is handled by the filters change effects
     }
   }, [horizontalSelectedFitScoreGrades, horizontalSelectedMatchingFitScoreGrades, applyHorizontalFitScoreFilters, pageSize, isClearingFilters, hasInitialDataFetch, fetchAllCandidatesForCounts]);
 
@@ -1469,7 +1467,6 @@ export function CandidatesPageClient({
                         <SelectItem value="50">50</SelectItem>
                         <SelectItem value="100">100</SelectItem>
                         <SelectItem value="1000">1000</SelectItem>
-                        <SelectItem value="1000000">Show All</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

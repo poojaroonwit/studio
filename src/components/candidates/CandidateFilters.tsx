@@ -333,38 +333,26 @@ export function CandidateFilters({
       multiselectTimeoutRef.current = null;
     }
 
-    // Calculate fit score filters based on selected grades
-    let minAppliedJobFitScore: number | undefined = undefined;
-    let maxAppliedJobFitScore: number | undefined = undefined;
-    let minMatchingJobFitScore: number | undefined = undefined;
-    let maxMatchingJobFitScore: number | undefined = undefined;
-
-    // ... existing fit score calculation logic ...
-
-         const newFilters: CandidateFilterValues = {
-       name: name !== undefined ? name : undefined,
-       nameOperator: name ? nameOperator : undefined,
-       email: email !== undefined ? email : undefined,
-       emailOperator: email ? emailOperator : undefined,
-       phone: phone !== undefined ? phone : undefined,
-       phoneOperator: phone ? phoneOperator : undefined,
-       selectedPositionIds: selectedPositionIds.size > 0 ? Array.from(selectedPositionIds) : undefined,
-       selectedStatuses: selectedStatuses.size > 0 ? Array.from(selectedStatuses) : undefined,
-       selectedSourceIds: selectedSourceIds.size > 0 ? Array.from(selectedSourceIds) : undefined,
-       skills: skills.size > 0 ? Array.from(skills).join(',') : undefined,
-       location: location !== undefined ? location : undefined,
-       locationOperator: location ? locationOperator : undefined,
-       minExperienceYears: experienceYearsRange[0] > 0 ? experienceYearsRange[0] : undefined,
-       maxExperienceYears: experienceYearsRange[1] < 50 ? experienceYearsRange[1] : undefined,
-       minAppliedJobFitScore,
-       maxAppliedJobFitScore,
-       minMatchingJobFitScore,
-       maxMatchingJobFitScore,
-       applicationDateStart: applicationDateRange?.from,
-       applicationDateEnd: applicationDateRange?.to,
-       selectedRecruiterIds: selectedRecruiterIds.size > 0 ? Array.from(selectedRecruiterIds) : undefined,
-       aiSearchQuery: undefined,
-     };
+    const newFilters: CandidateFilterValues = {
+      name: name !== undefined ? name : undefined,
+      nameOperator: name ? nameOperator : undefined,
+      email: email !== undefined ? email : undefined,
+      emailOperator: email ? emailOperator : undefined,
+      phone: phone !== undefined ? phone : undefined,
+      phoneOperator: phone ? phoneOperator : undefined,
+      selectedPositionIds: selectedPositionIds.size > 0 ? Array.from(selectedPositionIds) : undefined,
+      selectedStatuses: selectedStatuses.size > 0 ? Array.from(selectedStatuses) : undefined,
+      selectedSourceIds: selectedSourceIds.size > 0 ? Array.from(selectedSourceIds) : undefined,
+      skills: skills.size > 0 ? Array.from(skills).join(',') : undefined,
+      location: location !== undefined ? location : undefined,
+      locationOperator: location ? locationOperator : undefined,
+      minExperienceYears: experienceYearsRange[0] > 0 ? experienceYearsRange[0] : undefined,
+      maxExperienceYears: experienceYearsRange[1] < 50 ? experienceYearsRange[1] : undefined,
+      applicationDateStart: applicationDateRange?.from,
+      applicationDateEnd: applicationDateRange?.to,
+      selectedRecruiterIds: selectedRecruiterIds.size > 0 ? Array.from(selectedRecruiterIds) : undefined,
+      aiSearchQuery: undefined,
+    };
 
     // Remove undefined values to keep the filter object clean, but preserve empty strings
     Object.keys(newFilters).forEach(key => {
@@ -433,6 +421,58 @@ export function CandidateFilters({
     experienceYearsRange,
     applicationDateRange
   ]);
+
+  // Auto-apply filters when input values change (immediate)
+  // Note: Fit score ranges are now handled separately through debounced handlers
+  useEffect(() => {
+    // Clear any existing timeout
+    if (autoApplyTimeoutRef.current) {
+      clearTimeout(autoApplyTimeoutRef.current);
+    }
+    
+    // Skip auto-apply if we're currently syncing state from incoming props or not fully initialized
+    if (isSyncingFromInitialFiltersRef.current || !isComponentInitializedRef.current) {
+      return;
+    }
+    
+    // Skip if we're currently handling position changes directly
+    if (isHandlingPositionChangeRef.current) {
+      return;
+    }
+    
+    // Skip if we're currently applying filters
+    if (isApplyingFilters) {
+      return;
+    }
+    
+    // Skip if there's an advanced query active
+    if (advancedQueryInput.trim()) {
+      return;
+    }
+    
+    // Always apply filters when any filter value changes, even if it's empty (to clear previous filters)
+    // This ensures that when you clear a field, it properly clears the filter
+    handleApplyStandardFilters();
+  }, [name, email, phone, selectedPositionIds, selectedStatuses, selectedSourceIds, skills, location, experienceYearsRange, applicationDateRange, selectedRecruiterIds, advancedQueryInput, handleApplyStandardFilters]);
+
+  // Component initialization
+  useEffect(() => {
+    // Mark component as initialized immediately
+    isComponentInitializedRef.current = true;
+    isInitialLoadRef.current = false;
+    
+    // Apply filters immediately to ensure proper state
+    handleApplyStandardFilters();
+
+    return () => {
+      if (multiselectTimeoutRef.current) {
+        clearTimeout(multiselectTimeoutRef.current);
+      }
+      if (autoApplyTimeoutRef.current) {
+        clearTimeout(autoApplyTimeoutRef.current);
+      }
+    };
+  }, []); // Only run once on mount
 
   // Define a list of common skills
   const skillOptions = [
@@ -790,105 +830,6 @@ export function CandidateFilters({
 
   // Add a ref to track the last time we applied filters to prevent rapid successive calls
   const lastFilterApplyTimeRef = useRef<number>(0);
-
-  // Auto-apply filters when input values change (immediate)
-  // Note: Fit score ranges are now handled separately through debounced handlers
-  useEffect(() => {
-    // Clear any existing timeout
-    if (autoApplyTimeoutRef.current) {
-      clearTimeout(autoApplyTimeoutRef.current);
-    }
-    
-    // Skip auto-apply if we're currently syncing state from incoming props or not fully initialized
-    if (isSyncingFromInitialFiltersRef.current || !isComponentInitializedRef.current) {
-      return;
-    }
-    
-    // Skip if we're currently handling position changes directly
-    if (isHandlingPositionChangeRef.current) {
-      return;
-    }
-    
-    // Skip if we're currently applying filters
-    if (isApplyingFilters) {
-      return;
-    }
-    
-    // Skip if there's an advanced query active
-    if (advancedQueryInput.trim()) {
-      return;
-    }
-    
-    // Skip if we're in the middle of a filter update cycle
-    if (lastAppliedFiltersRef.current) {
-      const currentFilters = {
-        name: name || undefined,
-        email: email || undefined,
-        phone: phone || undefined,
-        selectedPositionIds: selectedPositionIds.size > 0 ? Array.from(selectedPositionIds) : undefined,
-        selectedStatuses: selectedStatuses.size > 0 ? Array.from(selectedStatuses) : undefined,
-        skills: skills.size > 0 ? Array.from(skills).join(',') : undefined,
-        location: location || undefined,
-        minExperienceYears: experienceYearsRange[0] > 0 ? experienceYearsRange[0] : undefined,
-        maxExperienceYears: experienceYearsRange[1] < 50 ? experienceYearsRange[1] : undefined,
-        applicationDateStart: applicationDateRange?.from,
-        applicationDateEnd: applicationDateRange?.to,
-        selectedRecruiterIds: selectedRecruiterIds.size > 0 ? Array.from(selectedRecruiterIds) : undefined,
-      };
-      
-      // Remove undefined values
-      Object.keys(currentFilters).forEach(key => {
-        if (currentFilters[key as keyof typeof currentFilters] === undefined) {
-          delete currentFilters[key as keyof typeof currentFilters];
-        }
-      });
-      
-      const currentFiltersString = JSON.stringify(currentFilters);
-      if (lastAppliedFiltersRef.current === currentFiltersString) {
-        return;
-      }
-    }
-    
-    // Check if we have any meaningful filters
-    const hasFilters = name || email || phone || 
-                       selectedPositionIds.size > 0 || 
-                       selectedStatuses.size > 0 || 
-                       selectedSourceIds.size > 0 ||
-                       skills.size > 0 || 
-                       location ||
-                       experienceYearsRange[0] > 0 || 
-                       experienceYearsRange[1] < 50 ||
-                       applicationDateRange?.from ||
-                       applicationDateRange?.to ||
-                       selectedRecruiterIds.size > 0;
-    
-    // Always apply filters when any filter value changes, even if it's empty (to clear previous filters)
-    // This ensures that when you clear a field, it properly clears the filter
-    handleApplyStandardFilters();
-     }, [name, email, phone, selectedPositionIds, selectedStatuses, selectedSourceIds, skills, location, experienceYearsRange, applicationDateRange, selectedRecruiterIds, advancedQueryInput]);
-
-  // Component initialization
-  useEffect(() => {
-    // Mark component as initialized immediately
-    isComponentInitializedRef.current = true;
-    isInitialLoadRef.current = false;
-    
-    // Apply filters immediately to ensure proper state
-    handleApplyStandardFilters();
-
-    return () => {
-      if (multiselectTimeoutRef.current) {
-        clearTimeout(multiselectTimeoutRef.current);
-      }
-      if (autoApplyTimeoutRef.current) {
-        clearTimeout(autoApplyTimeoutRef.current);
-      }
-    };
-  }, []); // Only run once on mount
-
-
-
-
 
   const handleAiSearchClick = () => {
     if (aiSearchQueryInput.trim()) {

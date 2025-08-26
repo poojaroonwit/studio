@@ -8,27 +8,30 @@ const controllers = new Set<ReadableStreamDefaultController<any>>();
 const userControllers = new Map<string, Set<ReadableStreamDefaultController<any>>>();
 
 // Cleanup stale controllers periodically
-setInterval(() => {
-  const initialCount = controllers.size;
-  for (const controller of controllers) {
-    try {
-      // Try to send a keepalive to test if the connection is still alive
-      controller.enqueue(new TextEncoder().encode(': keepalive\n\n'));
-    } catch (e) {
-      // Remove the controller if it's causing errors
-      controllers.delete(controller);
-      // Also remove from user-specific tracking
-      for (const [userId, userControllerSet] of userControllers.entries()) {
-        if (userControllerSet.has(controller)) {
-          userControllerSet.delete(controller);
-          if (userControllerSet.size === 0) {
-            userControllers.delete(userId);
-          }
-        }
-      }
-    }
-  }
-}, 60000); // Check every minute
+const __globalRealtime = globalThis as unknown as { __candidateSseCleanup?: NodeJS.Timeout };
+if (!__globalRealtime.__candidateSseCleanup) {
+	__globalRealtime.__candidateSseCleanup = setInterval(() => {
+		const initialCount = controllers.size;
+		for (const controller of controllers) {
+			try {
+				// Try to send a keepalive to test if the connection is still alive
+				controller.enqueue(new TextEncoder().encode(': keepalive\n\n'));
+			} catch (e) {
+				// Remove the controller if it's causing errors
+				controllers.delete(controller);
+				// Also remove from user-specific tracking
+				for (const [userId, userControllerSet] of userControllers.entries()) {
+					if (userControllerSet.has(controller)) {
+						userControllerSet.delete(controller);
+						if (userControllerSet.size === 0) {
+							userControllers.delete(userId);
+						}
+					}
+				}
+			}
+		}
+	}, 60000); // Check every minute
+}
 
 export function addSseController(controller: ReadableStreamDefaultController<any>, userId?: string) {
   controllers.add(controller);

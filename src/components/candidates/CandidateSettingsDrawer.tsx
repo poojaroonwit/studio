@@ -84,11 +84,14 @@ export function CandidateSettingsDrawer({
 
   const handleSave = async () => {
     try {
+      console.log('🔧 SETTINGS DRAWER: Saving settings:', localSettings);
       setIsSaving(true);
       setSaveError(null);
       await onSettingsChange(localSettings);
+      console.log('🔧 SETTINGS DRAWER: Settings saved successfully');
       onOpenChange(false);
     } catch (error) {
+      console.error('🔧 SETTINGS DRAWER: Error saving settings:', error);
       setSaveError(error instanceof Error ? error.message : 'Failed to save settings');
     } finally {
       setIsSaving(false);

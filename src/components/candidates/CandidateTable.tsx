@@ -758,16 +758,6 @@ export function CandidateTable({
                               <div className="font-medium text-foreground text-sm">
                                 {jobApplied.job_title}
                               </div>
-                              {jobApplied.fit_score && (
-                                <div className="text-xs text-muted-foreground">
-                                  Fit Score: {jobApplied.fit_score}
-                                </div>
-                              )}
-                              {jobApplied.justification && (
-                                <div className="text-xs text-muted-foreground line-clamp-2" title={jobApplied.justification}>
-                                  {jobApplied.justification}
-                                </div>
-                              )}
                             </div>
                           );
                         }
@@ -1011,12 +1001,6 @@ export function CandidateTable({
                                           <div className="font-medium text-foreground">
                                             {position.title}
                                           </div>
-                                          {jobApplied.justification && Array.isArray(jobApplied.justification) && jobApplied.justification.length > 0 && (
-                                            <div className="text-xs text-muted-foreground">
-                                              {jobApplied.justification[0].substring(0, 50)}
-                                              {jobApplied.justification[0].length > 50 ? '...' : ''}
-                                            </div>
-                                          )}
                                         </div>
                                       );
                                     }

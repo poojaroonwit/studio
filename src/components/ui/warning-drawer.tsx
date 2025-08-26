@@ -80,6 +80,7 @@ export function WarningDrawer({ isOpen, onClose }: WarningDrawerProps) {
   const [selectedRecord, setSelectedRecord] = useState<WarningRecord | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [entityNames, setEntityNames] = useState<Record<string, string>>({});
+  const [loadingEntities, setLoadingEntities] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const [recordsPerPage, setRecordsPerPage] = useState(10);
 
@@ -279,6 +280,16 @@ export function WarningDrawer({ isOpen, onClose }: WarningDrawerProps) {
     const key = `${entityType}-${entityId}`;
     if (entityNames[key]) return entityNames[key];
 
+    // Immediate fallback for unsupported entity endpoints (e.g., headcount has no /api/headcounts/[id])
+    if (entityType === 'headcount') {
+      const fallback = `Headcount ${entityId.slice(0, 8)}`;
+      setEntityNames(prev => ({ ...prev, [key]: fallback }));
+      return fallback;
+    }
+
+    // Add to loading set
+    setLoadingEntities(prev => new Set(prev).add(key));
+
     try {
       const response = await fetch(`/api/${entityType}s/${entityId}`);
       if (response.ok) {
@@ -286,11 +297,24 @@ export function WarningDrawer({ isOpen, onClose }: WarningDrawerProps) {
         const name = entity.name || entity.title || `Unknown ${entityType}`;
         setEntityNames(prev => ({ ...prev, [key]: name }));
         return name;
+      } else {
+        const fallback = `Unknown ${entityType}`;
+        setEntityNames(prev => ({ ...prev, [key]: fallback }));
+        return fallback;
       }
     } catch (error) {
       console.error(`Error fetching ${entityType} name:`, error);
+      const fallback = `Unknown ${entityType}`;
+      setEntityNames(prev => ({ ...prev, [key]: fallback }));
+      return fallback;
+    } finally {
+      // Remove from loading set
+      setLoadingEntities(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(key);
+        return newSet;
+      });
     }
-    return `Unknown ${entityType}`;
   }, [entityNames]);
 
   // Render Criteria List View
@@ -425,7 +449,14 @@ export function WarningDrawer({ isOpen, onClose }: WarningDrawerProps) {
                           {getEntityIcon(record.entityType)}
                         </div>
                         <span className="truncate max-w-[150px]" title={record.entityName}>
-                          {record.entityName}
+                          {loadingEntities.has(`${record.entityType}-${record.entityId}`) ? (
+                            <div className="flex items-center gap-2">
+                              <div className="animate-spin rounded-full h-3 w-3 border-b border-current"></div>
+                              <span className="text-muted-foreground">Loading...</span>
+                            </div>
+                          ) : (
+                            record.entityName
+                          )}
                         </span>
                       </div>
                     </TableCell>
@@ -461,10 +492,7 @@ export function WarningDrawer({ isOpen, onClose }: WarningDrawerProps) {
                 <span className="font-medium text-foreground">{Math.min(endIndex, records.length)}</span> of{" "}
                 <span className="font-medium text-foreground">{records.length}</span> records
               </div>
-              <div className="text-sm text-muted-foreground">
-                Page <span className="font-medium text-foreground">{currentPage}</span> of{" "}
-                <span className="font-medium text-foreground">{totalPages}</span>
-              </div>
+            
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">Show:</span>
                 <select
@@ -658,7 +686,16 @@ export function WarningDrawer({ isOpen, onClose }: WarningDrawerProps) {
                 {getEntityIcon(selectedRecord.entityType)}
               </div>
               <div>
-                <CardTitle className="text-lg">{selectedRecord.entityName}</CardTitle>
+                <CardTitle className="text-lg">
+                  {loadingEntities.has(`${selectedRecord.entityType}-${selectedRecord.entityId}`) ? (
+                    <div className="flex items-center gap-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b border-current"></div>
+                      <span className="text-muted-foreground">Loading entity...</span>
+                    </div>
+                  ) : (
+                    selectedRecord.entityName
+                  )}
+                </CardTitle>
                 <p className="text-sm text-muted-foreground capitalize">
                   {selectedRecord.entityType}
                 </p>
@@ -701,6 +738,7 @@ export function WarningDrawer({ isOpen, onClose }: WarningDrawerProps) {
                 size="sm"
                 onClick={() => window.open(`/${selectedRecord.entityType}s/${selectedRecord.entityId}`, '_blank')}
                 className="flex-1"
+                disabled={loadingEntities.has(`${selectedRecord.entityType}-${selectedRecord.entityId}`)}
               >
                 <ExternalLink className="h-4 w-4 mr-2" />
                 View Entity
@@ -747,7 +785,18 @@ export function WarningDrawer({ isOpen, onClose }: WarningDrawerProps) {
                 <p className="text-sm text-muted-foreground">
                   {viewMode === 'criteria' && `${warningCriteria().length} active warning criteria`}
                   {viewMode === 'records' && `${selectedCriteria?.count} records with warnings`}
-                  {viewMode === 'details' && selectedRecord?.entityName}
+                  {viewMode === 'details' && (
+                    selectedRecord ? (
+                      loadingEntities.has(`${selectedRecord.entityType}-${selectedRecord.entityId}`) ? (
+                        <div className="flex items-center gap-2">
+                          <div className="animate-spin rounded-full h-3 w-3 border-b border-current"></div>
+                          <span>Loading entity...</span>
+                        </div>
+                      ) : (
+                        selectedRecord.entityName
+                      )
+                    ) : ''
+                  )}
                 </p>
               </div>
             </div>

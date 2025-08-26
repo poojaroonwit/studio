@@ -31,15 +31,18 @@ export function getPool() {
       // process.exit(-1);
     });
     
-    // Connection pool monitoring and cleanup
-    setInterval(() => {
-      if (pool) {
-        const poolStatus = pool.totalCount - pool.idleCount;
-        if (poolStatus > 0) {
-          console.log(`[DB POOL] Active connections: ${poolStatus}/${pool.totalCount}`);
+    // Connection pool monitoring and cleanup (guard against dev hot-reloads)
+    const __globalAny = globalThis as unknown as { __dbPoolMonitor?: NodeJS.Timeout };
+    if (!__globalAny.__dbPoolMonitor) {
+      __globalAny.__dbPoolMonitor = setInterval(() => {
+        if (pool) {
+          const poolStatus = pool.totalCount - pool.idleCount;
+          if (poolStatus > 0) {
+            console.log(`[DB POOL] Active connections: ${poolStatus}/${pool.totalCount}`);
+          }
         }
-      }
-    }, 60000); // Log every minute
+      }, 60000); // Log every minute
+    }
     
     // Graceful shutdown handling
     process.on('SIGINT', async () => {

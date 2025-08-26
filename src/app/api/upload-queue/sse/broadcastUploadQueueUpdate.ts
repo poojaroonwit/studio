@@ -108,7 +108,6 @@ export async function broadcastUploadQueueUpdate() {
       
       // Use unified broadcast system with real data
       const data = { type: 'queue', summary: safeSummary };
-      console.log('[Broadcast] Sending upload queue update:', data);
       broadcastToAll('upload_queue_update', data);
     } finally {
       client.release();

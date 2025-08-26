@@ -63,7 +63,7 @@ export function PositionMultiSelectDropdown({
   const [searchTerm, setSearchTerm] = useState('');
   
   // Use the shared positions cache
-  const { positions, loading, error } = usePositionsCache(filterOpenOnly);
+  const { positions, loading, error, refreshPositions } = usePositionsCache(filterOpenOnly);
 
   // Filter positions based on search term
   const filteredPositions = positions.filter(position => 
@@ -218,6 +218,18 @@ export function PositionMultiSelectDropdown({
             <div className="flex flex-wrap gap-1 flex-1">
               {loading ? (
                 <span className="text-muted-foreground">Loading positions...</span>
+              ) : error ? (
+                <button
+                  type="button"
+                  className="text-destructive underline"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    refreshPositions();
+                  }}
+                >
+                  Failed to load positions. Retry
+                </button>
               ) : selectedIds.size === 0 ? (
                 <span className="text-muted-foreground">{placeholder}</span>
               ) : (
@@ -299,7 +311,11 @@ export function PositionMultiSelectDropdown({
               />
             </div>
             
-            {filteredPositions.length === 0 && !showUnassignedOption ? (
+            {error ? (
+              <div className="text-sm text-destructive py-2 px-2">
+                Failed to load positions. <button className="underline" onClick={() => refreshPositions()}>Retry</button>
+              </div>
+            ) : filteredPositions.length === 0 && !showUnassignedOption ? (
               <div className="text-sm text-muted-foreground py-2">No positions available</div>
             ) : (
               <div className="space-y-0.5">

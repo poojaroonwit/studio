@@ -44,11 +44,16 @@ export class WarningAutomation {
       clearInterval(this.intervalId);
     }
 
-    this.intervalId = setInterval(async () => {
-      if (!this.isRunning) {
-        await this.runScheduledCheck();
-      }
-    }, this.config.checkInterval);
+    // Guard against dev hot-reloads
+    const __warningGlobal = globalThis as unknown as { __warningCheckInterval?: NodeJS.Timeout };
+    if (!__warningGlobal.__warningCheckInterval) {
+      __warningGlobal.__warningCheckInterval = setInterval(async () => {
+        if (!this.isRunning) {
+          await this.runScheduledCheck();
+        }
+      }, this.config.checkInterval);
+    }
+    this.intervalId = __warningGlobal.__warningCheckInterval;
   }
 
   /**

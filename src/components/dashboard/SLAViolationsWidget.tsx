@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, Clock, Users, Eye, TrendingUp, Calendar, Target, BarChart3, Filter, RefreshCw, Loader2, CheckCircle, AlertCircle, Flame, Bell, AlertCircle as AlertCircleIcon } from 'lucide-react';
+import { AlertTriangle, Clock, Users, Eye, BarChart3, Filter, RefreshCw, Loader2, CheckCircle, AlertCircle, Flame, Bell } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -207,18 +207,6 @@ export function SLAViolationsWidget({ recruiterId }: SLAViolationsWidgetProps) {
               {violations.length}
             </Badge>
           )}
-        </div>
-        <div
-          onClick={() => setActiveTab('trends')}
-          className={cn(
-            "flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all duration-200 relative cursor-pointer",
-            activeTab === 'trends'
-              ? "text-primary border-b-2 border-primary"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-          )}
-        >
-          <TrendingUp className="h-4 w-4" />
-          Trends
         </div>
       </div>
 
@@ -487,75 +475,7 @@ export function SLAViolationsWidget({ recruiterId }: SLAViolationsWidgetProps) {
             </ScrollArea>
           )}
 
-          {activeTab === 'trends' && (
-            <ScrollArea className="h-full px-6 py-4">
-              <div className="space-y-4">
-                {/* Trend Indicators */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <TrendingUp className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                      <span className="text-sm font-medium">This Week</span>
-                    </div>
-                    <div className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
-                      {Math.max(0, violations.length - 2)}
-                    </div>
-                    <div className="text-xs text-blue-600 dark:text-blue-400">
-                      New violations
-                    </div>
-                  </div>
-                  <div className="p-3 bg-green-50 dark:bg-green-950/20 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <Target className="h-4 w-4 text-green-600 dark:text-green-400" />
-                      <span className="text-sm font-medium">Resolved</span>
-                    </div>
-                    <div className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">
-                      {Math.max(0, 2)}
-                    </div>
-                    <div className="text-xs text-green-600 dark:text-green-400">
-                      This week
-                    </div>
-                  </div>
-                </div>
-
-                {/* Monthly Trend */}
-                <div className="space-y-2">
-                  <h4 className="text-sm font-medium">Monthly Trend</h4>
-                  <div className="h-20 bg-muted/30 rounded-lg flex items-end justify-around p-2">
-                    {[3, 5, 2, 7, 4, 6, 3].map((value, index) => (
-                      <div
-                        key={index}
-                        className="bg-primary/60 rounded-t w-4"
-                        style={{ height: `${(value / 7) * 100}%` }}
-                      />
-                    ))}
-                  </div>
-                  <p className="text-xs text-muted-foreground text-center">
-                    Violations per week (last 7 weeks)
-                  </p>
-                </div>
-
-                {/* Insights */}
-                <div className="space-y-2">
-                  <h4 className="text-sm font-medium">Insights</h4>
-                  <div className="space-y-2 text-sm">
-                    {statistics && statistics.byGrade && Object.entries(statistics.byGrade).length > 0 && (
-                      <div className="flex items-center gap-2 p-2 bg-yellow-50 dark:bg-yellow-950/20 rounded">
-                        <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
-                        <span>
-                          Most violations in {Object.entries(statistics.byGrade).sort((a, b) => b[1].violations - a[1].violations)[0][0]} roles
-                        </span>
-                      </div>
-                    )}
-                    <div className="flex items-center gap-2 p-2 bg-blue-50 dark:bg-blue-950/20 rounded">
-                      <TrendingUp className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                      <span>Compliance rate: {statistics?.complianceRate || 0}%</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </ScrollArea>
-          )}
+          {/* Trends tab removed */}
         </div>
       </CardContent>
     </Card>

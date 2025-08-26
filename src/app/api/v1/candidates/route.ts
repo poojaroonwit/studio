@@ -423,6 +423,7 @@ export async function GET(request: NextRequest) {
         name: candidate.name,
         email: candidate.email,
         phone: candidate.phone,
+        avatarUrl: candidate.avatarUrl,
         positionId: candidate.positionId,
         recruiterId: candidate.recruiterId,
         sourceId: candidate.sourceId,

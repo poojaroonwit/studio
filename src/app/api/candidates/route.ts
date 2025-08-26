@@ -898,6 +898,7 @@ export async function GET(request: NextRequest) {
         c."recruiterId",
         c."sourceId",
         c."parsedData",
+        c."avatarUrl",
         p.title as "positionTitle",
         u.name as "recruiterName",
         cs.name as "sourceName"
@@ -932,6 +933,7 @@ export async function GET(request: NextRequest) {
       recruiterId: row.recruiterId,
       sourceId: row.sourceId,
       parsedData: row.parsedData,
+      avatarUrl: row.avatarUrl,
       position: row.positionTitle ? { title: row.positionTitle } : null,
       recruiter: row.recruiterName ? { name: row.recruiterName } : null,
       source: row.sourceName ? { name: row.sourceName } : null,

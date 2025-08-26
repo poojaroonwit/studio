@@ -549,6 +549,20 @@ export function usePerformanceMonitor(options?: PerformanceMonitorProps) {
     }
   };
 
+  // Development-only memory leak detection
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
+      // Start memory leak detection automatically in dev
+      const { startMemoryLeakDetection } = require('@/lib/performance-utils-core');
+      startMemoryLeakDetection(100, 10000); // 100MB threshold, check every 10s
+      
+      return () => {
+        const { stopMemoryLeakDetection } = require('@/lib/performance-utils-core');
+        stopMemoryLeakDetection();
+      };
+    }
+  }, []);
+
   return {
     PerformanceMonitor: () => (
       <PerformanceMonitor 

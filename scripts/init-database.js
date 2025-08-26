@@ -123,7 +123,7 @@ async function initDatabase() {
     const stages = await client.query(`
       SELECT name, description 
       FROM "RecruitmentStage"
-      ORDER BY "sortOrder"
+      ORDER BY "sort_order"
     `);
     
     if (stages.rows.length > 0) {

@@ -228,12 +228,11 @@ const nextConfig = {
       config.optimization.splitChunks = {
         chunks: 'all',
         cacheGroups: {
-          vendor: {
-            test: /[\\/]node_modules[\\/]/,
-            name: 'vendors',
-            chunks: 'all',
-            exclude: /[\\/]node_modules[\\/](chart\.js|chartjs-adapter-date-fns|chartjs-plugin-datalabels)[\\/]/,
-          },
+          // vendor: {
+          //   test: /[\\/]node_modules[\\/]/,
+          //   name: 'vendors',
+          //   chunks: 'all',
+          // },
           common: {
             name: 'common',
             minChunks: 2,

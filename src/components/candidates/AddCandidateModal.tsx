@@ -189,6 +189,8 @@ export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availa
     try {
       const processedData = {
         ...data,
+        // Convert fitScore from percentage (0-100) to decimal (0-1) for database storage
+        fitScore: data.fitScore ? data.fitScore / 100 : 0,
         experience: data.experience?.map(exp => ({
           ...exp,
           positionLevel: exp.positionLevel === PLACEHOLDER_VALUE_NONE ? null : exp.positionLevel,

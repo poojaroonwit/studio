@@ -157,7 +157,8 @@ export async function GET(request: NextRequest) {
         clearInterval(keepaliveInterval);
         keepaliveInterval = null;
       }
-      uploadQueueControllers.delete(controller);
+      // Note: controller is not available in cancel() method, so we can't remove it from uploadQueueControllers here
+      // The controller will be cleaned up when the connection is actually closed
     }
   });
 

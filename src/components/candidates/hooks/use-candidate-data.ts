@@ -1,7 +1,8 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { Candidate, CandidateStatus, Position, RecruitmentStage, UserProfile, CandidateSource } from '@/lib/types';
 import { CandidateFilterValues } from '@/components/candidates/CandidateFilters';
-import { toast } from "react-hot-toast";
+import { toast } from 'react-hot-toast';
+import { normalizeFitScore } from '@/lib/scoreUtils';
 
 interface UseCandidateDataProps {
   initialCandidates: Candidate[];
@@ -126,13 +127,6 @@ export function useCandidateData({
   }, [safeInitialCandidates, filteredCandidates.length]);
 
   // Simplified helper function to normalize fit scores
-  const normalizeFitScore = (score: number | null | undefined): number => {
-    if (score === null || score === undefined) return 0;
-    if (score > 0 && score <= 1) return Math.round(score * 100);
-    return Math.round(score);
-  };
-
-  // Simplified helper function to get the best matching fit score
   const getBestMatchingFitScore = (candidate: Candidate): number => {
     // Check JobMatch table first
     if (candidate.jobMatches && Array.isArray(candidate.jobMatches)) {
@@ -158,6 +152,8 @@ export function useCandidateData({
       return;
     }
 
+    console.log('🔍 fetchFitScoreCounts called with filters:', filters);
+
     try {
       const params = new URLSearchParams();
       
@@ -169,15 +165,15 @@ export function useCandidateData({
         if (filters.emailOperator) params.append('emailOperator', filters.emailOperator);
         if (filters.phone) params.append('phone', filters.phone);
         if (filters.phoneOperator) params.append('phoneOperator', filters.phoneOperator);
-        if (filters.positionId) params.append('positionId', filters.positionId);
-        if (filters.status) params.append('status', filters.status);
+        if (filters.selectedPositionIds) params.append('positionId', filters.selectedPositionIds.join(','));
+        if (filters.selectedStatuses) params.append('status', filters.selectedStatuses.join(','));
         if (filters.education) params.append('education', filters.education);
         if (filters.minExperienceYears !== undefined) params.append('minExperienceYears', filters.minExperienceYears.toString());
         if (filters.maxExperienceYears !== undefined) params.append('maxExperienceYears', filters.maxExperienceYears.toString());
-        if (filters.applicationDateStart) params.append('applicationDateStart', filters.applicationDateStart);
-        if (filters.applicationDateEnd) params.append('applicationDateEnd', filters.applicationDateEnd);
-        if (filters.recruiterId) params.append('recruiterId', filters.recruiterId);
-        if (filters.sourceId) params.append('sourceId', filters.sourceId);
+        if (filters.applicationDateStart) params.append('applicationDateStart', filters.applicationDateStart.toISOString());
+        if (filters.applicationDateEnd) params.append('applicationDateEnd', filters.applicationDateEnd.toISOString());
+        if (filters.selectedRecruiterIds) params.append('recruiterId', filters.selectedRecruiterIds.join(','));
+        if (filters.selectedSourceIds) params.append('sourceId', filters.selectedSourceIds.join(','));
         if (filters.location) params.append('location', filters.location);
         if (filters.locationOperator) params.append('locationOperator', filters.locationOperator);
         if (filters.skills) params.append('skills', filters.skills);
@@ -188,22 +184,32 @@ export function useCandidateData({
       }
       
       const url = `/api/candidates/fit-score-counts?${params.toString()}`;
+      console.log('🔍 fetchFitScoreCounts URL:', url);
+      console.log('🔍 fetchFitScoreCounts params:', Object.fromEntries(params.entries()));
       
       const response = await fetch(url);
       
+      console.log('🔍 fetchFitScoreCounts response status:', response.status);
+      console.log('🔍 fetchFitScoreCounts response headers:', Object.fromEntries(response.headers.entries()));
+      
       if (response.ok) {
         const data = await response.json();
+        console.log('🔍 fetchFitScoreCounts response:', data);
         
         // Transform the data to match the expected format
         // Update the database fit score counts
-        setDatabaseFitScoreCounts({
+        const newCounts = {
           applied: data.applied || [],
           matching: data.matching || []
-        });
+        };
+        console.log('🔍 Setting databaseFitScoreCounts to:', newCounts);
+        setDatabaseFitScoreCounts(newCounts);
       } else {
+        console.log('🔍 fetchFitScoreCounts failed:', response.status, response.statusText);
         // Failed to fetch fit score counts
       }
     } catch (error) {
+      console.log('🔍 fetchFitScoreCounts error:', error);
       // Error fetching fit score counts
     }
   }, [sessionStatus]);
@@ -302,38 +308,37 @@ export function useCandidateData({
 
 
   // Fetch full candidates dataset for accurate count calculations
-  const fetchAllCandidatesForCounts = useCallback(async (filters?: any) => {
-    if (sessionStatus !== 'authenticated') {
-      return;
-    }
+  const fetchAllCandidatesForCounts = useCallback(async (filters?: CandidateFilterValues) => {
+    if (sessionStatus !== 'authenticated') return;
     
     try {
-      // Build query parameters from ALL filters, INCLUDING fit score filters
       const params = new URLSearchParams();
-      params.append('forCounts', 'true');
+      params.append('limit', '10000'); // Get all candidates for accurate counts
       
+      // Apply all filters EXCEPT fit score filters to prevent circular dependency
       if (filters) {
         if (filters.name) params.append('name', filters.name);
+        if (filters.nameOperator) params.append('nameOperator', filters.nameOperator);
         if (filters.email) params.append('email', filters.email);
+        if (filters.emailOperator) params.append('emailOperator', filters.emailOperator);
         if (filters.phone) params.append('phone', filters.phone);
-        if (filters.location) params.append('location', filters.location);
+        if (filters.phoneOperator) params.append('phoneOperator', filters.phoneOperator);
         if (filters.selectedPositionIds) params.append('positionId', filters.selectedPositionIds.join(','));
         if (filters.selectedStatuses) params.append('status', filters.selectedStatuses.join(','));
-        if (filters.selectedSourceIds) params.append('sourceId', filters.selectedSourceIds.join(','));
+        if (filters.education) params.append('education', filters.education);
+        if (filters.minExperienceYears !== undefined) params.append('minExperienceYears', filters.minExperienceYears.toString());
+        if (filters.maxExperienceYears !== undefined) params.append('maxExperienceYears', filters.maxExperienceYears.toString());
+        if (filters.applicationDateStart) params.append('applicationDateStart', filters.applicationDateStart.toISOString());
+        if (filters.applicationDateEnd) params.append('applicationDateEnd', filters.applicationDateEnd.toISOString());
         if (filters.selectedRecruiterIds) params.append('recruiterId', filters.selectedRecruiterIds.join(','));
+        if (filters.selectedSourceIds) params.append('sourceId', filters.selectedSourceIds.join(','));
+        if (filters.location) params.append('location', filters.location);
+        if (filters.locationOperator) params.append('locationOperator', filters.locationOperator);
         if (filters.skills) params.append('skills', filters.skills);
-        if (filters.minExperienceYears) params.append('minExperienceYears', filters.minExperienceYears.toString());
-        if (filters.maxExperienceYears) params.append('maxExperienceYears', filters.maxExperienceYears.toString());
-        if (filters.applicationDateStart) params.append('applicationDateStart', filters.applicationDateStart.toString());
-        if (filters.applicationDateEnd) params.append('applicationDateEnd', filters.applicationDateEnd.toString());
         
-        // Include fit score filters for accurate counts
-        if (filters.minAppliedJobFitScore !== undefined) params.append('minAppliedJobFitScore', filters.minAppliedJobFitScore.toString());
-        if (filters.maxAppliedJobFitScore !== undefined) params.append('maxAppliedJobFitScore', filters.maxAppliedJobFitScore.toString());
-        if (filters.minMatchingJobFitScore !== undefined) params.append('minMatchingJobFitScore', filters.minMatchingJobFitScore.toString());
-        if (filters.maxMatchingJobFitScore !== undefined) params.append('maxMatchingJobFitScore', filters.maxMatchingJobFitScore.toString());
-        if (filters.includeNoScoreInApplied) params.append('includeNoScoreInApplied', 'true');
-        if (filters.includeNoScoreInMatching) params.append('includeNoScoreInMatching', 'true');
+        // DO NOT include fit score filters to prevent circular dependency
+        // The API will return counts for all candidates based on other filters
+        // Client-side logic will handle fit score filtering
       }
       
       const url = `/api/candidates?${params.toString()}`;
@@ -347,8 +352,11 @@ export function useCandidateData({
         if (data.data && Array.isArray(data.data)) {
           stableSetAllCandidatesForCounts(data.data);
         }
+      } else {
+        // console.error('🔍 fetchAllCandidatesForCounts failed:', response.status, response.statusText);
       }
     } catch (error) {
+      // console.error('🔍 fetchAllCandidatesForCounts error:', error);
       // Silently fail - this is for counts only, not critical functionality
     }
   }, [sessionStatus, stableSetAllCandidatesForCounts]);

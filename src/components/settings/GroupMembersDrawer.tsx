@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
 import { 
   Sheet, 
@@ -174,7 +174,7 @@ export function GroupMembersDrawer({
     }
   };
 
-  const handleRemoveUser = async (userId: string, userName: string) => {
+  const handleRemoveUser = useCallback(async (userId: string, userName: string) => {
     if (!group) return;
     
     setIsRemovingUser(userId);
@@ -197,7 +197,11 @@ export function GroupMembersDrawer({
     } finally {
       setIsRemovingUser(null);
     }
-  };
+  }, [group, loadGroupMembers, onMembersChange]);
+
+  const handleAddUserModalOpen = useCallback(() => {
+    setIsAddUserModalOpen(true);
+  }, []);
 
   const getInitials = (name: string) => {
     return name
@@ -233,7 +237,7 @@ export function GroupMembersDrawer({
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-semibold">Current Members</h3>
               <Button 
-                onClick={() => setIsAddUserModalOpen(true)}
+                onClick={handleAddUserModalOpen}
                 size="sm"
                 className="flex items-center gap-2"
               >
@@ -253,7 +257,7 @@ export function GroupMembersDrawer({
                   <Users className="h-12 w-12 text-muted-foreground mb-4" />
                   <p className="text-muted-foreground mb-2">No members in this group</p>
                   <Button 
-                    onClick={() => setIsAddUserModalOpen(true)}
+                    onClick={handleAddUserModalOpen}
                     variant="outline"
                     size="sm"
                   >

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import {
   Table,
   TableBody,
@@ -177,6 +177,14 @@ export default function CustomFieldTable({
     return badges;
   };
 
+  const handleEdit = useCallback((field: CustomFieldDefinition) => {
+    onEdit(field);
+  }, [onEdit]);
+
+  const handleDelete = useCallback((field: CustomFieldDefinition) => {
+    onDelete(field);
+  }, [onDelete]);
+
   return (
     <div className="space-y-4">
       {/* Summary Cards */}
@@ -314,12 +322,12 @@ export default function CustomFieldTable({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => onEdit(field)}>
+                      <DropdownMenuItem onClick={() => handleEdit(field)}>
                         <Edit3 className="h-4 w-4 mr-2" />
                         Edit
                       </DropdownMenuItem>
                       <DropdownMenuItem 
-                        onClick={() => onDelete(field)}
+                        onClick={() => handleDelete(field)}
                         className="text-destructive"
                       >
                         <Trash2 className="h-4 w-4 mr-2" />

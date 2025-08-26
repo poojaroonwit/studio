@@ -411,6 +411,19 @@ export function WarningDrawer({ isOpen, onClose }: WarningDrawerProps) {
     );
   };
 
+  // Effect to fetch entity names when selectedCriteria changes
+  useEffect(() => {
+    if (!selectedCriteria) return;
+
+    const records = selectedCriteria.warnings;
+    records.forEach(warning => {
+      const key = `${warning.entityType}-${warning.entityId}`;
+      if (!entityNames[key] && !loadingEntities.has(key)) {
+        fetchEntityName(warning.entityType, warning.entityId);
+      }
+    });
+  }, [selectedCriteria, entityNames, loadingEntities, fetchEntityName]);
+
   // Render Records List View
   const renderRecordsList = () => {
     if (!selectedCriteria) return null;
@@ -427,13 +440,6 @@ export function WarningDrawer({ isOpen, onClose }: WarningDrawerProps) {
       severity: warning.severity,
       createdAt: warning.createdAt
     }));
-
-    // Fetch entity names for records
-    records.forEach(record => {
-      if (record.entityName === 'Loading...') {
-        fetchEntityName(record.entityType, record.entityId);
-      }
-    });
 
     // Pagination logic
     const totalPages = Math.ceil(records.length / recordsPerPage);

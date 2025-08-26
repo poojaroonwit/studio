@@ -255,9 +255,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
   }, [currentAppName]);
 
   useEffect(() => {
-    console.log('[SIGNIN CLIENT] Status:', status, 'Session:', session?.user?.id);
     if (status === "authenticated" && session) {
-      console.log('[SIGNIN CLIENT] Redirecting to:', callbackUrl);
       
       // Check if user has any permissions before redirecting
       const hasAnyPermissions = session?.user?.modulePermissions && session.user.modulePermissions.length > 0;

@@ -129,6 +129,12 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
 
   const cleanupConnection = useCallback(() => {
     if (eventSourceRef.current) {
+      // Call stored cleanup function if it exists
+      const cleanupFn = (eventSourceRef.current as any).cleanupEventListeners;
+      if (cleanupFn) {
+        cleanupFn();
+      }
+      
       try {
         eventSourceRef.current.close();
       } catch (error) {
@@ -417,6 +423,21 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
       Object.entries(eventHandlers).forEach(([eventType, handler]) => {
         eventSource.addEventListener(eventType, handler);
       });
+
+      // Store event handlers for cleanup
+      const storedEventHandlers = eventHandlers;
+      const cleanupEventListeners = () => {
+        Object.entries(storedEventHandlers).forEach(([eventType, handler]) => {
+          if (eventSource) {
+            eventSource.removeEventListener(eventType, handler);
+          }
+        });
+      };
+
+      // Store cleanup function for later use
+      if (eventSource) {
+        (eventSource as any).cleanupEventListeners = cleanupEventListeners;
+      }
 
     } catch (error) {
       console.error('Failed to connect to unified SSE:', error);

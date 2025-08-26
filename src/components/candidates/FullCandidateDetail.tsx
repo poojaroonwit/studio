@@ -560,6 +560,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
              
             <div className="p-8 flex-1 overflow-y-auto bg-background h-full pointer-events-auto">
               <CandidateTabsContent
+                key={`${candidate.id}-${isEditing}`} // Force re-render when editing state changes
                 activeTab={activeTab}
                 candidate={candidate}
                 allDbPositions={allDbPositions}

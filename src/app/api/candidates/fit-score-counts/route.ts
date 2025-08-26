@@ -57,11 +57,11 @@ export async function GET(request: NextRequest) {
       location: searchParams.get('location'),
       locationOperator: searchParams.get('locationOperator') || 'contains',
       skills: searchParams.get('skills'),
-      // Fit score filters
-      minAppliedJobFitScore: searchParams.get('minAppliedJobFitScore') ? parseFloat(searchParams.get('minAppliedJobFitScore')!) : undefined,
-      maxAppliedJobFitScore: searchParams.get('maxAppliedJobFitScore') ? parseFloat(searchParams.get('maxAppliedJobFitScore')!) : undefined,
-      minMatchingJobFitScore: searchParams.get('minMatchingJobFitScore') ? parseFloat(searchParams.get('minMatchingJobFitScore')!) : undefined,
-      maxMatchingJobFitScore: searchParams.get('maxMatchingJobFitScore') ? parseFloat(searchParams.get('maxMatchingJobFitScore')!) : undefined,
+      // Fit score filters - convert from percentage to decimal
+      minAppliedJobFitScore: searchParams.get('minAppliedJobFitScore') ? parseFloat(searchParams.get('minAppliedJobFitScore')!) / 100 : undefined,
+      maxAppliedJobFitScore: searchParams.get('maxAppliedJobFitScore') ? parseFloat(searchParams.get('maxAppliedJobFitScore')!) / 100 : undefined,
+      minMatchingJobFitScore: searchParams.get('minMatchingJobFitScore') ? parseFloat(searchParams.get('minMatchingJobFitScore')!) / 100 : undefined,
+      maxMatchingJobFitScore: searchParams.get('maxMatchingJobFitScore') ? parseFloat(searchParams.get('maxMatchingJobFitScore')!) / 100 : undefined,
       includeNoScoreInApplied: searchParams.get('includeNoScoreInApplied') === 'true',
       includeNoScoreInMatching: searchParams.get('includeNoScoreInMatching') === 'true',
     };
@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
     let paramIndex = 1;
 
     // Handle name filter
-    if (filters.name) {
+    if (filters.name && filters.name.trim() !== '') {
       let operator = 'ILIKE';
       let value = filters.name;
       
@@ -100,7 +100,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Handle email filter
-    if (filters.email) {
+    if (filters.email && filters.email.trim() !== '') {
       let operator = 'ILIKE';
       let value = filters.email;
       
@@ -128,7 +128,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Handle phone filter
-    if (filters.phone) {
+    if (filters.phone && filters.phone.trim() !== '') {
       let operator = 'ILIKE';
       let value = filters.phone;
       
@@ -156,7 +156,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Handle location filter
-    if (filters.location) {
+    if (filters.location && filters.location.trim() !== '') {
       let operator = 'ILIKE';
       let value = filters.location;
       
@@ -184,7 +184,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Handle status filter
-    if (filters.status) {
+    if (filters.status && filters.status.trim() !== '') {
       const statuses = filters.status.split(',').map(s => s.trim()).filter(s => s !== '');
       const nullStatuses = statuses.filter(s => s === 'null' || s === '');
       const regularStatuses = statuses.filter(s => s !== 'null' && s !== '');
@@ -206,7 +206,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Handle position filter
-    if (filters.positionId) {
+    if (filters.positionId && filters.positionId.trim() !== '') {
       const positionIds = filters.positionId.split(',').map(id => id.trim()).filter(id => id !== '');
       const hasNotApplied = positionIds.includes('not-applied');
       const regularPositions = positionIds.filter(id => id !== 'not-applied');
@@ -233,7 +233,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Handle recruiter filter
-    if (filters.recruiterId) {
+    if (filters.recruiterId && filters.recruiterId.trim() !== '') {
       const recruiterIds = filters.recruiterId.split(',').map(id => id.trim());
       
       if (recruiterIds.includes('select-all')) {
@@ -262,17 +262,21 @@ export async function GET(request: NextRequest) {
     }
 
     // Auto-filter: If user can't view all candidates, only show their assigned candidates unless recruiterId is explicitly set
+    // For fit-score-counts API, we're more permissive to allow users to see counts for filtering purposes
     const canViewAllCandidates = session.user.role === 'Admin' || 
                                  session.user.modulePermissions?.includes('USERS_MANAGE') || 
                                  session.user.modulePermissions?.includes('CANDIDATES_VIEW');
     const recruiterIdFromFilter = filters.recruiterId;
-    if (!canViewAllCandidates && !recruiterIdFromFilter) {
+    
+    // Only apply auto-filter if user has no candidate-related permissions at all
+    // This allows users with CANDIDATES_VIEW to see counts for filtering purposes
+    if (!canViewAllCandidates && (!recruiterIdFromFilter || recruiterIdFromFilter.trim() === '')) {
       whereClauses.push(`c."recruiterId" = $${paramIndex++}`);
       queryParams.push(session.user.id);
     }
 
     // Handle source filter
-    if (filters.sourceId) {
+    if (filters.sourceId && filters.sourceId.trim() !== '') {
       const sourceIds = filters.sourceId.split(',').map(id => id.trim()).filter(id => id !== '');
       
       if (sourceIds.includes('select-all')) {
@@ -303,17 +307,17 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Handle experience filters
-    if (filters.minExperienceYears !== undefined) {
+    // Handle experience filters - make them more inclusive to avoid filtering out all candidates
+    if (filters.minExperienceYears !== undefined && filters.minExperienceYears > 0) {
       if (filters.minExperienceYears === -1) {
         whereClauses.push(`(c."parsedData"->>'experience' IS NULL OR c."parsedData"->>'experience' = '[]' OR c."parsedData"->>'experience' = '')`);
       } else {
-        whereClauses.push(`CAST(c."parsedData"->>'totalExperienceYears' AS DECIMAL) >= $${paramIndex++}`);
+        whereClauses.push(`(c."parsedData"->>'totalExperienceYears' IS NOT NULL AND CAST(c."parsedData"->>'totalExperienceYears' AS DECIMAL) >= $${paramIndex++})`);
         queryParams.push(filters.minExperienceYears);
       }
     }
-    if (filters.maxExperienceYears !== undefined) {
-      whereClauses.push(`CAST(c."parsedData"->>'totalExperienceYears' AS DECIMAL) <= $${paramIndex++}`);
+    if (filters.maxExperienceYears !== undefined && filters.maxExperienceYears < 50) {
+      whereClauses.push(`(c."parsedData"->>'totalExperienceYears' IS NOT NULL AND CAST(c."parsedData"->>'totalExperienceYears' AS DECIMAL) <= $${paramIndex++})`);
       queryParams.push(filters.maxExperienceYears);
     }
 
@@ -327,8 +331,14 @@ export async function GET(request: NextRequest) {
       queryParams.push(filters.applicationDateEnd.toISOString());
     }
 
+    // Handle education filter
+    if (filters.education && filters.education.trim() !== '') {
+      whereClauses.push(`LOWER(c."parsedData"->>'education') LIKE $${paramIndex++}`);
+      queryParams.push(`%${filters.education.toLowerCase()}%`);
+    }
+
     // Handle skills filter
-    if (filters.skills) {
+    if (filters.skills && filters.skills.trim() !== '') {
       const skills = filters.skills.split(',').map(s => s.trim().toLowerCase()).filter(s => s !== '');
       if (skills.length > 0) {
         const skillsConditions = skills.map((_, index) => 
@@ -340,24 +350,39 @@ export async function GET(request: NextRequest) {
       }
     }
 
+
+
     // Note: We do NOT include fit score filters in the WHERE clause to prevent circular dependency
     // The fit score counts API should return counts for ALL candidates based on other filters only
     // The client-side logic will handle filtering the counts based on the current fit score filter state
 
     // Build the WHERE clause
     const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+    
+    // Debug logging - essential info only
+    console.log('🔍 Final WHERE clause:', whereClause);
 
+  
     const client = await getPool().connect();
     try {
-      // Efficient fit score count queries
-      const appliedFitScoreCountsQuery = `
+      // Debug: Test with the actual WHERE clause to see if it filters out all candidates
+      const testWithWhereClauseQuery = `
+        SELECT COUNT(*) as total_with_filters
+        FROM "Candidate" c
+        ${whereClause}
+      `;
+      const testWithWhereClauseResult = await client.query(testWithWhereClauseQuery, queryParams);
+      console.log('🔍 Total candidates with filters applied:', testWithWhereClauseResult.rows[0].total_with_filters);
+      
+      // Also test the same query with the WHERE clause to see the difference
+      const filteredTestQuery = `
         SELECT 
           CASE 
             WHEN c."fitScore" IS NULL THEN 'no-score'
-            WHEN c."fitScore" >= 0.81 THEN 'A'
-            WHEN c."fitScore" >= 0.61 THEN 'B'
-            WHEN c."fitScore" >= 0.41 THEN 'C'
-            WHEN c."fitScore" >= 0.21 THEN 'D'
+            WHEN (c."fitScore" * 100) >= 81 THEN 'A'
+            WHEN (c."fitScore" * 100) >= 61 THEN 'B'
+            WHEN (c."fitScore" * 100) >= 41 THEN 'C'
+            WHEN (c."fitScore" * 100) >= 21 THEN 'D'
             ELSE 'E'
           END as grade,
           COUNT(*) as count
@@ -366,10 +391,38 @@ export async function GET(request: NextRequest) {
         GROUP BY 
           CASE 
             WHEN c."fitScore" IS NULL THEN 'no-score'
-            WHEN c."fitScore" >= 0.81 THEN 'A'
-            WHEN c."fitScore" >= 0.61 THEN 'B'
-            WHEN c."fitScore" >= 0.41 THEN 'C'
-            WHEN c."fitScore" >= 0.21 THEN 'D'
+            WHEN (c."fitScore" * 100) >= 81 THEN 'A'
+            WHEN (c."fitScore" * 100) >= 61 THEN 'B'
+            WHEN (c."fitScore" * 100) >= 41 THEN 'C'
+            WHEN (c."fitScore" * 100) >= 21 THEN 'D'
+            ELSE 'E'
+          END
+        ORDER BY grade
+      `;
+      const filteredTestResult = await client.query(filteredTestQuery, queryParams);
+      console.log('🔍 Filtered fit score count result (with filters):', filteredTestResult.rows);
+      
+      // Efficient fit score count queries
+      const appliedFitScoreCountsQuery = `
+        SELECT 
+          CASE 
+            WHEN c."fitScore" IS NULL THEN 'no-score'
+            WHEN (c."fitScore" * 100) >= 81 THEN 'A'
+            WHEN (c."fitScore" * 100) >= 61 THEN 'B'
+            WHEN (c."fitScore" * 100) >= 41 THEN 'C'
+            WHEN (c."fitScore" * 100) >= 21 THEN 'D'
+            ELSE 'E'
+          END as grade,
+          COUNT(*) as count
+        FROM "Candidate" c
+        ${whereClause}
+        GROUP BY 
+          CASE 
+            WHEN c."fitScore" IS NULL THEN 'no-score'
+            WHEN (c."fitScore" * 100) >= 81 THEN 'A'
+            WHEN (c."fitScore" * 100) >= 61 THEN 'B'
+            WHEN (c."fitScore" * 100) >= 41 THEN 'C'
+            WHEN (c."fitScore" * 100) >= 21 THEN 'D'
             ELSE 'E'
           END
         ORDER BY grade
@@ -379,10 +432,10 @@ export async function GET(request: NextRequest) {
         SELECT 
           CASE 
             WHEN best_match_score IS NULL THEN 'no-score'
-            WHEN best_match_score >= 0.81 THEN 'A'
-            WHEN best_match_score >= 0.61 THEN 'B'
-            WHEN best_match_score >= 0.41 THEN 'C'
-            WHEN best_match_score >= 0.21 THEN 'D'
+            WHEN (best_match_score * 100) >= 81 THEN 'A'
+            WHEN (best_match_score * 100) >= 61 THEN 'B'
+            WHEN (best_match_score * 100) >= 41 THEN 'C'
+            WHEN (best_match_score * 100) >= 21 THEN 'D'
             ELSE 'E'
           END as grade,
           COUNT(*) as count
@@ -408,30 +461,40 @@ export async function GET(request: NextRequest) {
         GROUP BY 
           CASE 
             WHEN best_match_score IS NULL THEN 'no-score'
-            WHEN best_match_score >= 0.81 THEN 'A'
-            WHEN best_match_score >= 0.61 THEN 'B'
-            WHEN best_match_score >= 0.41 THEN 'C'
-            WHEN best_match_score >= 0.21 THEN 'D'
+            WHEN (best_match_score * 100) >= 81 THEN 'A'
+            WHEN (best_match_score * 100) >= 61 THEN 'B'
+            WHEN (best_match_score * 100) >= 41 THEN 'C'
+            WHEN (best_match_score * 100) >= 21 THEN 'D'
             ELSE 'E'
           END
         ORDER BY grade
       `;
 
+      // Debug queries removed to reduce noise
+
       // Execute both queries in parallel
-      const [appliedResult, matchingResult] = await Promise.all([
-        client.query(appliedFitScoreCountsQuery, queryParams),
-        client.query(matchingFitScoreCountsQuery, queryParams)
-      ]);
+      let appliedResult: any, matchingResult: any;
+      try {
+        [appliedResult, matchingResult] = await Promise.all([
+          client.query(appliedFitScoreCountsQuery, queryParams),
+          client.query(matchingFitScoreCountsQuery, queryParams)
+        ]);
+
+        // Remove debug logs for cleaner output
+      } catch (error) {
+        console.error('🔍 Database query error:', error);
+        throw error;
+      }
 
       // Transform results to expected format
-      const appliedCounts = appliedResult.rows.map(row => ({
+      const appliedCounts = appliedResult.rows.map((row: any) => ({
         letter: row.grade,
-        count: parseInt(row.count)
+        count: Number(row.count) // Convert BigInt to Number
       }));
 
-      const matchingCounts = matchingResult.rows.map(row => ({
+      const matchingCounts = matchingResult.rows.map((row: any) => ({
         letter: row.grade,
-        count: parseInt(row.count)
+        count: Number(row.count) // Convert BigInt to Number
       }));
 
       const responseTime = Date.now() - startTime;

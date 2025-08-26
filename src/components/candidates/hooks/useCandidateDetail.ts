@@ -383,6 +383,8 @@ export const useCandidateDetail = (candidateId: string) => {
   // Populate form with candidate data when entering edit mode
   useEffect(() => {
     if (isEditing && candidate) {
+      console.log('Populating form with candidate data:', candidate);
+      
       const formValues: EditCandidateFormValues = {
         name: candidate.name || '',
         email: candidate.email || '',
@@ -409,9 +411,17 @@ export const useCandidateDetail = (candidateId: string) => {
         },
       };
       
-      reset(formValues);
+      console.log('Form values to reset:', formValues);
+      
+      // Use setTimeout to ensure the form is ready before resetting
+      setTimeout(() => {
+        reset(formValues);
+        console.log('Form reset completed');
+      }, 0);
     }
   }, [isEditing, candidate, reset]);
+
+
 
   // Handle entering edit mode
   const handleEnterEditMode = useCallback(() => {

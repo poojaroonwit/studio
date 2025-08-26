@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -41,6 +41,9 @@ const ALLOWED_SYSTEM_SETTING_KEYS = [
 ];
 
 const SystemSettingsTable: React.FC<SystemSettingsTableProps> = ({ settings, isLoading, onEdit }) => {
+  const handleEdit = useCallback((setting: SystemSetting) => {
+    onEdit(setting);
+  }, [onEdit]);
   if (isLoading) {
     return (
       <Card>
@@ -156,7 +159,7 @@ const SystemSettingsTable: React.FC<SystemSettingsTableProps> = ({ settings, isL
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => onEdit(setting)}
+                        onClick={() => handleEdit(setting)}
                         className="h-8 w-8 p-0"
                       >
                         <Edit className="h-4 w-4" />

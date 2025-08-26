@@ -419,10 +419,10 @@ export async function GET(request: NextRequest) {
       positionId: searchParams.get('positionId') || advancedFilters.positionId,
       status: searchParams.get('status') || advancedFilters.status,
       education: searchParams.get('education'),
-      minAppliedJobFitScore: searchParams.get('minAppliedJobFitScore') ? parseFloat(searchParams.get('minAppliedJobFitScore')!) : (advancedFilters.minAppliedJobFitScore ? parseFloat(advancedFilters.minAppliedJobFitScore) : undefined),
-      maxAppliedJobFitScore: searchParams.get('maxAppliedJobFitScore') ? parseFloat(searchParams.get('maxAppliedJobFitScore')!) : (advancedFilters.maxAppliedJobFitScore ? parseFloat(advancedFilters.maxAppliedJobFitScore) : undefined),
-      minMatchingJobFitScore: searchParams.get('minMatchingJobFitScore') ? parseFloat(searchParams.get('minMatchingJobFitScore')!) : (advancedFilters.minMatchingJobFitScore ? parseFloat(advancedFilters.minMatchingJobFitScore) : undefined),
-      maxMatchingJobFitScore: searchParams.get('maxMatchingJobFitScore') ? parseFloat(searchParams.get('maxMatchingJobFitScore')!) : (advancedFilters.maxMatchingJobFitScore ? parseFloat(advancedFilters.maxMatchingJobFitScore) : undefined),
+      minAppliedJobFitScore: searchParams.get('minAppliedJobFitScore') ? parseFloat(searchParams.get('minAppliedJobFitScore')!) / 100 : (advancedFilters.minAppliedJobFitScore ? parseFloat(advancedFilters.minAppliedJobFitScore) / 100 : undefined),
+      maxAppliedJobFitScore: searchParams.get('maxAppliedJobFitScore') ? parseFloat(searchParams.get('maxAppliedJobFitScore')!) / 100 : (advancedFilters.maxAppliedJobFitScore ? parseFloat(advancedFilters.maxAppliedJobFitScore) / 100 : undefined),
+      minMatchingJobFitScore: searchParams.get('minMatchingJobFitScore') ? parseFloat(searchParams.get('minMatchingJobFitScore')!) / 100 : (advancedFilters.minMatchingJobFitScore ? parseFloat(advancedFilters.minMatchingJobFitScore) / 100 : undefined),
+      maxMatchingJobFitScore: searchParams.get('maxMatchingJobFitScore') ? parseFloat(searchParams.get('maxMatchingJobFitScore')!) / 100 : (advancedFilters.maxMatchingJobFitScore ? parseFloat(advancedFilters.maxMatchingJobFitScore) / 100 : undefined),
       includeNoScoreInApplied: searchParams.get('includeNoScoreInApplied') === 'true',
       includeNoScoreInMatching: searchParams.get('includeNoScoreInMatching') === 'true',
       minExperienceYears: searchParams.get('minExperienceYears') ? parseInt(searchParams.get('minExperienceYears')!, 10) : (advancedFilters.minExperienceYears ? parseInt(advancedFilters.minExperienceYears, 10) : undefined),
@@ -707,17 +707,15 @@ export async function GET(request: NextRequest) {
         const regularScoreConditions: string[] = [];
         
         if (filters.minAppliedJobFitScore !== undefined && filters.minAppliedJobFitScore !== -1) {
-          // Convert percentage to decimal for database comparison
-          const minScoreDecimal = filters.minAppliedJobFitScore / 100;
+          // Database stores fit scores in 0-1 decimal range, filter values already converted
           regularScoreConditions.push(`c."fitScore" >= $${paramIndex++}`);
-          queryParams.push(minScoreDecimal);
+          queryParams.push(filters.minAppliedJobFitScore);
         }
         
         if (filters.maxAppliedJobFitScore !== undefined && filters.maxAppliedJobFitScore !== -1) {
-          // Convert percentage to decimal for database comparison
-          const maxScoreDecimal = filters.maxAppliedJobFitScore / 100;
+          // Database stores fit scores in 0-1 decimal range, filter values already converted
           regularScoreConditions.push(`c."fitScore" <= $${paramIndex++}`);
-          queryParams.push(maxScoreDecimal);
+          queryParams.push(filters.maxAppliedJobFitScore);
         }
         
         // Create OR condition: (regular score conditions) OR (no-score condition)
@@ -731,16 +729,14 @@ export async function GET(request: NextRequest) {
       } else {
         // Handle regular score range filtering
         if (filters.minAppliedJobFitScore !== undefined && filters.minAppliedJobFitScore !== -1) {
-          // Convert percentage to decimal for database comparison
-          const minScoreDecimal = filters.minAppliedJobFitScore / 100;
+          // Database stores fit scores in 0-1 decimal range, filter values already converted
           whereClauses.push(`c."fitScore" >= $${paramIndex++}`);
-          queryParams.push(minScoreDecimal);
+          queryParams.push(filters.minAppliedJobFitScore);
         }
         if (filters.maxAppliedJobFitScore !== undefined && filters.maxAppliedJobFitScore !== -1) {
-          // Convert percentage to decimal for database comparison
-          const maxScoreDecimal = filters.maxAppliedJobFitScore / 100;
+          // Database stores fit scores in 0-1 decimal range, filter values already converted
           whereClauses.push(`c."fitScore" <= $${paramIndex++}`);
-          queryParams.push(maxScoreDecimal);
+          queryParams.push(filters.maxAppliedJobFitScore);
         }
       }
     }
@@ -761,8 +757,7 @@ export async function GET(request: NextRequest) {
         const regularScoreConditions: string[] = [];
         
         if (filters.minMatchingJobFitScore !== undefined && filters.minMatchingJobFitScore !== -1) {
-          // Convert percentage to decimal for database comparison
-          const minScoreDecimal = filters.minMatchingJobFitScore / 100;
+          // Database stores fit scores in 0-1 decimal range, filter values already converted
           regularScoreConditions.push(`(
             EXISTS (
               SELECT 1 FROM jsonb_array_elements(c."parsedData"->'job_matches') AS job_match
@@ -773,13 +768,12 @@ export async function GET(request: NextRequest) {
               WHERE jm."candidateId" = c.id AND jm."fitScore" >= $${paramIndex + 1}
             )
           )`);
-          queryParams.push(minScoreDecimal, minScoreDecimal);
+          queryParams.push(filters.minMatchingJobFitScore, filters.minMatchingJobFitScore);
           paramIndex += 2;
         }
         
         if (filters.maxMatchingJobFitScore !== undefined && filters.maxMatchingJobFitScore !== -1) {
-          // Convert percentage to decimal for database comparison
-          const maxScoreDecimal = filters.maxMatchingJobFitScore / 100;
+          // Database stores fit scores in 0-100 range, no conversion needed
           regularScoreConditions.push(`(
             EXISTS (
               SELECT 1 FROM jsonb_array_elements(c."parsedData"->'job_matches') AS job_match
@@ -790,7 +784,7 @@ export async function GET(request: NextRequest) {
               WHERE jm."candidateId" = c.id AND jm."fitScore" <= $${paramIndex + 1}
             )
           )`);
-          queryParams.push(maxScoreDecimal, maxScoreDecimal);
+          queryParams.push(filters.maxMatchingJobFitScore, filters.maxMatchingJobFitScore);
           paramIndex += 2;
         }
         
@@ -812,8 +806,7 @@ export async function GET(request: NextRequest) {
         const conditions: string[] = [];
         
         if (filters.minMatchingJobFitScore !== undefined && filters.minMatchingJobFitScore !== -1) {
-          // Convert percentage to decimal for database comparison
-          const minScoreDecimal = filters.minMatchingJobFitScore / 100;
+          // Database stores fit scores in 0-1 decimal range, filter values already converted
           conditions.push(`(
             EXISTS (
               SELECT 1 FROM jsonb_array_elements(c."parsedData"->'job_matches') AS job_match
@@ -824,14 +817,13 @@ export async function GET(request: NextRequest) {
               WHERE jm."candidateId" = c.id AND jm."fitScore" >= $${paramIndex + 1}
             )
           )`);
-          queryParams.push(minScoreDecimal, minScoreDecimal);
+          queryParams.push(filters.minMatchingJobFitScore, filters.minMatchingJobFitScore);
           paramIndex += 2;
 
         }
         
         if (filters.maxMatchingJobFitScore !== undefined && filters.maxMatchingJobFitScore !== -1) {
-          // Convert percentage to decimal for database comparison
-          const maxScoreDecimal = filters.maxMatchingJobFitScore / 100;
+          // Database stores fit scores in 0-100 range, no conversion needed
           conditions.push(`(
             EXISTS (
               SELECT 1 FROM jsonb_array_elements(c."parsedData"->'job_matches') AS job_match
@@ -842,7 +834,7 @@ export async function GET(request: NextRequest) {
               WHERE jm."candidateId" = c.id AND jm."fitScore" <= $${paramIndex + 1}
             )
           )`);
-          queryParams.push(maxScoreDecimal, maxScoreDecimal);
+          queryParams.push(filters.maxMatchingJobFitScore, filters.maxMatchingJobFitScore);
           paramIndex += 2;
 
         }

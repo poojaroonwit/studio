@@ -472,6 +472,8 @@ export function CandidatesPageClient({
 
     // Use database-level fit score counts for accurate badge display
   const candidateScoreCounts = useMemo(() => {
+  
+
     // If AI search is active, calculate counts based on AI-matched candidates only
     if (isAiSearchActive && aiMatchedCandidateIds && aiMatchedCandidateIds.length > 0) {
       
@@ -586,63 +588,66 @@ export function CandidatesPageClient({
     
     const candidatesToProcess = candidatesForFitScoreCounts;
     
-    candidatesToProcess.forEach((candidate: Candidate) => {
-      // Applied fit score - count each applied position record separately
-      const appliedScores = [];
-      
-      // Add main fit score if available
-      if (candidate.fitScore !== null && candidate.fitScore !== undefined) {
-        const normalizedScore = normalizeFitScore(candidate.fitScore);
-        appliedScores.push(normalizedScore);
-      }
-      
-      // Add fit scores from parsedData.job_applied if available
-      if (candidate.parsedData && typeof candidate.parsedData === 'object') {
-        const parsedData = candidate.parsedData as any;
-        if (parsedData.job_applied && parsedData.job_applied.fitScore) {
-          appliedScores.push(normalizeFitScore(parsedData.job_applied.fitScore));
+    // Only calculate if we have candidates to process
+    if (candidatesToProcess.length > 0) {
+      candidatesToProcess.forEach((candidate: Candidate) => {
+        // Applied fit score - count each applied position record separately
+        const appliedScores = [];
+        
+        // Add main fit score if available
+        if (candidate.fitScore !== null && candidate.fitScore !== undefined) {
+          const normalizedScore = normalizeFitScore(candidate.fitScore);
+          appliedScores.push(normalizedScore);
         }
-      }
-      
-      if (appliedScores.length > 0) {
-        // Count each candidate once based on their best applied score
-        const bestAppliedScore = Math.max(...appliedScores);
-        scoreRanges.forEach(range => {
-          if (bestAppliedScore >= range.min && bestAppliedScore <= range.max) {
-            appliedScoreRangeCounts[range.letter] = (appliedScoreRangeCounts[range.letter] || 0) + 1;
+        
+        // Add fit scores from parsedData.job_applied if available
+        if (candidate.parsedData && typeof candidate.parsedData === 'object') {
+          const parsedData = candidate.parsedData as any;
+          if (parsedData.job_applied && parsedData.job_applied.fitScore) {
+            appliedScores.push(normalizeFitScore(parsedData.job_applied.fitScore));
           }
-        });
-      } else {
-        // Count candidates with no applied fit score
-        appliedScoreRangeCounts['no-score'] = (appliedScoreRangeCounts['no-score'] || 0) + 1;
-      }
-      
-      // Matching fit score - count each job match record separately
-      const jobMatches = candidate.jobMatches || [];
-      const parsedJobMatches = candidate.parsedData && typeof candidate.parsedData === 'object' 
-        ? (candidate.parsedData as any).job_matches || []
-        : [];
-      
-      // Combine both sources of job matches
-      const allJobMatches = [
-        ...jobMatches.map(match => ({ fitScore: match.fitScore })),
-        ...parsedJobMatches.map((match: any) => ({ fitScore: match.fitScore }))
-      ];
-      
-      if (allJobMatches.length > 0) {
-        // Count each candidate once based on their best matching score
-        const matchScores = allJobMatches.map(match => normalizeFitScore(match.fitScore));
-        const bestMatchScore = Math.max(...matchScores);
-        scoreRanges.forEach(range => {
-          if (bestMatchScore >= range.min && bestMatchScore <= range.max) {
-            matchingScoreRangeCounts[range.letter] = (matchingScoreRangeCounts[range.letter] || 0) + 1;
-          }
-        });
-      } else {
-        // Count candidates with no matching fit score
-        matchingScoreRangeCounts['no-score'] = (matchingScoreRangeCounts['no-score'] || 0) + 1;
-      }
-    });
+        }
+        
+        if (appliedScores.length > 0) {
+          // Count each candidate once based on their best applied score
+          const bestAppliedScore = Math.max(...appliedScores);
+          scoreRanges.forEach(range => {
+            if (bestAppliedScore >= range.min && bestAppliedScore <= range.max) {
+              appliedScoreRangeCounts[range.letter] = (appliedScoreRangeCounts[range.letter] || 0) + 1;
+            }
+          });
+        } else {
+          // Count candidates with no applied fit score
+          appliedScoreRangeCounts['no-score'] = (appliedScoreRangeCounts['no-score'] || 0) + 1;
+        }
+        
+        // Matching fit score - count each job match record separately
+        const jobMatches = candidate.jobMatches || [];
+        const parsedJobMatches = candidate.parsedData && typeof candidate.parsedData === 'object' 
+          ? (candidate.parsedData as any).job_matches || []
+          : [];
+        
+        // Combine both sources of job matches
+        const allJobMatches = [
+          ...jobMatches.map(match => ({ fitScore: match.fitScore })),
+          ...parsedJobMatches.map((match: any) => ({ fitScore: match.fitScore }))
+        ];
+        
+        if (allJobMatches.length > 0) {
+          // Count each candidate once based on their best matching score
+          const matchScores = allJobMatches.map(match => normalizeFitScore(match.fitScore));
+          const bestMatchScore = Math.max(...matchScores);
+          scoreRanges.forEach(range => {
+            if (bestMatchScore >= range.min && bestMatchScore <= range.max) {
+              matchingScoreRangeCounts[range.letter] = (matchingScoreRangeCounts[range.letter] || 0) + 1;
+            }
+          });
+        } else {
+          // Count candidates with no matching fit score
+          matchingScoreRangeCounts['no-score'] = (matchingScoreRangeCounts['no-score'] || 0) + 1;
+        }
+      });
+    }
     
     const result = {
       applied: [
@@ -669,6 +674,21 @@ export function CandidatesPageClient({
     
     return result;
   }, [databaseFitScoreCounts, candidatesForFitScoreCounts, normalizeFitScore, getBestMatchingFitScore, isAiSearchActive, aiMatchedCandidateIds, allCandidatesForCounts]);
+
+  // Calculate loading state for fit score counts
+  const isFitScoreCountsLoading = useMemo(() => {
+    // Show loading if we're in initial loading state
+    if (isLoading || tableLoading) {
+      return true;
+    }
+    
+    // Show loading if we don't have database counts yet and we have candidates to process
+    if (!databaseFitScoreCounts && allCandidatesForCounts.length > 0) {
+      return true;
+    }
+    
+    return false;
+  }, [isLoading, tableLoading, databaseFitScoreCounts, allCandidatesForCounts.length]);
 
   // Calculate candidate counts by stage for the pipeline stage filter
   const candidateCountsByStage = useMemo(() => {
@@ -739,7 +759,7 @@ export function CandidatesPageClient({
     return paginatedCandidates;
   }, [isAiSearchActive, aiMatchedCandidateIds, mappedCandidates, filteredCandidates, page, pageSize, total, paginatedCandidates, isLoading, tableLoading]);
 
-  // Apply horizontal filters when selections change (debounced to prevent resource leaks)
+  // Apply horizontal filters when selections change (OPTIMIZED to prevent resource leaks)
   useEffect(() => {
     // Skip if we're currently clearing filters to prevent conflicts
     if (isClearingFilters) {
@@ -802,7 +822,7 @@ export function CandidatesPageClient({
         setTableLoading(true); // Show loading state; central filters effect will fetch
         // Avoid double-fetch here; fetching is handled by the filters change effects
       }
-    }, 200); // 200ms debounce
+    }, 400); // Increased debounce to prevent resource leaks
     
     // Cleanup timeout on unmount or when dependencies change
     return () => {
@@ -811,9 +831,9 @@ export function CandidatesPageClient({
         filterChangeTimeoutRef.current = null;
       }
     };
-  }, [horizontalSelectedFitScoreGrades, horizontalSelectedMatchingFitScoreGrades, applyHorizontalFitScoreFilters, pageSize, isClearingFilters, hasInitialDataFetch, fetchAllCandidatesForCounts]);
+  }, [horizontalSelectedFitScoreGrades, horizontalSelectedMatchingFitScoreGrades, applyHorizontalFitScoreFilters, isClearingFilters, hasInitialDataFetch]);
 
-  // Handle filter changes
+  // Handle filter changes (OPTIMIZED to prevent resource leaks)
   const onFilterChange = useCallback((newFilters: CandidateFilterValues) => {
     // Skip if we're currently clearing filters to prevent conflicts
     if (isClearingFilters) {
@@ -826,26 +846,38 @@ export function CandidatesPageClient({
     // Apply filters immediately for better responsiveness
     handleFilterChange(newFilters, (filters) => {
       setTableLoading(true);
-      fetchTableData(filters, 1, pageSize);
-      fetchAllCandidatesForCounts(filters); // Update counts data when filters change
+      
+      // Use a timeout to batch the API calls and prevent conflicts with useEffect
+      setTimeout(() => {
+        fetchTableData(filters, 1, pageSize);
+        
+        // Create a copy of filters without fit score filters to prevent circular dependency
+        const filtersForCounts = { ...filters };
+        
+        // Remove fit score filters to prevent circular dependency
+        delete filtersForCounts.minAppliedJobFitScore;
+        delete filtersForCounts.maxAppliedJobFitScore;
+        delete filtersForCounts.minMatchingJobFitScore;
+        delete filtersForCounts.maxMatchingJobFitScore;
+        delete filtersForCounts.includeNoScoreInApplied;
+        delete filtersForCounts.includeNoScoreInMatching;
+        
+        fetchFitScoreCounts(filtersForCounts); // Update fit score counts when filters change
+      }, 100); // Small delay to batch API calls
     });
-  }, [handleFilterChange, pageSize, fetchTableData, isClearingFilters, fetchAllCandidatesForCounts]);
+  }, [handleFilterChange, pageSize, fetchTableData, isClearingFilters, fetchFitScoreCounts]);
 
-  // Update total count when filteredCandidates changes to ensure pagination is accurate
+  // Update total count for AI search only (server sets total for regular search)
   useEffect(() => {
     if (!isLoading && !tableLoading && !isClearingFilters) {
       // For AI search, use aiRecordCount
       if (isAiSearchActive && aiMatchedCandidateIds) {
         setTotal(aiRecordCount);
-      } else {
-        // For regular search, use the length of filtered candidates
-        const newTotal = filteredCandidates.length;
-        if (newTotal !== total) {
-          setTotal(newTotal);
-        }
       }
+      // Note: For regular search, total is correctly set by the fetchTableData API response
+      // We should NOT override it with filteredCandidates.length as that's only the current page
     }
-  }, [filteredCandidates.length, isAiSearchActive, aiMatchedCandidateIds, aiRecordCount, isLoading, tableLoading, isClearingFilters, total]);
+  }, [isAiSearchActive, aiMatchedCandidateIds, aiRecordCount, isLoading, tableLoading, isClearingFilters]);
 
   // Update fit score counts when filteredCandidates changes
   useEffect(() => {
@@ -886,14 +918,14 @@ export function CandidatesPageClient({
     // Use a small delay to ensure state updates are processed
     const clearTimeoutId = setTimeout(() => {
       fetchTableData(defaultFilters, 1, pageSize);
-      fetchAllCandidatesForCounts(defaultFilters); // Update counts data when clearing all filters
+      fetchFitScoreCounts(defaultFilters); // Update fit score counts when clearing all filters
       setIsClearingFilters(false);
     }, 100);
     
     return () => {
       clearTimeout(clearTimeoutId);
     };
-  }, [clearAllFilters, pageSize, fetchTableData, fetchAllCandidatesForCounts, filterChangeTimeoutRef]);
+  }, [clearAllFilters, pageSize, fetchTableData, fetchFitScoreCounts, filterChangeTimeoutRef]);
 
   // Handle export candidates
   const handleExportCandidates = useCallback(async () => {
@@ -1039,7 +1071,7 @@ export function CandidatesPageClient({
       
       // Fetch both table data and full dataset for counts in parallel
       fetchTableData(filters, page, pageSize);
-      fetchAllCandidatesForCounts(filters);
+      fetchAllCandidatesForCounts(); // Don't pass filters to get all candidates for counts
     } else {
       // If we have initial data from server, mark as fetched
       if (initialCandidates.length > 0 && !hasInitialDataFetch) {
@@ -1051,9 +1083,9 @@ export function CandidatesPageClient({
         // The initial candidates are already loaded and will be used
       }
     }
-  }, [sessionStatus, serverAuthError, serverPermissionError, hasInitialDataFetch, fetchTableData, fetchAllCandidatesForCounts, initialCandidates.length]);
+  }, [sessionStatus, serverAuthError, serverPermissionError, hasInitialDataFetch, fetchTableData, fetchAllCandidatesForCounts, initialCandidates.length, filters]);
 
-  // Separate useEffect to handle filter changes and fetch candidates
+  // SIMPLIFIED: Main filter change handler - reduced dependencies to prevent resource leaks  
   useEffect(() => {
     if (sessionStatus !== 'authenticated' || serverAuthError || serverPermissionError) {
       return;
@@ -1071,7 +1103,6 @@ export function CandidatesPageClient({
     const advancedQueryFromUrl = searchParams.get('query');
     if (advancedQueryFromUrl && !filters.name && !filters.email && !filters.phone && !filters.selectedPositionIds?.length && !filters.selectedStatuses?.length) {
       // Advanced query is being processed, don't fetch yet
-      console.log('🔍 Skipping fetch - advanced query being processed:', advancedQueryFromUrl);
       return;
     }
     
@@ -1094,20 +1125,14 @@ export function CandidatesPageClient({
       return;
     }
     
-    console.log('🔍 Fetching candidates with filters:', filters);
-    
     // Add a small delay to prevent rapid successive requests
     const timeoutId = setTimeout(() => {
       currentRequestRefFromHook.current = requestId;
       fetchTableData(filters, page, pageSize);
-      // Only fetch counts if we have filters to prevent unnecessary API calls
-      if (hasActiveFilters) {
-        fetchAllCandidatesForCounts(filters);
-      }
-    }, 200); // Increased delay to prevent rapid successive requests
+    }, 300); // Increased delay to prevent resource leaks
     
     return () => clearTimeout(timeoutId);
-  }, [filters, page, pageSize, sortColumn, sortDirection, sessionStatus, serverAuthError, serverPermissionError, isClearingFilters, hasInitialDataFetch, fetchTableData, fetchAllCandidatesForCounts, initialCandidates.length, searchParams]);
+  }, [filters, page, pageSize, sortColumn, sortDirection, sessionStatus, serverAuthError, serverPermissionError, isClearingFilters, hasInitialDataFetch, fetchTableData, initialCandidates.length, searchParams]);
 
     // Show error as toast popup if present
   useEffect(() => {
@@ -1140,6 +1165,27 @@ export function CandidatesPageClient({
     }
   }, [initialCandidates.length, total, setTotal]);
 
+  // Initial fetch of fit score counts when component mounts
+  useEffect(() => {
+    if (sessionStatus === 'authenticated' && !isClearingFilters && (hasInitialDataFetch || initialCandidates.length > 0)) {
+      // Fetch fit score counts immediately on mount
+      const filtersForCounts = { ...filters };
+      
+      // Remove fit score filters to prevent circular dependency
+      delete filtersForCounts.minAppliedJobFitScore;
+      delete filtersForCounts.maxAppliedJobFitScore;
+      delete filtersForCounts.minMatchingJobFitScore;
+      delete filtersForCounts.maxMatchingJobFitScore;
+      delete filtersForCounts.includeNoScoreInApplied;
+      delete filtersForCounts.includeNoScoreInMatching;
+      
+      fetchFitScoreCounts(filtersForCounts);
+    }
+  }, [sessionStatus, hasInitialDataFetch, initialCandidates.length, filters, fetchFitScoreCounts]);
+
+  // DISABLED: This useEffect was causing resource leaks due to conflicts with onFilterChange
+  // The fetchFitScoreCounts is now properly handled in the onFilterChange callback
+  /*
   // Refresh fit score counts when filters change (debounced to prevent resource leaks)
   useEffect(() => {
     if (sessionStatus === 'authenticated' && !isClearingFilters) {
@@ -1162,7 +1208,7 @@ export function CandidatesPageClient({
         delete filtersForCounts.includeNoScoreInMatching;
         
         fetchFitScoreCounts(filtersForCounts);
-      }, 300); // 300ms debounce
+      }, 100);
     }
     
     // Cleanup timeout on unmount or when dependencies change
@@ -1173,6 +1219,7 @@ export function CandidatesPageClient({
       }
     };
   }, [sessionStatus, filters, isClearingFilters, fetchFitScoreCounts]);
+  */
 
   // Cleanup timeout on component unmount
   useEffect(() => {
@@ -1201,7 +1248,6 @@ export function CandidatesPageClient({
               <div className="h-full overflow-y-auto">
                 {(() => {
                   const advancedQuery = searchParams.get('query') || undefined;
-                  console.log('🔍 CandidatesPageClient: Advanced query from URL:', advancedQuery);
                   return (
                     <CandidateFilters
                       initialFilters={filters}
@@ -1255,6 +1301,7 @@ export function CandidatesPageClient({
                           filterMode={candidateSettings.fitScoreFilterMode}
                           aiMatchedCount={aiRecordCount}
                           isAiSearchActive={isAiSearchActive}
+                          isLoading={isFitScoreCountsLoading}
                         />
                       )}
                       {candidateSettings.fitScoreType === 'matching' && (
@@ -1276,6 +1323,7 @@ export function CandidatesPageClient({
                           filterMode={candidateSettings.fitScoreFilterMode}
                           aiMatchedCount={aiRecordCount}
                           isAiSearchActive={isAiSearchActive}
+                          isLoading={isFitScoreCountsLoading}
                         />
                       )}
                     </div>

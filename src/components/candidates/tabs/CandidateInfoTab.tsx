@@ -28,6 +28,22 @@ export const CandidateInfoTab: React.FC<CandidateInfoTabProps> = ({
     ? (candidate.parsedData as any).personal_info
     : undefined;
 
+  // Debug logging
+  React.useEffect(() => {
+    if (isEditing) {
+      console.log('CandidateInfoTab - isEditing:', isEditing);
+      console.log('CandidateInfoTab - candidate:', candidate);
+      console.log('CandidateInfoTab - personalInfo:', personalInfo);
+      console.log('CandidateInfoTab - register function:', !!register);
+      
+      // Watch form values to see what's in the form
+      if (watch) {
+        const watchedValues = watch();
+        console.log('CandidateInfoTab - watched form values:', watchedValues);
+      }
+    }
+  }, [isEditing, candidate, personalInfo, register, watch]);
+
   if (isEditing) {
     return (
       <div className="space-y-4">
@@ -44,6 +60,7 @@ export const CandidateInfoTab: React.FC<CandidateInfoTabProps> = ({
                   {...register('parsedData.personal_info.title_honorific')} 
                   placeholder="e.g., Mr., Ms., Dr."
                   className="mt-1" 
+                  defaultValue={personalInfo?.title_honorific || ''}
                 />
               </div>
               <div>
@@ -53,6 +70,7 @@ export const CandidateInfoTab: React.FC<CandidateInfoTabProps> = ({
                   {...register('parsedData.personal_info.firstname')} 
                   placeholder="Enter first name"
                   className="mt-1" 
+                  defaultValue={personalInfo?.firstname || ''}
                 />
                 {errors?.parsedData?.personal_info?.firstname && (
                   <p className="text-sm text-destructive mt-1">
@@ -67,6 +85,7 @@ export const CandidateInfoTab: React.FC<CandidateInfoTabProps> = ({
                   {...register('parsedData.personal_info.lastname')} 
                   placeholder="Enter last name"
                   className="mt-1" 
+                  defaultValue={personalInfo?.lastname || ''}
                 />
                 {errors?.parsedData?.personal_info?.lastname && (
                   <p className="text-sm text-destructive mt-1">
@@ -81,6 +100,7 @@ export const CandidateInfoTab: React.FC<CandidateInfoTabProps> = ({
                   {...register('parsedData.personal_info.nickname')} 
                   placeholder="Enter nickname"
                   className="mt-1" 
+                  defaultValue={personalInfo?.nickname || ''}
                 />
               </div>
             </div>
@@ -91,6 +111,7 @@ export const CandidateInfoTab: React.FC<CandidateInfoTabProps> = ({
                 {...register('parsedData.personal_info.location')} 
                 placeholder="e.g., Bangkok, Thailand"
                 className="mt-1" 
+                defaultValue={personalInfo?.location || ''}
               />
             </div>
             <div>
@@ -100,6 +121,7 @@ export const CandidateInfoTab: React.FC<CandidateInfoTabProps> = ({
                 {...register('parsedData.personal_info.introduction_aboutme')} 
                 placeholder="Tell us about yourself..."
                 className="mt-1 min-h-[100px]" 
+                defaultValue={personalInfo?.introduction_aboutme || ''}
               />
             </div>
           </CardContent>

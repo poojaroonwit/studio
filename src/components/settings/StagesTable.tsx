@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 
 interface StagesTableProps {
   stages: any[];
@@ -8,6 +8,13 @@ interface StagesTableProps {
 }
 
 const StagesTable: React.FC<StagesTableProps> = ({ stages, isLoading, onEdit, onColorChange }) => {
+  const handleEdit = useCallback((stage: any) => {
+    onEdit(stage);
+  }, [onEdit]);
+
+  const handleColorChange = useCallback((stage: any, colorType: string, newColor: string) => {
+    onColorChange(stage, colorType, newColor);
+  }, [onColorChange]);
   return (
     <div>
       <h2>Stages Table</h2>
@@ -32,7 +39,7 @@ const StagesTable: React.FC<StagesTableProps> = ({ stages, isLoading, onEdit, on
                 <input
                   type="color"
                   value={stage.color_complete || "#ffffff"}
-                  onChange={e => onColorChange(stage, "color_complete", e.target.value)}
+                  onChange={e => handleColorChange(stage, "color_complete", e.target.value)}
                   title={stage.color_complete}
                   className="w-8 h-8 p-0 border rounded"
                   style={{ background: stage.color_complete || "#fff" }}
@@ -42,14 +49,14 @@ const StagesTable: React.FC<StagesTableProps> = ({ stages, isLoading, onEdit, on
                 <input
                   type="color"
                   value={stage.color_badge || "#ffffff"}
-                  onChange={e => onColorChange(stage, "color_badge", e.target.value)}
+                  onChange={e => handleColorChange(stage, "color_badge", e.target.value)}
                   title={stage.color_badge}
                   className="w-8 h-8 p-0 border rounded"
                   style={{ background: stage.color_badge || "#fff" }}
                 />
               </td>
               <td className="px-4 py-2">
-                <button className="text-blue-600 hover:underline" onClick={() => onEdit(stage)}>Edit</button>
+                <button className="text-blue-600 hover:underline" onClick={() => handleEdit(stage)}>Edit</button>
               </td>
             </tr>
           ))}

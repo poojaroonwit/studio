@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import SystemSettingsForm from './SystemSettingsForm';
@@ -11,17 +11,25 @@ interface SystemSettingsModalProps {
 const SystemSettingsModal: React.FC<SystemSettingsModalProps> = ({ onSettingsUpdate }) => {
   const [isOpen, setIsOpen] = useState(false);
 
-  const handleSubmit = (data: SystemSetting[]) => {
+  const handleSubmit = useCallback((data: SystemSetting[]) => {
     if (onSettingsUpdate) {
       onSettingsUpdate(data);
     }
     setIsOpen(false);
-  };
+  }, [onSettingsUpdate]);
+
+  const handleOpen = useCallback(() => {
+    setIsOpen(true);
+  }, []);
+
+  const handleClose = useCallback(() => {
+    setIsOpen(false);
+  }, []);
 
   return (
     <>
       <Button
-        onClick={() => setIsOpen(true)}
+        onClick={handleOpen}
         className="mb-4"
       >
         <Plus className="h-4 w-4 mr-2" />
@@ -31,7 +39,7 @@ const SystemSettingsModal: React.FC<SystemSettingsModalProps> = ({ onSettingsUpd
       <SystemSettingsForm
         open={isOpen}
         setting={null}
-        onClose={() => setIsOpen(false)}
+        onClose={handleClose}
         onSubmit={handleSubmit}
       />
     </>

@@ -8,7 +8,7 @@ import { GlobalLoadingOverlay } from "./GlobalLoadingOverlay";
 import { usePageLoading } from "@/hooks/use-page-loading";
 import { useSessionValidation } from "@/hooks/use-session-validation";
 import SidebarNav from "./SidebarNav";
-import { SidebarStyleInitializer } from "./SidebarStyleInitializer";
+
 import { FaviconUpdater } from "./FaviconUpdater";
 import { useFavicon } from "@/hooks/use-favicon";
 import { usePathname } from "next/navigation";
@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { PerformanceMonitor } from "@/components/ui/performance-monitor";
+
 
 const APP_LOGO_DATA_URL_KEY = 'appLogoDataUrl';
 const APP_CONFIG_APP_NAME_KEY = 'appConfigAppName';
@@ -275,7 +276,6 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <SidebarProvider defaultOpen={true}>
-      <SidebarStyleInitializer />
       <FaviconUpdater faviconDataUrl={faviconDataUrl} />
       <SidebarToggleButton />
       <div className="flex h-screen bg-background overflow-hidden">

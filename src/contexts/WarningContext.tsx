@@ -55,7 +55,7 @@ export function WarningProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [session?.user]);
+  }, [session?.user?.id]);
 
   const checkEntityWarnings = useCallback(async (entityType: string, entityId: string) => {
     try {
@@ -122,7 +122,7 @@ export function WarningProvider({ children }: { children: React.ReactNode }) {
         clearTimeout(timeoutId);
       }
     };
-  }, [session?.user, fetchWarnings]);
+  }, [session?.user?.id, fetchWarnings]);
 
   // Use unified real-time hook instead of individual SSE connection
   const { isConnected } = useUnifiedRealtime({

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -73,7 +73,7 @@ export function RolePermissionSelector({
     onPermissionsChange(preservedPermissions);
   };
 
-  const selectCategoryPermissions = (category: string) => {
+  const selectCategoryPermissions = useCallback((category: string) => {
     if (disabled) return;
     const categoryPermissions = PLATFORM_MODULES
       .filter(p => p.category === category)
@@ -84,9 +84,9 @@ export function RolePermissionSelector({
     );
     const newPermissions = [...otherPermissions, ...categoryPermissions];
     onPermissionsChange(newPermissions);
-  };
+  }, [disabled, selectedPermissions, onPermissionsChange]);
 
-  const clearCategoryPermissions = (category: string) => {
+  const clearCategoryPermissions = useCallback((category: string) => {
     if (disabled) return;
     const categoryPermissions = PLATFORM_MODULES
       .filter(p => p.category === category)
@@ -96,7 +96,7 @@ export function RolePermissionSelector({
       !categoryPermissions.includes(p) || protectedPermissions.includes(p)
     );
     onPermissionsChange(newPermissions);
-  };
+  }, [disabled, selectedPermissions, protectedPermissions, onPermissionsChange]);
 
   const filteredGroupedPermissions = groupedPermissions.map(group => ({
     ...group,

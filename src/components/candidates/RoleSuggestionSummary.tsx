@@ -52,7 +52,7 @@ const RoleSuggestionSummary: React.FC<RoleSuggestionSummaryProps> = ({ candidate
     if (!jobMatchTitleLower) continue;
     const dbPositionMatch = openPositionsMap.get(jobMatchTitleLower);
     if (dbPositionMatch && dbPositionMatch.id !== currentAppliedPositionId) {
-      if (jobMatch.fitScore > bestAlternativeScore && (jobMatch.fitScore - currentFitScore >= 10)) {
+      if (jobMatch.fitScore > bestAlternativeScore && (jobMatch.fitScore - currentFitScore >= 0.1)) {
         bestAlternativeScore = jobMatch.fitScore;
         bestAlternativeMatch = jobMatch;
         bestAlternativePositionInDb = dbPositionMatch;

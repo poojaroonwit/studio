@@ -15,6 +15,7 @@ interface UnifiedRealtimeOptions {
 let globalEventSource: EventSource | null = null;
 let globalConnectionCount = 0;
 let globalReconnectTimeout: NodeJS.Timeout | null = null;
+let globalCleanupFunctions = new Map<EventSource, () => void>();
 
 export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
   const { data: session } = useSession();
@@ -27,6 +28,13 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
 
   const cleanup = useCallback(() => {
     if (eventSourceRef.current) {
+      // Call stored cleanup function if it exists
+      const cleanupFn = globalCleanupFunctions.get(eventSourceRef.current);
+      if (cleanupFn) {
+        cleanupFn();
+        globalCleanupFunctions.delete(eventSourceRef.current);
+      }
+      
       eventSourceRef.current.close();
       eventSourceRef.current = null;
     }
@@ -100,17 +108,52 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
         };
       };
 
-      eventSource.addEventListener('candidate_update', handleEvent('candidate', options.onCandidateUpdate));
-      eventSource.addEventListener('position_update', handleEvent('position', options.onPositionUpdate));
-      eventSource.addEventListener('warning_update', handleEvent('warning', options.onWarningUpdate));
-      eventSource.addEventListener('notification_update', handleEvent('notification', options.onNotificationUpdate));
-      eventSource.addEventListener('upload_queue_update', handleEvent('upload_queue', options.onUploadQueueUpdate));
-      eventSource.addEventListener('presence_update', handleEvent('presence', options.onPresenceUpdate));
-      eventSource.addEventListener('keepalive', () => {
+      const candidateHandler = handleEvent('candidate', options.onCandidateUpdate);
+      const positionHandler = handleEvent('position', options.onPositionUpdate);
+      const warningHandler = handleEvent('warning', options.onWarningUpdate);
+      const notificationHandler = handleEvent('notification', options.onNotificationUpdate);
+      const uploadQueueHandler = handleEvent('upload_queue', options.onUploadQueueUpdate);
+      const presenceHandler = handleEvent('presence', options.onPresenceUpdate);
+      const keepaliveHandler = () => {
         if (mountedRef.current) {
           setLastUpdate(new Date());
         }
-      });
+      };
+
+      eventSource.addEventListener('candidate_update', candidateHandler);
+      eventSource.addEventListener('position_update', positionHandler);
+      eventSource.addEventListener('warning_update', warningHandler);
+      eventSource.addEventListener('notification_update', notificationHandler);
+      eventSource.addEventListener('upload_queue_update', uploadQueueHandler);
+      eventSource.addEventListener('presence_update', presenceHandler);
+      eventSource.addEventListener('keepalive', keepaliveHandler);
+
+      // Store handlers for cleanup
+      const handlers = {
+        candidate: candidateHandler,
+        position: positionHandler,
+        warning: warningHandler,
+        notification: notificationHandler,
+        upload_queue: uploadQueueHandler,
+        presence: presenceHandler,
+        keepalive: keepaliveHandler
+      };
+
+      // Store cleanup function
+      const cleanupEventListeners = () => {
+        if (eventSource) {
+          eventSource.removeEventListener('candidate_update', handlers.candidate);
+          eventSource.removeEventListener('position_update', handlers.position);
+          eventSource.removeEventListener('warning_update', handlers.warning);
+          eventSource.removeEventListener('notification_update', handlers.notification);
+          eventSource.removeEventListener('upload_queue_update', handlers.upload_queue);
+          eventSource.removeEventListener('presence_update', handlers.presence);
+          eventSource.removeEventListener('keepalive', handlers.keepalive);
+        }
+      };
+
+      // Store cleanup function for later use
+      globalCleanupFunctions.set(eventSource, cleanupEventListeners);
 
     } catch (error) {
       console.error('Failed to connect to unified real-time:', error);

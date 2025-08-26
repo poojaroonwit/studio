@@ -474,44 +474,4 @@ export function initializeSidebarBackground() {
   });
 }
 
-// Test function to set sample background settings (for debugging)
-export function setTestSidebarBackground() {
-  if (typeof window === 'undefined') return;
-  
-  // Set test solid background
-  localStorage.setItem('sidebarBackgroundType', 'solid');
-  localStorage.removeItem('sidebarBackgroundImageUrl');
-  localStorage.removeItem('sidebarBackgroundImageFit');
-  localStorage.removeItem('sidebarBackgroundImagePosition');
-  
-  console.log('Set test solid background');
-  applySidebarBackgroundToCSS();
-}
-
-// Test function to set test image background
-export function setTestImageBackground() {
-  if (typeof window === 'undefined') return;
-  
-  // Set test image background
-  localStorage.setItem('sidebarBackgroundType', 'image');
-  localStorage.setItem('sidebarBackgroundImageUrl', 'https://picsum.photos/400/600');
-  localStorage.setItem('sidebarBackgroundImageFit', 'cover');
-  localStorage.setItem('sidebarBackgroundImagePosition', 'center');
-  
-  console.log('Set test image background');
-  applySidebarBackgroundToCSS();
-}
-
-// Test function to reset to gradient
-export function resetToGradientBackground() {
-  if (typeof window === 'undefined') return;
-  
-  // Reset to gradient
-  localStorage.setItem('sidebarBackgroundType', 'gradient');
-  localStorage.removeItem('sidebarBackgroundImageUrl');
-  localStorage.removeItem('sidebarBackgroundImageFit');
-  localStorage.removeItem('sidebarBackgroundImagePosition');
-  
-  console.log('Reset to gradient background');
-  applySidebarBackgroundToCSS();
-} 
+ 

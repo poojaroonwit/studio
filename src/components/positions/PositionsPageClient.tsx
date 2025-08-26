@@ -256,38 +256,7 @@ export default function PositionsPageClient() {
     setAssigningRecruiter(null);
   }, []);
 
-  // Emergency cleanup function for stuck states
-  const emergencyCleanup = useCallback(() => {
-    // Clear all timeouts
-    if (preferencesTimeoutRef.current) {
-      clearTimeout(preferencesTimeoutRef.current);
-      preferencesTimeoutRef.current = null;
-    }
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-      searchTimeoutRef.current = null;
-    }
-    if (searchBlurTimeoutRef.current) {
-      clearTimeout(searchBlurTimeoutRef.current);
-      searchBlurTimeoutRef.current = null;
-    }
-    if (refreshTimeoutRef.current) {
-      clearTimeout(refreshTimeoutRef.current);
-      refreshTimeoutRef.current = null;
-    }
-    if (searchStuckTimeoutRef.current) {
-      clearTimeout(searchStuckTimeoutRef.current);
-      searchStuckTimeoutRef.current = null;
-    }
-    
-    // Reset all loading states
-    setIsLoading(false);
-    setIsTableLoading(false);
-    setIsSearching(false);
-    setAssigningRecruiter(null);
-    
-    toast.success('System state has been reset');
-  }, []);
+
 
   // Department filter popover state
   const [departmentPopoverOpen, setDepartmentPopoverOpen] = useState(false);
@@ -1200,15 +1169,7 @@ export default function PositionsPageClient() {
                   <Download className="mr-2 h-4 w-4" />
                   Export to Excel
                 </DropdownMenuItem>
-                {process.env.NODE_ENV === 'development' && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={emergencyCleanup} className="text-orange-600">
-                      <RotateCcw className="mr-2 h-4 w-4" />
-                      Emergency Reset
-                    </DropdownMenuItem>
-                  </>
-                )}
+
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

@@ -4,6 +4,7 @@ import React from 'react';
 import { getScoreRangesForChart } from '@/lib/scoreUtils';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { useEffect } from 'react';
 
 interface FitScoreFilterTabsProps {
   selectedGrades?: Set<string>;
@@ -14,6 +15,7 @@ interface FitScoreFilterTabsProps {
   onClearAll?: () => void; // Add new prop for clearing all selections
   aiMatchedCount?: number; // Add new prop for AI search matched count
   isAiSearchActive?: boolean; // Add new prop to indicate if AI search is active
+  isLoading?: boolean; // Add loading state prop
 }
 
 export function FitScoreFilterTabs({
@@ -24,10 +26,10 @@ export function FitScoreFilterTabs({
   filterMode = 'multi',
   onClearAll,
   aiMatchedCount = 0,
-  isAiSearchActive = false
+  isAiSearchActive = false,
+  isLoading = false
 }: FitScoreFilterTabsProps) {
 
-  
   const scoreRanges = getScoreRangesForChart();
 
   // Ensure selectedGrades is always a Set
@@ -52,11 +54,17 @@ export function FitScoreFilterTabs({
   };
 
   const getCount = (letter: string) => {
+    if (isLoading) {
+      return '...';
+    }
     const count = candidateCounts.find(c => c.letter === letter)?.count || 0;
     return count;
   };
 
   const getTotalCount = () => {
+    if (isLoading) {
+      return '...';
+    }
     // If AI search is active, show the AI matched count instead of total candidates
     if (isAiSearchActive && aiMatchedCount > 0) {
       return aiMatchedCount;

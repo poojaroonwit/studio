@@ -98,6 +98,9 @@ export async function POST(
         
         errorMessage = error instanceof Error ? error.message : 'Unknown error';
       }
+    } catch (error) {
+      errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    }
 
     const duration = Date.now() - startTime;
 

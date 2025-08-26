@@ -326,7 +326,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
         description: candidate.parsedData?.summary || '', // Only use summary, don't fallback to email
         email: candidate.email, // Always include email separately
         status: candidate.status,
-        priority: (candidate.fitScore > 80 ? 'high' : candidate.fitScore > 60 ? 'medium' : 'low') as 'low' | 'medium' | 'high' | 'urgent',
+        priority: (candidate.fitScore > 0.8 ? 'high' : candidate.fitScore > 0.6 ? 'medium' : 'low') as 'low' | 'medium' | 'high' | 'urgent',
         assignee: candidate.recruiter ? {
           id: candidate.recruiter.id,
           name: candidate.recruiter.name,

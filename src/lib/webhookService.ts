@@ -139,6 +139,17 @@ export class WebhookService {
           duration_ms: duration
         };
       }
+    } catch (error) {
+      // Handle any errors in payload processing or other setup
+      const duration = Date.now() - startTime;
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      result = {
+        success: false,
+        error: errorMessage,
+        duration_ms: duration
+      };
+    }
 
     // Log the webhook delivery
     await this.logWebhookDelivery(webhook.id, processedPayload, result);

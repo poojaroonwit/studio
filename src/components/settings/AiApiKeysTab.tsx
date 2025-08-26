@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Trash2, Save, RefreshCw, AlertCircle, CheckCircle, Clock, XCircle, GripVertical, Edit2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -89,14 +89,14 @@ export default function AiApiKeysTab() {
     setNewPriority(Math.max(...apiKeys.map(k => k.priority), 0) + 1);
   };
 
-  const removeApiKey = (priority: number) => {
+  const removeApiKey = useCallback((priority: number) => {
     setApiKeys(apiKeys.filter(key => key.priority !== priority));
-  };
+  }, [apiKeys]);
 
-  const startEditing = (apiKey: ApiKey) => {
+  const startEditing = useCallback((apiKey: ApiKey) => {
     setEditingKey(apiKey.key);
     setEditValue(apiKey.key);
-  };
+  }, []);
 
   const cancelEditing = () => {
     setEditingKey(null);

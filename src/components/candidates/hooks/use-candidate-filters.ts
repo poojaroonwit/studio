@@ -148,9 +148,20 @@ export function useCandidateFilters(initialFilters?: CandidateFilterValues) {
       return;
     }
 
-    // Clear horizontal fit score filters when other filters change to avoid conflicts
-    setHorizontalSelectedFitScoreGrades(new Set());
-    setHorizontalSelectedMatchingFitScoreGrades(new Set());
+    // Check if this is a fit score filter change to avoid clearing horizontal fit score filters
+    const isFitScoreFilterChange = 
+      newFilters.minAppliedJobFitScore !== undefined ||
+      newFilters.maxAppliedJobFitScore !== undefined ||
+      newFilters.minMatchingJobFitScore !== undefined ||
+      newFilters.maxMatchingJobFitScore !== undefined ||
+      newFilters.includeNoScoreInApplied !== undefined ||
+      newFilters.includeNoScoreInMatching !== undefined;
+
+    // Only clear horizontal fit score filters when other filters change (not fit score filters)
+    if (!isFitScoreFilterChange) {
+      setHorizontalSelectedFitScoreGrades(new Set());
+      setHorizontalSelectedMatchingFitScoreGrades(new Set());
+    }
     
     // Immediate UI update for better responsiveness
     setFilters(combinedFilters);

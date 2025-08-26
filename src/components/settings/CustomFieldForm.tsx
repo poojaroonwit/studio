@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import type { CustomFieldDefinition, CustomFieldType, CustomFieldOption } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -83,10 +83,18 @@ const CustomFieldForm: React.FC<CustomFieldFormProps> = ({ open, definition, onC
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [definition, open]);
 
-  const handleSubmit = (data: CustomFieldFormValues) => {
+  const handleSubmit = useCallback((data: CustomFieldFormValues) => {
     onSubmit(data);
     form.reset();
-  };
+  }, [onSubmit]);
+
+  const handleRemoveOption = useCallback((idx: number) => {
+    removeOption(idx);
+  }, [removeOption]);
+
+  const handleAppendOption = useCallback(() => {
+    appendOption({ value: '', label: '' });
+  }, [appendOption]);
 
   return (
     <Dialog open={open} onOpenChange={(v: boolean) => { if (!v) onClose(); }}>
@@ -139,10 +147,10 @@ const CustomFieldForm: React.FC<CustomFieldFormProps> = ({ open, definition, onC
                   <div key={field.id} className="flex gap-2 items-center">
                     <input {...form.register(`options.${idx}.value` as const)} className="border rounded p-2 flex-1" placeholder="Value" />
                     <input {...form.register(`options.${idx}.label` as const)} className="border rounded p-2 flex-1" placeholder="Label" />
-                    <button type="button" className="text-red-500 px-2" onClick={() => removeOption(idx)}>Remove</button>
+                    <button type="button" className="text-red-500 px-2" onClick={() => handleRemoveOption(idx)}>Remove</button>
                   </div>
                 ))}
-                <button type="button" className="text-blue-600 text-sm" onClick={() => appendOption({ value: '', label: '' })}>+ Add Option</button>
+                <button type="button" className="text-blue-600 text-sm" onClick={handleAppendOption}>+ Add Option</button>
               </div>
               {form.formState.errors.options && <span className="text-red-500 text-xs">{(form.formState.errors.options as any)?.message}</span>}
             </div>

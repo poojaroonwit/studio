@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,9 @@ const getLogLevelIcon = (level: LogLevel) => {
 };
 
 const LogsTable: React.FC<LogsTableProps> = ({ logs, isLoading, onEdit }) => {
+  const handleEdit = useCallback((log: LogEntry) => {
+    onEdit(log);
+  }, [onEdit]);
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8">
@@ -96,7 +99,7 @@ const LogsTable: React.FC<LogsTableProps> = ({ logs, isLoading, onEdit }) => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => onEdit(log)}
+                    onClick={() => handleEdit(log)}
                     className="h-8 w-8 p-0"
                   >
                     <Eye className="h-4 w-4" />

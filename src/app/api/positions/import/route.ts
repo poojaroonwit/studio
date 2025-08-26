@@ -158,7 +158,7 @@ async function processBatch(client: any, positions: any[], defaultMatchCriteria:
   `;
   const existingParams = existingTitles.flat();
   const existingResult = await client.query(existingQuery, existingParams);
-  const existingSet = new Set(existingResult.rows.map(row => `${row.title}|${row.department}`));
+  const existingSet = new Set(existingResult.rows.map((row: any) => `${row.title}|${row.department}`));
 
   // Filter out existing positions
   const newPositions = positions.filter(pos => !existingSet.has(`${pos.title}|${pos.department}`));

@@ -23,14 +23,14 @@ async function checkFitScores() {
       console.log(`  ${row.fitScore}: ${row.count} candidates`);
     });
     
-    // Check C range (0.41 to 0.60)
-    const cRangeResult = await client.query(`
+    // Check B range (0.61 to 0.80)
+    const bRangeResult = await client.query(`
       SELECT COUNT(*) as total 
       FROM "Candidate" 
-      WHERE "fitScore" >= 0.41 AND "fitScore" <= 0.60
+      WHERE "fitScore" >= 0.61 AND "fitScore" <= 0.80
     `);
     
-    console.log(`\nCandidates in C range (0.41-0.60): ${cRangeResult.rows[0].total}`);
+    console.log(`\nCandidates in B range (0.61-0.80): ${bRangeResult.rows[0].total}`);
     
     // Check total candidates
     const totalResult = await client.query(`SELECT COUNT(*) as total FROM "Candidate"`);

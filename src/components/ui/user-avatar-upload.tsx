@@ -36,6 +36,7 @@ export function UserAvatarUpload({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const lastObjectUrlRef = useRef<string | null>(null);
+  const clickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const sizeClasses = {
     sm: 'w-12 h-12',
@@ -52,6 +53,15 @@ export function UserAvatarUpload({
   };
 
   // Avatar click shows dropdown via DropdownMenuTrigger
+
+  // Cleanup timeout on component unmount
+  useEffect(() => {
+    return () => {
+      if (clickTimeoutRef.current) {
+        clearTimeout(clickTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -206,7 +216,11 @@ export function UserAvatarUpload({
               <DropdownMenuItem
                 onSelect={() => {
                   if (disabled || isUploading) return;
-                  setTimeout(() => fileInputRef.current?.click(), 0);
+                  // Clear any existing timeout
+                  if (clickTimeoutRef.current) {
+                    clearTimeout(clickTimeoutRef.current);
+                  }
+                  clickTimeoutRef.current = setTimeout(() => fileInputRef.current?.click(), 0);
                 }}
               >
                 <Edit className="h-4 w-4" /> Upload new image

@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useEffect } from 'react';
 import { CandidateFilterValues } from '@/components/candidates/CandidateFilters';
 import { Candidate } from '@/lib/types';
 
@@ -42,17 +42,40 @@ export function useCandidateFetching({
   setIsLoading
 }: UseCandidateFetchingProps) {
   const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const requestTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const currentRequestRef = useRef<string | null>(null);
   const latestRequestIdRef = useRef<string | null>(null);
+
+  // Cleanup all timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+      }
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+      }
+      if (requestTimeoutRef.current) {
+        clearTimeout(requestTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const fetchTableData = useCallback(async (currentFilters: CandidateFilterValues, currentPage: number, currentPageSize: number) => {
     if (sessionStatus !== 'authenticated') {
       return;
     }
     
-    // Clear any existing timeout
+    // Clear any existing timeouts
     if (fetchTimeoutRef.current) {
       clearTimeout(fetchTimeoutRef.current);
+    }
+    if (loadingTimeoutRef.current) {
+      clearTimeout(loadingTimeoutRef.current);
+    }
+    if (requestTimeoutRef.current) {
+      clearTimeout(requestTimeoutRef.current);
     }
     
     // Generate a unique request ID for this request
@@ -64,7 +87,7 @@ export function useCandidateFetching({
     setTableError(null);
     
     // Add a timeout to prevent infinite loading
-    const loadingTimeout = setTimeout(() => {
+    loadingTimeoutRef.current = setTimeout(() => {
       setTableLoading(false);
       setIsLoading(false); // Also clear the main loading state
       setIsFetching(false);
@@ -129,7 +152,7 @@ export function useCandidateFetching({
       
       // Add timeout and retry logic
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000); // Reduced from 15 seconds to 8 seconds for faster response
+      requestTimeoutRef.current = setTimeout(() => controller.abort(), 8000); // Reduced from 15 seconds to 8 seconds for faster response
 
       const response = await fetch(apiUrl, {
         signal: controller.signal,
@@ -137,7 +160,12 @@ export function useCandidateFetching({
           'Cache-Control': 'no-cache'
         }
       });
-      clearTimeout(timeoutId);
+      
+      // Clear request timeout on successful response
+      if (requestTimeoutRef.current) {
+        clearTimeout(requestTimeoutRef.current);
+        requestTimeoutRef.current = null;
+      }
       
       if (!response.ok) {
         throw new Error(`Failed to fetch candidates: ${response.status} ${response.statusText}`);
@@ -176,7 +204,11 @@ export function useCandidateFetching({
         return;
       }
       
-      clearTimeout(loadingTimeout);
+      // Clear loading timeout
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+        loadingTimeoutRef.current = null;
+      }
       setTableLoading(false);
       setIsFetching(false);
     }

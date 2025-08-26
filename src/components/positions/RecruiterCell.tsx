@@ -61,11 +61,11 @@ export function RecruiterCell({
   React.useEffect(() => {
     if (isAssigning) {
       const timeout = setTimeout(() => {
-    
+        console.warn(`RecruiterCell: Auto-resetting stuck assignment state for position ${position.id}`);
         if (onResetAssigning) {
           onResetAssigning();
         }
-      }, 2000); // Reset after 2 seconds
+      }, 3000); // Increased from 2 seconds to 3 seconds
 
       return () => clearTimeout(timeout);
     }
@@ -80,27 +80,36 @@ export function RecruiterCell({
 
   // Focus search input when popover opens
   React.useEffect(() => {
-    if (open) {
+    if (open && !isAssigning) {
       // Small delay to ensure the input is rendered
-      setTimeout(() => {
+      const focusTimeout = setTimeout(() => {
         if (searchInputRef.current) {
           searchInputRef.current.focus();
           searchInputRef.current.select(); // Select all text if any
         }
       }, 100);
+
+      return () => clearTimeout(focusTimeout);
     }
-  }, [open]);
+  }, [open, isAssigning]);
 
   const handleSelect = async (recruiterId: string | null) => {
-
-    
+    // Prevent multiple simultaneous selections
     if (isAssigning) {
-  
+      console.warn('RecruiterCell: Assignment already in progress, ignoring selection');
       return;
     }
     
+    // Close popover immediately to prevent UI confusion
     setOpen(false);
-    await onAssignRecruiter(position.id, recruiterId);
+    
+    try {
+      await onAssignRecruiter(position.id, recruiterId);
+    } catch (error) {
+      console.error('RecruiterCell: Error in handleSelect:', error);
+      // Re-open popover on error to allow retry
+      setOpen(true);
+    }
   };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {

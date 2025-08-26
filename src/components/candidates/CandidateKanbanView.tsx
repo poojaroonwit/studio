@@ -251,7 +251,7 @@ const EnhancedCandidateCard = ({ candidate, isDragged = false, onClick, onDragSt
             <div className="flex items-center justify-between text-xs">
               <span className="text-muted-foreground">{getFieldLabel('fitScore')}</span>
               <span className="font-medium text-foreground">
-                {candidate.fitScore === 0 ? 'Not scored' : formatScoreWithGrade(candidate.fitScore)}
+                {candidate.fitScore === null || candidate.fitScore === undefined ? 'Not scored' : formatScoreWithGrade(candidate.fitScore)}
               </span>
             </div>
             <div className="w-full bg-muted rounded-full h-2">
@@ -1407,7 +1407,7 @@ export function SingleRowCandidateView({
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-muted-foreground">{getFieldLabel('fitScore')}</span>
                       <span className="font-medium text-foreground">
-                        {candidate.fitScore === 0 ? 'Not scored' : formatScoreWithGrade(candidate.fitScore)}
+                        {candidate.fitScore === null || candidate.fitScore === undefined ? 'Not scored' : formatScoreWithGrade(candidate.fitScore)}
                       </span>
                     </div>
                     <div className="w-full bg-muted rounded-full h-2">
@@ -1745,7 +1745,7 @@ export function SingleRowKanbanView({
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-medium text-foreground">{getFieldLabel('fitScore')}</span>
                         <span className="text-sm font-semibold text-foreground">
-                          {currentCandidate.fitScore === 0 ? 'Not scored' : formatScoreWithGrade(currentCandidate.fitScore)}
+                          {currentCandidate.fitScore === null || currentCandidate.fitScore === undefined ? 'Not scored' : formatScoreWithGrade(currentCandidate.fitScore)}
                         </span>
                       </div>
                       <div className="w-full bg-muted rounded-full h-3">
@@ -1942,7 +1942,7 @@ export function MultiRecruiterKanbanView({ candidates, stages, recruiters, onMov
                                     <div className="flex items-center justify-between text-xs">
                                       <span className="text-muted-foreground">{getFieldLabel('fitScore')}</span>
                                       <span className="font-medium text-foreground">
-                                        {candidate.fitScore === 0 ? 'Not scored' : formatScoreWithGrade(candidate.fitScore)}
+                                        {candidate.fitScore === null || candidate.fitScore === undefined ? 'Not scored' : formatScoreWithGrade(candidate.fitScore)}
                                       </span>
                                     </div>
                                     <div className="w-full bg-muted rounded-full h-1">

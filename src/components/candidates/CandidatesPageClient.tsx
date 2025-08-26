@@ -97,6 +97,7 @@ export function CandidatesPageClient({
   const [tableLoading, setTableLoading] = useState<boolean>(false);
   const [tableError, setTableError] = useState<string | null>(null);
   const [isClearingFilters, setIsClearingFilters] = useState(false);
+  const clearingFiltersTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // AI Search state
   const [aiSearchReasoning, setAiSearchReasoning] = useState<string | null>(null);
@@ -321,7 +322,6 @@ export function CandidatesPageClient({
       fetchTableData(filters, page, pageSize);
       fetchAllCandidatesForCounts();
     } catch (error) {
-      console.error('Bulk delete error:', error);
       toast.error((error as Error).message || 'Bulk delete failed');
     }
   }, [fetchTableData, filters, page, pageSize, fetchAllCandidatesForCounts]);
@@ -352,7 +352,6 @@ export function CandidatesPageClient({
       fetchTableData(filters, page, pageSize);
       fetchAllCandidatesForCounts();
     } catch (error) {
-      console.error('Bulk status change error:', error);
       toast.error((error as Error).message || 'Bulk status change failed');
     }
   }, [fetchTableData, filters, page, pageSize, fetchAllCandidatesForCounts]);
@@ -383,7 +382,6 @@ export function CandidatesPageClient({
       fetchTableData(filters, page, pageSize);
       fetchAllCandidatesForCounts();
     } catch (error) {
-      console.error('Bulk recruiter assignment error:', error);
       toast.error((error as Error).message || 'Bulk recruiter assignment failed');
     }
   }, [fetchTableData, filters, page, pageSize, fetchAllCandidatesForCounts, availableRecruiters]);
@@ -428,7 +426,6 @@ export function CandidatesPageClient({
 
   // Stable callback for settings change
   const handleSettingsChange = useCallback(async (settings: any) => {
-    console.log('🔧 CANDIDATES PAGE: Settings changed:', settings);
     setCandidateSettings(settings);
   }, [setCandidateSettings]);
 
@@ -823,14 +820,11 @@ export function CandidatesPageClient({
       return;
     }
     
-    console.log('🔍 CLIENT DEBUG: Received filter change:', newFilters);
-    
     // Reset page to 1 when filters change
     setPage(1);
     
     // Apply filters immediately for better responsiveness
     handleFilterChange(newFilters, (filters) => {
-      console.log('🔍 CLIENT DEBUG: Applying filters to API:', filters);
       setTableLoading(true);
       fetchTableData(filters, 1, pageSize);
       fetchAllCandidatesForCounts(filters); // Update counts data when filters change
@@ -947,7 +941,6 @@ export function CandidatesPageClient({
       
       toast.success('Export completed successfully');
     } catch (error) {
-      console.error('Export error:', error);
       toast.error('Export failed. Please try again.');
     } finally {
       setTableLoading(false);
@@ -1074,6 +1067,14 @@ export function CandidatesPageClient({
       return;
     }
     
+    // Check if we have an advanced query from URL that's being processed
+    const advancedQueryFromUrl = searchParams.get('query');
+    if (advancedQueryFromUrl && !filters.name && !filters.email && !filters.phone && !filters.selectedPositionIds?.length && !filters.selectedStatuses?.length) {
+      // Advanced query is being processed, don't fetch yet
+      console.log('🔍 Skipping fetch - advanced query being processed:', advancedQueryFromUrl);
+      return;
+    }
+    
     // If we have initial candidates and no filters are applied, don't fetch immediately
     // This prevents overwriting the initial data unnecessarily
     const hasActiveFilters = Object.values(filters).some(value => 
@@ -1093,15 +1094,20 @@ export function CandidatesPageClient({
       return;
     }
     
+    console.log('🔍 Fetching candidates with filters:', filters);
+    
     // Add a small delay to prevent rapid successive requests
     const timeoutId = setTimeout(() => {
       currentRequestRefFromHook.current = requestId;
       fetchTableData(filters, page, pageSize);
-      fetchAllCandidatesForCounts(filters); // Update counts when filters change
+      // Only fetch counts if we have filters to prevent unnecessary API calls
+      if (hasActiveFilters) {
+        fetchAllCandidatesForCounts(filters);
+      }
     }, 200); // Increased delay to prevent rapid successive requests
     
     return () => clearTimeout(timeoutId);
-  }, [filters, page, pageSize, sortColumn, sortDirection, sessionStatus, serverAuthError, serverPermissionError, isClearingFilters, hasInitialDataFetch, fetchAllCandidatesForCounts, initialCandidates.length]);
+  }, [filters, page, pageSize, sortColumn, sortDirection, sessionStatus, serverAuthError, serverPermissionError, isClearingFilters, hasInitialDataFetch, fetchTableData, fetchAllCandidatesForCounts, initialCandidates.length, searchParams]);
 
     // Show error as toast popup if present
   useEffect(() => {
@@ -1168,6 +1174,20 @@ export function CandidatesPageClient({
     };
   }, [sessionStatus, filters, isClearingFilters, fetchFitScoreCounts]);
 
+  // Cleanup timeout on component unmount
+  useEffect(() => {
+    return () => {
+      if (clearingFiltersTimeoutRef.current) {
+        clearTimeout(clearingFiltersTimeoutRef.current);
+      }
+      if (filterChangeTimeoutRef.current) {
+        clearTimeout(filterChangeTimeoutRef.current);
+      }
+      if (fetchTimeoutRefFromHook.current) {
+        clearTimeout(fetchTimeoutRefFromHook.current);
+      }
+    };
+  }, [fetchTimeoutRefFromHook]);
 
   // Render the component
   return (
@@ -1179,20 +1199,27 @@ export function CandidatesPageClient({
           {showFilters && (
             <div className="w-[280px] border-r bg-background overflow-hidden">
               <div className="h-full overflow-y-auto">
-                <CandidateFilters
-                  initialFilters={filters}
-                  onFilterChange={onFilterChange}
-                  onAiSearch={handleAiSearch}
-                  availablePositions={availablePositions}
-                  availableStages={availableStages}
-                  availableRecruiters={availableRecruiters}
-                  availableSources={availableSources}
-                  candidateCounts={candidateCountsByStage}
-                  onClearAllFilters={handleClearAllFilters}
-                  isLoading={isLoading}
-                  isAiSearching={isAiSearching}
-                  candidateScoreCounts={candidateScoreCounts}
-                />
+                {(() => {
+                  const advancedQuery = searchParams.get('query') || undefined;
+                  console.log('🔍 CandidatesPageClient: Advanced query from URL:', advancedQuery);
+                  return (
+                    <CandidateFilters
+                      initialFilters={filters}
+                      onFilterChange={onFilterChange}
+                      onAiSearch={handleAiSearch}
+                      availablePositions={availablePositions}
+                      availableStages={availableStages}
+                      availableRecruiters={availableRecruiters}
+                      availableSources={availableSources}
+                      candidateCounts={candidateCountsByStage}
+                      onClearAllFilters={handleClearAllFilters}
+                      isLoading={isLoading}
+                      isAiSearching={isAiSearching}
+                      candidateScoreCounts={candidateScoreCounts}
+                      advancedQuery={advancedQuery}
+                    />
+                  );
+                })()}
               </div>
             </div>
           )}
@@ -1217,7 +1244,11 @@ export function CandidatesPageClient({
                             clearAllHorizontalFitScoreFilters();
                             setIsClearingFilters(true);
                             // Reset the flag after a short delay
-                            setTimeout(() => setIsClearingFilters(false), 200);
+                            // Clear any existing timeout
+                            if (clearingFiltersTimeoutRef.current) {
+                              clearTimeout(clearingFiltersTimeoutRef.current);
+                            }
+                            clearingFiltersTimeoutRef.current = setTimeout(() => setIsClearingFilters(false), 200);
                           }}
                           candidateCounts={candidateScoreCounts?.applied || []}
                           className=""
@@ -1234,7 +1265,11 @@ export function CandidatesPageClient({
                             clearAllHorizontalFitScoreFilters();
                             setIsClearingFilters(true);
                             // Reset the flag after a short delay
-                            setTimeout(() => setIsClearingFilters(false), 200);
+                            // Clear any existing timeout
+                            if (clearingFiltersTimeoutRef.current) {
+                              clearTimeout(clearingFiltersTimeoutRef.current);
+                            }
+                            clearingFiltersTimeoutRef.current = setTimeout(() => setIsClearingFilters(false), 200);
                           }}
                           candidateCounts={candidateScoreCounts?.matching || []}
                           className=""
@@ -1614,7 +1649,7 @@ export function CandidatesPageClient({
                 <SelectTrigger>
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
-                <SelectContent className="z-[10003]">
+                <SelectContent className="z-[100003]">
                   {availableStages.map((stage) => (
                     <SelectItem key={stage.name} value={stage.name}>
                       {stage.name}
@@ -1676,7 +1711,7 @@ export function CandidatesPageClient({
                 <SelectTrigger>
                   <SelectValue placeholder="Select recruiter" />
                 </SelectTrigger>
-                <SelectContent className="z-[10003]">
+                <SelectContent className="z-[100003]">
                   <SelectItem value="none">No Recruiter</SelectItem>
                   {availableRecruiters.map((recruiter) => (
                     <SelectItem key={recruiter.id} value={recruiter.id}>

@@ -300,7 +300,7 @@ export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availa
                                 <SelectTrigger id="status" className="mt-1">
                                     <SelectValue placeholder="Select status" />
                                 </SelectTrigger>
-                                                                 <SelectContent className="z-[10003]">
+                                                                 <SelectContent className="z-[100003]">
                                      {availableStages.map(s => (
                                      <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>
                                      ))}
@@ -368,7 +368,7 @@ export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availa
                           <SelectTrigger>
                             <SelectValue placeholder="Month" />
                           </SelectTrigger>
-                          <SelectContent className="z-[10003]">
+                          <SelectContent className="z-[100003]">
                             {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
                               <SelectItem key={month} value={month.toString()}>
                                 {new Date(2000, month - 1).toLocaleDateString('en-US', { month: 'long' })}
@@ -414,7 +414,7 @@ export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availa
                             <SelectTrigger>
                               <SelectValue placeholder="Month" />
                             </SelectTrigger>
-                            <SelectContent className="z-[10003]">
+                            <SelectContent className="z-[100003]">
                               {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
                                 <SelectItem key={month} value={month.toString()}>
                                   {new Date(2000, month - 1).toLocaleDateString('en-US', { month: 'long' })}
@@ -474,7 +474,7 @@ export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availa
                                   value={controllerField.value ?? PLACEHOLDER_VALUE_NONE}
                                 >
                                 <SelectTrigger id={`experience.${index}.positionLevel`}><SelectValue placeholder="Position Level" /></SelectTrigger>
-                                <SelectContent className="z-[10003]">
+                                <SelectContent className="z-[100003]">
                                     <SelectItem value={PLACEHOLDER_VALUE_NONE}>N/A / Not Specified</SelectItem>
                                     {positionLevelOptions.map(level => <SelectItem key={level} value={level || 'unknown'}>{level?.charAt(0)?.toUpperCase() + level?.slice(1) || ''}</SelectItem>)}
                                 </SelectContent>
@@ -494,7 +494,7 @@ export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availa
                            <SelectTrigger>
                              <SelectValue placeholder="Month" />
                            </SelectTrigger>
-                           <SelectContent className="z-[10003]">
+                           <SelectContent className="z-[100003]">
                              {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
                                <SelectItem key={month} value={month.toString()}>
                                  {new Date(2000, month - 1).toLocaleDateString('en-US', { month: 'long' })}
@@ -540,7 +540,7 @@ export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availa
                              <SelectTrigger>
                                <SelectValue placeholder="Month" />
                              </SelectTrigger>
-                             <SelectContent className="z-[10003]">
+                             <SelectContent className="z-[100003]">
                                {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
                                  <SelectItem key={month} value={month.toString()}>
                                    {new Date(2000, month - 1).toLocaleDateString('en-US', { month: 'long' })}

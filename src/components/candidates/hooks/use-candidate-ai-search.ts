@@ -26,6 +26,7 @@ export function useCandidateAiSearch({
   const [isAiSearching, setIsAiSearching] = useState(() => false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const abortTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Memoize the filteredCandidates to ensure stable reference
   const memoizedFilteredCandidates = useMemo(() => filteredCandidates, [filteredCandidates]);
@@ -41,6 +42,9 @@ export function useCandidateAiSearch({
       }
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
+      }
+      if (abortTimeoutRef.current) {
+        clearTimeout(abortTimeoutRef.current);
       }
     };
   }, []);
@@ -79,7 +83,11 @@ export function useCandidateAiSearch({
     
     try {
       abortControllerRef.current = new AbortController();
-      const timeoutId2 = setTimeout(() => abortControllerRef.current?.abort(), 25000); // 25 second timeout for fetch
+      // Clear any existing abort timeout before setting a new one
+      if (abortTimeoutRef.current) {
+        clearTimeout(abortTimeoutRef.current);
+      }
+      abortTimeoutRef.current = setTimeout(() => abortControllerRef.current?.abort(), 25000); // 25 second timeout for fetch
       
       const response = await fetch('/api/ai/search-candidates', {
         method: 'POST',
@@ -88,7 +96,10 @@ export function useCandidateAiSearch({
         signal: abortControllerRef.current?.signal,
       });
       
-      clearTimeout(timeoutId2);
+      if (abortTimeoutRef.current) {
+        clearTimeout(abortTimeoutRef.current);
+        abortTimeoutRef.current = null;
+      }
       
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current); // Clear timeout on successful response

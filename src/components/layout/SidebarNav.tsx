@@ -258,12 +258,12 @@ const SidebarNavComponent = function SidebarNav() {
                   <SidebarMenuButton
                     asChild
                     isActive={activeMainNavItem && activeMainNavItem.href === item.href}
-                    className="w-full justify-start"
+                    className="w-full justify-center"
                     style={activeMainNavItem && activeMainNavItem.href === item.href ? getActiveButtonStyles(sidebarStyles) : {}}
                     size="default"
                     data-active={activeMainNavItem && activeMainNavItem.href === item.href}
                   >
-                    <a>
+                    <a className="flex items-center justify-center w-full h-full">
                       <item.icon 
                         className="h-5 w-5" 
                         style={activeMainNavItem && activeMainNavItem.href === item.href ? getActiveIconStyles(sidebarStyles) : {}}
@@ -285,12 +285,12 @@ const SidebarNavComponent = function SidebarNav() {
                   <SidebarMenuButton
                     asChild
                     isActive={pathname === bulkUploadNavItem.href}
-                    className="w-full justify-start"
+                    className="w-full justify-center"
                     style={pathname === bulkUploadNavItem.href ? getActiveButtonStyles(sidebarStyles) : {}}
                     size="default"
                     data-active={pathname === bulkUploadNavItem.href}
                   >
-                    <a>
+                    <a className="flex items-center justify-center w-full h-full relative">
                       <bulkUploadNavItem.icon 
                         className="h-5 w-5" 
                         style={pathname === bulkUploadNavItem.href ? getActiveIconStyles(sidebarStyles) : {}}
@@ -298,7 +298,7 @@ const SidebarNavComponent = function SidebarNav() {
                       {pendingCount !== null && (
                         <Badge 
                           variant={pendingError ? "destructive" : "default"}
-                          className="ml-auto h-5 min-w-5 px-0.5 text-xs"
+                          className="absolute -top-1 -right-1 h-5 min-w-5 px-0.5 text-xs"
                         >
                           {isPendingLoading ? (
                             <Loader2 className="h-3 w-3 animate-spin" />
@@ -320,12 +320,12 @@ const SidebarNavComponent = function SidebarNav() {
                   <SidebarMenuButton
                     asChild
                     isActive={pathname.startsWith(settingsNavItem.href)}
-                    className="w-full justify-start"
+                    className="w-full justify-center"
                     style={pathname.startsWith(settingsNavItem.href) ? getActiveButtonStyles(sidebarStyles) : {}}
                     size="default"
                     data-active={pathname.startsWith(settingsNavItem.href)}
                   >
-                    <a>
+                    <a className="flex items-center justify-center w-full h-full">
                       <settingsNavItem.icon 
                         className="h-5 w-5" 
                         style={pathname.startsWith(settingsNavItem.href) ? getActiveIconStyles(sidebarStyles) : {}}

@@ -461,8 +461,8 @@ export default function SystemPreferencesPage() {
   const handleLogoFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        showError('Logo file size must be less than 5MB');
+      if (file.size > 500 * 1024 * 1024) { // 500MB limit
+        showError('Logo file size must be less than 500MB');
         return;
       }
       setSelectedLogoFile(file);
@@ -518,8 +518,8 @@ export default function SystemPreferencesPage() {
   ) => async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        showError('Logo file size must be less than 5MB');
+      if (file.size > 500 * 1024 * 1024) { // 500MB limit
+        showError('Logo file size must be less than 500MB');
         return;
       }
       
@@ -637,8 +637,8 @@ export default function SystemPreferencesPage() {
   const handleSidebarImageFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        showError('Sidebar background image file size must be less than 5MB');
+      if (file.size > 500 * 1024 * 1024) { // 500MB limit
+        showError('Sidebar background image file size must be less than 500MB');
         return;
       }
       setSelectedSidebarImageFile(file);
@@ -762,8 +762,8 @@ export default function SystemPreferencesPage() {
   const handleLoginImageFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      if (file.size > 500 * 1024) { // 500KB limit
-        showError('Login background image must be less than 500KB');
+      if (file.size > 500 * 1024 * 1024) { // 500MB limit
+        showError('Login background image must be less than 500MB');
         return;
       }
       setSelectedLoginImageFile(file);
@@ -1441,7 +1441,7 @@ export default function SystemPreferencesPage() {
                                {/* Upload Section */}
                            <div className="flex-1 space-y-2">
                              <p className="text-xs text-muted-foreground">
-                               Recommended: 200x80px, max 5MB • PNG, JPG, or SVG format
+                               Recommended: 200x80px, max 500MB • PNG, JPG, or SVG format
                              </p>
                              </div>
                            </div>
@@ -2044,7 +2044,7 @@ export default function SystemPreferencesPage() {
                                 Upload Image
                               </Label>
                               <p className="text-xs text-muted-foreground mt-1">
-                                Recommended: 256x1024, max 5MB
+                                Recommended: 256x1024, max 500MB
                               </p>
                             </div>
                           </div>

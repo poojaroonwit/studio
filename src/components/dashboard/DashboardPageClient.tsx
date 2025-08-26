@@ -1,7 +1,7 @@
 // src/components/dashboard/DashboardPageClient.tsx
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import type { Candidate, Position, CandidateStatus, UserProfile } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -79,6 +79,7 @@ export default function DashboardPageClient({
   const { refreshPermissions } = usePermissionRefresh();
 
   const [chartReady, setChartReady] = useState(false);
+  const chartSetupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Setup Chart.js on component mount
   useEffect(() => {
@@ -91,7 +92,11 @@ export default function DashboardPageClient({
         } else {
           console.warn('Chart.js setup reported complete but isChartJSSetup() returned false');
           // Retry after a short delay
-          setTimeout(() => {
+          // Clear any existing timeout
+          if (chartSetupTimeoutRef.current) {
+            clearTimeout(chartSetupTimeoutRef.current);
+          }
+          chartSetupTimeoutRef.current = setTimeout(() => {
             if (isChartJSSetup()) {
               setChartReady(true);
             }
@@ -103,6 +108,15 @@ export default function DashboardPageClient({
     };
     
     setupChart();
+  }, []);
+
+  // Cleanup timeout on component unmount
+  useEffect(() => {
+    return () => {
+      if (chartSetupTimeoutRef.current) {
+        clearTimeout(chartSetupTimeoutRef.current);
+      }
+    };
   }, []);
 
   // Check permissions for dashboard access - based on actual permissions, not hardcoded roles

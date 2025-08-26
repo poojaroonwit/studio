@@ -38,6 +38,7 @@ export function UploadQueueStatus() {
     error: 0
   });
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<QueueItem | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [isRealtimeActive, setIsRealtimeActive] = useState(false);
@@ -53,21 +54,33 @@ export function UploadQueueStatus() {
     try {
       const offset = (currentPage - 1) * currentPageSize;
       const response = await fetch(`/api/upload-queue?limit=${currentPageSize}&offset=${offset}`);
-      if (response.ok) {
-        const data = await response.json();
-        setQueueItems(data.data || []);
-        setTotal(data.total || 0);
-        setQueueStatus({
-          total: data.summary?.total || 0,
-          queued: data.summary?.queued || 0,
-          inprocess: data.summary?.inprocess || 0,
-          success: data.summary?.success || 0,
-          error: data.summary?.error || 0
-        });
-        setLastUpdate(new Date());
+      if (!response.ok) {
+        // Capture and display API errors (e.g., Unauthorized)
+        const text = await response.text();
+        setErrorMessage(response.status === 401 ? 'Unauthorized. Please sign in to view the upload queue.' : (text || 'Failed to load upload queue.'));
+        setQueueItems([]);
+        setTotal(0);
+        setQueueStatus({ total: 0, queued: 0, inprocess: 0, success: 0, error: 0 });
+        return;
       }
+
+      const data = await response.json();
+      setErrorMessage(null);
+      setQueueItems(Array.isArray(data.data) ? data.data : []);
+      // total may come as string from PG count(*). Parse defensively.
+      const parsedTotal = typeof data.total === 'string' ? parseInt(data.total) : (data.total || 0);
+      setTotal(Number.isFinite(parsedTotal) ? parsedTotal : 0);
+      setQueueStatus({
+        total: parseInt(data.summary?.total) || 0,
+        queued: parseInt(data.summary?.queued) || 0,
+        inprocess: parseInt(data.summary?.inprocess) || 0,
+        success: parseInt(data.summary?.success) || 0,
+        error: parseInt(data.summary?.error) || 0
+      });
+      setLastUpdate(new Date());
     } catch (error) {
       console.error('Failed to fetch queue:', error);
+      setErrorMessage('Network error. Please check your connection and try again.');
     } finally {
       setLoading(false);
     }
@@ -236,6 +249,11 @@ export function UploadQueueStatus() {
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
+            {errorMessage && (
+              <div className="text-center py-4 text-red-600">
+                {errorMessage}
+              </div>
+            )}
             {queueItems.map((item) => (
               <div key={item.id} className="flex items-center justify-between p-2 border rounded">
                 <div className="flex items-center gap-2">
@@ -252,7 +270,7 @@ export function UploadQueueStatus() {
                 </div>
               </div>
             ))}
-            {queueItems.length === 0 && (
+            {!errorMessage && queueItems.length === 0 && (
               <div className="text-center py-4 text-muted-foreground">
                 No items in queue
               </div>

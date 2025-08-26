@@ -28,10 +28,11 @@ export interface ApiHealthResult {
  */
 export async function checkNetworkHealth(url: string, timeout = 5000): Promise<NetworkHealthResult> {
   const startTime = Date.now();
+  let timeoutId: NodeJS.Timeout | null = null;
   
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeout);
+    timeoutId = setTimeout(() => controller.abort(), timeout);
     
     const response = await fetch(url, {
       method: 'HEAD', // Use HEAD to minimize data transfer
@@ -39,7 +40,12 @@ export async function checkNetworkHealth(url: string, timeout = 5000): Promise<N
       cache: 'no-cache',
     });
     
-    clearTimeout(timeoutId);
+    // Clear timeout on successful response
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      timeoutId = null;
+    }
+    
     const latency = Date.now() - startTime;
     
     if (response.ok) {
@@ -65,6 +71,12 @@ export async function checkNetworkHealth(url: string, timeout = 5000): Promise<N
       };
     }
   } catch (error: any) {
+    // Clear timeout on error
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      timeoutId = null;
+    }
+    
     const latency = Date.now() - startTime;
     
     // Determine the type of error

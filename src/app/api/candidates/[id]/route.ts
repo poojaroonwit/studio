@@ -292,6 +292,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   let body;
   try {
     body = await request.json();
+    console.log('Candidate update request body:', JSON.stringify(body, null, 2));
   } catch (error) {
     console.error('Failed to parse request body:', error);
     return NextResponse.json({ message: 'Invalid JSON body' }, { status: 400 });
@@ -302,35 +303,70 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   const validationResult = updateCandidateSchema.safeParse(body);
   if (!validationResult.success) {
     console.error('Validation failed:', validationResult.error.flatten().fieldErrors);
-    return NextResponse.json({ message: 'Invalid input', errors: validationResult.error.flatten().fieldErrors }, { status: 400 });
+    const fieldErrors = validationResult.error.flatten().fieldErrors;
+    const formErrors = validationResult.error.flatten().formErrors;
+    
+    // Create a more detailed error message
+    let errorMessage = 'Invalid input';
+    if (Object.keys(fieldErrors).length > 0) {
+      const fieldNames = Object.keys(fieldErrors).map(field => 
+        field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())
+      );
+      errorMessage = `Invalid input for fields: ${fieldNames.join(', ')}`;
+    }
+    
+    return NextResponse.json({ 
+      message: errorMessage, 
+      errors: fieldErrors,
+      formErrors: formErrors,
+      details: validationResult.error.errors
+    }, { status: 400 });
   }
 
   const { name, email, phone, positionId, recruiterId, fitScore, status, assignmentJustification, parsedData, custom_attributes, resumePath, transitionNotes, avatarUrl, sourceId, subSource } = validationResult.data;
 
   // Extra validation to prevent DB errors - only validate status if it's being updated and not null
   if (status !== undefined && status !== null && (!status || typeof status !== 'string' || status.trim() === '')) {
-    return NextResponse.json({ message: 'Status must be a non-empty string if provided.' }, { status: 400 });
+    return NextResponse.json({ 
+      message: 'Status must be a non-empty string if provided.',
+      errors: { status: ['Status cannot be empty'] }
+    }, { status: 400 });
   }
   
   // Validate required fields to prevent DB constraint violations
   if (name !== undefined && (!name || typeof name !== 'string' || name.trim() === '')) {
-    return NextResponse.json({ message: 'Name is required and must be a non-empty string.' }, { status: 400 });
+    return NextResponse.json({ 
+      message: 'Name is required and must be a non-empty string.',
+      errors: { name: ['Name cannot be empty'] }
+    }, { status: 400 });
   }
   if (email !== undefined && (!email || typeof email !== 'string' || email.trim() === '')) {
-    return NextResponse.json({ message: 'Email is required and must be a non-empty string.' }, { status: 400 });
+    return NextResponse.json({ 
+      message: 'Email is required and must be a non-empty string.',
+      errors: { email: ['Email cannot be empty'] }
+    }, { status: 400 });
   }
   // Helper to check UUID
   function isValidUUID(val: string) {
     return typeof val === 'string' && /^[0-9a-fA-F-]{36}$/.test(val);
   }
   if (positionId !== undefined && positionId !== null && !isValidUUID(positionId)) {
-    return NextResponse.json({ message: 'positionId must be a valid UUID or null.' }, { status: 400 });
+    return NextResponse.json({ 
+      message: 'positionId must be a valid UUID or null.',
+      errors: { positionId: ['Position ID must be a valid UUID format'] }
+    }, { status: 400 });
   }
   if (recruiterId !== undefined && recruiterId !== null && !isValidUUID(recruiterId)) {
-    return NextResponse.json({ message: 'recruiterId must be a valid UUID or null.' }, { status: 400 });
+    return NextResponse.json({ 
+      message: 'recruiterId must be a valid UUID or null.',
+      errors: { recruiterId: ['Recruiter ID must be a valid UUID format'] }
+    }, { status: 400 });
   }
   if (sourceId !== undefined && sourceId !== null && !isValidUUID(sourceId)) {
-    return NextResponse.json({ message: 'sourceId must be a valid UUID or null.' }, { status: 400 });
+    return NextResponse.json({ 
+      message: 'sourceId must be a valid UUID or null.',
+      errors: { sourceId: ['Source ID must be a valid UUID format'] }
+    }, { status: 400 });
   }
 
   const client = await getPool().connect();

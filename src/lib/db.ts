@@ -35,12 +35,7 @@ export function getPool() {
     const __globalAny = globalThis as unknown as { __dbPoolMonitor?: NodeJS.Timeout };
     if (!__globalAny.__dbPoolMonitor) {
       __globalAny.__dbPoolMonitor = setInterval(() => {
-        if (pool) {
-          const poolStatus = pool.totalCount - pool.idleCount;
-          if (poolStatus > 0) {
-            console.log(`[DB POOL] Active connections: ${poolStatus}/${pool.totalCount}`);
-          }
-        }
+        // Removed DB pool logging to reduce console spam
       }, 60000); // Log every minute
     }
     

@@ -14,3 +14,5 @@ CREATE TABLE IF NOT EXISTS "WarningSystemStatus" (
 INSERT INTO "WarningSystemStatus" ("id", "initialized", "createdAt", "updatedAt") 
 VALUES ('system', false, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 ON CONFLICT ("id") DO NOTHING;
+
+

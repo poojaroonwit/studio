@@ -368,7 +368,11 @@ export const CandidateImportUploadQueue: React.FC<{
       setIsSearching(false);
     }, 500); // 500ms delay
 
-    return () => clearTimeout(timeoutId);
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
   }, [filter, debouncedFilter]);
 
   // Fetch status summary for static status cards (excludes status filter, includes date filter)
@@ -390,7 +394,6 @@ export const CandidateImportUploadQueue: React.FC<{
       }
     } catch (err) {
       // Silently fail for status summary - it's not critical
-      console.warn('Failed to fetch status summary:', err);
     }
   }, [dateRange, positionIdFilter]);
 
@@ -502,6 +505,7 @@ export const CandidateImportUploadQueue: React.FC<{
     const baseReconnectDelay = 1000;
     const maxReconnectDelay = 10000;
     let latestSSEData: any = null;
+    const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     const applySSEUpdate = () => {
       if (latestSSEData) {
@@ -551,14 +555,20 @@ export const CandidateImportUploadQueue: React.FC<{
             reconnectAttempts++;
             const delay = Math.min(baseReconnectDelay * reconnectAttempts, maxReconnectDelay);
            
-            setTimeout(() => {
+            const reconnectTimeout = setTimeout(() => {
               if (eventSource && !isConnected) {
                 eventSource.close();
                 connectSSE();
               }
             }, delay);
+            
+            // Store timeout for cleanup
+            reconnectTimeoutRef.current = reconnectTimeout;
           } else {
             // Fall back to polling if SSE fails completely
+            if (pollInterval) {
+              clearInterval(pollInterval);
+            }
             pollInterval = setInterval(() => {
               if (!isConnected) {
                 fetchJobs();
@@ -606,6 +616,9 @@ export const CandidateImportUploadQueue: React.FC<{
       }
       if (pollInterval) {
         clearInterval(pollInterval);
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
       }
     };
   }, [debouncedFilter, statusFilter, dateRange, page, pageSize, positionIdFilter, sessionStatus, session]); // Keep all dependencies as they affect the SSE connection

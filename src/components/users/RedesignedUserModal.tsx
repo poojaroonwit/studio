@@ -287,7 +287,7 @@ function PersonalInfoContent({ form, user, mode, userTeams }: PersonalInfoConten
                   <SelectTrigger className="h-11 border-slate-300 dark:border-slate-600 focus:border-blue-500 focus:ring-blue-500">
                     <SelectValue placeholder="Select a team" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[100003]">
                     {userTeams.map((group) => (
                       <SelectItem key={group.id} value={group.id}>
                         <div className="flex items-center gap-2">
@@ -337,7 +337,7 @@ function AccountSettingsContent({ form, mode, canManageAuthentication, canForceP
                     <SelectValue placeholder="Select a role" />
                   </SelectTrigger>
                 </FormControl>
-                <SelectContent>
+                <SelectContent className="z-[100003]">
                   {userRoleOptions.map(roleValue => (
                     <SelectItem key={roleValue} value={roleValue}>{roleValue}</SelectItem>
                   ))}
@@ -363,7 +363,7 @@ function AccountSettingsContent({ form, mode, canManageAuthentication, canForceP
                       <SelectValue placeholder="Select authentication method" />
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent>
+                  <SelectContent className="z-[100003]">
                     <SelectItem value="basic">Basic (Email/Password)</SelectItem>
                     <SelectItem value="azure">Azure AD</SelectItem>
                   </SelectContent>
@@ -536,7 +536,7 @@ export function RedesignedUserModal({
             setUserTeams(teams);
           }
         } catch (error) {
-          console.error('Error fetching user groups:', error);
+          // Error fetching user groups
         }
       };
       
@@ -589,7 +589,6 @@ export function RedesignedUserModal({
         await onSave(data);
       }
     } catch (error) {
-      console.error('Error saving user:', error);
       toast.error('Failed to save user data');
     } finally {
       setIsLoading(false);

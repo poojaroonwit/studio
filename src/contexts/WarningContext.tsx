@@ -51,7 +51,7 @@ export function WarningProvider({ children }: { children: React.ReactNode }) {
         setWarnings(data);
       }
     } catch (error) {
-      console.error('Error fetching warnings:', error);
+      // Error fetching warnings
     } finally {
       setIsLoading(false);
     }
@@ -72,7 +72,7 @@ export function WarningProvider({ children }: { children: React.ReactNode }) {
         await fetchWarnings();
       }
     } catch (error) {
-      console.error('Error checking entity warnings:', error);
+      // Error checking entity warnings
     }
   }, [fetchWarnings]);
 
@@ -100,13 +100,17 @@ export function WarningProvider({ children }: { children: React.ReactNode }) {
           if (result.initialized) {
             // Warning system initialized automatically
             // Refresh warnings after initialization
+            // Clear any existing timeout first
+            if (timeoutId) {
+              clearTimeout(timeoutId);
+            }
             timeoutId = setTimeout(() => {
               fetchWarnings();
             }, 2000);
           }
         }
       } catch (error) {
-        console.error('Error initializing warning system:', error);
+        // Error initializing warning system
       }
     };
 

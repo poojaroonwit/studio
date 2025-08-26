@@ -272,9 +272,24 @@ export function UserGroupsTab() {
                       </span>
                     </TableCell>
                     <TableCell className="text-right">
-                     <Button variant="ghost" size="sm" className="h-8 px-3">
-                       Manage
-                     </Button>
+                     <div className="flex items-center gap-2">
+                       <Button variant="ghost" size="sm" className="h-8 px-3">
+                         Manage
+                       </Button>
+                       {!role.is_default && (
+                         <Button 
+                           variant="ghost" 
+                           size="sm" 
+                           className="h-8 px-3 text-destructive hover:text-destructive"
+                           onClick={(e) => {
+                             e.stopPropagation();
+                             setRoleToDelete(role);
+                           }}
+                         >
+                           <Trash2 className="h-4 w-4" />
+                         </Button>
+                       )}
+                     </div>
                    </TableCell>
                  </TableRow>
                ))}

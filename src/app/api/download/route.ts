@@ -6,11 +6,6 @@ export const dynamic = 'force-dynamic';
 
 
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
   const url = new URL(request.url);
   const fileUrl = url.searchParams.get('url');
   const fileName = url.searchParams.get('fileName');
@@ -18,6 +13,8 @@ export async function GET(request: NextRequest) {
   if (!fileUrl) {
     return NextResponse.json({ error: 'File URL is required' }, { status: 400 });
   }
+
+  let timeoutId: NodeJS.Timeout | null = null;
 
   try {
     // Validate URL format
@@ -30,7 +27,7 @@ export async function GET(request: NextRequest) {
 
     // Fetch the file from the URL with timeout
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+    timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
     const response = await fetch(fileUrl, {
       signal: controller.signal,
@@ -39,7 +36,11 @@ export async function GET(request: NextRequest) {
       }
     });
     
-    clearTimeout(timeoutId);
+    // Clear timeout on successful response
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      timeoutId = null;
+    }
     
     if (!response.ok) {
       return NextResponse.json({ 
@@ -98,6 +99,12 @@ export async function GET(request: NextRequest) {
 
     return downloadResponse;
   } catch (error) {
+    // Clear timeout on error
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      timeoutId = null;
+    }
+    
     console.error('Download error:', error);
     
     if (error instanceof Error && error.name === 'AbortError') {

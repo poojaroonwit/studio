@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -60,6 +60,7 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
   const [showReplaceConfirmation, setShowReplaceConfirmation] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [grades, setGrades] = useState<Grade[]>([]);
+  const descriptionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [availableRecruiters, setAvailableRecruiters] = useState<{id: string, name: string, avatarUrl?: string}[]>([]);
   const { error: showError, success: showSuccess } = useToast();
   
@@ -242,7 +243,11 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
         form.setValue('description', data.description);
         
         // Add a small delay to allow Editor.js to properly render the HTML content
-        setTimeout(() => {
+        // Clear any existing timeout
+        if (descriptionTimeoutRef.current) {
+          clearTimeout(descriptionTimeoutRef.current);
+        }
+        descriptionTimeoutRef.current = setTimeout(() => {
           // Force a re-render by triggering the onChange
           const currentValue = form.getValues('description');
           if (currentValue === data.description) {
@@ -279,6 +284,15 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
   const handleCancelReplace = () => {
     setShowReplaceConfirmation(false);
   };
+
+  // Cleanup timeout on component unmount
+  useEffect(() => {
+    return () => {
+      if (descriptionTimeoutRef.current) {
+        clearTimeout(descriptionTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Don't render anything if modal is not open
   if (!isOpen) return null;

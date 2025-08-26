@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -83,6 +83,7 @@ export function WarningDrawer({ isOpen, onClose }: WarningDrawerProps) {
   const [loadingEntities, setLoadingEntities] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const [recordsPerPage, setRecordsPerPage] = useState(10);
+  const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Reset view when drawer opens/closes
   useEffect(() => {
@@ -92,6 +93,15 @@ export function WarningDrawer({ isOpen, onClose }: WarningDrawerProps) {
       setSelectedRecord(null);
     }
   }, [isOpen]);
+
+  // Cleanup timeout on component unmount
+  useEffect(() => {
+    return () => {
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Group warnings by configuration to create criteria list
   const warningCriteria = useCallback(() => {
@@ -219,7 +229,12 @@ export function WarningDrawer({ isOpen, onClose }: WarningDrawerProps) {
       }
 
       // Small delay to ensure clear operation completes
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => {
+        if (refreshTimeoutRef.current) {
+          clearTimeout(refreshTimeoutRef.current);
+        }
+        refreshTimeoutRef.current = setTimeout(resolve, 1000);
+      });
 
       // Step 2: Trigger warning checks for all entities
       const triggerResponse = await fetch('/api/warnings/trigger', {
@@ -238,14 +253,18 @@ export function WarningDrawer({ isOpen, onClose }: WarningDrawerProps) {
       }
 
       // Small delay to ensure trigger operation completes
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise(resolve => {
+        if (refreshTimeoutRef.current) {
+          clearTimeout(refreshTimeoutRef.current);
+        }
+        refreshTimeoutRef.current = setTimeout(resolve, 2000);
+      });
 
       // Step 3: Refresh the warning list
       await fetchWarnings();
       
       showSuccess("Warnings refreshed - resolved warnings cleared and new warnings checked");
     } catch (error) {
-      console.error('Error refreshing warnings:', error);
       showError("Failed to refresh warnings");
     } finally {
       setIsRefreshing(false);
@@ -276,6 +295,16 @@ export function WarningDrawer({ isOpen, onClose }: WarningDrawerProps) {
     setSelectedRecord(null);
   };
 
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handleGoToPage = (page: number) => {
+    if (page >= 1 && page <= Math.ceil((selectedCriteria?.warnings.length || 0) / recordsPerPage)) {
+      setCurrentPage(page);
+    }
+  };
+
   const fetchEntityName = useCallback(async (entityType: string, entityId: string) => {
     const key = `${entityType}-${entityId}`;
     if (entityNames[key]) return entityNames[key];
@@ -303,7 +332,6 @@ export function WarningDrawer({ isOpen, onClose }: WarningDrawerProps) {
         return fallback;
       }
     } catch (error) {
-      console.error(`Error fetching ${entityType} name:`, error);
       const fallback = `Unknown ${entityType}`;
       setEntityNames(prev => ({ ...prev, [key]: fallback }));
       return fallback;
@@ -412,16 +440,6 @@ export function WarningDrawer({ isOpen, onClose }: WarningDrawerProps) {
     const startIndex = (currentPage - 1) * recordsPerPage;
     const endIndex = startIndex + recordsPerPage;
     const paginatedRecords = records.slice(startIndex, endIndex);
-
-      const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
-
-  const handleGoToPage = (page: number) => {
-    if (page >= 1 && page <= totalPages) {
-      setCurrentPage(page);
-    }
-  };
 
     return (
       <div className="space-y-4">

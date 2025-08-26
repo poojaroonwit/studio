@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -91,6 +91,7 @@ export function UnifiedUserModal({
   const [activeTab, setActiveTab] = useState('personal');
   const [userTeams, setUserTeams] = useState<Array<{ id: string; name: string; color?: string }>>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const form = useForm<UnifiedUserFormValues>({
     resolver: zodResolver(unifiedUserFormSchema),
@@ -99,17 +100,24 @@ export function UnifiedUserModal({
       email: '', 
       password: '',
       role: 'Recruiter', 
-      newPassword: '', 
+      newPassword: '',  
       forcePasswordChange: false, 
       authenticationMethod: 'basic', 
-
       userTeamIds: [], 
       modulePermissions: [],
       avatarUrl: '', 
       personalColor: '#3B82F6',
-
     },
   });
+
+  // Cleanup timeout on component unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const { isSubmitting } = form.formState;
 
@@ -170,7 +178,6 @@ export function UnifiedUserModal({
             const data = await response.json();
             setUserTeams(data);
           } catch (error) {
-            console.error("Error fetching teams:", error);
             toast.error("Could not load user teams for selection.");
           }
         };
@@ -191,10 +198,14 @@ export function UnifiedUserModal({
       }
       
       // Force a small delay to ensure the update is processed
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => {
+        if (saveTimeoutRef.current) {
+          clearTimeout(saveTimeoutRef.current);
+        }
+        saveTimeoutRef.current = setTimeout(resolve, 100);
+      });
       
     } catch (error) {
-      console.error('Error saving user:', error);
       toast.error('Failed to save user data');
     } finally {
       setIsLoading(false);
@@ -323,6 +334,21 @@ export function UnifiedUserModal({
                       <Lock className="h-4 w-4" />
                       Security
                     </div>
+                    {/* Permissions Tab - Only show for admin users editing their own profile */}
+                    {isAdmin && isEditingSelf && (
+                      <div
+                        onClick={() => setActiveTab('permissions')}
+                        className={cn(
+                          "flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer rounded-lg",
+                          activeTab === 'permissions'
+                            ? "text-primary bg-primary/10 border border-primary/20"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                        )}
+                      >
+                        <Shield className="h-4 w-4" />
+                        Permissions
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -515,7 +541,7 @@ export function UnifiedUserModal({
                                       <SelectTrigger className="h-10 transition-all duration-200 focus:ring-2 focus:ring-primary/20">
                                         <SelectValue placeholder="Select a team" />
                                       </SelectTrigger>
-                                      <SelectContent>
+                                      <SelectContent className="z-[100003]">
                                         {userTeams.map((team) => (
                                           <SelectItem key={team.id} value={team.id}>
                                             <div className="flex items-center gap-2">
@@ -570,7 +596,7 @@ export function UnifiedUserModal({
                                           <SelectValue placeholder="Select a role" />
                                         </SelectTrigger>
                                       </FormControl>
-                                      <SelectContent className="z-[150]">
+                                      <SelectContent className="z-[100003]">
                                         {userRoleOptions.map(roleValue => (
                                           <SelectItem key={roleValue} value={roleValue}>{roleValue}</SelectItem>
                                         ))}
@@ -595,7 +621,7 @@ export function UnifiedUserModal({
                                           <SelectValue placeholder="Select authentication method" />
                                         </SelectTrigger>
                                       </FormControl>
-                                      <SelectContent className="z-[150]">
+                                      <SelectContent className="z-[100003]">
                                         <SelectItem value="basic">Basic (Email/Password)</SelectItem>
                                         <SelectItem value="azure">Azure AD (SSO)</SelectItem>
                                       </SelectContent>
@@ -691,6 +717,110 @@ export function UnifiedUserModal({
                               </div>
                             )}
                           </div>
+                        </div>
+                      </div>
+                    </ScrollArea>
+                  )}
+
+                  {activeTab === 'permissions' && isAdmin && isEditingSelf && (
+                    <ScrollArea className="h-full">
+                      <div className="space-y-6 p-6">
+                        {/* Permissions Management */}
+                        <div className="space-y-4">
+                          <div>
+                            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                              <Shield className="h-5 w-5 text-primary" />
+                              Permission Management
+                            </h3>
+                            <p className="text-sm text-slate-600 dark:text-slate-400">
+                              Manage your system permissions. Critical permissions are protected and cannot be removed.
+                            </p>
+                          </div>
+
+                          {/* Security Notice */}
+                          <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                            <div className="flex items-start gap-3">
+                              <Shield className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                              <div>
+                                <h4 className="font-medium text-amber-800 dark:text-amber-200 mb-1">
+                                  Protected Permissions
+                                </h4>
+                                <p className="text-sm text-amber-700 dark:text-amber-300">
+                                  The permissions <strong>USERS_MANAGE</strong> and <strong>USER_GROUPS_MANAGE</strong> are protected and cannot be removed from admin accounts for security reasons.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <FormField 
+                            control={form.control} 
+                            name="modulePermissions" 
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-sm font-medium">
+                                  System Permissions
+                                </FormLabel>
+                                <div className="space-y-4">
+                                  {groupedPermissions.map(({ category, permissions }) => (
+                                    <div key={category} className="space-y-3">
+                                      <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 border-b pb-1">
+                                        {category}
+                                      </h4>
+                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        {permissions.map((permission) => {
+                                          const isProtected = ['USERS_MANAGE', 'USER_GROUPS_MANAGE'].includes(permission.id);
+                                          const isSelected = field.value?.includes(permission.id);
+                                          
+                                          return (
+                                            <FormField
+                                              key={permission.id}
+                                              control={form.control}
+                                              name="modulePermissions"
+                                              render={({ field: permissionField }) => (
+                                                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                                  <FormControl>
+                                                    <Checkbox
+                                                      checked={isSelected}
+                                                      onCheckedChange={(checked) => {
+                                                        if (isProtected && !checked) {
+                                                          // Prevent unchecking protected permissions
+                                                          return;
+                                                        }
+                                                        return checked
+                                                          ? permissionField.onChange([...field.value, permission.id])
+                                                          : permissionField.onChange(
+                                                              field.value?.filter((value) => value !== permission.id)
+                                                            );
+                                                      }}
+                                                      disabled={isProtected && isSelected}
+                                                    />
+                                                  </FormControl>
+                                                  <div className="space-y-1 leading-none">
+                                                    <FormLabel className="text-sm font-medium flex items-center gap-2">
+                                                      {permission.label}
+                                                      {isProtected && isSelected && (
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200">
+                                                          Protected
+                                                        </span>
+                                                      )}
+                                                    </FormLabel>
+                                                    <p className="text-xs text-muted-foreground">
+                                                      {permission.description}
+                                                    </p>
+                                                  </div>
+                                                </FormItem>
+                                              )}
+                                            />
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
                         </div>
                       </div>
                     </ScrollArea>

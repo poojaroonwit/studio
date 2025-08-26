@@ -201,10 +201,10 @@ export function useCandidateData({
           matching: data.matching || []
         });
       } else {
-        console.warn('Failed to fetch fit score counts:', response.status, response.statusText);
+        // Failed to fetch fit score counts
       }
     } catch (error) {
-      console.warn('Error fetching fit score counts:', error);
+      // Error fetching fit score counts
     }
   }, [sessionStatus]);
 
@@ -218,7 +218,6 @@ export function useCandidateData({
       const response = await fetch('/api/users?role=Recruiter');
       if (!response.ok) {
           const errorData = await response.json().catch(() => ({})); // Default to empty object on JSON parse fail
-          console.error("API error fetching recruiters:", errorData); // Log the object we got
           
           let detailedErrorMessage = (errorData as any)?.message || 'Failed to fetch recruiters';
           if (Object.keys(errorData).length === 0 && !(errorData as any)?.message) {
@@ -233,7 +232,6 @@ export function useCandidateData({
           
           // Retry on server errors (5xx) but not on client errors (4xx)
           if (response.status >= 500 && retryCount < maxRetries) {
-            console.warn(`Recruiter fetch failed (attempt ${retryCount + 1}/${maxRetries}), retrying in ${retryDelay}ms:`, detailedErrorMessage);
             const timeoutId = setTimeout(() => fetchRecruiters(retryCount + 1), retryDelay);
             
             // Store timeout ID for cleanup
@@ -244,8 +242,7 @@ export function useCandidateData({
             return;
           }
           
-          // Don't throw error, just log it and continue with empty recruiters list
-          console.warn("Recruiter fetch failed, continuing with empty list:", detailedErrorMessage);
+          // Don't throw error, just continue with empty recruiters list
           stableSetAvailableRecruiters([]);
           return;
       }
@@ -254,7 +251,6 @@ export function useCandidateData({
       const recruitersArray = responseData?.users || [];
 
       if (!Array.isArray(recruitersArray)) {
-        console.warn("Invalid data format received for recruiters, using empty list");
         stableSetAvailableRecruiters([]);
         return;
       }
@@ -262,17 +258,13 @@ export function useCandidateData({
 
       stableSetAvailableRecruiters(mappedRecruiters);
     } catch (error) {
-      console.error("Error fetching recruiters:", error);
-      
       // Retry on network errors
       if (retryCount < maxRetries) {
-        console.warn(`Recruiter fetch failed due to network error (attempt ${retryCount + 1}/${maxRetries}), retrying in ${retryDelay}ms`);
         setTimeout(() => fetchRecruiters(retryCount + 1), retryDelay);
         return;
       }
       
-      // Don't show toast error, just log it and continue with empty recruiters list
-      console.warn("Recruiter fetch failed due to network error, continuing with empty list");
+      // Continue with empty recruiters list
       stableSetAvailableRecruiters([]);
     }
   }, [sessionStatus, stableSetAvailableRecruiters]);
@@ -298,10 +290,10 @@ export function useCandidateData({
         const sourcesData = await response.json();
         stableSetAvailableSources(sourcesData || []);
       } else {
-        console.error('Failed to fetch candidate sources:', response.statusText);
+        // Failed to fetch candidate sources
       }
     } catch (error) {
-      console.error('Error fetching candidate sources:', error);
+      // Error fetching candidate sources
     }
   }, [sessionStatus, stableSetAvailableSources]);
 
@@ -358,7 +350,6 @@ export function useCandidateData({
       }
     } catch (error) {
       // Silently fail - this is for counts only, not critical functionality
-      console.warn('Failed to fetch all candidates for counts:', error);
     }
   }, [sessionStatus, stableSetAllCandidatesForCounts]);
 
@@ -457,10 +448,10 @@ export function useCandidateData({
             const stagesData = await stagesResponse.json();
             stableSetAvailableStages(Array.isArray(stagesData) ? stagesData : (stagesData.stages || []));
           } else {
-            console.error("Could not load recruitment stages.");
+            // Could not load recruitment stages
           }
         } catch (error) {
-          console.error("A network error occurred while fetching stages:", error);
+          // A network error occurred while fetching stages
         }
       };
       fetchStages();

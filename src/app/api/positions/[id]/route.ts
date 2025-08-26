@@ -272,17 +272,41 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     let syncResult = null;
     if (updateData.recruiterId !== undefined && updateData.recruiterId !== oldRecruiterId) {
       try {
-        syncResult = await syncRecruitersForPosition(id, actingUserId, actingUserName);
+        // Add timeout for sync operation to prevent hanging
+        const syncPromise = syncRecruitersForPosition(id, actingUserId, actingUserName);
+        let syncTimeoutId: NodeJS.Timeout | null = null;
+        const timeoutPromise = new Promise((_, reject) => {
+          syncTimeoutId = setTimeout(() => reject(new Error('Sync operation timed out')), 15000);
+        });
+        
+        syncResult = await Promise.race([syncPromise, timeoutPromise]);
+        
+        // Clear sync timeout
+        if (syncTimeoutId) {
+          clearTimeout(syncTimeoutId);
+        }
         
         // Send notification to the newly assigned recruiter
         if (updateData.recruiterId) {
           try {
-            await NotificationService.notifyRecruiterAssigned(
+            // Add timeout for notification to prevent hanging
+            const notificationPromise = NotificationService.notifyRecruiterAssigned(
               id,
               enrichedPosition.title,
               updateData.recruiterId,
               actingUserId
             );
+            let notificationTimeoutId: NodeJS.Timeout | null = null;
+            const notificationTimeoutPromise = new Promise((_, reject) => {
+              notificationTimeoutId = setTimeout(() => reject(new Error('Notification timed out')), 10000);
+            });
+            
+            await Promise.race([notificationPromise, notificationTimeoutPromise]);
+            
+            // Clear notification timeout
+            if (notificationTimeoutId) {
+              clearTimeout(notificationTimeoutId);
+            }
           } catch (notificationError) {
             console.error('Failed to send recruiter assignment notification:', notificationError);
             // Don't fail the entire operation if notification fails
@@ -291,7 +315,14 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     
       } catch (syncError) {
         console.error('Failed to assign recruiters after position update:', syncError);
-        // Don't fail the position update if sync fails
+        // Don't fail the position update if sync fails, but log the error
+        syncResult = {
+          positionId: id,
+          positionTitle: enrichedPosition.title,
+          candidatesUpdated: 0,
+          candidatesSkipped: 0,
+          errors: [syncError instanceof Error ? syncError.message : 'Unknown sync error']
+        };
       }
     }
     
@@ -314,26 +345,40 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     // Check for warnings after position update using automation system
     try {
       const { WarningAutomation } = await import('@/lib/warningAutomation');
-      WarningAutomation.triggerEntityCheckWithRetry('position', id, actingUserId);
+      // Don't await this to prevent blocking the response
+      WarningAutomation.triggerEntityCheckWithRetry('position', id, actingUserId).catch(error => {
+        console.error('Failed to trigger warning check for updated position:', error);
+      });
     } catch (warningError) {
-      console.error('Failed to trigger warning check for updated position:', warningError);
+      console.error('Failed to import warning automation:', warningError);
       // Don't fail the request if warning check fails
     }
     
     // Dispatch webhook for position update
     try {
-      await dispatchWebhooks.positionUpdated(positionWithCustomAttrs);
+      // Don't await this to prevent blocking the response
+      dispatchWebhooks.positionUpdated(positionWithCustomAttrs).catch(error => {
+        console.error('Failed to dispatch position update webhook:', error);
+      });
     } catch (webhookError) {
       console.error('Failed to dispatch position update webhook:', webhookError);
       // Don't fail the request if webhook fails
     }
     
     // Broadcast to unified SSE clients
-    await unifiedBroadcaster.broadcastPositionUpdated(positionWithCustomAttrs, actingUserId || undefined, {
-      priority: 'high',
-      retryOnFailure: true,
-      maxRetries: 3
-    });
+    try {
+      // Don't await this to prevent blocking the response
+      unifiedBroadcaster.broadcastPositionUpdated(positionWithCustomAttrs, actingUserId || undefined, {
+        priority: 'high',
+        retryOnFailure: true,
+        maxRetries: 3
+      }).catch(error => {
+        console.error('Failed to broadcast position update:', error);
+      });
+    } catch (broadcastError) {
+      console.error('Failed to broadcast position update:', broadcastError);
+      // Don't fail the request if broadcast fails
+    }
     
     return NextResponse.json({ 
       message: 'Position updated successfully', 

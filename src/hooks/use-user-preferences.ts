@@ -95,7 +95,8 @@ export function useUserPreferences() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isSavingRef = useRef(false); // Flag to prevent circular updates
+  const isSavingRef = useRef(false);
+  const clearSavingTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Flag to prevent circular updates
 
   // Load preferences from database when session is available
   useEffect(() => {
@@ -113,6 +114,9 @@ export function useUserPreferences() {
     return () => {
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
+      }
+      if (clearSavingTimeoutRef.current) {
+        clearTimeout(clearSavingTimeoutRef.current);
       }
     };
   }, []);
@@ -215,7 +219,10 @@ export function useUserPreferences() {
       }
       
       // Clear saving flag after a short delay to allow any pending operations to complete
-      setTimeout(() => {
+      if (clearSavingTimeoutRef.current) {
+        clearTimeout(clearSavingTimeoutRef.current);
+      }
+      clearSavingTimeoutRef.current = setTimeout(() => {
         isSavingRef.current = false;
       }, 100);
     }, 500); // 500ms debounce delay

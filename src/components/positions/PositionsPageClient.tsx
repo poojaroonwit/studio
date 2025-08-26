@@ -132,6 +132,10 @@ export default function PositionsPageClient() {
   const shouldUpdatePreferencesRef = useRef(true);
   // Track if this is the initial load
   const isInitialLoadRef = useRef(true);
+  // Ref for preferences timeout cleanup
+  const preferencesTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const searchBlurTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // statusFilter: initialize from preferences or URL
   const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'closed'>(() => {
@@ -196,7 +200,11 @@ export default function PositionsPageClient() {
       }
       
       // Re-enable preference updates after state is set
-      setTimeout(() => {
+      // Clear any existing timeout
+      if (preferencesTimeoutRef.current) {
+        clearTimeout(preferencesTimeoutRef.current);
+      }
+      preferencesTimeoutRef.current = setTimeout(() => {
         shouldUpdatePreferencesRef.current = true;
       }, 0);
     }
@@ -214,6 +222,72 @@ export default function PositionsPageClient() {
       });
     }
   }, [searchTerm, departmentFilter, statusFilter, selectedRecruiterId, pageSize, isLoaded]);
+
+  // Cleanup timeouts on component unmount
+  useEffect(() => {
+    return () => {
+      // Clear all timeouts to prevent memory leaks
+      if (preferencesTimeoutRef.current) {
+        clearTimeout(preferencesTimeoutRef.current);
+      }
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+      if (searchBlurTimeoutRef.current) {
+        clearTimeout(searchBlurTimeoutRef.current);
+      }
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
+      if (searchStuckTimeoutRef.current) {
+        clearTimeout(searchStuckTimeoutRef.current);
+      }
+      
+      // Reset all loading states to prevent stuck UI
+      setIsLoading(false);
+      setIsTableLoading(false);
+      setIsSearching(false);
+      setAssigningRecruiter(null);
+    };
+  }, []);
+
+  // Manual reset function for debugging
+  const resetAssigningRecruiter = useCallback(() => {
+    setAssigningRecruiter(null);
+  }, []);
+
+  // Emergency cleanup function for stuck states
+  const emergencyCleanup = useCallback(() => {
+    // Clear all timeouts
+    if (preferencesTimeoutRef.current) {
+      clearTimeout(preferencesTimeoutRef.current);
+      preferencesTimeoutRef.current = null;
+    }
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+      searchTimeoutRef.current = null;
+    }
+    if (searchBlurTimeoutRef.current) {
+      clearTimeout(searchBlurTimeoutRef.current);
+      searchBlurTimeoutRef.current = null;
+    }
+    if (refreshTimeoutRef.current) {
+      clearTimeout(refreshTimeoutRef.current);
+      refreshTimeoutRef.current = null;
+    }
+    if (searchStuckTimeoutRef.current) {
+      clearTimeout(searchStuckTimeoutRef.current);
+      searchStuckTimeoutRef.current = null;
+    }
+    
+    // Reset all loading states
+    setIsLoading(false);
+    setIsTableLoading(false);
+    setIsSearching(false);
+    setAssigningRecruiter(null);
+    
+    toast.success('System state has been reset');
+  }, []);
 
   // Department filter popover state
   const [departmentPopoverOpen, setDepartmentPopoverOpen] = useState(false);
@@ -235,16 +309,15 @@ export default function PositionsPageClient() {
 
   // Handler for assigning/unassigning recruiter to position
   const handleAssignRecruiterToPosition = async (positionId: string, recruiterId: string | null) => {
-
-    
+    // Prevent multiple simultaneous assignments for the same position
     if (assigningRecruiter === positionId) {
       return;
     }
     
     setAssigningRecruiter(positionId);
     
-    // Optimistically update the UI
-    const prevPositions = positions;
+    // Store previous state for rollback
+    const prevPositions = [...positions];
     let recruiterName = null;
     
     if (recruiterId) {
@@ -254,10 +327,11 @@ export default function PositionsPageClient() {
       
       // If not found in availableRecruiters, try to fetch it to ensure we have the latest data
       if (!foundRecruiter) {
-        console.warn(`Recruiter ${recruiterId} not found in availableRecruiters, this might cause display issues`);
+        // Recruiter not found in availableRecruiters, this might cause display issues
       }
     }
     
+    // Optimistically update the UI
     setPositions(prev => prev.map(p => 
       p.id === positionId 
         ? { 
@@ -269,17 +343,23 @@ export default function PositionsPageClient() {
     ));
 
     try {
+      // Add timeout to prevent hanging requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      
       const response = await fetch(`/api/positions/${positionId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ recruiterId }),
         credentials: 'include',
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorData = await response.text();
-        console.error('Assignment API error:', response.status, errorData);
-        throw new Error('Failed to update recruiter assignment');
+        throw new Error(`Failed to update recruiter assignment: ${response.status} ${response.statusText}`);
       }
 
       const responseData = await response.json();
@@ -290,8 +370,16 @@ export default function PositionsPageClient() {
       if (updatedPosition) {
         // Verify that the updated position has recruiterName when recruiterId is set
         if (updatedPosition.recruiterId && !updatedPosition.recruiterName) {
-          console.warn('Updated position missing recruiterName, refreshing all positions to ensure consistency');
-          fetchPositions(false);
+          // Use a more targeted approach instead of full refresh
+          const enrichedPosition = {
+            ...updatedPosition,
+            recruiterName: recruiterName || null
+          };
+          setPositions(prev => prev.map(p => 
+            p.id === positionId 
+              ? enrichedPosition
+              : p
+          ));
         } else {
           // Ensure the updated position has all the necessary fields
           setPositions(prev => prev.map(p => 
@@ -302,42 +390,58 @@ export default function PositionsPageClient() {
                   // Ensure custom_attributes is properly handled
                   custom_attributes: updatedPosition.custom_attributes || updatedPosition.customAttributes || {},
                   // Ensure recruiterName is properly handled
-                  recruiterName: updatedPosition.recruiterName || null
+                  recruiterName: updatedPosition.recruiterName || recruiterName || null
                 }
               : p
           ));
         }
       } else {
-        // If no position data in response, refresh all positions to ensure consistency
-        console.warn('No position data in API response, refreshing all positions');
-        fetchPositions(false);
+        // If no position data in response, revert to previous state
+        setPositions(prevPositions);
+        throw new Error('Invalid response from server');
       }
       
-                   // Check if recruiter sync happened
-             if (responseData.recruiterSync) {
-               const sync = responseData.recruiterSync;
-               if (sync.candidatesUpdated > 0) {
-                 toast.success(
-                   `Recruiter assigned successfully. ${sync.candidatesUpdated} candidate${sync.candidatesUpdated > 1 ? 's' : ''} automatically assigned.`
-                 );
-               } else {
-                 toast.success(recruiterId ? 'Recruiter assigned successfully' : 'Recruiter unassigned successfully');
-               }
-             } else {
-               toast.success(recruiterId ? 'Recruiter assigned successfully' : 'Recruiter unassigned successfully');
-             }
+      // Check if recruiter sync happened
+      if (responseData.recruiterSync) {
+        const sync = responseData.recruiterSync;
+        if (sync.candidatesUpdated > 0) {
+          toast.success(
+            `Recruiter assigned successfully. ${sync.candidatesUpdated} candidate${sync.candidatesUpdated > 1 ? 's' : ''} automatically assigned.`
+          );
+        } else {
+          toast.success(recruiterId ? 'Recruiter assigned successfully' : 'Recruiter unassigned successfully');
+        }
+      } else {
+        toast.success(recruiterId ? 'Recruiter assigned successfully' : 'Recruiter unassigned successfully');
+      }
       
       // Refresh recruiter stats (this also refreshes availableRecruiters)
-      fetchRecruiterStats();
+      // Use a debounced approach to prevent excessive API calls
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
+      refreshTimeoutRef.current = setTimeout(() => {
+        fetchRecruiterStats().catch(error => {
+          // Failed to refresh recruiter stats
+        });
+      }, 1000);
+      
     } catch (error) {
-      console.error('Error assigning recruiter:', error);
-      toast.error('Failed to update recruiter assignment');
+      // Handle specific error types
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          toast.error('Request timed out. Please try again.');
+        } else {
+          toast.error(`Failed to update recruiter assignment: ${error.message}`);
+        }
+      } else {
+        toast.error('Failed to update recruiter assignment');
+      }
       
       // Revert optimistic update
       setPositions(prevPositions);
     } finally {
-      // Ensure the assigning state is always reset
-  
+      // Always ensure the assigning state is reset
       setAssigningRecruiter(null);
     }
   };
@@ -355,7 +459,6 @@ export default function PositionsPageClient() {
     if (isSearching) {
       // Set a timeout to auto-reset search state after 10 seconds
       searchStuckTimeoutRef.current = setTimeout(() => {
-        console.warn('Search stuck for too long, auto-resetting...');
         setIsSearching(false);
       }, 10000); // 10 seconds
     } else {
@@ -378,19 +481,12 @@ export default function PositionsPageClient() {
   useEffect(() => {
     if (assigningRecruiter) {
       const timeout = setTimeout(() => {
-        console.warn('Assigning recruiter state stuck for 3 seconds, auto-resetting');
         setAssigningRecruiter(null);
       }, 3000); // Reduced from 5 seconds to 3 seconds
 
       return () => clearTimeout(timeout);
     }
   }, [assigningRecruiter]);
-
-  // Manual reset function for debugging
-  const resetAssigningRecruiter = useCallback(() => {
-
-    setAssigningRecruiter(null);
-  }, []);
 
   // Use refs to store current values to avoid dependency issues
   const currentFiltersRef = useRef({ searchTerm, statusFilter, departmentFilter, selectedRecruiterId, page, pageSize });
@@ -422,8 +518,6 @@ export default function PositionsPageClient() {
       
       setAllDepartments(departments);
     } catch (error) {
-      console.error('Error fetching departments:', error);
-      
       // If the main API fails, try the fallback endpoint
       try {
         const fallbackResponse = await fetch('/api/positions?limit=1000');
@@ -435,7 +529,6 @@ export default function PositionsPageClient() {
           setAllDepartments(fallbackDepts);
         }
       } catch (fallbackError) {
-        console.error('Fallback department fetch also failed:', fallbackError);
         setAllDepartments([]);
       }
     } finally {
@@ -511,7 +604,6 @@ export default function PositionsPageClient() {
         }
     } catch (error) {
       toast.error('Failed to load positions');
-      console.error('Error fetching positions:', error);
     } finally {
       // Always ensure search state is reset
       setIsSearching(false);
@@ -578,7 +670,6 @@ export default function PositionsPageClient() {
       
       if (!recruiterStatsResponse.ok) {
         const errorText = await recruiterStatsResponse.text();
-        console.error('Recruiter stats API error:', errorText);
         throw new Error(`Failed to fetch recruiter stats: ${recruiterStatsResponse.status} ${errorText}`);
       }
       
@@ -603,7 +694,7 @@ export default function PositionsPageClient() {
       
       setRecruiterStats(stats);
     } catch (error) {
-      console.error('Error fetching recruiter statistics:', error);
+      // Error fetching recruiter statistics
     }
   }, []);
 
@@ -676,7 +767,6 @@ export default function PositionsPageClient() {
         updateURL(1); // Update URL to reflect page reset
         await fetchPositions(true, 1); // Pass custom page 1 to avoid race condition
       } catch (error) {
-        console.error('Search error:', error);
         setIsSearching(false);
       } finally {
         // Clear the timeout ref after execution
@@ -705,7 +795,11 @@ export default function PositionsPageClient() {
   const handleClearSearch = () => {
     setSearchTerm('');
     // Focus back to search input after clearing
-    setTimeout(() => {
+    // Clear any existing timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    searchTimeoutRef.current = setTimeout(() => {
       if (searchInputRef.current) {
         searchInputRef.current.focus();
       }
@@ -743,7 +837,11 @@ export default function PositionsPageClient() {
   // Handle search input blur to ensure proper state management
   const handleSearchBlur = () => {
     // Don't reset search state on blur, just ensure input is still functional
-    setTimeout(() => {
+    // Clear any existing timeout
+    if (searchBlurTimeoutRef.current) {
+      clearTimeout(searchBlurTimeoutRef.current);
+    }
+    searchBlurTimeoutRef.current = setTimeout(() => {
       if (searchInputRef.current && document.activeElement !== searchInputRef.current) {
         // Input lost focus, but don't disable it
       }
@@ -842,7 +940,11 @@ export default function PositionsPageClient() {
       setIsAddModalOpen(false);
       toast.success('Position added successfully');
       // Refresh departments and recruiter stats in case a new department was added
-      setTimeout(() => {
+      // Clear any existing timeout
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
+      refreshTimeoutRef.current = setTimeout(() => {
         fetchAllDepartments();
         fetchRecruiterStats();
       }, 500);
@@ -1098,6 +1200,15 @@ export default function PositionsPageClient() {
                   <Download className="mr-2 h-4 w-4" />
                   Export to Excel
                 </DropdownMenuItem>
+                {process.env.NODE_ENV === 'development' && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={emergencyCleanup} className="text-orange-600">
+                      <RotateCcw className="mr-2 h-4 w-4" />
+                      Emergency Reset
+                    </DropdownMenuItem>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

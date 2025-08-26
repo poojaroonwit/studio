@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { UploadCloud, X, FileText, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from './button';
 import { Progress } from './progress';
@@ -34,6 +34,7 @@ const DragDropUpload: React.FC<DragDropUploadProps> = ({
   const [isDragOver, setIsDragOver] = useState(false);
   const [uploadFiles, setUploadFiles] = useState<UploadFile[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const clearUploadsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const validateFile = (file: File): string | null => {
     if (maxFileSize && file.size > maxFileSize) {
@@ -145,7 +146,11 @@ const DragDropUpload: React.FC<DragDropUploadProps> = ({
       await onUpload(files, onProgress);
       
       // Clear completed uploads after a delay
-      setTimeout(() => {
+      // Clear any existing timeout
+      if (clearUploadsTimeoutRef.current) {
+        clearTimeout(clearUploadsTimeoutRef.current);
+      }
+      clearUploadsTimeoutRef.current = setTimeout(() => {
         setUploadFiles(prev => prev.filter(f => f.status !== 'completed'));
       }, 3000);
     } catch (error) {
@@ -164,6 +169,15 @@ const DragDropUpload: React.FC<DragDropUploadProps> = ({
   const removeFile = (fileId: string) => {
     setUploadFiles(prev => prev.filter(f => f.id !== fileId));
   };
+
+  // Cleanup timeout on component unmount
+  useEffect(() => {
+    return () => {
+      if (clearUploadsTimeoutRef.current) {
+        clearTimeout(clearUploadsTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const getStatusIcon = (status: UploadFile['status']) => {
     switch (status) {

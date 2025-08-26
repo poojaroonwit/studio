@@ -221,6 +221,7 @@ export function TaskBoard({
   // Scroll navigation state
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+  const resizeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Memoized data
   const tasksByStage = useMemo(() => {
@@ -324,11 +325,20 @@ export function TaskBoard({
   // Update scroll buttons when window resizes
   useEffect(() => {
     const handleResize = () => {
-      setTimeout(updateScrollButtons, 100);
+      // Clear any existing timeout
+      if (resizeTimeoutRef.current) {
+        clearTimeout(resizeTimeoutRef.current);
+      }
+      resizeTimeoutRef.current = setTimeout(updateScrollButtons, 100);
     };
     
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      if (resizeTimeoutRef.current) {
+        clearTimeout(resizeTimeoutRef.current);
+      }
+    };
   }, [updateScrollButtons]);
 
   // Drag and drop handlers

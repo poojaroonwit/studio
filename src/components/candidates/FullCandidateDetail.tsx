@@ -323,7 +323,21 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({ message: 'Unknown error' }));
-        throw new Error(`Failed to update candidate: ${errorData.message || res.statusText}`);
+        
+        // Enhanced error handling for validation errors
+        if (errorData.message === 'Invalid input' && errorData.errors) {
+          // Format validation errors for better user experience
+          const errorMessages = Object.entries(errorData.errors)
+            .map(([field, errors]) => {
+              const fieldName = field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+              return `${fieldName}: ${Array.isArray(errors) ? errors.join(', ') : errors}`;
+            })
+            .join('\n');
+          
+          throw new Error(`Validation errors:\n${errorMessages}`);
+        } else {
+          throw new Error(`Failed to update candidate: ${errorData.message || res.statusText}`);
+        }
       }
 
       const updatedCandidate = await res.json();

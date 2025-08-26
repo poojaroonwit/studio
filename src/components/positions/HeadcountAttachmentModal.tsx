@@ -39,26 +39,44 @@ export function HeadcountAttachmentModal({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    // Prevent any default form submission behavior
+    event.preventDefault();
+    event.stopPropagation();
+    
     const files = event.target.files;
     if (!files || files.length === 0 || !headcount) return;
 
+    // console.log('Starting file upload for headcount:', headcount.id, 'Files:', files.length);
     setUploading(true);
+    
     try {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
+        // console.log('Uploading file:', file.name, 'Size:', file.size);
+        
         const formData = new FormData();
         formData.append('file', file);
         formData.append('label', file.name);
 
+        // Test the API endpoint first
+        // console.log('Testing API endpoint:', `/api/headcount/${headcount.id}/attachments`);
+        
         const response = await fetch(`/api/headcount/${headcount.id}/attachments`, {
           method: 'POST',
           body: formData,
         });
 
+        // console.log('Upload response status:', response.status);
+        // console.log('Upload response headers:', Object.fromEntries(response.headers.entries()));
+        
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || 'Failed to upload file');
+          console.error('Upload failed:', errorData);
+          throw new Error(errorData.error || `Failed to upload file: ${response.status} ${response.statusText}`);
         }
+        
+        const result = await response.json();
+        console.log('Upload successful:', result);
       }
 
       toast.success('Files uploaded successfully');
@@ -71,6 +89,30 @@ export function HeadcountAttachmentModal({
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
+    }
+  };
+
+  // Test function to verify API endpoint without file upload
+  const testApiEndpoint = async () => {
+    if (!headcount) return;
+    
+    try {
+      console.log('Testing API endpoint without file upload');
+      const response = await fetch(`/api/headcount/${headcount.id}/attachments`, {
+        method: 'GET',
+      });
+      
+      console.log('Test response status:', response.status);
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Test response data:', data);
+        toast.success('API endpoint is working');
+      } else {
+        toast.error(`API test failed: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('API test error:', error);
+      toast.error('API test failed');
     }
   };
 
@@ -142,19 +184,45 @@ export function HeadcountAttachmentModal({
                 <div>
                   <Label htmlFor="file-upload">Upload Files</Label>
                   <div className="mt-2">
-                    <Input
-                      id="file-upload"
-                      ref={fileInputRef}
-                      type="file"
-                      multiple
-                      onChange={handleFileUpload}
-                      disabled={uploading}
-                      className="cursor-pointer"
-                    />
+                    {/* Wrap in div to prevent form submission issues */}
+                    <div onClick={(e) => e.preventDefault()}>
+                      <Input
+                        id="file-upload"
+                        ref={fileInputRef}
+                        type="file"
+                        multiple
+                        onChange={handleFileUpload}
+                        disabled={uploading}
+                        className="cursor-pointer"
+                        // Prevent form submission
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                          }
+                        }}
+                        onClick={(e) => {
+                          // Prevent any click events from bubbling up
+                          e.stopPropagation();
+                        }}
+                      />
+                    </div>
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">
                     You can select multiple files to upload
                   </p>
+                  
+                  {/* Test button for debugging */}
+                  <div className="mt-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={testApiEndpoint}
+                      className="text-xs"
+                    >
+                      Test API Endpoint
+                    </Button>
+                  </div>
                 </div>
                 
                 {uploading && (

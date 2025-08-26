@@ -45,11 +45,8 @@ export function getScoreGrade(score: number | null | undefined): string | null {
     return null;
   }
   
-  // Return null for 0 scores (not scored)
-  if (normalizedScore === 0) {
-    return null;
-  }
-  
+  // 0 scores are now graded as E (not null)
+  // Only null/undefined scores are considered "no score"
   const grade = SCORE_GRADES.find(g => normalizedScore >= g.min && normalizedScore <= g.max);
   return grade ? grade.letter : null;
 }
@@ -75,11 +72,8 @@ export function getScoreGradeInfo(score: number | null | undefined): ScoreGrade 
     return null;
   }
   
-  // Return null for 0 scores (not scored)
-  if (normalizedScore === 0) {
-    return null;
-  }
-  
+  // 0 scores are now graded as E (not null)
+  // Only null/undefined scores are considered "no score"
   return SCORE_GRADES.find(g => normalizedScore >= g.min && normalizedScore <= g.max) || null;
 }
 
@@ -119,8 +113,8 @@ export function formatScoreWithGrade(score: number | null | undefined): string {
     }
   }
   
-  // Handle 0 score as "Not scored" instead of "0% (E)"
-  if (normalizedScore === 0) return 'Not scored';
+  // Handle 0 score as "0% (E)" instead of "Not scored"
+  // Only null/undefined scores are considered "Not scored"
   
   const grade = getScoreGrade(normalizedScore);
   return grade ? `${normalizedScore}% (${grade})` : `${normalizedScore}%`;

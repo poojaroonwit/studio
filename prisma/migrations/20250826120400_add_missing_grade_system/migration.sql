@@ -41,3 +41,5 @@ INSERT INTO "Grade" ("id", "name", "description", "min_level", "max_level", "sla
     (gen_random_uuid(), 'Grade 6-7', 'ระดับเกรด 6-7', 6, 7, 45, '#F59E0B', 2),
     (gen_random_uuid(), 'Grade 3-5', 'ระดับเกรด 3-5', 3, 5, 30, '#10B981', 3),
     (gen_random_uuid(), 'Grade 1-2 & Contract', 'ระดับเกรด 1-2 และพนักงานสัญญาจ้าง/รายวัน', 1, 2, 15, '#3B82F6', 4);
+
+

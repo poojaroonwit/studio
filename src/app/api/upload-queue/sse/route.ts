@@ -109,37 +109,55 @@ export async function GET(request: NextRequest) {
   const limit = parseInt(url.searchParams.get('limit') || '20', 10);
   const offset = parseInt(url.searchParams.get('offset') || '0', 10);
 
- 
+  let keepaliveInterval: NodeJS.Timeout | null = null;
+  let isClosed = false;
+
   const stream = new ReadableStream({
     async start(controller) {
-      let isClosed = false;
       uploadQueueControllers.add(controller);
  
       // Send initial data
       await sendUploadQueueUpdate(controller, { fileName, status, dateStart, dateEnd, positionId, limit, offset });
       
       // Send keepalive every 10 seconds for more responsive connection
-      const keepaliveInterval = setInterval(() => {
+      keepaliveInterval = setInterval(() => {
         if (isClosed) {
-          clearInterval(keepaliveInterval);
+          if (keepaliveInterval) {
+            clearInterval(keepaliveInterval);
+            keepaliveInterval = null;
+          }
           return;
         }
         try {
           controller.enqueue(encoder.encode(`: keepalive\n\n`));
-        } catch {
+        } catch (error) {
+          console.error('[Upload Queue SSE] Keepalive failed:', error);
           isClosed = true;
-          clearInterval(keepaliveInterval);
+          if (keepaliveInterval) {
+            clearInterval(keepaliveInterval);
+            keepaliveInterval = null;
+          }
+          uploadQueueControllers.delete(controller);
         }
       }, 10000); // Reduced to 10 seconds for better responsiveness
       
       // Cleanup on close
       request.signal.addEventListener('abort', async () => {
         isClosed = true;
-        clearInterval(keepaliveInterval);
+        if (keepaliveInterval) {
+          clearInterval(keepaliveInterval);
+          keepaliveInterval = null;
+        }
         uploadQueueControllers.delete(controller);
-        // console.log(`[SSE] Client disconnected. Remaining clients: ${uploadQueueControllers.size}`);
-        try { controller.close(); } catch {}
       });
+    },
+    cancel() {
+      isClosed = true;
+      if (keepaliveInterval) {
+        clearInterval(keepaliveInterval);
+        keepaliveInterval = null;
+      }
+      uploadQueueControllers.delete(controller);
     }
   });
 

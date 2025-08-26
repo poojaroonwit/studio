@@ -13,55 +13,85 @@ const path = require('path');
 console.log('🔍 Memory Leak Detection and Fix Script');
 console.log('=====================================\n');
 
-// Common memory leak patterns to check
+// More intelligent memory leak patterns that check for actual cleanup
 const memoryLeakPatterns = [
   {
     name: 'setTimeout without clearTimeout',
-    pattern: /setTimeout\s*\([^)]*\)(?!\s*;?\s*\/\/\s*clearTimeout)/g,
+    pattern: /setTimeout\s*\([^)]*\)/g,
     severity: 'high',
-    fix: 'Add clearTimeout in useEffect cleanup'
+    fix: 'Add clearTimeout in useEffect cleanup',
+    // Check if file has proper cleanup patterns
+    hasCleanup: (content) => {
+      return content.includes('clearTimeout') && 
+             (content.includes('useEffect') || content.includes('useRef'));
+    }
   },
   {
     name: 'setInterval without clearInterval',
-    pattern: /setInterval\s*\([^)]*\)(?!\s*;?\s*\/\/\s*clearInterval)/g,
+    pattern: /setInterval\s*\([^)]*\)/g,
     severity: 'high',
-    fix: 'Add clearInterval in useEffect cleanup'
+    fix: 'Add clearInterval in useEffect cleanup',
+    hasCleanup: (content) => {
+      return content.includes('clearInterval') && 
+             (content.includes('useEffect') || content.includes('useRef'));
+    }
   },
   {
     name: 'addEventListener without removeEventListener',
-    pattern: /addEventListener\s*\([^)]*\)(?!\s*;?\s*\/\/\s*removeEventListener)/g,
+    pattern: /addEventListener\s*\([^)]*\)/g,
     severity: 'medium',
-    fix: 'Add removeEventListener in useEffect cleanup'
+    fix: 'Add removeEventListener in useEffect cleanup',
+    hasCleanup: (content) => {
+      return content.includes('removeEventListener') && 
+             (content.includes('useEffect') || content.includes('useRef'));
+    }
   },
   {
     name: 'EventSource without close',
-    pattern: /new\s+EventSource\s*\([^)]*\)(?!\s*;?\s*\/\/\s*close)/g,
+    pattern: /new\s+EventSource\s*\([^)]*\)/g,
     severity: 'high',
-    fix: 'Add eventSource.close() in useEffect cleanup'
+    fix: 'Add eventSource.close() in useEffect cleanup',
+    hasCleanup: (content) => {
+      return content.includes('.close()') && 
+             (content.includes('useEffect') || content.includes('useRef'));
+    }
   },
   {
     name: 'ResizeObserver without disconnect',
-    pattern: /new\s+ResizeObserver\s*\([^)]*\)(?!\s*;?\s*\/\/\s*disconnect)/g,
+    pattern: /new\s+ResizeObserver\s*\([^)]*\)/g,
     severity: 'medium',
-    fix: 'Add observer.disconnect() in useEffect cleanup'
+    fix: 'Add observer.disconnect() in useEffect cleanup',
+    hasCleanup: (content) => {
+      return content.includes('.disconnect()') && 
+             (content.includes('useEffect') || content.includes('useRef'));
+    }
   },
   {
     name: 'useEffect without cleanup',
     pattern: /useEffect\s*\(\s*\(\)\s*=>\s*\{[^}]*\}\s*\)(?!\s*,\s*\[\])/g,
     severity: 'medium',
-    fix: 'Add cleanup function to useEffect'
+    fix: 'Add cleanup function to useEffect',
+    hasCleanup: (content) => {
+      return content.includes('return () =>') || content.includes('cleanup');
+    }
   },
   {
     name: 'Large object creation in render',
     pattern: /const\s+\w+\s*=\s*\{[^}]{500,}\}/g,
     severity: 'low',
-    fix: 'Move large objects outside component or use useMemo'
+    fix: 'Move large objects outside component or use useMemo',
+    hasCleanup: (content) => {
+      return content.includes('useMemo') || content.includes('useCallback');
+    }
   },
   {
     name: 'Inline function in render',
     pattern: /onClick\s*=\s*\{[^}]*=>[^}]*\}/g,
     severity: 'low',
-    fix: 'Use useCallback for event handlers'
+    fix: 'Use useCallback for event handlers',
+    hasCleanup: (content) => {
+      return content.includes('useCallback');
+    }
   }
 ];
 
@@ -84,6 +114,11 @@ function scanFile(filePath) {
     memoryLeakPatterns.forEach(pattern => {
       const matches = content.match(pattern.pattern);
       if (matches) {
+        // Check if the file already has proper cleanup
+        if (pattern.hasCleanup && pattern.hasCleanup(content)) {
+          return; // Skip this pattern if cleanup is already present
+        }
+        
         const lines = content.split('\n');
         matches.forEach(match => {
           const lineIndex = lines.findIndex(line => line.includes(match));

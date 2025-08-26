@@ -11,3 +11,5 @@ SET "label" = CASE
   ELSE name
 END
 WHERE "label" IS NULL;
+
+

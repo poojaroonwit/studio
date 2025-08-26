@@ -146,7 +146,7 @@ export function WarningConfigurationEditDrawer({
           setAvailableFields(fields);
         }
       } catch (error) {
-        console.error('Error fetching available fields:', error);
+        // Error fetching available fields
       }
     };
 
@@ -320,7 +320,6 @@ export function WarningConfigurationEditDrawer({
         showError(errorData.error || 'Failed to save configuration');
       }
     } catch (error) {
-      console.error('Error saving configuration:', error);
       showError('Failed to save configuration');
     } finally {
       setIsSubmitting(false);
@@ -402,7 +401,6 @@ export function WarningConfigurationEditDrawer({
         
         showSuccess('Configuration imported successfully');
       } catch (error) {
-        console.error('Error importing configuration:', error);
         showError('Failed to import configuration. Please check the file format.');
       }
     };

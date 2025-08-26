@@ -16,3 +16,5 @@ ALTER COLUMN "field_code" SET NOT NULL;
 ALTER TABLE "CustomFieldDefinition" 
 ADD CONSTRAINT "CustomFieldDefinition_model_name_field_code_key" 
 UNIQUE ("model_name", "field_code");
+
+

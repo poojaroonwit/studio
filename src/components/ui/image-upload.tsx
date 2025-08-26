@@ -22,7 +22,7 @@ interface ImageUploadProps {
   allowFile?: boolean;
 }
 
-const DEFAULT_MAX_SIZE = 5 * 1024 * 1024; // 5MB
+const DEFAULT_MAX_SIZE = 500 * 1024 * 1024; // 500MB
 const DEFAULT_ACCEPT = 'image/*';
 
 export function ImageUpload({

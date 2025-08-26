@@ -91,41 +91,54 @@ export class WebhookService {
 
       // Send webhook with timeout
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), webhook.timeout * 1000);
+      let timeoutId: NodeJS.Timeout | null = null;
 
-      const response = await fetch(webhook.url, {
-        method: webhook.method,
-        headers,
-        body: webhook.method !== 'GET' ? JSON.stringify(processedPayload) : undefined,
-        signal: controller.signal
-      });
+      try {
+        timeoutId = setTimeout(() => controller.abort(), webhook.timeout * 1000);
 
-      clearTimeout(timeoutId);
+        const response = await fetch(webhook.url, {
+          method: webhook.method,
+          headers,
+          body: webhook.method !== 'GET' ? JSON.stringify(processedPayload) : undefined,
+          signal: controller.signal
+        });
 
-      const responseBody = await response.text().catch(() => 'Unable to read response body');
-      const duration = Date.now() - startTime;
+        // Clear timeout on successful response
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          timeoutId = null;
+        }
 
-      result = {
-        success: response.ok,
-        status: response.status,
-        response: responseBody,
-        duration_ms: duration
-      };
+        const responseBody = await response.text().catch(() => 'Unable to read response body');
+        const duration = Date.now() - startTime;
 
-      if (!response.ok) {
-        result.error = `HTTP ${response.status}`;
+        result = {
+          success: response.ok,
+          status: response.status,
+          response: responseBody,
+          duration_ms: duration
+        };
+
+        if (!response.ok) {
+          result.error = `HTTP ${response.status}`;
+        }
+
+      } catch (error) {
+        // Clear timeout on error
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          timeoutId = null;
+        }
+        
+        const duration = Date.now() - startTime;
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+        result = {
+          success: false,
+          error: errorMessage,
+          duration_ms: duration
+        };
       }
-
-    } catch (error) {
-      const duration = Date.now() - startTime;
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-      result = {
-        success: false,
-        error: errorMessage,
-        duration_ms: duration
-      };
-    }
 
     // Log the webhook delivery
     await this.logWebhookDelivery(webhook.id, processedPayload, result);

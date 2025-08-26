@@ -44,10 +44,14 @@ export async function GET(
     const sortColumn = allowedSortColumns[sortColumnParam as keyof typeof allowedSortColumns] || '"applicationDate"';
     const sortDirection = sortDirectionParam === 'asc' ? 'ASC' : 'DESC';
     
-    // Handle NULL values in sorting - for fitScore, put NULL values last
+    // Handle NULL values in sorting - for fitScore, put NULL values first when ascending, last when descending
     let sortClause = `${sortColumn} ${sortDirection}`;
     if (sortColumnParam === 'fitScore') {
-      sortClause = `"fitScore" ${sortDirection} NULLS LAST`;
+      if (sortDirection === 'ASC') {
+        sortClause = `"fitScore" ${sortDirection} NULLS FIRST`;
+      } else {
+        sortClause = `"fitScore" ${sortDirection} NULLS LAST`;
+      }
     }
 
     // Search term

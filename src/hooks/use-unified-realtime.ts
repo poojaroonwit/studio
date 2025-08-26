@@ -92,7 +92,7 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
           duration: 3000
         });
       } catch (error) {
-        console.error('Error showing toast notification:', error);
+        // Error showing toast notification
       }
     }
   }, [showNotifications, showInfoToast]);
@@ -106,7 +106,7 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
         });
         lastErrorToastTimeRef.current = now;
       } catch (error) {
-        console.error('Error showing error toast notification:', error);
+        // Error showing error toast notification
       }
     }
   }, [showErrorNotifications, errorToastCooldownMs, showErrorToast]);
@@ -132,7 +132,7 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
       try {
         eventSourceRef.current.close();
       } catch (error) {
-        console.error('Error closing SSE connection:', error);
+        // Error closing SSE connection
       }
       eventSourceRef.current = null;
     }
@@ -167,7 +167,6 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
       const timeSinceLastMessage = now - lastMessageTimeRef.current;
       
       if (timeSinceLastMessage > 60000) {
-        console.warn('Health check failed: No messages received for 60 seconds');
         setState(prev => ({ ...prev, isConnected: false }));
         handleReconnect();
       } else {
@@ -220,11 +219,9 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
         messageCountRef.current = 0;
         errorCountRef.current = 0;
         startHealthCheck();
-        showNotification('Real-time connection established', '✅');
       };
 
       eventSource.onerror = (error) => {
-        console.error('❌ Unified realtime error:', error);
         errorCountRef.current++;
         
         setState(prev => ({
@@ -262,7 +259,7 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
             
             setState(prev => ({ ...prev, lastUpdate: new Date() }));
           } catch (e) {
-            console.error('Error parsing candidate update:', e);
+            // Error parsing candidate update
           }
         },
 
@@ -278,7 +275,7 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
             
             setState(prev => ({ ...prev, lastUpdate: new Date() }));
           } catch (e) {
-            console.error('Error parsing position update:', e);
+            // Error parsing position update
           }
         },
 
@@ -294,7 +291,7 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
             
             setState(prev => ({ ...prev, lastUpdate: new Date() }));
           } catch (e) {
-            console.error('Error parsing presence update:', e);
+            // Error parsing presence update
           }
         },
 
@@ -451,7 +448,12 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
   // Update connection health periodically
   useEffect(() => {
     const healthInterval = setInterval(updateConnectionHealth, 10000);
-    return () => clearInterval(healthInterval);
+    
+    return () => {
+      if (healthInterval) {
+        clearInterval(healthInterval);
+      }
+    };
   }, [updateConnectionHealth]);
 
   return {

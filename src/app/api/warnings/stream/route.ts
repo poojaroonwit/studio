@@ -12,6 +12,8 @@ export async function GET(request: NextRequest) {
     return new Response('Unauthorized', { status: 401 });
   }
 
+  let interval: NodeJS.Timeout | null = null;
+
   const stream = new ReadableStream({
     start(controller) {
       // Send initial connection message
@@ -19,17 +21,35 @@ export async function GET(request: NextRequest) {
       controller.enqueue(new TextEncoder().encode(message));
 
       // Set up periodic updates (every 30 seconds)
-      const interval = setInterval(() => {
-        const updateMessage = `data: ${JSON.stringify({ type: 'ping', timestamp: new Date().toISOString() })}\n\n`;
-        controller.enqueue(new TextEncoder().encode(updateMessage));
+      interval = setInterval(() => {
+        try {
+          const updateMessage = `data: ${JSON.stringify({ type: 'ping', timestamp: new Date().toISOString() })}\n\n`;
+          controller.enqueue(new TextEncoder().encode(updateMessage));
+        } catch (error) {
+          console.error('[Warnings Stream] Ping failed:', error);
+          // Clear interval if write fails
+          if (interval) {
+            clearInterval(interval);
+            interval = null;
+          }
+        }
       }, 30000);
 
       // Clean up on close
       request.signal.addEventListener('abort', () => {
-        clearInterval(interval);
+        if (interval) {
+          clearInterval(interval);
+          interval = null;
+        }
         controller.close();
       });
     },
+    cancel() {
+      if (interval) {
+        clearInterval(interval);
+        interval = null;
+      }
+    }
   });
 
   return new Response(stream, {

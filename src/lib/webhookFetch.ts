@@ -51,10 +51,12 @@ export async function webhookFetch(options: WebhookFetchOptions): Promise<Webhoo
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt <= retries; attempt++) {
+    let timeoutId: NodeJS.Timeout | null = null;
+    
     try {
       // Create AbortController for timeout
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
       try {
         // Configure fetch options
@@ -76,7 +78,12 @@ export async function webhookFetch(options: WebhookFetchOptions): Promise<Webhoo
         }
 
         const response = await fetch(url, fetchOptions);
-        clearTimeout(timeoutId);
+        
+        // Clear timeout on successful response
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          timeoutId = null;
+        }
 
         // Read response body
         const responseBody = await response.text();
@@ -97,7 +104,11 @@ export async function webhookFetch(options: WebhookFetchOptions): Promise<Webhoo
         };
 
       } catch (fetchError) {
-        clearTimeout(timeoutId);
+        // Clear timeout on fetch error
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          timeoutId = null;
+        }
         
         // Handle specific timeout errors
         if (fetchError instanceof Error) {
@@ -138,6 +149,12 @@ export async function webhookFetch(options: WebhookFetchOptions): Promise<Webhoo
       }
 
     } catch (error) {
+      // Clear timeout on any error
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+      
       lastError = error instanceof Error ? error : new Error(String(error));
       
       // If this is the last attempt, throw the error

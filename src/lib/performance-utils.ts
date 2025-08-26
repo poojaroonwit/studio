@@ -57,13 +57,11 @@ export function initializeResourceTracking() {
     return originalClearInterval(intervalId);
   };
 
-  console.log('🔧 Resource tracking initialized');
+  // Resource tracking initialized
 }
 
 // Cleanup all tracked resources
 export function cleanupAllResources() {
-  console.log('🧹 Cleaning up all tracked resources...');
-  
   // Clear all timeouts
   resourceRegistry.timeouts.forEach(id => {
     clearTimeout(id);
@@ -76,37 +74,37 @@ export function cleanupAllResources() {
   });
   resourceRegistry.intervals.clear();
 
-  // Close all EventSource connections
-  resourceRegistry.eventSources.forEach(eventSource => {
-    try {
-      eventSource.close();
-    } catch (error) {
-      console.error('Error closing EventSource:', error);
-    }
-  });
+      // Close all EventSource connections
+    resourceRegistry.eventSources.forEach(eventSource => {
+      try {
+        eventSource.close();
+      } catch (error) {
+        // Error closing EventSource
+      }
+    });
   resourceRegistry.eventSources.clear();
 
-  // Disconnect all ResizeObservers
-  resourceRegistry.observers.forEach(observer => {
-    try {
-      observer.disconnect();
-    } catch (error) {
-      console.error('Error disconnecting ResizeObserver:', error);
-    }
-  });
+      // Disconnect all ResizeObservers
+    resourceRegistry.observers.forEach(observer => {
+      try {
+        observer.disconnect();
+      } catch (error) {
+        // Error disconnecting ResizeObserver
+      }
+    });
   resourceRegistry.observers.clear();
 
-  // Abort all AbortControllers
-  resourceRegistry.abortControllers.forEach(controller => {
-    try {
-      controller.abort();
-    } catch (error) {
-      console.error('Error aborting controller:', error);
-    }
-  });
+      // Abort all AbortControllers
+    resourceRegistry.abortControllers.forEach(controller => {
+      try {
+        controller.abort();
+      } catch (error) {
+        // Error aborting controller
+      }
+    });
   resourceRegistry.abortControllers.clear();
 
-  console.log('✅ All resources cleaned up');
+  // All resources cleaned up
 }
 
 // Get resource statistics
@@ -124,12 +122,10 @@ export function getResourceStats() {
 // Memory leak detection
 export function startMemoryLeakDetection(thresholdMB = 50, checkIntervalMs = 10000) {
   if (performanceMonitorActive) {
-    console.warn('Memory leak detection already active');
     return;
   }
 
   if (typeof window === 'undefined' || !('memory' in performance)) {
-    console.warn('Memory API not available');
     return;
   }
 
@@ -149,8 +145,7 @@ export function startMemoryLeakDetection(thresholdMB = 50, checkIntervalMs = 100
         consecutiveMemoryIncreases++;
         
         if (consecutiveMemoryIncreases >= 3 && memoryIncrease > memoryLeakThreshold) {
-          console.warn(`🚨 Potential memory leak detected! Memory increased by ${memoryIncrease}MB over 3 checks`);
-          console.warn('Current resource stats:', getResourceStats());
+          // Potential memory leak detected
           
           // Force garbage collection if available
           if ('gc' in window) {
@@ -165,7 +160,7 @@ export function startMemoryLeakDetection(thresholdMB = 50, checkIntervalMs = 100
     lastMemoryUsage = currentMemoryMB;
   }, checkIntervalMs);
 
-  console.log(`🔍 Memory leak detection started (threshold: ${thresholdMB}MB, interval: ${checkIntervalMs}ms)`);
+  // Memory leak detection started
 }
 
 export function stopMemoryLeakDetection() {
@@ -174,7 +169,7 @@ export function stopMemoryLeakDetection() {
     memoryCheckInterval = null;
   }
   performanceMonitorActive = false;
-  console.log('🛑 Memory leak detection stopped');
+  // Memory leak detection stopped
 }
 
 // Utility functions for components
@@ -240,7 +235,11 @@ export function usePerformanceMonitor(enabled = true) {
     const interval = setInterval(updateMetrics, 5000);
     updateMetrics();
 
-    return () => clearInterval(interval);
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
   }, [enabled]);
 
   return metrics;

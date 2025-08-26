@@ -118,7 +118,7 @@ export function CandidateSourceCell({
               <img 
                 src={candidate.source.logo} 
                 alt={candidate.source.name}
-                className="h-5 w-5 object-contain"
+                className="h-5 w-5 object-contain rounded-full"
               />
             )}
             <span className="text-sm font-medium text-foreground truncate">
@@ -174,7 +174,7 @@ export function CandidateSourceCell({
                 <img 
                   src={candidate.source.logo} 
                   alt={candidate.source.name}
-                  className="h-5 w-5 object-contain flex-shrink-0"
+                  className="h-5 w-5 object-contain rounded-full flex-shrink-0"
                 />
               )}
               <span className="text-sm font-medium text-foreground truncate flex-1">
@@ -264,7 +264,7 @@ export function CandidateSourceCell({
                     <img 
                       src={source.logo} 
                       alt={source.name}
-                      className="h-5 w-5 object-contain"
+                      className="h-5 w-5 object-contain rounded-full"
                     />
                   )}
                   <div className="flex flex-col flex-1">

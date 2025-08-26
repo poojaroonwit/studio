@@ -41,7 +41,6 @@ export function NotificationDrawer({ isOpen, onClose, onNotificationRead }: Noti
         onNotificationRead();
       }
     } catch (error) {
-      console.error('❌ Error marking notification as read:', error);
       showErrorToast('Failed to mark notification as read');
     } finally {
       setMarkingAsRead(null);
@@ -58,7 +57,6 @@ export function NotificationDrawer({ isOpen, onClose, onNotificationRead }: Noti
         onNotificationRead();
       }
     } catch (error) {
-      console.error('❌ Error marking all notifications as read:', error);
       showErrorToast('Failed to mark all notifications as read');
     } finally {
       setMarkingAllAsRead(false);

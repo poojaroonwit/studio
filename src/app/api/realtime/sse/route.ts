@@ -46,6 +46,10 @@ export async function OPTIONS() {
 export async function GET(request: NextRequest) {
   const encoder = new TextEncoder();
   let thisController: ReadableStreamDefaultController<any>;
+  let keepaliveInterval: NodeJS.Timeout | null = null;
+  let heartbeatInterval: NodeJS.Timeout | null = null;
+  let controllerId: string | null = null;
+  let ensuredUserId: string | null = null;
 
   // Get user session for user-specific notifications
   let userId: string | undefined;
@@ -67,11 +71,11 @@ export async function GET(request: NextRequest) {
 
   const stream = new ReadableStream({
     start(controller) {
-      const ensuredUserId = userId!;
+      ensuredUserId = userId!;
       thisController = controller;
       
       // Add to global controllers
-      const controllerId = `${ensuredUserId}-${Date.now()}-${Math.random()}`;
+      controllerId = `${ensuredUserId}-${Date.now()}-${Math.random()}`;
       sseControllers.set(controllerId, controller);
       
       // Add to user-specific controllers
@@ -95,7 +99,7 @@ export async function GET(request: NextRequest) {
       }
 
       // Send keepalive every 10 seconds
-      const keepaliveInterval = setInterval(() => {
+      keepaliveInterval = setInterval(() => {
         try {
           const keepaliveData = JSON.stringify({ 
             type: 'keepalive', 
@@ -104,34 +108,68 @@ export async function GET(request: NextRequest) {
           controller.enqueue(encoder.encode(`event: keepalive\ndata: ${keepaliveData}\n\n`));
         } catch (error) {
           console.error('[SSE] Keepalive failed:', error);
-          clearInterval(keepaliveInterval);
+          if (keepaliveInterval) {
+            clearInterval(keepaliveInterval);
+            keepaliveInterval = null;
+          }
         }
       }, 10000);
 
       // Send heartbeat every 5 seconds
-      const heartbeatInterval = setInterval(() => {
+      heartbeatInterval = setInterval(() => {
         try {
           controller.enqueue(encoder.encode(`: heartbeat\n\n`));
         } catch (error) {
           console.error('[SSE] Heartbeat failed:', error);
-          clearInterval(heartbeatInterval);
+          if (heartbeatInterval) {
+            clearInterval(heartbeatInterval);
+            heartbeatInterval = null;
+          }
         }
       }, 5000);
 
       // Cleanup on close
       request.signal.addEventListener('abort', () => {
-        clearInterval(keepaliveInterval);
-        clearInterval(heartbeatInterval);
-        sseControllers.delete(controllerId);
-        userControllers.get(ensuredUserId)?.delete(controller);
-        if (userControllers.get(ensuredUserId)?.size === 0) {
-          userControllers.delete(ensuredUserId);
+        if (keepaliveInterval) {
+          clearInterval(keepaliveInterval);
+          keepaliveInterval = null;
+        }
+        if (heartbeatInterval) {
+          clearInterval(heartbeatInterval);
+          heartbeatInterval = null;
+        }
+        if (controllerId) {
+          sseControllers.delete(controllerId);
+        }
+        if (ensuredUserId) {
+          userControllers.get(ensuredUserId)?.delete(controller);
+          if (userControllers.get(ensuredUserId)?.size === 0) {
+            userControllers.delete(ensuredUserId);
+          }
         }
         try { controller.close(); } catch {}
       });
     },
     cancel() {
-      // Cleanup handled in abort listener
+      // Cleanup intervals
+      if (keepaliveInterval) {
+        clearInterval(keepaliveInterval);
+        keepaliveInterval = null;
+      }
+      if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+        heartbeatInterval = null;
+      }
+      // Cleanup controllers
+      if (controllerId) {
+        sseControllers.delete(controllerId);
+      }
+      if (ensuredUserId) {
+        userControllers.get(ensuredUserId)?.delete(thisController);
+        if (userControllers.get(ensuredUserId)?.size === 0) {
+          userControllers.delete(ensuredUserId);
+        }
+      }
     }
   });
 

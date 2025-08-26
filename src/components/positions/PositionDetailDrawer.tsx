@@ -313,7 +313,6 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
        // Set drawer as ready for WYSIWYG editors
        setIsDrawerReady(true);
      } catch (error) {
-      console.error('Error fetching position:', error);
       setFetchError((error as Error).message || 'Could not load position.');
       setPosition(null);
     } finally {
@@ -330,7 +329,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         setGrades(data);
       }
     } catch (error) {
-      console.error('Error fetching grades:', error);
+      // Error fetching grades
     }
   }, []);
 
@@ -365,7 +364,6 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       setAppliedCandidates(candidates);
       setAppliedCandidatesTotal(data.pagination?.total || candidates.length);
     } catch (error) {
-      console.error('Error fetching applied candidates:', error);
       setAppliedCandidates([]);
       setAppliedCandidatesTotal(0);
     }
@@ -399,7 +397,6 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       setFilteredCandidates(candidates);
       setFilteredCandidatesTotal(data.pagination?.total || candidates.length);
     } catch (error) {
-      console.error('Error fetching all candidates:', error);
       setFilteredCandidates([]);
       setFilteredCandidatesTotal(0);
     }
@@ -435,7 +432,6 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       setPotentialCandidates(candidates);
       setPotentialCandidatesTotal(data.pagination?.total || candidates.length);
     } catch (error) {
-      console.error('Error fetching potential candidates:', error);
       setPotentialCandidates([]);
       setPotentialCandidatesTotal(0);
     }
@@ -453,7 +449,6 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       const headcounts = Array.isArray(data) ? data : [];
       setHeadcountsTotal(headcounts.length);
     } catch (error) {
-      console.error('Error fetching headcount count:', error);
       setHeadcountsTotal(0);
     }
   }, [positionId]);
@@ -503,7 +498,6 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       setIsEditMode(false);
       toast.success('Position updated successfully');
     } catch (error) {
-      console.error('Error updating position:', error);
       toast.error('Failed to update position');
     } finally {
       setIsSaving(false);
@@ -585,7 +579,6 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         throw new Error('No description generated');
       }
     } catch (error) {
-      console.error('Error generating job description:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to generate job description. Please try again.';
       toast.error(errorMessage);
     } finally {
@@ -632,7 +625,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
           setDefaultMatchCriteria(defaultCriteria);
         }
       } catch (error) {
-        console.error('Failed to fetch default match criteria:', error);
+        // Failed to fetch default match criteria
       }
     };
     fetchDefaultMatchCriteria();

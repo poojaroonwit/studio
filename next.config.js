@@ -55,11 +55,24 @@ const nextConfig = {
   compress: true,
   poweredByHeader: false,
   
+  // Increase body size limit for large file uploads (500MB)
+  experimental: {
+    serverComponentsExternalPackages: ['@prisma/client', 'bcryptjs', 'pg', 'jose'],
+    optimizeCss: true,
+    // optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'], // Disabled due to self reference issue
+    serverActions: {
+      bodySizeLimit: '500mb',
+    },
+  },
+  
   // Disable static generation for API routes that use dynamic features
   experimental: {
     serverComponentsExternalPackages: ['@prisma/client', 'bcryptjs', 'pg', 'jose'],
     optimizeCss: true,
     // optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'], // Disabled due to self reference issue
+    serverActions: {
+      bodySizeLimit: '500mb',
+    },
   },
   
   // Force Node.js runtime for all API routes to avoid Edge Runtime issues
@@ -143,6 +156,25 @@ const nextConfig = {
           {
             key: 'Cache-Control',
             value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      // API routes for large file uploads
+      {
+        source: '/api/upload-image',
+        headers: [
+          {
+            key: 'Content-Length',
+            value: '524288000', // 500MB in bytes
+          },
+        ],
+      },
+      {
+        source: '/api/settings/upload-image',
+        headers: [
+          {
+            key: 'Content-Length',
+            value: '524288000', // 500MB in bytes
           },
         ],
       },

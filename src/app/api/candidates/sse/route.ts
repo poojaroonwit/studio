@@ -20,6 +20,8 @@ export async function OPTIONS() {
 export async function GET(request: NextRequest) {
   const encoder = new TextEncoder();
   let thisController: ReadableStreamDefaultController<any>;
+  let keepaliveInterval: NodeJS.Timeout | null = null;
+  let heartbeatInterval: NodeJS.Timeout | null = null;
 
   // Get user session for user-specific notifications
   const session = await getServerSession(authOptions);
@@ -45,7 +47,7 @@ export async function GET(request: NextRequest) {
       }
 
       // Send keepalive every 10 seconds for more responsive connection
-      const keepaliveInterval = setInterval(() => {
+      keepaliveInterval = setInterval(() => {
         try {
           const keepaliveData = JSON.stringify({ 
             type: 'keepalive', 
@@ -54,29 +56,49 @@ export async function GET(request: NextRequest) {
           controller.enqueue(encoder.encode(`event: keepalive\ndata: ${keepaliveData}\n\n`));
         } catch (error) {
           console.error('[SSE] Keepalive failed:', error);
-          clearInterval(keepaliveInterval);
+          if (keepaliveInterval) {
+            clearInterval(keepaliveInterval);
+            keepaliveInterval = null;
+          }
         }
       }, 10000); // Reduced to 10 seconds for better responsiveness
 
       // Send heartbeat every 5 seconds to maintain connection
-      const heartbeatInterval = setInterval(() => {
+      heartbeatInterval = setInterval(() => {
         try {
           controller.enqueue(encoder.encode(`: heartbeat\n\n`));
         } catch (error) {
           console.error('[SSE] Heartbeat failed:', error);
-          clearInterval(heartbeatInterval);
+          if (heartbeatInterval) {
+            clearInterval(heartbeatInterval);
+            heartbeatInterval = null;
+          }
         }
       }, 5000); // Every 5 seconds
 
       // Cleanup on close
       request.signal.addEventListener('abort', () => {
-        clearInterval(keepaliveInterval);
-        clearInterval(heartbeatInterval);
+        if (keepaliveInterval) {
+          clearInterval(keepaliveInterval);
+          keepaliveInterval = null;
+        }
+        if (heartbeatInterval) {
+          clearInterval(heartbeatInterval);
+          heartbeatInterval = null;
+        }
         removeSseController(thisController);
         controller.close();
       });
     },
     cancel() {
+      if (keepaliveInterval) {
+        clearInterval(keepaliveInterval);
+        keepaliveInterval = null;
+      }
+      if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+        heartbeatInterval = null;
+      }
       removeSseController(thisController);
     },
   });

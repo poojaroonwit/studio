@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
-import { X, ImageIcon, FileTextIcon, FileIcon, Send, Paperclip, Activity, MessageSquare } from 'lucide-react';
+import { X, ImageIcon, FileTextIcon, FileIcon, Send, Paperclip, Activity, MessageSquare, ChevronDown } from 'lucide-react';
 import { FileViewerModal } from '../ui/file-viewer-modal';
 
 const LABEL_OPTIONS = [
@@ -54,6 +54,12 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
   const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   
+  // Load more state
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMoreComments, setHasMoreComments] = useState(true);
+  const [commentsOffset, setCommentsOffset] = useState(0);
+  const COMMENTS_PER_LOAD = 10;
+  
   // Drag-and-drop and file state
   const [files, setFiles] = useState<File[]>([]);
   const [labels, setLabels] = useState<string[]>([]);
@@ -71,10 +77,34 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
   } | null>(null);
   const [isFileViewerOpen, setIsFileViewerOpen] = useState(false);
 
-  // Update local state when parent provides new comments (no automatic polling)
+  // Load initial comments from API
   useEffect(() => {
-    setComments(Array.isArray(initialComments) ? initialComments : []);
-  }, [initialComments]);
+    const loadInitialComments = async () => {
+      try {
+        const response = await fetch(`/api/candidates/${candidateId}/comments?limit=${COMMENTS_PER_LOAD}&offset=0`);
+        if (response.ok) {
+          const data = await response.json();
+          const initialCommentsData = Array.isArray(data.data) ? data.data : [];
+          setComments(initialCommentsData);
+          setCommentsOffset(initialCommentsData.length);
+          setHasMoreComments(data.pagination?.hasMore || false);
+        } else {
+          // Fallback to parent-provided comments if API fails
+          setComments(Array.isArray(initialComments) ? initialComments : []);
+          setCommentsOffset(0);
+          setHasMoreComments(true);
+        }
+      } catch (error) {
+        console.error('Error loading initial comments:', error);
+        // Fallback to parent-provided comments if API fails
+        setComments(Array.isArray(initialComments) ? initialComments : []);
+        setCommentsOffset(0);
+        setHasMoreComments(true);
+      }
+    };
+
+    loadInitialComments();
+  }, [candidateId, initialComments]);
 
   // Fetch activity logs once on candidateId change (no real-time polling)
   useEffect(() => {
@@ -85,6 +115,32 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
       .catch(() => setLogs([]))
       .finally(() => setLogsLoading(false));
   }, [candidateId]);
+
+  // Load more comments function
+  const loadMoreComments = useCallback(async () => {
+    if (loadingMore || !hasMoreComments) return;
+    
+    setLoadingMore(true);
+    try {
+      const response = await fetch(`/api/candidates/${candidateId}/comments?limit=${COMMENTS_PER_LOAD}&offset=${commentsOffset}`);
+      if (response.ok) {
+        const data = await response.json();
+        const newComments = Array.isArray(data.data) ? data.data : [];
+        
+        if (newComments.length > 0) {
+          setComments(prev => [...prev, ...newComments]);
+          setCommentsOffset(prev => prev + newComments.length);
+          setHasMoreComments(data.pagination?.hasMore || false);
+        } else {
+          setHasMoreComments(false);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading more comments:', error);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [candidateId, commentsOffset, loadingMore, hasMoreComments]);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -105,7 +161,9 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
     setIsFileViewerOpen(true);
   };
 
-  // Combine and sort activities by date
+
+
+  // Show all activities (no pagination, use load more for comments)
   const combinedActivities: CombinedActivityItem[] = [
     // Add comments
     ...(Array.isArray(comments) ? comments : []).map(comment => ({
@@ -131,16 +189,6 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
     if (!dateA || !dateB) return 0;
     return new Date(dateB).getTime() - new Date(dateA).getTime(); // Sort newest first
   });
-
-  // Pagination state
-  const ITEMS_PER_PAGE = 5;
-  const [page, setPage] = useState(1);
-  const totalPages = Math.ceil(combinedActivities.length / ITEMS_PER_PAGE) || 1;
-  useEffect(() => {
-    // Reset to first page if activities change
-    setPage(1);
-  }, [candidateId, initialComments, logs]);
-  const paginatedActivities = combinedActivities.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
   // Drag-and-drop handlers
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -270,7 +318,17 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
         fileInputRef.current.value = '';
       }
       
-      // Trigger manual refresh to sync with server
+      // Refresh comments list to get the latest data from server
+      const refreshResponse = await fetch(`/api/candidates/${candidateId}/comments?limit=${COMMENTS_PER_LOAD}&offset=0`);
+      if (refreshResponse.ok) {
+        const refreshData = await refreshResponse.json();
+        const refreshedComments = Array.isArray(refreshData.data) ? refreshData.data : [];
+        setComments(refreshedComments);
+        setCommentsOffset(refreshedComments.length);
+        setHasMoreComments(refreshData.pagination?.hasMore || false);
+      }
+      
+      // Also trigger parent refresh
       onCommentsChange();
       
     } catch (err: any) {
@@ -315,6 +373,17 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
         body: JSON.stringify({ content: editingContent }),
       });
       if (!res.ok) throw new Error('Failed to update comment');
+      
+      // Refresh comments list to get the latest data from server
+      const refreshResponse = await fetch(`/api/candidates/${candidateId}/comments?limit=${COMMENTS_PER_LOAD}&offset=0`);
+      if (refreshResponse.ok) {
+        const refreshData = await refreshResponse.json();
+        const refreshedComments = Array.isArray(refreshData.data) ? refreshData.data : [];
+        setComments(refreshedComments);
+        setCommentsOffset(refreshedComments.length);
+        setHasMoreComments(refreshData.pagination?.hasMore || false);
+      }
+      
       onCommentsChange();
     } catch (err: any) {
       setComments(prevComments); // revert
@@ -337,6 +406,17 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
       const res = await fetch(`/api/candidates/${candidateId}/comments/${originalId}`, {
         method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete comment');
+      
+      // Refresh comments list to get the latest data from server
+      const refreshResponse = await fetch(`/api/candidates/${candidateId}/comments?limit=${COMMENTS_PER_LOAD}&offset=0`);
+      if (refreshResponse.ok) {
+        const refreshData = await refreshResponse.json();
+        const refreshedComments = Array.isArray(refreshData.data) ? refreshData.data : [];
+        setComments(refreshedComments);
+        setCommentsOffset(refreshedComments.length);
+        setHasMoreComments(refreshData.pagination?.hasMore || false);
+      }
+      
       onCommentsChange();
     } catch (err: any) {
       setComments(prevComments); // revert
@@ -355,205 +435,172 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
 
   return (
     <div className="h-full flex flex-col min-h-0">
-      {/* Combined Activity and Comments List */}
+      {/* Combined Activity and Comments List - Scrollable */}
       <div className="flex-1 overflow-y-auto space-y-0">
         {logsLoading ? (
           <div className="text-muted-foreground text-sm py-4 text-center">Loading activities...</div>
         ) : combinedActivities.length === 0 ? (
           <div className="text-muted-foreground text-sm py-4 text-center">No activities or comments yet.</div>
         ) : (
-          paginatedActivities.map((item, index) => (
-            <div key={item.id} className={`py-2 ${index !== paginatedActivities.length - 1 ? 'border-b border-border' : ''}`}>
-              <div className="flex gap-3">
-                {/* Icon with background based on type */}
-                {item.type === 'comment' ? (
-                  <div className="px-1.5 py-0.5 bg-blue-500/10 dark:bg-blue-400/20 rounded-lg w-8 h-8 flex items-center justify-center">
-                    <MessageSquare className="w-3 h-3 text-blue-600 dark:text-blue-300" />
-                  </div>
-                ) : (
-                  <div className="px-1.5 py-0.5 bg-green-500/10 dark:bg-green-400/20 rounded-lg w-8 h-8 flex items-center justify-center">
-                    <Activity className="w-3 h-3 text-green-600 dark:text-green-300" />
-                  </div>
-                )}
-                
-                {/* Content area */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-start mb-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-sm">
-                        {item.type === 'comment'
-                          ? (typeof item.author === 'object' && item.author !== null && 'name' in item.author
-                              ? item.author.name
-                              : item.author || 'Unknown')
-                          : item.user || 'System'
-                        }
-                      </span>
-                      <span className="text-xs text-muted-foreground">•</span>
-                      <span className="text-xs text-muted-foreground">
-                        {new Date((item as any).createdAt || (item as any).time || '').toLocaleString()}
-                      </span>
+          <>
+            {combinedActivities.map((item, index) => (
+              <div key={item.id} className={`py-2 ${index !== combinedActivities.length - 1 ? 'border-b border-border' : ''}`}>
+                <div className="flex gap-3">
+                  {/* Icon with background based on type */}
+                  {item.type === 'comment' ? (
+                    <div className="px-1.5 py-0.5 bg-blue-500/10 dark:bg-blue-400/20 rounded-lg w-8 h-8 flex items-center justify-center">
+                      <MessageSquare className="w-3 h-3 text-blue-600 dark:text-blue-300" />
                     </div>
-                    {isEditing && item.type === 'comment' && (
-                      <div className="flex items-center gap-1">
+                  ) : (
+                    <div className="px-1.5 py-0.5 bg-green-500/10 dark:bg-green-400/20 rounded-lg w-8 h-8 flex items-center justify-center">
+                      <Activity className="w-3 h-3 text-green-600 dark:text-green-300" />
+                    </div>
+                  )}
+                  
+                  {/* Content area */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-start mb-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-sm">
+                          {item.type === 'comment'
+                            ? (typeof item.author === 'object' && item.author !== null && 'name' in item.author
+                                ? item.author.name
+                                : item.author || 'Unknown')
+                            : item.user || 'System'
+                          }
+                        </span>
+                        <span className="text-xs text-muted-foreground">•</span>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date((item as any).createdAt || (item as any).time || '').toLocaleString()}
+                        </span>
+                      </div>
+                      {isEditing && item.type === 'comment' && (
+                        <div className="flex items-center gap-1">
+                          {editingId === item.id ? (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleEditComment(item.id)}
+                                disabled={editingSaving === item.id}
+                              >
+                                {editingSaving === item.id ? 'Saving...' : 'Save'}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => {
+                                  setEditingId(null);
+                                  setEditingContent('');
+                                }}
+                              >
+                                Cancel
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => {
+                                  setEditingId(item.id);
+                                  setEditingContent(item.content || '');
+                                }}
+                              >
+                                Edit
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleDeleteComment(item.id)}
+                                disabled={deleteLoading === item.id}
+                                className="text-destructive hover:text-destructive"
+                              >
+                                {deleteLoading === item.id ? 'Deleting...' : 'Delete'}
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Comment or Activity Content */}
+                    {item.type === 'comment' ? (
+                      <>
                         {editingId === item.id ? (
-                          <>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleEditComment(item.id)}
-                              disabled={editingSaving === item.id}
-                            >
-                              {editingSaving === item.id ? 'Saving...' : 'Save'}
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => {
-                                setEditingId(null);
-                                setEditingContent('');
-                              }}
-                            >
-                              Cancel
-                            </Button>
-                          </>
+                          <div className="space-y-2">
+                            <Textarea
+                              value={editingContent}
+                              onChange={(e) => setEditingContent(e.target.value)}
+                              className="min-h-[80px]"
+                            />
+                          </div>
                         ) : (
-                          <>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => {
-                                setEditingId(item.id);
-                                setEditingContent(item.content || '');
-                              }}
-                            >
-                              Edit
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleDeleteComment(item.id)}
-                              disabled={deleteLoading === item.id}
-                              className="text-destructive hover:text-destructive"
-                            >
-                              {deleteLoading === item.id ? 'Deleting...' : 'Delete'}
-                            </Button>
-                          </>
+                          <div className="text-sm mb-2 whitespace-pre-wrap">{item.content}</div>
                         )}
+                        {/* Attachments under comment */}
+                        {(Array.isArray(item.attachments) ? item.attachments : []).length > 0 && (
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {(Array.isArray(item.attachments) ? item.attachments : []).map((att: any, idx: number) => (
+                              <div key={att.id || idx} className="flex items-center gap-2 border rounded px-2 py-1 bg-muted/50 hover:bg-muted/70 transition-colors">
+                                {att.fileName.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i) ? (
+                                  <img src={att.url} alt={att.fileName} className="w-6 h-6 object-cover rounded" />
+                                ) : (
+                                  getFileIcon(att)
+                                )}
+                                <button 
+                                  type="button"
+                                  onClick={() => handleFileClick(att)}
+                                  className="font-medium text-xs hover:underline text-left"
+                                >
+                                  {att.fileName}
+                                </button>
+                                <span className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary border ml-1">{att.label}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="text-sm">
+                        <span className="font-medium">{item.action}</span>
+                        {item.note && <span className="ml-2 text-muted-foreground whitespace-pre-line">{item.note}</span>}
                       </div>
                     )}
                   </div>
-                  
-                  {/* Comment or Activity Content */}
-                  {item.type === 'comment' ? (
-                    <>
-                      {editingId === item.id ? (
-                        <div className="space-y-2">
-                          <Textarea
-                            value={editingContent}
-                            onChange={(e) => setEditingContent(e.target.value)}
-                            className="min-h-[80px]"
-                          />
-                        </div>
-                      ) : (
-                        <div className="text-sm mb-2 whitespace-pre-wrap">{item.content}</div>
-                      )}
-                      {/* Attachments under comment */}
-                      {(Array.isArray(item.attachments) ? item.attachments : []).length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {(Array.isArray(item.attachments) ? item.attachments : []).map((att: any, idx: number) => (
-                            <div key={att.id || idx} className="flex items-center gap-2 border rounded px-2 py-1 bg-muted/50 hover:bg-muted/70 transition-colors">
-                              {att.fileName.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i) ? (
-                                <img src={att.url} alt={att.fileName} className="w-6 h-6 object-cover rounded" />
-                              ) : (
-                                getFileIcon(att)
-                              )}
-                              <button 
-                                type="button"
-                                onClick={() => handleFileClick(att)}
-                                className="font-medium text-xs hover:underline text-left"
-                              >
-                                {att.fileName}
-                              </button>
-                              <span className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary border ml-1">{att.label}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <div className="text-sm">
-                      <span className="font-medium">{item.action}</span>
-                      {item.note && <span className="ml-2 text-muted-foreground whitespace-pre-line">{item.note}</span>}
-                    </div>
-                  )}
                 </div>
               </div>
-            </div>
-          ))
+            ))}
+            
+            {/* Load More Button - Only show when there are more comments to load */}
+            {hasMoreComments && (
+              <div className="flex justify-center py-4">
+                <Button
+                  onClick={loadMoreComments}
+                  disabled={loadingMore}
+                  variant="outline"
+                  size="sm"
+                  className="w-full max-w-xs"
+                >
+                  {loadingMore ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-2"></div>
+                      Loading more...
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="w-4 h-4 mr-2" />
+                      Load more comments
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
+          </>
         )}
       </div>
       
-      {/* Pagination Controls */}
-      {combinedActivities.length > ITEMS_PER_PAGE && (
-        <div className="flex justify-between items-center mt-4 p-3  rounded-lg border border-border/20">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-foreground">
-              Showing {((page - 1) * ITEMS_PER_PAGE) + 1} - {Math.min(page * ITEMS_PER_PAGE, combinedActivities.length)} of {combinedActivities.length}
-            </span>
-          </div>
-          
-          <div className="flex items-center gap-1">
-            <Button 
-              size="sm" 
-              variant="ghost" 
-              onClick={() => setPage(p => Math.max(1, p - 1))} 
-              disabled={page === 1}
-              className="h-8 w-8 p-0 hover:bg-background/50"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </Button>
-            
-            <div className="flex items-center gap-1 mx-2">
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                const pageNum = i + 1;
-                const isActive = pageNum === page;
-                return (
-                  <button
-                    key={pageNum}
-                    onClick={() => setPage(pageNum)}
-                    className={`h-8 w-8 rounded-md text-sm font-medium transition-colors ${
-                      isActive 
-                        ? 'bg-primary text-primary-foreground' 
-                        : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                    }`}
-                  >
-                    {pageNum}
-                  </button>
-                );
-              })}
-              {totalPages > 5 && (
-                <span className="text-muted-foreground text-sm px-2">...</span>
-              )}
-            </div>
-            
-            <Button 
-              size="sm" 
-              variant="ghost" 
-              onClick={() => setPage(p => Math.min(totalPages, p + 1))} 
-              disabled={page === totalPages}
-              className="h-8 w-8 p-0 hover:bg-background/50"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </Button>
-          </div>
-        </div>
-      )}
-      
-      {/* Chat-like Comment Input */}
+      {/* Chat-like Comment Input - Fixed at bottom */}
       <div className="border rounded-lg bg-background flex-shrink-0">
         {/* File previews */}
         {(Array.isArray(files) ? files : []).length > 0 && (

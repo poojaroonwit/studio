@@ -471,6 +471,18 @@ export function CandidateFilters({
       if (autoApplyTimeoutRef.current) {
         clearTimeout(autoApplyTimeoutRef.current);
       }
+      if (skillsTimeoutRef.current) {
+        clearTimeout(skillsTimeoutRef.current);
+      }
+      if (pasteTimeoutRef.current) {
+        clearTimeout(pasteTimeoutRef.current);
+      }
+      if (initializationTimeoutRef.current) {
+        clearTimeout(initializationTimeoutRef.current);
+      }
+      if (syncingTimeoutRef.current) {
+        clearTimeout(syncingTimeoutRef.current);
+      }
     };
   }, []); // Only run once on mount
 
@@ -674,12 +686,14 @@ export function CandidateFilters({
   useEffect(() => {
     if (advancedQuery && advancedQuery.trim() && processedAdvancedQueryRef.current !== advancedQuery) {
       try {
+        console.log('🔍 Processing advanced query from URL:', advancedQuery);
         processedAdvancedQueryRef.current = advancedQuery;
         setAdvancedQueryInput(advancedQuery);
         // Switch to advanced tab when query comes from URL
         setActiveTab('advanced');
         // Automatically apply the query if it's from URL
         const parsedFilters = parseAdvancedQuery(advancedQuery);
+        console.log('🔍 Parsed filters:', parsedFilters);
         if (Object.keys(parsedFilters).length > 0) {
           // Apply the filters first to avoid state update conflicts
           onFilterChange({
@@ -745,7 +759,11 @@ export function CandidateFilters({
       setAiSearchFilters(initialFilters.aiSearchFilters || {});
       isInitialLoadRef.current = false;
       // Mark component as initialized after a brief delay
-      setTimeout(() => {
+      // Clear any existing timeout
+      if (initializationTimeoutRef.current) {
+        clearTimeout(initializationTimeoutRef.current);
+      }
+      initializationTimeoutRef.current = setTimeout(() => {
         isComponentInitializedRef.current = true;
       }, 50);
     }
@@ -782,7 +800,11 @@ export function CandidateFilters({
       setAdvancedQueryInput('');
       
       // Defer unsetting the syncing flag to the next tick to let dependent effects settle
-      setTimeout(() => {
+      // Clear any existing timeout
+      if (syncingTimeoutRef.current) {
+        clearTimeout(syncingTimeoutRef.current);
+      }
+      syncingTimeoutRef.current = setTimeout(() => {
         isSyncingFromInitialFiltersRef.current = false;
       }, 0);
     }
@@ -824,6 +846,12 @@ export function CandidateFilters({
 
   // Add a ref for auto-apply debouncing
   const autoApplyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Add refs for timeout cleanup
+  const skillsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const pasteTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const initializationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const syncingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Add a ref to track if we're currently applying filters
   // const isApplyingFiltersRef = useRef(false); // Removed - using state variable instead
@@ -888,7 +916,11 @@ export function CandidateFilters({
     onFilterChange(newFilters);
     
     // Reset flag after a brief delay to allow state to settle
-    setTimeout(() => {
+    // Clear any existing timeout
+    if (autoApplyTimeoutRef.current) {
+      clearTimeout(autoApplyTimeoutRef.current);
+    }
+    autoApplyTimeoutRef.current = setTimeout(() => {
       isHandlingPositionChangeRef.current = false;
     }, 100);
   };
@@ -1180,7 +1212,7 @@ export function CandidateFilters({
                           >
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent className="z-[10001]">
+                          <SelectContent className="z-[100003]">
                             <SelectItem value="contains">contains</SelectItem>
                             <SelectItem value="is">is</SelectItem>
                             <SelectItem value="startsWith">starts with</SelectItem>
@@ -1212,7 +1244,7 @@ export function CandidateFilters({
                           >
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent className="z-[10001]">
+                          <SelectContent className="z-[100003]">
                             <SelectItem value="contains">contains</SelectItem>
                             <SelectItem value="is">is</SelectItem>
                             <SelectItem value="startsWith">starts with</SelectItem>
@@ -1244,7 +1276,7 @@ export function CandidateFilters({
                           >
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent className="z-[10001]">
+                          <SelectContent className="z-[100003]">
                             <SelectItem value="contains">contains</SelectItem>
                             <SelectItem value="is">is</SelectItem>
                             <SelectItem value="startsWith">starts with</SelectItem>
@@ -1276,7 +1308,7 @@ export function CandidateFilters({
                           >
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent className="z-[10001]">
+                          <SelectContent className="z-[100003]">
                             <SelectItem value="contains">contains</SelectItem>
                             <SelectItem value="is">is</SelectItem>
                             <SelectItem value="startsWith">starts with</SelectItem>
@@ -1325,7 +1357,11 @@ export function CandidateFilters({
                             const newSkills = new Set(skills);
                             newSkills.delete(skill);
                             setSkills(newSkills);
-                            setTimeout(() => handleApplyStandardFilters(), 100);
+                            // Clear any existing timeout
+                            if (skillsTimeoutRef.current) {
+                              clearTimeout(skillsTimeoutRef.current);
+                            }
+                            skillsTimeoutRef.current = setTimeout(() => handleApplyStandardFilters(), 100);
                           }}
                           onMouseDown={e => {
                             e.preventDefault();
@@ -1356,7 +1392,11 @@ export function CandidateFilters({
                             const newSkills = new Set(skills);
                             newSkills.add(value);
                             setSkills(newSkills);
-                            setTimeout(() => handleApplyStandardFilters(), 100);
+                            // Clear any existing timeout
+                            if (skillsTimeoutRef.current) {
+                              clearTimeout(skillsTimeoutRef.current);
+                            }
+                            skillsTimeoutRef.current = setTimeout(() => handleApplyStandardFilters(), 100);
                           }
                           (e.target as HTMLInputElement).value = '';
                           if (e.key === 'Enter') {
@@ -1370,7 +1410,11 @@ export function CandidateFilters({
                           const newSkills = new Set(skills);
                           newSkills.delete(last);
                           setSkills(newSkills);
-                          setTimeout(() => handleApplyStandardFilters(), 100);
+                          // Clear any existing timeout
+                          if (skillsTimeoutRef.current) {
+                            clearTimeout(skillsTimeoutRef.current);
+                          }
+                          skillsTimeoutRef.current = setTimeout(() => handleApplyStandardFilters(), 100);
                         }
                       }}
                       onChange={e => {
@@ -1391,7 +1435,11 @@ export function CandidateFilters({
                             }
                           });
                           if (hasChanges) {
-                            setTimeout(() => handleApplyStandardFilters(), 100);
+                            // Clear any existing timeout
+                            if (pasteTimeoutRef.current) {
+                              clearTimeout(pasteTimeoutRef.current);
+                            }
+                            pasteTimeoutRef.current = setTimeout(() => handleApplyStandardFilters(), 100);
                           }
                         }
                       }}
@@ -1610,7 +1658,11 @@ export function CandidateFilters({
                           } else {
                             setExperienceYearsRange([0, 50]);
                           }
-                          setTimeout(() => handleApplyStandardFilters(), 100);
+                          // Clear any existing timeout
+                          if (autoApplyTimeoutRef.current) {
+                            clearTimeout(autoApplyTimeoutRef.current);
+                          }
+                          autoApplyTimeoutRef.current = setTimeout(() => handleApplyStandardFilters(), 100);
                         }}
                         onMouseDown={(e) => {
                           e.preventDefault();

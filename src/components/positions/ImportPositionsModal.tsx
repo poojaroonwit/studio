@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ChangeEvent } from 'react';
+import { useState, type ChangeEvent, useCallback, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,7 +14,8 @@ import {
   DialogClose,
 } from '@/components/ui/dialog';
 import { toast } from 'react-hot-toast';
-import { FileUp, Loader2, Briefcase } from 'lucide-react';
+import { FileUp, Loader2, Briefcase, AlertCircle, CheckCircle, XCircle } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
 
 interface ImportPositionsModalProps {
   isOpen: boolean;
@@ -27,9 +28,31 @@ const ACCEPTED_FILE_TYPES = [
   'text/csv'
 ].join(',');
 
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_POSITIONS = 1000;
+
 export function ImportPositionsModal({ isOpen, onOpenChange, onImportSuccess }: ImportPositionsModalProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isImporting, setIsImporting] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [importStatus, setImportStatus] = useState<'idle' | 'uploading' | 'processing' | 'completed' | 'error'>('idle');
+  const [importResults, setImportResults] = useState<any>(null);
+  
+  // Refs for timeout cleanup
+  const importTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const autoCloseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (importTimeoutRef.current) {
+        clearTimeout(importTimeoutRef.current);
+      }
+      if (autoCloseTimeoutRef.current) {
+        clearTimeout(autoCloseTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -38,8 +61,19 @@ export function ImportPositionsModal({ isOpen, onOpenChange, onImportSuccess }: 
       const fileName = file.name.toLowerCase();
       const acceptedMimeTypes = ACCEPTED_FILE_TYPES.split(',');
       
+      // Check file size
+      if (file.size > MAX_FILE_SIZE) {
+        toast.error(`File too large. Maximum size is ${MAX_FILE_SIZE / (1024 * 1024)}MB`);
+        setSelectedFile(null);
+        event.target.value = '';
+        return;
+      }
+      
       if (acceptedMimeTypes.includes(fileType) || fileName.endsWith('.csv')) {
         setSelectedFile(file);
+        setImportStatus('idle');
+        setProgress(0);
+        setImportResults(null);
       } else {
         toast.error("Please select a CSV file (.csv). Only CSV files are supported.");
         setSelectedFile(null);
@@ -50,20 +84,48 @@ export function ImportPositionsModal({ isOpen, onOpenChange, onImportSuccess }: 
     }
   };
 
-  const handleImport = async () => {
+  const handleImport = useCallback(async () => {
     if (!selectedFile) {
       toast.error("Please select a CSV file to import. Only CSV files are supported.");
       return;
     }
+
+    // Clear any existing timeouts
+    if (importTimeoutRef.current) {
+      clearTimeout(importTimeoutRef.current);
+    }
+    if (autoCloseTimeoutRef.current) {
+      clearTimeout(autoCloseTimeoutRef.current);
+    }
+
     setIsImporting(true);
+    setImportStatus('uploading');
+    setProgress(10);
+    setImportResults(null);
+
     const formData = new FormData();
     formData.append('file', selectedFile);
 
     try {
+      // Create AbortController for timeout handling
+      const controller = new AbortController();
+      importTimeoutRef.current = setTimeout(() => controller.abort(), 300000); // 5 minutes timeout
+
+      setImportStatus('processing');
+      setProgress(30);
+
       const response = await fetch('/api/positions/import', {
         method: 'POST',
-        body: formData, // Send as FormData
+        body: formData,
+        signal: controller.signal,
       });
+
+      // Clear import timeout on successful response
+      if (importTimeoutRef.current) {
+        clearTimeout(importTimeoutRef.current);
+        importTimeoutRef.current = null;
+      }
+      setProgress(90);
 
       const result = await response.json();
 
@@ -71,29 +133,76 @@ export function ImportPositionsModal({ isOpen, onOpenChange, onImportSuccess }: 
         throw new Error(result.message || `Failed to import positions. Status: ${response.status}`);
       }
       
-      let successMessage = `Import process completed.`;
-      if (result.successfulImports !== undefined && result.failedImports !== undefined) {
-        successMessage += ` ${result.successfulImports} positions imported successfully. ${result.failedImports} failed.`;
-         if (result.errors && result.errors.length > 0) {
-          console.error("Import errors:", result.errors);
-          successMessage += " Check console for details on failures."
+      setImportResults(result);
+      setImportStatus('completed');
+      setProgress(100);
+
+      // Show success message with details
+      let successMessage = `Import completed successfully!`;
+      if (result.success !== undefined && result.failed !== undefined) {
+        successMessage += ` ${result.success} positions imported, ${result.failed} failed.`;
+        if (result.processingTime) {
+          successMessage += ` Processing time: ${(result.processingTime / 1000).toFixed(1)}s`;
+        }
+      }
+      if (result.errors && result.errors.length > 0) {
+        console.warn("Import warnings:", result.errors);
+        if (result.errors.length <= 3) {
+          successMessage += ` Warnings: ${result.errors.join(', ')}`;
+        } else {
+          successMessage += ` ${result.errors.length} warnings (check console for details)`;
         }
       }
 
       toast.success(successMessage);
-      onImportSuccess();
-      onOpenChange(false);
-      setSelectedFile(null);
-      const fileInput = document.getElementById('position-import-file') as HTMLInputElement;
-      if (fileInput) fileInput.value = '';
+      
+      // Auto-close after showing results for 3 seconds
+      autoCloseTimeoutRef.current = setTimeout(() => {
+        onImportSuccess();
+        onOpenChange(false);
+        resetForm();
+      }, 3000);
 
-    } catch (error) {
-      console.error("Error importing positions:", error);
-      toast.error((error as Error).message || "An unexpected error occurred during import.");
+    } catch (error: any) {
+      // Clear import timeout on error
+      if (importTimeoutRef.current) {
+        clearTimeout(importTimeoutRef.current);
+        importTimeoutRef.current = null;
+      }
+      
+      setImportStatus('error');
+      setProgress(0);
+      
+      if (error.name === 'AbortError') {
+        toast.error("Import timeout. The file may be too large or the server is busy. Please try again.");
+      } else {
+        console.error("Error importing positions:", error);
+        toast.error(error.message || "An unexpected error occurred during import.");
+      }
     } finally {
       setIsImporting(false);
     }
-  };
+  }, [selectedFile, onImportSuccess, onOpenChange]);
+
+  const resetForm = useCallback(() => {
+    // Clear any existing timeouts
+    if (importTimeoutRef.current) {
+      clearTimeout(importTimeoutRef.current);
+      importTimeoutRef.current = null;
+    }
+    if (autoCloseTimeoutRef.current) {
+      clearTimeout(autoCloseTimeoutRef.current);
+      autoCloseTimeoutRef.current = null;
+    }
+    
+    setSelectedFile(null);
+    setIsImporting(false);
+    setProgress(0);
+    setImportStatus('idle');
+    setImportResults(null);
+    const fileInput = document.getElementById('position-import-file') as HTMLInputElement;
+    if (fileInput) fileInput.value = '';
+  }, []);
 
   const handleDownloadCsvTemplate = () => {
     const headers = [
@@ -162,14 +271,40 @@ export function ImportPositionsModal({ isOpen, onOpenChange, onImportSuccess }: 
     URL.revokeObjectURL(url);
   };
 
+  const getStatusIcon = () => {
+    switch (importStatus) {
+      case 'uploading':
+      case 'processing':
+        return <Loader2 className="mr-2 h-4 w-4 animate-spin" />;
+      case 'completed':
+        return <CheckCircle className="mr-2 h-4 w-4 text-green-500" />;
+      case 'error':
+        return <XCircle className="mr-2 h-4 w-4 text-red-500" />;
+      default:
+        return <FileUp className="mr-2 h-4 w-4" />;
+    }
+  };
+
+  const getStatusText = () => {
+    switch (importStatus) {
+      case 'uploading':
+        return 'Uploading file...';
+      case 'processing':
+        return 'Processing positions...';
+      case 'completed':
+        return 'Import completed';
+      case 'error':
+        return 'Import failed';
+      default:
+        return 'Upload & Import';
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
       onOpenChange(open);
       if (!open) {
-        setSelectedFile(null);
-        setIsImporting(false);
-        const fileInput = document.getElementById('position-import-file') as HTMLInputElement;
-        if (fileInput) fileInput.value = '';
+        resetForm();
       }
     }}>
       <DialogContent className="sm:max-w-md">
@@ -182,27 +317,91 @@ export function ImportPositionsModal({ isOpen, onOpenChange, onImportSuccess }: 
             <Button variant="link" className="p-0 h-auto text-primary underline" onClick={handleDownloadCsvTemplate}>
               Download CSV Template
             </Button>
-            <br />Refer to the template for the expected structure. <b>Only CSV files are supported.</b>
+            <br />
+            <div className="mt-2 text-sm text-muted-foreground">
+              <div>• Maximum file size: {MAX_FILE_SIZE / (1024 * 1024)}MB</div>
+              <div>• Maximum positions: {MAX_POSITIONS}</div>
+              <div>• Save as UTF-8 encoding for Thai language support</div>
+            </div>
           </DialogDescription>
         </DialogHeader>
-        <div className="py-4 space-y-2">
-          <Label htmlFor="position-import-file">Select CSV File</Label>
-          <Input
-            id="position-import-file"
-            type="file"
-            accept={ACCEPTED_FILE_TYPES}
-            onChange={handleFileChange}
-            className="mt-1"
-          />
-          {selectedFile && <p className="text-sm text-muted-foreground mt-1">Selected: {selectedFile.name}</p>}
+        
+        <div className="py-4 space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="position-import-file">Select CSV File</Label>
+            <Input
+              id="position-import-file"
+              type="file"
+              accept={ACCEPTED_FILE_TYPES}
+              onChange={handleFileChange}
+              className="mt-1"
+              disabled={isImporting}
+            />
+            {selectedFile && (
+              <div className="text-sm text-muted-foreground mt-1">
+                <div>Selected: {selectedFile.name}</div>
+                <div>Size: {(selectedFile.size / 1024).toFixed(1)}KB</div>
+              </div>
+            )}
+          </div>
+
+          {/* Progress Bar */}
+          {isImporting && (
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Progress</span>
+                <span>{progress}%</span>
+              </div>
+              <Progress value={progress} className="w-full" />
+            </div>
+          )}
+
+          {/* Import Results */}
+          {importResults && (
+            <div className="p-3 bg-muted rounded-lg space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-medium">Import Results</span>
+                {importResults.processingTime && (
+                  <span className="text-sm text-muted-foreground">
+                    {(importResults.processingTime / 1000).toFixed(1)}s
+                  </span>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="flex items-center text-green-600">
+                  <CheckCircle className="mr-1 h-3 w-3" />
+                  {importResults.success || 0} successful
+                </div>
+                <div className="flex items-center text-red-600">
+                  <XCircle className="mr-1 h-3 w-3" />
+                  {importResults.failed || 0} failed
+                </div>
+              </div>
+              {importResults.errors && importResults.errors.length > 0 && (
+                <div className="text-sm text-amber-600">
+                  <div className="flex items-start">
+                    <AlertCircle className="mr-1 h-3 w-3 mt-0.5 flex-shrink-0" />
+                    <span>{importResults.errors.length} warnings</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
+
         <DialogFooter>
           <DialogClose asChild>
-            <Button type="button" variant="outline">Cancel</Button>
+            <Button type="button" variant="outline" disabled={isImporting}>
+              Cancel
+            </Button>
           </DialogClose>
-          <Button onClick={handleImport} disabled={!selectedFile || isImporting}>
-            {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileUp className="mr-2 h-4 w-4" />}
-            {isImporting ? 'Importing...' : 'Upload & Import'}
+          <Button 
+            onClick={handleImport} 
+            disabled={!selectedFile || isImporting}
+            className="min-w-[120px]"
+          >
+            {getStatusIcon()}
+            {getStatusText()}
           </Button>
         </DialogFooter>
       </DialogContent>

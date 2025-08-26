@@ -45,10 +45,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Invalid file type. Only image files are allowed.' }, { status: 400 });
     }
 
-    // Check file size (limit to 5MB)
-    const maxSize = 5 * 1024 * 1024; // 5MB
+    // Check file size (limit to 500MB)
+    const maxSize = 500 * 1024 * 1024; // 500MB
     if (file.size > maxSize) {
-      return NextResponse.json({ message: 'File too large. Maximum size is 5MB.' }, { status: 400 });
+      return NextResponse.json({ message: 'File too large. Maximum size is 500MB.' }, { status: 400 });
     }
 
     // Ensure MinIO bucket exists and has public read access

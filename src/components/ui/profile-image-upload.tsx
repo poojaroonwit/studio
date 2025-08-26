@@ -66,9 +66,9 @@ export function ProfileImageUpload({
       return;
     }
 
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image size must be less than 5MB');
+    // Validate file size (max 500MB)
+    if (file.size > 500 * 1024 * 1024) {
+      toast.error('Image size must be less than 500MB');
       return;
     }
 
@@ -203,7 +203,7 @@ export function ProfileImageUpload({
           </div>
           
           <p className="text-xs text-muted-foreground">
-            JPG, PNG or GIF. Max size 5MB.
+            JPG, PNG or GIF. Max size 500MB.
           </p>
         </div>
       </div>
@@ -246,9 +246,9 @@ export function ProfileImageUploadCompact({
       return;
     }
 
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image size must be less than 5MB');
+    // Validate file size (max 500MB)
+    if (file.size > 500 * 1024 * 1024) {
+      toast.error('Image size must be less than 500MB');
       return;
     }
 

@@ -77,9 +77,11 @@ export async function POST(
 
     // Send webhook
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), webhook.timeout * 1000);
+    let timeoutId: NodeJS.Timeout | null = null;
 
     try {
+      timeoutId = setTimeout(() => controller.abort(), webhook.timeout * 1000);
+
       const response = await fetch(webhook.url, {
         method: webhook.method,
         headers,
@@ -87,7 +89,11 @@ export async function POST(
         signal: controller.signal
       });
 
-      clearTimeout(timeoutId);
+      // Clear timeout on successful response
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
 
       // Log webhook attempt
       await prisma.webhookLog.create({
@@ -117,7 +123,11 @@ export async function POST(
         }, { status: 400 });
       }
     } catch (error) {
-      clearTimeout(timeoutId);
+      // Clear timeout on error
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
       
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       

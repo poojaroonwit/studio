@@ -41,10 +41,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       return handleApiError(req, createValidationError('Invalid file type. Only image files are allowed.'));
     }
 
-    // Check file size (limit to 5MB)
-    const maxSize = 5 * 1024 * 1024; // 5MB
+    // Check file size (limit to 500MB)
+    const maxSize = 500 * 1024 * 1024; // 500MB
     if (file.size > maxSize) {
-      return handleApiError(req, createValidationError('File too large. Maximum size is 5MB.'));
+      return handleApiError(req, createValidationError('File too large. Maximum size is 500MB.'));
     }
 
     // Ensure MinIO bucket exists

@@ -179,7 +179,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
           setCurrentAppName(appName);
         }
       } catch (error) {
-        console.error('Failed to fetch app name:', error);
+        // Failed to fetch app name
       }
     };
 
@@ -248,7 +248,6 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
       }
       setIsUserModalOpen(false);
     } catch (error) {
-      console.error('Header handleEditProfile - Error:', error);
       toast.error((error as Error).message);
     }
   };

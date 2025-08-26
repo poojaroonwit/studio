@@ -61,10 +61,10 @@ const appliedFitScoreCountsQuery = `
   SELECT 
     CASE 
       WHEN c."fitScore" IS NULL OR c."fitScore" = 0 THEN 'no-score'
-      WHEN c."fitScore" >= 0.9 THEN 'A'
-      WHEN c."fitScore" >= 0.8 THEN 'B'
-      WHEN c."fitScore" >= 0.7 THEN 'C'
-      WHEN c."fitScore" >= 0.6 THEN 'D'
+      WHEN c."fitScore" >= 0.81 THEN 'A'
+      WHEN c."fitScore" >= 0.61 THEN 'B'
+      WHEN c."fitScore" >= 0.41 THEN 'C'
+      WHEN c."fitScore" >= 0.21 THEN 'D'
       ELSE 'E'
     END as grade,
     COUNT(*) as count
@@ -79,10 +79,10 @@ const matchingFitScoreCountsQuery = `
   SELECT 
     CASE 
       WHEN best_match_score IS NULL OR best_match_score = 0 THEN 'no-score'
-      WHEN best_match_score >= 0.9 THEN 'A'
-      WHEN best_match_score >= 0.8 THEN 'B'
-      WHEN best_match_score >= 0.7 THEN 'C'
-      WHEN best_match_score >= 0.6 THEN 'D'
+      WHEN best_match_score >= 0.81 THEN 'A'
+      WHEN best_match_score >= 0.61 THEN 'B'
+      WHEN best_match_score >= 0.41 THEN 'C'
+      WHEN best_match_score >= 0.21 THEN 'D'
       ELSE 'E'
     END as grade,
     COUNT(*) as count

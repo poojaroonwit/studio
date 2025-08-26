@@ -300,11 +300,7 @@ async function processLoop() {
       // Use dynamic backoff based on error state
       const waitTime = consecutiveErrors >= config.maxConsecutiveErrors ? currentBackoffMs : config.intervalMs;
       
-      log('DEBUG', 'Waiting before next iteration', {
-        waitTime,
-        consecutiveErrors,
-        currentBackoffMs
-      });
+      // Removed DEBUG log to reduce console spam
       
       // Wait before next iteration
       await new Promise(resolve => setTimeout(resolve, waitTime));

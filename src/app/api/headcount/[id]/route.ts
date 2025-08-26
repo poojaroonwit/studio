@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import type { UpdateHeadcountRequest } from '@/lib/types';
-import { checkHeadcountUnassignWarning, unassignCandidateFromHeadcount } from '@/lib/headcountUtils';
+import { checkHeadcountUnassignWarning, unassignCandidateFromHeadcount, autoClosePositionIfHeadcountFilled } from '@/lib/headcountUtils';
 
 export const dynamic = 'force-dynamic';
 
@@ -135,7 +135,23 @@ export async function PUT(
       },
     });
 
-    return NextResponse.json(headcount);
+    // Check if all headcounts are now filled and auto-close position if needed
+    let autoCloseResult = null;
+    try {
+      autoCloseResult = await autoClosePositionIfHeadcountFilled(
+        headcount.positionId,
+        session.user.id,
+        session.user.name || session.user.email || 'System'
+      );
+    } catch (autoCloseError) {
+      console.error('Error auto-closing position:', autoCloseError);
+      // Don't fail the headcount update if auto-close fails
+    }
+
+    return NextResponse.json({ 
+      headcount,
+      autoCloseResult,
+    });
   } catch (error) {
     console.error('Error updating headcount:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -161,11 +177,30 @@ export async function DELETE(
       return NextResponse.json({ error: 'Headcount not found' }, { status: 404 });
     }
 
+    // Store position ID before deletion for auto-close check
+    const positionId = existingHeadcount.positionId;
+
     await prisma.headcount.delete({
       where: { id: params.id },
     });
 
-    return NextResponse.json({ message: 'Headcount deleted successfully' });
+    // Check if all headcounts are now filled and auto-close position if needed
+    let autoCloseResult = null;
+    try {
+      autoCloseResult = await autoClosePositionIfHeadcountFilled(
+        positionId,
+        session.user.id,
+        session.user.name || session.user.email || 'System'
+      );
+    } catch (autoCloseError) {
+      console.error('Error auto-closing position:', autoCloseError);
+      // Don't fail the headcount deletion if auto-close fails
+    }
+
+    return NextResponse.json({ 
+      message: 'Headcount deleted successfully',
+      autoCloseResult,
+    });
   } catch (error) {
     console.error('Error deleting headcount:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

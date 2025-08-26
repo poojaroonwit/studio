@@ -118,7 +118,7 @@ export function UnifiedRoleDrawer({
 
   // Calculate isAdminRole early to avoid scope issues
   const isSystemRole = role?.is_system_role || false;
-  const isAdminRole = isSystemRole && role?.name === 'Admin';
+  const isAdminRole = role?.name === 'Admin';
 
   const form = useForm<RoleFormValues>({
     resolver: zodResolver(roleFormSchema),
@@ -402,7 +402,7 @@ export function UnifiedRoleDrawer({
                      <div className="p-6 pb-4">
                        <h3 className="text-lg font-semibold">Role Details</h3>
                        <p className="text-sm text-muted-foreground">
-                         {isSystemRole ? 'System role details cannot be modified' : 'Update role information'}
+                         {isAdminRole ? 'Admin role details cannot be modified' : 'Update role information'}
                        </p>
                      </div>
                      <div className="px-6 pb-6">
@@ -415,12 +415,12 @@ export function UnifiedRoleDrawer({
                                <FormItem>
                                  <FormLabel>Role Name *</FormLabel>
                                  <FormControl>
-                                   <Input {...field} disabled={isSystemRole} />
+                                   <Input {...field} disabled={isAdminRole} />
                                  </FormControl>
                                  <FormMessage />
-                                 {isSystemRole && (
+                                 {isAdminRole && (
                                    <p className="text-xs text-muted-foreground">
-                                     System role names cannot be changed.
+                                     Admin role name cannot be changed.
                                    </p>
                                  )}
                                </FormItem>
@@ -460,7 +460,7 @@ export function UnifiedRoleDrawer({
                            <div className="flex justify-end pt-4">
                              <Button 
                                type="submit" 
-                               disabled={isSavingRole || isSystemRole}
+                               disabled={isSavingRole || isAdminRole}
                                className="flex items-center gap-2"
                              >
                                {isSavingRole ? (
@@ -616,7 +616,7 @@ export function UnifiedRoleDrawer({
                 <SelectTrigger>
                   <SelectValue placeholder="Choose a user to add" />
                 </SelectTrigger>
-                <SelectContent className="z-[200]">
+                <SelectContent className="z-[100003]">
                   {/* Search inside dropdown */}
                   <div className="relative p-2 border-b">
                     <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />

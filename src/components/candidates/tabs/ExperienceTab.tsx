@@ -305,7 +305,7 @@ export const ExperienceTab: React.FC<ExperienceTabProps> = ({
                         <div className="flex flex-col items-center justify-center ml-6">
                           <span className="text-4xl font-extrabold text-primary leading-none">{formatScoreWithGrade(exp.fitScore)}</span>
                           <span className="text-lg text-muted-foreground font-semibold mt-1">
-                            {exp.fitScore === 0 ? 'Not scored' : formatScoreWithGrade(exp.fitScore)}
+                            {exp.fitScore === null || exp.fitScore === undefined ? 'Not scored' : formatScoreWithGrade(exp.fitScore)}
                           </span>
                         </div>
                       )}

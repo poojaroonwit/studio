@@ -39,13 +39,21 @@ export function usePositionsCache(filterOpenOnly: boolean = false) {
     globalCache.error = false;
     setCache(globalCache);
 
+    let timeoutId: NodeJS.Timeout | null = null;
+
     try {
       // Add a timeout so the UI won't hang indefinitely if the request stalls
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      timeoutId = setTimeout(() => controller.abort(), 10000);
 
       const response = await fetch('/api/positions/all', { signal: controller.signal });
-      clearTimeout(timeoutId);
+      
+      // Clear timeout on successful response
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+      
       if (!response.ok) {
         throw new Error('Failed to fetch positions');
       }
@@ -67,6 +75,12 @@ export function usePositionsCache(filterOpenOnly: boolean = false) {
       
       setCache(globalCache);
     } catch (error) {
+      // Clear timeout on error
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+      
       console.error('Error fetching positions:', error);
       globalCache = {
         ...globalCache,

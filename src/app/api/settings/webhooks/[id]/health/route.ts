@@ -62,28 +62,42 @@ export async function POST(
 
       // Send test request
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), (webhook.timeout || 30) * 1000);
+      let timeoutId: NodeJS.Timeout | null = null;
+      
+      try {
+        timeoutId = setTimeout(() => controller.abort(), (webhook.timeout || 30) * 1000);
 
-      const response = await fetch(webhook.url, {
-        method: webhook.method,
-        headers,
-        body: webhook.method !== 'GET' ? JSON.stringify(testPayload) : undefined,
-        signal: controller.signal
-      });
+        const response = await fetch(webhook.url, {
+          method: webhook.method,
+          headers,
+          body: webhook.method !== 'GET' ? JSON.stringify(testPayload) : undefined,
+          signal: controller.signal
+        });
 
-      clearTimeout(timeoutId);
-      status = response.status;
-      success = response.ok;
-      responseBody = await response.text().catch(() => 'Unable to read response body');
+        // Clear timeout on successful response
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          timeoutId = null;
+        }
+        
+        status = response.status;
+        success = response.ok;
+        responseBody = await response.text().catch(() => 'Unable to read response body');
 
-      // Capture response headers
-      response.headers.forEach((value, key) => {
-        responseHeaders[key] = value;
-      });
+        // Capture response headers
+        response.headers.forEach((value, key) => {
+          responseHeaders[key] = value;
+        });
 
-    } catch (error) {
-      errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    }
+      } catch (error) {
+        // Clear timeout on error
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          timeoutId = null;
+        }
+        
+        errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      }
 
     const duration = Date.now() - startTime;
 

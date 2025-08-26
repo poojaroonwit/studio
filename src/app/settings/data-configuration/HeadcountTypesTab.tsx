@@ -15,7 +15,6 @@ import {
   Users, 
   Loader2,
   AlertCircle,
-  Save,
   X,
   GripVertical
 } from 'lucide-react';
@@ -33,7 +32,6 @@ interface HeadcountTypeOption {
 export function HeadcountTypesTab() {
   const [options, setOptions] = useState<HeadcountTypeOption[]>([]);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editingOption, setEditingOption] = useState<HeadcountTypeOption | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -61,29 +59,7 @@ export function HeadcountTypesTab() {
     }
   };
 
-  const handleSave = async () => {
-    try {
-      setSaving(true);
-      const response = await fetch('/api/settings/headcount-types', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ options }),
-      });
 
-      if (!response.ok) {
-        throw new Error('Failed to save headcount types');
-      }
-
-      toast.success('Headcount types saved successfully');
-    } catch (error) {
-      console.error('Error saving headcount types:', error);
-      toast.error('Failed to save headcount types');
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const handleAddOption = () => {
     const newOption: HeadcountTypeOption = {
@@ -102,17 +78,37 @@ export function HeadcountTypesTab() {
     setIsModalOpen(true);
   };
 
-  const handleDeleteOption = (value: string) => {
+  const handleDeleteOption = async (value: string) => {
     if (!confirm('Are you sure you want to delete this headcount type?')) {
       return;
     }
 
     const updatedOptions = options.filter(opt => opt.value !== value);
     setOptions(updatedOptions);
-    toast.success('Headcount type deleted');
+
+    // Save immediately to database
+    try {
+      const response = await fetch('/api/settings/headcount-types', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ options: updatedOptions }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete headcount type');
+      }
+
+      toast.success('Headcount type deleted successfully');
+    } catch (error) {
+      console.error('Error deleting headcount type:', error);
+      toast.error('Failed to delete headcount type');
+      fetchHeadcountTypes(); // Refresh to get correct state
+    }
   };
 
-  const handleDragEnd = (result: DropResult) => {
+  const handleDragEnd = async (result: DropResult) => {
     if (!result.destination) return;
 
     const items = Array.from(options);
@@ -126,13 +122,55 @@ export function HeadcountTypesTab() {
     }));
 
     setOptions(updatedItems);
+
+    // Update sort order in database immediately
+    try {
+      const response = await fetch('/api/settings/headcount-types', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ options: updatedItems }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update sort order');
+      }
+
+      toast.success('Order updated successfully');
+    } catch (error) {
+      console.error('Error updating sort order:', error);
+      toast.error('Failed to update sort order');
+      fetchHeadcountTypes(); // Refresh to get correct order
+    }
   };
 
-  const handleToggleActive = (value: string) => {
+  const handleToggleActive = async (value: string) => {
     const updatedOptions = options.map(opt =>
       opt.value === value ? { ...opt, isActive: !opt.isActive } : opt
     );
     setOptions(updatedOptions);
+
+    // Save immediately to database
+    try {
+      const response = await fetch('/api/settings/headcount-types', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ options: updatedOptions }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update headcount type');
+      }
+
+      toast.success('Status updated successfully');
+    } catch (error) {
+      console.error('Error updating headcount type:', error);
+      toast.error('Failed to update status');
+      fetchHeadcountTypes(); // Refresh to get correct state
+    }
   };
 
   if (loading) {
@@ -171,14 +209,6 @@ export function HeadcountTypesTab() {
           <Button onClick={handleAddOption}>
             <Plus className="h-4 w-4 mr-2" />
             Add Type
-          </Button>
-          <Button onClick={handleSave} disabled={saving}>
-            {saving ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Save className="h-4 w-4 mr-2" />
-            )}
-            Save Changes
           </Button>
         </div>
       </div>
@@ -276,17 +306,42 @@ export function HeadcountTypesTab() {
         <HeadcountTypeModal
           option={editingOption}
           existingValues={options.map(opt => opt.value)}
-          onSave={(updatedOption) => {
+          onSave={async (updatedOption) => {
             const isNew = !options.find(opt => opt.value === updatedOption.value);
+            let updatedOptions;
+            
             if (isNew) {
-              setOptions([...options, updatedOption]);
+              updatedOptions = [...options, updatedOption];
             } else {
-              setOptions(options.map(opt =>
+              updatedOptions = options.map(opt =>
                 opt.value === editingOption.value ? updatedOption : opt
-              ));
+              );
             }
-            setIsModalOpen(false);
-            setEditingOption(null);
+            
+            setOptions(updatedOptions);
+
+            // Save immediately to database
+            try {
+              const response = await fetch('/api/settings/headcount-types', {
+                method: 'PUT',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ options: updatedOptions }),
+              });
+
+              if (!response.ok) {
+                throw new Error('Failed to save headcount type');
+              }
+
+              toast.success('Headcount type saved successfully');
+              setIsModalOpen(false);
+              setEditingOption(null);
+            } catch (error) {
+              console.error('Error saving headcount type:', error);
+              toast.error('Failed to save headcount type');
+              fetchHeadcountTypes(); // Refresh to get correct state
+            }
           }}
           onCancel={() => {
             setIsModalOpen(false);

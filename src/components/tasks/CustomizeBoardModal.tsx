@@ -623,7 +623,7 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
                   <SelectTrigger className="h-11">
                     <SelectValue placeholder="Select row attribute" />
                   </SelectTrigger>
-                  <SelectContent className="z-[9999]">
+                  <SelectContent className="z-[100003]">
                     {rowAndColumnFields.map(f => (
                       <SelectItem key={f.key} value={f.key} className="flex items-center gap-2">
                         <span>{f.icon}</span>
@@ -664,7 +664,7 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
                   <SelectTrigger className="h-11">
                     <SelectValue placeholder="Select column attribute" />
                   </SelectTrigger>
-                  <SelectContent className="z-[9999]">
+                  <SelectContent className="z-[100003]">
                     {rowAndColumnFields.map(f => (
                       <SelectItem key={f.key} value={f.key} className="flex items-center gap-2">
                         <span>{f.icon}</span>

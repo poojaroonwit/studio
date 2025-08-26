@@ -85,7 +85,7 @@ export function PerformanceMonitor({
           const parsed = JSON.parse(savedPosition);
           setPosition(parsed);
         } catch (e) {
-          console.warn('Failed to parse saved position:', e);
+          // Failed to parse saved position
         }
       }
     }

@@ -369,13 +369,13 @@ export default function CandidateSourcesPage() {
                   </TableCell>
                   <TableCell>
                     {source.logo ? (
-                      <img 
-                        src={source.logo} 
-                        alt={`${source.name} logo`}
-                        className="h-8 w-8 object-contain rounded"
-                      />
+                                                          <img 
+                                      src={source.logo} 
+                                      alt={`${source.name} logo`}
+                                      className="h-8 w-8 object-contain rounded-full"
+                                    />
                     ) : (
-                      <div className="h-8 w-8 bg-muted rounded flex items-center justify-center">
+                                              <div className="h-8 w-8 bg-muted rounded-full flex items-center justify-center">
                         <ImageIcon className="h-4 w-4 text-muted-foreground" />
                       </div>
                     )}
@@ -523,11 +523,11 @@ export default function CandidateSourcesPage() {
               <div className="flex items-center gap-4">
                 {logoPreview && (
                   <div className="relative">
-                    <img 
-                      src={logoPreview} 
-                      alt="Logo preview" 
-                      className="h-16 w-16 object-contain rounded border"
-                    />
+                                                        <img 
+                                      src={logoPreview} 
+                                      alt="Logo preview" 
+                                      className="h-16 w-16 object-contain rounded-full border"
+                                    />
                     <Button
                       type="button"
                       variant="ghost"

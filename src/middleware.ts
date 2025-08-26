@@ -32,8 +32,21 @@ export async function middleware(req: NextRequest) {
     if (!token && !pathname.startsWith('/auth/signin')) {
       const signInUrl = new URL('/auth/signin', req.url);
       signInUrl.searchParams.set('callbackUrl', pathname);
-      console.log('[MIDDLEWARE] Redirecting to signin:', signInUrl.toString());
+      console.log('[MIDDLEWARE] No token found, redirecting to signin:', signInUrl.toString());
       return NextResponse.redirect(signInUrl);
+    }
+
+    // If user is authenticated but trying to access signin page, redirect to dashboard
+    if (token && pathname.startsWith('/auth/signin')) {
+      console.log('[MIDDLEWARE] Authenticated user accessing signin, redirecting to dashboard');
+      return NextResponse.redirect(new URL('/', req.url));
+    }
+
+    // For authenticated users, let the page components handle permission checks
+    // This prevents middleware from blocking access and causing redirect loops
+    if (token) {
+      console.log('[MIDDLEWARE] Authenticated user accessing:', pathname);
+      return NextResponse.next();
     }
 
     if (protectedRoutes.some(route => pathname.startsWith(route))) {
@@ -42,7 +55,7 @@ export async function middleware(req: NextRequest) {
 
     return NextResponse.next();
   } catch (error) {
-
+    console.error('[MIDDLEWARE] Error:', error);
     // On error, allow the request to continue to prevent blocking the application
     return NextResponse.next();
   }

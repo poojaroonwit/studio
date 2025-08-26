@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -190,6 +190,7 @@ export default function WebhookManagement() {
   const [customHeaders, setCustomHeaders] = useState<Array<{ key: string; value: string }>>([]);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [selectedWebhookForLogs, setSelectedWebhookForLogs] = useState<Webhook | null>(null);
+  const copiedTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [webhookLogs, setWebhookLogs] = useState<any[]>([]);
   const [logsLoading, setLogsLoading] = useState(false);
   const [logsFilter, setLogsFilter] = useState<'all' | 'success' | 'failed'>('all');
@@ -397,7 +398,11 @@ export default function WebhookManagement() {
     try {
       await navigator.clipboard.writeText(text);
       setCopiedId(id);
-      setTimeout(() => setCopiedId(null), 2000);
+      // Clear any existing timeout
+      if (copiedTimeoutRef.current) {
+        clearTimeout(copiedTimeoutRef.current);
+      }
+      copiedTimeoutRef.current = setTimeout(() => setCopiedId(null), 2000);
     } catch (err) {
       console.error('Failed to copy to clipboard:', err);
     }
@@ -416,6 +421,15 @@ export default function WebhookManagement() {
       return 'Invalid date';
     }
   };
+
+  // Cleanup timeout on component unmount
+  useEffect(() => {
+    return () => {
+      if (copiedTimeoutRef.current) {
+        clearTimeout(copiedTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const fetchWebhookLogs = async (webhookId: string, page: number = 1, filter: string = 'all', search: string = '') => {
     try {

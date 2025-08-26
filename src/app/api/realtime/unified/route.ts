@@ -13,6 +13,7 @@ export async function GET(request: NextRequest) {
 
   const encoder = new TextEncoder();
   const userId = session.user.id;
+  let keepaliveInterval: NodeJS.Timeout | null = null;
 
   const stream = new ReadableStream({
     start(controller) {
@@ -22,20 +23,34 @@ export async function GET(request: NextRequest) {
       controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'connected', userId })}\n\n`));
       
       // Send keepalive every 30 seconds
-      const keepaliveInterval = setInterval(() => {
+      keepaliveInterval = setInterval(() => {
         try {
           controller.enqueue(encoder.encode(`event: keepalive\ndata: ${JSON.stringify({ timestamp: new Date().toISOString() })}\n\n`));
         } catch (error) {
-          clearInterval(keepaliveInterval);
+          console.error('[Unified Realtime] Keepalive failed:', error);
+          if (keepaliveInterval) {
+            clearInterval(keepaliveInterval);
+            keepaliveInterval = null;
+          }
           removeConnection(userId);
         }
       }, 30000);
 
       // Cleanup on close
       request.signal.addEventListener('abort', () => {
-        clearInterval(keepaliveInterval);
+        if (keepaliveInterval) {
+          clearInterval(keepaliveInterval);
+          keepaliveInterval = null;
+        }
         removeConnection(userId);
       });
+    },
+    cancel() {
+      if (keepaliveInterval) {
+        clearInterval(keepaliveInterval);
+        keepaliveInterval = null;
+      }
+      removeConnection(userId);
     }
   });
 

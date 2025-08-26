@@ -21,11 +21,11 @@ async function testHorizontalFitScoreFiltering() {
     const fitScoreDistribution = await pool.query(`
       SELECT 
         CASE 
-          WHEN "fitScore" >= 81 THEN 'A'
-          WHEN "fitScore" >= 61 THEN 'B'
-          WHEN "fitScore" >= 41 THEN 'C'
-          WHEN "fitScore" >= 21 THEN 'D'
-          WHEN "fitScore" >= 0 THEN 'E'
+          WHEN "fitScore" >= 0.81 THEN 'A'
+          WHEN "fitScore" >= 0.61 THEN 'B'
+          WHEN "fitScore" >= 0.41 THEN 'C'
+          WHEN "fitScore" >= 0.21 THEN 'D'
+          WHEN "fitScore" >= 0.01 THEN 'E'
           ELSE 'no-score'
         END as grade,
         COUNT(*) as count
@@ -62,13 +62,13 @@ async function testHorizontalFitScoreFiltering() {
     // Test 5: Test specific filter scenarios
     console.log('\n🔍 Testing specific filter scenarios:');
 
-    // Test A grade filtering (81-100)
+    // Test A grade filtering (0.81-1.0)
     const aGradeCandidates = await pool.query(`
       SELECT COUNT(*) as count
       FROM "Candidate" c
-      WHERE c."fitScore" >= 81 AND c."fitScore" <= 100
+      WHERE c."fitScore" >= 0.81 AND c."fitScore" <= 1.0
     `);
-    console.log(`   A grade candidates (81-100): ${aGradeCandidates.rows[0].count}`);
+    console.log(`   A grade candidates (0.81-1.0): ${aGradeCandidates.rows[0].count}`);
 
     // Test matching A grade filtering
     const matchingAGradeCandidates = await pool.query(`
@@ -81,13 +81,13 @@ async function testHorizontalFitScoreFiltering() {
     `);
     console.log(`   Candidates with matching A grade (≥0.81): ${matchingAGradeCandidates.rows[0].count}`);
 
-    // Test C grade filtering (41-60)
+    // Test C grade filtering (0.41-0.60)
     const cGradeCandidates = await pool.query(`
       SELECT COUNT(*) as count
       FROM "Candidate" c
-      WHERE c."fitScore" >= 41 AND c."fitScore" <= 60
+      WHERE c."fitScore" >= 0.41 AND c."fitScore" <= 0.60
     `);
-    console.log(`   C grade candidates (41-60): ${cGradeCandidates.rows[0].count}`);
+    console.log(`   C grade candidates (0.41-0.60): ${cGradeCandidates.rows[0].count}`);
 
     // Test matching C grade filtering
     const matchingCGradeCandidates = await pool.query(`

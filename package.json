@@ -68,7 +68,9 @@
     "init-ai-prompt": "node scripts/init-ai-power-search-prompt.cjs",
     "init-warning-conditions": "node scripts/initialize-warning-conditions.cjs",
     "perf:check": "node scripts/performance-check.js",
-    "monitor:connections": "node scripts/monitor-connection-pool.js"
+    "monitor:connections": "node scripts/monitor-connection-pool.js",
+    "monitor:position-imports": "node scripts/monitor-position-imports.js",
+    "test:position-import": "node scripts/test-position-import-performance.js"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

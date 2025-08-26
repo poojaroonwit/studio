@@ -34,7 +34,7 @@ export async function syncRecruitersForPosition(
   try {
     await client.query('BEGIN');
 
-    // Get position details
+    // Get position details with timeout
     const positionQuery = `
       SELECT p.id, p.title, p."recruiterId", u.name as "recruiterName"
       FROM "Position" p
@@ -51,7 +51,7 @@ export async function syncRecruitersForPosition(
     result.positionTitle = position.title;
     const positionRecruiterId = position.recruiterId;
 
-    // Get all candidates for this position
+    // Get all candidates for this position with timeout
     const candidatesQuery = `
       SELECT c.id, c.name, c."recruiterId", u.name as "recruiterName"
       FROM "Candidate" c
@@ -60,82 +60,97 @@ export async function syncRecruitersForPosition(
     `;
     const candidatesResult = await client.query(candidatesQuery, [positionId]);
 
-    for (const candidate of candidatesResult.rows) {
-      try {
-        // Skip if candidate already has a recruiter assigned (preserve existing assignment)
-        if (candidate.recruiterId !== null) {
-          result.candidatesSkipped++;
-          continue;
-        }
-
-        // Skip if position has no recruiter to assign
-        if (!positionRecruiterId) {
-          result.candidatesSkipped++;
-          continue;
-        }
-
-        const oldRecruiterId = candidate.recruiterId;
-        const oldRecruiterName = candidate.recruiterName;
-
-        // Update candidate's recruiter (only for unassigned candidates)
-        const updateQuery = `
-          UPDATE "Candidate" 
-          SET "recruiterId" = $1, "updatedAt" = NOW()
-          WHERE id = $2::uuid
-        `;
-        await client.query(updateQuery, [positionRecruiterId, candidate.id]);
-
-        // Create transition record for the recruiter assignment
-        const transitionMessage = `Recruiter auto-assigned from position: ${position.recruiterName || positionRecruiterId}`;
-
-        const newTransitionId = uuidv4();
-        const insertTransitionQuery = `
-          INSERT INTO "TransitionRecord" (id, "candidateId", "positionId", stage, notes, "actingUserId", date, "createdAt", "updatedAt")
-          VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW(), NOW());
-        `;
-        
-        await client.query(insertTransitionQuery, [
-          newTransitionId,
-          candidate.id,
-          positionId,
-          'Applied', // Default stage
-          transitionMessage,
-          actingUserId
-        ]);
-
-        result.candidatesUpdated++;
-
-        // Log the sync action
-        await logAudit(
-          'INFO',
-          `Candidate ${candidate.name} recruiter auto-assigned to ${position.recruiterName || positionRecruiterId}`,
-          'RecruiterSync:Position',
-          actingUserId,
-          {
-            candidateId: candidate.id,
-            positionId,
-            oldRecruiterId: null,
-            newRecruiterId: positionRecruiterId
+    // Process candidates in batches to prevent memory issues
+    const batchSize = 50;
+    for (let i = 0; i < candidatesResult.rows.length; i += batchSize) {
+      const batch = candidatesResult.rows.slice(i, i + batchSize);
+      
+      for (const candidate of batch) {
+        try {
+          // Skip if candidate already has a recruiter assigned (preserve existing assignment)
+          if (candidate.recruiterId !== null) {
+            result.candidatesSkipped++;
+            continue;
           }
-        );
 
-      } catch (error) {
-        const errorMsg = `Failed to sync candidate ${candidate.name}: ${error instanceof Error ? error.message : 'Unknown error'}`;
-        result.errors.push(errorMsg);
-        console.error(errorMsg, error);
+          // Skip if position has no recruiter to assign
+          if (!positionRecruiterId) {
+            result.candidatesSkipped++;
+            continue;
+          }
+
+          const oldRecruiterId = candidate.recruiterId;
+          const oldRecruiterName = candidate.recruiterName;
+
+          // Update candidate's recruiter (only for unassigned candidates)
+          const updateQuery = `
+            UPDATE "Candidate" 
+            SET "recruiterId" = $1, "updatedAt" = NOW()
+            WHERE id = $2::uuid
+          `;
+          await client.query(updateQuery, [positionRecruiterId, candidate.id]);
+
+          // Create transition record for the recruiter assignment
+          const transitionMessage = `Recruiter auto-assigned from position: ${position.recruiterName || positionRecruiterId}`;
+
+          const newTransitionId = uuidv4();
+          const insertTransitionQuery = `
+            INSERT INTO "TransitionRecord" (id, "candidateId", "positionId", stage, notes, "actingUserId", date, "createdAt", "updatedAt")
+            VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW(), NOW());
+          `;
+          
+          await client.query(insertTransitionQuery, [
+            newTransitionId,
+            candidate.id,
+            positionId,
+            'Applied', // Default stage
+            transitionMessage,
+            actingUserId
+          ]);
+
+          result.candidatesUpdated++;
+
+          // Log the sync action (don't await to prevent blocking)
+          logAudit(
+            'INFO',
+            `Candidate ${candidate.name} recruiter auto-assigned to ${position.recruiterName || positionRecruiterId}`,
+            'RecruiterSync:Position',
+            actingUserId,
+            {
+              candidateId: candidate.id,
+              positionId,
+              oldRecruiterId: null,
+              newRecruiterId: positionRecruiterId
+            }
+          ).catch(error => {
+            console.error('Failed to log audit for candidate sync:', error);
+          });
+
+        } catch (error) {
+          const errorMsg = `Failed to sync candidate ${candidate.name}: ${error instanceof Error ? error.message : 'Unknown error'}`;
+          result.errors.push(errorMsg);
+          console.error(errorMsg, error);
+        }
+      }
+      
+      // Small delay between batches to prevent overwhelming the database
+      if (i + batchSize < candidatesResult.rows.length) {
+        await new Promise(resolve => setTimeout(resolve, 10));
       }
     }
 
     await client.query('COMMIT');
 
-    // Log overall sync result
-    await logAudit(
+    // Log overall sync result (don't await to prevent blocking)
+    logAudit(
       'INFO',
       `Recruiter sync completed for position "${position.title}": ${result.candidatesUpdated} updated, ${result.candidatesSkipped} skipped`,
       'RecruiterSync:Position',
       actingUserId,
       { positionId, result }
-    );
+    ).catch(error => {
+      console.error('Failed to log audit for sync completion:', error);
+    });
 
   } catch (error) {
     await client.query('ROLLBACK');

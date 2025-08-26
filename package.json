@@ -15,6 +15,9 @@
     "start": "next start -p 8021",
     "start:with-processor": "concurrently \"npm run start\" \"npm run processor\"",
     "lint": "next lint",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
     "processor": "node scripts/process-upload-queue.cjs",
     "processor:pm2": "pm2 start ecosystem.config.js",
     "processor:pm2:stop": "pm2 stop upload-queue-processor",
@@ -63,6 +66,7 @@
     "migrate:merge-field-codes": "node scripts/migrate-merge-field-codes.cjs",
     "add-toeic-field": "node scripts/add-toeic-custom-field.cjs",
     "init-ai-prompt": "node scripts/init-ai-power-search-prompt.cjs",
+    "init-warning-conditions": "node scripts/initialize-warning-conditions.cjs",
     "perf:check": "node scripts/performance-check.js"
   },
   "prisma": {

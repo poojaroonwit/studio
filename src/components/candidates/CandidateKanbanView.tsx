@@ -5,7 +5,8 @@ import * as React from 'react';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import type { Candidate, CandidateStatus, UserProfile } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { CandidateAvatar } from '@/components/ui/candidate-avatar';
 import { RecruiterAvatarCompact } from '@/components/ui/recruiter-avatar';
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Badge } from '@/components/ui/badge';
@@ -205,15 +206,11 @@ const EnhancedCandidateCard = ({ candidate, isDragged = false, onClick, onDragSt
         const nameInfo = formatCandidateNameWithLang(candidate);
         return (
           <div className="flex items-start gap-3">
-            <Avatar className="h-10 w-10 flex-shrink-0">
-              <AvatarImage src={candidate.avatarUrl || `https://placehold.co/40x40.png?text=${nameInfo.name?.charAt(0) || 'C'}`} alt={nameInfo.name} data-ai-hint="person avatar"/>
-              <AvatarFallback 
-                className="text-white font-semibold"
-                style={{ backgroundColor: personalColor }}
-              >
-                {nameInfo.name?.charAt(0)?.toUpperCase() || 'C'}
-              </AvatarFallback>
-            </Avatar>
+            <CandidateAvatar 
+              user={candidate}
+              size="md"
+              className="h-10 w-10 flex-shrink-0"
+            />
             <div className="flex-1 min-w-0">
               <p 
                 className={`text-sm font-semibold text-foreground truncate ${nameInfo.fontClass}`} 
@@ -388,9 +385,9 @@ export function CandidateKanbanView({
   // If there are no candidates at all
   if (candidates.length === 0) {
     return (
-      <div className="w-full min-h-[300px] bg-muted/30 rounded-lg p-6 flex items-center justify-center">
+      <div className="w-full min-h-[300px] p-6 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-12 h-12 mx-auto mb-3 bg-muted rounded-full flex items-center justify-center">
+          <div className="w-12 h-12 mx-auto mb-3 flex items-center justify-center">
             <Plus className="w-6 h-6 text-muted-foreground" />
           </div>
           <p className="text-lg text-muted-foreground">No candidates found</p>
@@ -440,9 +437,9 @@ export function CandidateRowKanbanView({
   // Show loading state
   if (isLoading) {
     return (
-      <div className="w-full min-h-[300px] bg-muted/30 rounded-lg p-6 flex items-center justify-center">
+      <div className="w-full min-h-[300px] p-6 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-12 h-12 mx-auto mb-3 bg-muted rounded-full flex items-center justify-center animate-pulse">
+          <div className="w-12 h-12 mx-auto mb-3 flex items-center justify-center animate-pulse">
             <Users className="w-6 h-6 text-muted-foreground" />
           </div>
           <p className="text-lg text-muted-foreground">Loading candidates...</p>
@@ -1596,9 +1593,9 @@ export function SingleRowKanbanView({
   if (filteredCandidates.length === 0) {
     return (
       <>
-        <div className="w-full h-[calc(100vh-200px)] bg-muted/30 rounded-lg p-4 flex items-center justify-center">
+        <div className="w-full h-[calc(100vh-200px)] p-4 flex items-center justify-center">
           <div className="text-center">
-            <div className="w-16 h-16 mx-auto mb-4 bg-muted rounded-full flex items-center justify-center">
+            <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center">
               <Users className="w-8 h-8 text-muted-foreground" />
             </div>
             <h3 className="text-lg font-medium text-foreground mb-2">No candidates found</h3>
@@ -1910,12 +1907,11 @@ export function MultiRecruiterKanbanView({ candidates, stages, recruiters, onMov
                                 onClick={() => handleCardClick(candidate)}
                               >
                                 <div className="flex items-start gap-2">
-                                  <Avatar className="h-6 w-6 flex-shrink-0">
-                                    <AvatarImage src={candidate.avatarUrl || `https://placehold.co/40x40.png?text=${formatCandidateName(candidate)?.charAt(0) || 'C'}`} alt={formatCandidateName(candidate)} />
-                                    <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                                      {formatCandidateName(candidate)?.charAt(0)?.toUpperCase() || 'C'}
-                                    </AvatarFallback>
-                                  </Avatar>
+                                  <CandidateAvatar 
+                                    user={candidate}
+                                    size="sm"
+                                    className="h-6 w-6 flex-shrink-0"
+                                  />
                                   <div className="flex-1 min-w-0">
                                     <p className="text-xs font-medium text-foreground truncate" title={formatCandidateName(candidate)}>
                                       {formatCandidateName(candidate)}

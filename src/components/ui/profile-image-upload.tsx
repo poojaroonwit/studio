@@ -19,7 +19,8 @@ import {
   Check,
   RotateCw,
   ZoomIn,
-  ZoomOut
+  ZoomOut,
+  Upload
 } from 'lucide-react';
 import { UserAvatar } from './user-avatar';
 import { toast } from 'react-hot-toast';

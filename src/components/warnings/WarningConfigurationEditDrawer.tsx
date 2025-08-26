@@ -909,7 +909,7 @@ export function WarningConfigurationEditDrawer({
                       Create your first condition group to define when this warning should be triggered. 
                       You can add multiple conditions and groups to create complex warning rules.
                     </p>
-                    <Button onClick={addConditionGroup} variant="default" size="lg" className="flex items-center gap-2">
+                    <Button onClick={addConditionGroup} variant="default" size="lg" className="flex items-center gap-2 mx-auto">
                       <Plus className="h-5 w-5" />
                       Create First Condition Group
                     </Button>

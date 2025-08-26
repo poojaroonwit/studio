@@ -50,6 +50,7 @@ export const useCandidateDetail = (candidateId: string) => {
   const [isAssigningSource, setIsAssigningSource] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
+  const [avatarForceRefresh, setAvatarForceRefresh] = useState(false);
   const [copiedJobApplied, setCopiedJobApplied] = useState(false);
   const [copiedJobMatchIndex, setCopiedJobMatchIndex] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -568,25 +569,35 @@ export const useCandidateDetail = (candidateId: string) => {
     setAvatarError(null);
 
     try {
-      const fileUrl = URL.createObjectURL(file);
+      // Create FormData for file upload
+      const formData = new FormData();
+      formData.append('avatar', file);
 
-      const res = await fetch(`/api/candidates/${candidate.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ avatarUrl: fileUrl }),
+      const res = await fetch(`/api/candidates/${candidate.id}/avatar`, {
+        method: 'POST',
+        body: formData,
         credentials: 'include',
       });
 
       if (!res.ok) {
-        throw new Error('Failed to update avatar');
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to update avatar');
       }
 
-      const updatedCandidate = await res.json();
-      setCandidate(updatedCandidate);
+      const result = await res.json();
+      
+      // Update the candidate with the new avatar URL
+      setCandidate(prev => prev ? { ...prev, avatarUrl: result.avatarUrl } : null);
+      
+      // Force refresh the avatar display
+      setAvatarForceRefresh(true);
+      setTimeout(() => setAvatarForceRefresh(false), 1000);
+      
       toast.success('Avatar updated successfully');
     } catch (err) {
-      setAvatarError('Failed to update avatar');
-      toast.error('Failed to update avatar');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update avatar';
+      setAvatarError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setAvatarUploading(false);
     }
@@ -608,6 +619,7 @@ export const useCandidateDetail = (candidateId: string) => {
     isAssigningSource,
     avatarUploading,
     avatarError,
+    avatarForceRefresh,
     copiedJobApplied,
     copiedJobMatchIndex,
     isSaving,

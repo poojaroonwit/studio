@@ -149,7 +149,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       setAppliedCandidatesSortDirection('asc');
       return;
     }
-    if (appliedCandidatesSortColumn === column && direction == null) {
+    if (appliedCandidatesSortColumn === column && (direction === null || direction === undefined)) {
       setAppliedCandidatesSortDirection(appliedCandidatesSortDirection === 'asc' ? 'desc' : 'asc');
     } else {
       setAppliedCandidatesSortColumn(column);
@@ -163,7 +163,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       setPotentialCandidatesSortDirection('asc');
       return;
     }
-    if (potentialCandidatesSortColumn === column && direction == null) {
+    if (potentialCandidatesSortColumn === column && (direction === null || direction === undefined)) {
       setPotentialCandidatesSortDirection(potentialCandidatesSortDirection === 'asc' ? 'desc' : 'asc');
     } else {
       setPotentialCandidatesSortColumn(column);
@@ -177,7 +177,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       setFilteredCandidatesSortDirection('asc');
       return;
     }
-    if (allCandidatesSortColumn === column && direction == null) {
+    if (allCandidatesSortColumn === column && (direction === null || direction === undefined)) {
       setFilteredCandidatesSortDirection(allCandidatesSortDirection === 'asc' ? 'desc' : 'asc');
     } else {
       setFilteredCandidatesSortColumn(column);
@@ -307,7 +307,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
           isOpen: data.isOpen ?? true,
           positionLevel: data.positionLevel || '',
           gradeId: data.gradeId || null,
-          hiringDate: data.hiringDate || null,
+          hiringDate: data.hiringDate ? new Date(data.hiringDate).toISOString().split('T')[0] : null,
         });
        
        // Set drawer as ready for WYSIWYG editors
@@ -476,7 +476,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         isOpen: position.isOpen ?? true,
         positionLevel: position.positionLevel || '',
         gradeId: position.gradeId || null,
-        hiringDate: position.hiringDate || (position.createdAt ? new Date(position.createdAt).toISOString().split('T')[0] : null),
+        hiringDate: position.hiringDate ? new Date(position.hiringDate).toISOString().split('T')[0] : null,
       });
       
       // Force re-render of WYSIWYG editors with new content
@@ -521,7 +521,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         isOpen: position.isOpen ?? true,
         positionLevel: position.positionLevel || '',
         gradeId: position.gradeId || null,
-        hiringDate: position.hiringDate || (position.createdAt ? new Date(position.createdAt).toISOString().split('T')[0] : null),
+        hiringDate: position.hiringDate ? new Date(position.hiringDate).toISOString().split('T')[0] : null,
       });
     }
     setIsEditMode(false);
@@ -715,7 +715,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         isOpen: position.isOpen ?? true,
         positionLevel: position.positionLevel || '',
         gradeId: position.gradeId || null,
-        hiringDate: position.hiringDate || (position.createdAt ? new Date(position.createdAt).toISOString().split('T')[0] : null),
+        hiringDate: position.hiringDate ? new Date(position.hiringDate).toISOString().split('T')[0] : null,
       });
     }
   }, [position, isEditMode, form]);
@@ -1603,7 +1603,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                                   })()}
                                 </div>
                               ) : (
-                                <Badge variant="outline" className="text-xs text-muted-foreground border-muted-foreground/50 bg-muted/20">
+                                <Badge variant="outline" className="ml-2 text-xs text-muted-foreground border-muted-foreground/50 bg-muted/20">
                                   No Grade
                                 </Badge>
                               )

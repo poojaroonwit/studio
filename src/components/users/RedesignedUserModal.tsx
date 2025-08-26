@@ -241,12 +241,7 @@ function PersonalInfoContent({ form, user, mode, userTeams }: PersonalInfoConten
 
       {/* Personal Color */}
       <div className="space-y-3">
-        <div>
-          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Personal Color</h3>
-          <p className="text-sm text-slate-600 dark:text-slate-400">
-            Choose your preferred accent color
-          </p>
-        </div>
+       
         <FormField 
           control={form.control} 
           name="personalColor" 

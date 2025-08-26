@@ -851,7 +851,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
         ) : displayedCandidates.length === 0 ? (
           <div className="flex items-center justify-center h-64">
             <div className="flex flex-col items-center space-y-4 text-center">
-              <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center">
+              <div className="w-16 h-16 flex items-center justify-center">
                 <Users className="w-8 h-8 text-muted-foreground" />
               </div>
               <div>

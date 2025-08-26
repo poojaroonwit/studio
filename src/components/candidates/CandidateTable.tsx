@@ -386,7 +386,7 @@ export function CandidateTable({
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 border rounded-lg bg-card shadow">
+      <div className="flex flex-col items-center justify-center h-64">
         <Users className="w-16 h-16 text-muted-foreground animate-pulse mb-4" />
         <h3 className="text-xl font-semibold text-foreground">Loading Candidates...</h3>
         <p className="text-muted-foreground">Please wait while we fetch the data.</p>
@@ -399,7 +399,7 @@ export function CandidateTable({
 
   if (!Array.isArray(candidates) || candidates.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 border rounded-lg bg-card shadow">
+      <div className="flex flex-col items-center justify-center h-64">
         <Users className="w-16 h-16 text-muted-foreground mb-4" />
         <h3 className="text-xl font-semibold text-foreground">No Candidates Found</h3>
         <p className="text-muted-foreground">Try adjusting your filters or add new candidates.</p>
@@ -747,30 +747,54 @@ export function CandidateTable({
 
                   {(!settings || settings.showAppliedJobColumn !== false) && (
                     <TableCell key={`${candidate.id}-position`} className="max-w-[200px]">
-                      {candidate.position?.title ? (
-                        <div className="space-y-1">
-                          <Button
-                            variant="link"
-                            onClick={() => onEditPosition(candidate.position!)}
-                            className="font-medium text-primary hover:underline cursor-pointer text-left w-full h-auto p-0"
-                            title={`View ${candidate.position.title} details`}
-                            style={{
-                              display: '-webkit-box',
-                              WebkitLineClamp: 2,
-                              WebkitBoxOrient: 'vertical',
-                              overflow: 'hidden',
-                              lineHeight: '1.2em',
-                              maxHeight: '2.4em'
-                            }}
-                          >
-                            {candidate.position.title}
-                          </Button>
-                        </div>
-                      ) : candidate.positionId ? (
-                        <span className="text-warning-foreground bg-warning/20 px-2 py-1 rounded text-xs font-semibold">Missing Job Info</span>
-                      ) : (
-                        <span className="text-muted-foreground">N/A</span>
-                      )}
+                      {(() => {
+                        // Check for job_applied data in parsedData first
+                        const parsedData = candidate.parsedData as any;
+                        const jobApplied = parsedData?.job_applied;
+                        
+                        if (jobApplied?.job_title) {
+                          return (
+                            <div className="space-y-1">
+                              <div className="font-medium text-foreground text-sm">
+                                {jobApplied.job_title}
+                              </div>
+                              {jobApplied.fit_score && (
+                                <div className="text-xs text-muted-foreground">
+                                  Fit Score: {jobApplied.fit_score}
+                                </div>
+                              )}
+                              {jobApplied.justification && (
+                                <div className="text-xs text-muted-foreground line-clamp-2" title={jobApplied.justification}>
+                                  {jobApplied.justification}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        }
+                        
+                        // Fallback to position title if available
+                        if (candidate.position?.title) {
+                          return (
+                            <div className="font-medium text-foreground text-sm">
+                              {candidate.position.title}
+                            </div>
+                          );
+                        }
+                        
+                        // Show missing job info if positionId exists but no title
+                        if (candidate.positionId) {
+                          return (
+                            <span className="text-warning-foreground bg-warning/20 px-2 py-1 rounded text-xs font-semibold">
+                              Missing Job Info
+                            </span>
+                          );
+                        }
+                        
+                        // Default fallback
+                        return (
+                          <span className="text-muted-foreground">N/A</span>
+                        );
+                      })()}
                     </TableCell>
                   )}
                   {/* Job Matches Count Cell */}
@@ -974,30 +998,49 @@ export function CandidateTable({
 
                             {(!settings || settings.showAppliedJobColumn !== false) && (
                               <TableCell key={`${candidate.id}-position`} className="max-w-[200px]">
-                                {candidate.position?.title ? (
-                                  <div className="space-y-1">
-                                    <Button
-                                      variant="link"
-                                      onClick={() => onEditPosition(candidate.position!)}
-                                      className="font-medium text-primary hover:underline cursor-pointer text-left w-full h-auto p-0"
-                                      title={`View ${candidate.position.title} details`}
-                                      style={{
-                                        display: '-webkit-box',
-                                        WebkitLineClamp: 2,
-                                        WebkitBoxOrient: 'vertical',
-                                        overflow: 'hidden',
-                                        lineHeight: '1.2em',
-                                        maxHeight: '2.4em'
-                                      }}
-                                    >
-                                      {candidate.position.title}
-                                    </Button>
-                                  </div>
-                                ) : candidate.positionId ? (
-                                  <span className="text-warning-foreground bg-warning/20 px-2 py-1 rounded text-xs font-semibold">Missing Job Info</span>
-                                ) : (
-                                  <span className="text-muted-foreground">N/A</span>
-                                )}
+                                {(() => {
+                                  // Check for job_applied data in parsedData first
+                                  const parsedData = candidate.parsedData as any;
+                                  const jobApplied = parsedData?.job_applied;
+                                  if (jobApplied && jobApplied.jobId) {
+                                    // Find the position title from availablePositions
+                                    const position = availablePositions.find(p => p.id === jobApplied.jobId);
+                                    if (position) {
+                                      return (
+                                        <div className="space-y-1">
+                                          <div className="font-medium text-foreground">
+                                            {position.title}
+                                          </div>
+                                          {jobApplied.justification && Array.isArray(jobApplied.justification) && jobApplied.justification.length > 0 && (
+                                            <div className="text-xs text-muted-foreground">
+                                              {jobApplied.justification[0].substring(0, 50)}
+                                              {jobApplied.justification[0].length > 50 ? '...' : ''}
+                                            </div>
+                                          )}
+                                        </div>
+                                      );
+                                    }
+                                  }
+                                  
+                                  // Fallback to position data if no job_applied
+                                  if (candidate.position?.title) {
+                                    return (
+                                      <div className="space-y-1">
+                                        <div className="font-medium text-foreground">
+                                          {candidate.position.title}
+                                        </div>
+                                      </div>
+                                    );
+                                  } else if (candidate.positionId) {
+                                    return (
+                                      <span className="text-warning-foreground bg-warning/20 px-2 py-1 rounded text-xs font-semibold">Missing Job Info</span>
+                                    );
+                                  } else {
+                                    return (
+                                      <span className="text-muted-foreground">N/A</span>
+                                    );
+                                  }
+                                })()}
                               </TableCell>
                             )}
                             {/* Job Matches Count Cell */}

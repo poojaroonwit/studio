@@ -1,9 +1,9 @@
 import React from 'react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { CandidateAvatar } from '@/components/ui/candidate-avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Edit, Edit3, MoreHorizontal, RefreshCw, Users, X, BrainCircuit } from 'lucide-react';
+import { Edit, Edit3, MoreHorizontal, RefreshCw, Users, X, BrainCircuit, Upload } from 'lucide-react';
 import { formatCandidateNameWithLang } from "@/lib/candidateUtils";
 import type { Candidate, UserProfile, RecruitmentStage, CandidateSource } from '@/lib/types';
 import { CandidateRecruiterCell } from './CandidateRecruiterCell';
@@ -30,6 +30,7 @@ interface CandidateHeaderProps {
   avatarInputRef: React.RefObject<HTMLInputElement>;
   avatarUploading: boolean;
   avatarError: string | null;
+  avatarForceRefresh: boolean;
   onAvatarUpload: (file: File) => void;
   realtimeConnected?: boolean;
 }
@@ -65,6 +66,7 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
   avatarInputRef,
   avatarUploading,
   avatarError,
+  avatarForceRefresh,
   onAvatarUpload,
   realtimeConnected
 }) => {
@@ -72,17 +74,7 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
 
   return (
     <div className="bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-100/20 dark:from-slate-900 dark:via-slate-800/50 dark:to-slate-700/30 shadow-lg backdrop-blur-sm border-b border-border p-4 sticky top-0 z-50 pointer-events-auto">
-      {/* Realtime Status Indicator */}
-      {realtimeConnected !== undefined && (
-        <div className="flex items-center justify-end mb-2">
-          <div className="flex items-center space-x-2 text-xs">
-            <div className={`w-2 h-2 rounded-full ${realtimeConnected ? 'bg-green-500' : 'bg-red-500'}`} />
-            <span className="text-muted-foreground">
-              {realtimeConnected ? 'Live updates active' : 'Live updates disconnected'}
-            </span>
-          </div>
-        </div>
-      )}
+     
       
       <div className="grid grid-cols-1 lg:grid-cols-10 gap-6 relative">
         {/* Modal Close Button in header */}
@@ -108,16 +100,13 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
             <div className="flex-shrink-0 relative">
               <div className="relative group">
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5 rounded-full blur-xl group-hover:blur-2xl transition-all duration-300"></div>
-                                 <Avatar 
-                   className="w-20 h-20 text-3xl relative bg-gradient-to-br from-blue-100 to-indigo-200 dark:from-blue-900/30 dark:to-indigo-800/30 rounded-full"
-                 >
-                  {candidate.avatarUrl ? (
-                    <AvatarImage src={candidate.avatarUrl} alt={nameInfo.name} className="object-cover object-top rounded-full" />
-                  ) : (
-                    <AvatarFallback className="bg-gradient-to-br from-blue-500/20 to-indigo-600/20 text-blue-700 dark:text-blue-300 font-bold rounded-full">
-                      {nameInfo.name?.[0] || '?'}
-                    </AvatarFallback>
-                  )}
+                <div className="relative">
+                                     <CandidateAvatar 
+                     user={candidate}
+                     size="xl"
+                     className="w-20 h-20 text-3xl"
+                     forceRefresh={avatarForceRefresh}
+                   />
                   {/* Pencil icon button for avatar upload */}
                   <div
                     role="button"
@@ -152,9 +141,18 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
                     aria-hidden="true"
                   />
                   {avatarUploading && !isEditing && (
-                    <div className="animate-spin text-primary h-7 w-7 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 border-2 border-current border-t-transparent rounded-full" />
+                    <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/80 backdrop-blur-sm rounded-full">
+                      <div className="flex flex-col items-center justify-center space-y-2 p-3">
+                        <div className="relative">
+                          <div className="w-8 h-8 border-2 border-primary/20 rounded-full animate-pulse"></div>
+                          <div className="absolute inset-0 w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                          <Upload className="absolute inset-0 w-8 h-8 text-primary/60 animate-bounce" />
+                        </div>
+                        <div className="text-xs text-muted-foreground font-medium">Uploading...</div>
+                      </div>
+                    </div>
                   )}
-                </Avatar>
+                </div>
               </div>
               {avatarError && <div className="text-xs text-destructive mt-2 text-center bg-destructive/10 px-2 py-1 rounded-md">{avatarError}</div>}
             </div>

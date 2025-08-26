@@ -32,6 +32,7 @@ export async function middleware(req: NextRequest) {
     if (!token && !pathname.startsWith('/auth/signin')) {
       const signInUrl = new URL('/auth/signin', req.url);
       signInUrl.searchParams.set('callbackUrl', pathname);
+      console.log('[MIDDLEWARE] Redirecting to signin:', signInUrl.toString());
       return NextResponse.redirect(signInUrl);
     }
 

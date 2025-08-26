@@ -50,11 +50,6 @@ export function useCandidateFetching({
       return;
     }
     
-    // Prevent multiple simultaneous requests
-    if (currentRequestRef.current) {
-      return;
-    }
-    
     // Clear any existing timeout
     if (fetchTimeoutRef.current) {
       clearTimeout(fetchTimeoutRef.current);
@@ -130,6 +125,8 @@ export function useCandidateFetching({
       
       const apiUrl = `/api/candidates?${query.toString()}`;
       
+      console.log('🔍 API DEBUG: Making request to:', apiUrl);
+      
       // Add timeout and retry logic
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 8000); // Reduced from 15 seconds to 8 seconds for faster response
@@ -154,10 +151,12 @@ export function useCandidateFetching({
       }
       
       if (data.data && Array.isArray(data.data)) {
+        console.log('🔍 API DEBUG: Received', data.data.length, 'candidates');
         setFilteredCandidates(data.data);
         setTotal(data.pagination?.total || data.data.length);
         setTableError(null);
       } else {
+        console.log('🔍 API DEBUG: Invalid data format received:', data);
         setFilteredCandidates([]);
         setTotal(0);
         setTableError('Invalid data format received from server');
@@ -180,7 +179,6 @@ export function useCandidateFetching({
       clearTimeout(loadingTimeout);
       setTableLoading(false);
       setIsFetching(false);
-      currentRequestRef.current = null;
     }
   }, [sessionStatus, searchParams, sortColumn, sortDirection]);
 
@@ -191,10 +189,10 @@ export function useCandidateFetching({
       clearTimeout(fetchTimeoutRef.current);
     }
     
-    // Set a new timeout - increased for better stability
+    // Set a new timeout - reduced for better responsiveness
     fetchTimeoutRef.current = setTimeout(() => {
       fetchTableData(currentFilters, currentPage, currentPageSize);
-    }, 200); // Increased debounce for better stability
+    }, 100); // Reduced from 200ms to 100ms for better responsiveness
   }, [fetchTableData]);
 
   return {

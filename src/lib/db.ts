@@ -31,7 +31,24 @@ export function getPool() {
       // process.exit(-1);
     });
     
-    // Connection pool monitoring (logs removed for cleaner output)
+    // Connection pool monitoring and cleanup
+    setInterval(() => {
+      if (pool) {
+        const poolStatus = pool.totalCount - pool.idleCount;
+        if (poolStatus > 0) {
+          console.log(`[DB POOL] Active connections: ${poolStatus}/${pool.totalCount}`);
+        }
+      }
+    }, 60000); // Log every minute
+    
+    // Graceful shutdown handling
+    process.on('SIGINT', async () => {
+      console.log('[DB POOL] Shutting down connection pool...');
+      if (pool) {
+        await pool.end();
+      }
+      process.exit(0);
+    });
   }
   return pool;
 }
@@ -110,8 +127,7 @@ export async function withDbTransaction<T>(
 
 // Returns permissions for a user from their assigned groups only
 export async function getMergedUserPermissions(userId: string): Promise<string[]> {
-  const client = await getPool().connect();
-  try {
+  return withDbClient(async (client) => {
     // Get group permissions only
     const groupRes = await client.query(`
       SELECT array_agg(DISTINCT perm) AS group_permissions
@@ -126,7 +142,5 @@ export async function getMergedUserPermissions(userId: string): Promise<string[]
 
     // Return only group permissions (no direct permissions)
     return group || [];
-  } finally {
-    client.release();
-  }
+  });
 }

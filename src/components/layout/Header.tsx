@@ -288,11 +288,11 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <div className="relative h-8 w-8 rounded-full cursor-pointer hover:bg-accent/50 transition-colors">
-                  <UserAvatarCompact user={user} size="sm" forceRefresh={refreshKey > 0} />
+                <div className="relative h-6 w-6 rounded-full cursor-pointer hover:bg-accent/20 transition-colors">
+                  <UserAvatarCompact user={user} size="xs" forceRefresh={refreshKey > 0} />
                 </div>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuContent align="end" className="w-50">
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
                     <AutoFont className="text-sm font-medium leading-none">{user.name || "User"}</AutoFont>

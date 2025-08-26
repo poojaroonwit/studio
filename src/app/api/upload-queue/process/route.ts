@@ -210,7 +210,7 @@ export async function POST(request: NextRequest) {
     // Broadcast progress update for real-time UI updates
     try {
       const { broadcastUploadQueueUpdate } = await import('../sse/broadcastUploadQueueUpdate');
-      broadcastUploadQueueUpdate();
+      await broadcastUploadQueueUpdate();
     } catch (broadcastError) {
       console.error('Failed to broadcast upload queue progress update:', broadcastError);
     }
@@ -319,7 +319,7 @@ export async function POST(request: NextRequest) {
     // Final broadcast for completion
     try {
       const { broadcastUploadQueueUpdate } = await import('../sse/broadcastUploadQueueUpdate');
-      broadcastUploadQueueUpdate();
+      await broadcastUploadQueueUpdate();
     } catch (broadcastError) {
       console.error('Failed to broadcast final upload queue update:', broadcastError);
     }

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Edit, Trash2 } from 'lucide-react';
+import { Edit, Trash2, Loader2, Upload } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { cn } from '@/lib/utils';
 import { addCacheBuster, getCacheBustedImageUrl, refreshImage } from '@/lib/imageUtils';
@@ -38,10 +38,17 @@ export function UserAvatarUpload({
   const lastObjectUrlRef = useRef<string | null>(null);
 
   const sizeClasses = {
-    sm: 'w-12 h-12 text-lg',
-    md: 'w-16 h-16 text-xl',
-    lg: 'w-20 h-20 text-2xl',
-    xl: 'w-24 h-24 text-3xl'
+    sm: 'w-12 h-12',
+    md: 'w-16 h-16',
+    lg: 'w-20 h-20',
+    xl: 'w-24 h-24'
+  };
+
+  const fontSizeClasses = {
+    sm: 'text-lg',
+    md: 'text-xl',
+    lg: 'text-2xl',
+    xl: 'text-3xl'
   };
 
   // Avatar click shows dropdown via DropdownMenuTrigger
@@ -157,7 +164,10 @@ export function UserAvatarUpload({
                 {displayImageUrl ? (
                   <AvatarImage src={displayImageUrl || undefined} alt={user.name} className="object-cover object-top rounded-lg" />
                 ) : (
-                  <AvatarFallback className="bg-gradient-to-br from-blue-500/20 to-indigo-600/20 text-blue-700 dark:text-blue-300 font-bold rounded-lg">
+                  <AvatarFallback className={cn(
+                    "bg-gradient-to-br from-blue-500/20 to-indigo-600/20 text-blue-700 dark:text-blue-300 font-bold rounded-lg",
+                    fontSizeClasses[size]
+                  )}>
                     {initials}
                   </AvatarFallback>
                 )}
@@ -179,7 +189,16 @@ export function UserAvatarUpload({
                 />
                 {/* Loading spinner */}
                 {isUploading && (
-                  <div className="animate-spin text-primary h-7 w-7 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 border-2 border-current border-t-transparent rounded-full" />
+                  <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/80 backdrop-blur-sm rounded-lg">
+                    <div className="flex flex-col items-center justify-center space-y-2 p-3">
+                      <div className="relative">
+                        <div className="w-8 h-8 border-2 border-primary/20 rounded-full animate-pulse"></div>
+                        <div className="absolute inset-0 w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                        <Upload className="absolute inset-0 w-8 h-8 text-primary/60 animate-bounce" />
+                      </div>
+                      <div className="text-xs text-muted-foreground font-medium">Uploading...</div>
+                    </div>
+                  </div>
                 )}
               </Avatar>
             </DropdownMenuTrigger>

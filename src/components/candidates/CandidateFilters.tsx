@@ -318,9 +318,9 @@ export function CandidateFilters({
       return;
     }
     
-    // Rate limiting: prevent applying filters more than once every 300ms
+    // Rate limiting: prevent applying filters more than once every 100ms (reduced from 300ms)
     const now = Date.now();
-    if (now - lastFilterApplyTimeRef.current < 300) {
+    if (now - lastFilterApplyTimeRef.current < 100) {
       return;
     }
     
@@ -394,10 +394,12 @@ export function CandidateFilters({
     if (Object.keys(newFilters).length > 0 || hasEmptyStrings) {
       lastAppliedFiltersRef.current = newFiltersString;
       lastFilterApplyTimeRef.current = Date.now();
+      console.log('🔍 FILTER DEBUG: Applying filters:', newFilters);
       if (typeof onFilterChangeRef.current === 'function') {
         onFilterChangeRef.current(newFilters);
       }
     } else {
+      console.log('🔍 FILTER DEBUG: Clearing filters');
       if (typeof onFilterChangeRef.current === 'function') {
         onFilterChangeRef.current({});
       }
@@ -406,7 +408,7 @@ export function CandidateFilters({
     // Reset flag after a delay
     const timeoutId = setTimeout(() => {
       setIsApplyingFilters(false);
-    }, 100);
+    }, 50); // Reduced from 100ms to 50ms for better responsiveness
     
     return () => {
       clearTimeout(timeoutId);

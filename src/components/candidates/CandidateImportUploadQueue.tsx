@@ -215,7 +215,7 @@ export const CandidateImportUploadQueue: React.FC<{
       setSortDirection('asc');
       return;
     }
-    if (sortColumn === column && direction == null) {
+    if (sortColumn === column && (direction === null || direction === undefined)) {
       // 3-state toggle: unsorted -> asc -> desc -> unsorted
       if (sortDirection === 'asc') {
         setSortDirection('desc');
@@ -1143,37 +1143,39 @@ export const CandidateImportUploadQueue: React.FC<{
         </div>
       {/* Bulk Action Bar - show only when items are selected */}
       {bulkDeleteIds.length > 0 && (
-        <div className="flex items-center gap-2 mb-2 p-2 bg-muted rounded border border-muted-foreground/10">
-          <span className="text-sm">{bulkDeleteIds.length} selected</span>
+        <div className="flex items-center gap-2 mb-2 p-2 bg-muted/30 rounded border">
+          <span className="text-sm text-muted-foreground">{bulkDeleteIds.length} selected</span>
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
             disabled={bulkRetryLoading || !bulkDeleteIds.some(id => jobs.find(job => job.id === id && (job.status === 'error' || job.status === 'fail')))}
             onClick={() => setShowBulkRetryConfirm(true)}
             aria-label="Retry selected jobs"
+            className="h-7 px-2"
           >
-            {bulkRetryLoading ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : null}
-            Retry Selected
+            {bulkRetryLoading ? <Loader2 className="animate-spin h-3 w-3 mr-1" /> : null}
+            Retry
           </Button>
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={handleDownloadCSV}
             aria-label="Download CSV"
+            className="h-7 px-2"
           >
-            <Download className="h-4 w-4 mr-2" />
-            Download CSV
+            <Download className="h-3 w-3 mr-1" />
+            CSV
           </Button>
           <Button
-            className="ml-auto"
-            variant="destructive"
+            className="ml-auto h-7 px-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
+            variant="ghost"
             size="sm"
             disabled={bulkDeleteIds.length === 0 || bulkDeleteLoading}
             onClick={handleBulkDelete}
             aria-label="Delete selected jobs"
           >
-            {bulkDeleteLoading ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : null}
-            Delete Selected
+            {bulkDeleteLoading ? <Loader2 className="animate-spin h-3 w-3 mr-1" /> : null}
+            Delete
           </Button>
         </div>
       )}

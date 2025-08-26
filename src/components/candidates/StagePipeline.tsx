@@ -155,20 +155,21 @@ export function StagePipeline({
             
             <Popover open={openPopoverIdx === idx}>
               <PopoverTrigger asChild>
-                <button
-                  type="button"
-                  className={`flex items-center gap-3 cursor-pointer px-3 py-2 rounded-full transition-all duration-300 relative z-10
-                    ${isCurrent 
-                      ? 'bg-secondary border-grey-900 font-bold' 
-                      : isCompleted 
-                        ? (stage.name.toLowerCase().includes('reject')
-                            ? 'bg-red-500 border-red-700 text-white font-bold shadow-red-400 shadow-lg'
-                            : '')
-                        : 'bg-muted/10 text-muted-foreground hover:bg-muted/20'}
-                    ${isCurrent && isTransitioning ? 'animate-pulse' : ''}
-                  `}
-                  onClick={() => handleStageClick(stage.name)}
-                >
+                                 <button
+                   type="button"
+                   className={`flex items-center gap-3 cursor-pointer px-3 py-2 rounded-full transition-all duration-300 relative z-10
+                     ${isCurrent 
+                       ? 'bg-secondary border-grey-900 font-bold' 
+                       : isCompleted 
+                         ? (stage.name.toLowerCase().includes('reject')
+                             ? 'bg-red-500 border-red-700 text-white font-bold shadow-red-400 shadow-lg'
+                             : '')
+                         : 'bg-muted/10 text-muted-foreground hover:bg-muted/20'}
+                     ${isCurrent && isTransitioning ? 'animate-pulse' : ''}
+                   `}
+                   onClick={() => handleStageClick(stage.name)}
+                   title={`${stage.name} - ${isCompleted ? 'Completed' : isCurrent ? 'Current' : 'Future'} stage${records.length > 0 ? ` (${records.length} update${records.length > 1 ? 's' : ''})` : ''}`}
+                 >
                   {/* Node circle with checkmark if completed */}
                   <div className={`w-5 h-5 flex items-center justify-center rounded-full border-2 transition-all duration-300
                     ${isCompleted
@@ -192,7 +193,87 @@ export function StagePipeline({
                       <span className="w-2 h-2 rounded-full bg-card block"></span>
                     )}
                   </div>
-                  <span className="transition-all duration-300">{stage.name}</span>
+                  <div className="flex flex-col">
+                    <span className="transition-all duration-300">{stage.name}</span>
+                    {/* Duration indicator */}
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                      {(() => {
+                        // If there's a transition record for this stage, calculate actual duration
+                        if (latestRecord && latestRecord.date) {
+                          const stageDate = new Date(latestRecord.date);
+                          let endDate;
+                          
+                          // Find the next stage record to calculate duration
+                          const nextStageRecord = localTransitionHistory
+                            .filter(record => record.stage !== stage.name)
+                            .find(record => {
+                              const recordDate = new Date(record.date);
+                              return recordDate > stageDate;
+                            });
+                          
+                          if (nextStageRecord) {
+                            // If there's a next stage, calculate duration between stages
+                            endDate = new Date(nextStageRecord.date);
+                          } else if (isCurrent) {
+                            // If this is the current stage, use current time
+                            endDate = new Date();
+                          } else {
+                            // If no next stage and not current, return empty
+                            return '';
+                          }
+                          
+                          const diffTime = Math.abs(endDate.getTime() - stageDate.getTime());
+                          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                          
+                          if (diffDays === 1) {
+                            return '1 day';
+                          } else if (diffDays < 7) {
+                            return `${diffDays} days`;
+                          } else if (diffDays < 30) {
+                            const weeks = Math.floor(diffDays / 7);
+                            return `${weeks} week${weeks > 1 ? 's' : ''}`;
+                          } else {
+                            const months = Math.floor(diffDays / 30);
+                            return `${months} month${months > 1 ? 's' : ''}`;
+                          }
+                        }
+                        
+                        // For stages without transition records, show default duration based on stage position
+                        if (!isCompleted && !isCurrent) {
+                          // Calculate expected duration based on stage position
+                          const stageIndex = localStages.findIndex(s => s.name === stage.name);
+                          
+                          // Default duration logic: earlier stages typically take less time
+                          let defaultDays;
+                          if (stageIndex === 0) {
+                            defaultDays = 3; // First stage: 3 days
+                          } else if (stageIndex === 1) {
+                            defaultDays = 5; // Second stage: 5 days
+                          } else if (stageIndex === 2) {
+                            defaultDays = 7; // Third stage: 7 days
+                          } else if (stageIndex === 3) {
+                            defaultDays = 10; // Fourth stage: 10 days
+                          } else {
+                            defaultDays = 14; // Later stages: 14 days
+                          }
+                          
+                          if (defaultDays === 1) {
+                            return '1 day';
+                          } else if (defaultDays < 7) {
+                            return `${defaultDays} days`;
+                          } else if (defaultDays < 30) {
+                            const weeks = Math.floor(defaultDays / 7);
+                            return `${weeks} week${weeks > 1 ? 's' : ''}`;
+                          } else {
+                            const months = Math.floor(defaultDays / 30);
+                            return `${months} month${months > 1 ? 's' : ''}`;
+                          }
+                        }
+                        
+                        return '';
+                      })()}
+                    </div>
+                  </div>
                   {/* Show loading indicator for current stage during transition */}
                   {isCurrent && isTransitioning && (
                     <div className="w-2 h-2 border border-current border-t-transparent rounded-full animate-spin" />
@@ -247,6 +328,88 @@ export function StagePipeline({
                 ) : (
                   <div className="text-xs text-muted-foreground">No transition record for this stage yet.</div>
                 )}
+                
+                {/* Duration information */}
+                <div className="mt-3 pt-2 border-t border-muted">
+                  <div className="text-xs text-muted-foreground mb-1">Duration:</div>
+                  <div className="text-sm">
+                    {(() => {
+                      // If there's a transition record for this stage, calculate actual duration
+                      if (latestRecord && latestRecord.date) {
+                        const stageDate = new Date(latestRecord.date);
+                        let endDate;
+                        
+                        // Find the next stage record to calculate duration
+                        const nextStageRecord = localTransitionHistory
+                          .filter(record => record.stage !== stage.name)
+                          .find(record => {
+                            const recordDate = new Date(record.date);
+                            return recordDate > stageDate;
+                          });
+                        
+                        if (nextStageRecord) {
+                          // If there's a next stage, calculate duration between stages
+                          endDate = new Date(nextStageRecord.date);
+                        } else if (isCurrent) {
+                          // If this is the current stage, use current time
+                          endDate = new Date();
+                        } else {
+                          // If no next stage and not current, return empty
+                          return 'Completed';
+                        }
+                        
+                        const diffTime = Math.abs(endDate.getTime() - stageDate.getTime());
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        
+                        if (diffDays === 1) {
+                          return '1 day';
+                        } else if (diffDays < 7) {
+                          return `${diffDays} days`;
+                        } else if (diffDays < 30) {
+                          const weeks = Math.floor(diffDays / 7);
+                          return `${weeks} week${weeks > 1 ? 's' : ''}`;
+                        } else {
+                          const months = Math.floor(diffDays / 30);
+                          return `${months} month${months > 1 ? 's' : ''}`;
+                        }
+                      }
+                      
+                      // For stages without transition records, show default duration based on stage position
+                      if (!isCompleted && !isCurrent) {
+                        // Calculate expected duration based on stage position
+                        const stageIndex = localStages.findIndex(s => s.name === stage.name);
+                        
+                        // Default duration logic: earlier stages typically take less time
+                        let defaultDays;
+                        if (stageIndex === 0) {
+                          defaultDays = 3; // First stage: 3 days
+                        } else if (stageIndex === 1) {
+                          defaultDays = 5; // Second stage: 5 days
+                        } else if (stageIndex === 2) {
+                          defaultDays = 7; // Third stage: 7 days
+                        } else if (stageIndex === 3) {
+                          defaultDays = 10; // Fourth stage: 10 days
+                        } else {
+                          defaultDays = 14; // Later stages: 14 days
+                        }
+                        
+                        if (defaultDays === 1) {
+                          return '1 day (expected)';
+                        } else if (defaultDays < 7) {
+                          return `${defaultDays} days (expected)`;
+                        } else if (defaultDays < 30) {
+                          const weeks = Math.floor(defaultDays / 7);
+                          return `${weeks} week${weeks > 1 ? 's' : ''} (expected)`;
+                        } else {
+                          const months = Math.floor(defaultDays / 30);
+                          return `${months} month${months > 1 ? 's' : ''} (expected)`;
+                        }
+                      }
+                      
+                      return 'Not started';
+                    })()}
+                  </div>
+                </div>
               </PopoverContent>
             </Popover>
             
@@ -258,21 +421,122 @@ export function StagePipeline({
               style={{ cursor: 'pointer' }}
             />
             
-            {/* Tooltip only appears when hovering the hover zone, not the button */}
-            {hoveredIdx === idx && records.length > 0 && (
-              <div className="absolute left-[calc(100%+2rem)] top-1/2 -translate-y-1/2 ml-2 px-3 py-2 bg-black text-white text-xs rounded shadow-lg z-50 max-w-xs whitespace-pre-line min-w-[220px] max-h-64 overflow-y-auto">
-                <div className="mb-1 font-semibold">Stage Notes</div>
-                <ul className="space-y-2">
-                  {records.map((record, i) => (
-                    <li key={record.id} className="border-b border-gray-700 pb-1 last:border-b-0 last:pb-0">
-                      <div className="mb-0.5">{record.notes || <span className='italic text-gray-300'>No note</span>}</div>
-                      <div className="text-[10px] text-gray-300">
-                        By: {record.actingUserName || 'Unknown'}
-                        {record.date ? ` | ${new Date(record.date).toLocaleString()}` : ''}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+            {/* Enhanced tooltip that appears when hovering the hover zone */}
+            {hoveredIdx === idx && (
+              <div className="absolute left-[calc(100%+2rem)] top-1/2 -translate-y-1/2 ml-2 px-3 py-2 bg-black text-white text-xs rounded shadow-lg z-50 max-w-xs whitespace-pre-line min-w-[280px] max-h-64 overflow-y-auto">
+                <div className="mb-2 font-semibold text-sm">{stage.name}</div>
+                <div className="text-[10px] text-gray-300 mb-2">
+                  {isCompleted ? 'Completed Stage' : isCurrent ? 'Current Stage' : 'Future Stage'}
+                </div>
+                
+                {records.length > 0 ? (
+                  <>
+                    <div className="text-[10px] text-gray-300 mb-1 font-medium">Stage Updates:</div>
+                    <ul className="space-y-2">
+                      {records.map((record, i) => (
+                        <li key={record.id} className="border-b border-gray-700 pb-1 last:border-b-0 last:pb-0">
+                          <div className="mb-1 text-xs">
+                            {record.notes || <span className='italic text-gray-300'>No note</span>}
+                          </div>
+                          <div className="text-[10px] text-gray-300 flex items-center gap-1">
+                            <span>👤 {record.actingUserName || 'Unknown'}</span>
+                          </div>
+                          <div className="text-[10px] text-gray-300 flex items-center gap-1">
+                            <span>🕒 {record.date ? new Date(record.date).toLocaleString() : 'Unknown time'}</span>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                ) : (
+                  <div className="text-[10px] text-gray-300">
+                    {isCompleted ? 'Stage completed but no notes were added.' : 
+                     isCurrent ? 'No updates recorded for current stage.' : 
+                     'This stage has not been reached yet.'}
+                  </div>
+                )}
+                
+                {/* Duration information */}
+                <div className="mt-2 pt-1 border-t border-gray-700">
+                  <div className="text-[10px] text-gray-300 mb-1">Duration:</div>
+                  <div className="text-xs">
+                    {(() => {
+                      // If there's a transition record for this stage, calculate actual duration
+                      if (latestRecord && latestRecord.date) {
+                        const stageDate = new Date(latestRecord.date);
+                        let endDate;
+                        
+                        // Find the next stage record to calculate duration
+                        const nextStageRecord = localTransitionHistory
+                          .filter(record => record.stage !== stage.name)
+                          .find(record => {
+                            const recordDate = new Date(record.date);
+                            return recordDate > stageDate;
+                          });
+                        
+                        if (nextStageRecord) {
+                          // If there's a next stage, calculate duration between stages
+                          endDate = new Date(nextStageRecord.date);
+                        } else if (isCurrent) {
+                          // If this is the current stage, use current time
+                          endDate = new Date();
+                        } else {
+                          // If no next stage and not current, return empty
+                          return 'Completed';
+                        }
+                        
+                        const diffTime = Math.abs(endDate.getTime() - stageDate.getTime());
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        
+                        if (diffDays === 1) {
+                          return '1 day';
+                        } else if (diffDays < 7) {
+                          return `${diffDays} days`;
+                        } else if (diffDays < 30) {
+                          const weeks = Math.floor(diffDays / 7);
+                          return `${weeks} week${weeks > 1 ? 's' : ''}`;
+                        } else {
+                          const months = Math.floor(diffDays / 30);
+                          return `${months} month${months > 1 ? 's' : ''}`;
+                        }
+                      }
+                      
+                      // For stages without transition records, show default duration based on stage position
+                      if (!isCompleted && !isCurrent) {
+                        // Calculate expected duration based on stage position
+                        const stageIndex = localStages.findIndex(s => s.name === stage.name);
+                        
+                        // Default duration logic: earlier stages typically take less time
+                        let defaultDays;
+                        if (stageIndex === 0) {
+                          defaultDays = 3; // First stage: 3 days
+                        } else if (stageIndex === 1) {
+                          defaultDays = 5; // Second stage: 5 days
+                        } else if (stageIndex === 2) {
+                          defaultDays = 7; // Third stage: 7 days
+                        } else if (stageIndex === 3) {
+                          defaultDays = 10; // Fourth stage: 10 days
+                        } else {
+                          defaultDays = 14; // Later stages: 14 days
+                        }
+                        
+                        if (defaultDays === 1) {
+                          return '1 day (expected)';
+                        } else if (defaultDays < 7) {
+                          return `${defaultDays} days (expected)`;
+                        } else if (defaultDays < 30) {
+                          const weeks = Math.floor(defaultDays / 7);
+                          return `${weeks} week${weeks > 1 ? 's' : ''} (expected)`;
+                        } else {
+                          const months = Math.floor(defaultDays / 30);
+                          return `${months} month${months > 1 ? 's' : ''} (expected)`;
+                        }
+                      }
+                      
+                      return 'Not started';
+                    })()}
+                  </div>
+                </div>
               </div>
             )}
           </div>

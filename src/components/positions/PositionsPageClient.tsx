@@ -786,7 +786,7 @@ export default function PositionsPageClient() {
       setSortDirection('asc');
       return;
     }
-    if (sortColumn === column && direction == null) {
+    if (sortColumn === column && (direction === null || direction === undefined)) {
       // 3-state toggle: unsorted -> asc -> desc -> unsorted
       if (sortDirection === 'asc') {
         setSortDirection('desc');
@@ -1228,13 +1228,13 @@ export default function PositionsPageClient() {
           
           {/* Bulk Action Bar */}
           {selectedIds.length > 0 && (
-            <div className="flex items-center gap-4 p-3 bg-muted border-b border-border">
-              <span className="font-medium">{selectedIds.length} selected</span>
-              <Button variant="destructive" size="sm" onClick={() => setShowBulkDeleteConfirm(true)}>
-                <Trash2 className="h-4 w-4 mr-1" /> Bulk Delete
+            <div className="flex items-center gap-3 p-2 bg-muted/30 border-b border-border">
+              <span className="text-sm text-muted-foreground">{selectedIds.length} selected</span>
+              <Button variant="ghost" size="sm" onClick={() => setShowBulkDeleteConfirm(true)} className="h-7 px-2 text-destructive hover:bg-destructive/10 hover:text-destructive">
+                <Trash2 className="h-3 w-3 mr-1" /> Delete
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => setSelectedIds([])}>
-                Clear Selection
+              <Button variant="ghost" size="sm" onClick={() => setSelectedIds([])} className="h-7 px-2 text-muted-foreground hover:text-foreground">
+                Clear
               </Button>
             </div>
           )}

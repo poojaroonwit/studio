@@ -21,11 +21,19 @@ interface RecruiterAvatarProps {
 }
 
 const sizeClasses = {
-  xs: 'h-4 w-4',
+  xs: 'w-6 h-6',
   sm: 'h-8 w-8',
   md: 'h-10 w-10',
   lg: 'h-12 w-12',
   xl: 'h-16 w-16'
+};
+
+const fontSizeClasses = {
+  xs: 'text-xs',
+  sm: 'text-xs',
+  md: 'text-sm',
+  lg: 'text-base',
+  xl: 'text-lg'
 };
 
 export function RecruiterAvatar({
@@ -115,13 +123,16 @@ export function RecruiterAvatar({
         />
       ) : null}
       <AvatarFallback
-        className="bg-gradient-to-br from-blue-500/20 to-indigo-600/20 text-blue-700 dark:text-blue-300 font-bold rounded-full"
+        className={cn(
+          "bg-gradient-to-br from-blue-500/20 to-indigo-600/20 text-blue-700 dark:text-blue-300 font-bold rounded-full",
+          fontSizeClasses[size]
+        )}
         style={{
           backgroundColor: personalColor + '20',
           color: personalColor
         }}
       >
-        {initials || <UserCircle className={size === 'xs' ? 'h-2 w-2' : 'h-4 w-4'} />}
+        {initials || <UserCircle className={cn(size === 'xs' ? 'h-2.5 w-2.5' : size === 'sm' ? 'h-3 w-3' : size === 'md' ? 'h-4 w-4' : size === 'lg' ? 'h-5 w-5' : 'h-6 w-6')} />}
       </AvatarFallback>
     </Avatar>
   );

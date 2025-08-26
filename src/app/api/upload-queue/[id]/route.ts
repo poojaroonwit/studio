@@ -82,7 +82,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     }
     // Publish queue update event
     try {
-      broadcastUploadQueueUpdate();
+      await broadcastUploadQueueUpdate();
     } catch (err) {
       console.error('Failed to broadcast upload queue update via SSE:', err);
     }
@@ -109,7 +109,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     }
     // Publish queue update event
     try {
-      broadcastUploadQueueUpdate();
+      await broadcastUploadQueueUpdate();
     } catch (err) {
       console.error('Failed to broadcast upload queue update via SSE:', err);
     }
@@ -145,7 +145,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     // Process the job (send to webhook)
     const result = await processSingleUploadQueueJob(job, client);
     try {
-      broadcastUploadQueueUpdate();
+      await broadcastUploadQueueUpdate();
     } catch (err) {
       console.error('Failed to broadcast upload queue update via SSE:', err);
     }

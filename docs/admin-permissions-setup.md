@@ -10,7 +10,7 @@ This document explains how the admin role permissions are configured to ensure f
 ✅ **Admin user direct permissions are correctly set**
 ✅ **Database initialization and seed files updated**
 
-## Available Permissions (36 total)
+## Available Permissions (32 total)
 
 ### Candidate Management (12 permissions)
 - `CANDIDATES_VIEW` - View candidate profiles and lists
@@ -60,11 +60,7 @@ This document explains how the admin role permissions are configured to ensure f
 - `ANALYTICS_VIEW` - View detailed analytics and reports
 - `WEBHOOK_ANALYTICS_VIEW` - View webhook performance analytics
 
-### Department Management (4 permissions)
-- `HR_DEPARTMENT_MANAGE` - Full HR department management
-- `IT_DEPARTMENT_MANAGE` - Full IT department management
-- `FINANCE_DEPARTMENT_MANAGE` - Full Finance department management
-- `MARKETING_DEPARTMENT_MANAGE` - Full Marketing department management
+
 
 ## Files Updated
 

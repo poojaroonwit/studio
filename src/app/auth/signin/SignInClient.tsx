@@ -255,8 +255,30 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
   }, [currentAppName]);
 
   useEffect(() => {
+    console.log('[SIGNIN CLIENT] Status:', status, 'Session:', session?.user?.id);
     if (status === "authenticated" && session) {
-      router.replace(callbackUrl);
+      console.log('[SIGNIN CLIENT] Redirecting to:', callbackUrl);
+      // Add a small delay to ensure the session is fully established
+      const timer = setTimeout(() => {
+        try {
+          router.replace(callbackUrl);
+        } catch (error) {
+          console.error('[SIGNIN CLIENT] Router error:', error);
+          // Fallback to window.location if router fails
+          window.location.href = callbackUrl;
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+    
+    // Add a timeout to prevent infinite loading
+    if (status === "loading") {
+      const timeout = setTimeout(() => {
+        console.warn('[SIGNIN CLIENT] Authentication loading timeout - forcing refresh');
+        window.location.reload();
+      }, 10000); // 10 seconds timeout
+      
+      return () => clearTimeout(timeout);
     }
   }, [session, status, router, callbackUrl]);
 
@@ -352,6 +374,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-100 to-sky-100 dark:from-slate-900 dark:to-sky-900 p-4">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="mt-4 text-muted-foreground">Loading authentication...</p>
       </div>
     );
   }
@@ -359,8 +382,9 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
   if (status === "authenticated") {
     return (
        <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-100 to-sky-100 dark:from-slate-900 dark:to-sky-900 p-4">
-        <p>Redirecting...</p>
+        <p className="text-lg font-medium">Redirecting to dashboard...</p>
         <Loader2 className="h-8 w-8 animate-spin text-primary mt-2" />
+        <p className="mt-2 text-sm text-muted-foreground">Please wait while we redirect you</p>
       </div>
     );
   }
@@ -459,7 +483,9 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
                   <span className="text-2xl font-bold text-primary-foreground">CT</span>
                 </div>
               )}
-              <h2 className="text-2xl font-bold text-foreground">{currentAppName}</h2>
+              {!showLogoOnly && (
+                <h2 className="text-2xl font-bold text-foreground">{currentAppName}</h2>
+              )}
             </div>
 
                 {errorMessage && (

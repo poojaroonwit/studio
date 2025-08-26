@@ -384,7 +384,7 @@ export async function POST(request: NextRequest) {
     }
     // Broadcast SSE update for real-time updates
     try {
-      broadcastUploadQueueUpdate();
+      await broadcastUploadQueueUpdate();
     } catch (sseError) {
       // Failed to broadcast upload queue update via SSE
     }

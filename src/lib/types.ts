@@ -10,7 +10,6 @@ export const PLATFORM_MODULE_CATEGORIES = {
   USER_ACCESS_CONTROL: "User Access Control",
   SYSTEM_CONFIGURATION: "System Configuration",
   LOGGING_AUDIT: "Logging & Audit",
-  DEPARTMENT_MANAGEMENT: "Department Management",
 } as const;
 
 export type PlatformModuleCategory = typeof PLATFORM_MODULE_CATEGORIES[keyof typeof PLATFORM_MODULE_CATEGORIES];
@@ -64,19 +63,11 @@ export const PLATFORM_MODULES: PlatformModule[] = [
   
   // Logging & Audit
   { id: 'LOGS_VIEW', label: 'View Application Logs', category: PLATFORM_MODULE_CATEGORIES.LOGGING_AUDIT, description: "Allows viewing system and audit logs." },
-  { id: 'AUDIT_LOGS_VIEW', label: 'View Audit Logs', category: PLATFORM_MODULE_CATEGORIES.LOGGING_AUDIT, description: "Allows viewing detailed audit logs of system activities." },
-  { id: 'WEBHOOK_LOGS_VIEW', label: 'View Webhook Logs', category: PLATFORM_MODULE_CATEGORIES.LOGGING_AUDIT, description: "Allows viewing webhook delivery logs and analytics." },
+  { id: 'APP_PERFORMANCE_VIEW', label: 'View Application Performance Monitor', category: PLATFORM_MODULE_CATEGORIES.LOGGING_AUDIT, description: "Allows viewing the floating application performance monitor widget." },
   
   // Analytics & Reporting
   { id: 'DASHBOARD_VIEW', label: 'View Dashboard', category: PLATFORM_MODULE_CATEGORIES.LOGGING_AUDIT, description: "Allows viewing the main dashboard with analytics and metrics." },
-  { id: 'ANALYTICS_VIEW', label: 'View Analytics', category: PLATFORM_MODULE_CATEGORIES.LOGGING_AUDIT, description: "Allows viewing detailed analytics and reports." },
   { id: 'WEBHOOK_ANALYTICS_VIEW', label: 'View Webhook Analytics', category: PLATFORM_MODULE_CATEGORIES.LOGGING_AUDIT, description: "Allows viewing webhook performance analytics." },
-  
-  // Department Management
-  { id: 'HR_DEPARTMENT_MANAGE', label: 'Manage HR Department', category: PLATFORM_MODULE_CATEGORIES.DEPARTMENT_MANAGEMENT, description: "Allows full management of HR department including users, records, and settings." },
-  { id: 'IT_DEPARTMENT_MANAGE', label: 'Manage IT Department', category: PLATFORM_MODULE_CATEGORIES.DEPARTMENT_MANAGEMENT, description: "Allows full management of IT department including users, records, and settings." },
-  { id: 'FINANCE_DEPARTMENT_MANAGE', label: 'Manage Finance Department', category: PLATFORM_MODULE_CATEGORIES.DEPARTMENT_MANAGEMENT, description: "Allows full management of Finance department including users, records, and settings." },
-  { id: 'MARKETING_DEPARTMENT_MANAGE', label: 'Manage Marketing Department', category: PLATFORM_MODULE_CATEGORIES.DEPARTMENT_MANAGEMENT, description: "Allows full management of Marketing department including users, records, and settings." },
 ];
 
 export type PlatformModuleId = PlatformModule['id'];

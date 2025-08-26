@@ -410,7 +410,7 @@ export async function POST(request: NextRequest) {
 
     // Step 9: Broadcast SSE update for real-time UI updates
     try {
-      broadcastUploadQueueUpdate();
+      await broadcastUploadQueueUpdate();
     } catch (sseError) {
       console.error('[UPLOAD] Failed to broadcast upload queue update via SSE:', sseError);
     }

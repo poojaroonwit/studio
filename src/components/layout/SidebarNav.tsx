@@ -157,11 +157,15 @@ const usePendingCount = () => {
   // Use unified real-time hook for upload queue updates with optimized callbacks
   const { isConnected } = useUnifiedRealtime({
     onUploadQueueUpdate: useCallback((data: any) => {
+      console.log('[SidebarNav] Received upload queue update:', data);
       if (data.type === 'queue' && data.summary) {
         const count = (data.summary.queued || 0) + (data.summary.inprocess || 0);
+        console.log('[SidebarNav] Setting pending count to:', count);
         setPendingCount(count);
         setPendingError(false);
         setIsPendingLoading(false);
+      } else {
+        console.log('[SidebarNav] Invalid data structure:', data);
       }
     }, [])
   });

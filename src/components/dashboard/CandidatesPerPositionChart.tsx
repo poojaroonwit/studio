@@ -1,22 +1,13 @@
 "use client"
 
-import React, { useMemo, useEffect } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import type { Candidate, Position } from "@/lib/types"
 import { BarChart3, TrendingUp, Users } from "lucide-react";
 // Static imports for chart elements
 import { Bar } from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-} from 'chart.js';
-import { setupChartJS } from '@/lib/chartjs-setup';
+import { setupChartJS, isChartJSSetup } from '@/lib/chartjs-setup';
 
 
 interface CandidatesPerPositionChartProps {
@@ -25,9 +16,31 @@ interface CandidatesPerPositionChartProps {
 }
 
 export function CandidatesPerPositionChart({ candidates, positions }: CandidatesPerPositionChartProps) {
+  const [chartReady, setChartReady] = useState(false);
+  
   // Setup Chart.js on component mount
   useEffect(() => {
-    setupChartJS();
+    const setupChart = async () => {
+      try {
+        await setupChartJS();
+        // Double-check that setup is complete
+        if (isChartJSSetup()) {
+          setChartReady(true);
+        } else {
+          console.warn('Chart.js setup reported complete but isChartJSSetup() returned false');
+          // Retry after a short delay
+          setTimeout(() => {
+            if (isChartJSSetup()) {
+              setChartReady(true);
+            }
+          }, 100);
+        }
+      } catch (error) {
+        console.error('Failed to setup Chart.js:', error);
+      }
+    };
+    
+    setupChart();
   }, []);
 
   // Memoize the data processing to prevent unnecessary recalculations
@@ -135,6 +148,14 @@ export function CandidatesPerPositionChart({ candidates, positions }: Candidates
       </CardHeader>
         <CardContent className="relative">
           <div className="h-[400px] w-full">
+            {!chartReady || !isChartJSSetup() ? (
+              <div className="h-full flex items-center justify-center">
+                <div className="text-center space-y-3">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+                  <p className="text-muted-foreground">Loading chart...</p>
+                </div>
+              </div>
+            ) : (
         <Bar
           data={{
             labels: data.map(d => d.position),
@@ -267,6 +288,7 @@ export function CandidatesPerPositionChart({ candidates, positions }: Candidates
                 }
               }}
             />
+            )}
           </div>
           
           {/* Summary Stats */}

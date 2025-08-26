@@ -163,6 +163,15 @@ else
     # Don't exit on seeding failure as it might be due to existing data
 fi
 
+# Initialize warning conditions for all users
+echo "🚨 Initializing warning conditions for all users..."
+if node scripts/initialize-warning-conditions.cjs; then
+    echo "✅ Warning conditions initialization completed"
+else
+    echo "⚠️  Warning conditions initialization failed or already completed"
+    # Don't exit on warning conditions failure as it might be due to existing data
+fi
+
 echo "✅ Database setup complete!"
 
 # Start the main application with processor and health check

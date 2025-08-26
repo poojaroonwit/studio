@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { CandidateAvatar } from '@/components/ui/candidate-avatar';
 import { Badge } from '@/components/ui/badge';
 import { 
   User, 
@@ -220,12 +220,11 @@ export function HeadcountModal({
                 {selectedCandidate && (
                   <div className="mt-2 p-3 border rounded-lg bg-muted/50">
                     <div className="flex items-center gap-3">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={selectedCandidate.avatarUrl || undefined} />
-                        <AvatarFallback>
-                          {selectedCandidate.name.charAt(0).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
+                      <CandidateAvatar 
+                        user={selectedCandidate}
+                        size="md"
+                        className="h-8 w-8"
+                      />
                       <div className="flex-1">
                         <div className="font-medium">{selectedCandidate.name}</div>
                         <div className="text-sm text-muted-foreground">{selectedCandidate.email}</div>
@@ -258,12 +257,11 @@ export function HeadcountModal({
                             setShowCandidateDropdown(false);
                           }}
                         >
-                          <Avatar className="h-8 w-8">
-                            <AvatarImage src={candidate.avatarUrl || undefined} />
-                            <AvatarFallback>
-                              {candidate.name.charAt(0).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
+                          <CandidateAvatar 
+                            user={candidate}
+                            size="md"
+                            className="h-8 w-8"
+                          />
                           <div>
                             <div className="font-medium">{candidate.name}</div>
                             <div className="text-sm text-muted-foreground">{candidate.email}</div>

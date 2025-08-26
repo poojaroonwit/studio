@@ -1,7 +1,8 @@
 import { type NextAuthOptions } from 'next-auth';
 import AzureADProvider from 'next-auth/providers/azure-ad';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import { getPool, getMergedUserPermissions } from '@/lib/db';
+import { getPool } from '@/lib/db';
+import { authenticateUser, getUserSessionData, getUserPermissions } from '@/lib/authUtils';
 import bcrypt from 'bcryptjs';
 import { logAudit } from '@/lib/auditLog';
 import type { UserProfile, PlatformModuleId } from '@/lib/types';
@@ -125,35 +126,15 @@ export const authOptions: NextAuthOptions = {
             throw new Error("Please enter both email and password.");
           }
   
-          const client = await getPool().connect();
-          try {
-            const result = await client.query('SELECT * FROM "User" WHERE email = $1', [credentials.email]);
-            const user = result.rows[0];
+          console.log('[AUTH DEBUG] Attempting to authorize user:', credentials.email);
+          const user = await authenticateUser(credentials.email, credentials.password);
           
-            if (user && user.password) {
-              const isValid = await bcrypt.compare(credentials.password, user.password);
-            
-              if (isValid) {
-                // Fetch group permissions only
-                const groupPermissions = await getMergedUserPermissions(user.id) as PlatformModuleId[];
-                // Return a user object, omitting the password
-                return {
-                  id: user.id,
-                  name: user.name,
-                  email: user.email,
-                  role: user.role,
-                  image: user.image,
-                  modulePermissions: groupPermissions,
-                };
-              }
-            }
+          if (user) {
+            console.log('[AUTH DEBUG] User authorized successfully:', user.id);
+            return user;
+          } else {
+            console.log('[AUTH DEBUG] Authentication failed for user:', credentials.email);
             return null;
-          } catch (error) {
-              console.error('[AUTH DEBUG] Authorize error:', error);
-              console.error("Authorize error:", error);
-              return null;
-          } finally {
-              client.release();
           }
         }
       })
@@ -163,6 +144,7 @@ export const authOptions: NextAuthOptions = {
       maxAge: 30 * 24 * 60 * 60, // 30 days
       updateAge: 24 * 60 * 60, // 24 hours
     },
+    debug: process.env.NODE_ENV === 'development',
     callbacks: {
       async jwt({ token, user, account, profile }) {
         // Helper to check if a string is a valid UUID
@@ -175,6 +157,9 @@ export const authOptions: NextAuthOptions = {
           token.id = user.id;
           token.role = user.role;
           token.modulePermissions = user.modulePermissions as PlatformModuleId[];
+          // Cache user data in token to avoid repeated database calls
+          (token as any).avatarUrl = (user as any).avatarUrl;
+          (token as any).personalColor = (user as any).personalColor;
         }
         // If token.id is not a valid UUID (e.g., Azure AD providerAccountId), fetch the user by email or azure_oid
         if (typeof token.id === "string" && !validateUuid(token.id)) {
@@ -198,10 +183,10 @@ export const authOptions: NextAuthOptions = {
             client.release();
           }
         }
-        // Always fetch fresh group permissions if token.id is a UUID
-        if (typeof token.id === 'string' && validateUuid(token.id)) {
+        // Only fetch fresh permissions if we don't have them or if this is a new sign-in
+        if (typeof token.id === 'string' && validateUuid(token.id) && (!token.modulePermissions || account)) {
           try {
-            const freshPermissions = await getMergedUserPermissions(token.id as string);
+            const freshPermissions = await getUserPermissions(token.id as string);
             token.modulePermissions = freshPermissions as PlatformModuleId[];
             // console.log(`[JWT CALLBACK] Loaded permissions for user ${token.id}:`, freshPermissions);
           } catch (e) {
@@ -226,43 +211,31 @@ export const authOptions: NextAuthOptions = {
           }
           session.user.role = token.role as UserProfile['role'];
           
-          // Always fetch fresh permissions to ensure they're up to date
-          if (token.id && validateUuid(token.id as string)) {
-            try {
-              const freshPermissions = await getMergedUserPermissions(token.id as string);
-              session.user.modulePermissions = freshPermissions as PlatformModuleId[];
-            } catch (error) {
-              console.error('[SESSION CALLBACK] Error fetching fresh permissions:', error);
-              // Fallback to token permissions if fresh fetch fails
-              session.user.modulePermissions = token.modulePermissions as PlatformModuleId[] || [];
-            }
-          } else {
-            session.user.modulePermissions = token.modulePermissions as PlatformModuleId[] || [];
-          }
+          // Use permissions from token (already fetched in JWT callback)
+          session.user.modulePermissions = token.modulePermissions as PlatformModuleId[] || [];
           
           // Fetch user data including avatarUrl and personalColor from database
-          if (token.id) {
+          // Only fetch if we don't have this data in the token or if it's a new session
+          if (token.id && validateUuid(token.id as string) && (!(token as any).avatarUrl || !(token as any).personalColor)) {
             try {
-              const client = await getPool().connect();
-              try {
-                const result = await client.query(
-                  'SELECT "avatarUrl", "image", "personal_color" FROM "User" WHERE id = $1',
-                  [token.id]
-                );
-                if (result.rows.length > 0) {
-                  const userData = result.rows[0];
-                  // Add avatarUrl to session (avatarUrl takes precedence over image)
-                  session.user.avatarUrl = userData.avatarUrl || userData.image || null;
-                  // Add personalColor to session (map from snake_case to camelCase)
-                  session.user.personalColor = userData.personal_color || null;
-                }
-              } finally {
-                client.release();
+              const userData = await getUserSessionData(token.id as string);
+              if (userData) {
+                // Add avatarUrl to session (avatarUrl takes precedence over image)
+                session.user.avatarUrl = userData.avatarUrl || userData.image || null;
+                // Add personalColor to session (map from snake_case to camelCase)
+                session.user.personalColor = userData.personalColor || null;
+                // Cache in token for future use
+                (token as any).avatarUrl = session.user.avatarUrl;
+                (token as any).personalColor = session.user.personalColor;
               }
             } catch (error) {
               console.error('[SESSION CALLBACK] Error fetching user data:', error);
               // Don't fail the session if data fetch fails
             }
+          } else {
+            // Use cached data from token
+            session.user.avatarUrl = (token as any).avatarUrl || null;
+            session.user.personalColor = (token as any).personalColor || null;
           }
         }
         return session;

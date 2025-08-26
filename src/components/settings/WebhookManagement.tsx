@@ -1367,18 +1367,18 @@ export default function WebhookManagement() {
 
                         {/* Bulk Actions Bar */}
                         {getSelectedCount() > 0 && (
-                          <div className="mb-6 p-4 bg-muted rounded-lg border">
+                          <div className="mb-4 p-2 bg-muted/30 rounded border">
                             <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <CheckCircle className="h-5 w-5 text-primary" />
-                                <span className="font-medium">
+                              <div className="flex items-center gap-2">
+                                <CheckCircle className="h-4 w-4 text-primary" />
+                                <span className="text-sm text-muted-foreground">
                                   {getSelectedCount()} webhook{getSelectedCount() !== 1 ? 's' : ''} selected
                                 </span>
                               </div>
-                              <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-2">
                                 <Select value={bulkAction} onValueChange={setBulkAction}>
-                                  <SelectTrigger className="w-40">
-                                    <SelectValue placeholder="Select action" />
+                                  <SelectTrigger className="w-32 h-7 text-xs">
+                                    <SelectValue placeholder="Action" />
                                   </SelectTrigger>
                                   <SelectContent>
                                     <SelectItem value="enable">Enable Selected</SelectItem>
@@ -1388,21 +1388,24 @@ export default function WebhookManagement() {
                                 </Select>
                                 <Button
                                   size="sm"
+                                  variant="ghost"
                                   onClick={performBulkAction}
                                   disabled={!bulkAction || bulkLoading}
+                                  className="h-7 px-2"
                                 >
                                   {bulkLoading ? (
-                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
                                   ) : (
-                                    'Apply Action'
+                                    'Apply'
                                   )}
                                 </Button>
                                 <Button
                                   size="sm"
                                   variant="ghost"
                                   onClick={() => setSelectedWebhooks(new Set())}
+                                  className="h-7 px-2 text-muted-foreground hover:text-foreground"
                                 >
-                                  Clear Selection
+                                  Clear
                                 </Button>
                               </div>
                             </div>

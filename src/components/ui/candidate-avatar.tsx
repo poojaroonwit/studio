@@ -26,6 +26,13 @@ const sizeClasses = {
   xl: 'h-16 w-16'
 };
 
+const fontSizeClasses = {
+  sm: 'text-xs',
+  md: 'text-sm',
+  lg: 'text-base',
+  xl: 'text-lg'
+};
+
 export function CandidateAvatar({ 
   user, 
   size = 'md', 
@@ -107,13 +114,16 @@ export function CandidateAvatar({
         />
       ) : null}
       <AvatarFallback 
-        className="bg-gradient-to-br from-blue-500/20 to-indigo-600/20 text-blue-700 dark:text-blue-300 font-bold rounded-md"
+        className={cn(
+          "bg-gradient-to-br from-blue-500/20 to-indigo-600/20 text-blue-700 dark:text-blue-300 font-bold rounded-md",
+          fontSizeClasses[size]
+        )}
         style={{ 
           backgroundColor: personalColor + '20',
           color: personalColor
         }}
       >
-        {initials || <UserCircle className="h-4 w-4" />}
+        {initials || <UserCircle className={cn(size === 'sm' ? 'h-3 w-3' : size === 'md' ? 'h-4 w-4' : size === 'lg' ? 'h-5 w-5' : 'h-6 w-6')} />}
       </AvatarFallback>
     </Avatar>
   );

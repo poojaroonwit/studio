@@ -155,10 +155,10 @@ export function useCandidateFilters(initialFilters?: CandidateFilterValues) {
     // Immediate UI update for better responsiveness
     setFilters(combinedFilters);
     
-    // Debounce the callback to prevent excessive calls
+    // Reduced debounce for better responsiveness
     filterChangeTimeoutRef.current = setTimeout(() => {
       onFilterChange(combinedFilters);
-    }, 100); // 100ms debounce
+    }, 50); // Reduced from 100ms to 50ms for better responsiveness
   }, []); // Removed filters from dependency array to prevent infinite loop
 
   const clearAllFilters = useCallback(() => {

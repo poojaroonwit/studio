@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { CandidateAvatar } from '@/components/ui/candidate-avatar';
 import { 
   Plus, 
   Edit, 
@@ -422,12 +422,11 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
                     <TableCell>
                       {headcount.candidate ? (
                         <div className="flex items-center gap-2">
-                          <Avatar className="h-6 w-6">
-                            <AvatarImage src={headcount.candidate.avatarUrl || undefined} />
-                            <AvatarFallback>
-                              {headcount.candidate.name.charAt(0).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
+                          <CandidateAvatar 
+                            user={headcount.candidate}
+                            size="sm"
+                            className="h-6 w-6"
+                          />
                           <div>
                             <div className="font-medium text-sm">{headcount.candidate.name}</div>
                             <div className="text-xs text-muted-foreground">{headcount.candidate.email}</div>

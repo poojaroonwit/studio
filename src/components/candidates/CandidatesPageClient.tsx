@@ -40,7 +40,7 @@ import { CandidateSettingsDrawer } from './CandidateSettingsDrawer';
 import { useDynamicHeight } from '@/hooks/use-dynamic-height';
 import { useCandidateSettings } from '@/hooks/use-candidate-settings';
 import { useUnifiedRealtime } from '@/hooks/use-unified-realtime';
-import { CandidatePerformanceMonitor } from './CandidatePerformanceMonitor';
+import { ApplicationPerformanceMonitor } from './ApplicationPerformanceMonitor';
 
 // Import our new hooks
 import { useCandidateFilters } from './hooks/use-candidate-filters';
@@ -804,28 +804,24 @@ export function CandidatesPageClient({
 
   // Handle filter changes
   const onFilterChange = useCallback((newFilters: CandidateFilterValues) => {
-    // Clear any existing timeout
-    if (filterChangeTimeoutRef.current) {
-      clearTimeout(filterChangeTimeoutRef.current);
-    }
-    
     // Skip if we're currently clearing filters to prevent conflicts
     if (isClearingFilters) {
       return;
     }
     
+    console.log('🔍 CLIENT DEBUG: Received filter change:', newFilters);
+    
     // Reset page to 1 when filters change
     setPage(1);
     
-    // Debounce the filter change to prevent excessive calls
-    filterChangeTimeoutRef.current = setTimeout(() => {
-      handleFilterChange(newFilters, (filters) => {
-        setTableLoading(true);
-        debouncedFetchTableData(filters, 1, pageSize);
-        fetchAllCandidatesForCounts(filters); // Update counts data when filters change
-      });
-    }, 150); // Increased debounce to prevent rapid successive calls
-  }, [handleFilterChange, pageSize, debouncedFetchTableData, isClearingFilters, fetchAllCandidatesForCounts]);
+    // Apply filters immediately for better responsiveness
+    handleFilterChange(newFilters, (filters) => {
+      console.log('🔍 CLIENT DEBUG: Applying filters to API:', filters);
+      setTableLoading(true);
+      fetchTableData(filters, 1, pageSize);
+      fetchAllCandidatesForCounts(filters); // Update counts data when filters change
+    });
+  }, [handleFilterChange, pageSize, fetchTableData, isClearingFilters, fetchAllCandidatesForCounts]);
 
   // Update total count when filteredCandidates changes to ensure pagination is accurate
   useEffect(() => {
@@ -1314,7 +1310,7 @@ export function CandidatesPageClient({
                 sortColumn={sortColumn}
                 sortDirection={sortDirection}
                 onSort={(column, direction) => {
-                  if (column === sortColumn && direction === null) {
+                  if (column === sortColumn && (direction === null || direction === undefined)) {
                     // 3-state toggle: unsorted -> asc -> desc -> unsorted
                     if (sortDirection === 'asc') {
                       setSortDirection('desc');
@@ -1365,21 +1361,23 @@ export function CandidatesPageClient({
 
             {/* Bulk Action Footer - moved outside table area */}
             {selectedCandidateIds && selectedCandidateIds.size > 0 && (
-              <div className="border-t bg-muted/50 p-4">
+              <div className="border-t bg-muted/30 p-2">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <span className="font-medium text-sm">
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm text-muted-foreground">
                       {selectedCandidateIds.size} candidate{selectedCandidateIds.size !== 1 ? 's' : ''} selected
                     </span>
                     
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
                       <Button
                         onClick={() => handleBulkDelete(Array.from(selectedCandidateIds))}
                         disabled={!canManageCandidates}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90 h-9 px-3"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
                       >
-                        <Trash2 className="h-4 w-4 mr-1" />
-                        Delete Selected
+                        <Trash2 className="h-3 w-3 mr-1" />
+                        Delete
                       </Button>
                       
                       <Button
@@ -1390,10 +1388,12 @@ export function CandidatesPageClient({
           
                         }}
                         disabled={!canManageCandidates}
-                        className="border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2"
                       >
-                        <FileEdit className="h-4 w-4 mr-1" />
-                        Change Status
+                        <FileEdit className="h-3 w-3 mr-1" />
+                        Status
                       </Button>
                       
                       <Button
@@ -1402,19 +1402,23 @@ export function CandidatesPageClient({
                           setIsBulkRecruiterModalOpen(true);
                         }}
                         disabled={!canManageCandidates}
-                        className="border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2"
                       >
-                        <Users className="h-4 w-4 mr-1" />
-                        Assign Recruiter
+                        <Users className="h-3 w-3 mr-1" />
+                        Recruiter
                       </Button>
                     </div>
                   </div>
                   
                   <Button
                     onClick={() => setSelectedCandidateIds(new Set())}
-                    className="hover:bg-accent hover:text-accent-foreground h-9 px-3"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-muted-foreground hover:text-foreground"
                   >
-                    Clear Selection
+                    Clear
                   </Button>
                 </div>
               </div>
@@ -1674,17 +1678,15 @@ export function CandidatesPageClient({
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Performance Monitor - Admin Only */}
-      {session?.user?.role === 'Admin' && (
-        <CandidatePerformanceMonitor 
-          showDetails={showPerformanceMonitor}
-          onMetricsUpdate={(metrics) => {
-            // Optional: Handle metrics updates if needed
-            // console.log('Performance metrics updated:', metrics);
-          }}
-          onClose={() => setShowPerformanceMonitor(false)}
-        />
-      )}
+      {/* Performance Monitor - Permission Gated */}
+      <ApplicationPerformanceMonitor 
+        requiredPermission={'APP_PERFORMANCE_VIEW'}
+        showDetails={showPerformanceMonitor}
+        onMetricsUpdate={(metrics) => {
+          // Optional: Handle metrics updates if needed
+        }}
+        onClose={() => setShowPerformanceMonitor(false)}
+      />
     </>
   );
 }

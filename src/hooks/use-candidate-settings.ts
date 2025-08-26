@@ -26,8 +26,19 @@ export function useCandidateSettings() {
 
   // Load settings from database
   const loadSettings = useCallback(async () => {
+    // If session is still loading, wait a bit and try again
+    if (status === 'loading') {
+      // Add a small delay to ensure session is fully established
+      setTimeout(() => {
+        loadSettings();
+      }, 100);
+      return;
+    }
+
+    // If not authenticated, set loading to false and use defaults
     if (status !== 'authenticated' || !session?.user?.id) {
       setIsLoading(false);
+      setSettings(defaultSettings);
       return;
     }
 
@@ -35,9 +46,23 @@ export function useCandidateSettings() {
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch('/api/user-preferences');
+      const response = await fetch('/api/user-preferences', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        // Add timeout to prevent hanging requests
+        signal: AbortSignal.timeout(10000), // 10 second timeout
+      });
+      
       if (!response.ok) {
-        throw new Error('Failed to load settings');
+        if (response.status === 401) {
+          // If unauthorized, user might need to re-authenticate
+          setError('Authentication required. Please refresh the page.');
+        } else {
+          throw new Error(`Failed to load settings: ${response.status}`);
+        }
+        return;
       }
 
       const data = await response.json();
@@ -50,7 +75,11 @@ export function useCandidateSettings() {
       });
     } catch (err) {
       console.error('Error loading candidate settings:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load settings');
+      if (err instanceof Error && err.name === 'AbortError') {
+        setError('Request timeout. Please try again.');
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to load settings');
+      }
       // Fall back to default settings
       setSettings(defaultSettings);
     } finally {

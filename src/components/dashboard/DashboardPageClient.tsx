@@ -20,18 +20,6 @@ import { toast } from "react-hot-toast";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Pie, Bar, Line } from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  ArcElement,
-  LineElement,
-  PointElement,
-  Title,
-  Tooltip,
-  Legend,
-} from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { NewApplicationsTimeSeriesChart } from './NewApplicationsTimeSeriesChart';
 import { SCORE_COLOR_STOPS } from '@/components/ui/score-color';
@@ -41,7 +29,7 @@ import { PositionDetailDrawer } from '@/components/positions/PositionDetailDrawe
 import { useUnifiedRealtime } from '@/hooks/use-unified-realtime';
 import { usePermissionRefresh } from '@/hooks/use-permission-refresh';
 import { cn } from '@/lib/utils';
-import { setupChartJS } from '@/lib/chartjs-setup';
+import { setupChartJS, isChartJSSetup } from '@/lib/chartjs-setup';
 import '../../app/dashboard/dashboard.css';
 
 
@@ -90,9 +78,31 @@ export default function DashboardPageClient({
   // Permission refresh hook
   const { refreshPermissions } = usePermissionRefresh();
 
+  const [chartReady, setChartReady] = useState(false);
+  
   // Setup Chart.js on component mount
   useEffect(() => {
-    setupChartJS();
+    const setupChart = async () => {
+      try {
+        await setupChartJS();
+        // Double-check that setup is complete
+        if (isChartJSSetup()) {
+          setChartReady(true);
+        } else {
+          console.warn('Chart.js setup reported complete but isChartJSSetup() returned false');
+          // Retry after a short delay
+          setTimeout(() => {
+            if (isChartJSSetup()) {
+              setChartReady(true);
+            }
+          }, 100);
+        }
+      } catch (error) {
+        console.error('Failed to setup Chart.js:', error);
+      }
+    };
+    
+    setupChart();
   }, []);
 
   // Check permissions for dashboard access - based on actual permissions, not hardcoded roles
@@ -927,7 +937,14 @@ export default function DashboardPageClient({
                     <div className="h-[200px] flex items-center justify-center">
                       <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     </div>
-                  ) : (
+                                     ) : !chartReady || !isChartJSSetup() ? (
+                     <div className="h-[200px] flex items-center justify-center">
+                       <div className="text-center space-y-3">
+                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+                         <p className="text-muted-foreground">Loading chart...</p>
+                       </div>
+                     </div>
+                   ) : (
                     <Bar
                       data={{
                         labels: (() => {
@@ -1191,6 +1208,13 @@ export default function DashboardPageClient({
                   <div className="flex items-center justify-center">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
+                ) : !chartReady ? (
+                  <div className="flex items-center justify-center">
+                    <div className="text-center space-y-3">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+                      <p className="text-muted-foreground">Loading chart...</p>
+                    </div>
+                  </div>
                 ) : (
                   <Bar
                     data={{
@@ -1262,6 +1286,13 @@ export default function DashboardPageClient({
                 {isLoading ? (
                   <div className="flex items-center justify-center">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : !chartReady || !isChartJSSetup() ? (
+                  <div className="flex items-center justify-center">
+                    <div className="text-center space-y-3">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+                      <p className="text-muted-foreground">Loading chart...</p>
+                    </div>
                   </div>
                 ) : (
                   <Bar

@@ -415,13 +415,6 @@ export function PerformanceMonitor({
   return (
           <div
         ref={cardRef}
-        style={{
-          position: 'fixed',
-          left: position.x,
-          top: position.y,
-          zIndex: 9999,
-          cursor: isDragging ? 'grabbing' : 'default'
-        }}
         className={`transition-all duration-200 floating-performance-monitor ${isDragging ? 'dragging' : ''}`}
       >
         <Card className={`w-80 bg-background/95 backdrop-blur-sm border-2 shadow-2xl transition-all duration-300 ${

@@ -40,6 +40,19 @@ export async function POST(request: NextRequest) {
   const { level, message, source, timestamp, actingUserId, details } = validationResult.data;
 
   try {
+    // Validate actingUserId exists; if not, null it to avoid FK violations
+    let sanitizedActingUserId: string | null = actingUserId || null;
+    if (sanitizedActingUserId) {
+      try {
+        const userCheck = await getPool().query('SELECT 1 FROM "User" WHERE id = $1 LIMIT 1', [sanitizedActingUserId]);
+        if (userCheck.rowCount === 0) {
+          sanitizedActingUserId = null;
+        }
+      } catch (_) {
+        // On any error checking user existence, fall back to null to keep logging resilient
+        sanitizedActingUserId = null;
+      }
+    }
     const insertQuery = `
       INSERT INTO "LogEntry" (timestamp, level, message, source, "actingUserId", details, "createdAt")
       VALUES ($1, $2, $3, $4, $5, $6, NOW())
@@ -50,7 +63,7 @@ export async function POST(request: NextRequest) {
       level,
       message,
       source,
-      actingUserId || null,
+      sanitizedActingUserId,
       details || null,
     ];
     const result = await getPool().query(insertQuery, values);

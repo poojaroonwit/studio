@@ -297,7 +297,7 @@ export async function GET(request: NextRequest) {
     const sortColumnParam = searchParams.get('sortColumn') || 'lastUpdate';
     const sortDirectionParam = searchParams.get('sortDirection');
     
-    // Handle 3-state toggle: null/empty = unsorted (no sorting), 'asc' = ascending, 'desc' = descending
+    // Handle sorting: 'asc' = ascending, 'desc' = descending, null/empty = default (desc)
     let sortColumn = allowedSortColumns[sortColumnParam as keyof typeof allowedSortColumns] || 'c."updatedAt"';
     let sortDirection = 'DESC'; // default
     
@@ -306,8 +306,7 @@ export async function GET(request: NextRequest) {
     } else if (sortDirectionParam && sortDirectionParam.toLowerCase() === 'desc') {
       sortDirection = 'DESC';
     } else {
-      // sortDirectionParam is null, empty, or invalid - treat as unsorted
-      // For unsorted state, we'll use the default sort (lastUpdate desc)
+      // sortDirectionParam is null, empty, or invalid - use default sort (lastUpdate desc)
       sortColumn = 'c."updatedAt"';
       sortDirection = 'DESC';
     }

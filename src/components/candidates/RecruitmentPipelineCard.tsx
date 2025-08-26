@@ -195,10 +195,11 @@ export function RecruitmentPipelineCard({
                 return (
                   <div key={stage.id} className="flex items-center">
                     {/* Stage Circle */}
-                    <div 
-                      className="relative flex flex-col items-center cursor-pointer hover:bg-muted/30 rounded-lg p-1 transition-colors"
-                      onClick={() => handleStageClick(stage.name)}
-                    >
+                                         <div 
+                       className="relative flex flex-col items-center cursor-pointer hover:bg-muted/30 rounded-lg p-1 transition-colors"
+                       onClick={() => handleStageClick(stage.name)}
+                       title={`${stage.name} - ${isCompleted ? 'Completed' : isCurrent ? 'Current' : 'Future'} stage${records.length > 0 ? ` (${records.length} update${records.length > 1 ? 's' : ''})` : ''}`}
+                     >
                        <div className={`
                          w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold z-10 transition-all duration-300
                          ${isCompleted && !isCurrent ? 'bg-green-500 text-white' : ''}
@@ -240,139 +241,262 @@ export function RecruitmentPipelineCard({
                           {isCurrent && isTransitioning && (
                             <div className="w-2 h-2 border border-current border-t-transparent rounded-full animate-spin" />
                           )}
-                          {/* Show info popover for passed nodes on hover */}
-                          {(isCompleted || isCurrent) && (
-                            <Popover open={openPopoverIdx === index}>
-                              <PopoverTrigger asChild>
-                                <div
-                                  className="absolute inset-0 cursor-pointer"
-                                  onMouseEnter={() => setOpenPopoverIdx(index)}
-                                  onMouseLeave={() => setOpenPopoverIdx(null)}
-                                />
-                              </PopoverTrigger>
-                              <PopoverContent 
-                                className="w-80" 
-                                align="center" 
-                                sideOffset={4}
-                                onMouseEnter={() => setOpenPopoverIdx(index)} 
-                                onMouseLeave={() => setOpenPopoverIdx(null)}
-                              >
-                                <div className="mb-3">
-                                  <div className="font-semibold text-sm mb-1">{stage.name}</div>
-                                  <div className="text-xs text-muted-foreground">
-                                    {isCompleted ? 'Completed Stage' : 'Current Stage'}
-                                  </div>
-                                </div>
-                                
-                                {records.length > 0 ? (
-                                  <div className="space-y-3 max-h-48 overflow-y-auto custom-scrollbar">
-                                    <div className="text-xs font-medium text-muted-foreground mb-2">Stage Updates:</div>
-                                    {records.map((record, i) => (
-                                      <div key={record.id} className="border-l-2 border-muted pl-3 pb-2 last:pb-0">
-                                        {/* Notes */}
-                                        <div className="text-sm mb-2">
-                                          {record.notes ? (
-                                            <div className="text-foreground">{record.notes}</div>
-                                          ) : (
-                                            <div className="text-muted-foreground italic">No notes added</div>
-                                          )}
-                                        </div>
-                                        
-                                        {/* Update Info */}
-                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                          <Users className="h-3 w-3" />
-                                          <span>Updated by: <span className="font-medium text-foreground">{record.actingUserName || 'Unknown'}</span></span>
-                                        </div>
-                                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                                          <Clock className="h-3 w-3" />
-                                          <span>{record.date ? new Date(record.date).toLocaleString() : 'Unknown time'}</span>
-                                        </div>
-                                        
-                                        {/* Edit button for notes */}
-                                        {editableNotes && record.notes && (
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="h-6 px-2 text-xs mt-2"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              const newNote = prompt("Edit note:", record.notes);
-                                              if (newNote && newNote.trim() !== '') {
-                                                handleNoteEdit(record.id, newNote.trim());
-                                              }
-                                            }}
-                                            disabled={isUpdating.has(record.id)}
-                                          >
-                                            {isUpdating.has(record.id) ? (
-                                              <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
-                                            ) : (
-                                              <>
-                                                <Edit className="h-3 w-3 mr-1" />
-                                                Edit
-                                              </>
-                                            )}
-                                          </Button>
-                                        )}
-                                      </div>
-                                    ))}
-                                  </div>
-                                ) : (
-                                  <div className="text-sm text-muted-foreground py-2">
-                                    <div className="flex items-center gap-2 mb-1">
-                                      <Info className="h-4 w-4" />
-                                      <span>No updates recorded for this stage</span>
-                                    </div>
-                                    {isCompleted && (
-                                      <div className="text-xs text-muted-foreground">
-                                        This stage was completed but no notes were added.
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-                              </PopoverContent>
-                            </Popover>
-                          )}
+                                                     {/* Show info popover for all stages on hover */}
+                           <Popover open={openPopoverIdx === index}>
+                             <PopoverTrigger asChild>
+                               <div
+                                 className="absolute inset-0 cursor-pointer"
+                                 onMouseEnter={() => setOpenPopoverIdx(index)}
+                                 onMouseLeave={() => setOpenPopoverIdx(null)}
+                               />
+                             </PopoverTrigger>
+                             <PopoverContent 
+                               className="w-80" 
+                               align="center" 
+                               sideOffset={4}
+                               onMouseEnter={() => setOpenPopoverIdx(index)} 
+                               onMouseLeave={() => setOpenPopoverIdx(null)}
+                             >
+                               <div className="mb-3">
+                                 <div className="font-semibold text-sm mb-1">{stage.name}</div>
+                                 <div className="text-xs text-muted-foreground">
+                                   {isCompleted ? 'Completed Stage' : isCurrent ? 'Current Stage' : 'Future Stage'}
+                                 </div>
+                               </div>
+                               
+                               {records.length > 0 ? (
+                                 <div className="space-y-3 max-h-48 overflow-y-auto custom-scrollbar">
+                                   <div className="text-xs font-medium text-muted-foreground mb-2">Stage Updates:</div>
+                                   {records.map((record, i) => (
+                                     <div key={record.id} className="border-l-2 border-muted pl-3 pb-2 last:pb-0">
+                                       {/* Notes */}
+                                       <div className="text-sm mb-2">
+                                         {record.notes ? (
+                                           <div className="text-foreground">{record.notes}</div>
+                                         ) : (
+                                           <div className="text-muted-foreground italic">No notes added</div>
+                                         )}
+                                       </div>
+                                       
+                                       {/* Update Info */}
+                                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                         <Users className="h-3 w-3" />
+                                         <span>Updated by: <span className="font-medium text-foreground">{record.actingUserName || 'Unknown'}</span></span>
+                                       </div>
+                                       <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                                         <Clock className="h-3 w-3" />
+                                         <span>{record.date ? new Date(record.date).toLocaleString() : 'Unknown time'}</span>
+                                       </div>
+                                       
+                                       {/* Edit button for notes */}
+                                       {editableNotes && record.notes && (
+                                         <Button
+                                           variant="ghost"
+                                           size="sm"
+                                           className="h-6 px-2 text-xs mt-2"
+                                           onClick={(e) => {
+                                             e.stopPropagation();
+                                             const newNote = prompt("Edit note:", record.notes);
+                                             if (newNote && newNote.trim() !== '') {
+                                               handleNoteEdit(record.id, newNote.trim());
+                                             }
+                                           }}
+                                           disabled={isUpdating.has(record.id)}
+                                         >
+                                           {isUpdating.has(record.id) ? (
+                                             <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
+                                           ) : (
+                                             <>
+                                               <Edit className="h-3 w-3 mr-1" />
+                                               Edit
+                                             </>
+                                           )}
+                                         </Button>
+                                       )}
+                                     </div>
+                                   ))}
+                                 </div>
+                               ) : (
+                                 <div className="text-sm text-muted-foreground py-2">
+                                   <div className="flex items-center gap-2 mb-1">
+                                     <Info className="h-4 w-4" />
+                                     <span>No updates recorded for this stage</span>
+                                   </div>
+                                   {isCompleted && (
+                                     <div className="text-xs text-muted-foreground">
+                                       This stage was completed but no notes were added.
+                                     </div>
+                                   )}
+                                   {!isCompleted && !isCurrent && (
+                                     <div className="text-xs text-muted-foreground">
+                                       This stage has not been reached yet.
+                                     </div>
+                                   )}
+                                 </div>
+                               )}
+                               
+                               {/* Duration information */}
+                               <div className="mt-3 pt-2 border-t border-muted">
+                                 <div className="text-xs text-muted-foreground mb-1">Duration:</div>
+                                 <div className="text-sm">
+                                   {(() => {
+                                     // If there's a transition record for this stage, calculate actual duration
+                                     if (latestRecord && latestRecord.date) {
+                                       const stageDate = new Date(latestRecord.date);
+                                       let endDate;
+                                       
+                                       // Find the next stage record to calculate duration
+                                       const nextStageRecord = localTransitionHistory
+                                         .filter(record => record.stage !== stage.name)
+                                         .find(record => {
+                                           const recordDate = new Date(record.date);
+                                           return recordDate > stageDate;
+                                         });
+                                       
+                                       if (nextStageRecord) {
+                                         // If there's a next stage, calculate duration between stages
+                                         endDate = new Date(nextStageRecord.date);
+                                       } else if (isCurrent) {
+                                         // If this is the current stage, use current time
+                                         endDate = new Date();
+                                       } else {
+                                         // If no next stage and not current, return empty
+                                         return 'Completed';
+                                       }
+                                       
+                                       const diffTime = Math.abs(endDate.getTime() - stageDate.getTime());
+                                       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                                       
+                                       if (diffDays === 1) {
+                                         return '1 day';
+                                       } else if (diffDays < 7) {
+                                         return `${diffDays} days`;
+                                       } else if (diffDays < 30) {
+                                         const weeks = Math.floor(diffDays / 7);
+                                         return `${weeks} week${weeks > 1 ? 's' : ''}`;
+                                       } else {
+                                         const months = Math.floor(diffDays / 30);
+                                         return `${months} month${months > 1 ? 's' : ''}`;
+                                       }
+                                     }
+                                     
+                                     // For stages without transition records, show default duration based on stage position
+                                     if (!isCompleted && !isCurrent) {
+                                       // Calculate expected duration based on stage position
+                                       const stageIndex = localStages.findIndex(s => s.name === stage.name);
+                                       
+                                       // Default duration logic: earlier stages typically take less time
+                                       let defaultDays;
+                                       if (stageIndex === 0) {
+                                         defaultDays = 3; // First stage: 3 days
+                                       } else if (stageIndex === 1) {
+                                         defaultDays = 5; // Second stage: 5 days
+                                       } else if (stageIndex === 2) {
+                                         defaultDays = 7; // Third stage: 7 days
+                                       } else if (stageIndex === 3) {
+                                         defaultDays = 10; // Fourth stage: 10 days
+                                       } else {
+                                         defaultDays = 14; // Later stages: 14 days
+                                       }
+                                       
+                                       if (defaultDays === 1) {
+                                         return '1 day (expected)';
+                                       } else if (defaultDays < 7) {
+                                         return `${defaultDays} days (expected)`;
+                                       } else if (defaultDays < 30) {
+                                         const weeks = Math.floor(defaultDays / 7);
+                                         return `${weeks} week${weeks > 1 ? 's' : ''} (expected)`;
+                                       } else {
+                                         const months = Math.floor(defaultDays / 30);
+                                         return `${months} month${months > 1 ? 's' : ''} (expected)`;
+                                       }
+                                     }
+                                     
+                                     return 'Not started';
+                                   })()}
+                                 </div>
+                               </div>
+                             </PopoverContent>
+                           </Popover>
                         </div>
                         {/* Duration information under stage name */}
                         <div className="text-xs text-muted-foreground mt-1 min-h-[1rem]">
-                          {latestRecord && latestRecord.date ? (() => {
-                            const stageDate = new Date(latestRecord.date);
-                            let endDate;
-                            
-                            // Find the next stage record to calculate duration
-                            const nextStageRecord = localTransitionHistory
-                              .filter(record => record.stage !== stage.name)
-                              .find(record => {
-                                const recordDate = new Date(record.date);
-                                return recordDate > stageDate;
-                              });
-                            
-                            if (nextStageRecord) {
-                              // If there's a next stage, calculate duration between stages
-                              endDate = new Date(nextStageRecord.date);
-                            } else if (isCurrent) {
-                              // If this is the current stage, use current time
-                              endDate = new Date();
-                            } else {
-                              // If no next stage and not current, return empty
-                              return '';
+                          {(() => {
+                            // If there's a transition record for this stage, calculate actual duration
+                            if (latestRecord && latestRecord.date) {
+                              const stageDate = new Date(latestRecord.date);
+                              let endDate;
+                              
+                              // Find the next stage record to calculate duration
+                              const nextStageRecord = localTransitionHistory
+                                .filter(record => record.stage !== stage.name)
+                                .find(record => {
+                                  const recordDate = new Date(record.date);
+                                  return recordDate > stageDate;
+                                });
+                              
+                              if (nextStageRecord) {
+                                // If there's a next stage, calculate duration between stages
+                                endDate = new Date(nextStageRecord.date);
+                              } else if (isCurrent) {
+                                // If this is the current stage, use current time
+                                endDate = new Date();
+                              } else {
+                                // If no next stage and not current, return empty
+                                return '';
+                              }
+                              
+                              const diffTime = Math.abs(endDate.getTime() - stageDate.getTime());
+                              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                              
+                              if (diffDays === 1) {
+                                return '1 day';
+                              } else if (diffDays < 7) {
+                                return `${diffDays} days`;
+                              } else if (diffDays < 30) {
+                                const weeks = Math.floor(diffDays / 7);
+                                return `${weeks} week${weeks > 1 ? 's' : ''}`;
+                              } else {
+                                const months = Math.floor(diffDays / 30);
+                                return `${months} month${months > 1 ? 's' : ''}`;
+                              }
                             }
                             
-                            const diffTime = Math.abs(endDate.getTime() - stageDate.getTime());
-                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                            
-                            if (diffDays === 1) {
-                              return '1 day';
-                            } else if (diffDays < 7) {
-                              return `${diffDays} days`;
-                            } else if (diffDays < 30) {
-                              const weeks = Math.floor(diffDays / 7);
-                              return `${weeks} week${weeks > 1 ? 's' : ''}`;
-                            } else {
-                              const months = Math.floor(diffDays / 30);
-                              return `${months} month${months > 1 ? 's' : ''}`;
+                            // For stages without transition records, show default duration based on stage position
+                            if (!isCompleted && !isCurrent) {
+                              // Calculate expected duration based on stage position
+                              const stageIndex = localStages.findIndex(s => s.name === stage.name);
+                              const totalStages = localStages.length;
+                              
+                              // Default duration logic: earlier stages typically take less time
+                              let defaultDays;
+                              if (stageIndex === 0) {
+                                defaultDays = 3; // First stage: 3 days
+                              } else if (stageIndex === 1) {
+                                defaultDays = 5; // Second stage: 5 days
+                              } else if (stageIndex === 2) {
+                                defaultDays = 7; // Third stage: 7 days
+                              } else if (stageIndex === 3) {
+                                defaultDays = 10; // Fourth stage: 10 days
+                              } else {
+                                defaultDays = 14; // Later stages: 14 days
+                              }
+                              
+                              if (defaultDays === 1) {
+                                return '1 day';
+                              } else if (defaultDays < 7) {
+                                return `${defaultDays} days`;
+                              } else if (defaultDays < 30) {
+                                const weeks = Math.floor(defaultDays / 7);
+                                return `${weeks} week${weeks > 1 ? 's' : ''}`;
+                              } else {
+                                const months = Math.floor(defaultDays / 30);
+                                return `${months} month${months > 1 ? 's' : ''}`;
+                              }
                             }
-                          })() : ''}
+                            
+                            return '';
+                          })()}
                         </div>
                       </div>
                     </div>

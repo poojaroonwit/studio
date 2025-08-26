@@ -29,18 +29,12 @@ export function NotificationDrawer({ isOpen, onClose, onNotificationRead }: Noti
   const unreadNotifications = notifications.filter(n => !n.isRead);
   const readNotifications = notifications.filter(n => n.isRead);
 
-  // Debug logging
-  console.log('🔍 NotificationDrawer: Total notifications:', notifications.length);
-  console.log('🔍 NotificationDrawer: Unread notifications:', unreadNotifications.length);
-  console.log('🔍 NotificationDrawer: Read notifications:', readNotifications.length);
-  console.log('🔍 NotificationDrawer: Sample notification:', notifications[0]);
+
 
   const handleMarkAsRead = async (notificationId: string) => {
-    console.log('🔍 Mark as read clicked for notification:', notificationId);
     setMarkingAsRead(notificationId);
     try {
       await markAsRead(notificationId);
-      console.log('✅ Mark as read completed for notification:', notificationId);
       showSuccessToast('Notification marked as read');
       // Call the onNotificationRead callback if provided
       if (onNotificationRead) {
@@ -55,11 +49,9 @@ export function NotificationDrawer({ isOpen, onClose, onNotificationRead }: Noti
   };
 
   const handleMarkAllAsRead = async () => {
-    console.log('🔍 Mark all as read clicked');
     setMarkingAllAsRead(true);
     try {
       await markAllAsRead();
-      console.log('✅ Mark all as read completed');
       showSuccessToast('All notifications marked as read');
       // Call the onNotificationRead callback if provided
       if (onNotificationRead) {

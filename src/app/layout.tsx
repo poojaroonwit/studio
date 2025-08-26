@@ -84,13 +84,14 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-
+  // Get the session on the server side
+  const session = await getServerSession(authOptions);
 
   return (
     <html lang="en">
       <body className="h-screen bg-background font-sans antialiased overflow-hidden">
         <TooltipProvider>
-          <AuthProvider>
+          <AuthProvider session={session}>
             <NotificationProvider>
               <WarningProvider>
                 <ErrorBoundary>

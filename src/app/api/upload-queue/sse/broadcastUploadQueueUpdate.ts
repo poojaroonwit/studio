@@ -82,10 +82,43 @@ export async function sendUploadQueueUpdate(controller: ReadableStreamDefaultCon
   }
 }
 
-export function broadcastUploadQueueUpdate() {
-  // Use unified broadcast system
-  const data = { type: 'queue', summary: { queued: 0, inprocess: 0 } };
-  broadcastToAll('upload_queue_update', data);
+export async function broadcastUploadQueueUpdate() {
+  try {
+    // Fetch current queue counts from database
+    const client = await getPool().connect();
+    try {
+      const summaryRes = await client.query(`
+        SELECT 
+          COUNT(*) as total,
+          COUNT(*) FILTER (WHERE status = 'queued') as queued,
+          COUNT(*) FILTER (WHERE status = 'inprocess') as inprocess,
+          COUNT(*) FILTER (WHERE status = 'success') as success,
+          COUNT(*) FILTER (WHERE status = 'error' OR status = 'fail') as error
+        FROM upload_queue
+      `);
+      
+      const summary = summaryRes.rows[0];
+      const safeSummary = {
+        total: Number(summary.total) || 0,
+        queued: Number(summary.queued) || 0,
+        inprocess: Number(summary.inprocess) || 0,
+        success: Number(summary.success) || 0,
+        error: Number(summary.error) || 0,
+      };
+      
+      // Use unified broadcast system with real data
+      const data = { type: 'queue', summary: safeSummary };
+      console.log('[Broadcast] Sending upload queue update:', data);
+      broadcastToAll('upload_queue_update', data);
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('[Broadcast] Failed to fetch queue data for broadcast:', error);
+    // Fallback to empty data if database query fails
+    const data = { type: 'queue', summary: { queued: 0, inprocess: 0, total: 0, success: 0, error: 0 } };
+    broadcastToAll('upload_queue_update', data);
+  }
   
   // Keep old system for backward compatibility
   // Create a copy of controllers to safely iterate over

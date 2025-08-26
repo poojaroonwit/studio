@@ -10,7 +10,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { 
   AlertTriangle, 
-  X, 
   Clock, 
   AlertCircle, 
   Info, 
@@ -403,17 +402,14 @@ export function WarningDrawer({ isOpen, onClose }: WarningDrawerProps) {
     return (
       <div className="space-y-4">
         <div className="border rounded-lg">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[200px]">Entity</TableHead>
-                <TableHead className="w-[150px]">Type</TableHead>
-                <TableHead className="w-[120px]">Field</TableHead>
-                <TableHead className="w-[100px]">Severity</TableHead>
-                <TableHead className="w-[150px]">Created</TableHead>
-                <TableHead className="w-[50px]">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
+                     <Table>
+             <TableHeader>
+               <TableRow>
+                 <TableHead className="w-[300px]">Entity</TableHead>
+                 <TableHead className="w-[150px]">Type</TableHead>
+                 <TableHead className="w-[50px]">Actions</TableHead>
+               </TableRow>
+             </TableHeader>
             <TableBody>
               {paginatedRecords.map((record) => {
                 const colors = getSeverityColors(record.severity);
@@ -433,26 +429,10 @@ export function WarningDrawer({ isOpen, onClose }: WarningDrawerProps) {
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell className="capitalize text-muted-foreground">
-                      {record.entityType}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      <span className="truncate max-w-[100px]" title={record.field}>
-                        {record.field}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <Badge 
-                        variant="secondary" 
-                        className={cn("text-xs", colors.badge)}
-                      >
-                        {record.severity}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
-                      {formatDistanceToNow(new Date(record.createdAt), { addSuffix: true })}
-                    </TableCell>
-                    <TableCell>
+                                         <TableCell className="capitalize text-muted-foreground">
+                       {record.entityType}
+                     </TableCell>
+                     <TableCell>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -746,9 +726,9 @@ export function WarningDrawer({ isOpen, onClose }: WarningDrawerProps) {
       <SheetContent 
         className="overflow-y-auto"
         style={{ 
-          width: '40vw', 
+          width: '50vw', 
           minWidth: '400px', 
-          maxWidth: '1000px' 
+          maxWidth: '1200px' 
         }}
       >
         <div className="flex flex-col h-full">
@@ -780,13 +760,6 @@ export function WarningDrawer({ isOpen, onClose }: WarningDrawerProps) {
                 title="Clear resolved warnings and check for new ones"
               >
                 <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onClose}
-              >
-                <X className="h-4 w-4" />
               </Button>
             </div>
           </div>

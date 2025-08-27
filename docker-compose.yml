@@ -115,7 +115,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - /var/dockers/8021/postgres:/var/lib/postgresql/data
-    restart: unless-stopped
+    restart: always
     # Resource limits
     mem_limit: 8g
     cpus: 2
@@ -157,22 +157,10 @@ services:
     command: server /data --console-address ":9001" --address ":9000"
     volumes:
       - /var/dockers/8021/minio:/data
-    restart: unless-stopped
+    restart: always
     # Resource limits
     mem_limit: 8g
     cpus: 2
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://minio:9000/minio/health/live"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    deploy:
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 3
-        window: 120s
     networks:
       - docker_internal
 
@@ -192,25 +180,11 @@ services:
       NODE_ENV: ${NODE_ENV}
       DOCKER_ENV: true
     depends_on:
-      postgres:
-        condition: service_healthy
-      app:
-        condition: service_healthy
-    restart: unless-stopped
+      - postgres
+      - app
+    restart: always
     mem_limit: 8g
     cpus: 2
-    healthcheck:
-      test: ["CMD", "pgrep", "-f", "process-upload-queue"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    deploy:
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 3
-        window: 120s
     networks:
       - docker_internal
 

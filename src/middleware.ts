@@ -24,9 +24,17 @@ export async function middleware(req: NextRequest) {
       return NextResponse.next();
     }
 
+    // Debug: Log all cookies to see what's available
+    const allCookies = req.cookies.getAll();
+    console.log('[MIDDLEWARE DEBUG] All cookies:', allCookies.map(c => ({ name: c.name, value: c.value ? 'present' : 'empty' })));
+
     // Check for authentication token in cookies
     const token = req.cookies.get('next-auth.session-token')?.value || 
-                  req.cookies.get('__Secure-next-auth.session-token')?.value;
+                  req.cookies.get('__Secure-next-auth.session-token')?.value ||
+                  req.cookies.get('next-auth.csrf-token')?.value ||
+                  req.cookies.get('__Host-next-auth.csrf-token')?.value;
+
+    console.log('[MIDDLEWARE DEBUG] Token found:', !!token);
 
     // If no token and trying to access protected routes, redirect to sign in
     if (!token && !pathname.startsWith('/auth/signin')) {

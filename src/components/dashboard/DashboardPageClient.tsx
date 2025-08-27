@@ -1123,7 +1123,7 @@ export default function DashboardPageClient({
 
                                  {/* Right side - SLA Monitoring (full height) */}
             <div className="lg:col-span-5" ref={sharedRef}>
-              <div className="relative space-y-4 overflow-y-auto max-h-[1200px]" style={{ height: `${sharedHeight}px` }}>
+              <div className="relative space-y-4 overflow-y-auto h-full" >
                 <SLAViolationsWidget />
                 {!canViewAllCandidates && session?.user?.id && (
                   <SLAViolationsWidget recruiterId={session.user.id} />

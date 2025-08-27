@@ -23,7 +23,44 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import type { Position } from '@/lib/types';
 import { FileViewerModal } from "@/components/ui/file-viewer-modal";
 
+// Error boundary for this component
+class CandidateImportUploadQueueErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error?: Error }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
 
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('CandidateImportUploadQueue Error Boundary caught an error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex flex-col items-center justify-center p-8">
+          <div className="text-center">
+            <h2 className="text-xl font-semibold mb-2">Something went wrong</h2>
+            <p className="text-muted-foreground mb-4">
+              There was an error loading the upload queue. Please try refreshing the page.
+            </p>
+            <Button onClick={() => window.location.reload()}>
+              Refresh Page
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 export type CandidateJobType = "upload" | "import";
 
@@ -87,11 +124,13 @@ export const CandidateQueueProvider: React.FC<{ children: React.ReactNode }> = (
   );
 };
 
-export const CandidateImportUploadQueue: React.FC<{
+const CandidateImportUploadQueueInner: React.FC<{
   initialPage?: number;
   initialPageSize?: number;
   onPaginationChange?: (page: number, pageSize: number) => void;
 }> = ({ initialPage = 1, initialPageSize = 20, onPaginationChange }) => {
+  try {
+    console.log('CandidateImportUploadQueueInner: Component initializing', { initialPage, initialPageSize });
   const [jobs, setJobs] = useState<CandidateJob[]>([]);
   const [total, setTotal] = useState(0);
   const [statusSummary, setStatusSummary] = useState<any>(null); // For static status cards
@@ -263,8 +302,9 @@ export const CandidateImportUploadQueue: React.FC<{
 
   // Fetch paginated jobs
   const fetchJobs = useCallback(async () => {
+    console.log('fetchJobs: Starting fetch', { page, pageSize, debouncedFilter, statusFilter });
     if (isFetchingRef.current) {
-     
+      console.log('fetchJobs: Already fetching, skipping');
       return;
     }
     isFetchingRef.current = true;
@@ -465,10 +505,13 @@ export const CandidateImportUploadQueue: React.FC<{
   }, []);
 
   useEffect(() => {
+    console.log('Session effect: sessionStatus =', sessionStatus, 'session =', !!session);
     // Only fetch if session is loaded and available
     if (sessionStatus === 'authenticated' && session) {
+      console.log('Session effect: Fetching jobs');
       fetchJobs();
     } else if (sessionStatus === 'unauthenticated') {
+      console.log('Session effect: User not authenticated');
       setFetchError('Please sign in to view the upload queue');
     }
     return () => {
@@ -1922,5 +1965,52 @@ export const CandidateImportUploadQueue: React.FC<{
         file={fileViewerFile}
       />
     </div>
+  );
+  } catch (error) {
+    console.error('CandidateImportUploadQueueInner: Error during initialization:', error);
+    return (
+      <div className="flex flex-col items-center justify-center p-8">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-2">Initialization Error</h2>
+          <p className="text-muted-foreground mb-4">
+            There was an error initializing the upload queue component.
+          </p>
+          <Button onClick={() => window.location.reload()}>
+            Refresh Page
+          </Button>
+        </div>
+      </div>
+    );
+  }
+};
+
+export const CandidateImportUploadQueue: React.FC<{
+  initialPage?: number;
+  initialPageSize?: number;
+  onPaginationChange?: (page: number, pageSize: number) => void;
+}> = (props) => {
+  // Simple fallback for testing
+  const [hasError, setHasError] = useState(false);
+  
+  if (hasError) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-2">Component Error</h2>
+          <p className="text-muted-foreground mb-4">
+            There was an error loading the upload queue.
+          </p>
+          <Button onClick={() => setHasError(false)}>
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <CandidateImportUploadQueueErrorBoundary>
+      <CandidateImportUploadQueueInner {...props} />
+    </CandidateImportUploadQueueErrorBoundary>
   );
 }; 

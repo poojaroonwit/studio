@@ -10,6 +10,8 @@ import { getPool } from '../../../../../lib/db';
 
 const platformModuleIds = PLATFORM_MODULES.map(m => m.id) as [PlatformModuleId, ...PlatformModuleId[]];
 
+console.log('Available permission IDs:', platformModuleIds);
+
 const updateGroupFormSchema = z.object({
   name: z.string().min(1, "Group name is required").max(100),
   description: z.string().optional().nullable(),
@@ -20,7 +22,8 @@ const updateGroupFormSchema = z.object({
 const userGroupUpdateSchema = z.object({
   name: z.string().min(1, 'Group name cannot be empty.').optional(),
   description: z.string().optional().nullable(),
-  permissions: z.array(z.enum(platformModuleIds)).optional(),
+  permissions: z.array(z.string()).optional(),
+  is_default: z.boolean().optional(),
 });
 
 function extractIdFromUrl(request: NextRequest): string | null {
@@ -86,6 +89,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ message: "User group (role) not found" }, { status: 404 });
     }
     const group: UserGroup = groupResult.rows[0];
+    
+    console.log('GET /api/settings/user-groups/[id] - Retrieved group permissions:', group.permissions);
 
     return NextResponse.json(group, { status: 200 });
   } catch (error) {
@@ -147,16 +152,39 @@ export async function PUT(request: NextRequest) {
     let body;
     try {
         body = await request.json();
+        console.log('PUT /api/settings/user-groups/[id] - Received body:', JSON.stringify(body, null, 2));
     } catch (e) {
+        console.error('PUT /api/settings/user-groups/[id] - JSON parse error:', e);
         return NextResponse.json({ message: 'Invalid JSON body' }, { status: 400 });
     }
     
     const validation = userGroupUpdateSchema.safeParse(body);
     if (!validation.success) {
+        console.error('PUT /api/settings/user-groups/[id] - Validation error details:');
+        console.error('Error issues:', validation.error.issues);
+        console.error('Error flatten:', validation.error.flatten());
+        console.error('Received permissions:', body.permissions);
+        console.error('Expected permission format:', platformModuleIds);
         return NextResponse.json({ message: 'Invalid input', errors: validation.error.flatten().fieldErrors }, { status: 400 });
     }
     
     const fields = validation.data;
+    console.log('PUT /api/settings/user-groups/[id] - Validated fields:', JSON.stringify(fields, null, 2));
+    
+    // Validate permissions separately if provided
+    if (fields.permissions && Array.isArray(fields.permissions)) {
+        const invalidPermissions = fields.permissions.filter(permission => !platformModuleIds.includes(permission as PlatformModuleId));
+        if (invalidPermissions.length > 0) {
+            console.error('Invalid permission IDs:', invalidPermissions);
+            return NextResponse.json({ 
+                message: 'Invalid input', 
+                errors: { 
+                    permissions: [`Invalid permission IDs: ${invalidPermissions.join(', ')}`] 
+                } 
+            }, { status: 400 });
+        }
+    }
+    
     if (Object.keys(fields).length === 0) {
       return NextResponse.json({ message: "No fields to update provided." }, { status: 400 });
     }

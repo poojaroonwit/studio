@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -115,6 +115,11 @@ export function UnifiedRoleDrawer({
   const [isAddingUser, setIsAddingUser] = useState(false);
   const [isSavingRole, setIsSavingRole] = useState(false);
   const [currentPermissions, setCurrentPermissions] = useState<PlatformModuleId[]>([]);
+  const [isUpdatingPermissions, setIsUpdatingPermissions] = useState(false);
+
+  // Refs for debouncing and request cancellation
+  const permissionUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Calculate isAdminRole early to avoid scope issues
   const isSystemRole = role?.is_system_role || false;
@@ -160,6 +165,21 @@ export function UnifiedRoleDrawer({
       loadAvailableUsers();
     }
   }, [isAddUserModalOpen, role, searchTerm]);
+
+  // Cleanup effect to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      // Clear any pending timeout
+      if (permissionUpdateTimeoutRef.current) {
+        clearTimeout(permissionUpdateTimeoutRef.current);
+      }
+      
+      // Abort any ongoing request
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   const loadGroupMembers = async () => {
     if (!role) return;
@@ -234,44 +254,81 @@ export function UnifiedRoleDrawer({
     }
   };
 
-  const handlePermissionUpdate = async (permissions: PlatformModuleId[]) => {
+  const handlePermissionUpdate = useCallback(async (permissions: PlatformModuleId[]) => {
     if (!role) return;
     
     // Update local state immediately for better UX
     setCurrentPermissions(permissions);
     
-    try {
-      const response = await fetch(`/api/settings/user-groups/${role.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: role.name,
-          description: role.description,
-          permissions,
-          is_default: role.is_default
-        }),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to update permissions');
-      }
-      
-      // Update the role object locally to avoid reload
-      if (role) {
-        role.permissions = permissions;
-      }
-      
-      toast.success('Permissions updated successfully');
-      // Don't call onRoleChange to avoid drawer reload
-      // onRoleChange?.();
-    } catch (error) {
-      console.error('Error updating permissions:', error);
-      toast.error((error as Error).message);
-      // Revert on error
-      setCurrentPermissions(role.permissions || []);
+    // Clear any existing timeout
+    if (permissionUpdateTimeoutRef.current) {
+      clearTimeout(permissionUpdateTimeoutRef.current);
     }
-  };
+    
+    // Cancel any ongoing request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    // Create new abort controller for this request
+    abortControllerRef.current = new AbortController();
+    
+    // Debounce the API call to prevent rapid requests
+    permissionUpdateTimeoutRef.current = setTimeout(async () => {
+      if (!role) return;
+      
+      setIsUpdatingPermissions(true);
+      
+      const requestBody = {
+        name: role.name,
+        description: role.description,
+        permissions,
+        is_default: role.is_default
+      };
+      
+      console.log('handlePermissionUpdate - Sending request body:', JSON.stringify(requestBody, null, 2));
+      
+      try {
+        const response = await fetch(`/api/settings/user-groups/${role.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody),
+          signal: abortControllerRef.current?.signal,
+        });
+        
+        console.log('handlePermissionUpdate - Response status:', response.status);
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('handlePermissionUpdate - Error response:', errorData);
+          throw new Error(errorData.message || 'Failed to update permissions');
+        }
+        
+        // Update the role object locally to avoid reload
+        if (role) {
+          role.permissions = permissions;
+        }
+        
+        toast.success('Permissions updated successfully');
+        // Don't call onRoleChange to avoid drawer reload
+        // onRoleChange?.();
+      } catch (error) {
+        // Don't show error if request was aborted
+        if (error instanceof Error && error.name === 'AbortError') {
+          console.log('Permission update request was aborted');
+          return;
+        }
+        
+        console.error('Error updating permissions:', error);
+        toast.error((error as Error).message);
+        // Revert on error
+        setCurrentPermissions(role.permissions || []);
+      } finally {
+        setIsUpdatingPermissions(false);
+        abortControllerRef.current = null;
+      }
+    }, 500); // 500ms debounce delay
+  }, [role]);
 
   const handleAddUser = async () => {
     if (!selectedUserId || !role) return;
@@ -481,10 +538,12 @@ export function UnifiedRoleDrawer({
                    <RolePermissionSelector
                      selectedPermissions={isAdminRole ? PLATFORM_MODULES.map(p => p.id) : currentPermissions}
                      onPermissionsChange={handlePermissionUpdate}
-                     disabled={isAdminRole}
+                     disabled={isAdminRole || isUpdatingPermissions}
+                     isLoading={isUpdatingPermissions}
                      title={`${role.name} Permissions`}
                      description={isAdminRole ? 
                        "Admin role has all permissions by default and cannot be modified." : 
+                       isUpdatingPermissions ? "Updating permissions..." :
                        "Configure what users with this role can do."
                      }
                      className="h-full"

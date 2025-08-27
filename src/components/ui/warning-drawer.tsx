@@ -212,6 +212,16 @@ export function WarningDrawer({ isOpen, onClose }: WarningDrawerProps) {
     }
   };
 
+  // Cleanup timeout on unmount to prevent resource leaks
+  useEffect(() => {
+    return () => {
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+        refreshTimeoutRef.current = null;
+      }
+    };
+  }, []);
+
   const handleRefreshWarnings = async () => {
     setIsRefreshing(true);
     try {

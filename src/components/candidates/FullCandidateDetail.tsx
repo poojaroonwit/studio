@@ -314,10 +314,21 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
     setIsSaving(true);
 
     try {
+      // Normalize fitScore to ensure it's within 0-1 range
+      let normalizedData = { ...data };
+      if (typeof data.fitScore === 'number') {
+        // If fitScore is a percentage (0-100), convert to decimal (0-1)
+        if (data.fitScore > 1) {
+          normalizedData.fitScore = data.fitScore / 100;
+        }
+        // Ensure the value is within 0-1 range
+        normalizedData.fitScore = Math.max(0, Math.min(1, normalizedData.fitScore));
+      }
+
       const res = await fetch(`/api/candidates/${candidate.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(normalizedData),
         credentials: 'include',
       });
 

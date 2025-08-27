@@ -87,12 +87,14 @@ export function CandidateRecruiterCell({
   React.useEffect(() => {
     if (open) {
       // Small delay to ensure the input is rendered
-      setTimeout(() => {
+      const focusTimeout = setTimeout(() => {
         if (searchInputRef.current) {
           searchInputRef.current.focus();
           searchInputRef.current.select(); // Select all text if any
         }
       }, 100);
+      
+      return () => clearTimeout(focusTimeout);
     }
   }, [open]);
 

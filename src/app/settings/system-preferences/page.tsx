@@ -498,6 +498,17 @@ export default function SystemPreferencesPage() {
           setSavedLogoUrl(url);
           setSelectedLogoFile(null);
           success('Logo uploaded and saved!');
+          
+          // Dispatch event to update sidebar immediately
+          console.log('Dispatching appConfigChanged event with logoUrl:', url);
+          // Add cache-busting parameter to force browser to reload the image
+          const logoUrlWithCacheBuster = `${url}?t=${Date.now()}`;
+          window.dispatchEvent(new CustomEvent('appConfigChanged', {
+            detail: {
+              logoUrl: logoUrlWithCacheBuster,
+              appName: appName,
+            }
+          }));
         } else {
           throw new Error('Failed to save logo to database');
         }
@@ -553,6 +564,28 @@ export default function SystemPreferencesPage() {
         if (saveRes.ok) {
           setSavedUrl(url);
           success(successMessage);
+          
+          // Dispatch event to update sidebar immediately for contextual logos
+          if (settingKey.includes('sidebarLogo')) {
+            // Get current contextual logos state to preserve existing values
+            const currentContextualLogos = {
+              sidebarLogoCollapsedLightMode: savedSidebarLogoCollapsedLightModeUrl,
+              sidebarLogoExpandedLightMode: savedSidebarLogoExpandedLightModeUrl,
+              sidebarLogoCollapsedDarkMode: savedSidebarLogoCollapsedDarkModeUrl,
+              sidebarLogoExpandedDarkMode: savedSidebarLogoExpandedDarkModeUrl,
+            };
+            
+            // Update the specific logo that was just uploaded with cache-busting
+            const logoUrlWithCacheBuster = `${url}?t=${Date.now()}`;
+            currentContextualLogos[settingKey as keyof typeof currentContextualLogos] = logoUrlWithCacheBuster;
+            
+            console.log('Dispatching appConfigChanged event with contextualLogos:', currentContextualLogos);
+            window.dispatchEvent(new CustomEvent('appConfigChanged', {
+              detail: {
+                contextualLogos: currentContextualLogos,
+              }
+            }));
+          }
         } else {
           throw new Error('Failed to save logo to database');
         }
@@ -725,6 +758,13 @@ export default function SystemPreferencesPage() {
           setSavedFaviconUrl(url);
           setSelectedFaviconFile(null);
           success('Favicon uploaded and saved!');
+          
+          // Dispatch event to update favicon immediately
+          window.dispatchEvent(new CustomEvent('faviconUpdated', {
+            detail: {
+              faviconDataUrl: url,
+            }
+          }));
         } else {
           throw new Error('Failed to save favicon to database');
         }

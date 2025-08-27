@@ -1286,9 +1286,13 @@ export function SingleRowCandidateView({
             const container = document.querySelector('.candidates-horizontal-container');
             if (container) {
               container.scrollBy({ left: -280, behavior: 'smooth' });
-              // Update scroll position after animation
-              setTimeout(() => {
+              // Update scroll position after animation with proper cleanup
+              if (scrollLeftTimeoutRef.current) {
+                clearTimeout(scrollLeftTimeoutRef.current);
+              }
+              scrollLeftTimeoutRef.current = setTimeout(() => {
                 setScrollPosition(container.scrollLeft);
+                scrollLeftTimeoutRef.current = null;
               }, 300);
             }
           }}
@@ -1310,9 +1314,13 @@ export function SingleRowCandidateView({
             const container = document.querySelector('.candidates-horizontal-container');
             if (container) {
               container.scrollBy({ left: 280, behavior: 'smooth' });
-              // Update scroll position after animation
-              setTimeout(() => {
+              // Update scroll position after animation with proper cleanup
+              if (scrollRightTimeoutRef.current) {
+                clearTimeout(scrollRightTimeoutRef.current);
+              }
+              scrollRightTimeoutRef.current = setTimeout(() => {
                 setScrollPosition(container.scrollLeft);
+                scrollRightTimeoutRef.current = null;
               }, 300);
             }
           }}
@@ -2064,11 +2072,15 @@ export function HorizontalStageKanbanView({
     if (columnField === 'status') {
       setDraggedCandidate(candidate);
       setIsDragging(true);
-      // Add a small delay to prevent immediate drag end
-      setTimeout(() => {
+      // Add a small delay to prevent immediate drag end with proper cleanup
+      if (dragTimeoutRef.current) {
+        clearTimeout(dragTimeoutRef.current);
+      }
+      dragTimeoutRef.current = setTimeout(() => {
         if (isDragging) {
           document.body.style.cursor = 'grabbing';
         }
+        dragTimeoutRef.current = null;
       }, 50);
     } else {
       // For non-status columns, prevent dragging
@@ -2136,6 +2148,11 @@ export function HorizontalStageKanbanView({
     }
   };
 
+  // Add refs for timeout cleanup to prevent resource leaks
+  const scrollLeftTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const scrollRightTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const dragTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // Navigation handlers
   const handleScrollLeft = () => {
     if (scrollContainerRef.current) {
@@ -2153,6 +2170,24 @@ export function HorizontalStageKanbanView({
       container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
     }
   };
+
+  // Cleanup timeouts on unmount to prevent resource leaks
+  useEffect(() => {
+    return () => {
+      if (scrollLeftTimeoutRef.current) {
+        clearTimeout(scrollLeftTimeoutRef.current);
+        scrollLeftTimeoutRef.current = null;
+      }
+      if (scrollRightTimeoutRef.current) {
+        clearTimeout(scrollRightTimeoutRef.current);
+        scrollRightTimeoutRef.current = null;
+      }
+      if (dragTimeoutRef.current) {
+        clearTimeout(dragTimeoutRef.current);
+        dragTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;

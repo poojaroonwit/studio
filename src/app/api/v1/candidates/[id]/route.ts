@@ -54,7 +54,7 @@ const updateCandidateSchema = z.object({
     job_suitable: z.array(z.any()).optional(),
     cv_language: z.string().optional().nullable(),
     status: z.string().optional(),
-    fitScore: z.number().optional(), // <-- Added this line
+    fitScore: z.number().min(0).max(1).optional(), // Fixed: Added min/max validation
   }).optional(),
   
   // Job matches and applied job updates

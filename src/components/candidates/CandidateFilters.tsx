@@ -1022,25 +1022,45 @@ export function CandidateFilters({
   const handleStatusChange = (newSelectedStatuses: Set<string>) => {
     setSelectedStatuses(newSelectedStatuses);
     // Apply filters with debouncing for smooth multiselect experience
-    handleApplyStandardFilters();
+    // Clear any existing timeout to prevent resource leaks
+    if (multiselectTimeoutRef.current) {
+      clearTimeout(multiselectTimeoutRef.current);
+      multiselectTimeoutRef.current = null;
+    }
+    multiselectTimeoutRef.current = setTimeout(() => handleApplyStandardFilters(), 100);
   };
 
   const handleRecruiterChange = (newSelectedRecruiterIds: Set<string>) => {
     setSelectedRecruiterIds(newSelectedRecruiterIds);
     // Apply filters with debouncing for smooth multiselect experience
-    handleApplyStandardFilters();
+    // Clear any existing timeout to prevent resource leaks
+    if (multiselectTimeoutRef.current) {
+      clearTimeout(multiselectTimeoutRef.current);
+      multiselectTimeoutRef.current = null;
+    }
+    multiselectTimeoutRef.current = setTimeout(() => handleApplyStandardFilters(), 100);
   };
 
   const handleSourceChange = (newSelectedSourceIds: Set<string>) => {
     setSelectedSourceIds(newSelectedSourceIds);
     // Apply filters with debouncing for smooth multiselect experience
-    handleApplyStandardFilters();
+    // Clear any existing timeout to prevent resource leaks
+    if (multiselectTimeoutRef.current) {
+      clearTimeout(multiselectTimeoutRef.current);
+      multiselectTimeoutRef.current = null;
+    }
+    multiselectTimeoutRef.current = setTimeout(() => handleApplyStandardFilters(), 100);
   };
 
   const handleExperienceYearsChange = (newRange: [number, number]) => {
     setExperienceYearsRange(newRange);
     // Apply filters with debouncing for smooth experience years change
-    handleApplyStandardFilters();
+    // Clear any existing timeout to prevent resource leaks
+    if (multiselectTimeoutRef.current) {
+      clearTimeout(multiselectTimeoutRef.current);
+      multiselectTimeoutRef.current = null;
+    }
+    multiselectTimeoutRef.current = setTimeout(() => handleApplyStandardFilters(), 100);
   };
 
 
@@ -1282,11 +1302,18 @@ export function CandidateFilters({
                          size="sm"
                          onClick={(e) => {
                            e.stopPropagation();
+                           // Clear all fields with debouncing to prevent resource leaks
                            setName('');
                            setEmail('');
                            setPhone('');
                            setSkills(new Set());
                            setLocation('');
+                           // Apply filters with debouncing
+                           if (autoApplyTimeoutRef.current) {
+                             clearTimeout(autoApplyTimeoutRef.current);
+                             autoApplyTimeoutRef.current = null;
+                           }
+                           autoApplyTimeoutRef.current = setTimeout(() => handleApplyStandardFilters(), 100);
                          }}
                          disabled={isLoading || isAiSearching}
                          className="h-6 w-6 p-0 hover:bg-muted/50"
@@ -1558,10 +1585,17 @@ export function CandidateFilters({
                          size="sm"
                          onClick={(e) => {
                            e.stopPropagation();
+                           // Clear all selections with debouncing to prevent resource leaks
                            setSelectedPositionIds(new Set());
                            setSelectedStatuses(new Set());
                            setSelectedRecruiterIds(new Set());
                            setSelectedSourceIds(new Set());
+                           // Apply filters with debouncing
+                           if (multiselectTimeoutRef.current) {
+                             clearTimeout(multiselectTimeoutRef.current);
+                             multiselectTimeoutRef.current = null;
+                           }
+                           multiselectTimeoutRef.current = setTimeout(() => handleApplyStandardFilters(), 100);
                          }}
                          disabled={isLoading || isAiSearching}
                          className="h-6 w-6 p-0 hover:bg-muted/50"
@@ -1677,8 +1711,15 @@ export function CandidateFilters({
                          size="sm"
                          onClick={(e) => {
                            e.stopPropagation();
+                           // Clear experience filters with debouncing to prevent resource leaks
                            setExperienceYearsRange([0, 50]);
                            setApplicationDateRange(undefined);
+                           // Apply filters with debouncing
+                           if (autoApplyTimeoutRef.current) {
+                             clearTimeout(autoApplyTimeoutRef.current);
+                             autoApplyTimeoutRef.current = null;
+                           }
+                           autoApplyTimeoutRef.current = setTimeout(() => handleApplyStandardFilters(), 100);
                          }}
                          disabled={isLoading || isAiSearching}
                          className="h-6 w-6 p-0 hover:bg-muted/50"

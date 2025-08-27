@@ -98,6 +98,7 @@ export function CandidatesPageClient({
   const [tableError, setTableError] = useState<string | null>(null);
   const [isClearingFilters, setIsClearingFilters] = useState(false);
   const clearingFiltersTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const batchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // AI Search state
   const [aiSearchReasoning, setAiSearchReasoning] = useState<string | null>(null);
@@ -848,7 +849,7 @@ export function CandidatesPageClient({
       setTableLoading(true);
       
       // Use a timeout to batch the API calls and prevent conflicts with useEffect
-      setTimeout(() => {
+      const batchTimeout = setTimeout(() => {
         fetchTableData(filters, 1, pageSize);
         
         // Create a copy of filters without fit score filters to prevent circular dependency
@@ -864,6 +865,12 @@ export function CandidatesPageClient({
         
         fetchFitScoreCounts(filtersForCounts); // Update fit score counts when filters change
       }, 100); // Small delay to batch API calls
+      
+      // Store timeout for cleanup
+      if (batchTimeoutRef.current) {
+        clearTimeout(batchTimeoutRef.current);
+      }
+      batchTimeoutRef.current = batchTimeout;
     });
   }, [handleFilterChange, pageSize, fetchTableData, isClearingFilters, fetchFitScoreCounts]);
 
@@ -1232,6 +1239,9 @@ export function CandidatesPageClient({
       }
       if (fetchTimeoutRefFromHook.current) {
         clearTimeout(fetchTimeoutRefFromHook.current);
+      }
+      if (batchTimeoutRef.current) {
+        clearTimeout(batchTimeoutRef.current);
       }
     };
   }, [fetchTimeoutRefFromHook]);

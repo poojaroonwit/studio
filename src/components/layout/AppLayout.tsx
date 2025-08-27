@@ -79,6 +79,11 @@ export function AppLayout({ children }: AppLayoutProps) {
   const { mounted: themeMounted } = useTheme();
   
   const [appLogoUrl, setAppLogoUrl] = useState<string | null>(null); // MinIO URL, not data URL
+  
+  // Debug: Log when appLogoUrl changes
+  useEffect(() => {
+    console.log('AppLayout: appLogoUrl changed to:', appLogoUrl);
+  }, [appLogoUrl]);
   const [isClient, setIsClient] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(false);
   const [contextualLogos, setContextualLogos] = useState<{
@@ -87,6 +92,11 @@ export function AppLayout({ children }: AppLayoutProps) {
     sidebarLogoCollapsedDarkMode?: string | null;
     sidebarLogoExpandedDarkMode?: string | null;
   }>({});
+  
+  // Debug: Log when contextualLogos changes
+  useEffect(() => {
+    console.log('AppLayout: contextualLogos changed to:', contextualLogos);
+  }, [contextualLogos]);
   const [showLogoOnly, setShowLogoOnly] = useState<boolean>(false);
   const [sidebarLogoSize, setSidebarLogoSize] = useState<number>(48);
   const [isLogoLoading, setIsLogoLoading] = useState(true);
@@ -182,6 +192,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     };
     fetchGlobalSettings();
     const handleAppConfigChange = (event: Event) => {
+      console.log('AppLayout received appConfigChanged event:', event);
       const customEvent = event as CustomEvent<{ 
         appName?: string; 
         logoUrl?: string | null; 
@@ -202,9 +213,11 @@ export function AppLayout({ children }: AppLayoutProps) {
           setCurrentAppName(customEvent.detail.appName);
         }
         if (customEvent.detail.logoUrl !== undefined) {
+          console.log('Setting appLogoUrl to:', customEvent.detail.logoUrl);
           setAppLogoUrl(customEvent.detail.logoUrl);
         }
         if (customEvent.detail.contextualLogos) {
+          console.log('Setting contextualLogos to:', customEvent.detail.contextualLogos);
           setContextualLogos(customEvent.detail.contextualLogos);
         }
         if (customEvent.detail.sidebarLogoSize !== undefined) {
@@ -290,6 +303,12 @@ export function AppLayout({ children }: AppLayoutProps) {
               sidebarLogoSize={sidebarLogoSize}
               contextualLogos={contextualLogos}
             />
+            {/* Debug info */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="text-xs text-gray-500 p-2 border-t">
+                Debug: appLogoUrl={appLogoUrl}
+              </div>
+            )}
           </SidebarHeader>
           {/* Add separator below app name/logo group */}
           <SidebarSeparator className="my-0" />

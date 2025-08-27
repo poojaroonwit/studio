@@ -63,15 +63,21 @@ export function PositionLevelsTab() {
     setIsLoading(true);
     setFetchError(null);
     try {
+      console.log('[PositionLevelsTab] Fetching position levels...');
       const response = await fetch('/api/settings/position-levels');
+      console.log('[PositionLevelsTab] Response status:', response.status);
+      
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: 'Failed to fetch position levels' }));
-        throw new Error(errorData.message);
+        console.error('[PositionLevelsTab] API error:', errorData);
+        throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
       }
+      
       const data: PositionLevel[] = await response.json();
+      console.log('[PositionLevelsTab] Received data:', data.length, 'records');
       setLevels(data);
     } catch (error) {
-      console.error('Error fetching position levels:', error);
+      console.error('[PositionLevelsTab] Error fetching position levels:', error);
       setFetchError((error as Error).message);
     } finally {
       setIsLoading(false);

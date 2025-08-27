@@ -95,6 +95,20 @@ model Grade {
   @@index([sortOrder])
 }
 
+model PositionLevel {
+  id          String     @id @default(uuid()) @db.Uuid
+  name        String     @unique
+  description String?
+  color       String     @default("#6B7280")
+  isActive    Boolean    @default(true) @map("is_active")
+  sortOrder   Int        @default(0) @map("sort_order")
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([isActive])
+  @@index([sortOrder])
+}
+
 model Candidate {
   id                      String             @id @default(uuid()) @db.Uuid
   name                    String

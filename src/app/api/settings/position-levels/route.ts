@@ -4,36 +4,56 @@ import { authOptions } from '@/lib/auth';
 import { getPool } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-  }
-
-  const client = await getPool().connect();
+  let client: any = null;
   try {
+    console.log('[PositionLevels API] Starting request');
+    
+    const session = await getServerSession(authOptions);
+    console.log('[PositionLevels API] Session check:', !!session?.user?.id);
+    
+    if (!session?.user?.id) {
+      console.log('[PositionLevels API] Unauthorized - no session or user ID');
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
+
+    console.log('[PositionLevels API] Getting database pool');
+    const pool = getPool();
+    console.log('[PositionLevels API] Connecting to database');
+    client = await pool.connect();
+    
+    console.log('[PositionLevels API] Executing query');
     const query = `
       SELECT id, name, description, color, "is_active" as "isActive", "sort_order" as "sortOrder", "createdAt", "updatedAt"
       FROM "PositionLevel"
       ORDER BY "sort_order" ASC, name ASC
     `;
     const result = await client.query(query);
+    console.log('[PositionLevels API] Query successful, rows:', result.rows.length);
     return NextResponse.json(result.rows);
   } catch (error: any) {
-    console.error('Error fetching position levels:', error);
-    return NextResponse.json({ message: 'Error fetching position levels', error: error.message }, { status: 500 });
+    console.error('[PositionLevels API] Error:', error);
+    return NextResponse.json({ 
+      message: 'Error fetching position levels', 
+      error: error.message,
+      details: error.stack 
+    }, { status: 500 });
   } finally {
-    client.release();
+    if (client) {
+      console.log('[PositionLevels API] Releasing database connection');
+      client.release();
+    }
   }
 }
 
 export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-  }
-
-  const client = await getPool().connect();
+  let client: any = null;
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
+
+    client = await getPool().connect();
     const body = await request.json();
     const { name, description, color, isActive, sortOrder } = body;
 
@@ -67,7 +87,9 @@ export async function POST(request: NextRequest) {
     console.error('Error creating position level:', error);
     return NextResponse.json({ message: 'Error creating position level', error: error.message }, { status: 500 });
   } finally {
-    client.release();
+    if (client) {
+      client.release();
+    }
   }
 }
 

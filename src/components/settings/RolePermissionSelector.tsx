@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { PLATFORM_MODULES, PLATFORM_MODULE_CATEGORIES, type PlatformModuleId } from '@/lib/types';
+import { Loader2 } from 'lucide-react';
 
 interface RolePermissionSelectorProps {
   selectedPermissions: PlatformModuleId[];
@@ -18,6 +19,7 @@ interface RolePermissionSelectorProps {
   className?: string;
   noCard?: boolean;
   protectedPermissions?: PlatformModuleId[];
+  isLoading?: boolean;
 }
 
 // Group permissions by category for display
@@ -34,7 +36,8 @@ export function RolePermissionSelector({
   disabled = false,
   className,
   noCard = false,
-  protectedPermissions = []
+  protectedPermissions = [],
+  isLoading = false
 }: RolePermissionSelectorProps) {
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -144,6 +147,12 @@ export function RolePermissionSelector({
             >
               Clear All
             </Button>
+            {isLoading && (
+              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Saving...</span>
+              </div>
+            )}
           </div>
           <Badge variant="secondary" className="text-xs">
             {selectedPermissions.length} selected

@@ -1,11 +1,13 @@
 // src/app/api/settings/user-groups/route.ts
 import { NextResponse, type NextRequest } from 'next/server';
-import { getPool } from '@/lib/db';
 import { z } from 'zod';
-import { v4 as uuidv4 } from 'uuid';
-import { logAudit } from '@/lib/auditLog';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import type { UserGroup, PlatformModuleId } from '@/lib/types';
+import { PLATFORM_MODULES } from '@/lib/types';
+import { logAudit } from '@/lib/auditLog';
+import { getPool } from '../../../../lib/db';
+import { v4 as uuidv4 } from 'uuid';
 
 const userGroupSchema = z.object({
   name: z.string().min(1, 'Group name cannot be empty.'),
@@ -81,34 +83,55 @@ const userGroupSchema = z.object({
  *         description: "Forbidden: Insufficient permissions"
  */
 export async function GET(request: NextRequest) {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) return new NextResponse('Unauthorized', { status: 401 });
+  const session = await getServerSession(authOptions);
 
-    const client = await getPool().connect();
-    try {
-        const result = await client.query(`
-            SELECT 
-                ug.id, 
-                ug.name, 
-                ug.description, 
-                ug.permissions,
-                ug."is_default", 
-                ug."is_system_role",
-                ug."createdAt", 
-                ug."updatedAt",
-                COUNT(uug."userId")::int as user_count
-            FROM "UserGroup" ug
-            LEFT JOIN "User_UserGroup" uug ON ug.id = uug."groupId"
-            GROUP BY ug.id, ug.name, ug.description, ug.permissions, ug."is_default", ug."is_system_role", ug."createdAt", ug."updatedAt"
-            ORDER BY ug.name ASC
-        `);
-        return NextResponse.json(result.rows);
-    } catch (error: any) {
-        console.error("Failed to fetch user groups:", error);
-        return NextResponse.json({ message: "Error fetching user groups", error: error.message }, { status: 500 });
-    } finally {
-        client.release();
+  if (session?.user?.role !== 'Admin' && !session?.user?.modulePermissions?.includes('USER_GROUPS_MANAGE')) {
+    await logAudit('WARN', `Forbidden attempt to GET user groups by user ${session?.user?.email || 'Unknown'}.`, 'API:UserGroups:GetAll', session?.user?.id);
+    return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
+  }
+
+  try {
+    const result = await getPool().query(`
+      SELECT 
+        ug.id, 
+        ug.name, 
+        ug.description, 
+        ug.permissions,
+        ug."is_default", 
+        ug."is_system_role",
+        ug."createdAt", 
+        ug."updatedAt",
+        COUNT(uug."userId")::int as user_count
+      FROM "UserGroup" ug
+      LEFT JOIN "User_UserGroup" uug ON ug.id = uug."groupId"
+      GROUP BY ug.id, ug.name, ug.description, ug.permissions, ug."is_default", ug."is_system_role", ug."createdAt", ug."updatedAt"
+      ORDER BY ug."is_system_role" DESC, ug.name ASC
+    `);
+
+    const groups: UserGroup[] = result.rows;
+    
+    // Log all permissions found in the database
+    const allDbPermissions = new Set<string>();
+    groups.forEach(group => {
+      if (group.permissions) {
+        group.permissions.forEach(permission => allDbPermissions.add(permission));
+      }
+    });
+    console.log('All permissions found in database:', Array.from(allDbPermissions));
+    
+    // Check for any permissions in DB that are not in PLATFORM_MODULES
+    const platformModuleIds = PLATFORM_MODULES.map(m => m.id);
+    const missingPermissions = Array.from(allDbPermissions).filter(permission => !platformModuleIds.includes(permission as PlatformModuleId));
+    if (missingPermissions.length > 0) {
+      console.warn('Permissions in database not found in PLATFORM_MODULES:', missingPermissions);
     }
+
+    return NextResponse.json(groups, { status: 200 });
+  } catch (error) {
+    console.error('Failed to fetch user groups:', error);
+    await logAudit('ERROR', `Failed to fetch user groups by ${session?.user?.name}. Error: ${(error as Error).message}`, 'API:UserGroups:GetAll', session?.user?.id);
+    return NextResponse.json({ message: "Error fetching user groups", error: (error as Error).message }, { status: 500 });
+  }
 }
 
 export async function POST(request: NextRequest) {

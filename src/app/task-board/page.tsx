@@ -174,6 +174,11 @@ function TaskBoardContent() {
   // Handle task movement
   const handleMoveTask = (task: Task, newStatus: string) => {
     try {
+      // Prevent moving to the same status to avoid unnecessary updates
+      if (task.status === newStatus) {
+        return;
+      }
+      
       setTasks(prev => prev.map(t => 
         t.id === task.id ? { ...t, status: newStatus, updatedAt: new Date().toISOString() } : t
       ));

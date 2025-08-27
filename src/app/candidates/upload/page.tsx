@@ -15,15 +15,10 @@ import { toast } from 'react-hot-toast';
 import type { Position } from '@/lib/types';
 import { useSession } from 'next-auth/react';
 import BulkUploadCVsModal from "@/components/BulkUploadCVsModal";
-import { UploadQueueStatus } from "@/components/UploadQueueStatus";
+
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import dynamic from 'next/dynamic';
-
-const CandidateImportUploadQueue = dynamic(
-  () => import('@/components/candidates/CandidateImportUploadQueue').then(mod => mod.CandidateImportUploadQueue),
-  { ssr: false }
-);
+import { CandidateImportUploadQueue } from '@/components/candidates/CandidateImportUploadQueue';
 
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 

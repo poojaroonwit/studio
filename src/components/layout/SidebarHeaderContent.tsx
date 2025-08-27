@@ -65,6 +65,7 @@ export function SidebarHeaderContent({ currentAppName, appLogoUrl, isClient, isL
     }
     
     const logoToUse = getContextualLogo(isCollapsed);
+    console.log('SidebarHeaderContent renderLogo - isCollapsed:', isCollapsed, 'logoToUse:', logoToUse, 'appLogoUrl:', appLogoUrl, 'contextualLogos:', contextualLogos);
     
     if (isClient && logoToUse) {
       // Calculate responsive logo size based on sidebar state and available space
@@ -87,6 +88,8 @@ export function SidebarHeaderContent({ currentAppName, appLogoUrl, isClient, isL
             }}
             className="object-contain"
             data-ai-hint="company logo"
+            onLoad={() => console.log('Logo loaded successfully:', logoToUse)}
+            onError={(e) => console.error('Logo failed to load:', logoToUse, e)}
           />
           {/* Fallback icon that shows if image fails to load */}
           <Package2 className="h-6 w-6 absolute inset-0 m-auto opacity-0" style={{ pointerEvents: 'none' }} />

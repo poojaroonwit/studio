@@ -385,13 +385,24 @@ export const useCandidateDetail = (candidateId: string) => {
     if (isEditing && candidate) {
       console.log('Populating form with candidate data:', candidate);
       
+      // Normalize fitScore to ensure it's within 0-1 range
+      let normalizedFitScore = candidate.fitScore;
+      if (typeof candidate.fitScore === 'number') {
+        // If fitScore is a percentage (0-100), convert to decimal (0-1)
+        if (candidate.fitScore > 1) {
+          normalizedFitScore = candidate.fitScore / 100;
+        }
+        // Ensure the value is within 0-1 range
+        normalizedFitScore = Math.max(0, Math.min(1, normalizedFitScore));
+      }
+      
       const formValues: EditCandidateFormValues = {
         name: candidate.name || '',
         email: candidate.email || '',
         phone: candidate.phone || '',
         positionId: candidate.positionId || null,
         recruiterId: candidate.recruiterId || null,
-        fitScore: candidate.fitScore || null,
+        fitScore: normalizedFitScore,
         status: candidate.status || '',
         assignmentJustification: candidate.assignmentJustification
           ? (Array.isArray(candidate.assignmentJustification)

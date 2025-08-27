@@ -128,6 +128,16 @@ export function StagePipeline({
     onStageClick(stageName);
   }, [localTransitionHistory, onStageClick, localCurrentStatus]);
 
+  // Cleanup timeout on unmount to prevent resource leaks
+  useEffect(() => {
+    return () => {
+      if (transitioningTimeoutRef.current) {
+        clearTimeout(transitioningTimeoutRef.current);
+        transitioningTimeoutRef.current = null;
+      }
+    };
+  }, []);
+
   // Rebuild stage to records mapping when transition history changes
   const currentStageToRecords: Record<string, TransitionRecord[]> = {};
   const safeLocalTransitionHistory = Array.isArray(localTransitionHistory) ? localTransitionHistory : [];
@@ -148,7 +158,8 @@ export function StagePipeline({
       
       {localStages.map((stage, idx) => {
         const records = currentStageToRecords[stage.name] || [];
-        const isCompleted = localTransitionHistory.some(r => r.stage === stage.name);
+        const currentStageIndex = localStages?.findIndex(s => s.name === localCurrentStatus) ?? -1;
+        const isCompleted = idx < currentStageIndex;
         const isCurrent = localCurrentStatus === stage.name;
         const latestRecord = records.length > 0 ? records[records.length - 1] : null;
         const latestNote = latestRecord ? latestRecord.notes : null;
@@ -221,23 +232,25 @@ export function StagePipeline({
                           const stageDate = new Date(latestRecord.date);
                           let endDate;
                           
-                          // Find the next stage record to calculate duration
-                          const nextStageRecord = localTransitionHistory
-                            .filter(record => record.stage !== stage.name)
-                            .find(record => {
-                              const recordDate = new Date(record.date);
-                              return recordDate > stageDate;
-                            });
-                          
-                          if (nextStageRecord) {
-                            // If there's a next stage, calculate duration between stages
-                            endDate = new Date(nextStageRecord.date);
-                          } else if (isCurrent) {
-                            // If this is the current stage, use current time
+                          if (isCurrent) {
+                            // For current stage, use current time
                             endDate = new Date();
                           } else {
-                            // If no next stage and not current, return empty
-                            return '';
+                            // For passed stages, find the next stage record to calculate duration
+                            const nextStageRecord = localTransitionHistory
+                              .filter(record => record.stage !== stage.name)
+                              .find(record => {
+                                const recordDate = new Date(record.date);
+                                return recordDate > stageDate;
+                              });
+                            
+                            if (nextStageRecord) {
+                              // If there's a next stage, calculate duration between stages
+                              endDate = new Date(nextStageRecord.date);
+                            } else {
+                              // If no next stage found, return empty
+                              return '';
+                            }
                           }
                           
                           const diffTime = Math.abs(endDate.getTime() - stageDate.getTime());

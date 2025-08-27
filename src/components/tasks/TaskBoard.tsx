@@ -222,6 +222,9 @@ export function TaskBoard({
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
   const resizeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Add rate limiting for drag operations to prevent resource leaks
+  const lastDragTimeRef = useRef<number>(0);
 
   // Memoized data
   const tasksByStage = useMemo(() => {
@@ -318,6 +321,10 @@ export function TaskBoard({
       return () => {
         container.removeEventListener('scroll', updateScrollButtons);
         timeouts.forEach(clearTimeout);
+        // Clear any remaining timeouts to prevent memory leaks
+        timeouts.forEach(timeoutId => {
+          if (timeoutId) clearTimeout(timeoutId);
+        });
       };
     }
   }, [updateScrollButtons, visibleStagesList]);
@@ -325,9 +332,10 @@ export function TaskBoard({
   // Update scroll buttons when window resizes
   useEffect(() => {
     const handleResize = () => {
-      // Clear any existing timeout
+      // Clear any existing timeout to prevent resource leaks
       if (resizeTimeoutRef.current) {
         clearTimeout(resizeTimeoutRef.current);
+        resizeTimeoutRef.current = null;
       }
       resizeTimeoutRef.current = setTimeout(updateScrollButtons, 100);
     };
@@ -337,18 +345,44 @@ export function TaskBoard({
       window.removeEventListener('resize', handleResize);
       if (resizeTimeoutRef.current) {
         clearTimeout(resizeTimeoutRef.current);
+        resizeTimeoutRef.current = null;
       }
     };
   }, [updateScrollButtons]);
 
+  // Cleanup effect to prevent resource leaks on unmount
+  useEffect(() => {
+    return () => {
+      // Reset all drag state to prevent memory leaks
+      setDraggedTask(null);
+      setDragOverStage(null);
+      setIsDragging(false);
+      document.body.style.cursor = '';
+      
+      // Clear any remaining timeouts
+      if (resizeTimeoutRef.current) {
+        clearTimeout(resizeTimeoutRef.current);
+        resizeTimeoutRef.current = null;
+      }
+    };
+  }, []);
+
   // Drag and drop handlers
   const handleDragStart = useCallback((task: Task) => {
+    // Rate limiting: prevent rapid drag operations to prevent resource leaks
+    const now = Date.now();
+    if (now - lastDragTimeRef.current < 100) {
+      return;
+    }
+    lastDragTimeRef.current = now;
+    
     setDraggedTask(task);
     setIsDragging(true);
     document.body.style.cursor = 'grabbing';
   }, []);
 
   const handleDragEnd = useCallback(() => {
+    // Ensure all drag state is properly reset to prevent resource leaks
     setDraggedTask(null);
     setDragOverStage(null);
     setIsDragging(false);
@@ -382,10 +416,18 @@ export function TaskBoard({
     e.preventDefault();
     e.stopPropagation();
     
+    // Rate limiting: prevent rapid drop operations to prevent resource leaks
+    const now = Date.now();
+    if (now - lastDragTimeRef.current < 100) {
+      return;
+    }
+    lastDragTimeRef.current = now;
+    
     if (draggedTask && draggedTask.status !== stageId) {
       onMoveTask(draggedTask, stageId);
     }
     
+    // Ensure all drag state is properly reset to prevent resource leaks
     setDraggedTask(null);
     setDragOverStage(null);
     setIsDragging(false);

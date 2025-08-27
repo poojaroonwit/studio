@@ -218,7 +218,7 @@ async function initializeWarningConditions() {
         // Check if this warning condition already exists for the user
         const existingCondition = await prisma.warningConfiguration.findFirst({
           where: {
-            userId: user.id,
+            createdBy: user.id,
             name: requiredCondition.name
           }
         });
@@ -258,7 +258,7 @@ async function initializeWarningConditions() {
           // Create new condition
           await prisma.warningConfiguration.create({
             data: {
-              userId: user.id,
+              createdBy: user.id,
               name: requiredCondition.name,
               description: requiredCondition.description,
               severity: requiredCondition.severity,
@@ -286,7 +286,7 @@ async function initializeWarningConditions() {
     console.log('\n🔍 Verification:');
     for (const user of users) {
       const userConditions = await prisma.warningConfiguration.findMany({
-        where: { userId: user.id },
+        where: { createdBy: user.id },
         select: { name: true, isActive: true }
       });
       

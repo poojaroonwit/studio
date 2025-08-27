@@ -29,14 +29,7 @@ async function checkQueueStatus() {
     `);
 
     const queueStats = queueResult.rows[0];
-    
-    console.log('Queue Status:');
-    console.log(`  Total: ${queueStats.total}`);
-    console.log(`  Queued: ${queueStats.queued}`);
-    console.log(`  Processing: ${queueStats.processing}`);
-    console.log(`  Completed: ${queueStats.completed}`);
-    console.log(`  Failed: ${queueStats.failed}`);
-    console.log(`  Error: ${queueStats.error}`);
+ 
 
     // Check for stuck jobs (processing for more than 10 minutes)
     const stuckJobsResult = await pool.query(`

@@ -129,7 +129,6 @@ const CandidateImportUploadQueueInner: React.FC<{
   initialPageSize?: number;
   onPaginationChange?: (page: number, pageSize: number) => void;
 }> = ({ initialPage = 1, initialPageSize = 20, onPaginationChange }) => {
-  console.log('CandidateImportUploadQueueInner: Component initializing', { initialPage, initialPageSize });
   const [jobs, setJobs] = useState<CandidateJob[]>([]);
   const [total, setTotal] = useState(0);
   const [statusSummary, setStatusSummary] = useState<any>(null); // For static status cards
@@ -301,9 +300,7 @@ const CandidateImportUploadQueueInner: React.FC<{
 
   // Fetch paginated jobs
   const fetchJobs = useCallback(async () => {
-    console.log('fetchJobs: Starting fetch', { page, pageSize, debouncedFilter, statusFilter });
     if (isFetchingRef.current) {
-      console.log('fetchJobs: Already fetching, skipping');
       return;
     }
     isFetchingRef.current = true;
@@ -504,13 +501,10 @@ const CandidateImportUploadQueueInner: React.FC<{
   }, []);
 
   useEffect(() => {
-    console.log('Session effect: sessionStatus =', sessionStatus, 'session =', !!session);
     // Only fetch if session is loaded and available
     if (sessionStatus === 'authenticated' && session) {
-      console.log('Session effect: Fetching jobs');
       fetchJobs();
     } else if (sessionStatus === 'unauthenticated') {
-      console.log('Session effect: User not authenticated');
       setFetchError('Please sign in to view the upload queue');
     }
     return () => {

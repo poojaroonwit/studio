@@ -24,37 +24,28 @@ export async function middleware(req: NextRequest) {
       return NextResponse.next();
     }
 
-    // Debug: Log all cookies to see what's available
-    const allCookies = req.cookies.getAll();
-    console.log('[MIDDLEWARE DEBUG] All cookies:', allCookies.map(c => ({ name: c.name, value: c.value ? 'present' : 'empty' })));
-
     // Check for authentication token in cookies
     const token = req.cookies.get('next-auth.session-token')?.value || 
                   req.cookies.get('__Secure-next-auth.session-token')?.value ||
                   req.cookies.get('next-auth.csrf-token')?.value ||
                   req.cookies.get('__Host-next-auth.csrf-token')?.value;
 
-    console.log('[MIDDLEWARE DEBUG] Token found:', !!token);
-
     // If no token and trying to access protected routes, redirect to sign in
     if (!token && !pathname.startsWith('/auth/signin')) {
       const signInUrl = new URL('/auth/signin', req.url);
       signInUrl.searchParams.set('callbackUrl', pathname);
-      console.log('[MIDDLEWARE] No token found, redirecting to signin:', signInUrl.toString());
       return NextResponse.redirect(signInUrl);
     }
 
     // If user is authenticated but trying to access signin page, redirect to dashboard
     // But allow access if there's a signout parameter in the URL (indicating signout in progress)
     if (token && pathname.startsWith('/auth/signin') && !req.nextUrl.searchParams.has('signout')) {
-      console.log('[MIDDLEWARE] Authenticated user accessing signin, redirecting to dashboard');
       return NextResponse.redirect(new URL('/', req.url));
     }
 
     // For authenticated users, let the page components handle permission checks
     // This prevents middleware from blocking access and causing redirect loops
     if (token) {
-      console.log('[MIDDLEWARE] Authenticated user accessing:', pathname);
       return NextResponse.next();
     }
 

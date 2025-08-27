@@ -316,7 +316,7 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
               }));
             }
           } catch (e) {
-            console.error('Error parsing user list update:', e);
+            // Silent error handling for parsing issues
           }
         },
 
@@ -332,7 +332,7 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
             
             setState(prev => ({ ...prev, lastUpdate: new Date() }));
           } catch (e) {
-            console.error('Error parsing notification:', e);
+            // Silent error handling for parsing issues
           }
         },
 
@@ -348,7 +348,7 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
             
             setState(prev => ({ ...prev, lastUpdate: new Date() }));
           } catch (e) {
-            console.error('Error parsing upload queue update:', e);
+            // Silent error handling for parsing issues
           }
         },
 
@@ -364,7 +364,7 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
             
             setState(prev => ({ ...prev, lastUpdate: new Date() }));
           } catch (e) {
-            console.error('Error parsing dashboard update:', e);
+            // Silent error handling for parsing issues
           }
         },
 
@@ -380,7 +380,7 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
             
             setState(prev => ({ ...prev, lastUpdate: new Date() }));
           } catch (e) {
-            console.error('Error parsing warning update:', e);
+            // Silent error handling for parsing issues
           }
         },
 
@@ -395,7 +395,7 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
               showErrorNotification('Your session has expired. Please log in again.');
             }
           } catch (e) {
-            console.error('Error parsing session expired:', e);
+            // Silent error handling for parsing issues
           }
         },
 
@@ -409,7 +409,7 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
               onHealthCheck?.(data.data.health);
             }
           } catch (e) {
-            console.error('Error parsing health check:', e);
+            // Silent error handling for parsing issues
           }
         },
 
@@ -440,7 +440,6 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
       }
 
     } catch (error) {
-      console.error('Failed to connect to unified SSE:', error);
       handleReconnect();
     }
   }, [session?.user, showNotification, showErrorNotification, handleReconnect, startHealthCheck, state.isReconnecting]);

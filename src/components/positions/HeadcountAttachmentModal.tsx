@@ -46,28 +46,20 @@ export function HeadcountAttachmentModal({
     const files = event.target.files;
     if (!files || files.length === 0 || !headcount) return;
 
-    // console.log('Starting file upload for headcount:', headcount.id, 'Files:', files.length);
     setUploading(true);
     
     try {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        // console.log('Uploading file:', file.name, 'Size:', file.size);
         
         const formData = new FormData();
         formData.append('file', file);
         formData.append('label', file.name);
-
-        // Test the API endpoint first
-        // console.log('Testing API endpoint:', `/api/headcount/${headcount.id}/attachments`);
         
         const response = await fetch(`/api/headcount/${headcount.id}/attachments`, {
           method: 'POST',
           body: formData,
         });
-
-        // console.log('Upload response status:', response.status);
-        // console.log('Upload response headers:', Object.fromEntries(response.headers.entries()));
         
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
@@ -76,7 +68,6 @@ export function HeadcountAttachmentModal({
         }
         
         const result = await response.json();
-        console.log('Upload successful:', result);
       }
 
       toast.success('Files uploaded successfully');
@@ -97,15 +88,12 @@ export function HeadcountAttachmentModal({
     if (!headcount) return;
     
     try {
-      console.log('Testing API endpoint without file upload');
       const response = await fetch(`/api/headcount/${headcount.id}/attachments`, {
         method: 'GET',
       });
       
-      console.log('Test response status:', response.status);
       if (response.ok) {
         const data = await response.json();
-        console.log('Test response data:', data);
         toast.success('API endpoint is working');
       } else {
         toast.error(`API test failed: ${response.status}`);

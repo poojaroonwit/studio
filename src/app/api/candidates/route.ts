@@ -332,7 +332,6 @@ export async function GET(request: NextRequest) {
     let advancedFilters: { [key: string]: string | undefined } = {};
     
     if (advancedQuery) {
-      console.log('🔍 API: Processing advanced query:', advancedQuery);
       const parts = advancedQuery.split(' ').filter(part => part.includes(':'));
       
       parts.forEach(part => {
@@ -342,8 +341,6 @@ export async function GET(request: NextRequest) {
         const key = part.substring(0, colonIndex);
         const value = part.substring(colonIndex + 1);
         if (!key || !value) return;
-        
-        console.log('🔍 API: Processing part:', part, 'key:', key, 'value:', value);
         
         switch (key.toLowerCase()) {
           case 'name':
@@ -404,8 +401,6 @@ export async function GET(request: NextRequest) {
             break;
         }
       });
-      
-      console.log('🔍 API: Parsed advanced filters:', advancedFilters);
     }
 
     // Build filters object
@@ -435,8 +430,6 @@ export async function GET(request: NextRequest) {
       locationOperator: searchParams.get('locationOperator') || 'contains',
       skills: searchParams.get('skills') || advancedFilters.skills,
     };
-    
-    console.log('🔍 API: Final filters object:', filters);
 
     // Build WHERE clauses and parameters
     const whereClauses: string[] = [];

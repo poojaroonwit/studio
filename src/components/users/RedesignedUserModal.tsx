@@ -578,7 +578,6 @@ export function RedesignedUserModal({
   }, [isOpen, user, mode, form]);
 
   const onSubmit = async (data: UserFormValues) => {
-    // console.log('RedesignedUserModal onSubmit - Form data:', data);
     setIsLoading(true);
     try {
       if (mode === 'create' && onAddUser) {

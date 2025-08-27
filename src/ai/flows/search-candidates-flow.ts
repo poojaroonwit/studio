@@ -244,7 +244,6 @@ export async function searchCandidatesAIChat(input: SearchCandidatesInput): Prom
       return { matchedCandidateIds: [], aiReasoning: "No candidates found in the database to search.", recordCount: 0 };
     }
   } catch (dbError) {
-    console.error("AI Search: Error fetching candidates from DB:", dbError);
     return { matchedCandidateIds: [], aiReasoning: "Failed to retrieve candidate data for searching.", recordCount: 0 };
   }
 
@@ -255,7 +254,7 @@ export async function searchCandidatesAIChat(input: SearchCandidatesInput): Prom
 
   
   if (!candidateSummariesText.trim() && filteredCandidates.length > 0) {
-      console.warn("AI Search: Candidate summaries text is empty even though candidates were fetched. This might indicate an issue with createCandidateSummary or empty candidate details.");
+      // Candidate summaries text is empty even though candidates were fetched
   }
 
   const effectiveCandidateData = candidateSummariesText.trim() ? candidateSummariesText : "No candidate details available for processing.";
@@ -411,7 +410,6 @@ Do not include any markdown formatting, code blocks, or additional text. Only re
     }, 'AI Search');
 
     if (!apiResult.success) {
-      console.error('AI Search: All API keys failed');
       return {
         matchedCandidateIds: [],
         aiReasoning: `AI features are not available due to API key failures. Please check your API key configuration. Attempts: ${apiResult.attempts}, Last error: ${apiResult.error}`,
@@ -443,19 +441,14 @@ Do not include any markdown formatting, code blocks, or additional text. Only re
       
       // Validate the expected structure
       if (!result.hasOwnProperty('matchedCandidateIds') || !Array.isArray(result.matchedCandidateIds)) {
-        console.warn('AI Search: Response missing or invalid matchedCandidateIds array');
         result.matchedCandidateIds = [];
       }
       
       if (!result.hasOwnProperty('aiReasoning') || typeof result.aiReasoning !== 'string') {
-        console.warn('AI Search: Response missing or invalid aiReasoning');
         result.aiReasoning = '';
       }
       
     } catch (parseError) {
-      console.error('AI Search: JSON parsing failed:', parseError);
-      console.error('AI Search: Raw response that failed to parse:', modelText);
-      
       // Try to extract candidate IDs from the text using regex
       const candidateIdMatches = modelText.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi) || [];
       
@@ -485,7 +478,6 @@ Do not include any markdown formatting, code blocks, or additional text. Only re
     };
 
   } catch (error) {
-    console.error('AI Search Flow Error:', error);
     return {
       matchedCandidateIds: [],
       aiReasoning: `An unexpected error occurred during AI processing. Details: ${(error as Error).message}`,

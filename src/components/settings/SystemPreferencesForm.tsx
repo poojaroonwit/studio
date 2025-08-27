@@ -36,7 +36,7 @@ interface SystemPreferencesFormProps {
 export function SystemPreferencesForm({ onSave, onCancel }: SystemPreferencesFormProps) {
   const { data: session } = useSession();
   const router = useRouter();
-  const { toast } = useToast();
+  const { success: showSuccess, error: showError } = useToast();
   
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -70,18 +70,14 @@ export function SystemPreferencesForm({ onSave, onCancel }: SystemPreferencesFor
         setSidebarLogoSize(prefs.sidebarLogoSize ? parseInt(prefs.sidebarLogoSize) : 48);
       } catch (error) {
         console.error('Error loading settings:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load system settings",
-          variant: "destructive",
-        });
+        showError("Failed to load system settings");
       } finally {
         setIsLoading(false);
       }
     };
 
     loadSettings();
-  }, [toast]);
+  }, [showError]);
 
   const handleSave = async () => {
     try {
@@ -104,10 +100,7 @@ export function SystemPreferencesForm({ onSave, onCancel }: SystemPreferencesFor
 
       if (!res.ok) throw new Error('Failed to save settings');
 
-      toast({
-        title: "Success",
-        description: "System settings saved successfully",
-      });
+      showSuccess("System settings saved successfully");
 
       // Trigger app config change event
       window.dispatchEvent(new CustomEvent('appConfigChanged', {
@@ -121,11 +114,7 @@ export function SystemPreferencesForm({ onSave, onCancel }: SystemPreferencesFor
       onSave?.();
     } catch (error) {
       console.error('Error saving settings:', error);
-      toast({
-        title: "Error",
-        description: "Failed to save system settings",
-        variant: "destructive",
-      });
+      showError("Failed to save system settings");
     } finally {
       setIsSaving(false);
     }

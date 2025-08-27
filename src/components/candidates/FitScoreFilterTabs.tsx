@@ -37,13 +37,12 @@ export function FitScoreFilterTabs({
 
   // Defensive check for onGradeToggle function
   const safeOnGradeToggle = typeof onGradeToggle === 'function' ? onGradeToggle : (grade: string) => {
-    console.error('🚨 FitScoreFilterTabs: onGradeToggle is not a function. Grade:', grade);
-    console.error('🚨 FitScoreFilterTabs: onGradeToggle value:', onGradeToggle);
+    // Silent fallback for missing function
   };
 
   // Defensive check for onClearAll function
   const safeOnClearAll = typeof onClearAll === 'function' ? onClearAll : () => {
-    console.error('🚨 FitScoreFilterTabs: onClearAll is not a function');
+    // Silent fallback for missing function
   };
 
   const formatCount = (count: number) => {

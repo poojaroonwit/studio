@@ -58,37 +58,28 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   }, [session?.user]);
 
   const markAsRead = useCallback(async (notificationId: string) => {
-    console.log('🔍 NotificationContext: markAsRead called with ID:', notificationId);
-    
     // Check if this is a frontend-generated notification (has timestamp-like ID)
     const isFrontendNotification = /^\d{13,}$/.test(notificationId);
-    console.log('🔍 Is frontend notification:', isFrontendNotification);
     
     if (isFrontendNotification) {
       // For frontend-generated notifications, just update the local state
-      console.log('🔍 Updating frontend notification state');
       setNotifications(prev => 
         prev.map(n => 
           n.id === notificationId ? { ...n, isRead: true } : n
         )
       );
       setUnreadCount(prev => Math.max(0, prev - 1));
-      console.log('✅ Frontend notification marked as read');
       return;
     }
     
     // For database notifications, call the API
-    console.log('🔍 Calling API to mark database notification as read');
     try {
       const response = await fetch(`/api/realtime/notifications/${notificationId}/read`, {
         method: 'POST',
       });
       
-      console.log('🔍 API response status:', response.status);
-      
       if (response.ok) {
         const result = await response.json();
-        console.log('🔍 API response data:', result);
         
         setNotifications(prev => 
           prev.map(n => 
@@ -96,7 +87,6 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           )
         );
         setUnreadCount(prev => Math.max(0, prev - 1));
-        console.log('✅ Database notification marked as read');
       } else {
         const errorData = await response.json();
         console.error('❌ API error response:', errorData);

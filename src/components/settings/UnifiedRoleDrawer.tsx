@@ -315,7 +315,6 @@ export function UnifiedRoleDrawer({
       } catch (error) {
         // Don't show error if request was aborted
         if (error instanceof Error && error.name === 'AbortError') {
-          console.log('Permission update request was aborted');
           return;
         }
         

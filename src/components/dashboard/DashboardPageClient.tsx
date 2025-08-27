@@ -285,10 +285,8 @@ export default function DashboardPageClient({
     
     // Auto-refresh permissions if they're missing for authenticated users
     if (status === 'authenticated' && session?.user?.id && (!session.user.modulePermissions || session.user.modulePermissions.length === 0)) {
-              // console.log('[DASHBOARD] Detected missing permissions, attempting to refresh...');
       refreshPermissions().then(result => {
         if (result.success) {
-          // console.log('[DASHBOARD] Permissions refreshed successfully');
           toast.success('Permissions updated');
         } else {
           console.error('[DASHBOARD] Failed to refresh permissions:', result.error);

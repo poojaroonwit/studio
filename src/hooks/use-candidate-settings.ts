@@ -34,14 +34,12 @@ export function useCandidateSettings() {
 
     // If not authenticated, set loading to false and use defaults
     if (status !== 'authenticated' || !session?.user?.id) {
-      console.log('🔧 SETTINGS: Not authenticated, using defaults');
       setIsLoading(false);
       setSettings(defaultSettings);
       return;
     }
 
     try {
-      console.log('🔧 SETTINGS: Loading settings for user:', session.user.id);
       setIsLoading(true);
       setError(null);
 
@@ -65,7 +63,6 @@ export function useCandidateSettings() {
       }
 
       const data = await response.json();
-      console.log('🔧 SETTINGS: Received data:', data);
       
       // Merge with defaults in case some settings are missing
       const candidateSettings = data.candidates || {};
@@ -73,7 +70,6 @@ export function useCandidateSettings() {
         ...defaultSettings,
         ...candidateSettings
       };
-      console.log('🔧 SETTINGS: Merged settings:', mergedSettings);
       setSettings(mergedSettings);
     } catch (err) {
       console.error('Error loading candidate settings:', err);
@@ -92,12 +88,10 @@ export function useCandidateSettings() {
   // Save settings to database
   const saveSettings = useCallback(async (newSettings: CandidateSettings) => {
     if (status !== 'authenticated' || !session?.user?.id) {
-      console.log('🔧 SETTINGS: Cannot save - not authenticated');
       return;
     }
 
     try {
-      console.log('🔧 SETTINGS: Saving settings:', newSettings);
       setError(null);
 
       const response = await fetch('/api/user-preferences', {
@@ -115,7 +109,6 @@ export function useCandidateSettings() {
         throw new Error('Failed to save settings');
       }
 
-      console.log('🔧 SETTINGS: Settings saved successfully');
       // Update local state
       setSettings(newSettings);
     } catch (err) {

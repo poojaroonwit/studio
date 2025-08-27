@@ -78,7 +78,6 @@ export function broadcastCandidateUpdate(candidate: any, actingUserId?: string) 
     try {
       controller.enqueue(encodedData);
     } catch (e) {
-      console.error('[SSE] Error broadcasting candidate update:', e);
       // Remove the controller if it's causing errors
       controllers.delete(controller);
     }
@@ -99,7 +98,6 @@ export function broadcastCandidateListUpdate() {
     try {
       controller.enqueue(encodedData);
     } catch (e) {
-      console.error('[SSE] Error broadcasting candidate list update:', e);
       // Remove the controller if it's causing errors
       controllers.delete(controller);
     }
@@ -120,7 +118,6 @@ export function broadcastCandidateCommentUpdate(payload: { candidateId: string, 
     try {
       controller.enqueue(encodedData);
     } catch (e) {
-      console.error('[SSE] Error broadcasting comment update:', e);
       controllers.delete(controller);
     }
   }
@@ -140,7 +137,6 @@ export function broadcastCandidateResumeUpdate(payload: { candidateId: string, r
     try {
       controller.enqueue(encodedData);
     } catch (e) {
-      console.error('[SSE] Error broadcasting resume update:', e);
       controllers.delete(controller);
     }
   }
@@ -160,7 +156,6 @@ export function broadcastCandidateTransitionUpdate(payload: { candidateId: strin
     try {
       controller.enqueue(encodedData);
     } catch (e) {
-      console.error('[SSE] Error broadcasting transition update:', e);
       controllers.delete(controller);
     }
   }
@@ -180,7 +175,6 @@ export function broadcastCandidateAttachmentUpdate(payload: { candidateId: strin
     try {
       controller.enqueue(encodedData);
     } catch (e) {
-      console.error('[SSE] Error broadcasting attachment update:', e);
       controllers.delete(controller);
     }
   }

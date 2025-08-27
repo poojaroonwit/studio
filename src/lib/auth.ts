@@ -126,14 +126,11 @@ export const authOptions: NextAuthOptions = {
             throw new Error("Please enter both email and password.");
           }
   
-          // console.log('[AUTH DEBUG] Attempting to authorize user:', credentials.email);
           const user = await authenticateUser(credentials.email, credentials.password);
           
           if (user) {
-            // console.log('[AUTH DEBUG] User authorized successfully:', user.id);
             return user;
           } else {
-            // console.log('[AUTH DEBUG] Authentication failed for user:', credentials.email);
             return null;
           }
         }
@@ -156,7 +153,6 @@ export const authOptions: NextAuthOptions = {
         
         // If account and user are present (on sign-in), set token fields
         if (account && user) {
-          // console.log('[JWT CALLBACK] Setting token fields from user data');
           token.accessToken = account.access_token;
           token.id = user.id;
           token.role = user.role;
@@ -189,12 +185,9 @@ export const authOptions: NextAuthOptions = {
         }
         // Only fetch fresh permissions if we don't have them or if this is a new sign-in
         if (typeof token.id === 'string' && validateUuid(token.id) && (!token.modulePermissions || token.modulePermissions.length === 0 || account)) {
-          console.log('[JWT CALLBACK] Fetching fresh permissions for user:', token.id);
           try {
             const freshPermissions = await getUserPermissions(token.id as string);
-            console.log('[JWT CALLBACK] Fresh permissions fetched:', freshPermissions);
             token.modulePermissions = freshPermissions as PlatformModuleId[];
-            console.log(`[JWT CALLBACK] Loaded permissions for user ${token.id}:`, freshPermissions);
           } catch (e) {
             console.error('[JWT CALLBACK] Error fetching group permissions:', e);
             // Don't set empty permissions, keep existing ones if available
@@ -202,19 +195,10 @@ export const authOptions: NextAuthOptions = {
               token.modulePermissions = [];
             }
           }
-        } else {
-          console.log('[JWT CALLBACK] Skipping permission fetch:', {
-            hasValidId: typeof token.id === 'string' && validateUuid(token.id),
-            hasPermissions: !!token.modulePermissions,
-            permissionsLength: token.modulePermissions?.length || 0,
-            hasAccount: !!account,
-          });
         }
         return token;
       },
       async session({ session, token }) {
-        console.log('[SESSION CALLBACK] Called with token permissions:', token.modulePermissions);
-        
         if (session.user) {
           // Validate that token.id is a valid UUID before setting it in session
           if (typeof token.id === 'string' && !validateUuid(token.id)) {

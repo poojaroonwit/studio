@@ -1240,6 +1240,22 @@ export function SingleRowCandidateView({
   recruiters?: UserProfile[];
 }) {
   const [scrollPosition, setScrollPosition] = useState(0);
+  const scrollLeftTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const scrollRightTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup timeouts on unmount to prevent resource leaks
+  useEffect(() => {
+    return () => {
+      if (scrollLeftTimeoutRef.current) {
+        clearTimeout(scrollLeftTimeoutRef.current);
+        scrollLeftTimeoutRef.current = null;
+      }
+      if (scrollRightTimeoutRef.current) {
+        clearTimeout(scrollRightTimeoutRef.current);
+        scrollRightTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   // Get status color for YouTrack-style badges
   const getStatusColor = (status: string) => {

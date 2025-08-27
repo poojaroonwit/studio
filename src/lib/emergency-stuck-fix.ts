@@ -32,7 +32,7 @@ class EmergencyStuckDetector {
     if (this.isMonitoring) return;
     
     this.isMonitoring = true;
-    console.log('🚨 Emergency stuck detection started');
+    console.log(' Emergency stuck detection started');
     
     // Check every 2 seconds for stuck conditions
     this.checkInterval = setInterval(() => {
@@ -53,7 +53,7 @@ class EmergencyStuckDetector {
       isApplicationStuck = true;
       stuckDetectionCount++;
       
-      console.error('🚨 EMERGENCY: Application appears to be stuck!', {
+      console.error('EMERGENCY: Application appears to be stuck!', {
         totalEffectRuns,
         renderTime,
         stuckDetectionCount,
@@ -73,15 +73,14 @@ class EmergencyStuckDetector {
     }
     
     lastRecoveryTime = now;
-    console.log('🔄 Performing emergency recovery...');
+    console.log('Performing emergency recovery...');
     
     // Clear all timeouts and intervals
-    const highestTimeoutId = setTimeout(() => {}, 0);
-    for (let i = 0; i < highestTimeoutId; i++) {
+    const highestTimeoutId = Number(setTimeout(() => {}, 0));
+    for (let i = 0; i <= highestTimeoutId; i++) {
       clearTimeout(i);
       clearInterval(i);
     }
-    
     // Force garbage collection if available
     if (typeof window !== 'undefined' && (window as any).gc) {
       (window as any).gc();
@@ -139,13 +138,13 @@ export function useEmergencySafeEffect(
     
     // Stop execution if too many runs
     if (runCountRef.current > 10) {
-      console.error(`🚨 Emergency: Effect ${effectKey} exceeded 10 runs, stopping execution`);
+      console.error(`Emergency: Effect ${effectKey} exceeded 10 runs, stopping execution`);
       return;
     }
     
     // Stop execution if application is stuck
     if (isApplicationStuck) {
-      console.warn(`⚠️ Emergency: Skipping effect ${effectKey} due to stuck application`);
+      console.warn(`Emergency: Skipping effect ${effectKey} due to stuck application`);
       return;
     }
     
@@ -166,13 +165,13 @@ export function useEmergencySafeCallback<T extends (...args: any[]) => any>(
     
     // Stop execution if too many runs
     if (runCountRef.current > 50) {
-      console.error(`🚨 Emergency: Callback ${callbackKey} exceeded 50 runs, stopping execution`);
+      console.error(`Emergency: Callback ${callbackKey} exceeded 50 runs, stopping execution`);
       return;
     }
     
     // Stop execution if application is stuck
     if (isApplicationStuck) {
-      console.warn(`⚠️ Emergency: Skipping callback ${callbackKey} due to stuck application`);
+      console.warn(`Emergency: Skipping callback ${callbackKey} due to stuck application`);
       return;
     }
     
@@ -228,7 +227,7 @@ export function useEmergencySafeEventSource() {
   
   const createEventSource = useCallback((url: string) => {
     if (isApplicationStuck) {
-      console.warn('⚠️ Emergency: Skipping EventSource creation due to stuck application');
+      console.warn('Emergency: Skipping EventSource creation due to stuck application');
       return null;
     }
     
@@ -242,7 +241,7 @@ export function useEmergencySafeEventSource() {
     eventSource.onerror = () => {
       reconnectAttempts++;
       if (reconnectAttempts >= maxReconnectAttempts) {
-        console.warn('🚨 Emergency: Max EventSource reconnection attempts reached');
+        console.warn('Emergency: Max EventSource reconnection attempts reached');
         eventSource.close();
         eventSourcesRef.current.delete(eventSource);
         return;
@@ -289,7 +288,8 @@ if (typeof window !== 'undefined') {
   
   // Listen for recovery events
   window.addEventListener('emergencyRecovery', (event) => {
-    console.log('🔄 Emergency recovery triggered:', event.detail);
+    const customEvent = event as CustomEvent;
+    console.log('Emergency recovery triggered:', customEvent.detail);
   });
   
   // Cleanup on page unload

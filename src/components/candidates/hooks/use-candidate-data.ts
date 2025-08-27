@@ -93,7 +93,7 @@ export function useCandidateData({
   }, []);
 
   // Safe initial data setup
-  useSafeEffect(() => {
+  useFinalSafeEffect(() => {
     const safeInitialCandidates = Array.isArray(initialCandidates) ? initialCandidates : [];
     const safeInitialAvailablePositions = Array.isArray(initialAvailablePositions) ? initialAvailablePositions : [];
     const safeInitialAvailableStages = Array.isArray(initialAvailableStages) ? initialAvailableStages : [];
@@ -207,7 +207,7 @@ export function useCandidateData({
   }, [sessionStatus]);
 
   // Fetch positions and stages if not provided initially
-  useSafeEffect(() => {
+  useFinalSafeEffect(() => {
     const safeInitialAvailablePositions = Array.isArray(initialAvailablePositions) ? initialAvailablePositions : [];
     if (sessionStatus === 'authenticated' && safeInitialAvailablePositions.length === 0) {
       const fetchPositionsAndStages = async () => {
@@ -236,7 +236,7 @@ export function useCandidateData({
   }, [sessionStatus, initialAvailablePositions.length, stableSetAvailablePositions, stableSetAvailableStages], 'fetchPositionsAndStages', 10);
 
   // Fetch stages independently if not provided initially
-  useSafeEffect(() => {
+  useFinalSafeEffect(() => {
     const safeInitialAvailableStages = Array.isArray(initialAvailableStages) ? initialAvailableStages : [];
     if (sessionStatus === 'authenticated' && safeInitialAvailableStages.length === 0) {
       const fetchStages = async () => {
@@ -258,7 +258,7 @@ export function useCandidateData({
   }, [sessionStatus, initialAvailableStages.length, stableSetAvailableStages], 'fetchStages', 10);
 
   // Fetch full candidates on mount and when session changes
-  useSafeEffect(() => {
+  useFinalSafeEffect(() => {
     const safeInitialCandidates = Array.isArray(initialCandidates) ? initialCandidates : [];
     if (sessionStatus === 'authenticated' && safeInitialCandidates.length === 0) {
       // Use a delay to ensure the component is fully mounted
@@ -271,7 +271,7 @@ export function useCandidateData({
   }, [sessionStatus, fetchAllCandidatesForCounts, initialCandidates.length], 'fetchFullCandidates', 10);
 
   // Fetch sources and recruiters on mount
-  useSafeEffect(() => {
+  useFinalSafeEffect(() => {
     if (sessionStatus === 'authenticated') {
       fetchSources();
       fetchRecruiters();
@@ -279,7 +279,7 @@ export function useCandidateData({
   }, [sessionStatus, fetchSources, fetchRecruiters], 'fetchSourcesAndRecruiters', 10);
 
   // Fetch fit score counts on mount
-  useSafeEffect(() => {
+  useFinalSafeEffect(() => {
     if (sessionStatus === 'authenticated') {
       // Use a delay to ensure the component is fully mounted
       const timeoutId = setTimeout(() => {

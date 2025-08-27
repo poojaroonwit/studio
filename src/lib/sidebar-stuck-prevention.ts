@@ -54,14 +54,14 @@ class SidebarStuckDetector {
     // Check if too many navigations are happening
     const navigationTime = now - this.lastNavigationTime;
     
-    if (totalEffectRuns > 50 || renderTime > 3000 || (navigationCount > 10 && navigationTime < 5000)) {
+    if (totalEffectRuns > 50 || renderTime > 3000 || (this.navigationCount > 10 && navigationTime < 5000)) {
       isSidebarStuck = true;
       sidebarEffectRunCount++;
       
       console.error('🚨 SIDEBAR STUCK: Sidebar appears to be stuck!', {
         totalEffectRuns,
         renderTime,
-        navigationCount,
+        navigationCount: this.navigationCount,
         navigationTime,
         sidebarEffectRunCount,
         effectRunCounts: Object.fromEntries(this.effectRunCounts)
@@ -73,13 +73,6 @@ class SidebarStuckDetector {
 
   private performSidebarRecovery() {
     console.log('🔄 Performing sidebar recovery...');
-    
-    // Clear all timeouts and intervals
-    const highestTimeoutId = setTimeout(() => {}, 0);
-    for (let i = 0; i < highestTimeoutId; i++) {
-      clearTimeout(i);
-      clearInterval(i);
-    }
     
     // Reset counters
     this.effectRunCounts.clear();
@@ -298,7 +291,8 @@ if (typeof window !== 'undefined') {
   
   // Listen for recovery events
   window.addEventListener('sidebarRecovery', (event) => {
-    console.log('🔄 Sidebar recovery triggered:', event.detail);
+    const customEvent = event as CustomEvent;
+    console.log('🔄 Sidebar recovery triggered:', customEvent.detail);
   });
   
   // Cleanup on page unload

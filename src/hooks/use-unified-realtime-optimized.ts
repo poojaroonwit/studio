@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useEmergencySafeEffect, useEmergencySafeCallback, useEmergencySafeEventSource } from '@/lib/emergency-stuck-fix';
+import { useFinalReconnectLimit } from '@/lib/app-stuck-prevention-final';
 
 interface UnifiedRealtimeOptions {
   onCandidateUpdate?: (candidate: any) => void;
@@ -32,6 +33,9 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
 
   // Use emergency safe EventSource
   const { createEventSource, closeEventSource, closeAllEventSources } = useEmergencySafeEventSource();
+
+  // Use final reconnect limit
+  const trackReconnectAttempt = useFinalReconnectLimit('unified-realtime', 3);
 
   // Update options ref when options change
   useEffect(() => {

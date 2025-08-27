@@ -153,13 +153,6 @@ class FinalAppStuckDetector {
   }
 
   private performAggressiveCleanup() {
-    // Clear all timeouts and intervals
-    const highestTimeoutId = setTimeout(() => {}, 0);
-    for (let i = 0; i < highestTimeoutId; i++) {
-      clearTimeout(i);
-      clearInterval(i);
-    }
-    
     // Close all EventSource connections
     this.eventSourceConnections.forEach(eventSource => {
       try {
@@ -246,6 +239,17 @@ class FinalAppStuckDetector {
     
     if (newCount > this.config.maxReconnectAttempts) {
       console.warn(`⚠️ Too many reconnection attempts for ${key}: ${newCount} attempts`);
+    }
+  }
+
+  startRender() {
+    this.renderStartTime = performance.now();
+  }
+
+  endRender() {
+    const renderTime = performance.now() - this.renderStartTime;
+    if (renderTime > this.config.maxRenderTime) {
+      console.warn(`⚠️ Slow render detected: ${renderTime.toFixed(2)}ms`);
     }
   }
 
@@ -454,13 +458,10 @@ export function useFinalReconnectLimit(
 // Hook to monitor render performance
 export function useFinalRenderPerformance() {
   useEffect(() => {
-    finalAppStuckDetector.renderStartTime = performance.now();
+    finalAppStuckDetector.startRender();
     
     return () => {
-      const renderTime = performance.now() - finalAppStuckDetector.renderStartTime;
-      if (renderTime > 1000) {
-        console.warn(`⚠️ Slow render detected: ${renderTime.toFixed(2)}ms`);
-      }
+      finalAppStuckDetector.endRender();
     };
   });
 }
@@ -476,6 +477,7 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
   
   // Listen for recovery events
   window.addEventListener('appStuckRecovery', (event) => {
-    console.log('🔄 App stuck recovery triggered:', event.detail);
+    const customEvent = event as CustomEvent;
+    console.log('🔄 App stuck recovery triggered:', customEvent.detail);
   });
 }

@@ -98,7 +98,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
+      start_period: 120s
     # The command to run the application is defined in the Dockerfile's CMD instruction
     # which uses wait-for-db.sh for optimized startup
     networks:
@@ -190,6 +190,7 @@ services:
       PROCESSOR_INTERVAL_MS: ${PROCESSOR_INTERVAL_MS:-5000}
       LOG_INTERVAL_MS: ${LOG_INTERVAL_MS:-30000}
       NODE_ENV: ${NODE_ENV}
+      DOCKER_ENV: true
     depends_on:
       postgres:
         condition: service_healthy

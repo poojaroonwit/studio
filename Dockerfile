@@ -27,5 +27,5 @@ RUN chmod +x ./entrypoint-processor.sh
 
 EXPOSE 8021
 
-# Start the application directly
-CMD ["npm", "start"]
+# Start the application using the entrypoint script
+CMD ["/bin/sh", "/app/entrypoint.sh"]

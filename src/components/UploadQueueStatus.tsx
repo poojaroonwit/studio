@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -87,17 +87,23 @@ export function UploadQueueStatus() {
   };
 
   useEffect(() => {
+    let mounted = true;
+    
     fetchQueue();
     
     // Set up real-time updates
     const eventSource = new EventSource('/api/upload-queue/sse');
     
     eventSource.onopen = () => {
-      setIsRealtimeActive(true);
-      // console.log('SSE connection established');
+      if (mounted) {
+        setIsRealtimeActive(true);
+        // console.log('SSE connection established');
+      }
     };
     
     eventSource.onmessage = (event) => {
+      if (!mounted) return;
+      
       try {
         const data = JSON.parse(event.data);
         if (data.type === 'queue') {
@@ -111,11 +117,20 @@ export function UploadQueueStatus() {
     };
     
     eventSource.onerror = () => {
-      setIsRealtimeActive(false);
-      // console.log('SSE connection error, falling back to polling');
+      if (mounted) {
+        setIsRealtimeActive(false);
+        // console.log('SSE connection error, falling back to polling');
+      }
     };
 
-    return () => eventSource.close();
+    return () => {
+      mounted = false;
+      try {
+        eventSource.close();
+      } catch (error) {
+        console.error('Error closing EventSource:', error);
+      }
+    };
   }, [page, pageSize]); // Add pagination dependencies
 
   const getStatusIcon = (status: string) => {

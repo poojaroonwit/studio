@@ -38,18 +38,25 @@ const config = {
 
 // Override baseUrl for local development if it's set to Docker service name
 if (config.baseUrl.includes('app:8021') || config.baseUrl.includes('172.21.0.2:8021')) {
-  config.baseUrl = 'http://localhost:8021';
-  console.log(`[INFO] Overriding PROCESSOR_URL to localhost for local development: ${config.baseUrl}`);
+  // Check if we're running in Docker environment
+  if (process.env.DOCKER_ENV || process.env.NODE_ENV === 'production') {
+    // Keep the Docker service name for production/Docker environments
+    console.log(`[INFO] Running in Docker/production environment, using: ${config.baseUrl}`);
+  } else {
+    // Override to localhost for local development
+    config.baseUrl = 'http://localhost:8021';
+    console.log(`[INFO] Overriding PROCESSOR_URL to localhost for local development: ${config.baseUrl}`);
+  }
 }
 
 // Additional override for local development detection
-if (process.env.NODE_ENV === 'development' && config.baseUrl.includes('app:')) {
+if (process.env.NODE_ENV === 'development' && config.baseUrl.includes('app:') && !process.env.DOCKER_ENV) {
   config.baseUrl = 'http://localhost:8021';
   console.log(`[INFO] Development mode detected, overriding PROCESSOR_URL to localhost: ${config.baseUrl}`);
 }
 
 // Force override for local development if running outside Docker
-if (config.baseUrl.includes('app:') && !process.env.DOCKER_ENV) {
+if (config.baseUrl.includes('app:') && !process.env.DOCKER_ENV && process.env.NODE_ENV !== 'production') {
   config.baseUrl = 'http://localhost:8021';
   console.log(`[INFO] Local development detected, overriding PROCESSOR_URL to localhost: ${config.baseUrl}`);
 }

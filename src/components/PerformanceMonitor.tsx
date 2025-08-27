@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect } from 'react';
-import { usePerformanceMonitor } from '@/lib/resource-leak-fixes-client';
-import { detectMemoryLeaks } from '@/lib/resource-leak-fixes';
+import { usePerformanceMonitor, detectMemoryLeaks } from '@/lib/resource-leak-fixes';
 
 export function PerformanceMonitor() {
   const metrics = usePerformanceMonitor(process.env.NODE_ENV === 'development');

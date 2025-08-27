@@ -27,6 +27,7 @@ export function initializeResourceTracking() {
   const originalSetInterval = window.setInterval;
   const originalClearTimeout = window.clearTimeout;
   const originalClearInterval = window.clearInterval;
+  const originalEventSource = window.EventSource;
 
   // Override setTimeout
   (window as any).setTimeout = function(callback: TimerHandler, delay?: number, ...args: any[]) {
@@ -52,6 +53,21 @@ export function initializeResourceTracking() {
   (window as any).clearInterval = function(intervalId: number) {
     resourceRegistry.intervals.delete(intervalId);
     return originalClearInterval(intervalId);
+  };
+
+  // Override EventSource constructor
+  (window as any).EventSource = function(url: string, eventSourceInitDict?: EventSourceInit) {
+    const eventSource = new originalEventSource(url, eventSourceInitDict);
+    resourceRegistry.eventSources.add(eventSource);
+    
+    // Override the close method to remove from tracking
+    const originalClose = eventSource.close;
+    eventSource.close = function() {
+      resourceRegistry.eventSources.delete(eventSource);
+      return originalClose.call(this);
+    };
+    
+    return eventSource;
   };
 
   console.log('🔧 Resource tracking initialized');

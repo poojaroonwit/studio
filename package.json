@@ -36,6 +36,8 @@
     "disable-problematic-webhooks": "node scripts/disable-problematic-webhooks.js",
     "fix-webhook": "node scripts/fix-webhook-config.js",
     "mock-webhook": "node scripts/mock-webhook-server.cjs",
+    "diagnose-upload-queue": "node scripts/diagnose-upload-queue.cjs",
+    "test-docker-network": "node scripts/test-docker-network.cjs",
     "clean": "rimraf dist src/**/*.js src/**/*.jsx prisma/seed.js tailwind.config.js",
     "optimize": "echo Optimization script not available",
     "db:migrate": "node scripts/auto-migrate.cjs",

@@ -315,12 +315,23 @@ export default function DashboardPageClient({
   }, [status, session?.user?.id, initialCandidates, initialPositions, initialUsers, fetchDataClientSide]);
 
   useEffect(() => {
+    let mounted = true;
+    
     const eventSource = new EventSource('/api/dashboard/stream');
     eventSource.onmessage = (event) => {
-      // Optionally, parse event.data for more granular updates
-      fetchDataClientSide(); // Refresh dashboard data on any event
+      if (mounted) {
+        // Optionally, parse event.data for more granular updates
+        fetchDataClientSide(); // Refresh dashboard data on any event
+      }
     };
-    return () => eventSource.close();
+    return () => {
+      mounted = false;
+      try {
+        eventSource.close();
+      } catch (error) {
+        console.error('Error closing EventSource:', error);
+      }
+    };
   }, [fetchDataClientSide]);
 
   const totalActiveCandidates = useMemo(() => {

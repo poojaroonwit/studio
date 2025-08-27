@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef, useMemo } from "react"
-import { useResourceCleanup, useSafeTimeout, useSafeInterval, useSafeEventSource } from '@/lib/resource-leak-fixes';;
+import { useResourceCleanup, useSafeTimeout, useSafeInterval, useSafeEventSource } from '@/lib/resource-leak-fixes-client';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, XCircle, CheckCircle, FileText, ExternalLink, AlertCircle, Eye, FileUp, UploadCloud, X, Download, ChevronLeft, ChevronRight, MoreHorizontal, Play, MoreVertical, ChevronUp, ChevronDown, Send, Search, RotateCcw } from "lucide-react";

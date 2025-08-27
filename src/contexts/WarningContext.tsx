@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
-import { useResourceCleanup, useSafeTimeout, useSafeInterval, useSafeEventSource } from '@/lib/resource-leak-fixes';;
+import { useResourceCleanup, useSafeTimeout, useSafeInterval, useSafeEventSource } from '@/lib/resource-leak-fixes-client';
 import { useSession } from 'next-auth/react';
 import { useUnifiedRealtime } from '@/hooks/use-unified-realtime-optimized';
 

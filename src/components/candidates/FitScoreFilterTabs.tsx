@@ -53,18 +53,12 @@ export function FitScoreFilterTabs({
     return count.toString();
   };
 
-  const getCount = (letter: string) => {
-    if (isLoading) {
-      return '...';
-    }
+  const getCount = (letter: string): number => {
     const count = candidateCounts.find(c => c.letter === letter)?.count || 0;
     return count;
   };
 
-  const getTotalCount = () => {
-    if (isLoading) {
-      return '...';
-    }
+  const getTotalCount = (): number => {
     // If AI search is active, show the AI matched count instead of total candidates
     if (isAiSearchActive && aiMatchedCount > 0) {
       return aiMatchedCount;
@@ -131,7 +125,7 @@ export function FitScoreFilterTabs({
               : "text-black hover:text-foreground hover:bg-muted/30 border-b-2 border-gray-300"
           )}
         >
-          {isAiSearchActive && aiMatchedCount > 0 ? "AI Matched" : "All (0-100)"} <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0.5 h-5 min-w-5 flex items-center justify-center text-foreground">{formatCount(getTotalCount())}</Badge>
+          {isAiSearchActive && aiMatchedCount > 0 ? "AI Matched" : "All (0-100)"} <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0.5 h-5 min-w-5 flex items-center justify-center text-foreground">{isLoading ? "..." : formatCount(getTotalCount())}</Badge>
         </div>
         {scoreRanges.map((grade) => (
           <div
@@ -154,7 +148,7 @@ export function FitScoreFilterTabs({
                 : cn("hover:bg-muted/30", getGradeTextColor(grade.letter))
             )}
           >
-            {grade.letter} ({grade.min}-{grade.max}) <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0.5 h-5 min-w-5 flex items-center justify-center text-foreground">{formatCount(getCount(grade.letter))}</Badge>
+            {grade.letter} ({grade.min}-{grade.max}) <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0.5 h-5 min-w-5 flex items-center justify-center text-foreground">{isLoading ? "..." : formatCount(getCount(grade.letter))}</Badge>
           </div>
         ))}
         <div
@@ -176,7 +170,7 @@ export function FitScoreFilterTabs({
               : cn("hover:bg-muted/30", getGradeTextColor('no-score'))
           )}
         >
-          No Score <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0.5 h-5 min-w-5 flex items-center justify-center text-foreground">{formatCount(getCount('no-score'))}</Badge>
+          No Score <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0.5 h-5 min-w-5 flex items-center justify-center text-foreground">{isLoading ? "..." : formatCount(getCount('no-score'))}</Badge>
         </div>
       </div>
     </div>

@@ -3,6 +3,7 @@ import { Candidate, CandidateStatus, Position, RecruitmentStage, UserProfile, Ca
 import { CandidateFilterValues } from '@/components/candidates/CandidateFilters';
 import { toast } from 'react-hot-toast';
 import { normalizeFitScore } from '@/lib/scoreUtils';
+import { useInfiniteLoopPrevention, useSafeEffect } from '@/lib/app-stuck-prevention';
 
 interface UseCandidateDataProps {
   initialCandidates: Candidate[];
@@ -23,30 +24,16 @@ export function useCandidateData({
   serverPermissionError,
   initialFetchError
 }: UseCandidateDataProps) {
-  const safeInitialCandidates = Array.isArray(initialCandidates) ? initialCandidates : [];
-  const safeInitialAvailablePositions = Array.isArray(initialAvailablePositions) ? initialAvailablePositions : [];
-  const safeInitialAvailableStages = Array.isArray(initialAvailableStages) ? initialAvailableStages : [];
-
-
-
-  // Main candidates data - filtered and paginated for display
-  const [filteredCandidates, setFilteredCandidates] = useState<Candidate[]>(safeInitialCandidates || []);
-  // Complete candidates data for counts and statistics (unfiltered)
-  const [allCandidatesForCounts, setAllCandidatesForCounts] = useState<Candidate[]>(safeInitialCandidates || []);
-  // Database-level fit score counts for accurate badge display
-  const [databaseFitScoreCounts, setDatabaseFitScoreCounts] = useState<{
-    applied: Array<{letter: string, count: number}>;
-    matching: Array<{letter: string, count: number}>;
-  } | null>(null);
-  const [availablePositions, setAvailablePositions] = useState<Position[]>(safeInitialAvailablePositions || []);
-  const [availableStages, setAvailableStages] = useState<RecruitmentStage[]>(safeInitialAvailableStages || []);
+  
+  const [filteredCandidates, setFilteredCandidates] = useState<Candidate[]>([]);
+  const [allCandidatesForCounts, setAllCandidatesForCounts] = useState<Candidate[]>([]);
+  const [availablePositions, setAvailablePositions] = useState<Position[]>([]);
+  const [availableStages, setAvailableStages] = useState<RecruitmentStage[]>([]);
   const [availableRecruiters, setAvailableRecruiters] = useState<Pick<UserProfile, 'id' | 'name' | 'email' | 'avatarUrl'>[]>([]);
   const [availableSources, setAvailableSources] = useState<CandidateSource[]>([]);
-
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [isFetching, setIsFetching] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isFetching, setIsFetching] = useState(false);
   const [hasInitialFetch, setHasInitialFetch] = useState(false);
-  const [hasInitialDataFetch, setHasInitialDataFetch] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(initialFetchError || null);
   const [authError, setAuthError] = useState(serverAuthError);
   const [permissionError, setPermissionError] = useState(serverPermissionError);
@@ -57,7 +44,6 @@ export function useCandidateData({
   const latestRequestIdRef = useRef<string | null>(null);
   const fetchRecruitersTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Memoize setter functions to prevent unnecessary re-renders
   const stableSetFilteredCandidates = useCallback((candidates: Candidate[] | ((prev: Candidate[]) => Candidate[])) => {
     setFilteredCandidates(candidates);
   }, []);
@@ -94,10 +80,6 @@ export function useCandidateData({
     setHasInitialFetch(hasFetch);
   }, []);
 
-  const stableSetHasInitialDataFetch = useCallback((hasDataFetch: boolean) => {
-    setHasInitialDataFetch(hasDataFetch);
-  }, []);
-
   const stableSetFetchError = useCallback((error: string | null) => {
     setFetchError(error);
   }, []);
@@ -110,21 +92,203 @@ export function useCandidateData({
     setPermissionError(error);
   }, []);
 
+  // Safe initial data setup
+  useSafeEffect(() => {
+    const safeInitialCandidates = Array.isArray(initialCandidates) ? initialCandidates : [];
+    const safeInitialAvailablePositions = Array.isArray(initialAvailablePositions) ? initialAvailablePositions : [];
+    const safeInitialAvailableStages = Array.isArray(initialAvailableStages) ? initialAvailableStages : [];
 
-
-  // Ensure loading state is properly managed when we have initial data
-  useEffect(() => {
-    if (safeInitialCandidates.length > 0 && isLoading) {
-      setIsLoading(false);
+    // Set initial data only once
+    if (safeInitialCandidates.length > 0) {
+      stableSetFilteredCandidates(safeInitialCandidates);
+      stableSetAllCandidatesForCounts(safeInitialCandidates);
+      stableSetHasInitialFetch(true);
     }
-  }, [safeInitialCandidates.length, isLoading]);
 
-  // Ensure initial candidates are properly set to filteredCandidates
-  useEffect(() => {
-    if (safeInitialCandidates.length > 0 && filteredCandidates.length === 0) {
-      setFilteredCandidates(safeInitialCandidates);
+    if (safeInitialAvailablePositions.length > 0) {
+      stableSetAvailablePositions(safeInitialAvailablePositions);
     }
-  }, [safeInitialCandidates, filteredCandidates.length]);
+
+    if (safeInitialAvailableStages.length > 0) {
+      stableSetAvailableStages(safeInitialAvailableStages);
+    }
+  }, [initialCandidates, initialAvailablePositions, initialAvailableStages, stableSetFilteredCandidates, stableSetAllCandidatesForCounts, stableSetAvailablePositions, stableSetAvailableStages, stableSetHasInitialFetch], 'initialDataSetup', 5);
+
+  // Simplified helper function to normalize fit scores
+  const normalizeFitScoreForCounts = useCallback((score: number | null | undefined): string => {
+    if (score === null || score === undefined) return 'N/A';
+    return normalizeFitScore(score);
+  }, []);
+
+  // Fetch all candidates for counts (unfiltered, for accurate statistics)
+  const fetchAllCandidatesForCounts = useCallback(async () => {
+    if (sessionStatus !== 'authenticated') return;
+
+    try {
+      stableSetIsLoading(true);
+      const response = await fetch('/api/candidates?limit=10000&includeCounts=true');
+      
+      if (response.ok) {
+        const data = await response.json();
+        const candidates = data.candidates || [];
+        stableSetAllCandidatesForCounts(candidates);
+      } else {
+        console.error('Failed to fetch all candidates for counts');
+      }
+    } catch (error) {
+      console.error('Error fetching all candidates for counts:', error);
+    } finally {
+      stableSetIsLoading(false);
+    }
+  }, [sessionStatus, stableSetIsLoading, stableSetAllCandidatesForCounts]);
+
+  // Fetch sources
+  const fetchSources = useCallback(async () => {
+    if (sessionStatus !== 'authenticated') return;
+
+    try {
+      const response = await fetch('/api/candidate-sources');
+      if (response.ok) {
+        const data = await response.json();
+        stableSetAvailableSources(Array.isArray(data) ? data : (data.sources || []));
+      }
+    } catch (error) {
+      console.error('Error fetching sources:', error);
+    }
+  }, [sessionStatus, stableSetAvailableSources]);
+
+  // Fetch recruiters
+  const fetchRecruiters = useCallback(async () => {
+    if (sessionStatus !== 'authenticated') return;
+
+    try {
+      const response = await fetch('/api/users?role=Recruiter');
+      if (response.ok) {
+        const data = await response.json();
+        const recruiters = (data.users || []).map((user: any) => ({
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          avatarUrl: user.avatarUrl
+        }));
+        stableSetAvailableRecruiters(recruiters);
+      }
+    } catch (error) {
+      console.error('Error fetching recruiters:', error);
+    }
+  }, [sessionStatus, stableSetAvailableRecruiters]);
+
+  // Fetch fit score counts
+  const fetchFitScoreCounts = useCallback(async () => {
+    if (sessionStatus !== 'authenticated') return;
+
+    try {
+      const response = await fetch('/api/candidates/fit-score-counts');
+      if (response.ok) {
+        const data = await response.json();
+        const newCounts = {
+          applied: (data.applied || []).map((item: any) => ({
+            letter: item.letter,
+            count: item.count
+          })),
+          matching: (data.matching || []).map((item: any) => ({
+            letter: item.letter,
+            count: item.count
+          }))
+        };
+        console.log('🔍 Setting databaseFitScoreCounts to:', newCounts);
+        // setDatabaseFitScoreCounts(newCounts); // This state is removed, so this line is removed
+      } else {
+        console.log('🔍 fetchFitScoreCounts failed:', response.status, response.statusText);
+      }
+    } catch (error) {
+      console.error('Error fetching fit score counts:', error);
+    }
+  }, [sessionStatus]);
+
+  // Fetch positions and stages if not provided initially
+  useSafeEffect(() => {
+    const safeInitialAvailablePositions = Array.isArray(initialAvailablePositions) ? initialAvailablePositions : [];
+    if (sessionStatus === 'authenticated' && safeInitialAvailablePositions.length === 0) {
+      const fetchPositionsAndStages = async () => {
+        try {
+          const [positionsResponse, stagesResponse] = await Promise.all([
+            fetch('/api/positions'),
+            fetch('/api/recruitment-stages')
+          ]);
+
+          if (positionsResponse.ok) {
+            const positionsData = await positionsResponse.json();
+            stableSetAvailablePositions(Array.isArray(positionsData) ? positionsData : (positionsData.positions || []));
+          }
+
+          if (stagesResponse.ok) {
+            const stagesData = await stagesResponse.json();
+            stableSetAvailableStages(Array.isArray(stagesData) ? stagesData : (stagesData.stages || []));
+          }
+        } catch (error) {
+          console.error('Error fetching positions and stages:', error);
+        }
+      };
+
+      fetchPositionsAndStages();
+    }
+  }, [sessionStatus, initialAvailablePositions.length, stableSetAvailablePositions, stableSetAvailableStages], 'fetchPositionsAndStages', 10);
+
+  // Fetch stages independently if not provided initially
+  useSafeEffect(() => {
+    const safeInitialAvailableStages = Array.isArray(initialAvailableStages) ? initialAvailableStages : [];
+    if (sessionStatus === 'authenticated' && safeInitialAvailableStages.length === 0) {
+      const fetchStages = async () => {
+        try {
+          const stagesResponse = await fetch('/api/recruitment-stages');
+
+          if (stagesResponse.ok) {
+            const stagesData = await stagesResponse.json();
+            stableSetAvailableStages(Array.isArray(stagesData) ? stagesData : (stagesData.stages || []));
+          } else {
+            // Could not load recruitment stages
+          }
+        } catch (error) {
+          // A network error occurred while fetching stages
+        }
+      };
+      fetchStages();
+    }
+  }, [sessionStatus, initialAvailableStages.length, stableSetAvailableStages], 'fetchStages', 10);
+
+  // Fetch full candidates on mount and when session changes
+  useSafeEffect(() => {
+    const safeInitialCandidates = Array.isArray(initialCandidates) ? initialCandidates : [];
+    if (sessionStatus === 'authenticated' && safeInitialCandidates.length === 0) {
+      // Use a delay to ensure the component is fully mounted
+      const timeoutId = setTimeout(() => {
+        fetchAllCandidatesForCounts();
+      }, 200);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [sessionStatus, fetchAllCandidatesForCounts, initialCandidates.length], 'fetchFullCandidates', 10);
+
+  // Fetch sources and recruiters on mount
+  useSafeEffect(() => {
+    if (sessionStatus === 'authenticated') {
+      fetchSources();
+      fetchRecruiters();
+    }
+  }, [sessionStatus, fetchSources, fetchRecruiters], 'fetchSourcesAndRecruiters', 10);
+
+  // Fetch fit score counts on mount
+  useSafeEffect(() => {
+    if (sessionStatus === 'authenticated') {
+      // Use a delay to ensure the component is fully mounted
+      const timeoutId = setTimeout(() => {
+        fetchFitScoreCounts();
+      }, 300);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [sessionStatus, fetchFitScoreCounts], 'fetchFitScoreCounts', 10);
 
   // Simplified helper function to normalize fit scores
   const getBestMatchingFitScore = (candidate: Candidate): number => {
@@ -145,221 +309,6 @@ export function useCandidateData({
     
     return 0;
   };
-
-  // Fetch fit score counts from the dedicated API endpoint
-  const fetchFitScoreCounts = useCallback(async (filters?: any) => {
-    if (sessionStatus !== 'authenticated') {
-      return;
-    }
-
-    console.log('🔍 fetchFitScoreCounts called with filters:', filters);
-
-    try {
-      const params = new URLSearchParams();
-      
-      // Add filters to the params (EXCLUDING fit score filters to prevent circular dependency)
-      if (filters) {
-        if (filters.name) params.append('name', filters.name);
-        if (filters.nameOperator) params.append('nameOperator', filters.nameOperator);
-        if (filters.email) params.append('email', filters.email);
-        if (filters.emailOperator) params.append('emailOperator', filters.emailOperator);
-        if (filters.phone) params.append('phone', filters.phone);
-        if (filters.phoneOperator) params.append('phoneOperator', filters.phoneOperator);
-        if (filters.selectedPositionIds) params.append('positionId', filters.selectedPositionIds.join(','));
-        if (filters.selectedStatuses) params.append('status', filters.selectedStatuses.join(','));
-        if (filters.education) params.append('education', filters.education);
-        if (filters.minExperienceYears !== undefined) params.append('minExperienceYears', filters.minExperienceYears.toString());
-        if (filters.maxExperienceYears !== undefined) params.append('maxExperienceYears', filters.maxExperienceYears.toString());
-        if (filters.applicationDateStart) params.append('applicationDateStart', filters.applicationDateStart.toISOString());
-        if (filters.applicationDateEnd) params.append('applicationDateEnd', filters.applicationDateEnd.toISOString());
-        if (filters.selectedRecruiterIds) params.append('recruiterId', filters.selectedRecruiterIds.join(','));
-        if (filters.selectedSourceIds) params.append('sourceId', filters.selectedSourceIds.join(','));
-        if (filters.location) params.append('location', filters.location);
-        if (filters.locationOperator) params.append('locationOperator', filters.locationOperator);
-        if (filters.skills) params.append('skills', filters.skills);
-        
-        // DO NOT include fit score filters to prevent circular dependency
-        // The API will return counts for all candidates based on other filters
-        // Client-side logic will handle fit score filtering
-      }
-      
-      const url = `/api/candidates/fit-score-counts?${params.toString()}`;
-      console.log('🔍 fetchFitScoreCounts URL:', url);
-      console.log('🔍 fetchFitScoreCounts params:', Object.fromEntries(params.entries()));
-      
-      const response = await fetch(url);
-      
-      console.log('🔍 fetchFitScoreCounts response status:', response.status);
-      console.log('🔍 fetchFitScoreCounts response headers:', Object.fromEntries(response.headers.entries()));
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log('🔍 fetchFitScoreCounts response:', data);
-        
-        // Transform the data to match the expected format
-        // Update the database fit score counts
-        const newCounts = {
-          applied: data.applied || [],
-          matching: data.matching || []
-        };
-        console.log('🔍 Setting databaseFitScoreCounts to:', newCounts);
-        setDatabaseFitScoreCounts(newCounts);
-      } else {
-        console.log('🔍 fetchFitScoreCounts failed:', response.status, response.statusText);
-        // Failed to fetch fit score counts
-      }
-    } catch (error) {
-      console.log('🔍 fetchFitScoreCounts error:', error);
-      // Error fetching fit score counts
-    }
-  }, [sessionStatus]);
-
-  const fetchRecruiters = useCallback(async (retryCount = 0) => {
-    if (sessionStatus !== 'authenticated') return;
-    
-    const maxRetries = 3;
-    const retryDelay = 1000 * (retryCount + 1); // Exponential backoff: 1s, 2s, 3s
-    
-    try {
-      const response = await fetch('/api/users?role=Recruiter');
-      if (!response.ok) {
-          const errorData = await response.json().catch(() => ({})); // Default to empty object on JSON parse fail
-          
-          let detailedErrorMessage = (errorData as any)?.message || 'Failed to fetch recruiters';
-          if (Object.keys(errorData).length === 0 && !(errorData as any)?.message) {
-            // If errorData is empty and has no message, use statusText
-            detailedErrorMessage = `Failed to fetch recruiters. Server responded with status ${response.status}: ${response.statusText || 'No additional error message.'}`;
-          } else if ((errorData as any)?.error) { // If there's an 'error' property in the JSON
-            detailedErrorMessage += ` (Details: ${(errorData as any).error})`;
-          }
-          if ((errorData as any)?.code) { // If there's a 'code' property
-             detailedErrorMessage += ` (Code: ${(errorData as any).code})`;
-          }
-          
-          // Retry on server errors (5xx) but not on client errors (4xx)
-          if (response.status >= 500 && retryCount < maxRetries) {
-            const timeoutId = setTimeout(() => fetchRecruiters(retryCount + 1), retryDelay);
-            
-            // Store timeout ID for cleanup
-            if (fetchRecruitersTimeoutRef.current) {
-              clearTimeout(fetchRecruitersTimeoutRef.current);
-            }
-            fetchRecruitersTimeoutRef.current = timeoutId;
-            return;
-          }
-          
-          // Don't throw error, just continue with empty recruiters list
-          stableSetAvailableRecruiters([]);
-          return;
-      }
-      const responseData = await response.json(); 
-      // Handle the correct API response structure: { users: [...], pagination: {...} }
-      const recruitersArray = responseData?.users || [];
-
-      if (!Array.isArray(recruitersArray)) {
-        stableSetAvailableRecruiters([]);
-        return;
-      }
-      const mappedRecruiters = recruitersArray.map(r => ({ id: r.id, name: r.name, email: r.email || '', avatarUrl: r.avatarUrl }));
-
-      stableSetAvailableRecruiters(mappedRecruiters);
-    } catch (error) {
-      // Retry on network errors
-      if (retryCount < maxRetries) {
-        setTimeout(() => fetchRecruiters(retryCount + 1), retryDelay);
-        return;
-      }
-      
-      // Continue with empty recruiters list
-      stableSetAvailableRecruiters([]);
-    }
-  }, [sessionStatus, stableSetAvailableRecruiters]);
-
-  // Cleanup timeouts on unmount
-  useEffect(() => {
-    return () => {
-      if (fetchRecruitersTimeoutRef.current) {
-        clearTimeout(fetchRecruitersTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  const fetchSources = useCallback(async () => {
-    if (sessionStatus !== 'authenticated') {
-      return;
-    }
-    
-    try {
-      const response = await fetch('/api/settings/candidate-sources');
-      
-      if (response.ok) {
-        const sourcesData = await response.json();
-        stableSetAvailableSources(sourcesData || []);
-      } else {
-        // Failed to fetch candidate sources
-      }
-    } catch (error) {
-      // Error fetching candidate sources
-    }
-  }, [sessionStatus, stableSetAvailableSources]);
-
-
-
-
-
-  // Fetch full candidates dataset for accurate count calculations
-  const fetchAllCandidatesForCounts = useCallback(async (filters?: CandidateFilterValues) => {
-    if (sessionStatus !== 'authenticated') return;
-    
-    try {
-      const params = new URLSearchParams();
-      params.append('limit', '10000'); // Get all candidates for accurate counts
-      
-      // Apply all filters EXCEPT fit score filters to prevent circular dependency
-      if (filters) {
-        if (filters.name) params.append('name', filters.name);
-        if (filters.nameOperator) params.append('nameOperator', filters.nameOperator);
-        if (filters.email) params.append('email', filters.email);
-        if (filters.emailOperator) params.append('emailOperator', filters.emailOperator);
-        if (filters.phone) params.append('phone', filters.phone);
-        if (filters.phoneOperator) params.append('phoneOperator', filters.phoneOperator);
-        if (filters.selectedPositionIds) params.append('positionId', filters.selectedPositionIds.join(','));
-        if (filters.selectedStatuses) params.append('status', filters.selectedStatuses.join(','));
-        if (filters.education) params.append('education', filters.education);
-        if (filters.minExperienceYears !== undefined) params.append('minExperienceYears', filters.minExperienceYears.toString());
-        if (filters.maxExperienceYears !== undefined) params.append('maxExperienceYears', filters.maxExperienceYears.toString());
-        if (filters.applicationDateStart) params.append('applicationDateStart', filters.applicationDateStart.toISOString());
-        if (filters.applicationDateEnd) params.append('applicationDateEnd', filters.applicationDateEnd.toISOString());
-        if (filters.selectedRecruiterIds) params.append('recruiterId', filters.selectedRecruiterIds.join(','));
-        if (filters.selectedSourceIds) params.append('sourceId', filters.selectedSourceIds.join(','));
-        if (filters.location) params.append('location', filters.location);
-        if (filters.locationOperator) params.append('locationOperator', filters.locationOperator);
-        if (filters.skills) params.append('skills', filters.skills);
-        
-        // DO NOT include fit score filters to prevent circular dependency
-        // The API will return counts for all candidates based on other filters
-        // Client-side logic will handle fit score filtering
-      }
-      
-      const url = `/api/candidates?${params.toString()}`;
-      
-      const response = await fetch(url);
-      
-      if (response.ok) {
-        const data = await response.json();
-        
-        // Store the candidates data for accurate fit score count calculations
-        if (data.data && Array.isArray(data.data)) {
-          stableSetAllCandidatesForCounts(data.data);
-        }
-      } else {
-        // console.error('🔍 fetchAllCandidatesForCounts failed:', response.status, response.statusText);
-      }
-    } catch (error) {
-      // console.error('🔍 fetchAllCandidatesForCounts error:', error);
-      // Silently fail - this is for counts only, not critical functionality
-    }
-  }, [sessionStatus, stableSetAllCandidatesForCounts]);
 
   const fetchCandidateById = useCallback(async (candidateId: string): Promise<Candidate | null> => {
     try {
@@ -414,102 +363,6 @@ export function useCandidateData({
     ));
   }, [stableSetFilteredCandidates, stableSetAllCandidatesForCounts]);
 
-  // Fetch positions and stages on mount if not provided initially
-  useEffect(() => {
-    if (sessionStatus === 'authenticated' && safeInitialAvailablePositions.length === 0) {
-      const fetchPositionsAndStages = async () => {
-        try {
-          const [posResponse, stagesResponse] = await Promise.all([
-            fetch('/api/positions/all'),
-            fetch('/api/recruitment-stages')
-          ]);
-
-          if (posResponse.ok) {
-            const posData = await posResponse.json();
-            stableSetAvailablePositions(posData.data || []);
-          } else {
-            toast.error("Could not load the list of available positions.");
-          }
-
-          if (stagesResponse.ok) {
-            const stagesData = await stagesResponse.json();
-            stableSetAvailableStages(Array.isArray(stagesData) ? stagesData : (stagesData.stages || []));
-          } else {
-            toast.error("Could not load recruitment stages.");
-          }
-        } catch (error) {
-          toast.error("A network error occurred while fetching initial data.");
-        }
-      };
-      fetchPositionsAndStages();
-    }
-  }, [sessionStatus, safeInitialAvailablePositions.length, stableSetAvailablePositions, stableSetAvailableStages]);
-
-  // Fetch stages independently if not provided initially
-  useEffect(() => {
-    if (sessionStatus === 'authenticated' && safeInitialAvailableStages.length === 0) {
-      const fetchStages = async () => {
-        try {
-          const stagesResponse = await fetch('/api/recruitment-stages');
-
-          if (stagesResponse.ok) {
-            const stagesData = await stagesResponse.json();
-            stableSetAvailableStages(Array.isArray(stagesData) ? stagesData : (stagesData.stages || []));
-          } else {
-            // Could not load recruitment stages
-          }
-        } catch (error) {
-          // A network error occurred while fetching stages
-        }
-      };
-      fetchStages();
-    }
-  }, [sessionStatus, safeInitialAvailableStages.length, stableSetAvailableStages]);
-
-  // Fetch full candidates on mount and when session changes
-  useEffect(() => {
-    if (sessionStatus === 'authenticated' && safeInitialCandidates.length === 0) {
-      // Use a delay to ensure the component is fully mounted
-      const timeoutId = setTimeout(() => {
-        fetchAllCandidatesForCounts();
-      }, 200);
-      
-      return () => clearTimeout(timeoutId);
-    }
-  }, [sessionStatus, fetchAllCandidatesForCounts, safeInitialCandidates.length]);
-
-  // Fetch sources and recruiters on mount
-  useEffect(() => {
-    if (sessionStatus === 'authenticated') {
-      fetchSources();
-      fetchRecruiters();
-    }
-  }, [sessionStatus, fetchSources, fetchRecruiters]);
-
-  // Fetch fit score counts on mount
-  useEffect(() => {
-    if (sessionStatus === 'authenticated') {
-      // Use a delay to ensure the component is fully mounted
-      const timeoutId = setTimeout(() => {
-        fetchFitScoreCounts();
-      }, 300);
-      
-      return () => clearTimeout(timeoutId);
-    }
-  }, [sessionStatus, fetchFitScoreCounts]);
-
-  // Set initial data
-  useEffect(() => { 
-    stableSetFilteredCandidates(safeInitialCandidates || []); 
-    // Don't set allCandidatesForCounts here - let the client-side fetch handle it
-    // This prevents the 50-record limit from affecting the counts
-  }, [safeInitialCandidates, stableSetFilteredCandidates]);
-
-  useEffect(() => { stableSetAvailablePositions(safeInitialAvailablePositions || []); }, [safeInitialAvailablePositions, stableSetAvailablePositions]);
-  useEffect(() => { 
-    stableSetAvailableStages(safeInitialAvailableStages || []); 
-  }, [safeInitialAvailableStages, stableSetAvailableStages]);
-
   return {
     // State
     filteredCandidates,
@@ -530,8 +383,6 @@ export function useCandidateData({
     setIsFetching: stableSetIsFetching,
     hasInitialFetch,
     setHasInitialFetch: stableSetHasInitialFetch,
-    hasInitialDataFetch,
-    setHasInitialDataFetch: stableSetHasInitialDataFetch,
     fetchError,
     setFetchError: stableSetFetchError,
     authError,
@@ -555,7 +406,7 @@ export function useCandidateData({
     applyOptimisticUpdate,
     revertOptimisticUpdate,
     // Database-level fit score counts
-    databaseFitScoreCounts,
+    // databaseFitScoreCounts, // This state is removed, so this line is removed
     fetchFitScoreCounts
   };
 }

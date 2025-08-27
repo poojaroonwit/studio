@@ -1,6 +1,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
+import { useInfiniteLoopPrevention } from '@/lib/app-stuck-prevention';
 
 interface UnifiedRealtimeOptions {
   onCandidateUpdate?: (candidate: any) => void;
@@ -26,6 +27,13 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
   const healthCheckRef = useRef<NodeJS.Timeout | null>(null);
   const mountedRef = useRef(true);
   const optionsRef = useRef(options);
+  const reconnectAttemptsRef = useRef(0);
+  const maxReconnectAttempts = 5;
+
+  // Track effect runs to prevent infinite loops
+  useInfiniteLoopPrevention('useUnifiedRealtime', 10, () => {
+    console.error('🚨 useUnifiedRealtime effect exceeded maximum runs');
+  });
 
   // Update options ref when options change
   useEffect(() => {
@@ -57,6 +65,12 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
   const connect = useCallback(() => {
     if (!session?.user || !mountedRef.current) return;
 
+    // Prevent excessive reconnection attempts
+    if (reconnectAttemptsRef.current >= maxReconnectAttempts) {
+      console.warn('🚨 Maximum reconnection attempts reached, stopping reconnection');
+      return;
+    }
+
     // Use global connection if available
     if (globalEventSource && globalEventSource.readyState === EventSource.OPEN) {
       eventSourceRef.current = globalEventSource;
@@ -76,6 +90,7 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
         setIsConnected(true);
         setLastUpdate(new Date());
         globalConnectionCount++;
+        reconnectAttemptsRef.current = 0; // Reset reconnect attempts on successful connection
       };
 
       eventSource.onerror = () => {
@@ -90,12 +105,17 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
             clearTimeout(globalReconnectTimeout);
           }
           
-          // Reconnect after 5 seconds
-          globalReconnectTimeout = setTimeout(() => {
-            if (session?.user && mountedRef.current) {
-              connect();
-            }
-          }, 5000);
+          // Increment reconnect attempts
+          reconnectAttemptsRef.current++;
+          
+          // Reconnect after 5 seconds, but only if under max attempts
+          if (reconnectAttemptsRef.current < maxReconnectAttempts) {
+            globalReconnectTimeout = setTimeout(() => {
+              if (session?.user && mountedRef.current) {
+                connect();
+              }
+            }, 5000);
+          }
         }
       };
 

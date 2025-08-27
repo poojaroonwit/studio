@@ -29,6 +29,7 @@ import { useRecentUrls, formatRelativeTime } from "@/hooks/use-recent-urls";
 import { useUnifiedRealtime } from "@/hooks/use-unified-realtime-optimized";
 import { useSidebarCleanup } from "@/hooks/use-sidebar-cleanup";
 import { Clock, X } from "lucide-react";
+import { monitorSidebarResource, unmonitorSidebarResource, getSidebarResourceStats } from "@/lib/sidebar-resource-monitor";
 
 // Add this at the top for TypeScript global declaration
 declare global {
@@ -126,13 +127,25 @@ const usePendingCount = () => {
   const [pendingError, setPendingError] = useState(false);
   const [isPendingLoading, setIsPendingLoading] = useState(true);
   const { addTimeout, isMounted } = useSidebarCleanup();
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const fetchPending = useCallback(async () => {
     if (!session?.user || !isMounted()) return;
 
+    // Cancel any existing request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+      abortControllerRef.current = controller;
+      
+      const timeoutId = addTimeout(() => {
+        if (controller && !controller.signal.aborted) {
+          controller.abort();
+        }
+      }, 5000); // 5 second timeout
 
       const res = await fetch("/api/upload-queue/count", {
         signal: controller.signal,
@@ -140,8 +153,6 @@ const usePendingCount = () => {
           'Cache-Control': 'no-cache'
         }
       });
-
-      clearTimeout(timeoutId);
 
       if (!isMounted()) return; // Check if component is still mounted
 
@@ -152,12 +163,14 @@ const usePendingCount = () => {
       setPendingError(false);
       setIsPendingLoading(false);
     } catch (e) {
-      if (isMounted()) {
+      if (isMounted() && e.name !== 'AbortError') {
         setPendingError(true);
         setIsPendingLoading(false);
       }
+    } finally {
+      abortControllerRef.current = null;
     }
-  }, [session?.user, isMounted]);
+  }, [session?.user, isMounted, addTimeout]);
 
   // Use unified real-time hook for upload queue updates with optimized callbacks
   const { isConnected } = useUnifiedRealtime({
@@ -184,6 +197,15 @@ const usePendingCount = () => {
       }, 100);
     }
   }, [session?.user, fetchPending, addTimeout, isMounted]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   return {
     pendingCount,
@@ -234,6 +256,28 @@ const SidebarNavComponent = function SidebarNav() {
 
   useEffect(() => {
     setIsClient(true);
+    
+    // Start monitoring sidebar resources
+    monitorSidebarResource('component', 'SidebarNav');
+    
+    // Log resource stats periodically in development
+    if (process.env.NODE_ENV === 'development') {
+      const intervalId = setInterval(() => {
+        const stats = getSidebarResourceStats();
+        if (stats.eventListeners > 50 || stats.timeouts > 20 || stats.intervals > 10) {
+          console.warn('🚨 High resource usage in sidebar:', stats);
+        }
+      }, 30000); // Check every 30 seconds
+      
+      return () => {
+        clearInterval(intervalId);
+        unmonitorSidebarResource('component', 'SidebarNav');
+      };
+    }
+    
+    return () => {
+      unmonitorSidebarResource('component', 'SidebarNav');
+    };
   }, []);
 
   // Early return for loading state

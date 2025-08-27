@@ -301,14 +301,20 @@ export function AppLayout({ children }: AppLayoutProps) {
     };
   }, []);
 
-  // Handle page loading state
+  // Handle page loading state with proper cleanup
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    
     setIsPageLoading(true);
-    const timer = setTimeout(() => {
+    timeoutId = setTimeout(() => {
       setIsPageLoading(false);
     }, 300); // Short delay to show loading state
 
-    return () => clearTimeout(timer);
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
   }, [pathname]);
 
   // Show loading while session is being fetched or validated

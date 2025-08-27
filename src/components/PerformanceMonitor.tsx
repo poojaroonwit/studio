@@ -3,22 +3,24 @@
 import { useEffect } from 'react';
 import { usePerformanceMonitor } from '@/lib/resource-leak-fixes-client';
 import { detectMemoryLeaks } from '@/lib/resource-leak-fixes';
+import { useSafeInterval } from '@/lib/resource-leak-fixes-client';
 
 export function PerformanceMonitor() {
   const metrics = usePerformanceMonitor(process.env.NODE_ENV === 'development');
+  const { setInterval, clearInterval } = useSafeInterval();
 
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
-      const interval = setInterval(() => {
+      const intervalId = setInterval(() => {
         const leaks = detectMemoryLeaks();
         if (leaks.length > 0) {
           console.warn('🚨 Memory leaks detected:', leaks);
         }
       }, 10000);
 
-      return () => clearInterval(interval);
+      return () => clearInterval(intervalId);
     }
-  }, []);
+  }, [setInterval, clearInterval]);
 
   if (process.env.NODE_ENV !== 'development') {
     return null;

@@ -49,6 +49,7 @@ import { useCandidateData } from './hooks/use-candidate-data';
 import { useCandidateFetching } from './hooks/use-candidate-fetching';
 import { useCandidateActions } from './hooks/use-candidate-actions';
 import { useCandidateAiSearch } from './hooks/use-candidate-ai-search';
+import { useSafeEffect, useSafeCallback, useInfiniteLoopPrevention } from "@/lib/app-stuck-prevention";
 
 interface CandidatesPageClientProps {
   initialCandidates: Candidate[];
@@ -1149,34 +1150,10 @@ export function CandidatesPageClient({
     }
   }, [initialFetchError]);
 
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (filterChangeTimeoutRef.current) {
-        clearTimeout(filterChangeTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  // Ensure loading states are properly managed when we have initial data
-  useEffect(() => {
-    if (initialCandidates.length > 0 && (isLoading || tableLoading)) {
-      setIsLoading(false);
-      setTableLoading(false);
-    }
-  }, [initialCandidates.length, isLoading, tableLoading, setIsLoading, setTableLoading]);
-
-  // Ensure total is set when we have initial candidates
-  useEffect(() => {
-    if (initialCandidates.length > 0 && total === 0) {
-      setTotal(initialCandidates.length);
-    }
-  }, [initialCandidates.length, total, setTotal]);
-
-  // Initial fetch of fit score counts when component mounts
-  useEffect(() => {
-    if (sessionStatus === 'authenticated' && !isClearingFilters && (hasInitialDataFetch || initialCandidates.length > 0)) {
-      // Fetch fit score counts immediately on mount
+  // Fetch fit score counts on mount and when filters change
+  useSafeEffect(() => {
+    if (sessionStatus === 'authenticated' && hasInitialDataFetch && initialCandidates.length > 0) {
+      // Create a copy of filters without fit score filters to prevent circular dependency
       const filtersForCounts = { ...filters };
       
       // Remove fit score filters to prevent circular dependency
@@ -1189,7 +1166,7 @@ export function CandidatesPageClient({
       
       fetchFitScoreCounts(filtersForCounts);
     }
-  }, [sessionStatus, hasInitialDataFetch, initialCandidates.length, filters, fetchFitScoreCounts]);
+  }, [sessionStatus, hasInitialDataFetch, initialCandidates.length, filters, fetchFitScoreCounts], 'fetchFitScoreCounts', 20);
 
   // DISABLED: This useEffect was causing resource leaks due to conflicts with onFilterChange
   // The fetchFitScoreCounts is now properly handled in the onFilterChange callback
@@ -1230,7 +1207,7 @@ export function CandidatesPageClient({
   */
 
   // Cleanup timeout on component unmount
-  useEffect(() => {
+  useSafeEffect(() => {
     return () => {
       if (clearingFiltersTimeoutRef.current) {
         clearTimeout(clearingFiltersTimeoutRef.current);
@@ -1245,7 +1222,7 @@ export function CandidatesPageClient({
         clearTimeout(batchTimeoutRef.current);
       }
     };
-  }, [fetchTimeoutRefFromHook]);
+  }, [fetchTimeoutRefFromHook], 'cleanupTimeouts', 10);
 
   // Render the component
   return (

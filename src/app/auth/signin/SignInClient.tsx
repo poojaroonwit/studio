@@ -84,6 +84,14 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
 
   useEffect(() => {
     setIsClient(true);
+    
+    // Clean up signout parameter from URL if present
+    const isSignoutRedirect = nextSearchParams.get('signout') === 'true';
+    if (isSignoutRedirect && typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('signout');
+      window.history.replaceState({}, '', url.toString());
+    }
     // Function to update theme status
     const updateThemeStatus = () => {
       setIsThemeDark(document.documentElement.classList.contains('dark'));
@@ -255,7 +263,15 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
   }, [currentAppName]);
 
   useEffect(() => {
+    console.log('[SIGNIN CLIENT] Auth status changed:', { status, hasSession: !!session, signoutParam: nextSearchParams.get('signout') });
+    
     if (status === "authenticated" && session) {
+      // Check if this is a signout redirect - if so, don't redirect back
+      const isSignoutRedirect = nextSearchParams.get('signout') === 'true';
+      if (isSignoutRedirect) {
+        console.log('[SIGNIN CLIENT] Signout redirect detected, not redirecting back');
+        return;
+      }
       
       // Check if user has any permissions before redirecting
       const hasAnyPermissions = session?.user?.modulePermissions && session.user.modulePermissions.length > 0;

@@ -1,5 +1,5 @@
 // src/components/tasks/TaskCard.tsx
-import React from 'react';
+import React, { useCallback } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { UserAvatarCompact } from '@/components/ui/user-avatar';
 import { ScoreBadge, getScoreColorInfo } from '@/components/ui/score-color';
@@ -65,8 +65,6 @@ const TaskCardFields: React.FC<{ task: Task; cardPreferences?: TaskCardProps['ca
         </div>
       )}
 
-
-
       {/* Skills */}
       {cardPreferences.showSkills && task.skills && task.skills.length > 0 && (
         <div className="flex flex-wrap gap-1 mt-2">
@@ -103,7 +101,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   isDragging,
   cardPreferences 
 }) => {
-  const getFitScoreColor = (score: number) => {
+  const getFitScoreColor = useCallback((score: number) => {
     const colorInfo = getScoreColorInfo(score);
     const borderColorMap: Record<string, string> = {
       'bg-red-400': 'border-l-red-400',
@@ -113,7 +111,23 @@ export const TaskCard: React.FC<TaskCardProps> = ({
       'bg-lime-400': 'border-l-lime-400',
     };
     return borderColorMap[colorInfo.bg] || 'border-l-gray-300 dark:border-l-gray-600';
-  };
+  }, []);
+
+  // Optimized drag event handlers to prevent memory leaks
+  const handleDragStart = useCallback((e: React.DragEvent) => {
+    e.stopPropagation();
+    onDragStart();
+  }, [onDragStart]);
+
+  const handleDragEnd = useCallback((e: React.DragEvent) => {
+    e.stopPropagation();
+    onDragEnd();
+  }, [onDragEnd]);
+
+  const handleClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    onClick?.();
+  }, [onClick]);
 
   return (
     <div
@@ -123,9 +137,9 @@ export const TaskCard: React.FC<TaskCardProps> = ({
         task.fitScore !== undefined && task.fitScore !== null ? getFitScoreColor(task.fitScore) : "border-l-gray-300 dark:border-l-gray-600"
       )}
       draggable
-      onDragStart={onDragStart}
-      onDragEnd={onDragEnd}
-      onClick={onClick}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onClick={handleClick}
     >
       <div className="flex items-start gap-3 mb-1">
         {/* Avatar */}
@@ -152,8 +166,6 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                   {task.title}
                 </h4>
               )}
-              
-
               
               {/* Email */}
               {(!cardPreferences || cardPreferences.showEmail) && task.email && (

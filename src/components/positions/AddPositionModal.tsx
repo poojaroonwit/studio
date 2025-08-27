@@ -27,6 +27,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { Position, Grade } from '@/lib/types';
+import { usePositionLevels } from '@/hooks/use-position-levels';
 
 // Import Tiptap editor with expand functionality
 import { TiptapEditorWithExpand } from '@/components/ui/wysiwyg-editors';
@@ -63,6 +64,7 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
   const descriptionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [availableRecruiters, setAvailableRecruiters] = useState<{id: string, name: string, avatarUrl?: string}[]>([]);
   const { error: showError, success: showSuccess } = useToast();
+  const { levels: positionLevels, isLoading: isLoadingLevels } = usePositionLevels();
   
   const form = useForm<AddPositionFormValues>({
     resolver: zodResolver(addPositionFormSchema),
@@ -352,11 +354,30 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
                  <div className="grid grid-cols-[120px_1fr] gap-3 items-center">
                    <Label htmlFor="position-level-add" className="font-medium text-sm">Position Level *</Label>
                    <div>
-                     <Input
-                       id="position-level-add"
-                       placeholder="Enter position level (e.g., Entry Level, Senior, Manager)"
-                       {...form.register('positionLevel')}
-                       disabled={isSaving}
+                     <Controller
+                       name="positionLevel"
+                       control={form.control}
+                       render={({ field }) => (
+                         <Select value={field.value || ''} onValueChange={field.onChange}>
+                           <SelectTrigger disabled={isSaving || isLoadingLevels}>
+                             <SelectValue placeholder={isLoadingLevels ? "Loading levels..." : "Select position level"} />
+                           </SelectTrigger>
+                           <SelectContent>
+                             <SelectItem value="">No Level</SelectItem>
+                             {positionLevels.map((level) => (
+                               <SelectItem key={level.id} value={level.name}>
+                                 <div className="flex items-center gap-2">
+                                   <div 
+                                     className="w-3 h-3 rounded-full" 
+                                     style={{ backgroundColor: level.color || '#6B7280' }}
+                                   />
+                                   {level.name}
+                                 </div>
+                               </SelectItem>
+                             ))}
+                           </SelectContent>
+                         </Select>
+                       )}
                      />
                      {form.formState.errors.positionLevel && (
                        <p className="text-sm text-destructive mt-1">{form.formState.errors.positionLevel.message}</p>

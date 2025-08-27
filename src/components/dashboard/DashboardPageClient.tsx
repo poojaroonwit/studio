@@ -490,7 +490,8 @@ export default function DashboardPageClient({
           appliedFitScore = (rawScore > 0 && rawScore <= 1) ? Math.round(rawScore * 100) : Math.round(rawScore);
         }
       } else if (typeof c.fitScore === 'number') {
-        appliedFitScore = c.fitScore;
+        // Convert database fit score (0-1 decimal) to percentage (0-100)
+        appliedFitScore = Math.round(c.fitScore * 100);
       }
       return typeof appliedFitScore === 'number' && appliedFitScore >= 80;
     });
@@ -631,7 +632,30 @@ export default function DashboardPageClient({
               Go to My Tasks
             </Button>
             <Button 
-              onClick={() => signOut({ callbackUrl: '/auth/signin' })} 
+              onClick={async () => {
+                try {
+                  // Clear any cached data
+                  if (session?.user?.id) {
+                    await fetch('/api/auth/clear-user-cache', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ userId: session.user.id }),
+                    }).catch(() => {
+                      // Ignore errors in cache clearing
+                    });
+                  }
+                  
+                  // Perform signout with redirect
+                  await signOut({ 
+                    callbackUrl: '/auth/signin?signout=true', 
+                    redirect: true 
+                  });
+                } catch (error) {
+                  console.error('Signout error:', error);
+                        // Fallback to window.location if signOut fails
+      window.location.href = '/auth/signin?signout=true';
+                }
+              }} 
               variant="ghost"
             >
               Sign Out

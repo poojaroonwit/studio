@@ -19,6 +19,7 @@ import BulkUploadCVsModal from "@/components/BulkUploadCVsModal";
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { CandidateImportUploadQueue } from '@/components/candidates/CandidateImportUploadQueue';
+import { UploadQueueStatistics } from '@/components/UploadQueueStatistics';
 
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 
@@ -208,6 +209,11 @@ function UploadPageContent() {
           onOpenChange={setIsBulkUploadModalOpen}
           onUploadSuccess={handleUploadSuccess}
         />
+
+      {/* Upload Queue Statistics */}
+      <div className="mb-6">
+        <UploadQueueStatistics />
+      </div>
 
       {/* Upload Queue Table */}
       <CandidateImportUploadQueue 

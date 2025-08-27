@@ -129,8 +129,7 @@ const CandidateImportUploadQueueInner: React.FC<{
   initialPageSize?: number;
   onPaginationChange?: (page: number, pageSize: number) => void;
 }> = ({ initialPage = 1, initialPageSize = 20, onPaginationChange }) => {
-  try {
-    console.log('CandidateImportUploadQueueInner: Component initializing', { initialPage, initialPageSize });
+  console.log('CandidateImportUploadQueueInner: Component initializing', { initialPage, initialPageSize });
   const [jobs, setJobs] = useState<CandidateJob[]>([]);
   const [total, setTotal] = useState(0);
   const [statusSummary, setStatusSummary] = useState<any>(null); // For static status cards
@@ -1966,22 +1965,6 @@ const CandidateImportUploadQueueInner: React.FC<{
       />
     </div>
   );
-  } catch (error) {
-    console.error('CandidateImportUploadQueueInner: Error during initialization:', error);
-    return (
-      <div className="flex flex-col items-center justify-center p-8">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold mb-2">Initialization Error</h2>
-          <p className="text-muted-foreground mb-4">
-            There was an error initializing the upload queue component.
-          </p>
-          <Button onClick={() => window.location.reload()}>
-            Refresh Page
-          </Button>
-        </div>
-      </div>
-    );
-  }
 };
 
 export const CandidateImportUploadQueue: React.FC<{

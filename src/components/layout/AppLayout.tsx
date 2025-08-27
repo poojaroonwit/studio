@@ -123,7 +123,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         setIsLogoLoading(true);
         const res = await fetch('/api/settings/system-settings');
         const data = await res.json();
-        
+
         // Handle both response formats (GET returns {settings: [...], isAzureAdConfigured: boolean})
         let prefs: any = {};
         if (data.settings && Array.isArray(data.settings)) {
@@ -133,12 +133,12 @@ export function AppLayout({ children }: AppLayoutProps) {
           // Already in object format
           prefs = data;
         }
-        
+
         setAppLogoUrl(prefs.appLogoDataUrl || null); // MinIO URL
         setCurrentAppName(prefs.appName || DEFAULT_APP_NAME);
         setShowLogoOnly(prefs.showLogoOnly === 'true' || prefs.showLogoOnly === true);
         setSidebarLogoSize(prefs.sidebarLogoSize ? parseInt(prefs.sidebarLogoSize) : 48);
-        
+
         // Load contextual logos
         setContextualLogos({
           sidebarLogoCollapsedLightMode: prefs.sidebarLogoCollapsedLightMode || null,
@@ -146,7 +146,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           sidebarLogoCollapsedDarkMode: prefs.sidebarLogoCollapsedDarkMode || null,
           sidebarLogoExpandedDarkMode: prefs.sidebarLogoExpandedDarkMode || null,
         });
-        
+
         // Extract sidebar colors from individual settings
         const sidebarColors: Record<string, string> = {};
         const sidebarColorKeys = [
@@ -170,19 +170,31 @@ export function AppLayout({ children }: AppLayoutProps) {
           'sidebarGroupLabelColorL', 'sidebarGroupLabelFontSizeL', 'sidebarGroupLabelFontWeightL', 'sidebarGroupLabelTextTransformL', 'sidebarGroupLabelLetterSpacingL', 'sidebarGroupLabelPaddingL', 'sidebarGroupLabelMarginL',
           'sidebarGroupLabelColorD', 'sidebarGroupLabelFontSizeD', 'sidebarGroupLabelFontWeightD', 'sidebarGroupLabelTextTransformD', 'sidebarGroupLabelLetterSpacingD', 'sidebarGroupLabelPaddingD', 'sidebarGroupLabelMarginD',
         ];
-        
+
         sidebarColorKeys.forEach(key => {
           if (prefs[key]) {
             sidebarColors[key] = prefs[key];
           }
         });
-        
+
         setThemeAndColors({
           themePreference: prefs.appThemePreference || 'system',
           primaryGradientStart: prefs.primaryGradientStart || prefs.sidebarActiveBgStartL,
           primaryGradientEnd: prefs.primaryGradientEnd || prefs.sidebarActiveBgEndL,
           sidebarColors,
         });
+
+        // Load and apply sidebar background settings
+        if (prefs.sidebarBackgroundType || prefs.sidebarBackgroundImageUrl) {
+          import('@/lib/themeUtils').then(({ applySidebarBackgroundSettings }) => {
+            applySidebarBackgroundSettings({
+              sidebarBackgroundType: prefs.sidebarBackgroundType,
+              sidebarBackgroundImageUrl: prefs.sidebarBackgroundImageUrl,
+              sidebarBackgroundImageFit: prefs.sidebarBackgroundImageFit,
+              sidebarBackgroundImagePosition: prefs.sidebarBackgroundImagePosition,
+            });
+          });
+        }
       } catch (e) {
         setAppLogoUrl(null);
         setCurrentAppName(DEFAULT_APP_NAME);
@@ -191,14 +203,15 @@ export function AppLayout({ children }: AppLayoutProps) {
       }
     };
     fetchGlobalSettings();
+    
     const handleAppConfigChange = (event: Event) => {
       console.log('AppLayout received appConfigChanged event:', event);
-      const customEvent = event as CustomEvent<{ 
-        appName?: string; 
-        logoUrl?: string | null; 
-        themePreference?: string; 
-        primaryGradientStart?: string; 
-        primaryGradientEnd?: string; 
+      const customEvent = event as CustomEvent<{
+        appName?: string;
+        logoUrl?: string | null;
+        themePreference?: string;
+        primaryGradientStart?: string;
+        primaryGradientEnd?: string;
         sidebarColors?: Record<string,string>;
         sidebarLogoSize?: number;
         contextualLogos?: {
@@ -207,6 +220,8 @@ export function AppLayout({ children }: AppLayoutProps) {
           sidebarLogoCollapsedDarkMode?: string | null;
           sidebarLogoExpandedDarkMode?: string | null;
         };
+        sidebarBackgroundImageUrl?: string;
+        sidebarBackgroundType?: string;
       }>;
       if (customEvent.detail) {
         if (customEvent.detail.appName) {
@@ -223,7 +238,23 @@ export function AppLayout({ children }: AppLayoutProps) {
         if (customEvent.detail.sidebarLogoSize !== undefined) {
           setSidebarLogoSize(customEvent.detail.sidebarLogoSize);
         }
-        
+
+        // Handle sidebar background updates
+        if (customEvent.detail.sidebarBackgroundImageUrl !== undefined || customEvent.detail.sidebarBackgroundType !== undefined) {
+          console.log('Applying sidebar background settings:', {
+            sidebarBackgroundImageUrl: customEvent.detail.sidebarBackgroundImageUrl,
+            sidebarBackgroundType: customEvent.detail.sidebarBackgroundType
+          });
+
+          // Import and apply sidebar background settings
+          import('@/lib/themeUtils').then(({ applySidebarBackgroundSettings }) => {
+            applySidebarBackgroundSettings({
+              sidebarBackgroundType: customEvent.detail.sidebarBackgroundType,
+              sidebarBackgroundImageUrl: customEvent.detail.sidebarBackgroundImageUrl,
+            });
+          });
+        }
+
         // If sidebarColors are provided in the event, use them; otherwise fetch fresh data
         if (customEvent.detail.sidebarColors) {
           setThemeAndColors({
@@ -239,7 +270,11 @@ export function AppLayout({ children }: AppLayoutProps) {
         fetchGlobalSettings();
       }
     };
+    
+    // Remove any existing listener before adding a new one
+    window.removeEventListener('appConfigChanged', handleAppConfigChange);
     window.addEventListener('appConfigChanged', handleAppConfigChange);
+    
     return () => {
       window.removeEventListener('appConfigChanged', handleAppConfigChange);
     };
@@ -256,6 +291,9 @@ export function AppLayout({ children }: AppLayoutProps) {
 
     // Listen for system theme changes
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    
+    // Remove any existing listener before adding a new one
+    mediaQuery.removeEventListener('change', handleThemeChange);
     mediaQuery.addEventListener('change', handleThemeChange);
 
     return () => {

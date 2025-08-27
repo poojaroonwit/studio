@@ -10,6 +10,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Search, FilterX, Check, ChevronsUpDown, Loader2 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { usePositionLevels } from '@/hooks/use-position-levels';
 
 export interface PositionFilterValues {
   title?: string;
@@ -32,6 +33,7 @@ const statusOptions = [
 ];
 
 export function PositionFilters({ initialFilters = { isOpen: "all" }, onFilterChange, isLoading, availableDepartments }: PositionFiltersProps) {
+  const { levels: positionLevels, isLoading: isLoadingLevels } = usePositionLevels();
   const [title, setTitle] = useState(initialFilters.title || '');
   const [selectedDepartments, setSelectedDepartments] = useState<Set<string>>(new Set(initialFilters.selectedDepartments || []));
   const [isOpen, setIsOpen] = useState<PositionFilterValues['isOpen']>(initialFilters.isOpen || "all");
@@ -146,14 +148,29 @@ export function PositionFilters({ initialFilters = { isOpen: "all" }, onFilterCh
         </div>
         <div>
           <Label htmlFor="level-search">Position Level</Label>
-          <Input
-            id="level-search"
-            placeholder="Filter by level..."
-            value={positionLevel}
-            onChange={(e) => setpositionLevel(e.target.value)}
-            className="mt-1"
-            disabled={isLoading}
-          />
+          <Select 
+            value={positionLevel} 
+            onValueChange={setpositionLevel} 
+            disabled={isLoading || isLoadingLevels}
+          >
+            <SelectTrigger id="level-search" className="w-full mt-1">
+              <SelectValue placeholder={isLoadingLevels ? "Loading levels..." : "All Levels"} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">All Levels</SelectItem>
+              {positionLevels.map((level) => (
+                <SelectItem key={level.id} value={level.name}>
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="w-3 h-3 rounded-full" 
+                      style={{ backgroundColor: level.color || '#6B7280' }}
+                    />
+                    {level.name}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
       <div className="mt-4 flex justify-end gap-2">

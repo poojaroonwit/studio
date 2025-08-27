@@ -456,6 +456,15 @@ export default function SystemPreferencesPage() {
       sidebarBackgroundImageFit: sidebarImageFit,
       sidebarBackgroundImagePosition: sidebarImagePosition,
     });
+    
+    // Dispatch event for immediate sidebar update
+    console.log('Dispatching appConfigChanged event for sidebar background type change:', sidebarBackgroundType);
+    window.dispatchEvent(new CustomEvent('appConfigChanged', {
+      detail: {
+        sidebarBackgroundType: sidebarBackgroundType,
+        sidebarBackgroundImageUrl: savedSidebarImageUrl || null,
+      }
+    }));
   }, [sidebarBackgroundType, savedSidebarImageUrl, sidebarImageFit, sidebarImagePosition]);
 
   const handleLogoFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -658,6 +667,15 @@ export default function SystemPreferencesPage() {
         setSidebarImagePreviewUrl(null);
         setSavedSidebarImageUrl(null);
         success('Sidebar background image removed!');
+        
+        // Dispatch event to update sidebar background immediately
+        console.log('Dispatching appConfigChanged event to remove sidebar background image');
+        window.dispatchEvent(new CustomEvent('appConfigChanged', {
+          detail: {
+            sidebarBackgroundImageUrl: null,
+            sidebarBackgroundType: 'gradient',
+          }
+        }));
       } else {
         throw new Error('Failed to remove sidebar background image from database');
       }
@@ -692,14 +710,15 @@ export default function SystemPreferencesPage() {
         const { url } = await res.json();
         setSidebarImagePreviewUrl(url); // Update with MinIO URL
         
-        // Immediately save the image URL to the database
+        // Immediately save the image URL and set background type to image
         const saveRes = await fetch('/api/settings/system-settings', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify([
-            { key: SIDEBAR_BACKGROUND_IMAGE_KEY, value: url }
+            { key: SIDEBAR_BACKGROUND_IMAGE_KEY, value: url },
+            { key: SIDEBAR_BACKGROUND_TYPE_KEY, value: 'image' }
           ]),
         });
         
@@ -707,6 +726,15 @@ export default function SystemPreferencesPage() {
           setSavedSidebarImageUrl(url);
           setSelectedSidebarImageFile(null);
           success('Sidebar background image uploaded and saved!');
+          
+          // Dispatch event to update sidebar background immediately
+          console.log('Dispatching appConfigChanged event with sidebar background image:', url);
+          window.dispatchEvent(new CustomEvent('appConfigChanged', {
+            detail: {
+              sidebarBackgroundImageUrl: url,
+              sidebarBackgroundType: 'image',
+            }
+          }));
         } else {
           throw new Error('Failed to save sidebar background image to database');
         }

@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PlusCircle, Trash2 } from 'lucide-react';
 import type { Candidate } from '@/lib/types';
 
@@ -20,16 +19,7 @@ interface JobSuitabilityTabProps {
   removeJobSuitable?: (index: number) => void;
 }
 
-const positionLevelOptions = [
-  'entry level',
-  'mid level', 
-  'senior level',
-  'lead',
-  'manager',
-  'executive',
-  'officer',
-  'leader'
-];
+
 
 export const JobSuitabilityTab: React.FC<JobSuitabilityTabProps> = ({ 
   candidate, 
@@ -131,21 +121,12 @@ export const JobSuitabilityTab: React.FC<JobSuitabilityTabProps> = ({
                     </div>
                     <div>
                       <Label htmlFor={`parsedData.job_suitable.${index}.suitable_job_level`}>Position Level</Label>
-                      <Select 
-                        value={watch(`parsedData.job_suitable.${index}.suitable_job_level`) || ''}
-                        onValueChange={(value) => setValue(`parsedData.job_suitable.${index}.suitable_job_level`, value)}
-                      >
-                        <SelectTrigger className="mt-1">
-                          <SelectValue placeholder="Select level" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {positionLevelOptions.map((level) => (
-                            <SelectItem key={level} value={level}>
-                              {level.charAt(0).toUpperCase() + level.slice(1)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Input 
+                        id={`parsedData.job_suitable.${index}.suitable_job_level`}
+                        {...register(`parsedData.job_suitable.${index}.suitable_job_level`)}
+                        placeholder="e.g., Entry Level, Senior, Manager"
+                        className="mt-1"
+                      />
                     </div>
                     <div>
                       <Label htmlFor={`parsedData.job_suitable.${index}.suitable_salary_bath_month`}>Expected Salary (THB/month)</Label>

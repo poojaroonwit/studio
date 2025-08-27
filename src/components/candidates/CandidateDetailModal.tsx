@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { createPortal } from "react-dom";
 import type { Candidate, TransitionRecord, EducationEntry, ExperienceEntry, SkillEntry, JobSuitableEntry, PersonalInfo, AutomationJobMatch, UserProfile, Position, positionLevel, RecruitmentStage } from '@/lib/types';
 import { useSession } from 'next-auth/react';
@@ -42,29 +42,79 @@ interface CandidateDetailModalProps {
 
 export default function CandidateDetailModal({ candidateId, open, onClose }: CandidateDetailModalProps) {
   const [mounted, setMounted] = useState(false);
+  const portalContainerRef = useRef<HTMLDivElement | null>(null);
 
+  // Create portal container on mount
   useEffect(() => {
     setMounted(true);
-    return () => setMounted(false);
+    
+    // Create portal container if it doesn't exist
+    if (!portalContainerRef.current) {
+      portalContainerRef.current = document.createElement('div');
+      portalContainerRef.current.setAttribute('data-candidate-modal-portal', 'true');
+      document.body.appendChild(portalContainerRef.current);
+    }
+
+    return () => {
+      setMounted(false);
+      // Clean up portal container on unmount
+      if (portalContainerRef.current && portalContainerRef.current.parentNode) {
+        portalContainerRef.current.parentNode.removeChild(portalContainerRef.current);
+        portalContainerRef.current = null;
+      }
+    };
   }, []);
 
-  if (!open || !candidateId || !mounted) return null;
+  // Handle escape key
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && open) {
+        onClose();
+      }
+    };
+
+    if (open) {
+      document.addEventListener('keydown', handleEscape);
+      // Prevent body scroll when modal is open
+      document.body.style.overflow = 'hidden';
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      // Restore body scroll when modal closes
+      document.body.style.overflow = '';
+    };
+  }, [open, onClose]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      // Ensure body scroll is restored
+      document.body.style.overflow = '';
+    };
+  }, []);
+
+  if (!open || !candidateId || !mounted || !portalContainerRef.current) return null;
+
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    // Prevent event from bubbling up to parent components
+    e.stopPropagation();
+    onClose();
+  };
+
+  const handleModalClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+  };
 
   const modalContent = (
     <div
       className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[10000] flex items-center justify-center p-4 pointer-events-auto"
-      onClick={(e) => {
-        // Prevent event from bubbling up to parent components
-        e.stopPropagation();
-        onClose();
-      }}
+      onClick={handleBackdropClick}
     >
       <div
         className="w-full max-w-[95vw] h-full max-h-[95vh] flex flex-col bg-background rounded-lg shadow-2xl border border-border overflow-hidden relative pointer-events-auto"
-        onClick={e => {
-          e.stopPropagation();
-          e.preventDefault();
-        }}
+        onClick={handleModalClick}
       >
         <CandidateDetailView 
           candidateId={candidateId} 
@@ -76,5 +126,5 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
   );
 
   // Use Portal to render outside the current component tree
-  return createPortal(modalContent, document.body);
+  return createPortal(modalContent, portalContainerRef.current);
 }

@@ -73,9 +73,11 @@ services:
    
       # N8N_DB_NAME: ${N8N_DB_NAME:-n8n}
     depends_on:
-      - postgres
-      - minio
-    restart: always
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    restart: unless-stopped
     mem_limit: 8g
     cpus: 2
     deploy:
@@ -86,6 +88,17 @@ services:
         reservations:
           memory: 4g
           cpus: '2'
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://app:8021/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     # The command to run the application is defined in the Dockerfile's CMD instruction
     # which uses wait-for-db.sh for optimized startup
     networks:
@@ -102,10 +115,22 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - /var/dockers/8021/postgres:/var/lib/postgresql/data
-    restart: always
+    restart: unless-stopped
     # Resource limits
     mem_limit: 8g
     cpus: 2
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-postgres}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
     networks:
       - docker_internal
 
@@ -132,10 +157,22 @@ services:
     command: server /data --console-address ":9001" --address ":9000"
     volumes:
       - /var/dockers/8021/minio:/data
-    restart: always
+    restart: unless-stopped
     # Resource limits
     mem_limit: 8g
     cpus: 2
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://minio:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
     networks:
       - docker_internal
 
@@ -154,11 +191,25 @@ services:
       LOG_INTERVAL_MS: ${LOG_INTERVAL_MS:-30000}
       NODE_ENV: ${NODE_ENV}
     depends_on:
-      - postgres
-      - app
-    restart: always
+      postgres:
+        condition: service_healthy
+      app:
+        condition: service_healthy
+    restart: unless-stopped
     mem_limit: 8g
     cpus: 2
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "process-upload-queue"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
     networks:
       - docker_internal
 

@@ -30,8 +30,7 @@ import { PlusCircle, Trash2, UserPlus } from 'lucide-react';
 import { formatScoreWithGrade, getScoreColor, getScoreBgColor } from "@/lib/scoreUtils";
 import type { PersonalInfo, ContactInfo, EducationEntry, ExperienceEntry, SkillEntry, JobSuitableEntry, Position, CandidateStatus, positionLevel, RecruitmentStage } from '@/lib/types';
 import { PositionSelectDropdown } from "@/components/candidates/PositionSelectDropdown";
-
-const positionLevelOptions: positionLevel[] = ['entry level', 'mid level', 'senior level', 'lead', 'manager', 'executive', 'officer', 'leader'];
+import { usePositionLevels } from '@/hooks/use-position-levels';
 
 
 // Zod Schemas for form validation (mirroring types and API schemas)
@@ -116,6 +115,7 @@ interface AddCandidateModalProps {
 const PLACEHOLDER_VALUE_NONE = "___NOT_SPECIFIED___";
 
 export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availableStages }: AddCandidateModalProps) {
+  const { levels: positionLevels, isLoading: isLoadingLevels } = usePositionLevels();
   const form = useForm<AddCandidateFormValues>({
     resolver: zodResolver(addCandidateFormSchema),
     defaultValues: {
@@ -478,7 +478,17 @@ export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availa
                                 <SelectTrigger id={`experience.${index}.positionLevel`}><SelectValue placeholder="Position Level" /></SelectTrigger>
                                 <SelectContent className="z-[100003]">
                                     <SelectItem value={PLACEHOLDER_VALUE_NONE}>N/A / Not Specified</SelectItem>
-                                    {positionLevelOptions.map(level => <SelectItem key={level} value={level || 'unknown'}>{level?.charAt(0)?.toUpperCase() + level?.slice(1) || ''}</SelectItem>)}
+                                    {positionLevels.map(level => (
+                                      <SelectItem key={level.id} value={level.name}>
+                                        <div className="flex items-center gap-2">
+                                          <div 
+                                            className="w-3 h-3 rounded-full" 
+                                            style={{ backgroundColor: level.color || '#6B7280' }}
+                                          />
+                                          {level.name}
+                                        </div>
+                                      </SelectItem>
+                                    ))}
                                 </SelectContent>
                                 </Select>
                             )}

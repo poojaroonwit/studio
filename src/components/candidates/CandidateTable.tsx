@@ -1218,7 +1218,13 @@ export function CandidateTable({
         <CandidateDetailModal
           candidateId={selectedCandidateSummary.id}
           open={isDetailModalOpen}
-          onClose={() => setIsDetailModalOpen(false)}
+          onClose={() => {
+            setIsDetailModalOpen(false);
+            // Clear the selected candidate after a short delay to ensure modal cleanup
+            setTimeout(() => {
+              setSelectedCandidateSummary(null);
+            }, 100);
+          }}
         />
       )}
       <AlertDialog open={!!candidateToDelete} onOpenChange={(open) => { if(!open) setCandidateToDelete(null); }}>

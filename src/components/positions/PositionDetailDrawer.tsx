@@ -25,6 +25,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { TiptapEditorWithExpand } from '@/components/ui/wysiwyg-editors';
 import type { Position, Candidate, Grade } from '@/lib/types';
+import { usePositionLevels } from '@/hooks/use-position-levels';
 import { getPositionStatusBadge } from '@/lib/positionUtils';
 import { ScoreBadge } from '@/components/ui/score-color';
 import { formatScoreWithGrade } from '@/lib/scoreUtils';
@@ -111,6 +112,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   const [editorKey, setEditorKey] = useState(0);
   const [isDrawerReady, setIsDrawerReady] = useState(false);
   const [grades, setGrades] = useState<Grade[]>([]);
+  const { levels: positionLevels, isLoading: isLoadingLevels } = usePositionLevels();
 
   // Sorting state for applied candidates table
   const [appliedCandidatesOpenMenu, setAppliedCandidatesOpenMenu] = useState<string | null>(null);
@@ -268,20 +270,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
 
   // Level options
 
-  const levelOptions = [
-    'Intern',
-    'Junior',
-    'Mid-Level',
-    'Senior',
-    'Lead',
-    'Principal',
-    'Manager',
-    'Senior Manager',
-    'Director',
-    'Senior Director',
-    'VP',
-    'C-Level'
-  ];
+
 
   // Fetch position data
   const fetchPosition = useCallback(async () => {
@@ -1502,13 +1491,20 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                                 control={form.control}
                                 render={({ field }) => (
                                   <Select onValueChange={field.onChange} value={field.value || ''}>
-                                    <SelectTrigger>
-                                      <SelectValue placeholder="Select level" />
+                                    <SelectTrigger disabled={isLoadingLevels}>
+                                      <SelectValue placeholder={isLoadingLevels ? "Loading levels..." : "Select level"} />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      {levelOptions.map((level) => (
-                                        <SelectItem key={level} value={level}>
-                                          {level}
+                                      <SelectItem value="">No Level</SelectItem>
+                                      {positionLevels.map((level) => (
+                                        <SelectItem key={level.id} value={level.name}>
+                                          <div className="flex items-center gap-2">
+                                            <div 
+                                              className="w-3 h-3 rounded-full" 
+                                              style={{ backgroundColor: level.color || '#6B7280' }}
+                                            />
+                                            {level.name}
+                                          </div>
                                         </SelectItem>
                                       ))}
                                     </SelectContent>

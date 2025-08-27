@@ -120,6 +120,37 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
   const [effectivePageTitle, setEffectivePageTitle] = useState(initialPageTitle);
   const { refreshKey, forceRefresh } = useAvatarRefresh();
 
+  // Custom signout function that handles cleanup and redirect
+  const handleSignOut = async () => {
+    console.log('[HEADER] Starting signout process...');
+    try {
+      // Clear any cached data
+      if (session?.user?.id) {
+        console.log('[HEADER] Clearing user cache for:', session.user.id);
+        // Clear user validation cache
+        await fetch('/api/auth/clear-user-cache', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: session.user.id }),
+        }).catch((error) => {
+          console.warn('[HEADER] Cache clearing failed:', error);
+        });
+      }
+      
+      console.log('[HEADER] Performing signout with redirect to /auth/signin?signout=true');
+      // Perform signout with redirect
+      await signOut({ 
+        callbackUrl: '/auth/signin?signout=true', 
+        redirect: true 
+      });
+    } catch (error) {
+      console.error('[HEADER] Signout error:', error);
+      // Fallback to window.location if signOut fails
+      console.log('[HEADER] Using fallback redirect to /auth/signin?signout=true');
+      window.location.href = '/auth/signin?signout=true';
+    }
+  };
+
   // Memoize user object to prevent unnecessary re-renders
   const user = useMemo(() => {
     return session?.user
@@ -433,7 +464,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
                   Clear Cache
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={() => signOut({ callbackUrl: '/auth/signin' })}>
+                <DropdownMenuItem onSelect={handleSignOut}>
                   <LogOut className="mr-2 h-4 w-4" />
                   Log out
                 </DropdownMenuItem>

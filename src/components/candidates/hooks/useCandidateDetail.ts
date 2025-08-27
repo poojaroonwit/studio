@@ -55,10 +55,12 @@ export const useCandidateDetail = (candidateId: string) => {
   const [copiedJobMatchIndex, setCopiedJobMatchIndex] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Add refs for caching
+  // Add refs for caching and cleanup
   const cacheRef = useRef<Map<string, { data: any; timestamp: number }>>(new Map());
   const lastFetchRef = useRef<number>(0);
   const avatarForceRefreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const isMountedRef = useRef(true);
 
   // Cache duration: 30 seconds
   const CACHE_DURATION = 30000;
@@ -166,7 +168,7 @@ export const useCandidateDetail = (candidateId: string) => {
 
   // Memoized fetch function with caching
   const fetchCandidate = useCallback(async (forceRefresh = false) => {
-    if (!candidateId) {
+    if (!candidateId || !isMountedRef.current) {
       setError('No candidate ID provided');
       setLoading(false);
       return;
@@ -192,7 +194,14 @@ export const useCandidateDetail = (candidateId: string) => {
     setLoading(true);
     setError(null);
 
-    // Check if we have a recent cache entry
+    // Abort any existing request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Create new abort controller
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
 
     // Retry configuration
     const maxRetries = 2; // Reduced from 3
@@ -205,6 +214,7 @@ export const useCandidateDetail = (candidateId: string) => {
             'Content-Type': 'application/json',
             'Cache-Control': 'max-age=30',
           },
+          signal: controller.signal,
         });
 
         if (!res.ok) {
@@ -256,21 +266,32 @@ export const useCandidateDetail = (candidateId: string) => {
         break;
 
       } catch (err) {
+        // Check if request was aborted
+        if (err instanceof Error && err.name === 'AbortError') {
+          return;
+        }
+
         console.error(`Error fetching candidate (attempt ${attempt + 1}/${maxRetries + 1}):`, err);
 
         if (err instanceof Error) {
           if (err.message === 'Candidate not found' || err.message === 'Access denied to candidate') {
-            setError(err.message);
+            if (isMountedRef.current) {
+              setError(err.message);
+            }
             break;
           } else if (attempt === maxRetries) {
-            setError(err.message);
+            if (isMountedRef.current) {
+              setError(err.message);
+            }
             break;
           } else {
             console.error(`Error on attempt ${attempt + 1}, retrying...`);
           }
         } else {
           if (attempt === maxRetries) {
-            setError('Failed to fetch candidate. Please check your connection and try again.');
+            if (isMountedRef.current) {
+              setError('Failed to fetch candidate. Please check your connection and try again.');
+            }
             break;
           }
           console.error(`Unknown error on attempt ${attempt + 1}, retrying...`);
@@ -284,13 +305,25 @@ export const useCandidateDetail = (candidateId: string) => {
       }
     }
 
-    setLoading(false);
+    if (isMountedRef.current) {
+      setLoading(false);
+    }
   }, [candidateId]);
 
   // Fetch candidate data with optimized dependencies
   useEffect(() => {
+    isMountedRef.current = true;
     fetchCandidate();
-  }, [candidateId]);
+    
+    return () => {
+      isMountedRef.current = false;
+      // Abort any ongoing requests
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+    };
+  }, [candidateId, fetchCandidate]);
 
   // Memoized fetch functions for static data
   const fetchPositions = useCallback(async () => {
@@ -352,7 +385,7 @@ export const useCandidateDetail = (candidateId: string) => {
 
   const fetchTransitionHistory = useCallback(async () => {
     try {
-      const res = await fetch(`/api/candidates/${candidateId}/transitions`);
+      const res = await fetch(`/api/transitions?candidateId=${candidateId}`);
       if (res.ok) {
         const data = await res.json();
         setTransitionHistory(data || []);
@@ -368,14 +401,25 @@ export const useCandidateDetail = (candidateId: string) => {
     fetchRecruiters();
     fetchSources();
     fetchStages();
-    fetchTransitionHistory();
-  }, [fetchTransitionHistory]);
+  }, []);
+
+  // Fetch transition history when candidateId is available
+  useEffect(() => {
+    if (candidateId) {
+      fetchTransitionHistory();
+    }
+  }, [candidateId, fetchTransitionHistory]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      isMountedRef.current = false;
       if (avatarForceRefreshTimeoutRef.current) {
         clearTimeout(avatarForceRefreshTimeoutRef.current);
+      }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
       }
     };
   }, []);

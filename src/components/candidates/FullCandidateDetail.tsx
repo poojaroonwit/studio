@@ -456,7 +456,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
               const res = await fetch(`/api/transitions?candidateId=${candidateId}`, { credentials: 'include' });
               if (res.ok) {
                 const data = await res.json();
-                // Update transition history in the hook
+                setTransitionHistory(data || []);
               }
             }}
             candidateId={candidateId}

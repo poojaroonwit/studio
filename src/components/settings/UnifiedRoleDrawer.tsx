@@ -286,7 +286,7 @@ export function UnifiedRoleDrawer({
         is_default: role.is_default
       };
       
-      console.log('handlePermissionUpdate - Sending request body:', JSON.stringify(requestBody, null, 2));
+
       
       try {
         const response = await fetch(`/api/settings/user-groups/${role.id}`, {
@@ -296,11 +296,11 @@ export function UnifiedRoleDrawer({
           signal: abortControllerRef.current?.signal,
         });
         
-        console.log('handlePermissionUpdate - Response status:', response.status);
+
         
         if (!response.ok) {
           const errorData = await response.json();
-          console.error('handlePermissionUpdate - Error response:', errorData);
+
           throw new Error(errorData.message || 'Failed to update permissions');
         }
         

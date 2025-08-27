@@ -31,7 +31,9 @@ const config = {
   backoffMultiplier: 2, // New: exponential backoff multiplier
   maxBackoffMs: 300000, // New: maximum backoff of 5 minutes
   connectionTimeoutMs: 10000, // New: 10 second connection timeout
-  requestTimeoutMs: 30000 // New: 30 second request timeout
+  requestTimeoutMs: 30000, // New: 30 second request timeout
+  healthCheckIntervalMs: 60000, // New: check app health every minute
+  maxHealthCheckFailures: 3 // New: max consecutive health check failures
 };
 
 // Override baseUrl for local development if it's set to Docker service name
@@ -50,6 +52,11 @@ let consecutiveErrors = 0;
 let emptyBatchCount = 0;
 let currentBackoffMs = config.retryDelayMs; // New: dynamic backoff
 const startTime = Date.now();
+
+// Health check state
+let lastHealthCheck = 0;
+let healthCheckFailures = 0;
+let isAppHealthy = false;
 
 // Logging utility
 function log(level, message, data = {}) {
@@ -225,9 +232,58 @@ async function processJob() {
   }
 }
 
+// Health check function to verify the main application is running
+async function checkAppHealth() {
+  const now = Date.now();
+  
+  // Only check health periodically to avoid overwhelming the server
+  if (now - lastHealthCheck < config.healthCheckIntervalMs) {
+    return isAppHealthy;
+  }
+  
+  lastHealthCheck = now;
+  
+  try {
+    const response = await makeRequest(`${config.baseUrl}/health`, {
+      method: 'GET'
+    });
+    
+    if (response.status === 200) {
+      healthCheckFailures = 0;
+      isAppHealthy = true;
+      return true;
+    } else {
+      throw new Error(`Health check failed with status ${response.status}`);
+    }
+  } catch (error) {
+    healthCheckFailures++;
+    isAppHealthy = false;
+    
+    if (healthCheckFailures >= config.maxHealthCheckFailures) {
+      log('ERROR', 'App health check failed repeatedly', {
+        error: error.message,
+        healthCheckFailures,
+        maxFailures: config.maxHealthCheckFailures
+      });
+    }
+    
+    return false;
+  }
+}
+
 // Process a batch of jobs in one call (uses new endpoint if available)
 async function processBatch() {
   try {
+    // Check app health before attempting to process
+    const isHealthy = await checkAppHealth();
+    if (!isHealthy) {
+      log('WARN', 'Skipping batch processing - app is not healthy', {
+        healthCheckFailures,
+        maxFailures: config.maxHealthCheckFailures
+      });
+      return 0;
+    }
+    
     // Use a reasonable limit to prevent overwhelming the system
     const response = await makeRequest(`${config.baseUrl}/api/upload-queue/process-all?limit=${config.batchLimit}`, {
       method: 'POST'

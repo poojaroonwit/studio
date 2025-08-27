@@ -25,6 +25,12 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const healthCheckRef = useRef<NodeJS.Timeout | null>(null);
   const mountedRef = useRef(true);
+  const optionsRef = useRef(options);
+
+  // Update options ref when options change
+  useEffect(() => {
+    optionsRef.current = options;
+  }, [options]);
 
   const cleanup = useCallback(() => {
     if (eventSourceRef.current) {
@@ -34,7 +40,7 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
         cleanupFn();
         globalCleanupFunctions.delete(eventSourceRef.current);
       }
-      
+
       eventSourceRef.current.close();
       eventSourceRef.current = null;
     }
@@ -76,7 +82,7 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
         if (!mountedRef.current) return;
         setIsConnected(false);
         globalConnectionCount = Math.max(0, globalConnectionCount - 1);
-        
+
         // Only cleanup global connection if no other components are using it
         if (globalConnectionCount === 0) {
           globalEventSource = null;
@@ -100,7 +106,11 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
           
           try {
             const data = JSON.parse(event.data);
-            handler?.(data);
+            // Use current options from ref
+            const currentOptions = optionsRef.current;
+            if (handler) {
+              handler(data);
+            }
             setLastUpdate(new Date());
           } catch (error) {
             console.error(`Error parsing ${eventType} update:`, error);
@@ -108,12 +118,12 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
         };
       };
 
-      const candidateHandler = handleEvent('candidate', options.onCandidateUpdate);
-      const positionHandler = handleEvent('position', options.onPositionUpdate);
-      const warningHandler = handleEvent('warning', options.onWarningUpdate);
-      const notificationHandler = handleEvent('notification', options.onNotificationUpdate);
-      const uploadQueueHandler = handleEvent('upload_queue', options.onUploadQueueUpdate);
-      const presenceHandler = handleEvent('presence', options.onPresenceUpdate);
+      const candidateHandler = handleEvent('candidate', optionsRef.current.onCandidateUpdate);
+      const positionHandler = handleEvent('position', optionsRef.current.onPositionUpdate);
+      const warningHandler = handleEvent('warning', optionsRef.current.onWarningUpdate);
+      const notificationHandler = handleEvent('notification', optionsRef.current.onNotificationUpdate);
+      const uploadQueueHandler = handleEvent('upload_queue', optionsRef.current.onUploadQueueUpdate);
+      const presenceHandler = handleEvent('presence', optionsRef.current.onPresenceUpdate);
       const keepaliveHandler = () => {
         if (mountedRef.current) {
           setLastUpdate(new Date());
@@ -159,7 +169,7 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
       console.error('Failed to connect to unified real-time:', error);
       setIsConnected(false);
     }
-  }, [session?.user, options]);
+  }, [session?.user]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -185,7 +195,7 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
           globalReconnectTimeout = null;
         }
       }
-      
+
       cleanup();
     };
   }, [session?.user, connect, cleanup]);

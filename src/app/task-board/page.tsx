@@ -1,7 +1,7 @@
 // src/app/task-board/page.tsx
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { TaskBoard, TaskStage } from '@/components/tasks/TaskBoard';
 import { Task } from '@/components/tasks/TaskCard';
 import { TaskDetailModal } from '@/components/tasks/TaskDetailModal';
@@ -96,9 +96,9 @@ function TaskBoardContent() {
     isLoaded 
   } = useUserPreferences();
 
-  // Unified realtime hook
+  // Unified realtime hook with optimized configuration to prevent memory leaks
   const { isConnected: realtimeConnected, isReconnecting, reconnectAttempts } = useUnifiedRealtime({
-    onCandidateUpdate: (updatedCandidate) => {
+    onCandidateUpdate: useCallback((updatedCandidate: any) => {
       try {
         // Handle candidate updates if needed
         // console.log('Candidate updated:', updatedCandidate);
@@ -106,8 +106,8 @@ function TaskBoardContent() {
         console.error('Error handling candidate update:', error);
         setHasError(true);
       }
-    },
-    onPositionUpdate: (updatedPosition) => {
+    }, []),
+    onPositionUpdate: useCallback((updatedPosition: any) => {
       try {
         // Handle position updates if needed
         // console.log('Position updated:', updatedPosition);
@@ -115,8 +115,8 @@ function TaskBoardContent() {
         console.error('Error handling position update:', error);
         setHasError(true);
       }
-    },
-    onNotification: (notification) => {
+    }, []),
+    onNotification: useCallback((notification: any) => {
       try {
         // Handle notifications if needed
         // console.log('Notification received:', notification);
@@ -124,7 +124,7 @@ function TaskBoardContent() {
         console.error('Error handling notification:', error);
         setHasError(true);
       }
-    },
+    }, []),
     showNotifications: false, // Disable notifications to prevent conflicts
     showErrorNotifications: false, // Disable error toast notifications
     maxReconnectAttempts: 15, // More reconnection attempts
@@ -162,17 +162,19 @@ function TaskBoardContent() {
   }, [searchTerm, filterPriority, filterAssignee, isLoaded, updateTaskBoardPreferences, preferences.searchTerm, preferences.filterPriority, preferences.filterAssignee]);
 
   // Filter tasks based on search and filters
-  const filteredTasks = tasks.filter(task => {
-    const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         task.description?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesPriority = filterPriority === 'all' || task.priority === filterPriority;
-    const matchesAssignee = filterAssignee === 'all' || task.assignee?.id === filterAssignee;
-    
-    return matchesSearch && matchesPriority && matchesAssignee;
-  });
+  const filteredTasks = React.useMemo(() => {
+    return tasks.filter(task => {
+      const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           task.description?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesPriority = filterPriority === 'all' || task.priority === filterPriority;
+      const matchesAssignee = filterAssignee === 'all' || task.assignee?.id === filterAssignee;
+      
+      return matchesSearch && matchesPriority && matchesAssignee;
+    });
+  }, [tasks, searchTerm, filterPriority, filterAssignee]);
 
-  // Handle task movement
-  const handleMoveTask = (task: Task, newStatus: string) => {
+  // Handle task movement with error handling
+  const handleMoveTask = useCallback((task: Task, newStatus: string) => {
     try {
       // Prevent moving to the same status to avoid unnecessary updates
       if (task.status === newStatus) {
@@ -187,20 +189,20 @@ function TaskBoardContent() {
       console.error('Error moving task:', error);
       toast.error('Failed to move task. Please try again.');
     }
-  };
+  }, [stages]);
 
   // Handle task click
-  const handleTaskClick = (task: Task) => {
+  const handleTaskClick = useCallback((task: Task) => {
     try {
       setSelectedTask(task);
     } catch (error) {
       console.error('Error opening task details:', error);
       toast.error('Failed to open task details. Please try again.');
     }
-  };
+  }, []);
 
   // Handle task update
-  const handleTaskUpdate = (taskId: string, updates: Partial<Task>) => {
+  const handleTaskUpdate = useCallback((taskId: string, updates: Partial<Task>) => {
     try {
       setTasks(prev => prev.map(t => 
         t.id === taskId ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t
@@ -210,20 +212,20 @@ function TaskBoardContent() {
       console.error('Error updating task:', error);
       toast.error('Failed to update task. Please try again.');
     }
-  };
+  }, []);
 
   // Handle adding new task
-  const handleAddTask = (stageId: string) => {
+  const handleAddTask = useCallback((stageId: string) => {
     try {
       setIsAddTaskModalOpen(true);
     } catch (error) {
       console.error('Error opening add task modal:', error);
       toast.error('Failed to open add task modal. Please try again.');
     }
-  };
+  }, []);
 
   // Add new task
-  const handleCreateTask = (taskData: Partial<Task>) => {
+  const handleCreateTask = useCallback((taskData: Partial<Task>) => {
     try {
       const newTask: Task = {
         id: Date.now().toString(),
@@ -245,7 +247,17 @@ function TaskBoardContent() {
       console.error('Error creating task:', error);
       toast.error('Failed to create task. Please try again.');
     }
-  };
+  }, []);
+
+  // Cleanup effect to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      // Clean up any pending state updates
+      setSelectedTask(null);
+      setTasks([]);
+      setHasError(false);
+    };
+  }, []);
 
   // If there's an error, show a fallback UI
   if (hasError) {

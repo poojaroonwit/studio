@@ -225,6 +225,7 @@ export function TaskBoard({
   
   // Add rate limiting for drag operations to prevent resource leaks
   const lastDragTimeRef = useRef<number>(0);
+  const dragThrottleRef = useRef<NodeJS.Timeout | null>(null);
 
   // Memoized data
   const tasksByStage = useMemo(() => {
@@ -304,32 +305,51 @@ export function TaskBoard({
     }
   }, []);
 
-  // Set up scroll event listener and initial check
+  // Set up scroll event listener and initial check with proper cleanup
   useEffect(() => {
     const container = scrollContainerRef.current;
-    if (container) {
-      container.addEventListener('scroll', updateScrollButtons);
+    if (!container) return;
+
+    // Store timeout IDs for cleanup
+    const timeoutIds: NodeJS.Timeout[] = [];
+    
+    const handleScroll = () => {
+      // Throttle scroll events to prevent excessive updates
+      if (dragThrottleRef.current) {
+        clearTimeout(dragThrottleRef.current);
+        dragThrottleRef.current = null;
+      }
+      dragThrottleRef.current = setTimeout(updateScrollButtons, 16) as NodeJS.Timeout; // ~60fps
+    };
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    
+    // Multiple checks to ensure content is rendered
+    const timeouts = [
+      setTimeout(updateScrollButtons, 100),
+      setTimeout(updateScrollButtons, 300),
+      setTimeout(updateScrollButtons, 500),
+      setTimeout(updateScrollButtons, 1000)
+    ];
+    
+    timeoutIds.push(...timeouts);
+    
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
       
-      // Multiple checks to ensure content is rendered
-      const timeouts = [
-        setTimeout(updateScrollButtons, 100),
-        setTimeout(updateScrollButtons, 300),
-        setTimeout(updateScrollButtons, 500),
-        setTimeout(updateScrollButtons, 1000)
-      ];
+      // Clear all timeouts to prevent memory leaks
+      timeoutIds.forEach(id => {
+        if (id) clearTimeout(id);
+      });
       
-      return () => {
-        container.removeEventListener('scroll', updateScrollButtons);
-        timeouts.forEach(clearTimeout);
-        // Clear any remaining timeouts to prevent memory leaks
-        timeouts.forEach(timeoutId => {
-          if (timeoutId) clearTimeout(timeoutId);
-        });
-      };
-    }
+      if (dragThrottleRef.current) {
+        clearTimeout(dragThrottleRef.current);
+        dragThrottleRef.current = null;
+      }
+    };
   }, [updateScrollButtons, visibleStagesList]);
 
-  // Update scroll buttons when window resizes
+  // Update scroll buttons when window resizes with proper cleanup
   useEffect(() => {
     const handleResize = () => {
       // Clear any existing timeout to prevent resource leaks
@@ -340,7 +360,8 @@ export function TaskBoard({
       resizeTimeoutRef.current = setTimeout(updateScrollButtons, 100);
     };
     
-    window.addEventListener('resize', handleResize);
+    window.addEventListener('resize', handleResize, { passive: true });
+    
     return () => {
       window.removeEventListener('resize', handleResize);
       if (resizeTimeoutRef.current) {
@@ -357,17 +378,28 @@ export function TaskBoard({
       setDraggedTask(null);
       setDragOverStage(null);
       setIsDragging(false);
-      document.body.style.cursor = '';
+      
+      // Reset document cursor
+      if (document.body.style.cursor === 'grabbing') {
+        document.body.style.cursor = '';
+      }
       
       // Clear any remaining timeouts
       if (resizeTimeoutRef.current) {
         clearTimeout(resizeTimeoutRef.current);
         resizeTimeoutRef.current = null;
       }
+      
+      if (dragThrottleRef.current) {
+        clearTimeout(dragThrottleRef.current);
+        dragThrottleRef.current = null;
+      }
+
+
     };
   }, []);
 
-  // Drag and drop handlers
+  // Drag and drop handlers with improved resource management
   const handleDragStart = useCallback((task: Task) => {
     // Rate limiting: prevent rapid drag operations to prevent resource leaks
     const now = Date.now();
@@ -386,7 +418,11 @@ export function TaskBoard({
     setDraggedTask(null);
     setDragOverStage(null);
     setIsDragging(false);
-    document.body.style.cursor = '';
+    
+    // Reset document cursor only if it was set by us
+    if (document.body.style.cursor === 'grabbing') {
+      document.body.style.cursor = '';
+    }
   }, []);
 
   const handleDragOver = useCallback((stageId: string, e: React.DragEvent) => {
@@ -431,7 +467,11 @@ export function TaskBoard({
     setDraggedTask(null);
     setDragOverStage(null);
     setIsDragging(false);
-    document.body.style.cursor = '';
+    
+    // Reset document cursor only if it was set by us
+    if (document.body.style.cursor === 'grabbing') {
+      document.body.style.cursor = '';
+    }
   }, [draggedTask, onMoveTask]);
 
   // Empty state

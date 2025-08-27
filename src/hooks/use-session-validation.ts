@@ -43,7 +43,7 @@ export function useSessionValidation(options: {
         
         if (autoSignOut) {
           await signOut({ 
-            callbackUrl: redirectTo,
+            callbackUrl: `${redirectTo}?signout=true`,
             redirect: true 
           });
         }

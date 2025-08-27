@@ -27,6 +27,7 @@ import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import Image from "next/image";
 import { useRecentUrls, formatRelativeTime } from "@/hooks/use-recent-urls";
 import { useUnifiedRealtime } from "@/hooks/use-unified-realtime-optimized";
+import { useSidebarCleanup } from "@/hooks/use-sidebar-cleanup";
 import { Clock, X } from "lucide-react";
 
 // Add this at the top for TypeScript global declaration
@@ -124,24 +125,26 @@ const usePendingCount = () => {
   const [pendingCount, setPendingCount] = useState<number | null>(null);
   const [pendingError, setPendingError] = useState(false);
   const [isPendingLoading, setIsPendingLoading] = useState(true);
-  const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
+  const { addTimeout, isMounted } = useSidebarCleanup();
+
   const fetchPending = useCallback(async () => {
-    if (!session?.user) return;
-    
+    if (!session?.user || !isMounted()) return;
+
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-      
+
       const res = await fetch("/api/upload-queue/count", {
         signal: controller.signal,
         headers: {
           'Cache-Control': 'no-cache'
         }
       });
-      
+
       clearTimeout(timeoutId);
-      
+
+      if (!isMounted()) return; // Check if component is still mounted
+
       if (!res.ok) throw new Error("Failed to fetch");
       const data = await res.json();
       const count = data.pending || 0;
@@ -149,43 +152,38 @@ const usePendingCount = () => {
       setPendingError(false);
       setIsPendingLoading(false);
     } catch (e) {
-      setPendingError(true);
-      setIsPendingLoading(false);
+      if (isMounted()) {
+        setPendingError(true);
+        setIsPendingLoading(false);
+      }
     }
-  }, [session?.user]);
+  }, [session?.user, isMounted]);
 
   // Use unified real-time hook for upload queue updates with optimized callbacks
   const { isConnected } = useUnifiedRealtime({
     onUploadQueueUpdate: useCallback((data: any) => {
+      if (!isMounted()) return; // Check if component is still mounted
+      
       if (data.type === 'queue' && data.summary) {
         const count = (data.summary.queued || 0) + (data.summary.inprocess || 0);
         setPendingCount(count);
         setPendingError(false);
         setIsPendingLoading(false);
       }
-    }, [])
+    }, [isMounted])
   });
 
   // Initial fetch with debouncing
   useEffect(() => {
     if (session?.user) {
-      // Clear any existing timeout
-      if (fetchTimeoutRef.current) {
-        clearTimeout(fetchTimeoutRef.current);
-      }
-      
       // Debounce the fetch to prevent multiple rapid requests
-      fetchTimeoutRef.current = setTimeout(() => {
-        fetchPending();
+      addTimeout(() => {
+        if (isMounted()) {
+          fetchPending();
+        }
       }, 100);
     }
-    
-    return () => {
-      if (fetchTimeoutRef.current) {
-        clearTimeout(fetchTimeoutRef.current);
-      }
-    };
-  }, [session?.user, fetchPending]);
+  }, [session?.user, fetchPending, addTimeout, isMounted]);
 
   return {
     pendingCount,
@@ -203,6 +201,7 @@ const SidebarNavComponent = function SidebarNav() {
   const { recentUrls, clearRecentUrls } = useRecentUrls();
 
   const [isClient, setIsClient] = React.useState(false);
+  const { isMounted } = useSidebarCleanup();
 
   // Use optimized pending count hook
   const { pendingCount, pendingError, isPendingLoading, isConnected } = usePendingCount();
@@ -216,13 +215,13 @@ const SidebarNavComponent = function SidebarNav() {
   // Memoize visible nav items based on user permissions (excluding Process queue)
   const visibleNavItems = useMemo(() => {
     if (!isClient || !userRole) return mainNavItems;
-    
+
     return mainNavItems.filter(item => {
       // Show all items for admin users
       if (userRole === 'Admin' || session?.user?.modulePermissions?.includes('USERS_MANAGE')) {
         return true;
       }
-      
+
       // Filter based on module permissions
       switch (item.href) {
         case '/settings':

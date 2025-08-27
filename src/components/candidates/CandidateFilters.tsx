@@ -318,9 +318,9 @@ export function CandidateFilters({
       return;
     }
     
-    // Rate limiting: prevent applying filters more than once every 100ms (reduced from 300ms)
+    // Rate limiting: prevent applying filters more than once every 200ms (increased to prevent resource leaks)
     const now = Date.now();
-    if (now - lastFilterApplyTimeRef.current < 100) {
+    if (now - lastFilterApplyTimeRef.current < 200) {
       return;
     }
     
@@ -393,14 +393,16 @@ export function CandidateFilters({
       }
     }
     
-    // Reset flag after a delay
+    // Reset flag after a delay - store timeout ID for cleanup
     const timeoutId = setTimeout(() => {
       setIsApplyingFilters(false);
     }, 50); // Reduced from 100ms to 50ms for better responsiveness
     
-    return () => {
-      clearTimeout(timeoutId);
-    };
+    // Store timeout ID for cleanup
+    if (applyingFiltersTimeoutRef.current) {
+      clearTimeout(applyingFiltersTimeoutRef.current);
+    }
+    applyingFiltersTimeoutRef.current = timeoutId;
   }, [name, nameOperator, email, emailOperator, phone, phoneOperator, selectedPositionIds, selectedStatuses, selectedSourceIds, skills, location, locationOperator, experienceYearsRange, applicationDateRange, selectedRecruiterIds]); // Removed onFilterChange from dependencies
 
   // Single auto-apply effect for all filter changes
@@ -422,7 +424,7 @@ export function CandidateFilters({
     applicationDateRange
   ]);
 
-  // Auto-apply filters when input values change (immediate)
+  // Auto-apply filters when input values change (debounced to prevent resource leaks)
   // Note: Fit score ranges are now handled separately through debounced handlers
   useEffect(() => {
     // Clear any existing timeout
@@ -450,9 +452,18 @@ export function CandidateFilters({
       return;
     }
     
-    // Always apply filters when any filter value changes, even if it's empty (to clear previous filters)
-    // This ensures that when you clear a field, it properly clears the filter
-    handleApplyStandardFilters();
+    // Debounce filter application to prevent resource leaks from rapid changes
+    autoApplyTimeoutRef.current = setTimeout(() => {
+      handleApplyStandardFilters();
+    }, 150); // Increased debounce time to prevent rapid successive calls
+    
+    // Cleanup timeout on unmount or dependency change
+    return () => {
+      if (autoApplyTimeoutRef.current) {
+        clearTimeout(autoApplyTimeoutRef.current);
+        autoApplyTimeoutRef.current = null;
+      }
+    };
   }, [name, email, phone, selectedPositionIds, selectedStatuses, selectedSourceIds, skills, location, experienceYearsRange, applicationDateRange, selectedRecruiterIds, advancedQueryInput, handleApplyStandardFilters]);
 
   // Component initialization
@@ -483,8 +494,53 @@ export function CandidateFilters({
       if (syncingTimeoutRef.current) {
         clearTimeout(syncingTimeoutRef.current);
       }
+      if (applyingFiltersTimeoutRef.current) {
+        clearTimeout(applyingFiltersTimeoutRef.current);
+      }
+      if (positionChangeTimeoutRef.current) {
+        clearTimeout(positionChangeTimeoutRef.current);
+      }
     };
   }, []); // Only run once on mount
+
+  // Cleanup all timeouts on component unmount
+  useEffect(() => {
+    return () => {
+      // Clear all timeouts to prevent memory leaks
+      if (multiselectTimeoutRef.current) {
+        clearTimeout(multiselectTimeoutRef.current);
+        multiselectTimeoutRef.current = null;
+      }
+      if (autoApplyTimeoutRef.current) {
+        clearTimeout(autoApplyTimeoutRef.current);
+        autoApplyTimeoutRef.current = null;
+      }
+      if (skillsTimeoutRef.current) {
+        clearTimeout(skillsTimeoutRef.current);
+        skillsTimeoutRef.current = null;
+      }
+      if (pasteTimeoutRef.current) {
+        clearTimeout(pasteTimeoutRef.current);
+        pasteTimeoutRef.current = null;
+      }
+      if (initializationTimeoutRef.current) {
+        clearTimeout(initializationTimeoutRef.current);
+        initializationTimeoutRef.current = null;
+      }
+      if (syncingTimeoutRef.current) {
+        clearTimeout(syncingTimeoutRef.current);
+        syncingTimeoutRef.current = null;
+      }
+      if (applyingFiltersTimeoutRef.current) {
+        clearTimeout(applyingFiltersTimeoutRef.current);
+        applyingFiltersTimeoutRef.current = null;
+      }
+      if (positionChangeTimeoutRef.current) {
+        clearTimeout(positionChangeTimeoutRef.current);
+        positionChangeTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   // Define a list of common skills
   const skillOptions = [
@@ -847,11 +903,13 @@ export function CandidateFilters({
   // Add a ref for auto-apply debouncing
   const autoApplyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Add refs for timeout cleanup
+  // Add refs for timeout cleanup to prevent resource leaks
   const skillsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const pasteTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const initializationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const syncingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const applyingFiltersTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const positionChangeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Add a ref to track if we're currently applying filters
   // const isApplyingFiltersRef = useRef(false); // Removed - using state variable instead
@@ -917,10 +975,10 @@ export function CandidateFilters({
     
     // Reset flag after a brief delay to allow state to settle
     // Clear any existing timeout
-    if (autoApplyTimeoutRef.current) {
-      clearTimeout(autoApplyTimeoutRef.current);
+    if (positionChangeTimeoutRef.current) {
+      clearTimeout(positionChangeTimeoutRef.current);
     }
-    autoApplyTimeoutRef.current = setTimeout(() => {
+    positionChangeTimeoutRef.current = setTimeout(() => {
       isHandlingPositionChangeRef.current = false;
     }, 100);
   };

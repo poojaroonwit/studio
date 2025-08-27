@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
@@ -16,6 +16,7 @@ export function useSessionValidation(options: {
 } = {}) {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const [isValidating, setIsValidating] = useState(false);
   
   const {
     validateInterval = 5 * 60 * 1000, // 5 minutes
@@ -29,6 +30,7 @@ export function useSessionValidation(options: {
     }
 
     try {
+      setIsValidating(true);
       const response = await fetch('/api/auth/validate-session', {
         method: 'GET',
         credentials: 'include', // Include cookies
@@ -52,6 +54,8 @@ export function useSessionValidation(options: {
       console.error('Session validation error:', error);
       // Don't auto sign out on network errors, only on validation failures
       // This prevents users from being logged out due to temporary network issues
+    } finally {
+      setIsValidating(false);
     }
   }, [session, status, autoSignOut, redirectTo]);
 
@@ -72,7 +76,7 @@ export function useSessionValidation(options: {
   }, [validateSession, status, validateInterval]);
 
   return {
-    isValidating: status === 'loading',
+    isValidating,
     isAuthenticated: status === 'authenticated',
     session,
     validateSession

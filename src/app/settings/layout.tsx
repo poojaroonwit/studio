@@ -81,9 +81,14 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
   }
 
   if (status === "unauthenticated" && isClient) {
+    // Redirect to signin page instead of showing error message
+    router.replace('/auth/signin');
     return (
       <div className="flex h-full items-center justify-center">
-        <p className="text-lg text-destructive">You are not authenticated. Please sign in.</p>
+        <div className="flex flex-col items-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground text-sm">Redirecting to sign in...</p>
+        </div>
       </div>
     );
   }

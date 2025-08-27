@@ -7,13 +7,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Line } from 'react-chartjs-2';
-import { Loader2, TrendingUp, CalendarIcon } from "lucide-react";
+import { Loader2, TrendingUp, CalendarIcon, XCircle } from "lucide-react";
 import type { Candidate } from "@/lib/types";
 import { format, subMonths, subWeeks, subYears, startOfMonth, startOfWeek, startOfYear, endOfMonth, endOfWeek, endOfYear, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, eachYearOfInterval, addDays } from 'date-fns';
 import parseISO from 'date-fns/parseISO';
 import { cn } from "@/lib/utils";
 import { DateRange } from 'react-day-picker';
-import { setupChartJS, isChartJSSetup } from '@/lib/chartjs-setup';
+import { useChartSetup } from '@/hooks/use-chart-setup';
+import { isDataLabelsAvailable } from '@/lib/chartjs-setup';
 
 interface NewApplicationsTimeSeriesChartProps {
   candidates: Candidate[];
@@ -38,48 +39,8 @@ const PERIOD_UNITS = [
 ];
 
 export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, dynamicHeight }: NewApplicationsTimeSeriesChartProps) {
-  const [chartReady, setChartReady] = useState(false);
-  const chartSetupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
-  // Setup Chart.js on component mount
-  useEffect(() => {
-    const setupChart = async () => {
-      try {
-        await setupChartJS();
-        // Double-check that setup is complete
-        if (isChartJSSetup()) {
-          setChartReady(true);
-        } else {
-          console.warn('Chart.js setup reported complete but isChartJSSetup() returned false');
-          // Retry after a short delay
-          const timeoutId = setTimeout(() => {
-            if (isChartJSSetup()) {
-              setChartReady(true);
-            }
-          }, 100);
-          
-          // Store timeout ID for cleanup
-          if (chartSetupTimeoutRef.current) {
-            clearTimeout(chartSetupTimeoutRef.current);
-          }
-          chartSetupTimeoutRef.current = timeoutId;
-        }
-      } catch (error) {
-        console.error('Failed to setup Chart.js:', error);
-      }
-    };
-    
-    setupChart();
-  }, []);
-
-  // Cleanup timeout on component unmount
-  useEffect(() => {
-    return () => {
-      if (chartSetupTimeoutRef.current) {
-        clearTimeout(chartSetupTimeoutRef.current);
-      }
-    };
-  }, []);
+  // Use the new chart setup hook
+  const { chartReady, isLoading: chartLoading, error: chartError } = useChartSetup();
 
   // New state for period selection
   const [periodType, setPeriodType] = useState<'this'|'last'|'pastN'|'custom'>('pastN');
@@ -490,7 +451,20 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
               <TrendingUp className="h-12 w-12 mx-auto mb-2 opacity-50" />
               <p className="text-sm">No application data available</p>
             </div>
-          ) : !chartReady || !isChartJSSetup() ? (
+          ) : chartError ? (
+            <div className="flex items-center justify-center">
+              <div className="text-center space-y-3">
+                <XCircle className="h-8 w-8 text-red-500 mx-auto" />
+                <p className="text-red-500 text-sm">Chart error: {chartError}</p>
+                <Button 
+                  onClick={() => window.location.reload()}
+                  className="mt-2"
+                >
+                  Retry
+                </Button>
+              </div>
+            </div>
+          ) : !chartReady ? (
             <div className="flex items-center justify-center">
               <div className="text-center space-y-3">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
@@ -532,20 +506,22 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
                        }
                      }
                    },
-                   datalabels: {
-                     display: true,
-                     color: '#374151',
-                     font: {
-                       weight: 'bold',
-                       size: 11
-                     },
-                     formatter: function(value: number) {
-                       return value > 0 ? value : '';
-                     },
-                     anchor: 'end',
-                     align: 'top',
-                     offset: 4
-                   }
+                                       ...(isDataLabelsAvailable() ? {
+                      datalabels: {
+                        display: true,
+                        color: '#374151',
+                        font: {
+                          weight: 'bold',
+                          size: 11
+                        },
+                        formatter: function(value: number) {
+                          return value > 0 ? value : '';
+                        },
+                        anchor: 'end',
+                        align: 'top',
+                        offset: 4
+                      }
+                    } : {})
                  },
                  scales: {
                    x: {

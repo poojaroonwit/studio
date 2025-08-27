@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react"
-import { useResourceCleanup, useSafeTimeout, useSafeInterval, useSafeEventSource } from '@/lib/resource-leak-fixes-client';
+
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { CandidateFilters, type CandidateFilterValues } from '@/components/candidates/CandidateFilters';
 import { CandidateTable } from '@/components/candidates/CandidateTable';
@@ -41,7 +41,7 @@ import { CandidateSettingsDrawer } from './CandidateSettingsDrawer';
 import { useDynamicHeight } from '@/hooks/use-dynamic-height';
 import { useCandidateSettings } from '@/hooks/use-candidate-settings';
 import { useUnifiedRealtime } from '@/hooks/use-unified-realtime';
-import { ApplicationPerformanceMonitor } from './ApplicationPerformanceMonitor';
+
 
 // Import our new hooks
 import { useCandidateFilters } from './hooks/use-candidate-filters';
@@ -49,7 +49,10 @@ import { useCandidateData } from './hooks/use-candidate-data';
 import { useCandidateFetching } from './hooks/use-candidate-fetching';
 import { useCandidateActions } from './hooks/use-candidate-actions';
 import { useCandidateAiSearch } from './hooks/use-candidate-ai-search';
-import { useEmergencySafeEffect, useEmergencySafeCallback, useEmergencyRenderMonitor, useEmergencySafeTimeout } from "@/lib/emergency-stuck-fix";
+
+// Import safe effect hooks
+import { useEmergencySafeEffect, useEmergencyRenderMonitor } from '@/hooks/use-safe-effect';
+
 
 interface CandidatesPageClientProps {
   initialCandidates: Candidate[];
@@ -109,7 +112,7 @@ export function CandidatesPageClient({
   const [isAiSearchActive, setIsAiSearchActive] = useState(false);
 
   // Performance Monitor state
-  const [showPerformanceMonitor, setShowPerformanceMonitor] = useState<boolean>(false);
+
 
   // Initial data fetch state
   const [hasInitialDataFetch, setHasInitialDataFetch] = useState<boolean>(false);
@@ -1121,13 +1124,15 @@ export function CandidatesPageClient({
     
     // Skip if filters haven't actually changed to prevent unnecessary requests
     const requestId = JSON.stringify({ filters, page, pageSize, sortColumn, sortDirection });
-    if (currentRequestRefFromHook.current === requestId) {
+    if (currentRequestRefFromHook?.current === requestId) {
       return;
     }
     
     // Add a small delay to prevent rapid successive requests
     const timeoutId = setTimeout(() => {
-      currentRequestRefFromHook.current = requestId;
+      if (currentRequestRefFromHook?.current !== undefined) {
+        currentRequestRefFromHook.current = requestId;
+      }
       fetchTableData(filters, page, pageSize);
     }, 300); // Increased delay to prevent resource leaks
     
@@ -1200,20 +1205,49 @@ export function CandidatesPageClient({
   // Cleanup timeout on component unmount
   useEmergencySafeEffect(() => {
     return () => {
-      if (clearingFiltersTimeoutRef.current) {
+      if (clearingFiltersTimeoutRef?.current) {
         clearTimeout(clearingFiltersTimeoutRef.current);
       }
-      if (filterChangeTimeoutRef.current) {
+      if (filterChangeTimeoutRef?.current) {
         clearTimeout(filterChangeTimeoutRef.current);
       }
-      if (fetchTimeoutRefFromHook.current) {
+      if (fetchTimeoutRefFromHook?.current) {
         clearTimeout(fetchTimeoutRefFromHook.current);
       }
-      if (batchTimeoutRef.current) {
+      if (batchTimeoutRef?.current) {
         clearTimeout(batchTimeoutRef.current);
       }
     };
   }, [fetchTimeoutRefFromHook], 'cleanupTimeouts');
+
+  // Handle authentication
+  if (sessionStatus === 'loading') {
+    return (
+      <div className="flex flex-col h-full bg-background">
+        <div className="flex-1 flex items-center justify-center">
+          <div className="flex flex-col items-center space-y-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <p className="text-muted-foreground text-sm">Loading...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (sessionStatus === 'unauthenticated') {
+    // Redirect to signin page instead of showing error message
+    router.replace('/auth/signin');
+    return (
+      <div className="flex flex-col h-full bg-background">
+        <div className="flex-1 flex items-center justify-center">
+          <div className="flex flex-col items-center space-y-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <p className="text-muted-foreground text-sm">Redirecting to sign in...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Render the component
   return (
@@ -1597,7 +1631,7 @@ export function CandidatesPageClient({
                       setPage(Math.min(totalPages, page + 1));
                       // Show Performance Monitor for admin users
                       if (session?.user?.role === 'Admin') {
-                        setShowPerformanceMonitor(true);
+                
                       }
                     }}
                     disabled={(() => {
@@ -1770,15 +1804,7 @@ export function CandidatesPageClient({
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Performance Monitor - Permission Gated */}
-      <ApplicationPerformanceMonitor 
-        requiredPermission={'APP_PERFORMANCE_VIEW'}
-        showDetails={showPerformanceMonitor}
-        onMetricsUpdate={(metrics) => {
-          // Optional: Handle metrics updates if needed
-        }}
-        onClose={() => setShowPerformanceMonitor(false)}
-      />
+
     </>
   );
 }

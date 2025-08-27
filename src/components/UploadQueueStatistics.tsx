@@ -5,9 +5,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Clock, CheckCircle, XCircle, Loader2, AlertCircle, BarChart3, TrendingUp } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, Loader2, AlertCircle, BarChart3, TrendingUp, Calendar, Filter } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useUploadQueueSSE } from '@/hooks/use-upload-queue-sse';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 
 interface QueueItem {
   id: string;
@@ -83,6 +90,17 @@ export function UploadQueueStatistics() {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [hoveredPoint, setHoveredPoint] = useState<{
+    x: number;
+    y: number;
+    data: any;
+  } | null>(null);
+  
+  // Date range filters
+  const [uploadDateFrom, setUploadDateFrom] = useState<Date | undefined>(undefined);
+  const [uploadDateTo, setUploadDateTo] = useState<Date | undefined>(undefined);
+  const [completionDateFrom, setCompletionDateFrom] = useState<Date | undefined>(undefined);
+  const [completionDateTo, setCompletionDateTo] = useState<Date | undefined>(undefined);
   
   // Use shared SSE connection
   const { isConnected: isRealtimeActive, lastMessage } = useUploadQueueSSE();
@@ -123,6 +141,24 @@ export function UploadQueueStatistics() {
   };
 
   const processAnalyticsData = (items: QueueItem[]) => {
+    // Filter items based on date ranges
+    const filteredItems = items.filter(item => {
+      const uploadDate = new Date(item.upload_date);
+      const completionDate = item.completed_date ? new Date(item.completed_date) : null;
+      
+      // Upload date filter
+      if (uploadDateFrom && uploadDate < uploadDateFrom) return false;
+      if (uploadDateTo && uploadDate > uploadDateTo) return false;
+      
+      // Completion date filter (only apply if item has completion date)
+      if (completionDate) {
+        if (completionDateFrom && completionDate < completionDateFrom) return false;
+        if (completionDateTo && completionDate > completionDateTo) return false;
+      }
+      
+      return true;
+    });
+
     const scatterData: AnalyticsData['scatterData'] = [];
     const statusDurations: { [key: string]: number[] } = {};
     const errorCounts: { [key: string]: number } = {};
@@ -132,7 +168,7 @@ export function UploadQueueStatistics() {
     let totalProcessToComplete = 0;
     let completedCount = 0;
 
-    items.forEach(item => {
+    filteredItems.forEach(item => {
       // Calculate durations
       const uploadTime = new Date(item.upload_date).getTime();
       const processTime = item.process_date ? new Date(item.process_date).getTime() : null;
@@ -223,6 +259,13 @@ export function UploadQueueStatistics() {
     }
   }, [lastMessage]);
 
+  // Reprocess analytics when date filters change
+  useEffect(() => {
+    if (queueItems.length > 0) {
+      processAnalyticsData(queueItems);
+    }
+  }, [uploadDateFrom, uploadDateTo, completionDateFrom, completionDateTo, queueItems]);
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'queued': return <Clock className="h-4 w-4 text-blue-500" />;
@@ -256,6 +299,17 @@ export function UploadQueueStatistics() {
     return `${mb.toFixed(1)} MB`;
   };
 
+  const clearDateFilters = () => {
+    setUploadDateFrom(undefined);
+    setUploadDateTo(undefined);
+    setCompletionDateFrom(undefined);
+    setCompletionDateTo(undefined);
+  };
+
+  const hasActiveFilters = () => {
+    return uploadDateFrom || uploadDateTo || completionDateFrom || completionDateTo;
+  };
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -286,293 +340,440 @@ export function UploadQueueStatistics() {
         </div>
       </div>
 
-      {errorMessage && (
-        <div className="text-center py-4 text-red-600 bg-red-50 border border-red-200 rounded">
-          {errorMessage}
-        </div>
-      )}
+             {errorMessage && (
+         <div className="text-center py-4 text-red-600 bg-red-50 border border-red-200 rounded">
+           {errorMessage}
+         </div>
+       )}
 
-      <Tabs defaultValue="status" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="status" className="flex items-center gap-2">
-            <BarChart3 className="h-4 w-4" />
-            Current Status
-          </TabsTrigger>
-          <TabsTrigger value="analytics" className="flex items-center gap-2">
-            <TrendingUp className="h-4 w-4" />
-            Analytics
-          </TabsTrigger>
-        </TabsList>
+       <div className="space-y-4">
+                                         {/* Date Range Filters */}
+                     <Card>
+                       <CardHeader className="pb-3">
+                         <CardTitle className="flex items-center gap-2 text-sm">
+                           <Filter className="h-4 w-4" />
+                           Date Range Filters
+                         </CardTitle>
+                       </CardHeader>
+                       <CardContent className="pt-0">
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                     {/* Upload Date Range */}
+                           <div className="space-y-2">
+                             <Label className="text-sm font-medium">Upload Date Range</Label>
+                             <div className="grid grid-cols-2 gap-2">
+                               <div className="space-y-1">
+                                 <Label className="text-xs text-muted-foreground">From</Label>
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      className={cn(
+                                        "w-full justify-start text-left font-normal",
+                                        !uploadDateFrom && "text-muted-foreground"
+                                      )}
+                                    >
+                                      <CalendarIcon className="mr-2 h-4 w-4" />
+                                      {uploadDateFrom ? format(uploadDateFrom, "PPP") : "Select date"}
+                                    </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-auto p-0">
+                                    <CalendarComponent
+                                      mode="single"
+                                      selected={uploadDateFrom}
+                                      onSelect={setUploadDateFrom}
+                                      initialFocus
+                                    />
+                                  </PopoverContent>
+                                </Popover>
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-xs text-muted-foreground">To</Label>
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      className={cn(
+                                        "w-full justify-start text-left font-normal",
+                                        !uploadDateTo && "text-muted-foreground"
+                                      )}
+                                    >
+                                      <CalendarIcon className="mr-2 h-4 w-4" />
+                                      {uploadDateTo ? format(uploadDateTo, "PPP") : "Select date"}
+                                    </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-auto p-0">
+                                    <CalendarComponent
+                                      mode="single"
+                                      selected={uploadDateTo}
+                                      onSelect={setUploadDateTo}
+                                      initialFocus
+                                    />
+                                  </PopoverContent>
+                                </Popover>
+                              </div>
+                            </div>
+                          </div>
 
-        <TabsContent value="status" className="space-y-4">
-          {/* Status Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Total</p>
-                    <p className="text-2xl font-bold">{queueStatus.total}</p>
-                  </div>
-                  <div className="h-8 w-8 rounded-full bg-gray-500 flex items-center justify-center">
-                    <span className="text-white text-xs font-bold">T</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                          {/* Completion Date Range */}
+                          <div className="space-y-3">
+                            <Label className="text-sm font-medium">Completion Date Range</Label>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div className="space-y-2">
+                                <Label className="text-xs text-muted-foreground">From</Label>
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      className={cn(
+                                        "w-full justify-start text-left font-normal",
+                                        !completionDateFrom && "text-muted-foreground"
+                                      )}
+                                    >
+                                      <CalendarIcon className="mr-2 h-4 w-4" />
+                                      {completionDateFrom ? format(completionDateFrom, "PPP") : "Select date"}
+                                    </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-auto p-0">
+                                    <CalendarComponent
+                                      mode="single"
+                                      selected={completionDateFrom}
+                                      onSelect={setCompletionDateFrom}
+                                      initialFocus
+                                    />
+                                  </PopoverContent>
+                                </Popover>
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-xs text-muted-foreground">To</Label>
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      className={cn(
+                                        "w-full justify-start text-left font-normal",
+                                        !completionDateTo && "text-muted-foreground"
+                                      )}
+                                    >
+                                      <CalendarIcon className="mr-2 h-4 w-4" />
+                                      {completionDateTo ? format(completionDateTo, "PPP") : "Select date"}
+                                    </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-auto p-0">
+                                    <CalendarComponent
+                                      mode="single"
+                                      selected={completionDateTo}
+                                      onSelect={setCompletionDateTo}
+                                      initialFocus
+                                    />
+                                  </PopoverContent>
+                                </Popover>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
 
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Queued</p>
-                    <p className="text-2xl font-bold text-blue-600">{queueStatus.queued}</p>
-                  </div>
-                  <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center">
-                    <Clock className="h-4 w-4 text-white" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                        {/* Filter Actions */}
+                        <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                          <div className="flex items-center gap-2">
+                            {hasActiveFilters() && (
+                              <Badge variant="secondary" className="text-xs">
+                                {analyticsData.scatterData.length} items filtered
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {hasActiveFilters() && (
+                              <Button variant="outline" size="sm" onClick={clearDateFilters}>
+                                Clear Filters
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
 
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Processing</p>
-                    <p className="text-2xl font-bold text-yellow-600">{queueStatus.inprocess}</p>
-                  </div>
-                  <div className="h-8 w-8 rounded-full bg-yellow-500 flex items-center justify-center">
-                    <Loader2 className="h-4 w-4 text-white animate-spin" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Success</p>
-                    <p className="text-2xl font-bold text-green-600">{queueStatus.success}</p>
-                  </div>
-                  <div className="h-8 w-8 rounded-full bg-green-500 flex items-center justify-center">
-                    <CheckCircle className="h-4 w-4 text-white" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Error</p>
-                    <p className="text-2xl font-bold text-red-600">{queueStatus.error}</p>
-                  </div>
-                  <div className="h-8 w-8 rounded-full bg-red-500 flex items-center justify-center">
-                    <XCircle className="h-4 w-4 text-white" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Queue Items Table */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Queue Items</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-64">
-                <div className="space-y-2">
-                  {queueItems.slice(0, 20).map((item) => (
-                    <div key={item.id} className="flex items-center justify-between p-2 border rounded">
-                      <div className="flex items-center gap-2">
-                        {getStatusIcon(item.status)}
-                        <span className="font-medium truncate max-w-48">{item.file_name}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge className={getStatusColor(item.status)}>
-                          {item.status}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground">
-                          {formatFileSize(item.file_size)}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                  {queueItems.length === 0 && (
-                    <div className="text-center py-4 text-muted-foreground">
-                      No items in queue
-                    </div>
-                  )}
-                </div>
-              </ScrollArea>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="analytics" className="space-y-4">
-          {/* Duration Metrics */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Processing Time vs File Size Chart */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm">Average Waiting Time</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5" />
+                  Processing Time vs File Size Analysis
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Visualize the relationship between file sizes and processing times
+                </p>
               </CardHeader>
               <CardContent>
-                <p className="text-2xl font-bold text-blue-600">
-                  {formatDuration(analyticsData.durationMetrics.waitingQueue)}
-                </p>
-                <p className="text-xs text-muted-foreground">Upload to Process</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Average Total Duration</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold text-green-600">
-                  {formatDuration(analyticsData.durationMetrics.createToComplete)}
-                </p>
-                <p className="text-xs text-muted-foreground">Upload to Complete</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Average Process Duration</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold text-yellow-600">
-                  {formatDuration(analyticsData.durationMetrics.processToComplete)}
-                </p>
-                <p className="text-xs text-muted-foreground">Process to Complete</p>
-              </CardContent>
-            </Card>
-          </div>
-
-                     {/* Scatter Chart */}
-           <Card>
-             <CardHeader>
-               <CardTitle>Processing Time vs File Size</CardTitle>
-             </CardHeader>
-             <CardContent>
-               <div className="h-64 border rounded p-4 bg-gray-50">
-                 {analyticsData.scatterData.length > 0 ? (
-                   <div className="relative w-full h-full">
-                     <svg width="100%" height="100%" className="absolute inset-0">
-                       {/* Grid lines */}
-                       {[...Array(5)].map((_, i) => (
-                         <g key={i}>
-                           <line
-                             x1="0"
-                             y1={((i + 1) * 100) / 5}
-                             x2="100%"
-                             y2={((i + 1) * 100) / 5}
-                             stroke="#e5e7eb"
-                             strokeWidth="1"
-                           />
-                           <line
-                             x1={((i + 1) * 100) / 5}
-                             y1="0"
-                             x2={((i + 1) * 100) / 5}
-                             y2="100%"
-                             stroke="#e5e7eb"
-                             strokeWidth="1"
-                           />
-                         </g>
-                       ))}
-                       
-                       {/* Data points */}
-                       {analyticsData.scatterData.map((point, index) => {
-                         const x = ((index / (analyticsData.scatterData.length - 1)) * 80) + 10; // 10% margin
-                         const maxDuration = Math.max(...analyticsData.scatterData.map(p => p.y));
-                         const y = 90 - ((point.y / maxDuration) * 70); // 10% margin, 70% height
-                         const radius = Math.max(3, Math.min(8, point.size * 2)); // Scale file size to radius
-                         
-                                                   // Get color based on status
-                          const getStatusColor = (status: string) => {
-                            switch (status) {
-                              case 'success': return '#10b981'; // green
-                              case 'error':
-                              case 'fail': return '#ef4444'; // red
-                              case 'queued': return '#6b7280'; // gray
-                              case 'inprocess': return '#f59e0b'; // yellow
-                              default: return '#6b7280'; // gray
-                            }
-                          };
-
-                          return (
-                            <circle
-                              key={index}
-                              cx={`${x}%`}
-                              cy={`${y}%`}
-                              r={radius}
-                              fill={getStatusColor(point.status)}
-                              opacity="0.7"
-                              className="hover:opacity-100 transition-opacity cursor-pointer"
-                            >
-                              <title>{`${point.fileName}: ${formatDuration(point.y)} (${point.size.toFixed(1)}MB) - ${point.status}`}</title>
-                            </circle>
-                          );
-                       })}
-                       
-                       {/* Axis labels */}
-                       <text x="50%" y="95%" textAnchor="middle" className="text-xs fill-gray-600">
-                         Time
-                       </text>
-                       <text x="5%" y="50%" textAnchor="middle" className="text-xs fill-gray-600" transform="rotate(-90, 5%, 50%)">
-                         Duration (seconds)
-                       </text>
-                     </svg>
-                     
-                                           {/* Legend */}
-                      <div className="absolute bottom-2 right-2 text-xs text-gray-600">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <div className="flex items-center gap-1">
-                            <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                            <span>Success</span>
+                <div className="space-y-4">
+                  {/* Chart Container */}
+                  <div className="h-80 border rounded-lg p-6 bg-white dark:bg-gray-900/50 relative">
+                    {analyticsData.scatterData.length > 0 ? (
+                      <div className="relative w-full h-full">
+                        {/* Enhanced Tooltip */}
+                        {hoveredPoint && (
+                          <div
+                            className="absolute z-20 px-4 py-3 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 pointer-events-none"
+                            style={{
+                              left: `${hoveredPoint.x}px`,
+                              top: `${hoveredPoint.y - 80}px`,
+                              transform: 'translateX(-50%)',
+                              minWidth: '200px'
+                            }}
+                          >
+                            <div className="font-semibold text-blue-600 dark:text-blue-400 mb-2">
+                              {hoveredPoint.data.fileName}
+                            </div>
+                            <div className="space-y-1 text-xs">
+                              <div className="flex justify-between">
+                                <span className="text-gray-600 dark:text-gray-400">Processing Time:</span>
+                                <span className="font-medium">{formatDuration(hoveredPoint.data.y)}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-gray-600 dark:text-gray-400">File Size:</span>
+                                <span className="font-medium">{hoveredPoint.data.size.toFixed(1)} MB</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-gray-600 dark:text-gray-400">Status:</span>
+                                <Badge className={`text-xs ${hoveredPoint.data.status === 'success' ? 'bg-green-100 text-green-800' : 
+                                  hoveredPoint.data.status === 'error' ? 'bg-red-100 text-red-800' : 
+                                  hoveredPoint.data.status === 'inprocess' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'}`}>
+                                  {hoveredPoint.data.status}
+                                </Badge>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-gray-600 dark:text-gray-400">Date:</span>
+                                <span className="font-medium">{new Date(hoveredPoint.data.x).toLocaleDateString()}</span>
+                              </div>
+                            </div>
+                            <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-white dark:border-t-gray-800"></div>
                           </div>
-                          <div className="flex items-center gap-1">
-                            <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                            <span>Error/Fail</span>
+                        )}
+
+                                                 {/* Chart SVG */}
+                         <svg width="100%" height="100%" className="absolute inset-0">
+                           {/* Background Grid */}
+                           <defs>
+                             <pattern id="grid" width="20%" height="20%" patternUnits="userSpaceOnUse">
+                               <path d="M 20% 0 L 0 0 0 20%" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-gray-100 dark:text-gray-800"/>
+                             </pattern>
+                           </defs>
+                           <rect width="100%" height="100%" fill="url(#grid)" />
+
+                           {/* Grid Lines */}
+                           {[...Array(5)].map((_, i) => (
+                             <g key={`grid-${i}`}>
+                               {/* Vertical grid lines */}
+                               <line
+                                 x1={`${15 + (i * 17.5)}%`}
+                                 y1="15%"
+                                 x2={`${15 + (i * 17.5)}%`}
+                                 y2="85%"
+                                 stroke="currentColor"
+                                 strokeWidth="0.5"
+                                 className="text-gray-200 dark:text-gray-700"
+                                 opacity="0.6"
+                               />
+                               {/* Horizontal grid lines */}
+                               <line
+                                 x1="15%"
+                                 y1={`${15 + (i * 13)}%`}
+                                 x2="85%"
+                                 y2={`${15 + (i * 13)}%`}
+                                 stroke="currentColor"
+                                 strokeWidth="0.5"
+                                 className="text-gray-200 dark:text-gray-700"
+                                 opacity="0.6"
+                               />
+                             </g>
+                           ))}
+
+                           {/* Axis Lines */}
+                           <line x1="15%" y1="15%" x2="15%" y2="85%" stroke="currentColor" strokeWidth="2" className="text-gray-400 dark:text-gray-600" />
+                           <line x1="15%" y1="85%" x2="85%" y2="85%" stroke="currentColor" strokeWidth="2" className="text-gray-400 dark:text-gray-600" />
+
+                          {/* Data Points */}
+                          {analyticsData.scatterData.map((point, index) => {
+                            const x = ((index / (analyticsData.scatterData.length - 1)) * 70) + 15; // 15% margin
+                            const maxDuration = Math.max(...analyticsData.scatterData.map(p => p.y));
+                            const y = 85 - ((point.y / maxDuration) * 65); // 15% margin, 65% height
+                            const radius = Math.max(4, Math.min(12, point.size * 3)); // Better size scaling
+                            
+                            const getStatusColor = (status: string) => {
+                              switch (status) {
+                                case 'success': return '#10b981';
+                                case 'error':
+                                case 'fail': return '#ef4444';
+                                case 'queued': return '#6b7280';
+                                case 'inprocess': return '#f59e0b';
+                                default: return '#6b7280';
+                              }
+                            };
+
+                                                         return (
+                               <circle
+                                 key={index}
+                                 cx={`${x}%`}
+                                 cy={`${y}%`}
+                                 r={radius}
+                                 fill={getStatusColor(point.status)}
+                                 opacity="0.8"
+                                 className="hover:opacity-100 hover:r-6 transition-all duration-300 cursor-pointer"
+                                 style={{
+                                   filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.15))'
+                                 }}
+                                 onMouseEnter={(e) => {
+                                   const rect = e.currentTarget.getBoundingClientRect();
+                                   const chartRect = e.currentTarget.closest('.relative')?.getBoundingClientRect();
+                                   if (chartRect) {
+                                     setHoveredPoint({
+                                       x: rect.left - chartRect.left + rect.width / 2,
+                                       y: rect.top - chartRect.top + rect.height / 2,
+                                       data: point
+                                     });
+                                   }
+                                 }}
+                                 onMouseLeave={() => setHoveredPoint(null)}
+                               />
+                             );
+                          })}
+
+                                                     {/* Axis Labels */}
+                           <text x="50%" y="95%" textAnchor="middle" className="text-sm font-semibold fill-current text-gray-700 dark:text-gray-300">
+                             Upload Date
+                           </text>
+                           <text x="8%" y="50%" textAnchor="middle" className="text-sm font-semibold fill-current text-gray-700 dark:text-gray-300" transform="rotate(-90, 8%, 50%)">
+                             Processing Time (seconds)
+                           </text>
+
+                                                     {/* Y-axis Values */}
+                           {analyticsData.scatterData.length > 0 && [...Array(6)].map((_, i) => {
+                             const maxDuration = Math.max(...analyticsData.scatterData.map(p => p.y));
+                             const value = (maxDuration * (6 - i)) / 6;
+                             return (
+                               <g key={`y-tick-${i}`}>
+                                 <line
+                                   x1="14%"
+                                   y1={`${15 + (i * 13)}%`}
+                                   x2="15%"
+                                   y2={`${15 + (i * 13)}%`}
+                                   stroke="currentColor"
+                                   strokeWidth="1"
+                                   className="text-gray-300 dark:text-gray-600"
+                                 />
+                                 <text
+                                   x="13%"
+                                   y={`${15 + (i * 13)}%`}
+                                   textAnchor="end"
+                                   className="text-xs fill-current text-gray-500 dark:text-gray-400"
+                                   dominantBaseline="middle"
+                                 >
+                                   {formatDuration(value)}
+                                 </text>
+                               </g>
+                             );
+                           })}
+
+                                                     {/* X-axis Values */}
+                           {analyticsData.scatterData.length > 0 && [...Array(5)].map((_, i) => {
+                             const index = Math.floor((i / 4) * (analyticsData.scatterData.length - 1));
+                             const date = new Date(analyticsData.scatterData[index]?.x);
+                             return (
+                               <g key={`x-tick-${i}`}>
+                                 <line
+                                   x1={`${15 + (i * 17.5)}%`}
+                                   y1="85%"
+                                   x2={`${15 + (i * 17.5)}%`}
+                                   y2="86%"
+                                   stroke="currentColor"
+                                   strokeWidth="1"
+                                   className="text-gray-300 dark:text-gray-600"
+                                 />
+                                 <text
+                                   x={`${15 + (i * 17.5)}%`}
+                                   y="89%"
+                                   textAnchor="middle"
+                                   className="text-xs fill-current text-gray-500 dark:text-gray-400"
+                                 >
+                                   {date.toLocaleDateString()}
+                                 </text>
+                               </g>
+                             );
+                           })}
+                        </svg>
+
+                        {/* Enhanced Legend */}
+                        <div className="absolute top-4 right-4 bg-white dark:bg-gray-800 rounded-lg p-3 shadow-lg border border-gray-200 dark:border-gray-700">
+                          <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">Status Legend</div>
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                              <span className="text-xs text-gray-600 dark:text-gray-400">Success</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                              <span className="text-xs text-gray-600 dark:text-gray-400">Error/Fail</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                              <span className="text-xs text-gray-600 dark:text-gray-400">In Process</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="w-3 h-3 rounded-full bg-gray-500"></div>
+                              <span className="text-xs text-gray-600 dark:text-gray-400">Queued</span>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-1">
-                            <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                            <span>In Process</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <div className="w-3 h-3 rounded-full bg-gray-500"></div>
-                            <span>Queued</span>
+                          <div className="mt-3 pt-2 border-t border-gray-200 dark:border-gray-700">
+                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                              Point size = File size
+                            </div>
                           </div>
                         </div>
                       </div>
-                   </div>
-                 ) : (
-                   <div className="text-center text-muted-foreground">
-                     <BarChart3 className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                     <p>No completed jobs to display</p>
-                     <p className="text-xs mt-2">
-                       X: Time | Y: Duration (seconds) | Point Size: File Size (MB)
-                     </p>
-                   </div>
-                 )}
-                 
-                 <div className="mt-4 text-xs text-muted-foreground">
-                   <p>Data points: {analyticsData.scatterData.length}</p>
-                   {analyticsData.scatterData.length > 0 && (
-                     <>
-                       <p>Time range: {new Date(analyticsData.scatterData[0]?.x).toLocaleDateString()} - {new Date(analyticsData.scatterData[analyticsData.scatterData.length - 1]?.x).toLocaleDateString()}</p>
-                       <p>Max duration: {formatDuration(Math.max(...analyticsData.scatterData.map(p => p.y)))}</p>
-                       <p>Max file size: {Math.max(...analyticsData.scatterData.map(p => p.size)).toFixed(1)} MB</p>
-                     </>
-                   )}
-                 </div>
-               </div>
-             </CardContent>
-           </Card>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-full text-center">
+                        <BarChart3 className="h-16 w-16 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
+                        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                          No Data Available
+                        </h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md">
+                          No completed jobs found to display. The chart will show processing times vs file sizes once jobs are completed.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Chart Statistics */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3">
+                      <div className="text-xs font-medium text-gray-500 dark:text-gray-400">Data Points</div>
+                      <div className="text-lg font-semibold text-gray-900 dark:text-gray-100">{analyticsData.scatterData.length}</div>
+                    </div>
+                    {analyticsData.scatterData.length > 0 && (
+                      <>
+                        <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3">
+                          <div className="text-xs font-medium text-gray-500 dark:text-gray-400">Avg Duration</div>
+                          <div className="text-lg font-semibold text-blue-600 dark:text-blue-400">
+                            {formatDuration(analyticsData.scatterData.reduce((sum, p) => sum + p.y, 0) / analyticsData.scatterData.length)}
+                          </div>
+                        </div>
+                        <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3">
+                          <div className="text-xs font-medium text-gray-500 dark:text-gray-400">Avg File Size</div>
+                          <div className="text-lg font-semibold text-green-600 dark:text-green-400">
+                            {(analyticsData.scatterData.reduce((sum, p) => sum + p.size, 0) / analyticsData.scatterData.length).toFixed(1)} MB
+                          </div>
+                        </div>
+                        <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3">
+                          <div className="text-xs font-medium text-gray-500 dark:text-gray-400">Max Duration</div>
+                          <div className="text-lg font-semibold text-red-600 dark:text-red-400">
+                            {formatDuration(Math.max(...analyticsData.scatterData.map(p => p.y)))}
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
           {/* Analytics Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -612,7 +813,7 @@ export function UploadQueueStatistics() {
                                    x={`${x + (barWidth * 0.4)}%`}
                                    y="98%"
                                    textAnchor="middle"
-                                   className="text-xs fill-gray-600"
+                                   className="text-xs fill-current text-gray-600 dark:text-gray-400"
                                    fontSize="10"
                                  >
                                    {item.status}
@@ -621,7 +822,7 @@ export function UploadQueueStatistics() {
                                    x={`${x + (barWidth * 0.4)}%`}
                                    y={`${y - 2}%`}
                                    textAnchor="middle"
-                                   className="text-xs fill-gray-800"
+                                   className="text-xs fill-current text-gray-800 dark:text-gray-200"
                                    fontSize="10"
                                  >
                                    {formatDuration(item.averageDuration)}
@@ -780,7 +981,7 @@ export function UploadQueueStatistics() {
                                    x={`${x + (barWidth * 0.4)}%`}
                                    y="98%"
                                    textAnchor="middle"
-                                   className="text-xs fill-gray-600"
+                                   className="text-xs fill-current text-gray-600 dark:text-gray-400"
                                    fontSize="10"
                                  >
                                    {item.source || 'Unknown'}
@@ -789,7 +990,7 @@ export function UploadQueueStatistics() {
                                    x={`${x + (barWidth * 0.4)}%`}
                                    y={`${y - 2}%`}
                                    textAnchor="middle"
-                                   className="text-xs fill-gray-800"
+                                   className="text-xs fill-current text-gray-800 dark:text-gray-200"
                                    fontSize="10"
                                  >
                                    {item.count}
@@ -885,7 +1086,7 @@ export function UploadQueueStatistics() {
                                      x={`${x + (barWidth * 0.4)}%`}
                                      y="98%"
                                      textAnchor="middle"
-                                     className="text-xs fill-gray-600"
+                                     className="text-xs fill-current text-gray-600 dark:text-gray-400"
                                      fontSize="10"
                                    >
                                      {range.split(' ')[0]}
@@ -894,7 +1095,7 @@ export function UploadQueueStatistics() {
                                      x={`${x + (barWidth * 0.4)}%`}
                                      y={`${y - 2}%`}
                                      textAnchor="middle"
-                                     className="text-xs fill-gray-800"
+                                     className="text-xs fill-current text-gray-800 dark:text-gray-200"
                                      fontSize="10"
                                    >
                                      {count}
@@ -933,9 +1134,8 @@ export function UploadQueueStatistics() {
                  </div>
                </CardContent>
              </Card>
-          </div>
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
-}
+                     </div>
+       </div>
+     </div>
+   );
+ }

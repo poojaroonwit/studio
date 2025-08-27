@@ -1,54 +1,35 @@
 /**
  * Loading State Manager Hook
  * 
- * This hook provides comprehensive loading state management to prevent
- * infinite loading states and ensure proper cleanup.
+ * This hook provides comprehensive loading state management without timeouts or retries.
  */
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 
 interface LoadingStateOptions {
-  autoTimeout?: number; // Auto-clear loading after timeout (ms)
-  maxRetries?: number; // Maximum retry attempts
-  retryDelay?: number; // Delay between retries (ms)
+  // Removed timeout and retry options
 }
 
 interface LoadingState {
   isLoading: boolean;
   error: string | null;
-  retryCount: number;
   startTime: number | null;
 }
 
 export function useLoadingStateManager(options: LoadingStateOptions = {}) {
-  const {
-    autoTimeout = 30000, // 30 seconds default
-    maxRetries = 3,
-    retryDelay = 2000,
-  } = options;
-
   const [state, setState] = useState<LoadingState>({
     isLoading: false,
     error: null,
-    retryCount: 0,
     startTime: null,
   });
 
   const mountedRef = useRef(true);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Cleanup on unmount
   useEffect(() => {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-      if (retryTimeoutRef.current) {
-        clearTimeout(retryTimeoutRef.current);
-      }
     };
   }, []);
 
@@ -61,28 +42,10 @@ export function useLoadingStateManager(options: LoadingStateOptions = {}) {
       error: null,
       startTime: Date.now(),
     }));
-
-    // Auto-clear loading after timeout
-    if (autoTimeout > 0) {
-      timeoutRef.current = setTimeout(() => {
-        if (mountedRef.current) {
-          setState(prev => ({
-            ...prev,
-            isLoading: false,
-            error: 'Loading timeout - please try again',
-          }));
-        }
-      }, autoTimeout);
-    }
-  }, [autoTimeout]);
+  }, []);
 
   const stopLoading = useCallback((error?: string) => {
     if (!mountedRef.current) return;
-
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
 
     setState(prev => ({
       ...prev,
@@ -95,11 +58,6 @@ export function useLoadingStateManager(options: LoadingStateOptions = {}) {
   const setError = useCallback((error: string) => {
     if (!mountedRef.current) return;
 
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
-
     setState(prev => ({
       ...prev,
       isLoading: false,
@@ -108,58 +66,12 @@ export function useLoadingStateManager(options: LoadingStateOptions = {}) {
     }));
   }, []);
 
-  const retry = useCallback(() => {
-    if (!mountedRef.current) return;
-
-    setState(prev => {
-      const newRetryCount = prev.retryCount + 1;
-      
-      if (newRetryCount > maxRetries) {
-        return {
-          ...prev,
-          error: `Maximum retry attempts (${maxRetries}) exceeded`,
-          retryCount: newRetryCount,
-        };
-      }
-
-      return {
-        ...prev,
-        isLoading: true,
-        error: null,
-        retryCount: newRetryCount,
-        startTime: Date.now(),
-      };
-    });
-
-    // Auto-retry after delay
-    retryTimeoutRef.current = setTimeout(() => {
-      if (mountedRef.current) {
-        // This will trigger a re-render and the parent can handle the retry logic
-        setState(prev => ({
-          ...prev,
-          isLoading: false,
-        }));
-      }
-    }, retryDelay);
-  }, [maxRetries, retryDelay]);
-
   const reset = useCallback(() => {
     if (!mountedRef.current) return;
-
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
-
-    if (retryTimeoutRef.current) {
-      clearTimeout(retryTimeoutRef.current);
-      retryTimeoutRef.current = null;
-    }
 
     setState({
       isLoading: false,
       error: null,
-      retryCount: 0,
       startTime: null,
     });
   }, []);
@@ -172,15 +84,12 @@ export function useLoadingStateManager(options: LoadingStateOptions = {}) {
   return {
     isLoading: state.isLoading,
     error: state.error,
-    retryCount: state.retryCount,
     startTime: state.startTime,
     loadingDuration: getLoadingDuration(),
     startLoading,
     stopLoading,
     setError,
-    retry,
     reset,
-    canRetry: state.retryCount < maxRetries,
   };
 }
 

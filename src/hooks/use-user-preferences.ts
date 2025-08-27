@@ -131,6 +131,8 @@ export function useUserPreferences() {
         headers: {
           'Content-Type': 'application/json',
         },
+        // Increase timeout to prevent hanging requests
+        signal: AbortSignal.timeout(30000), // 30 second timeout instead of 10
       });
 
       if (response.ok) {
@@ -183,8 +185,8 @@ export function useUserPreferences() {
               modelType,
               updates,
             }),
-            // Add timeout to prevent hanging requests
-            signal: AbortSignal.timeout(10000), // 10 second timeout
+            // Increase timeout to prevent hanging requests
+            signal: AbortSignal.timeout(30000), // 30 second timeout instead of 10
           });
 
           if (!response.ok) {
@@ -203,6 +205,16 @@ export function useUserPreferences() {
           }
         } catch (error) {
           console.warn(`Error saving user preferences to database (attempt ${retryCount + 1}):`, error);
+          
+          // Check if it's a timeout error
+          if (error instanceof Error && error.name === 'TimeoutError') {
+            console.warn('User preferences save timed out, will retry...');
+            retryCount++;
+            if (retryCount < maxRetries) {
+              await new Promise(resolve => setTimeout(resolve, 2000 * retryCount)); // Longer backoff for timeouts
+              continue;
+            }
+          }
           
           // Check if it's a network error that should be retried
           if (error instanceof TypeError && error.message.includes('fetch')) {

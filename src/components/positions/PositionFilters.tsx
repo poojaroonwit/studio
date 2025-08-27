@@ -37,7 +37,7 @@ export function PositionFilters({ initialFilters = { isOpen: "all" }, onFilterCh
   const [title, setTitle] = useState(initialFilters.title || '');
   const [selectedDepartments, setSelectedDepartments] = useState<Set<string>>(new Set(initialFilters.selectedDepartments || []));
   const [isOpen, setIsOpen] = useState<PositionFilterValues['isOpen']>(initialFilters.isOpen || "all");
-  const [positionLevel, setpositionLevel] = useState(initialFilters.positionLevel || '');
+  const [positionLevel, setpositionLevel] = useState(initialFilters.positionLevel || 'all');
   
   const [departmentSearch, setDepartmentSearch] = useState('');
   const [departmentPopoverOpen, setDepartmentPopoverOpen] = useState(false);
@@ -46,7 +46,7 @@ export function PositionFilters({ initialFilters = { isOpen: "all" }, onFilterCh
     setTitle(initialFilters.title || '');
     setSelectedDepartments(new Set(initialFilters.selectedDepartments || []));
     setIsOpen(initialFilters.isOpen || "all");
-    setpositionLevel(initialFilters.positionLevel || '');
+    setpositionLevel(initialFilters.positionLevel || 'all');
   }, [initialFilters]);
 
 
@@ -55,7 +55,7 @@ export function PositionFilters({ initialFilters = { isOpen: "all" }, onFilterCh
       title: title || undefined,
       selectedDepartments: selectedDepartments.size > 0 ? Array.from(selectedDepartments) : undefined,
       isOpen: isOpen === "all" ? undefined : isOpen,
-      positionLevel: positionLevel || undefined,
+      positionLevel: positionLevel === 'all' ? undefined : positionLevel,
     });
   };
 
@@ -63,7 +63,7 @@ export function PositionFilters({ initialFilters = { isOpen: "all" }, onFilterCh
     setTitle('');
     setSelectedDepartments(new Set());
     setIsOpen("all");
-    setpositionLevel('');
+    setpositionLevel('all');
     onFilterChange({ isOpen: "all", selectedDepartments: undefined }); 
   };
   
@@ -157,7 +157,7 @@ export function PositionFilters({ initialFilters = { isOpen: "all" }, onFilterCh
               <SelectValue placeholder={isLoadingLevels ? "Loading levels..." : "All Levels"} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Levels</SelectItem>
+                                      <SelectItem value="all">All Levels</SelectItem>
               {positionLevels.map((level) => (
                 <SelectItem key={level.id} value={level.name}>
                   <div className="flex items-center gap-2">

@@ -19,11 +19,6 @@ interface UnifiedRealtimeOptions {
   showNotifications?: boolean;
   showErrorNotifications?: boolean;
   errorToastCooldownMs?: number;
-  maxReconnectAttempts?: number;
-  reconnectDelayMs?: number;
-  maxReconnectDelayMs?: number;
-  enableHealthCheck?: boolean;
-  healthCheckIntervalMs?: number;
 }
 
 interface RealtimeState {
@@ -54,11 +49,6 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
     showNotifications = true,
     showErrorNotifications = true,
     errorToastCooldownMs = 60000,
-    maxReconnectAttempts = 10,
-    reconnectDelayMs = 1000,
-    maxReconnectDelayMs = 30000,
-    enableHealthCheck = true,
-    healthCheckIntervalMs = 30000,
   } = options;
 
   const mountedRef = useRef(true);
@@ -79,8 +69,6 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
 
   // Refs
   const eventSourceRef = useRef<EventSource | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const healthCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastMessageTimeRef = useRef<number>(Date.now());
   const lastErrorToastTimeRef = useRef<number>(0);
   const messageCountRef = useRef<number>(0);
@@ -147,16 +135,6 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
       eventSourceRef.current = null;
     }
     
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-      reconnectTimeoutRef.current = null;
-    }
-    
-    if (healthCheckIntervalRef.current) {
-      clearInterval(healthCheckIntervalRef.current);
-      healthCheckIntervalRef.current = null;
-    }
-    
     if (mountedRef.current) {
       setState(prev => ({
         ...prev,
@@ -167,54 +145,18 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
     }
   }, []);
 
-  const startHealthCheck = useCallback(() => {
-    if (!enableHealthCheck) return;
 
-    if (healthCheckIntervalRef.current) {
-      clearInterval(healthCheckIntervalRef.current);
-    }
-
-          healthCheckIntervalRef.current = setInterval(() => {
-        if (!mountedRef.current) return;
-        
-        const now = Date.now();
-        const timeSinceLastMessage = now - lastMessageTimeRef.current;
-        
-        if (timeSinceLastMessage > 60000) {
-          if (mountedRef.current) {
-            setState(prev => ({ ...prev, isConnected: false }));
-          }
-          handleReconnect();
-        } else {
-          updateConnectionHealth();
-        }
-      }, healthCheckIntervalMs);
-  }, [enableHealthCheck, healthCheckIntervalMs, updateConnectionHealth]);
 
   const handleReconnect = useCallback(() => {
-    if (state.isReconnecting || state.reconnectAttempts >= maxReconnectAttempts) {
-      return;
-    }
-
+    // No automatic reconnection - manual retry only
     if (mountedRef.current) {
       setState(prev => ({ 
         ...prev, 
-        isReconnecting: true,
-        reconnectAttempts: prev.reconnectAttempts + 1
+        isReconnecting: false,
+        reconnectAttempts: 0
       }));
     }
-
-    const delay = Math.min(
-      reconnectDelayMs * Math.pow(2, state.reconnectAttempts),
-      maxReconnectDelayMs
-    );
-
-    reconnectTimeoutRef.current = setTimeout(() => {
-      if (mountedRef.current && session?.user) {
-        connectSSE();
-      }
-    }, delay);
-  }, [state.isReconnecting, state.reconnectAttempts, maxReconnectAttempts, reconnectDelayMs, maxReconnectDelayMs, session?.user]);
+  }, []);
 
   const connectSSE = useCallback(() => {
     if (!session?.user) return;
@@ -238,7 +180,6 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
         lastErrorToastTimeRef.current = 0;
         messageCountRef.current = 0;
         errorCountRef.current = 0;
-        startHealthCheck();
       };
 
       eventSource.onerror = (error) => {
@@ -252,11 +193,7 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
           isReconnecting: false
         }));
         
-        if (!state.isReconnecting) {
-          showErrorNotification('Real-time connection lost. Reconnecting...');
-        }
-        
-        handleReconnect();
+        showErrorNotification('Real-time connection lost.');
       };
 
       // Event listeners for all realtime events
@@ -480,7 +417,7 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
     } catch (error) {
       handleReconnect();
     }
-  }, [session?.user, showNotification, showErrorNotification, handleReconnect, startHealthCheck, state.isReconnecting]);
+  }, [session?.user, showNotification, showErrorNotification, handleReconnect, state.isReconnecting]);
 
   // Connect on mount and session change
   useEffect(() => {
@@ -495,14 +432,6 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
     return () => {
       mountedRef.current = false;
       cleanupConnection();
-      if (healthCheckIntervalRef.current) {
-        clearInterval(healthCheckIntervalRef.current);
-        healthCheckIntervalRef.current = null;
-      }
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-        reconnectTimeoutRef.current = null;
-      }
     };
   }, [session?.user, connectSSE, cleanupConnection]);
 

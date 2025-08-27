@@ -1,8 +1,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
-import { useEmergencySafeEffect, useEmergencySafeCallback, useEmergencySafeEventSource } from '@/lib/emergency-stuck-fix';
-import { useFinalReconnectLimit } from '@/lib/app-stuck-prevention-final';
+
 
 interface UnifiedRealtimeOptions {
   onCandidateUpdate?: (candidate: any) => void;
@@ -30,12 +29,7 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
   const optionsRef = useRef(options);
   const reconnectAttemptsRef = useRef(0);
   const maxReconnectAttempts = 5;
-
-  // Use emergency safe EventSource
-  const { createEventSource, closeEventSource, closeAllEventSources } = useEmergencySafeEventSource();
-
-  // Use final reconnect limit
-  const trackReconnectAttempt = useFinalReconnectLimit('unified-realtime', 3);
+  const isConnectingRef = useRef(false);
 
   // Update options ref when options change
   useEffect(() => {
@@ -47,13 +41,37 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
       // Call stored cleanup function if it exists
       const cleanupFn = globalCleanupFunctions.get(eventSourceRef.current);
       if (cleanupFn) {
-        cleanupFn();
+        try {
+          cleanupFn();
+        } catch (error) {
+          console.warn('Error during event listener cleanup:', error);
+        }
         globalCleanupFunctions.delete(eventSourceRef.current);
       }
 
-      eventSourceRef.current.close();
+      // Decrement global connection count safely
+      globalConnectionCount = Math.max(0, globalConnectionCount - 1);
+      
+      // Only close global connection if no other components are using it
+      if (globalConnectionCount === 0) {
+        if (globalEventSource && globalEventSource.readyState !== EventSource.CLOSED) {
+          globalEventSource.close();
+          globalEventSource = null;
+        }
+        if (globalReconnectTimeout) {
+          clearTimeout(globalReconnectTimeout);
+          globalReconnectTimeout = null;
+        }
+      }
+
+      // Close local reference safely
+      if (eventSourceRef.current.readyState !== EventSource.CLOSED) {
+        eventSourceRef.current.close();
+      }
       eventSourceRef.current = null;
     }
+    
+    // Clear all timeout references
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;
@@ -62,10 +80,14 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
       clearTimeout(healthCheckRef.current);
       healthCheckRef.current = null;
     }
+    
+    // Reset connection state
+    setIsConnected(false);
+    isConnectingRef.current = false;
   }, []);
 
   const connect = useCallback(() => {
-    if (!session?.user || !mountedRef.current) return;
+    if (!session?.user || !mountedRef.current || isConnectingRef.current) return;
 
     // Prevent excessive reconnection attempts
     if (reconnectAttemptsRef.current >= maxReconnectAttempts) {
@@ -73,18 +95,21 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
       return;
     }
 
-    // Track reconnection attempt
-    if (!trackReconnectAttempt()) {
-      console.warn('🚨 Reconnection attempt blocked by final prevention system');
+    // Prevent multiple connection attempts
+    if (eventSourceRef.current && eventSourceRef.current.readyState === EventSource.CONNECTING) {
+      console.log('Connection already in progress, skipping duplicate attempt');
       return;
     }
 
-    // Use global connection if available
+    isConnectingRef.current = true;
+
+    // Use global connection if available and ready
     if (globalEventSource && globalEventSource.readyState === EventSource.OPEN) {
       eventSourceRef.current = globalEventSource;
       setIsConnected(true);
       setLastUpdate(new Date());
       globalConnectionCount++;
+      isConnectingRef.current = false;
       return;
     }
 
@@ -99,18 +124,23 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
         setLastUpdate(new Date());
         globalConnectionCount++;
         reconnectAttemptsRef.current = 0; // Reset reconnect attempts on successful connection
+        isConnectingRef.current = false;
       };
 
       eventSource.onerror = () => {
         if (!mountedRef.current) return;
         setIsConnected(false);
+        isConnectingRef.current = false;
+        
+        // Decrement global connection count
         globalConnectionCount = Math.max(0, globalConnectionCount - 1);
 
-        // Only cleanup global connection if no other components are using it
+        // Only attempt reconnection if this is the last component using the connection
         if (globalConnectionCount === 0) {
           globalEventSource = null;
           if (globalReconnectTimeout) {
             clearTimeout(globalReconnectTimeout);
+            globalReconnectTimeout = null;
           }
           
           // Increment reconnect attempts
@@ -123,6 +153,8 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
                 connect();
               }
             }, 5000);
+          } else {
+            console.warn('🚨 Maximum reconnection attempts reached, stopping reconnection');
           }
         }
       };
@@ -203,18 +235,32 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
     mountedRef.current = true;
     
     if (session?.user) {
-      connect();
+      // Add small delay to prevent rapid connection attempts
+      const connectTimeout = setTimeout(() => {
+        if (mountedRef.current) {
+          connect();
+        }
+      }, 100);
+      
+      return () => {
+        clearTimeout(connectTimeout);
+        mountedRef.current = false;
+        cleanup();
+      };
     } else {
       cleanup();
     }
+  }, [session?.user, connect, cleanup]);
 
+  // Separate cleanup effect for unmounting
+  useEffect(() => {
     return () => {
       mountedRef.current = false;
       globalConnectionCount = Math.max(0, globalConnectionCount - 1);
       
       // Only cleanup global connection if no other components are using it
       if (globalConnectionCount === 0) {
-        if (globalEventSource) {
+        if (globalEventSource && globalEventSource.readyState !== EventSource.CLOSED) {
           globalEventSource.close();
           globalEventSource = null;
         }
@@ -222,11 +268,13 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
           clearTimeout(globalReconnectTimeout);
           globalReconnectTimeout = null;
         }
+        // Clear all global cleanup functions
+        globalCleanupFunctions.clear();
       }
 
       cleanup();
     };
-  }, [session?.user, connect, cleanup]);
+  }, [cleanup]);
 
   return {
     isConnected,

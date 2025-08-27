@@ -358,12 +358,12 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
                        name="positionLevel"
                        control={form.control}
                        render={({ field }) => (
-                         <Select value={field.value || ''} onValueChange={field.onChange}>
+                         <Select value={field.value || 'none'} onValueChange={(value) => field.onChange(value === 'none' ? null : value)}>
                            <SelectTrigger disabled={isSaving || isLoadingLevels}>
                              <SelectValue placeholder={isLoadingLevels ? "Loading levels..." : "Select position level"} />
                            </SelectTrigger>
                            <SelectContent>
-                             <SelectItem value="">No Level</SelectItem>
+                             <SelectItem value="none">No Level</SelectItem>
                              {positionLevels.map((level) => (
                                <SelectItem key={level.id} value={level.name}>
                                  <div className="flex items-center gap-2">

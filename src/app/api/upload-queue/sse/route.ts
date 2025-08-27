@@ -1,6 +1,8 @@
 import { NextRequest } from 'next/server';
 import { getPool } from '@/lib/db';
 import { broadcastUploadQueueUpdate, uploadQueueControllers } from './broadcastUploadQueueUpdate';
+import { getServerSession } from 'next-auth/next';
+import { authOptions, validateUserSession } from '@/lib/auth';
 
 export const dynamic = "force-dynamic";
 
@@ -89,7 +91,13 @@ async function sendUploadQueueUpdate(controller: ReadableStreamDefaultController
     // Fix: define total from countRes
     const total = Number(countRes.rows[0]?.count) || 0;
     client.release();
-    const data = JSON.stringify({ type: 'queue', data: res.rows, total, summary: safeSummary });
+    const data = JSON.stringify({ 
+      type: 'queue', 
+      jobs: res.rows, 
+      total, 
+      summary: safeSummary,
+      statusSummary: safeSummary 
+    });
     controller.enqueue(encoder.encode(`data: ${data}\n\n`));
   } catch (error) {
     const encoder = new TextEncoder();
@@ -99,15 +107,23 @@ async function sendUploadQueueUpdate(controller: ReadableStreamDefaultController
 }
 
 export async function GET(request: NextRequest) {
+  // Check authentication
+  const session = await getServerSession(authOptions);
+  if (!session || !validateUserSession(session)) {
+    return new Response('Unauthorized', { status: 401 });
+  }
+
   const encoder = new TextEncoder();
   const url = new URL(request.url);
-  const fileName = url.searchParams.get('file_name') || undefined;
+  // Handle both parameter naming conventions
+  const fileName = url.searchParams.get('file_name') || url.searchParams.get('filter') || undefined;
   const status = url.searchParams.get('status') || undefined;
-  const dateStart = url.searchParams.get('date_start') || undefined;
-  const dateEnd = url.searchParams.get('date_end') || undefined;
-  const positionId = url.searchParams.get('position_id') || undefined;
-  const limit = parseInt(url.searchParams.get('limit') || '20', 10);
-  const offset = parseInt(url.searchParams.get('offset') || '0', 10);
+  const dateStart = url.searchParams.get('date_start') || url.searchParams.get('dateRangeStart') || undefined;
+  const dateEnd = url.searchParams.get('date_end') || url.searchParams.get('dateRangeEnd') || undefined;
+  const positionId = url.searchParams.get('position_id') || url.searchParams.get('positionId') || undefined;
+  const limit = parseInt(url.searchParams.get('limit') || url.searchParams.get('pageSize') || '20', 10);
+  const page = parseInt(url.searchParams.get('page') || '1', 10);
+  const offset = parseInt(url.searchParams.get('offset') || String((page - 1) * limit), 10);
 
   let keepaliveInterval: NodeJS.Timeout | null = null;
   let isClosed = false;

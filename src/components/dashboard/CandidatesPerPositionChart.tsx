@@ -3,11 +3,12 @@
 import React, { useMemo, useEffect, useState, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Button } from "@/components/ui/button";
 import type { Candidate, Position } from "@/lib/types"
-import { BarChart3, TrendingUp, Users } from "lucide-react";
+import { BarChart3, TrendingUp, Users, XCircle } from "lucide-react";
 // Static imports for chart elements
 import { Bar } from 'react-chartjs-2';
-import { setupChartJS, isChartJSSetup } from '@/lib/chartjs-setup';
+import { useChartSetup } from '@/hooks/use-chart-setup';
 
 
 interface CandidatesPerPositionChartProps {
@@ -16,48 +17,8 @@ interface CandidatesPerPositionChartProps {
 }
 
 export function CandidatesPerPositionChart({ candidates, positions }: CandidatesPerPositionChartProps) {
-  const [chartReady, setChartReady] = useState(false);
-  const chartSetupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
-  // Setup Chart.js on component mount
-  useEffect(() => {
-    const setupChart = async () => {
-      try {
-        await setupChartJS();
-        // Double-check that setup is complete
-        if (isChartJSSetup()) {
-          setChartReady(true);
-        } else {
-          console.warn('Chart.js setup reported complete but isChartJSSetup() returned false');
-          // Retry after a short delay
-          const timeoutId = setTimeout(() => {
-            if (isChartJSSetup()) {
-              setChartReady(true);
-            }
-          }, 100);
-          
-          // Store timeout ID for cleanup
-          if (chartSetupTimeoutRef.current) {
-            clearTimeout(chartSetupTimeoutRef.current);
-          }
-          chartSetupTimeoutRef.current = timeoutId;
-        }
-      } catch (error) {
-        console.error('Failed to setup Chart.js:', error);
-      }
-    };
-    
-    setupChart();
-  }, []);
-
-  // Cleanup timeout on component unmount
-  useEffect(() => {
-    return () => {
-      if (chartSetupTimeoutRef.current) {
-        clearTimeout(chartSetupTimeoutRef.current);
-      }
-    };
-  }, []);
+  // Use the new chart setup hook
+  const { chartReady, isLoading: chartLoading, error: chartError } = useChartSetup();
 
   // Memoize the data processing to prevent unnecessary recalculations
   const data = useMemo(() => {
@@ -164,7 +125,20 @@ export function CandidatesPerPositionChart({ candidates, positions }: Candidates
       </CardHeader>
         <CardContent className="relative">
           <div className="h-[400px] w-full">
-            {!chartReady || !isChartJSSetup() ? (
+            {chartError ? (
+              <div className="h-full flex items-center justify-center">
+                <div className="text-center space-y-3">
+                  <XCircle className="h-8 w-8 text-red-500 mx-auto" />
+                  <p className="text-red-500 text-sm">Chart error: {chartError}</p>
+                  <Button 
+                    onClick={() => window.location.reload()}
+                    className="mt-2"
+                  >
+                    Retry
+                  </Button>
+                </div>
+              </div>
+            ) : !chartReady ? (
               <div className="h-full flex items-center justify-center">
                 <div className="text-center space-y-3">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>

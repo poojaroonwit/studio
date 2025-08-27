@@ -10,14 +10,14 @@ import { NotificationProvider } from '@/contexts/NotificationContext';
 import { WarningProvider } from '@/contexts/WarningContext';
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import { performanceOptimizer } from '@/lib/performance-optimizations';
-import { initializeResourceTracking } from '@/lib/resource-leak-fixes';
 
-// Initialize performance optimization and resource tracking
-if (typeof window !== 'undefined') {
-  performanceOptimizer.initialize();
-  initializeResourceTracking();
-}
+// Temporarily disabled resource tracking to fix loading issue
+// import { initializeResourceTracking } from '@/lib/resource-leak-fixes';
+
+// Initialize resource tracking
+// if (typeof window !== 'undefined') {
+//   initializeResourceTracking();
+// }
 // If you need to pass server-side session for initial render optimization:
 // import { getServerSession } from "next-auth/next"
 // import { authOptions } from "@/app/api/auth/[...nextauth]/route"

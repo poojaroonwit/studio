@@ -1,22 +1,22 @@
 "use client";
 
+import { useCallback, useState, useEffect } from "react";
 import { useSidebar } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { Package2 } from "lucide-react";
-import Image from 'next/image';
+import { ChevronLeft, Package2 } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import Image from 'next/image';
 
 interface SidebarHeaderContentProps {
   currentAppName: string;
   appLogoUrl: string | null; // MinIO URL, not data URL
   isClient: boolean;
-  isLogoLoading?: boolean;
+  isLogoLoading: boolean;
   showLogoOnly?: boolean;
   sidebarLogoSize?: number;
   contextualLogos?: {
@@ -27,45 +27,70 @@ interface SidebarHeaderContentProps {
   };
 }
 
-export function SidebarHeaderContent({ currentAppName, appLogoUrl, isClient, isLogoLoading, showLogoOnly = false, sidebarLogoSize = 48, contextualLogos }: SidebarHeaderContentProps) {
+export function SidebarHeaderContent({ 
+  currentAppName, 
+  appLogoUrl, 
+  isClient, 
+  isLogoLoading, 
+  showLogoOnly = false, 
+  sidebarLogoSize = 48, 
+  contextualLogos = {} 
+}: SidebarHeaderContentProps) {
   const sidebarContext = useSidebar();
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
-  // Function to determine which logo to use
-  const getContextualLogo = (isCollapsed: boolean): string | null => {
-    if (!contextualLogos) return appLogoUrl;
-    
-    const isDark = document.documentElement.classList.contains('dark');
-    
+  // Track dark mode state to avoid DOM queries on every render
+  useEffect(() => {
+    const checkDarkMode = () => {
+      if (typeof window !== 'undefined') {
+        setIsDarkMode(document.documentElement.classList.contains('dark'));
+      }
+    };
+
+    checkDarkMode();
+
+    // Listen for theme changes
+    const observer = new MutationObserver(checkDarkMode);
+    if (typeof window !== 'undefined') {
+      observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class']
+      });
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  const getContextualLogo = useCallback((isCollapsed: boolean) => {
     if (isCollapsed) {
-      if (isDark && contextualLogos.sidebarLogoCollapsedDarkMode) {
+      if (isDarkMode && contextualLogos.sidebarLogoCollapsedDarkMode) {
         return contextualLogos.sidebarLogoCollapsedDarkMode;
-      } else if (!isDark && contextualLogos.sidebarLogoCollapsedLightMode) {
+      } else if (!isDarkMode && contextualLogos.sidebarLogoCollapsedLightMode) {
         return contextualLogos.sidebarLogoCollapsedLightMode;
       }
     } else {
-      if (isDark && contextualLogos.sidebarLogoExpandedDarkMode) {
+      if (isDarkMode && contextualLogos.sidebarLogoExpandedDarkMode) {
         return contextualLogos.sidebarLogoExpandedDarkMode;
-      } else if (!isDark && contextualLogos.sidebarLogoExpandedLightMode) {
+      } else if (!isDarkMode && contextualLogos.sidebarLogoExpandedLightMode) {
         return contextualLogos.sidebarLogoExpandedLightMode;
       }
     }
     
     return appLogoUrl; // Fallback to default logo
-  };
+  }, [contextualLogos, appLogoUrl, isDarkMode]);
 
-  const handleToggle = () => {
+  const handleToggle = useCallback(() => {
     if (sidebarContext?.toggleSidebar) {
       sidebarContext.toggleSidebar();
     }
-  };
+  }, [sidebarContext?.toggleSidebar]);
 
-  const renderLogo = (isCollapsed: boolean) => {
+  const renderLogo = useCallback((isCollapsed: boolean) => {
     if (isLogoLoading) {
       return <div className="h-8 w-8 bg-muted rounded-lg animate-pulse" />;
     }
     
     const logoToUse = getContextualLogo(isCollapsed);
-    console.log('SidebarHeaderContent renderLogo - isCollapsed:', isCollapsed, 'logoToUse:', logoToUse, 'appLogoUrl:', appLogoUrl, 'contextualLogos:', contextualLogos);
     
     if (isClient && logoToUse) {
       // Calculate responsive logo size based on sidebar state and available space
@@ -88,8 +113,6 @@ export function SidebarHeaderContent({ currentAppName, appLogoUrl, isClient, isL
             }}
             className="object-contain"
             data-ai-hint="company logo"
-            onLoad={() => console.log('Logo loaded successfully:', logoToUse)}
-            onError={(e) => console.error('Logo failed to load:', logoToUse, e)}
           />
           {/* Fallback icon that shows if image fails to load */}
           <Package2 className="h-6 w-6 absolute inset-0 m-auto opacity-0" style={{ pointerEvents: 'none' }} />
@@ -97,7 +120,7 @@ export function SidebarHeaderContent({ currentAppName, appLogoUrl, isClient, isL
       );
     }
     return <Package2 className="h-6 w-6" />;
-  };
+  }, [isLogoLoading, getContextualLogo, isClient, sidebarLogoSize]);
 
   // Collapsed (icon) mode: show logo only, no toggle button (handled by floating button outside)
   if (!sidebarContext.open) {

@@ -26,7 +26,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
-import { PerformanceMonitor } from "@/components/ui/performance-monitor";
 
 
 const APP_LOGO_DATA_URL_KEY = 'appLogoDataUrl';
@@ -80,10 +79,6 @@ export function AppLayout({ children }: AppLayoutProps) {
   
   const [appLogoUrl, setAppLogoUrl] = useState<string | null>(null); // MinIO URL, not data URL
   
-  // Debug: Log when appLogoUrl changes
-  useEffect(() => {
-    console.log('AppLayout: appLogoUrl changed to:', appLogoUrl);
-  }, [appLogoUrl]);
   const [isClient, setIsClient] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(false);
   const [contextualLogos, setContextualLogos] = useState<{
@@ -93,10 +88,6 @@ export function AppLayout({ children }: AppLayoutProps) {
     sidebarLogoExpandedDarkMode?: string | null;
   }>({});
   
-  // Debug: Log when contextualLogos changes
-  useEffect(() => {
-    console.log('AppLayout: contextualLogos changed to:', contextualLogos);
-  }, [contextualLogos]);
   const [showLogoOnly, setShowLogoOnly] = useState<boolean>(false);
   const [sidebarLogoSize, setSidebarLogoSize] = useState<number>(48);
   const [isLogoLoading, setIsLogoLoading] = useState(true);
@@ -271,33 +262,55 @@ export function AppLayout({ children }: AppLayoutProps) {
       }
     };
     
-    // Remove any existing listener before adding a new one
-    window.removeEventListener('appConfigChanged', handleAppConfigChange);
-    window.addEventListener('appConfigChanged', handleAppConfigChange);
+    // Remove any existing listener before adding a new one to prevent duplicates
+    try {
+      window.removeEventListener('appConfigChanged', handleAppConfigChange);
+      window.addEventListener('appConfigChanged', handleAppConfigChange);
+    } catch (error) {
+      console.warn('Error setting up app config listener:', error);
+    }
     
     return () => {
-      window.removeEventListener('appConfigChanged', handleAppConfigChange);
+      try {
+        window.removeEventListener('appConfigChanged', handleAppConfigChange);
+      } catch (error) {
+        console.warn('Error removing app config listener:', error);
+      }
     };
   }, []);
 
   // Add theme change listener to re-apply sidebar colors when theme changes
   useEffect(() => {
+    let mediaQuery: MediaQueryList | null = null;
+    
     const handleThemeChange = () => {
       // Re-apply current sidebar colors when theme changes
       import('@/lib/themeUtils').then(({ reapplyCurrentSidebarColors }) => {
         reapplyCurrentSidebarColors();
+      }).catch((error) => {
+        console.warn('Error loading theme utils:', error);
       });
     };
 
     // Listen for system theme changes
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    
-    // Remove any existing listener before adding a new one
-    mediaQuery.removeEventListener('change', handleThemeChange);
-    mediaQuery.addEventListener('change', handleThemeChange);
+    try {
+      mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      
+      // Remove any existing listener before adding a new one
+      mediaQuery.removeEventListener('change', handleThemeChange);
+      mediaQuery.addEventListener('change', handleThemeChange);
+    } catch (error) {
+      console.warn('MediaQuery not supported:', error);
+    }
 
     return () => {
-      mediaQuery.removeEventListener('change', handleThemeChange);
+      if (mediaQuery) {
+        try {
+          mediaQuery.removeEventListener('change', handleThemeChange);
+        } catch (error) {
+          console.warn('Error removing theme change listener:', error);
+        }
+      }
     };
   }, []);
 
@@ -318,7 +331,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   }, [pathname]);
 
   // Show loading while session is being fetched or validated
-  if (status === "loading" || (shouldValidateSession && isSessionValidating) || !themeMounted) {
+  if (status === "loading" || !themeMounted) {
     return <GlobalLoadingOverlay />;
   }
 
@@ -347,12 +360,7 @@ export function AppLayout({ children }: AppLayoutProps) {
               sidebarLogoSize={sidebarLogoSize}
               contextualLogos={contextualLogos}
             />
-            {/* Debug info */}
-            {process.env.NODE_ENV === 'development' && (
-              <div className="text-xs text-gray-500 p-2 border-t">
-                Debug: appLogoUrl={appLogoUrl}
-              </div>
-            )}
+         
           </SidebarHeader>
           {/* Add separator below app name/logo group */}
           <SidebarSeparator className="my-0" />
@@ -368,17 +376,6 @@ export function AppLayout({ children }: AppLayoutProps) {
           </main>
         </div>
       </div>
-      <PerformanceMonitor 
-        enabled={process.env.NODE_ENV === 'development'} 
-        showDetails={true}
-        threshold={{
-          memory: 150,
-          renderTime: 500,
-          apiCalls: 15,
-          cacheHitRate: 60,
-          navigationTime: 1500
-        }}
-      />
     </SidebarProvider>
   );
 }
@@ -401,15 +398,13 @@ function SidebarToggleButton() {
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
+            <button
               onClick={toggleSidebar}
               aria-label="Expand sidebar"
-              className="rounded-full bg-transparent hover:bg-transparent shadow-lg h-8 w-8"
+              className="rounded-full bg-transparent hover:bg-accent hover:text-accent-foreground shadow-lg h-8 w-8 flex items-center justify-center transition-all duration-200"
             >
               <ChevronRight className="h-4 w-4" />
-            </Button>
+            </button>
           </TooltipTrigger>
           <TooltipContent side="right">Expand sidebar</TooltipContent>
         </Tooltip>

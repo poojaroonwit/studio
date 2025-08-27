@@ -304,15 +304,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
       return () => clearTimeout(timer);
     }
     
-    // Add a timeout to prevent infinite loading
-    if (status === "loading") {
-      const timeout = setTimeout(() => {
-        console.warn('[SIGNIN CLIENT] Authentication loading timeout - forcing refresh');
-        window.location.reload();
-      }, 10000); // 10 seconds timeout
-      
-      return () => clearTimeout(timeout);
-    }
+    // No timeout for authentication loading
   }, [session, status, router, callbackUrl]);
 
   // Use backend-provided Azure AD config status

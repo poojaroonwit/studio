@@ -29,8 +29,9 @@ import { PositionDetailDrawer } from '@/components/positions/PositionDetailDrawe
 import { useUnifiedRealtime } from '@/hooks/use-unified-realtime';
 import { usePermissionRefresh } from '@/hooks/use-permission-refresh';
 import { cn } from '@/lib/utils';
-import { setupChartJS, isChartJSSetup } from '@/lib/chartjs-setup';
-import { useExtendedSafeEffect, useStateUpdateLimit, useApiCallLimit, useSafeEventSourceWithTracking } from '@/lib/app-stuck-prevention-extended';
+import { useChartSetup } from '@/hooks/use-chart-setup';
+import { isDataLabelsAvailable } from '@/lib/chartjs-setup';
+
 import '../../app/dashboard/dashboard.css';
 
 
@@ -79,58 +80,10 @@ export default function DashboardPageClient({
   // Permission refresh hook
   const { refreshPermissions } = usePermissionRefresh();
 
-  const [chartReady, setChartReady] = useState(false);
-  const chartSetupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Use the new chart setup hook
+  const { chartReady, isLoading: chartLoading, error: chartError } = useChartSetup();0
   
-  // Add state update and API call tracking
-  const trackStateUpdate = useStateUpdateLimit('DashboardPageClient', 200, () => {
-    console.error('🚨 Excessive state updates in DashboardPageClient');
-  });
-
-  const trackApiCall = useApiCallLimit('DashboardPageClient', 50, () => {
-    console.error('🚨 Excessive API calls in DashboardPageClient');
-  });
-
-  // Safe EventSource tracking
-  const { createEventSource, closeEventSource, closeAllEventSources } = useSafeEventSourceWithTracking();
-
-  // Setup Chart.js on component mount
-  useExtendedSafeEffect(() => {
-    const setupChart = async () => {
-      try {
-        await setupChartJS();
-        // Double-check that setup is complete
-        if (isChartJSSetup()) {
-          setChartReady(true);
-        } else {
-          console.warn('Chart.js setup reported complete but isChartJSSetup() returned false');
-          // Retry after a short delay
-          // Clear any existing timeout
-          if (chartSetupTimeoutRef.current) {
-            clearTimeout(chartSetupTimeoutRef.current);
-          }
-          chartSetupTimeoutRef.current = setTimeout(() => {
-            if (isChartJSSetup()) {
-              setChartReady(true);
-            }
-          }, 100);
-        }
-      } catch (error) {
-        console.error('Failed to setup Chart.js:', error);
-      }
-    };
-    
-    setupChart();
-  }, [], 'chartSetup', 5);
-
-  // Cleanup timeout on component unmount
-  useExtendedSafeEffect(() => {
-    return () => {
-      if (chartSetupTimeoutRef.current) {
-        clearTimeout(chartSetupTimeoutRef.current);
-      }
-    };
-  }, [], 'chartCleanup', 5);
+  // Placeholder for removed performance monitoring hooks
 
   // Check permissions for dashboard access - based on actual permissions, not hardcoded roles
   // Allow access if user has any permissions or is authenticated (more permissive)
@@ -149,8 +102,6 @@ export default function DashboardPageClient({
 
   // Function to re-fetch data on client if needed (e.g., after an action or for a refresh button)
   const fetchDataClientSide = useCallback(async () => {
-    // Track API call
-    if (!trackApiCall()) return;
     
     if (status !== 'authenticated' || !session?.user?.id) {
       setIsLoading(false);
@@ -244,7 +195,7 @@ export default function DashboardPageClient({
     } finally {
       setIsLoading(false);
     }
-  }, [status, session?.user?.id, session?.user?.role, trackApiCall]);
+  }, [status, session?.user?.id, session?.user?.role]);
 
   // Unified realtime hook
   const { isConnected: realtimeConnected } = useUnifiedRealtime({
@@ -271,15 +222,9 @@ export default function DashboardPageClient({
     },
     showNotifications: true,
     showErrorNotifications: false, // Disable error toast notifications
-    maxReconnectAttempts: 15, // More reconnection attempts
-    reconnectDelayMs: 500, // Faster initial reconnection
-    maxReconnectDelayMs: 15000, // Shorter max delay
   });
 
-  useExtendedSafeEffect(() => {
-    // Track state update
-    if (!trackStateUpdate()) return;
-    
+  useEffect(() => {
     // Handle initial state passed from server component
     setFilteredCandidates(initialCandidates || []);
     
@@ -317,10 +262,10 @@ export default function DashboardPageClient({
     if (initialFetchError) {
       toast.error(initialFetchError);
     }
-  }, [initialCandidates, initialPositions, initialUsers, initialFetchError, serverAuthError, serverPermissionError, status, session?.user?.role, session?.user?.modulePermissions, refreshPermissions, trackStateUpdate], 'initialStateSetup', 10);
+  }, [initialCandidates, initialPositions, initialUsers, initialFetchError, serverAuthError, serverPermissionError, status, session?.user?.role, session?.user?.modulePermissions, refreshPermissions]);
 
   // Fetch data when session is authenticated and initial data is empty
-  useExtendedSafeEffect(() => {
+  useEffect(() => {
     if (status === 'authenticated' && session?.user?.id) {
       // Only fetch if we don't have data already
       const hasData = (initialCandidates && initialCandidates.length > 0) || 
@@ -331,23 +276,24 @@ export default function DashboardPageClient({
         fetchDataClientSide();
       }
     }
-  }, [status, session?.user?.id, initialCandidates, initialPositions, initialUsers, fetchDataClientSide], 'fetchDataOnAuth', 10);
+  }, [status, session?.user?.id, initialCandidates, initialPositions, initialUsers, fetchDataClientSide]);
 
-  useExtendedSafeEffect(() => {
+  useEffect(() => {
     let mounted = true;
     
-    const eventSource = createEventSource('/api/dashboard/stream');
-    eventSource.onmessage = (event) => {
-      if (mounted) {
-        // Optionally, parse event.data for more granular updates
-        fetchDataClientSide(); // Refresh dashboard data on any event
-      }
-    };
+    // Temporarily disabled EventSource to fix hook error
+    // const eventSource = createEventSource('/api/dashboard/stream');
+    // eventSource.onmessage = (event) => {
+    //   if (mounted) {
+    //     // Optionally, parse event.data for more granular updates
+    //     fetchDataClientSide(); // Refresh dashboard data on any event
+    //   }
+    // };
     return () => {
       mounted = false;
-      closeEventSource(eventSource);
+      // closeEventSource(eventSource);
     };
-  }, [fetchDataClientSide, createEventSource, closeEventSource], 'dashboardEventSource', 5);
+  }, [fetchDataClientSide]);
 
   const totalActiveCandidates = useMemo(() => {
     const safeAllCandidates = Array.isArray(filteredCandidates)? filteredCandidates : [];
@@ -617,7 +563,9 @@ export default function DashboardPageClient({
   }
 
   if (status === 'unauthenticated') {
-    return <div>Please sign in to view the dashboard.</div>;
+    // Redirect to signin page instead of showing message
+    router.replace('/auth/signin');
+    return <div>Redirecting to sign in...</div>;
   }
 
   if (!canViewDashboard) {
@@ -1059,14 +1007,27 @@ export default function DashboardPageClient({
                     <div className="h-[200px] flex items-center justify-center">
                       <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     </div>
-                                     ) : !chartReady || !isChartJSSetup() ? (
-                     <div className="h-[200px] flex items-center justify-center">
-                       <div className="text-center space-y-3">
-                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
-                         <p className="text-muted-foreground">Loading chart...</p>
-                       </div>
-                     </div>
-                   ) : (
+                  ) : chartError ? (
+                    <div className="h-[200px] flex items-center justify-center">
+                      <div className="text-center space-y-3">
+                        <XCircle className="h-8 w-8 text-red-500 mx-auto" />
+                        <p className="text-red-500 text-sm">Chart error: {chartError}</p>
+                        <Button 
+                          onClick={() => window.location.reload()}
+                          className="mt-2"
+                        >
+                          Retry
+                        </Button>
+                      </div>
+                    </div>
+                  ) : !chartReady ? (
+                    <div className="h-[200px] flex items-center justify-center">
+                      <div className="text-center space-y-3">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+                        <p className="text-muted-foreground">Loading chart...</p>
+                      </div>
+                    </div>
+                  ) : (
                     <Bar
                       data={{
                         labels: (() => {
@@ -1117,15 +1078,17 @@ export default function DashboardPageClient({
                               }
                             }
                           },
-                          datalabels: {
-                            anchor: 'end',
-                            align: 'end',
-                            color: '#22223b',
-                            font: { weight: 'bold', size: 14 },
-                            formatter: function(value) {
-                              return value;
+                          ...(isDataLabelsAvailable() ? {
+                            datalabels: {
+                              anchor: 'end',
+                              align: 'end',
+                              color: '#22223b',
+                              font: { weight: 'bold', size: 14 },
+                              formatter: function(value) {
+                                return value;
+                              }
                             }
-                          }
+                          } : {})
                         },
                         onClick: (event, elements) => {
                           if (elements.length > 0) {
@@ -1329,7 +1292,20 @@ export default function DashboardPageClient({
                 {isLoading ? (
                   <div className="flex items-center justify-center">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
+                  </div>
+                ) : chartError ? (
+                  <div className="flex items-center justify-center">
+                    <div className="text-center space-y-3">
+                      <XCircle className="h-8 w-8 text-red-500 mx-auto" />
+                      <p className="text-red-500 text-sm">Chart error: {chartError}</p>
+                      <Button 
+                        onClick={() => window.location.reload()}
+                        className="mt-2"
+                      >
+                        Retry
+                      </Button>
+                    </div>
+                  </div>
                 ) : !chartReady ? (
                   <div className="flex items-center justify-center">
                     <div className="text-center space-y-3">
@@ -1409,7 +1385,20 @@ export default function DashboardPageClient({
                   <div className="flex items-center justify-center">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   </div>
-                ) : !chartReady || !isChartJSSetup() ? (
+                ) : chartError ? (
+                  <div className="flex items-center justify-center">
+                    <div className="text-center space-y-3">
+                      <XCircle className="h-8 w-8 text-red-500 mx-auto" />
+                      <p className="text-red-500 text-sm">Chart error: {chartError}</p>
+                      <Button 
+                        onClick={() => window.location.reload()}
+                        className="mt-2"
+                      >
+                        Retry
+                      </Button>
+                    </div>
+                  </div>
+                ) : !chartReady ? (
                   <div className="flex items-center justify-center">
                     <div className="text-center space-y-3">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>

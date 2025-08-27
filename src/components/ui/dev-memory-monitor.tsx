@@ -28,9 +28,8 @@ export function DevMemoryMonitor({ enabled = true }: DevMemoryMonitorProps) {
       // Get resource stats if available
       let resourceCount = 0;
       try {
-        const { getResourceStats } = require('@/lib/performance-utils-core');
-        const stats = getResourceStats();
-        resourceCount = Object.values(stats).reduce((sum: number, count: unknown) => sum + (typeof count === 'number' ? count : 0), 0);
+        // Simple DOM node count as resource count
+        resourceCount = document.querySelectorAll('*').length;
       } catch (e) {
         // Resource tracking not available
       }

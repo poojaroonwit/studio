@@ -88,50 +88,61 @@ export function UploadQueueStatus() {
 
   useEffect(() => {
     let mounted = true;
+    let eventSource: EventSource | null = null;
     
     fetchQueue();
     
     // Set up real-time updates
-    const eventSource = new EventSource('/api/upload-queue/sse');
-    
-    eventSource.onopen = () => {
-      if (mounted) {
-        setIsRealtimeActive(true);
-        // console.log('SSE connection established');
-      }
-    };
-    
-    eventSource.onmessage = (event) => {
+    const connectSSE = () => {
       if (!mounted) return;
       
       try {
-        const data = JSON.parse(event.data);
-        if (data.type === 'queue') {
-          // For real-time updates, we'll refresh the current page
-          fetchQueue(page, pageSize);
-          setIsRealtimeActive(true);
-        }
+        eventSource = new EventSource('/api/upload-queue/sse');
+        
+        eventSource.onopen = () => {
+          if (mounted) {
+            setIsRealtimeActive(true);
+          }
+        };
+        
+        eventSource.onmessage = (event) => {
+          if (!mounted) return;
+          
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'queue') {
+              // For real-time updates, we'll refresh the current page
+              fetchQueue(page, pageSize);
+              setIsRealtimeActive(true);
+            }
+          } catch (error) {
+            console.error('Failed to parse SSE data:', error);
+          }
+        };
+        
+        eventSource.onerror = () => {
+          if (mounted) {
+            setIsRealtimeActive(false);
+          }
+        };
       } catch (error) {
-        console.error('Failed to parse SSE data:', error);
+        console.error('Failed to create EventSource:', error);
       }
     };
     
-    eventSource.onerror = () => {
-      if (mounted) {
-        setIsRealtimeActive(false);
-        // console.log('SSE connection error, falling back to polling');
-      }
-    };
+    connectSSE();
 
     return () => {
       mounted = false;
-      try {
-        eventSource.close();
-      } catch (error) {
-        console.error('Error closing EventSource:', error);
+      if (eventSource) {
+        try {
+          eventSource.close();
+        } catch (error) {
+          console.error('Error closing EventSource:', error);
+        }
       }
     };
-  }, [page, pageSize]); // Add pagination dependencies
+  }, []); // Remove pagination dependencies to prevent multiple connections
 
   const getStatusIcon = (status: string) => {
     switch (status) {

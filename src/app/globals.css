@@ -1491,57 +1491,7 @@ audio::-webkit-scrollbar-button {
   animation: dropPulse 0.3s ease-in-out;
 }
 
-/* Floating Performance Monitor Styles */
-.floating-performance-monitor {
-  cursor: grab;
-  transition: all 0.2s ease-in-out;
-  user-select: none;
-}
 
-.floating-performance-monitor:active {
-  cursor: grabbing;
-}
-
-.floating-performance-monitor.dragging {
-  opacity: 0.8;
-  transform: scale(0.98);
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
-  z-index: 10000;
-}
-
-.floating-performance-monitor:hover {
-  transform: scale(1.02);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-}
-
-.floating-performance-button {
-  cursor: grab;
-  transition: all 0.2s ease-in-out;
-  user-select: none;
-}
-
-.floating-performance-button:active {
-  cursor: grabbing;
-}
-
-.floating-performance-button:hover {
-  transform: scale(1.05);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
-}
-
-/* Performance monitor drag handle */
-.performance-drag-handle {
-  cursor: grab;
-  transition: all 0.2s ease-in-out;
-}
-
-.performance-drag-handle:active {
-  cursor: grabbing;
-}
-
-.performance-drag-handle:hover {
-  opacity: 0.8;
-}
     
 
 /* Tiptap Editor Styles */

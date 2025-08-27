@@ -41,41 +41,19 @@ export function useCandidateFetching({
   setFetchError,
   setIsLoading
 }: UseCandidateFetchingProps) {
-  const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const requestTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const currentRequestRef = useRef<string | null>(null);
   const latestRequestIdRef = useRef<string | null>(null);
 
   // Cleanup all timeouts on unmount
   useEffect(() => {
     return () => {
-      if (fetchTimeoutRef.current) {
-        clearTimeout(fetchTimeoutRef.current);
-      }
-      if (loadingTimeoutRef.current) {
-        clearTimeout(loadingTimeoutRef.current);
-      }
-      if (requestTimeoutRef.current) {
-        clearTimeout(requestTimeoutRef.current);
-      }
+      // Cleanup function - no timeouts to clear
     };
   }, []);
 
   const fetchTableData = useCallback(async (currentFilters: CandidateFilterValues, currentPage: number, currentPageSize: number) => {
     if (sessionStatus !== 'authenticated') {
       return;
-    }
-    
-    // Clear any existing timeouts
-    if (fetchTimeoutRef.current) {
-      clearTimeout(fetchTimeoutRef.current);
-    }
-    if (loadingTimeoutRef.current) {
-      clearTimeout(loadingTimeoutRef.current);
-    }
-    if (requestTimeoutRef.current) {
-      clearTimeout(requestTimeoutRef.current);
     }
     
     // Generate a unique request ID for this request
@@ -85,14 +63,6 @@ export function useCandidateFetching({
     setIsFetching(true);
     setTableLoading(true);
     setTableError(null);
-    
-    // Add a timeout to prevent infinite loading
-    loadingTimeoutRef.current = setTimeout(() => {
-      setTableLoading(false);
-      setIsLoading(false); // Also clear the main loading state
-      setIsFetching(false);
-      setTableError('Request timeout. The server may be starting up. Please wait a moment and refresh.');
-    }, 10000); // Reduced from 30 seconds to 10 seconds for faster response
     
     try {
       const query = new URLSearchParams();
@@ -148,24 +118,13 @@ export function useCandidateFetching({
       
       const apiUrl = `/api/candidates?${query.toString()}`;
       
-      console.log('🔍 API DEBUG: Making request to:', apiUrl);
+      // console.log('🔍 API DEBUG: Making request to:', apiUrl);
       
-      // Add timeout and retry logic
-      const controller = new AbortController();
-      requestTimeoutRef.current = setTimeout(() => controller.abort(), 8000); // Reduced from 15 seconds to 8 seconds for faster response
-
       const response = await fetch(apiUrl, {
-        signal: controller.signal,
         headers: {
           'Cache-Control': 'no-cache'
         }
       });
-      
-      // Clear request timeout on successful response
-      if (requestTimeoutRef.current) {
-        clearTimeout(requestTimeoutRef.current);
-        requestTimeoutRef.current = null;
-      }
       
       if (!response.ok) {
         throw new Error(`Failed to fetch candidates: ${response.status} ${response.statusText}`);
@@ -179,12 +138,12 @@ export function useCandidateFetching({
       }
       
       if (data.data && Array.isArray(data.data)) {
-        console.log('🔍 API DEBUG: Received', data.data.length, 'candidates');
+        // console.log('🔍 API DEBUG: Received', data.data.length, 'candidates');
         setFilteredCandidates(data.data);
         setTotal(data.pagination?.total || data.data.length);
         setTableError(null);
       } else {
-        console.log('🔍 API DEBUG: Invalid data format received:', data);
+        // console.log('🔍 API DEBUG: Invalid data format received:', data);
         setFilteredCandidates([]);
         setTotal(0);
         setTableError('Invalid data format received from server');
@@ -204,11 +163,6 @@ export function useCandidateFetching({
         return;
       }
       
-      // Clear loading timeout
-      if (loadingTimeoutRef.current) {
-        clearTimeout(loadingTimeoutRef.current);
-        loadingTimeoutRef.current = null;
-      }
       setTableLoading(false);
       setIsFetching(false);
     }
@@ -216,21 +170,12 @@ export function useCandidateFetching({
 
   // Create a debounced version for table refresh
   const debouncedFetchTableData = useCallback((currentFilters: CandidateFilterValues, currentPage: number, currentPageSize: number) => {
-    // Clear any pending timeout
-    if (fetchTimeoutRef.current) {
-      clearTimeout(fetchTimeoutRef.current);
-    }
-    
-    // Set a new timeout - reduced for better responsiveness
-    fetchTimeoutRef.current = setTimeout(() => {
-      fetchTableData(currentFilters, currentPage, currentPageSize);
-    }, 100); // Reduced from 200ms to 100ms for better responsiveness
+    fetchTableData(currentFilters, currentPage, currentPageSize);
   }, [fetchTableData]);
 
   return {
     fetchTableData,
     debouncedFetchTableData,
-    fetchTimeoutRef,
     currentRequestRef,
     latestRequestIdRef
   };

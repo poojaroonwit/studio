@@ -102,7 +102,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DialogTrigger } from '@/components/ui/dialog';
 import { AdvancedQuerySyntaxModal } from './AdvancedQuerySyntaxModal';
-import { useExtendedSafeEffect, useStateUpdateLimit, useApiCallLimit } from '@/lib/app-stuck-prevention-extended';
+
 
 export interface CandidateFilterValues {
   name?: string;
@@ -283,17 +283,17 @@ export function CandidateFilters({
 
 
 
-  // AI Search examples
-  const aiSearchExamples = [
-    "React developers with 5+ years experience",
-    "Python developers who worked at Google or Microsoft",
-    "Marketing managers with MBA from top universities",
-    "Senior engineers with machine learning experience",
-    "Sales professionals with SaaS background",
-    "Designers with portfolio in fintech",
-    "Product managers with agile experience",
-    "Data scientists with PhD in statistics",
-  ];
+  // // AI Search examples
+  // const aiSearchExamples = [
+  //   "React developers with 5+ years experience",
+  //   "Python developers who worked at Google or Microsoft",
+  //   "Marketing managers with MBA from top universities",
+  //   "Senior engineers with machine learning experience",
+  //   "Sales professionals with SaaS background",
+  //   "Designers with portfolio in fintech",
+  //   "Product managers with agile experience",
+  //   "Data scientists with PhD in statistics",
+  // ];
 
   const currentYear = new Date().getFullYear();
   const fromYear = currentYear - 10;
@@ -311,24 +311,12 @@ export function CandidateFilters({
   const onFilterChangeRef = useRef(onFilterChange);
   
   // Update ref when onFilterChange changes
-  useExtendedSafeEffect(() => {
+  useEffect(() => {
     onFilterChangeRef.current = onFilterChange;
-  }, [onFilterChange], 'onFilterChangeRef', 10);
-
-  // Add state update tracking
-  const trackStateUpdate = useStateUpdateLimit('CandidateFilters', 200, () => {
-    console.error('🚨 Excessive state updates in CandidateFilters');
-  });
-
-  // Add API call tracking
-  const trackApiCall = useApiCallLimit('CandidateFilters', 50, () => {
-    console.error('🚨 Excessive API calls in CandidateFilters');
-  });
+  }, [onFilterChange]);
 
   // Define handleApplyStandardFilters early to avoid temporal dead zone issues
   const handleApplyStandardFilters = useCallback(() => {
-    // Track state update
-    if (!trackStateUpdate()) return;
     
     // Skip if we're already applying filters
     if (isApplyingFilters) {
@@ -399,12 +387,12 @@ export function CandidateFilters({
     if (Object.keys(newFilters).length > 0 || hasEmptyStrings) {
       lastAppliedFiltersRef.current = newFiltersString;
       lastFilterApplyTimeRef.current = Date.now();
-      console.log('🔍 FILTER DEBUG: Applying filters:', newFilters);
+      // console.log('🔍 FILTER DEBUG: Applying filters:', newFilters);
       if (typeof onFilterChangeRef.current === 'function') {
         onFilterChangeRef.current(newFilters);
       }
     } else {
-      console.log('🔍 FILTER DEBUG: Clearing filters');
+      // console.log('🔍 FILTER DEBUG: Clearing filters');
       if (typeof onFilterChangeRef.current === 'function') {
         onFilterChangeRef.current({});
       }
@@ -420,10 +408,10 @@ export function CandidateFilters({
       clearTimeout(applyingFiltersTimeoutRef.current);
     }
     applyingFiltersTimeoutRef.current = timeoutId;
-  }, [name, nameOperator, email, emailOperator, phone, phoneOperator, selectedPositionIds, selectedStatuses, selectedSourceIds, skills, location, locationOperator, experienceYearsRange, applicationDateRange, selectedRecruiterIds, trackStateUpdate]); // Removed onFilterChange from dependencies
+  }, [name, nameOperator, email, emailOperator, phone, phoneOperator, selectedPositionIds, selectedStatuses, selectedSourceIds, skills, location, locationOperator, experienceYearsRange, applicationDateRange, selectedRecruiterIds]); // Removed onFilterChange from dependencies
 
   // Single auto-apply effect for all filter changes
-  useExtendedSafeEffect(() => {
+  useEffect(() => {
     if (!isInitialLoadRef.current && !isSyncingFromInitialFiltersRef.current && isComponentInitializedRef.current) {
       handleApplyStandardFilters();
     }
@@ -439,11 +427,11 @@ export function CandidateFilters({
     skills,
     experienceYearsRange,
     applicationDateRange
-  ], 'filterAutoApply', 20);
+  ]);
 
   // Auto-apply filters when input values change (debounced to prevent resource leaks)
   // Note: Fit score ranges are now handled separately through debounced handlers
-  useExtendedSafeEffect(() => {
+  useEffect(() => {
     // Clear any existing timeout
     if (autoApplyTimeoutRef.current) {
       clearTimeout(autoApplyTimeoutRef.current);
@@ -487,10 +475,10 @@ export function CandidateFilters({
         autoApplyTimeoutRef.current = null;
       }
     };
-  }, [name, email, phone, selectedPositionIds, selectedStatuses, selectedSourceIds, skills, location, experienceYearsRange, applicationDateRange, selectedRecruiterIds, advancedQueryInput, handleApplyStandardFilters], 'filterDebouncedApply', 15);
+  }, [name, email, phone, selectedPositionIds, selectedStatuses, selectedSourceIds, skills, location, experienceYearsRange, applicationDateRange, selectedRecruiterIds, advancedQueryInput, handleApplyStandardFilters]);
 
   // Component initialization
-  useExtendedSafeEffect(() => {
+  useEffect(() => {
     // Mark component as initialized immediately
     isComponentInitializedRef.current = true;
     isInitialLoadRef.current = false;
@@ -530,7 +518,7 @@ export function CandidateFilters({
   }, [], 'componentInitialization', 5); // Only run once on mount
 
   // Cleanup all timeouts on component unmount
-  useExtendedSafeEffect(() => {
+  useEffect(() => {
     return () => {
       // Clear all timeouts to prevent memory leaks
       if (multiselectTimeoutRef.current) {
@@ -570,7 +558,7 @@ export function CandidateFilters({
         urlFiltersTimeoutRef.current = null;
       }
     };
-  }, [], 'componentCleanup', 5);
+  }, []);
 
   // Define a list of common skills
   const skillOptions = [

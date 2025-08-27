@@ -280,29 +280,47 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
     setFetchError(null);
     
     try {
+      console.log(`[PositionDetailDrawer] Fetching position with ID: ${positionId}`);
       const response = await fetch(`/api/positions/${positionId}`);
+      
+      console.log(`[PositionDetailDrawer] Response status: ${response.status}`);
+      
       if (!response.ok) {
-        throw new Error('Failed to fetch position');
+        let errorMessage = 'Failed to fetch position';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorData.error || errorMessage;
+        } catch (parseError) {
+          console.error('[PositionDetailDrawer] Failed to parse error response:', parseError);
+        }
+        
+        console.error(`[PositionDetailDrawer] API error: ${response.status} - ${errorMessage}`);
+        throw new Error(errorMessage);
       }
+      
       const data = await response.json();
+      console.log(`[PositionDetailDrawer] Successfully fetched position:`, data);
+      
       setPosition(data);
       
-                     // Populate form with position data
-        form.reset({
-          title: data.title || '',
-          department: data.department || '',
-          description: data.description || '',
-          matchCriteria: data.matchCriteria || '',
-          isOpen: data.isOpen ?? true,
-          positionLevel: data.positionLevel || '',
-          gradeId: data.gradeId || null,
-          hiringDate: data.hiringDate ? new Date(data.hiringDate).toISOString().split('T')[0] : null,
-        });
-       
-       // Set drawer as ready for WYSIWYG editors
-       setIsDrawerReady(true);
-     } catch (error) {
-      setFetchError((error as Error).message || 'Could not load position.');
+      // Populate form with position data
+      form.reset({
+        title: data.title || '',
+        department: data.department || '',
+        description: data.description || '',
+        matchCriteria: data.matchCriteria || '',
+        isOpen: data.isOpen ?? true,
+        positionLevel: data.positionLevel || '',
+        gradeId: data.gradeId || null,
+        hiringDate: data.hiringDate ? new Date(data.hiringDate).toISOString().split('T')[0] : null,
+      });
+      
+      // Set drawer as ready for WYSIWYG editors
+      setIsDrawerReady(true);
+    } catch (error) {
+      console.error('[PositionDetailDrawer] Error fetching position:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Could not load position.';
+      setFetchError(errorMessage);
       setPosition(null);
     } finally {
       setIsLoading(false);
@@ -1490,12 +1508,12 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                                 name="positionLevel"
                                 control={form.control}
                                 render={({ field }) => (
-                                  <Select onValueChange={field.onChange} value={field.value || ''}>
+                                  <Select onValueChange={(value) => field.onChange(value === 'none' ? null : value)} value={field.value || 'none'}>
                                     <SelectTrigger disabled={isLoadingLevels}>
                                       <SelectValue placeholder={isLoadingLevels ? "Loading levels..." : "Select level"} />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      <SelectItem value="">No Level</SelectItem>
+                                      <SelectItem value="none">No Level</SelectItem>
                                       {positionLevels.map((level) => (
                                         <SelectItem key={level.id} value={level.name}>
                                           <div className="flex items-center gap-2">

@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
 
   try {
     // Write initial headers for SSE
-    writer.write(new TextEncoder().encode('retry: 10000\n\n'));
+    writer.write(new TextEncoder().encode('\n\n'));
 
     // Add this client to the list
     clients.push(writer);

@@ -9,10 +9,12 @@ export default async function MyTasksPageServer() {
 
   // Check if user has permission to access task board
   if (!session?.user) {
+    // Redirect to signin page instead of showing error message
+    // This will be handled by the client component
     return (
-      <div className="flex h-full items-center justify-center">
-        <p className="text-lg text-destructive">You are not authenticated. Please sign in.</p>
-      </div>
+      <MyTasksPageClient
+        userSession={null}
+      />
     );
   }
 

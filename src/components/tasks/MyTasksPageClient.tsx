@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -79,7 +80,8 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   const [isCardSettingsOpen, setIsCardSettingsOpen] = useState(false);
   const [showNetworkDiagnostics, setShowNetworkDiagnostics] = useState(false);
   const [hasNetworkError, setHasNetworkError] = useState(false);
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const [metadataLoaded, setMetadataLoaded] = useState(false);
   
   // Add debouncing for search
@@ -532,6 +534,35 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     }
     return stages.filter(stage => selectedStages.includes(stage));
   }, [stages, selectedStages]);
+
+  // Handle authentication
+  if (status === 'loading') {
+    return (
+      <div className="flex flex-col h-full bg-background">
+        <div className="flex-1 flex items-center justify-center">
+          <div className="flex flex-col items-center space-y-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <p className="text-muted-foreground text-sm">Loading...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (status === 'unauthenticated' || !userSession) {
+    // Redirect to signin page instead of showing error message
+    router.replace('/auth/signin');
+    return (
+      <div className="flex flex-col h-full bg-background">
+        <div className="flex-1 flex items-center justify-center">
+          <div className="flex flex-col items-center space-y-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <p className="text-muted-foreground text-sm">Redirecting to sign in...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!metadataLoaded) {
     return (

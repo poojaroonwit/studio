@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef, useMemo } from "react"
-import { useResourceCleanup, useSafeTimeout, useSafeInterval, useSafeEventSource } from '@/lib/resource-leak-fixes-client';
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, XCircle, CheckCircle, FileText, ExternalLink, AlertCircle, Eye, FileUp, UploadCloud, X, Download, ChevronLeft, ChevronRight, MoreHorizontal, Play, MoreVertical, ChevronUp, ChevronDown, Send, Search, RotateCcw } from "lucide-react";
@@ -23,7 +23,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import type { Position } from '@/lib/types';
 import { FileViewerModal } from "@/components/ui/file-viewer-modal";
-import { useExtendedSafeEffect, useStateUpdateLimit, useApiCallLimit, useSafeEventSourceWithTracking } from '@/lib/app-stuck-prevention-extended';
+
 
 // Error boundary for this component
 class CandidateImportUploadQueueErrorBoundary extends React.Component<
@@ -162,6 +162,8 @@ const CandidateImportUploadQueueInner: React.FC<{
   const [dateRange, setDateRange] = useState<{ start: Date | null; end: Date | null }>(() => ({ start: null, end: null }));
   const { data: session, status: sessionStatus } = useSession();
   const isFetchingRef = useRef(false);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const fetchJobsRef = useRef<() => Promise<void>>();
   const [summary, setSummary] = useState<any>(null);
   const [maxConcurrentProcessors, setMaxConcurrentProcessors] = useState<number | null>(null);
 
@@ -303,10 +305,18 @@ const CandidateImportUploadQueueInner: React.FC<{
   // Fetch paginated jobs
   const fetchJobs = useCallback(async () => {
     if (isFetchingRef.current) {
+      console.log('Fetch already in progress, skipping...');
       return;
     }
+
+    // Prevent rapid successive requests
+    const now = Date.now();
+    if (now - (isFetchingRef.current as any) < 500) {
+      console.log('Fetch throttled, skipping...');
+      return;
+    }
+    
     isFetchingRef.current = true;
-   
     let isMounted = true;
     setIsLoading(true);
     setFetchError(null);
@@ -330,7 +340,14 @@ const CandidateImportUploadQueueInner: React.FC<{
       if (dateRange.start) params.set('date_start', format(dateRange.start, 'yyyy-MM-dd'));
       if (dateRange.end) params.set('date_end', format(dateRange.end, 'yyyy-MM-dd'));
       if (positionIdFilter) params.set('position_id', positionIdFilter);
-      const res = await fetch(`/api/upload-queue?${params.toString()}`);
+      
+      console.log('Fetching jobs with params:', params.toString());
+      const res = await fetch(`/api/upload-queue?${params.toString()}`, {
+        credentials: 'include',
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
+      });
       
       if (!res.ok) {
         let errorMsg = `Failed to fetch jobs: ${res.status} ${res.statusText}`;
@@ -375,13 +392,18 @@ const CandidateImportUploadQueueInner: React.FC<{
         
         throw new Error(fullErrorMsg);
       }
+      
       const { data, total, summary } = await res.json();
+      console.log('Jobs fetched successfully:', { count: data?.length, total, summary });
+      
       if (isMounted) {
+        // Update state directly (removed performance tracking)
         setJobs(Array.isArray(data) ? data : []);
         setTotal(total);
         setSummary(summary || null);
       }
     } catch (err) {
+      console.error('Error fetching jobs:', err);
       if (isMounted) {
         setFetchError((err as Error).message);
         showError((err as Error).message);
@@ -391,9 +413,13 @@ const CandidateImportUploadQueueInner: React.FC<{
         setIsLoading(false);
       }
       isFetchingRef.current = false;
-
     }
-  }, [page, pageSize, showError, debouncedFilter, statusFilter, dateRange, positionIdFilter]);
+  }, [page, pageSize, debouncedFilter, statusFilter, dateRange, positionIdFilter, showError]);
+
+  // Store fetchJobs in ref to avoid dependency issues
+  useEffect(() => {
+    fetchJobsRef.current = fetchJobs;
+  }, [fetchJobs]);
 
   // Debounce filter changes
   useEffect(() => {
@@ -415,6 +441,7 @@ const CandidateImportUploadQueueInner: React.FC<{
 
   // Fetch status summary for static status cards (excludes status filter, includes date filter)
   const fetchStatusSummary = useCallback(async () => {
+    
     try {
       const params = new URLSearchParams();
       // Include date filter but NOT status filter
@@ -425,7 +452,9 @@ const CandidateImportUploadQueueInner: React.FC<{
       params.set('limit', '1');
       params.set('offset', '0');
       
-      const res = await fetch(`/api/upload-queue?${params.toString()}`);
+      const res = await fetch(`/api/upload-queue?${params.toString()}`, {
+        credentials: 'include'
+      });
       if (res.ok) {
         const { summary } = await res.json();
         setStatusSummary(summary || null);
@@ -487,67 +516,72 @@ const CandidateImportUploadQueueInner: React.FC<{
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [page, total, pageSize]);
 
-  // Add state update and API call tracking
-  const trackStateUpdate = useStateUpdateLimit('CandidateImportUploadQueue', 200, () => {
-    console.error('🚨 Excessive state updates in CandidateImportUploadQueue');
-  });
-
-  const trackApiCall = useApiCallLimit('CandidateImportUploadQueue', 50, () => {
-    console.error('🚨 Excessive API calls in CandidateImportUploadQueue');
-  });
-
-  // Safe EventSource tracking
-  const { createEventSource, closeEventSource, closeAllEventSources } = useSafeEventSourceWithTracking();
+  // Placeholder for removed performance monitoring hooks
 
   // Removed manual refresh function (button removed)
 
-  // Fallback polling (less frequent since we have SSE)
-  useExtendedSafeEffect(() => {
-    // Always use SSE, so this effect is effectively removed
-    // const interval = setInterval(() => {
+  // Fallback polling (less frequent since we have SSE) - temporarily disabled to fix hook error
+  // useExtendedSafeEffect(() => {
+  //   // Always use SSE, so this effect is effectively removed
+  //   // const interval = setInterval(() => {
 
-    //   fetchJobs();
-    // }, 30000); // Poll every 30 seconds as fallback
-    // return () => {
-    //   clearInterval(interval);
+  //   //   fetchJobs();
+  //   // }, 30000); // Poll every 30 seconds as fallback
+  //   // return () => {
+  //   //   clearInterval(interval);
    
-    // };
-  }, [], 'fallbackPolling', 5);
+  //   // };
+  // }, [], 'fallbackPolling', 5);
 
-  useExtendedSafeEffect(() => {
+  // Use effect for session-based fetching
+  useEffect(() => {
     // Only fetch if session is loaded and available
     if (sessionStatus === 'authenticated' && session) {
-      fetchJobs();
+      console.log('Session authenticated, fetching jobs...');
+      fetchJobsRef.current?.();
     } else if (sessionStatus === 'unauthenticated') {
       setFetchError('Please sign in to view the upload queue');
     }
-    return () => {
-      // No cleanup needed here
-    };
-  }, [sessionStatus, session], 'fetchJobsOnSession', 10); // Removed fetchJobs to prevent infinite loop
+  }, [sessionStatus, session]);
 
   // Fetch status summary separately - only when date/position filters change, not status filter
-  useExtendedSafeEffect(() => {
+  useEffect(() => {
     // Only fetch if session is loaded and available
     if (sessionStatus === 'authenticated' && session) {
       fetchStatusSummary();
     }
-  }, [sessionStatus, session], 'fetchStatusSummary', 10); // Removed fetchStatusSummary to prevent infinite loop
+  }, [sessionStatus, session]);
 
-  useExtendedSafeEffect(() => {
+  useEffect(() => {
     function handleRefreshEvent() {
-      fetchJobs();
+      console.log('Refresh event received, fetching jobs...');
+      fetchJobsRef.current?.();
     }
     window.addEventListener('refreshCandidateQueue', handleRefreshEvent);
     return () => {
       window.removeEventListener('refreshCandidateQueue', handleRefreshEvent);
     };
-  }, [], 'refreshEvent', 5); // Removed fetchJobs to prevent infinite loop
+  }, []);
+
+  // Debounced effect for filter changes
+  useEffect(() => {
+    if (sessionStatus === 'authenticated' && session) {
+      console.log('Filter changed, fetching jobs...');
+      fetchJobsRef.current?.();
+    }
+  }, [debouncedFilter, statusFilter, dateRange, positionIdFilter, sessionStatus, session]);
+
+  // Effect for pagination changes
+  useEffect(() => {
+    if (sessionStatus === 'authenticated' && session) {
+      console.log('Pagination changed, fetching jobs...');
+      fetchJobsRef.current?.();
+    }
+  }, [page, pageSize, sessionStatus, session]);
 
   // Server-Sent Events (SSE) for real-time updates
   useEffect(() => {
     let eventSource: EventSource | null = null;
-    let debounceTimeout: NodeJS.Timeout | null = null;
     let pollInterval: NodeJS.Timeout | null = null;
     let isConnected = false;
     let reconnectAttempts = 0;
@@ -555,11 +589,11 @@ const CandidateImportUploadQueueInner: React.FC<{
     const baseReconnectDelay = 1000;
     const maxReconnectDelay = 10000;
     let latestSSEData: any = null;
-    const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     let mounted = true;
 
     const applySSEUpdate = () => {
       if (latestSSEData && mounted) {
+        // Update state directly (removed performance tracking)
         setJobs(latestSSEData.jobs || []);
         setSummary(latestSSEData.summary || { total: 0 });
         setStatusSummary(latestSSEData.statusSummary || {});
@@ -613,8 +647,16 @@ const CandidateImportUploadQueueInner: React.FC<{
             const delay = Math.min(baseReconnectDelay * reconnectAttempts, maxReconnectDelay);
            
             const reconnectTimeout = setTimeout(() => {
-              if (mounted && eventSource && !isConnected) {
-                eventSource.close();
+              if (mounted && !isConnected) {
+                // Close existing connection before reconnecting
+                if (eventSource) {
+                  try {
+                    eventSource.close();
+                  } catch (error) {
+                    // Ignore close errors
+                  }
+                  eventSource = null;
+                }
                 connectSSE();
               }
             }, delay);
@@ -622,6 +664,7 @@ const CandidateImportUploadQueueInner: React.FC<{
             // Store timeout for cleanup
             reconnectTimeoutRef.current = reconnectTimeout;
           } else {
+            console.warn('🚨 Maximum reconnection attempts reached, falling back to polling');
             // Fall back to polling if SSE fails completely
             if (pollInterval) {
               clearInterval(pollInterval);
@@ -643,10 +686,9 @@ const CandidateImportUploadQueueInner: React.FC<{
           try {
             const msg = JSON.parse(event.data);
             if (msg.type === 'queue') {
-              // Debounce UI update - reduced from 500ms to 100ms for smoother updates
+              // Update immediately without debouncing for faster response
               latestSSEData = msg;
-              if (debounceTimeout) clearTimeout(debounceTimeout);
-              debounceTimeout = setTimeout(applySSEUpdate, 100);
+              applySSEUpdate();
               
             } else if (msg.type === 'error') {
               // Silent error handling
@@ -674,11 +716,6 @@ const CandidateImportUploadQueueInner: React.FC<{
           console.error('Error closing EventSource:', error);
         }
         eventSource = null;
-      }
-      
-      if (debounceTimeout) {
-        clearTimeout(debounceTimeout);
-        debounceTimeout = null;
       }
       
       if (pollInterval) {
@@ -912,6 +949,7 @@ const CandidateImportUploadQueueInner: React.FC<{
       await Promise.all(errorJobIds.map(async (id) => {
         await fetch(`/api/upload-queue/${id}`, {
           method: 'PATCH',
+          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ status: 'queued', error: null, error_details: null, completed_date: null })
         });
@@ -956,7 +994,9 @@ const CandidateImportUploadQueueInner: React.FC<{
   useEffect(() => {
     const fetchPositions = async () => {
       try {
-        const response = await fetch('/api/positions/all');
+        const response = await fetch('/api/positions/all', {
+          credentials: 'include'
+        });
         if (!response.ok) return;
         const result = await response.json();
         setAvailablePositions(result.data || []);
@@ -1554,6 +1594,7 @@ const CandidateImportUploadQueueInner: React.FC<{
                           onClick={async () => {
                             await fetch(`/api/upload-queue/${item.id}`, {
                               method: 'PATCH',
+                              credentials: 'include',
                               headers: { 'Content-Type': 'application/json' },
                               body: JSON.stringify({ status: 'queued', error: null, error_details: null, completed_date: null })
                             });
@@ -1570,7 +1611,10 @@ const CandidateImportUploadQueueInner: React.FC<{
                           title="Process Now (Send to Webhook)"
                           onClick={async () => {
                             try {
-                              const res = await fetch(`/api/upload-queue/${item.id}`, { method: 'POST' });
+                              const res = await fetch(`/api/upload-queue/${item.id}`, { 
+                                method: 'POST',
+                                credentials: 'include'
+                              });
                               if (res.ok) {
                                 success('Job sent to webhook!');
                               } else {
@@ -1693,7 +1737,10 @@ const CandidateImportUploadQueueInner: React.FC<{
               onClick={async () => {
                 setBulkDeleteLoading(true);
                 try {
-                  await Promise.all(bulkDeleteIds.map(id => fetch(`/api/upload-queue/${id}`, { method: 'DELETE' })));
+                  await Promise.all(bulkDeleteIds.map(id => fetch(`/api/upload-queue/${id}`, { 
+                    method: 'DELETE',
+                    credentials: 'include'
+                  })));
                   setBulkDeleteIds([]);
                   await fetchJobs();
                 } catch (err) {
@@ -1725,6 +1772,7 @@ const CandidateImportUploadQueueInner: React.FC<{
                   );
                   await Promise.all(jobsToRetry.map(job => fetch(`/api/upload-queue/${job.id}`, {
                     method: 'PATCH',
+                    credentials: 'include',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ status: 'queued', error: null, error_details: null, completed_date: null })
                   })));
@@ -1757,6 +1805,7 @@ const CandidateImportUploadQueueInner: React.FC<{
                   try {
                     const res = await fetch(`/api/upload-queue/${cancelId}`, {
                       method: 'PATCH',
+                      credentials: 'include',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ status: 'cancelled', completed_date: new Date().toISOString() })
                     });

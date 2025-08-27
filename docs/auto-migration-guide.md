@@ -249,7 +249,7 @@ docker-compose up -d
 docker-compose logs -f app
 
 # 3. Verify deployment
-curl http://localhost:8021/health
+curl http://localhost:8021/api/health
 ```
 
 ## Conclusion

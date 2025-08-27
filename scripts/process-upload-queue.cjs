@@ -244,7 +244,7 @@ async function checkAppHealth() {
   lastHealthCheck = now;
   
   try {
-    const response = await makeRequest(`${config.baseUrl}/health`, {
+    const response = await makeRequest(`${config.baseUrl}/api/health`, {
       method: 'GET'
     });
     

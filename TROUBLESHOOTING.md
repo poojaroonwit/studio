@@ -32,7 +32,7 @@ node --max-old-space-size=2048 ./scripts/process-upload-queue.cjs
    npm run start:local
    ```
 
-2. **Wait for the main app to be ready** (check http://localhost:8021/health)
+2. **Wait for the main app to be ready** (check http://localhost:8021/api/health)
 
 3. **Then start the processor** (in a separate terminal):
    ```bash
@@ -134,7 +134,7 @@ npm run processor
 
 ## Health Checks
 
-- **Main Application**: http://localhost:8021/health
+- **Main Application**: http://localhost:8021/api/health
 - **Processor Status**: Check the processor logs for status messages
 - **Database**: `pg_isready -h localhost -p 5432`
 - **MinIO**: http://localhost:9001 (console)

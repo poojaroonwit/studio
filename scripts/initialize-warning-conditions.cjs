@@ -231,22 +231,22 @@ async function initializeWarningConditions() {
             existingCondition.isActive !== requiredCondition.isActive ||
             existingCondition.isPublic !== requiredCondition.isPublic ||
             JSON.stringify(existingCondition.conditionGroups) !== JSON.stringify(requiredCondition.conditionGroups) ||
-            existingCondition.groupsLogicalOperator !== requiredCondition.groupsLogicalOperator;
+            existingCondition.logicalOperator !== requiredCondition.groupsLogicalOperator;
 
           if (needsUpdate) {
-            // Update the existing condition
-            await prisma.warningConfiguration.update({
-              where: { id: existingCondition.id },
-              data: {
-                description: requiredCondition.description,
-                severity: requiredCondition.severity,
-                isActive: requiredCondition.isActive,
-                isPublic: requiredCondition.isPublic,
-                conditionGroups: requiredCondition.conditionGroups,
-                groupsLogicalOperator: requiredCondition.groupsLogicalOperator,
-                updatedAt: new Date()
-              }
-            });
+                         // Update the existing condition
+             await prisma.warningConfiguration.update({
+               where: { id: existingCondition.id },
+               data: {
+                 description: requiredCondition.description,
+                 severity: requiredCondition.severity,
+                 isActive: requiredCondition.isActive,
+                 isPublic: requiredCondition.isPublic,
+                 conditionGroups: requiredCondition.conditionGroups,
+                 logicalOperator: requiredCondition.groupsLogicalOperator,
+                 updatedAt: new Date()
+               }
+             });
             
             console.log(`  ✅ Updated: ${requiredCondition.name}`);
             totalUpdated++;
@@ -255,19 +255,19 @@ async function initializeWarningConditions() {
             totalSkipped++;
           }
         } else {
-          // Create new condition
-          await prisma.warningConfiguration.create({
-            data: {
-              createdBy: user.id,
-              name: requiredCondition.name,
-              description: requiredCondition.description,
-              severity: requiredCondition.severity,
-              isActive: requiredCondition.isActive,
-              isPublic: requiredCondition.isPublic,
-              conditionGroups: requiredCondition.conditionGroups,
-              groupsLogicalOperator: requiredCondition.groupsLogicalOperator
-            }
-          });
+                     // Create new condition
+           await prisma.warningConfiguration.create({
+             data: {
+               createdBy: user.id,
+               name: requiredCondition.name,
+               description: requiredCondition.description,
+               severity: requiredCondition.severity,
+               isActive: requiredCondition.isActive,
+               isPublic: requiredCondition.isPublic,
+               conditionGroups: requiredCondition.conditionGroups,
+               logicalOperator: requiredCondition.groupsLogicalOperator
+             }
+           });
           
           console.log(`  ➕ Created: ${requiredCondition.name}`);
           totalCreated++;

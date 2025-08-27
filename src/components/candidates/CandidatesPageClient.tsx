@@ -1,6 +1,7 @@
 "use client";
 
-import * as React from "react";
+import * as React from "react"
+import { useResourceCleanup, useSafeTimeout, useSafeInterval, useSafeEventSource } from '@/lib/resource-leak-fixes';;
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { CandidateFilters, type CandidateFilterValues } from '@/components/candidates/CandidateFilters';
 import { CandidateTable } from '@/components/candidates/CandidateTable';

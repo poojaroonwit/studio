@@ -1,6 +1,7 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { useResourceCleanup, useSafeTimeout, useSafeInterval, useSafeEventSource } from '@/lib/resource-leak-fixes';;
 import { useSession } from 'next-auth/react';
 import { useToastManager } from '@/hooks/use-toast-manager';
 import { Bell } from 'lucide-react';

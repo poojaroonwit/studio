@@ -1,6 +1,7 @@
 "use client";
 
-import React, { createContext, useContext, useState, useCallback, useEffect, useRef, useMemo } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef, useMemo } from "react"
+import { useResourceCleanup, useSafeTimeout, useSafeInterval, useSafeEventSource } from '@/lib/resource-leak-fixes';;
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, XCircle, CheckCircle, FileText, ExternalLink, AlertCircle, Eye, FileUp, UploadCloud, X, Download, ChevronLeft, ChevronRight, MoreHorizontal, Play, MoreVertical, ChevronUp, ChevronDown, Send, Search, RotateCcw } from "lucide-react";
@@ -542,9 +543,10 @@ const CandidateImportUploadQueueInner: React.FC<{
     const maxReconnectDelay = 10000;
     let latestSSEData: any = null;
     const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    let mounted = true;
 
     const applySSEUpdate = () => {
-      if (latestSSEData) {
+      if (latestSSEData && mounted) {
         setJobs(latestSSEData.jobs || []);
         setSummary(latestSSEData.summary || { total: 0 });
         setStatusSummary(latestSSEData.statusSummary || {});
@@ -554,6 +556,8 @@ const CandidateImportUploadQueueInner: React.FC<{
     };
 
     const connectSSE = () => {
+      if (!mounted) return;
+      
       try {
         // Prepare URLSearchParams with proper string values
         const params = new URLSearchParams({
@@ -577,12 +581,16 @@ const CandidateImportUploadQueueInner: React.FC<{
         eventSource = new EventSource(`/api/upload-queue/sse?${params}`);
 
         eventSource.onopen = () => {
-          isConnected = true;
-          setIsRealtimeActive(true);
-          reconnectAttempts = 0;
+          if (mounted) {
+            isConnected = true;
+            setIsRealtimeActive(true);
+            reconnectAttempts = 0;
+          }
         };
 
         eventSource.onerror = () => {
+          if (!mounted) return;
+          
           isConnected = false;
           setIsRealtimeActive(false);
 
@@ -592,7 +600,7 @@ const CandidateImportUploadQueueInner: React.FC<{
             const delay = Math.min(baseReconnectDelay * reconnectAttempts, maxReconnectDelay);
            
             const reconnectTimeout = setTimeout(() => {
-              if (eventSource && !isConnected) {
+              if (mounted && eventSource && !isConnected) {
                 eventSource.close();
                 connectSSE();
               }
@@ -606,19 +614,19 @@ const CandidateImportUploadQueueInner: React.FC<{
               clearInterval(pollInterval);
             }
             pollInterval = setInterval(() => {
-              if (!isConnected) {
+              if (mounted && !isConnected) {
                 fetchJobs();
-              } else {
-                if (pollInterval) {
-                  clearInterval(pollInterval);
-                  pollInterval = null;
-                }
+              } else if (mounted && isConnected && pollInterval) {
+                clearInterval(pollInterval);
+                pollInterval = null;
               }
             }, 10000); // Poll every 10 seconds as fallback
           }
         };
 
         eventSource.onmessage = (event) => {
+          if (!mounted) return;
+          
           try {
             const msg = JSON.parse(event.data);
             if (msg.type === 'queue') {
@@ -642,19 +650,32 @@ const CandidateImportUploadQueueInner: React.FC<{
     connectSSE();
 
     return () => {
+      mounted = false;
       isConnected = false;
       setIsRealtimeActive(false);
+      
       if (eventSource) {
-        eventSource.close();
+        try {
+          eventSource.close();
+        } catch (error) {
+          console.error('Error closing EventSource:', error);
+        }
+        eventSource = null;
       }
+      
       if (debounceTimeout) {
         clearTimeout(debounceTimeout);
+        debounceTimeout = null;
       }
+      
       if (pollInterval) {
         clearInterval(pollInterval);
+        pollInterval = null;
       }
+      
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
       }
     };
   }, [debouncedFilter, statusFilter, dateRange, page, pageSize, positionIdFilter, sessionStatus, session]); // Keep all dependencies as they affect the SSE connection

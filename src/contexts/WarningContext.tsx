@@ -1,6 +1,7 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { useResourceCleanup, useSafeTimeout, useSafeInterval, useSafeEventSource } from '@/lib/resource-leak-fixes';;
 import { useSession } from 'next-auth/react';
 import { useUnifiedRealtime } from '@/hooks/use-unified-realtime-optimized';
 
@@ -84,6 +85,7 @@ export function WarningProvider({ children }: { children: React.ReactNode }) {
     fetchWarnings();
 
     let timeoutId: NodeJS.Timeout | null = null;
+    let mounted = true;
 
     // Check if warning system needs initialization
     const initializeWarningSystem = async () => {
@@ -95,7 +97,7 @@ export function WarningProvider({ children }: { children: React.ReactNode }) {
           },
         });
         
-        if (response.ok) {
+        if (response.ok && mounted) {
           const result = await response.json();
           if (result.initialized) {
             // Warning system initialized automatically
@@ -105,7 +107,9 @@ export function WarningProvider({ children }: { children: React.ReactNode }) {
               clearTimeout(timeoutId);
             }
             timeoutId = setTimeout(() => {
-              fetchWarnings();
+              if (mounted) {
+                fetchWarnings();
+              }
             }, 2000);
           }
         }
@@ -118,8 +122,10 @@ export function WarningProvider({ children }: { children: React.ReactNode }) {
     
     // Cleanup function
     return () => {
+      mounted = false;
       if (timeoutId) {
         clearTimeout(timeoutId);
+        timeoutId = null;
       }
     };
   }, [session?.user?.id, fetchWarnings]);

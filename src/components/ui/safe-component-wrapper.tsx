@@ -20,6 +20,7 @@ interface State {
 
 class SafeComponentWrapper extends Component<Props, State> {
   private maxRetries = 3;
+  private mounted = true;
   
   constructor(props: Props) {
     super(props);
@@ -27,6 +28,14 @@ class SafeComponentWrapper extends Component<Props, State> {
       hasError: false,
       retryCount: 0
     };
+  }
+
+  componentDidMount() {
+    this.mounted = true;
+  }
+
+  componentWillUnmount() {
+    this.mounted = false;
   }
 
   static getDerivedStateFromError(error: Error): Partial<State> {
@@ -62,6 +71,8 @@ class SafeComponentWrapper extends Component<Props, State> {
   }
 
   handleRetry = () => {
+    if (!this.mounted) return;
+    
     if (this.state.retryCount < this.maxRetries) {
       this.setState({ 
         hasError: false, 

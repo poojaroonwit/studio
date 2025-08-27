@@ -61,6 +61,8 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
     healthCheckIntervalMs = 30000,
   } = options;
 
+  const mountedRef = useRef(true);
+
   const { data: session } = useSession();
   const { info: showInfoToast, error: showErrorToast } = useToastManager({ deduplicationWindowMs: 2000 });
 
@@ -124,7 +126,9 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
       health = 'good';
     }
 
-    setState(prev => ({ ...prev, connectionHealth: health }));
+    if (mountedRef.current) {
+      setState(prev => ({ ...prev, connectionHealth: health }));
+    }
   }, []);
 
   const cleanupConnection = useCallback(() => {
@@ -153,12 +157,14 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
       healthCheckIntervalRef.current = null;
     }
     
-    setState(prev => ({
-      ...prev,
-      isConnected: false,
-      isReconnecting: false,
-      reconnectAttempts: 0
-    }));
+    if (mountedRef.current) {
+      setState(prev => ({
+        ...prev,
+        isConnected: false,
+        isReconnecting: false,
+        reconnectAttempts: 0
+      }));
+    }
   }, []);
 
   const startHealthCheck = useCallback(() => {
@@ -168,17 +174,21 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
       clearInterval(healthCheckIntervalRef.current);
     }
 
-    healthCheckIntervalRef.current = setInterval(() => {
-      const now = Date.now();
-      const timeSinceLastMessage = now - lastMessageTimeRef.current;
-      
-      if (timeSinceLastMessage > 60000) {
-        setState(prev => ({ ...prev, isConnected: false }));
-        handleReconnect();
-      } else {
-        updateConnectionHealth();
-      }
-    }, healthCheckIntervalMs);
+          healthCheckIntervalRef.current = setInterval(() => {
+        if (!mountedRef.current) return;
+        
+        const now = Date.now();
+        const timeSinceLastMessage = now - lastMessageTimeRef.current;
+        
+        if (timeSinceLastMessage > 60000) {
+          if (mountedRef.current) {
+            setState(prev => ({ ...prev, isConnected: false }));
+          }
+          handleReconnect();
+        } else {
+          updateConnectionHealth();
+        }
+      }, healthCheckIntervalMs);
   }, [enableHealthCheck, healthCheckIntervalMs, updateConnectionHealth]);
 
   const handleReconnect = useCallback(() => {
@@ -186,11 +196,13 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
       return;
     }
 
-    setState(prev => ({ 
-      ...prev, 
-      isReconnecting: true,
-      reconnectAttempts: prev.reconnectAttempts + 1
-    }));
+    if (mountedRef.current) {
+      setState(prev => ({ 
+        ...prev, 
+        isReconnecting: true,
+        reconnectAttempts: prev.reconnectAttempts + 1
+      }));
+    }
 
     const delay = Math.min(
       reconnectDelayMs * Math.pow(2, state.reconnectAttempts),
@@ -198,7 +210,7 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
     );
 
     reconnectTimeoutRef.current = setTimeout(() => {
-      if (session?.user) {
+      if (mountedRef.current && session?.user) {
         connectSSE();
       }
     }, delay);
@@ -213,6 +225,8 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
 
       // Connection events
       eventSource.onopen = () => {
+        if (!mountedRef.current) return;
+        
         setState(prev => ({
           ...prev,
           isConnected: true,
@@ -228,6 +242,8 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
       };
 
       eventSource.onerror = (error) => {
+        if (!mountedRef.current) return;
+        
         errorCountRef.current++;
         
         setState(prev => ({
@@ -246,6 +262,8 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
       // Event listeners for all realtime events
       const eventHandlers = {
         candidate_update: (event: MessageEvent) => {
+          if (!mountedRef.current) return;
+          
           try {
             const data = JSON.parse(event.data);
             messageCountRef.current++;
@@ -270,6 +288,8 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
         },
 
         position_update: (event: MessageEvent) => {
+          if (!mountedRef.current) return;
+          
           try {
             const data = JSON.parse(event.data);
             messageCountRef.current++;
@@ -286,6 +306,8 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
         },
 
         presence_update: (event: MessageEvent) => {
+          if (!mountedRef.current) return;
+          
           try {
             const data = JSON.parse(event.data);
             messageCountRef.current++;
@@ -302,6 +324,8 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
         },
 
         user_list_update: (event: MessageEvent) => {
+          if (!mountedRef.current) return;
+          
           try {
             const data = JSON.parse(event.data);
             messageCountRef.current++;
@@ -321,6 +345,8 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
         },
 
         notification: (event: MessageEvent) => {
+          if (!mountedRef.current) return;
+          
           try {
             const data = JSON.parse(event.data);
             messageCountRef.current++;
@@ -337,6 +363,8 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
         },
 
         upload_queue_update: (event: MessageEvent) => {
+          if (!mountedRef.current) return;
+          
           try {
             const data = JSON.parse(event.data);
             messageCountRef.current++;
@@ -353,6 +381,8 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
         },
 
         dashboard_update: (event: MessageEvent) => {
+          if (!mountedRef.current) return;
+          
           try {
             const data = JSON.parse(event.data);
             messageCountRef.current++;
@@ -369,6 +399,8 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
         },
 
         warning_update: (event: MessageEvent) => {
+          if (!mountedRef.current) return;
+          
           try {
             const data = JSON.parse(event.data);
             messageCountRef.current++;
@@ -385,6 +417,8 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
         },
 
         session_expired: (event: MessageEvent) => {
+          if (!mountedRef.current) return;
+          
           try {
             const data = JSON.parse(event.data);
             messageCountRef.current++;
@@ -400,6 +434,8 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
         },
 
         health_check: (event: MessageEvent) => {
+          if (!mountedRef.current) return;
+          
           try {
             const data = JSON.parse(event.data);
             messageCountRef.current++;
@@ -414,6 +450,8 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
         },
 
         keepalive: (event: MessageEvent) => {
+          if (!mountedRef.current) return;
+          
           messageCountRef.current++;
           lastMessageTimeRef.current = Date.now();
         }
@@ -446,6 +484,8 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
 
   // Connect on mount and session change
   useEffect(() => {
+    mountedRef.current = true;
+    
     if (session?.user) {
       connectSSE();
     } else {
@@ -453,6 +493,7 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
     }
 
     return () => {
+      mountedRef.current = false;
       cleanupConnection();
       if (healthCheckIntervalRef.current) {
         clearInterval(healthCheckIntervalRef.current);

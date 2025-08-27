@@ -38,9 +38,21 @@ export function useLazyCandidateData<T>({
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const loadingRef = useRef(false);
+  const mountedRef = useRef(true);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   const loadData = useCallback(async (page = 1, append = false) => {
-    if (!candidateId || loadingRef.current) return;
+    if (!candidateId || loadingRef.current || !mountedRef.current) return;
 
     loadingRef.current = true;
     setState(prev => ({ ...prev, loading: true, error: null }));
@@ -72,13 +84,15 @@ export function useLazyCandidateData<T>({
 
       const result: { data: T[]; pagination: PaginationInfo } = await response.json();
 
-      setState(prev => ({
-        data: append ? [...prev.data, ...result.data] : result.data,
-        loading: false,
-        error: null,
-        hasMore: result.pagination.hasMore,
-        page: result.pagination.page
-      }));
+      if (mountedRef.current) {
+        setState(prev => ({
+          data: append ? [...prev.data, ...result.data] : result.data,
+          loading: false,
+          error: null,
+          hasMore: result.pagination.hasMore,
+          page: result.pagination.page
+        }));
+      }
 
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
@@ -86,11 +100,13 @@ export function useLazyCandidateData<T>({
         return;
       }
 
-      setState(prev => ({
-        ...prev,
-        loading: false,
-        error: error instanceof Error ? error.message : 'Failed to load data'
-      }));
+      if (mountedRef.current) {
+        setState(prev => ({
+          ...prev,
+          loading: false,
+          error: error instanceof Error ? error.message : 'Failed to load data'
+        }));
+      }
     } finally {
       loadingRef.current = false;
     }
@@ -106,13 +122,15 @@ export function useLazyCandidateData<T>({
   }, [loadData]);
 
   const reset = useCallback(() => {
-    setState({
-      data: [],
-      loading: false,
-      error: null,
-      hasMore: true,
-      page: 1
-    });
+    if (mountedRef.current) {
+      setState({
+        data: [],
+        loading: false,
+        error: null,
+        hasMore: true,
+        page: 1
+      });
+    }
   }, []);
 
   // Auto-load on mount if enabled

@@ -42,6 +42,18 @@ if (config.baseUrl.includes('app:8021') || config.baseUrl.includes('172.21.0.2:8
   console.log(`[INFO] Overriding PROCESSOR_URL to localhost for local development: ${config.baseUrl}`);
 }
 
+// Additional override for local development detection
+if (process.env.NODE_ENV === 'development' && config.baseUrl.includes('app:')) {
+  config.baseUrl = 'http://localhost:8021';
+  console.log(`[INFO] Development mode detected, overriding PROCESSOR_URL to localhost: ${config.baseUrl}`);
+}
+
+// Force override for local development if running outside Docker
+if (config.baseUrl.includes('app:') && !process.env.DOCKER_ENV) {
+  config.baseUrl = 'http://localhost:8021';
+  console.log(`[INFO] Local development detected, overriding PROCESSOR_URL to localhost: ${config.baseUrl}`);
+}
+
 // State
 let isRunning = true;
 let lastLogTime = Date.now();

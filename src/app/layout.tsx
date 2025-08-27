@@ -10,19 +10,11 @@ import { NotificationProvider } from '@/contexts/NotificationContext';
 import { WarningProvider } from '@/contexts/WarningContext';
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import { initializeResourceTracking, startMemoryLeakDetection } from '@/lib/performance-utils-core';
+import { performanceOptimizer } from '@/lib/performance-optimizations';
 
-// Initialize performance monitoring in development
-if (process.env.NODE_ENV === 'development') {
-  if (typeof window !== 'undefined') {
-    // Initialize resource tracking
-    initializeResourceTracking();
-    
-    // Start memory leak detection with 30MB threshold and 15-second intervals
-    startMemoryLeakDetection(30, 15000);
-    
-    console.log('🔧 Performance monitoring initialized');
-  }
+// Initialize performance optimization
+if (typeof window !== 'undefined') {
+  performanceOptimizer.initialize();
 }
 // If you need to pass server-side session for initial render optimization:
 // import { getServerSession } from "next-auth/next"

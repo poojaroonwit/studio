@@ -161,6 +161,12 @@ services:
     # Resource limits
     mem_limit: 8g
     cpus: 2
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     networks:
       - docker_internal
 

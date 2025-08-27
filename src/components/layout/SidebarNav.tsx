@@ -30,6 +30,7 @@ import { useUnifiedRealtime } from "@/hooks/use-unified-realtime-optimized";
 import { useSidebarCleanup } from "@/hooks/use-sidebar-cleanup";
 import { Clock, X } from "lucide-react";
 import { monitorSidebarResource, unmonitorSidebarResource, getSidebarResourceStats } from "@/lib/sidebar-resource-monitor";
+import { useSidebarSafeEffect, useSidebarSafeCallback, useSidebarRenderMonitor, useSidebarNavigationMonitor } from "@/lib/sidebar-stuck-prevention";
 
 // Add this at the top for TypeScript global declaration
 declare global {
@@ -187,7 +188,7 @@ const usePendingCount = () => {
   });
 
   // Initial fetch with debouncing
-  useEffect(() => {
+  useSidebarSafeEffect(() => {
     if (session?.user) {
       // Debounce the fetch to prevent multiple rapid requests
       addTimeout(() => {
@@ -196,7 +197,7 @@ const usePendingCount = () => {
         }
       }, 100);
     }
-  }, [session?.user, fetchPending, addTimeout, isMounted]);
+  }, [session?.user, fetchPending, addTimeout, isMounted], 'initialFetch');
 
   // Cleanup on unmount
   useEffect(() => {
@@ -254,7 +255,11 @@ const SidebarNavComponent = function SidebarNav() {
     });
   }, [isClient, userRole, session?.user?.modulePermissions]);
 
-  useEffect(() => {
+  // Add sidebar render and navigation monitoring
+  useSidebarRenderMonitor();
+  useSidebarNavigationMonitor();
+
+  useSidebarSafeEffect(() => {
     setIsClient(true);
     
     // Start monitoring sidebar resources
@@ -278,7 +283,7 @@ const SidebarNavComponent = function SidebarNav() {
     return () => {
       unmonitorSidebarResource('component', 'SidebarNav');
     };
-  }, []);
+  }, [], 'sidebarSetup');
 
   // Early return for loading state
   if (sessionStatus === 'loading') {

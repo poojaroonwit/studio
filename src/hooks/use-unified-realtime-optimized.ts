@@ -1,7 +1,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
-import { useInfiniteLoopPrevention } from '@/lib/app-stuck-prevention';
+import { useEmergencySafeEffect, useEmergencySafeCallback, useEmergencySafeEventSource } from '@/lib/emergency-stuck-fix';
 
 interface UnifiedRealtimeOptions {
   onCandidateUpdate?: (candidate: any) => void;
@@ -30,10 +30,8 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
   const reconnectAttemptsRef = useRef(0);
   const maxReconnectAttempts = 5;
 
-  // Track effect runs to prevent infinite loops
-  useInfiniteLoopPrevention('useUnifiedRealtime', 10, () => {
-    console.error('🚨 useUnifiedRealtime effect exceeded maximum runs');
-  });
+  // Use emergency safe EventSource
+  const { createEventSource, closeEventSource, closeAllEventSources } = useEmergencySafeEventSource();
 
   // Update options ref when options change
   useEffect(() => {
@@ -68,6 +66,12 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
     // Prevent excessive reconnection attempts
     if (reconnectAttemptsRef.current >= maxReconnectAttempts) {
       console.warn('🚨 Maximum reconnection attempts reached, stopping reconnection');
+      return;
+    }
+
+    // Track reconnection attempt
+    if (!trackReconnectAttempt()) {
+      console.warn('🚨 Reconnection attempt blocked by final prevention system');
       return;
     }
 

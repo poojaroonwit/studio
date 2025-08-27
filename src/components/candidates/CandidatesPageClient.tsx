@@ -49,7 +49,7 @@ import { useCandidateData } from './hooks/use-candidate-data';
 import { useCandidateFetching } from './hooks/use-candidate-fetching';
 import { useCandidateActions } from './hooks/use-candidate-actions';
 import { useCandidateAiSearch } from './hooks/use-candidate-ai-search';
-import { useSafeEffect, useSafeCallback, useInfiniteLoopPrevention } from "@/lib/app-stuck-prevention";
+import { useEmergencySafeEffect, useEmergencySafeCallback, useEmergencyRenderMonitor, useEmergencySafeTimeout } from "@/lib/emergency-stuck-fix";
 
 interface CandidatesPageClientProps {
   initialCandidates: Candidate[];
@@ -154,9 +154,12 @@ export function CandidatesPageClient({
   const currentFiltersRef = useRef(filters);
   
   // Update ref when filters change
-  useEffect(() => {
+  useEmergencySafeEffect(() => {
     currentFiltersRef.current = filters;
-  }, [filters]);
+  }, [filters], 'currentFiltersRef');
+
+  // Add emergency render monitoring
+  useEmergencyRenderMonitor();
 
   const {
     filteredCandidates,
@@ -1139,7 +1142,7 @@ export function CandidatesPageClient({
   }, [initialFetchError]);
 
   // Fetch fit score counts on mount and when filters change
-  useSafeEffect(() => {
+  useEmergencySafeEffect(() => {
     if (sessionStatus === 'authenticated' && hasInitialDataFetch && initialCandidates.length > 0) {
       // Create a copy of filters without fit score filters to prevent circular dependency
       const filtersForCounts = { ...filters };
@@ -1154,7 +1157,7 @@ export function CandidatesPageClient({
       
       fetchFitScoreCounts();
     }
-  }, [sessionStatus, hasInitialDataFetch, initialCandidates.length, filters, fetchFitScoreCounts], 'fetchFitScoreCounts', 20);
+  }, [sessionStatus, hasInitialDataFetch, initialCandidates.length, filters, fetchFitScoreCounts], 'fetchFitScoreCounts');
 
   // DISABLED: This useEffect was causing resource leaks due to conflicts with onFilterChange
   // The fetchFitScoreCounts is now properly handled in the onFilterChange callback
@@ -1195,7 +1198,7 @@ export function CandidatesPageClient({
   */
 
   // Cleanup timeout on component unmount
-  useSafeEffect(() => {
+  useEmergencySafeEffect(() => {
     return () => {
       if (clearingFiltersTimeoutRef.current) {
         clearTimeout(clearingFiltersTimeoutRef.current);
@@ -1210,7 +1213,7 @@ export function CandidatesPageClient({
         clearTimeout(batchTimeoutRef.current);
       }
     };
-  }, [fetchTimeoutRefFromHook], 'cleanupTimeouts', 10);
+  }, [fetchTimeoutRefFromHook], 'cleanupTimeouts');
 
   // Render the component
   return (

@@ -3,7 +3,7 @@ import { Candidate, CandidateStatus, Position, RecruitmentStage, UserProfile, Ca
 import { CandidateFilterValues } from '@/components/candidates/CandidateFilters';
 import { toast } from 'react-hot-toast';
 import { normalizeFitScore } from '@/lib/scoreUtils';
-import { useInfiniteLoopPrevention, useSafeEffect } from '@/lib/app-stuck-prevention';
+import { useFinalInfiniteLoopPrevention, useFinalSafeEffect, useFinalStateUpdateLimit, useFinalApiCallLimit } from '@/lib/app-stuck-prevention-final';
 
 interface UseCandidateDataProps {
   initialCandidates: Candidate[];

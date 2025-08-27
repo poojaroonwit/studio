@@ -452,6 +452,12 @@ export function CandidateFilters({
       return;
     }
     
+    // Skip if we're in the middle of a rapid position change (within 200ms)
+    const now = Date.now();
+    if (now - lastPositionChangeTimeRef.current < 200) {
+      return;
+    }
+    
     // Debounce filter application to prevent resource leaks from rapid changes
     autoApplyTimeoutRef.current = setTimeout(() => {
       handleApplyStandardFilters();
@@ -500,6 +506,9 @@ export function CandidateFilters({
       if (positionChangeTimeoutRef.current) {
         clearTimeout(positionChangeTimeoutRef.current);
       }
+      if (urlFiltersTimeoutRef.current) {
+        clearTimeout(urlFiltersTimeoutRef.current);
+      }
     };
   }, []); // Only run once on mount
 
@@ -538,6 +547,10 @@ export function CandidateFilters({
       if (positionChangeTimeoutRef.current) {
         clearTimeout(positionChangeTimeoutRef.current);
         positionChangeTimeoutRef.current = null;
+      }
+      if (urlFiltersTimeoutRef.current) {
+        clearTimeout(urlFiltersTimeoutRef.current);
+        urlFiltersTimeoutRef.current = null;
       }
     };
   }, []);
@@ -887,16 +900,27 @@ export function CandidateFilters({
     
     if (hasUrlFilters) {
       // Use a small delay to prevent multiple rapid calls
-      const timeoutId = setTimeout(() => {
+      // Clear any existing timeout to prevent resource leaks
+      if (urlFiltersTimeoutRef.current) {
+        clearTimeout(urlFiltersTimeoutRef.current);
+        urlFiltersTimeoutRef.current = null;
+      }
+      urlFiltersTimeoutRef.current = setTimeout(() => {
         // Only apply if this unique payload hasn't just been applied
         const payloadKey = JSON.stringify(initialFilters);
         if (lastAppliedUrlFiltersRef.current !== payloadKey) {
           lastAppliedUrlFiltersRef.current = payloadKey;
           onFilterChange(initialFilters);
         }
+        urlFiltersTimeoutRef.current = null; // Clear the ref after execution
       }, 100);
 
-      return () => clearTimeout(timeoutId);
+      return () => {
+        if (urlFiltersTimeoutRef.current) {
+          clearTimeout(urlFiltersTimeoutRef.current);
+          urlFiltersTimeoutRef.current = null;
+        }
+      };
     }
   }, []); // Remove initialFilters dependency to prevent infinite loops
 
@@ -910,6 +934,7 @@ export function CandidateFilters({
   const syncingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const applyingFiltersTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const positionChangeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const urlFiltersTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Add a ref to track if we're currently applying filters
   // const isApplyingFiltersRef = useRef(false); // Removed - using state variable instead
@@ -936,9 +961,18 @@ export function CandidateFilters({
 
   // Track whether we're currently handling position changes to prevent auto-apply interference
   const isHandlingPositionChangeRef = useRef(false);
+  // Add rate limiting for position changes to prevent resource leaks
+  const lastPositionChangeTimeRef = useRef<number>(0);
 
   // Wrapper functions to apply filters when dropdown values change
   const handlePositionChange = (newSelectedIds: Set<string>) => {
+    // Rate limiting: prevent position changes more than once every 150ms to prevent resource leaks
+    const now = Date.now();
+    if (now - lastPositionChangeTimeRef.current < 150) {
+      return;
+    }
+    lastPositionChangeTimeRef.current = now;
+    
     // Set flag to prevent auto-apply useEffect from triggering
     isHandlingPositionChangeRef.current = true;
     
@@ -974,12 +1008,14 @@ export function CandidateFilters({
     onFilterChange(newFilters);
     
     // Reset flag after a brief delay to allow state to settle
-    // Clear any existing timeout
+    // Clear any existing timeout to prevent resource leaks
     if (positionChangeTimeoutRef.current) {
       clearTimeout(positionChangeTimeoutRef.current);
+      positionChangeTimeoutRef.current = null;
     }
     positionChangeTimeoutRef.current = setTimeout(() => {
       isHandlingPositionChangeRef.current = false;
+      positionChangeTimeoutRef.current = null; // Clear the ref after execution
     }, 100);
   };
 

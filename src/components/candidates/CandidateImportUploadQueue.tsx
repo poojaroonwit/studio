@@ -23,6 +23,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import type { Position } from '@/lib/types';
 import { FileViewerModal } from "@/components/ui/file-viewer-modal";
+import { useExtendedSafeEffect, useStateUpdateLimit, useApiCallLimit, useSafeEventSourceWithTracking } from '@/lib/app-stuck-prevention-extended';
 
 // Error boundary for this component
 class CandidateImportUploadQueueErrorBoundary extends React.Component<
@@ -486,10 +487,22 @@ const CandidateImportUploadQueueInner: React.FC<{
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [page, total, pageSize]);
 
+  // Add state update and API call tracking
+  const trackStateUpdate = useStateUpdateLimit('CandidateImportUploadQueue', 200, () => {
+    console.error('🚨 Excessive state updates in CandidateImportUploadQueue');
+  });
+
+  const trackApiCall = useApiCallLimit('CandidateImportUploadQueue', 50, () => {
+    console.error('🚨 Excessive API calls in CandidateImportUploadQueue');
+  });
+
+  // Safe EventSource tracking
+  const { createEventSource, closeEventSource, closeAllEventSources } = useSafeEventSourceWithTracking();
+
   // Removed manual refresh function (button removed)
 
   // Fallback polling (less frequent since we have SSE)
-  useEffect(() => {
+  useExtendedSafeEffect(() => {
     // Always use SSE, so this effect is effectively removed
     // const interval = setInterval(() => {
 
@@ -499,9 +512,9 @@ const CandidateImportUploadQueueInner: React.FC<{
     //   clearInterval(interval);
    
     // };
-  }, []);
+  }, [], 'fallbackPolling', 5);
 
-  useEffect(() => {
+  useExtendedSafeEffect(() => {
     // Only fetch if session is loaded and available
     if (sessionStatus === 'authenticated' && session) {
       fetchJobs();
@@ -511,17 +524,17 @@ const CandidateImportUploadQueueInner: React.FC<{
     return () => {
       // No cleanup needed here
     };
-  }, [sessionStatus, session]); // Removed fetchJobs to prevent infinite loop
+  }, [sessionStatus, session], 'fetchJobsOnSession', 10); // Removed fetchJobs to prevent infinite loop
 
   // Fetch status summary separately - only when date/position filters change, not status filter
-  useEffect(() => {
+  useExtendedSafeEffect(() => {
     // Only fetch if session is loaded and available
     if (sessionStatus === 'authenticated' && session) {
       fetchStatusSummary();
     }
-  }, [sessionStatus, session]); // Removed fetchStatusSummary to prevent infinite loop
+  }, [sessionStatus, session], 'fetchStatusSummary', 10); // Removed fetchStatusSummary to prevent infinite loop
 
-  useEffect(() => {
+  useExtendedSafeEffect(() => {
     function handleRefreshEvent() {
       fetchJobs();
     }
@@ -529,7 +542,7 @@ const CandidateImportUploadQueueInner: React.FC<{
     return () => {
       window.removeEventListener('refreshCandidateQueue', handleRefreshEvent);
     };
-  }, []); // Removed fetchJobs to prevent infinite loop
+  }, [], 'refreshEvent', 5); // Removed fetchJobs to prevent infinite loop
 
   // Server-Sent Events (SSE) for real-time updates
   useEffect(() => {

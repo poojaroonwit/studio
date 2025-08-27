@@ -1,3 +1,5 @@
+import React, { useRef, useEffect, useCallback } from 'react';
+
 /**
  * Application Stuck Prevention Utilities
  * 

@@ -117,7 +117,7 @@ export function useCandidateData({
   // Simplified helper function to normalize fit scores
   const normalizeFitScoreForCounts = useCallback((score: number | null | undefined): string => {
     if (score === null || score === undefined) return 'N/A';
-    return normalizeFitScore(score);
+    return normalizeFitScore(score).toString();
   }, []);
 
   // Fetch all candidates for counts (unfiltered, for accurate statistics)

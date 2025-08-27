@@ -30,6 +30,7 @@ import { useUnifiedRealtime } from '@/hooks/use-unified-realtime';
 import { usePermissionRefresh } from '@/hooks/use-permission-refresh';
 import { cn } from '@/lib/utils';
 import { setupChartJS, isChartJSSetup } from '@/lib/chartjs-setup';
+import { useExtendedSafeEffect, useStateUpdateLimit, useApiCallLimit, useSafeEventSourceWithTracking } from '@/lib/app-stuck-prevention-extended';
 import '../../app/dashboard/dashboard.css';
 
 
@@ -81,8 +82,20 @@ export default function DashboardPageClient({
   const [chartReady, setChartReady] = useState(false);
   const chartSetupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
+  // Add state update and API call tracking
+  const trackStateUpdate = useStateUpdateLimit('DashboardPageClient', 200, () => {
+    console.error('🚨 Excessive state updates in DashboardPageClient');
+  });
+
+  const trackApiCall = useApiCallLimit('DashboardPageClient', 50, () => {
+    console.error('🚨 Excessive API calls in DashboardPageClient');
+  });
+
+  // Safe EventSource tracking
+  const { createEventSource, closeEventSource, closeAllEventSources } = useSafeEventSourceWithTracking();
+
   // Setup Chart.js on component mount
-  useEffect(() => {
+  useExtendedSafeEffect(() => {
     const setupChart = async () => {
       try {
         await setupChartJS();
@@ -108,16 +121,16 @@ export default function DashboardPageClient({
     };
     
     setupChart();
-  }, []);
+  }, [], 'chartSetup', 5);
 
   // Cleanup timeout on component unmount
-  useEffect(() => {
+  useExtendedSafeEffect(() => {
     return () => {
       if (chartSetupTimeoutRef.current) {
         clearTimeout(chartSetupTimeoutRef.current);
       }
     };
-  }, []);
+  }, [], 'chartCleanup', 5);
 
   // Check permissions for dashboard access - based on actual permissions, not hardcoded roles
   // Allow access if user has any permissions or is authenticated (more permissive)
@@ -136,6 +149,9 @@ export default function DashboardPageClient({
 
   // Function to re-fetch data on client if needed (e.g., after an action or for a refresh button)
   const fetchDataClientSide = useCallback(async () => {
+    // Track API call
+    if (!trackApiCall()) return;
+    
     if (status !== 'authenticated' || !session?.user?.id) {
       setIsLoading(false);
       return;
@@ -228,7 +244,7 @@ export default function DashboardPageClient({
     } finally {
       setIsLoading(false);
     }
-  }, [status, session?.user?.id, session?.user?.role]);
+  }, [status, session?.user?.id, session?.user?.role, trackApiCall]);
 
   // Unified realtime hook
   const { isConnected: realtimeConnected } = useUnifiedRealtime({
@@ -260,7 +276,10 @@ export default function DashboardPageClient({
     maxReconnectDelayMs: 15000, // Shorter max delay
   });
 
-  useEffect(() => {
+  useExtendedSafeEffect(() => {
+    // Track state update
+    if (!trackStateUpdate()) return;
+    
     // Handle initial state passed from server component
     setFilteredCandidates(initialCandidates || []);
     
@@ -298,10 +317,10 @@ export default function DashboardPageClient({
     if (initialFetchError) {
       toast.error(initialFetchError);
     }
-  }, [initialCandidates, initialPositions, initialUsers, initialFetchError, serverAuthError, serverPermissionError, status, session?.user?.role, session?.user?.modulePermissions, refreshPermissions]);
+  }, [initialCandidates, initialPositions, initialUsers, initialFetchError, serverAuthError, serverPermissionError, status, session?.user?.role, session?.user?.modulePermissions, refreshPermissions, trackStateUpdate], 'initialStateSetup', 10);
 
   // Fetch data when session is authenticated and initial data is empty
-  useEffect(() => {
+  useExtendedSafeEffect(() => {
     if (status === 'authenticated' && session?.user?.id) {
       // Only fetch if we don't have data already
       const hasData = (initialCandidates && initialCandidates.length > 0) || 
@@ -312,12 +331,12 @@ export default function DashboardPageClient({
         fetchDataClientSide();
       }
     }
-  }, [status, session?.user?.id, initialCandidates, initialPositions, initialUsers, fetchDataClientSide]);
+  }, [status, session?.user?.id, initialCandidates, initialPositions, initialUsers, fetchDataClientSide], 'fetchDataOnAuth', 10);
 
-  useEffect(() => {
+  useExtendedSafeEffect(() => {
     let mounted = true;
     
-    const eventSource = new EventSource('/api/dashboard/stream');
+    const eventSource = createEventSource('/api/dashboard/stream');
     eventSource.onmessage = (event) => {
       if (mounted) {
         // Optionally, parse event.data for more granular updates
@@ -326,13 +345,9 @@ export default function DashboardPageClient({
     };
     return () => {
       mounted = false;
-      try {
-        eventSource.close();
-      } catch (error) {
-        console.error('Error closing EventSource:', error);
-      }
+      closeEventSource(eventSource);
     };
-  }, [fetchDataClientSide]);
+  }, [fetchDataClientSide, createEventSource, closeEventSource], 'dashboardEventSource', 5);
 
   const totalActiveCandidates = useMemo(() => {
     const safeAllCandidates = Array.isArray(filteredCandidates)? filteredCandidates : [];

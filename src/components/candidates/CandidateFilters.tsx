@@ -83,7 +83,10 @@ import {
   Loader2,
   ListFilter,
   Play,
-  Briefcase
+  Briefcase,
+  Trash2,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -99,6 +102,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DialogTrigger } from '@/components/ui/dialog';
 import { AdvancedQuerySyntaxModal } from './AdvancedQuerySyntaxModal';
+import { useExtendedSafeEffect, useStateUpdateLimit, useApiCallLimit } from '@/lib/app-stuck-prevention-extended';
 
 export interface CandidateFilterValues {
   name?: string;
@@ -307,12 +311,25 @@ export function CandidateFilters({
   const onFilterChangeRef = useRef(onFilterChange);
   
   // Update ref when onFilterChange changes
-  useEffect(() => {
+  useExtendedSafeEffect(() => {
     onFilterChangeRef.current = onFilterChange;
-  }, [onFilterChange]);
+  }, [onFilterChange], 'onFilterChangeRef', 10);
+
+  // Add state update tracking
+  const trackStateUpdate = useStateUpdateLimit('CandidateFilters', 200, () => {
+    console.error('🚨 Excessive state updates in CandidateFilters');
+  });
+
+  // Add API call tracking
+  const trackApiCall = useApiCallLimit('CandidateFilters', 50, () => {
+    console.error('🚨 Excessive API calls in CandidateFilters');
+  });
 
   // Define handleApplyStandardFilters early to avoid temporal dead zone issues
   const handleApplyStandardFilters = useCallback(() => {
+    // Track state update
+    if (!trackStateUpdate()) return;
+    
     // Skip if we're already applying filters
     if (isApplyingFilters) {
       return;
@@ -403,10 +420,10 @@ export function CandidateFilters({
       clearTimeout(applyingFiltersTimeoutRef.current);
     }
     applyingFiltersTimeoutRef.current = timeoutId;
-  }, [name, nameOperator, email, emailOperator, phone, phoneOperator, selectedPositionIds, selectedStatuses, selectedSourceIds, skills, location, locationOperator, experienceYearsRange, applicationDateRange, selectedRecruiterIds]); // Removed onFilterChange from dependencies
+  }, [name, nameOperator, email, emailOperator, phone, phoneOperator, selectedPositionIds, selectedStatuses, selectedSourceIds, skills, location, locationOperator, experienceYearsRange, applicationDateRange, selectedRecruiterIds, trackStateUpdate]); // Removed onFilterChange from dependencies
 
   // Single auto-apply effect for all filter changes
-  useEffect(() => {
+  useExtendedSafeEffect(() => {
     if (!isInitialLoadRef.current && !isSyncingFromInitialFiltersRef.current && isComponentInitializedRef.current) {
       handleApplyStandardFilters();
     }
@@ -422,11 +439,11 @@ export function CandidateFilters({
     skills,
     experienceYearsRange,
     applicationDateRange
-  ]);
+  ], 'filterAutoApply', 20);
 
   // Auto-apply filters when input values change (debounced to prevent resource leaks)
   // Note: Fit score ranges are now handled separately through debounced handlers
-  useEffect(() => {
+  useExtendedSafeEffect(() => {
     // Clear any existing timeout
     if (autoApplyTimeoutRef.current) {
       clearTimeout(autoApplyTimeoutRef.current);
@@ -470,10 +487,10 @@ export function CandidateFilters({
         autoApplyTimeoutRef.current = null;
       }
     };
-  }, [name, email, phone, selectedPositionIds, selectedStatuses, selectedSourceIds, skills, location, experienceYearsRange, applicationDateRange, selectedRecruiterIds, advancedQueryInput, handleApplyStandardFilters]);
+  }, [name, email, phone, selectedPositionIds, selectedStatuses, selectedSourceIds, skills, location, experienceYearsRange, applicationDateRange, selectedRecruiterIds, advancedQueryInput, handleApplyStandardFilters], 'filterDebouncedApply', 15);
 
   // Component initialization
-  useEffect(() => {
+  useExtendedSafeEffect(() => {
     // Mark component as initialized immediately
     isComponentInitializedRef.current = true;
     isInitialLoadRef.current = false;
@@ -510,10 +527,10 @@ export function CandidateFilters({
         clearTimeout(urlFiltersTimeoutRef.current);
       }
     };
-  }, []); // Only run once on mount
+  }, [], 'componentInitialization', 5); // Only run once on mount
 
   // Cleanup all timeouts on component unmount
-  useEffect(() => {
+  useExtendedSafeEffect(() => {
     return () => {
       // Clear all timeouts to prevent memory leaks
       if (multiselectTimeoutRef.current) {
@@ -553,7 +570,7 @@ export function CandidateFilters({
         urlFiltersTimeoutRef.current = null;
       }
     };
-  }, []);
+  }, [], 'componentCleanup', 5);
 
   // Define a list of common skills
   const skillOptions = [

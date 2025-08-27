@@ -163,7 +163,7 @@ const usePendingCount = () => {
       setPendingError(false);
       setIsPendingLoading(false);
     } catch (e) {
-      if (isMounted() && e.name !== 'AbortError') {
+      if (isMounted() && e instanceof Error && e.name !== 'AbortError') {
         setPendingError(true);
         setIsPendingLoading(false);
       }

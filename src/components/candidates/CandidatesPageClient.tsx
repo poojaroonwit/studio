@@ -111,6 +111,9 @@ export function CandidatesPageClient({
   // Performance Monitor state
   const [showPerformanceMonitor, setShowPerformanceMonitor] = useState<boolean>(false);
 
+  // Initial data fetch state
+  const [hasInitialDataFetch, setHasInitialDataFetch] = useState<boolean>(false);
+
   // Stabilize setter functions to prevent unnecessary re-renders
   const stableSetAiMatchedCandidateIds = useCallback((ids: string[] | null) => {
     setAiMatchedCandidateIds(ids);
@@ -174,8 +177,6 @@ export function CandidatesPageClient({
     setIsFetching,
     hasInitialFetch,
     setHasInitialFetch,
-    hasInitialDataFetch,
-    setHasInitialDataFetch,
     fetchError,
     setFetchError,
     authError,
@@ -194,7 +195,6 @@ export function CandidatesPageClient({
     refreshCandidateInList,
     applyOptimisticUpdate,
     revertOptimisticUpdate,
-    databaseFitScoreCounts,
     fetchFitScoreCounts
   } = useCandidateData({
     initialCandidates,
@@ -574,14 +574,7 @@ export function CandidatesPageClient({
     }
     
     // For regular filtered results, use database fit score counts from API
-    if (databaseFitScoreCounts && 
-        typeof databaseFitScoreCounts === 'object' && 
-        'applied' in databaseFitScoreCounts && 
-        'matching' in databaseFitScoreCounts &&
-        Array.isArray(databaseFitScoreCounts.applied) && 
-        Array.isArray(databaseFitScoreCounts.matching)) {
-      return databaseFitScoreCounts;
-    }
+    // Note: databaseFitScoreCounts was removed, so we always fall back to client-side calculation
     
     // Fallback to client-side calculation if database counts not available
     const scoreRanges = getScoreRangesForChart();
@@ -676,7 +669,7 @@ export function CandidatesPageClient({
     };
     
     return result;
-  }, [databaseFitScoreCounts, candidatesForFitScoreCounts, normalizeFitScore, getBestMatchingFitScore, isAiSearchActive, aiMatchedCandidateIds, allCandidatesForCounts]);
+  }, [candidatesForFitScoreCounts, normalizeFitScore, getBestMatchingFitScore, isAiSearchActive, aiMatchedCandidateIds, allCandidatesForCounts]);
 
   // Calculate loading state for fit score counts
   const isFitScoreCountsLoading = useMemo(() => {
@@ -685,13 +678,8 @@ export function CandidatesPageClient({
       return true;
     }
     
-    // Show loading if we don't have database counts yet and we have candidates to process
-    if (!databaseFitScoreCounts && allCandidatesForCounts.length > 0) {
-      return true;
-    }
-    
     return false;
-  }, [isLoading, tableLoading, databaseFitScoreCounts, allCandidatesForCounts.length]);
+  }, [isLoading, tableLoading]);
 
   // Calculate candidate counts by stage for the pipeline stage filter
   const candidateCountsByStage = useMemo(() => {
@@ -865,7 +853,7 @@ export function CandidatesPageClient({
         delete filtersForCounts.includeNoScoreInApplied;
         delete filtersForCounts.includeNoScoreInMatching;
         
-        fetchFitScoreCounts(filtersForCounts); // Update fit score counts when filters change
+        fetchFitScoreCounts(); // Update fit score counts when filters change
       }, 100); // Small delay to batch API calls
       
       // Store timeout for cleanup
@@ -900,9 +888,9 @@ export function CandidatesPageClient({
   useEffect(() => {
     if (!isLoading && !tableLoading && !isClearingFilters) {
       // The candidateScoreCounts will be recalculated automatically via useMemo
-      // when databaseFitScoreCounts changes, so we don't need to do anything here
+      // when filters change, so we don't need to do anything here
     }
-  }, [databaseFitScoreCounts, isLoading, tableLoading, isClearingFilters]);
+  }, [isLoading, tableLoading, isClearingFilters]);
 
   // Handle clear all filters
   const handleClearAllFilters = useCallback(() => {
@@ -927,7 +915,7 @@ export function CandidatesPageClient({
     // Use a small delay to ensure state updates are processed
     const clearTimeoutId = setTimeout(() => {
       fetchTableData(defaultFilters, 1, pageSize);
-      fetchFitScoreCounts(defaultFilters); // Update fit score counts when clearing all filters
+      fetchFitScoreCounts(); // Update fit score counts when clearing all filters
       setIsClearingFilters(false);
     }, 100);
     
@@ -1164,7 +1152,7 @@ export function CandidatesPageClient({
       delete filtersForCounts.includeNoScoreInApplied;
       delete filtersForCounts.includeNoScoreInMatching;
       
-      fetchFitScoreCounts(filtersForCounts);
+      fetchFitScoreCounts();
     }
   }, [sessionStatus, hasInitialDataFetch, initialCandidates.length, filters, fetchFitScoreCounts], 'fetchFitScoreCounts', 20);
 
@@ -1192,7 +1180,7 @@ export function CandidatesPageClient({
         delete filtersForCounts.includeNoScoreInApplied;
         delete filtersForCounts.includeNoScoreInMatching;
         
-        fetchFitScoreCounts(filtersForCounts);
+        fetchFitScoreCounts();
       }, 100);
     }
     

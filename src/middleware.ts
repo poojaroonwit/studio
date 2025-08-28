@@ -24,29 +24,24 @@ export async function middleware(req: NextRequest) {
       return NextResponse.next();
     }
 
-    // Check for authentication token in cookies
-    // Only treat session-token cookies as authenticated; CSRF cookies are not auth
-    const token = req.cookies.get('next-auth.session-token')?.value || 
-                  req.cookies.get('__Secure-next-auth.session-token')?.value;
+    // Detect NextAuth session token (handle split cookies in production)
+    const allCookies = req.cookies.getAll();
+    const hasSessionToken = allCookies.some(c => {
+      const n = c.name;
+      return n === 'next-auth.session-token' ||
+             n.startsWith('next-auth.session-token.') ||
+             n === '__Secure-next-auth.session-token' ||
+             n.startsWith('__Secure-next-auth.session-token.');
+    });
 
     // If no token and trying to access protected routes, redirect to sign in
-    if (!token && !pathname.startsWith('/auth/signin')) {
+    if (!hasSessionToken && !pathname.startsWith('/auth/signin')) {
       const signInUrl = new URL('/auth/signin', req.url);
       signInUrl.searchParams.set('callbackUrl', pathname);
-      // Add a small delay to prevent redirect loops
       return NextResponse.redirect(signInUrl);
     }
 
-    // For authenticated users, let the page components handle permission checks
-    // This prevents middleware from blocking access and causing redirect loops
-    if (token) {
-      return NextResponse.next();
-    }
-
-    if (protectedRoutes.some(route => pathname.startsWith(route))) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
+    // Let page components handle permission checks
     return NextResponse.next();
   } catch (error) {
     console.error('[MIDDLEWARE] Error:', error);
@@ -57,16 +52,6 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api/auth (auth API routes)
-     * - api-docs (API documentation routes)
-     * - api/upload-queue/process (processor API route)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - api/ (API routes - let them handle their own auth)
-     */
     '/((?!api/auth|api-docs|api/upload-queue/process|_next/static|_next/image|favicon.ico|api/).*)',
     "/api/protected/:path*",
   ],

@@ -7,6 +7,7 @@ import { useUnifiedRealtime } from '@/hooks/use-unified-realtime';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
 
 interface CandidateDetailViewProps {
   candidateId: string;
@@ -406,6 +407,7 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
 
   // Show error state
   if (error && !isLoading) {
+    console.error('[CandidateDetailView] Loading error:', error);
     return (
       <div className="flex items-center justify-center h-64">
         <div className="flex flex-col items-center space-y-4 text-center">
@@ -429,6 +431,7 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
   }
 
   if (isLoading) {
+    console.log('[CandidateDetailView] Loading state - validating candidate and loading attachments');
     return (
       <div className="flex items-center justify-center h-64">
         <div className="flex flex-col items-center space-y-4">
@@ -477,14 +480,40 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
   }
 
   return (
-    <FullCandidateDetail
-      candidateId={candidateId}
-      isModal={isModal}
-      onClose={onClose}
-      comments={comments}
-      resumes={Array.isArray(attachments) ? attachments : []}
-      onRefresh={handleRefresh}
-    />
+    <ErrorBoundary
+      onError={(error, errorInfo) => {
+        console.error('[CandidateDetailView] FullCandidateDetail error:', error, errorInfo);
+      }}
+      fallback={(
+        <div className="flex items-center justify-center h-64">
+          <div className="flex flex-col items-center space-y-4 text-center">
+            <div>
+              <h3 className="text-lg font-medium text-foreground">Component Error</h3>
+              <p className="text-muted-foreground text-sm mb-4">FullCandidateDetail failed to load</p>
+              <div className="flex gap-2">
+                <Button onClick={() => window.location.reload()} variant="outline" size="sm">
+                  Retry
+                </Button>
+                {onClose && (
+                  <Button onClick={onClose} variant="outline" size="sm">
+                    Close
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    >
+      <FullCandidateDetail
+        candidateId={candidateId}
+        isModal={isModal}
+        onClose={onClose}
+        comments={comments}
+        resumes={Array.isArray(attachments) ? attachments : []}
+        onRefresh={handleRefresh}
+      />
+    </ErrorBoundary>
   );
 };
 

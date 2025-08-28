@@ -98,6 +98,7 @@ export const CandidateTabsContent: React.FC<CandidateTabsContentProps> = ({
   resumes = [],
   onRefresh
 }) => {
+  console.log('[CandidateTabsContent] Rendering with activeTab:', activeTab, 'candidate:', candidate?.id, 'isEditing:', isEditing);
   return (
     <div className="h-full bg-background">
       {/* Jobs Tab (Combined Job Applied and Job Match) */}

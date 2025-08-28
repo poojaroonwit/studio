@@ -30,6 +30,7 @@ import { useCandidateDetail } from './hooks/useCandidateDetail';
 import { formatScoreWithGrade } from "@/lib/scoreUtils";
 import { updateCandidateStatusWithNotes } from '@/lib/candidateTransitionUtils';
 import { Badge } from '@/components/ui/badge';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
 
 // Types
 import type { Candidate, Position } from '@/lib/types';
@@ -79,6 +80,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
   const [selectedJobMatch, setSelectedJobMatch] = useState<any>(null);
 
   const [activeTab, setActiveTab] = useState<string>('jobs');
+  const [loadTimedOut, setLoadTimedOut] = useState(false);
 
   // Refs for timeout cleanup
   const copiedJobAppliedTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -141,7 +143,22 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
     removeJobMatch,
     setCandidate,
     setTransitionHistory,
+    fetchCandidate,
   } = useCandidateDetail(candidateId);
+
+  // Safety timeout: if loading takes too long, surface an error with retry
+  React.useEffect(() => {
+    let timeoutId: NodeJS.Timeout | null = null;
+    if (loading) {
+      setLoadTimedOut(false);
+      timeoutId = setTimeout(() => {
+        setLoadTimedOut(true);
+      }, 15000);
+    }
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [loading]);
 
   // Validate candidateId
   const isValidCandidateId = candidateId && uuidSchema.safeParse(candidateId).success;
@@ -171,7 +188,8 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
   }
 
   // Loading state
-  if (loading) {
+  if (loading && !loadTimedOut) {
+    console.log('[FullCandidateDetail] Loading state - fetching candidate data from API');
     return (
       <div className="flex items-center justify-center h-64">
         <div className="flex flex-col items-center space-y-4">
@@ -183,8 +201,35 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
     );
   }
 
+  // Timed out loading state with Retry
+  if (loading && loadTimedOut) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="flex flex-col items-center space-y-4 text-center">
+          <ServerCrash className="h-12 w-12 text-destructive" />
+          <div>
+            <h3 className="text-lg font-medium text-foreground">Loading timed out</h3>
+            <p className="text-muted-foreground text-sm mb-4">The server is taking too long to respond.</p>
+            <Button
+              onClick={() => {
+                setLoadTimedOut(false);
+                fetchCandidate(true);
+              }}
+              variant="outline"
+              size="sm"
+            >
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Retry
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Error state
   if (error || !candidate) {
+    console.error('[FullCandidateDetail] Error state:', error, 'Candidate:', candidate);
     return (
       <div className="flex items-center justify-center h-64">
         <div className="flex flex-col items-center space-y-4 text-center">
@@ -421,31 +466,45 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
   return (
     <div className={isModal ? "h-full overflow-y-auto bg-background pointer-events-auto" : "h-full flex flex-col bg-background"}>
       {/* Header */}
-      <CandidateHeader
-        candidate={candidate}
-        isModal={isModal}
-        onClose={onClose}
-        isEditing={isEditing}
-        availableStages={availableStages}
-        availableRecruiters={availableRecruiters}
-        availableSources={availableSources}
-        isAssigningRecruiter={isAssigningRecruiter}
-        isAssigningSource={isAssigningSource}
-        onAssignRecruiter={handleAssignRecruiter}
-        onAssignSource={handleAssignSource}
-        onResetAssigning={() => setIsAssigningRecruiter(false)}
-        onResetSourceAssigning={() => setIsAssigningSource(false)}
-        onEditClick={handleEnterEditMode}
-        onManageTransitions={openManageTransitionsModal}
-        onReprocess={() => setIsReprocessModalOpen(true)}
-        onGenerativeAI={() => setIsGenerativeAIModalOpen(true)}
-        avatarInputRef={avatarInputRef}
-        avatarUploading={avatarUploading}
-        avatarError={avatarError}
-        avatarForceRefresh={avatarForceRefresh}
-        onAvatarUpload={handleAvatarUpload}
-        realtimeConnected={realtimeConnected}
-      />
+      <ErrorBoundary
+        onError={(error, errorInfo) => {
+          console.error('[FullCandidateDetail] CandidateHeader error:', error, errorInfo);
+        }}
+        fallback={(
+          <div className="bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-100/20 dark:from-slate-900 dark:via-slate-800/50 dark:to-slate-700/30 shadow-lg backdrop-blur-sm border-b border-border p-4">
+            <div className="text-center">
+              <h3 className="text-lg font-medium text-foreground">Header Error</h3>
+              <p className="text-muted-foreground text-sm">Failed to load candidate header</p>
+            </div>
+          </div>
+        )}
+      >
+        <CandidateHeader
+          candidate={candidate}
+          isModal={isModal}
+          onClose={onClose}
+          isEditing={isEditing}
+          availableStages={availableStages}
+          availableRecruiters={availableRecruiters}
+          availableSources={availableSources}
+          isAssigningRecruiter={isAssigningRecruiter}
+          isAssigningSource={isAssigningSource}
+          onAssignRecruiter={handleAssignRecruiter}
+          onAssignSource={handleAssignSource}
+          onResetAssigning={() => setIsAssigningRecruiter(false)}
+          onResetSourceAssigning={() => setIsAssigningSource(false)}
+          onEditClick={handleEnterEditMode}
+          onManageTransitions={openManageTransitionsModal}
+          onReprocess={() => setIsReprocessModalOpen(true)}
+          onGenerativeAI={() => setIsGenerativeAIModalOpen(true)}
+          avatarInputRef={avatarInputRef}
+          avatarUploading={avatarUploading}
+          avatarError={avatarError}
+          avatarForceRefresh={avatarForceRefresh}
+          onAvatarUpload={handleAvatarUpload}
+          realtimeConnected={realtimeConnected}
+        />
+      </ErrorBoundary>
       
       {/* Pipeline Section - Above main content and sidebar */}
       <div className="grid grid-cols-1 lg:grid-cols-10 border-t bg-card flex-shrink-0">

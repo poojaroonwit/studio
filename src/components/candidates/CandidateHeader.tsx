@@ -70,6 +70,7 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
   onAvatarUpload,
   realtimeConnected
 }) => {
+  console.log('[CandidateHeader] Rendering with candidate:', candidate?.id, 'isEditing:', isEditing);
   const nameInfo = formatCandidateNameWithLang(candidate);
 
   return (

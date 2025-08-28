@@ -12,8 +12,8 @@ export const dynamic = 'force-dynamic';
 
 
 // GET: List resumes for a candidate (with pagination and performance optimization)
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
-  const { id } = params;
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const { searchParams } = new URL(req.url);
   const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100); // Max 100 attachments per request
   const offset = parseInt(searchParams.get('offset') || '0');
@@ -74,8 +74,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 }
 
 // POST: Upload a resume (multipart/form-data) - supports single or multiple files
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
-  const { id } = params;
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const session = await getServerSession(authOptions);
   if (!session || !session.user?.id) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
@@ -161,8 +161,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 }
 
 // PUT: Set a attachment as primary
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
-  const { id } = params;
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const session = await getServerSession(authOptions);
   if (!session || !session.user?.id) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
@@ -182,8 +182,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 }
 
 // DELETE: Remove a attachment
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
-  const { id } = params;
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const session = await getServerSession(authOptions);
   if (!session || !session.user?.id) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });

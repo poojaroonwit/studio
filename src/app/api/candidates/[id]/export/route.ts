@@ -91,7 +91,7 @@ function transformCandidateForExport(candidate: any, jobMatches: any[]): any {
   };
 }
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   const actingUserId = session?.user?.id;
   const actingUserName = session?.user?.name || session?.user?.email || 'System';
@@ -107,7 +107,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     return NextResponse.json({ error: 'Forbidden: Insufficient permissions to export candidates' }, { status: 403 });
   }
 
-  const { id } = params;
+  const { id } = await params;
   
   // Validate UUID
   const uuidSchema = z.string().uuid();

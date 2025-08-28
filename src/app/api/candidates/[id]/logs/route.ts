@@ -4,11 +4,12 @@ import { broadcastCandidateTransitionUpdate } from '@/lib/candidateSse';
 import { z } from 'zod';
 // Type imports removed due to linter errors
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     // Validate candidate ID format
     const uuidSchema = z.string().uuid();
-    if (!uuidSchema.safeParse(params.id).success) {
+    if (!uuidSchema.safeParse(id).success) {
       return new Response(JSON.stringify({ message: 'Invalid candidate ID format' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
@@ -16,7 +17,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     }
 
     // Check if candidate exists
-    const candidate = await prisma.candidate.findUnique({ where: { id: params.id } });
+    const candidate = await prisma.candidate.findUnique({ where: { id: id } });
     if (!candidate) {
       return new Response(JSON.stringify({ message: 'Candidate not found' }), {
         status: 404,
@@ -26,21 +27,21 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     // Fetch transition records for the candidate
     const transitions = await prisma.transitionRecord.findMany({
-      where: { candidateId: params.id },
+      where: { candidateId: id },
       orderBy: { date: 'desc' },
       include: { actingUser: true },
     });
 
     // Fetch comments for the candidate
     const comments = await prisma.candidateComment.findMany({
-      where: { candidateId: params.id },
+      where: { candidateId: id },
       orderBy: { createdAt: 'desc' },
       include: { author: true },
     });
 
     // Fetch resume uploads for the candidate (attachments with label 'resume')
     const resumes = await prisma.attachment.findMany({
-      where: { candidateId: params.id, label: 'resume' },
+      where: { candidateId: id, label: 'resume' },
       orderBy: { uploadedAt: 'desc' },
       include: { uploadedBy: true },
     });
@@ -92,7 +93,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (err) {
-    console.error(`[GET /api/candidates/${params.id}/logs] Error:`, err);
+    console.error(`[GET /api/candidates/${id}/logs] Error:`, err);
     return new Response(JSON.stringify({ message: 'Internal server error' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },

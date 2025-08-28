@@ -89,7 +89,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     return handleApiError(req, createUnauthorizedError('Authentication required'));
   }
 
-  const { id } = params;
+  const { id } = await params;
   const client = await getPool().connect();
   
   try {
@@ -140,7 +140,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     return handleApiError(req, createForbiddenError('Insufficient permissions to update candidate sources'));
   }
 
-  const { id } = params;
+  const { id } = await params;
   let body;
   
   try {

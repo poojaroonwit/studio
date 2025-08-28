@@ -94,7 +94,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
-  const { id } = params;
+  const { id } = await params;
   console.log(`[Positions API] Fetching position with ID: ${id}`);
   
   const client = await getPool().connect();
@@ -154,7 +154,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
-  const { id } = params;
+  const { id } = await params;
   let body;
   try {
     body = await request.json();
@@ -425,7 +425,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
-  const { id } = params;
+  const { id } = await params;
   const client = await getPool().connect();
   try {
     await client.query('BEGIN');

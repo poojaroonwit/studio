@@ -92,13 +92,13 @@ function extractIdFromUrl(request: NextRequest): string | null {
   return match ? match[1] : null;
 }
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
-  const { id } = params;
+  const { id } = await params;
   // Validate UUID
   const uuidSchema = z.string().uuid();
   if (!uuidSchema.safeParse(id).success) {
@@ -265,7 +265,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   const actingUserId = session?.user?.id;
   const actingUserName = session?.user?.name || session?.user?.email || 'System';
@@ -280,7 +280,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     return NextResponse.json({ message: 'Forbidden: Insufficient permissions to update candidates' }, { status: 403 });
   }
 
-  const { id } = params;
+  const { id } = await params;
   
   // Validate UUID format
   const uuidSchema = z.string().uuid();
@@ -857,7 +857,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   const actingUserId = session?.user?.id;
   const actingUserName = session?.user?.name || session?.user?.email || 'System';
@@ -866,7 +866,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
-  const { id } = params;
+  const { id } = await params;
   const client = await getPool().connect();
   try {
     await client.query('BEGIN');

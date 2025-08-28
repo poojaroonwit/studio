@@ -15,7 +15,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id, configId } = params;
+    const { id, configId } = await params;
 
     // Check if user is updating their own configuration, is admin, or has warning configurations management permission
     const isAdmin = session.user.role === 'Admin';
@@ -131,7 +131,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id, configId } = params;
+    const { id, configId } = await params;
 
     // Check if user is updating their own configuration, is admin, or has warning configurations management permission
     const isAdmin = session.user.role === 'Admin';
@@ -206,7 +206,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id, configId } = params;
+    const { id, configId } = await params;
 
     // Check if user is deleting their own configuration, is admin, or has warning configurations management permission
     const isAdmin = session.user.role === 'Admin';

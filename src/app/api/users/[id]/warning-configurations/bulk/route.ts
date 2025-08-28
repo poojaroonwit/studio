@@ -15,7 +15,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     // Check if user is accessing their own configurations, is admin, or has warning configurations management permission
     const isAdmin = session.user.role === 'Admin';
@@ -96,7 +96,7 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     // Check if user is creating their own configurations, is admin, or has warning configurations management permission
     const isAdmin = session.user.role === 'Admin';

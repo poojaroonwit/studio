@@ -136,7 +136,7 @@ const SidebarNavComponent = () => {
           ))}
         </SidebarMenu>
         
-        <div className="mt-auto p-2">
+        <div className="mt-auto">
           <SidebarMenu>
             <SidebarMenuItem>
               <MenuItemWithTooltip label={bulkUploadNavItem.label}>
@@ -148,7 +148,7 @@ const SidebarNavComponent = () => {
                   >
                     <bulkUploadNavItem.icon className="h-5 w-5" />
                     {pendingCount !== null && (
-                      <Badge className="absolute -top-1 -right-1 h-5 min-w-5 px-0.5 text-xs">
+                      <Badge className="absolute -top-1 -right-1 h-5 min-w-5 px-0.5 text-xs group-data-[collapsible=icon]:-top-0.5 group-data-[collapsible=icon]:-right-0.5">
                         {isLoading ? (
                           <div className="h-3 w-3 animate-spin rounded-full border border-current border-t-transparent" />
                         ) : (

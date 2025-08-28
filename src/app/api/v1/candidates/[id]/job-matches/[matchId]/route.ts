@@ -29,7 +29,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string; 
     return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to view job matches' }), { status: 403, headers: handleCors(req) });
   }
 
-  const { id, matchId } = params;
+  const { id, matchId } = await params;
   const client = await getPool().connect();
   
   try {
@@ -85,7 +85,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string; 
     return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to manage job matches' }), { status: 403, headers: handleCors(req) });
   }
 
-  const { id, matchId } = params;
+  const { id, matchId } = await params;
   let body;
   
   try {
@@ -175,7 +175,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to manage job matches' }), { status: 403, headers: handleCors(req) });
   }
 
-  const { id, matchId } = params;
+  const { id, matchId } = await params;
   const client = await getPool().connect();
   
   try {

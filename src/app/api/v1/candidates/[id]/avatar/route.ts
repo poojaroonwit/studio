@@ -15,7 +15,7 @@ import {
 } from '@/lib/apiErrorHandler';
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
-  const { id: candidateId } = params;
+  const { id: candidateId } = await params;
   
   const authHeader = req.headers.get('authorization');
   const token = authHeader?.split(' ')[1];
@@ -126,7 +126,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 }
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
-  const { id: candidateId } = params;
+  const { id: candidateId } = await params;
   
   const authHeader = req.headers.get('authorization');
   const token = authHeader?.split(' ')[1];

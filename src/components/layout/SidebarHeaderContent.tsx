@@ -125,12 +125,12 @@ export function SidebarHeaderContent({
   // Collapsed (icon) mode: show logo only, no toggle button (handled by floating button outside)
   if (!sidebarContext.open) {
     return (
-      <div className="h-[var(--sidebar-width-icon)] flex flex-col justify-center items-center gap-2">
+      <div className="h-[var(--sidebar-width-icon)] flex items-center justify-center">
         {/* Logo in collapsed mode */}
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className="flex items-center justify-center">
+              <div className="flex items-center justify-center w-full h-full">
                 {renderLogo(true)}
               </div>
             </TooltipTrigger>

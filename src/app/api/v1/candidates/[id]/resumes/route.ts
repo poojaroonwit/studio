@@ -8,7 +8,7 @@ import { authOptions } from '@/lib/auth';
 
 // GET: List attachments for a candidate
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
-  const { id } = params;
+  const { id } = await params;
   try {
     const attachments = await prisma.attachment.findMany({
       where: { candidateId: id },
@@ -28,7 +28,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
 // POST: Upload an attachment (multipart/form-data)
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
-  const { id } = params;
+  const { id } = await params;
   const session = await getServerSession(authOptions);
   if (!session || !session.user?.id) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
@@ -74,7 +74,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
 // PUT: Set an attachment as primary
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
-  const { id } = params;
+  const { id } = await params;
   const session = await getServerSession(authOptions);
   if (!session || !session.user?.id) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
@@ -93,7 +93,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
 // DELETE: Remove an attachment
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
-  const { id } = params;
+  const { id } = await params;
   const session = await getServerSession(authOptions);
   if (!session || !session.user?.id) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });

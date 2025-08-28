@@ -80,7 +80,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   if (!user) {
     return handleApiError(req, createUnauthorizedError('Authentication required'));
   }
-  const { id } = params;
+  const { id } = await params;
   const client = await getPool().connect();
   try {
     const candidateQuery = `
@@ -161,7 +161,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   if (!user || (user.role !== 'Admin' && !user.modulePermissions?.includes('CANDIDATES_MANAGE'))) {
     return handleApiError(req, createForbiddenError('Insufficient permissions to update candidates'));
   }
-  const { id } = params;
+  const { id } = await params;
   let body;
   try {
     body = await req.json();
@@ -481,7 +481,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   if (!user || (user.role !== 'Admin' && !user.modulePermissions?.includes('CANDIDATES_MANAGE'))) {
     return handleApiError(req, createForbiddenError('Insufficient permissions to delete candidates'));
   }
-  const { id } = params;
+  const { id } = await params;
   const client = await getPool().connect();
   try {
     await client.query('BEGIN');

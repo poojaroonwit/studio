@@ -36,7 +36,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     return handleApiError(req, createForbiddenError('Insufficient permissions to view users'));
   }
 
-  const { id } = params;
+  const { id } = await params;
   const client = await getPool().connect();
   
   try {
@@ -74,7 +74,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     return handleApiError(req, createForbiddenError('Insufficient permissions to update users'));
   }
 
-  const { id } = params;
+  const { id } = await params;
   let body;
   try {
     body = await req.json();
@@ -181,7 +181,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     return handleApiError(req, createForbiddenError('Insufficient permissions to delete users'));
   }
 
-  const { id } = params;
+  const { id } = await params;
   const client = await getPool().connect();
   
   try {

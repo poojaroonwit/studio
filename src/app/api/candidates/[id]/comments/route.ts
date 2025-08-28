@@ -45,8 +45,8 @@ async function getAttachmentsMap(ids: string[]) {
 }
 
 // GET: List comments for a candidate (with attachments and pagination)
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
-  const { id } = params;
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const { searchParams } = new URL(req.url);
   const limit = Math.min(parseInt(searchParams.get('limit') || '10'), 50); // Max 50 comments per request
   const offset = parseInt(searchParams.get('offset') || '0');
@@ -113,8 +113,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 }
 
 // POST: Add a comment (with multiple file uploads)
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
-  const { id } = params;
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const session = await getServerSession(authOptions);
   if (!session || !session.user?.id) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
@@ -232,8 +232,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 }
 
 // PUT: Edit a comment (with multiple file uploads)
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
-  const { id } = params;
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const session = await getServerSession(authOptions);
   if (!session || !session.user?.id) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
@@ -350,8 +350,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 }
 
 // DELETE: Remove a comment (only author can delete)
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
-  const { id } = params;
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const session = await getServerSession(authOptions);
   if (!session || !session.user?.id) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });

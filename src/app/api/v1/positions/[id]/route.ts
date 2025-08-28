@@ -33,7 +33,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   if (!user) {
     return handleApiError(req, createUnauthorizedError('Authentication required'));
   }
-  const { id } = params;
+  const { id } = await params;
   const client = await getPool().connect();
   try {
     const query = 'SELECT p.id, p.title, p.department, p.description, p."matchCriteria", p."isOpen", p."positionLevel", p."gradeId", p."hiringDate", p."recruiterId", p."customAttributes", p."createdAt", p."updatedAt", u.name as "recruiterName", u.email as "recruiterEmail" FROM "Position" p LEFT JOIN "User" u ON p."recruiterId" = u.id WHERE p.id = $1';
@@ -67,7 +67,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   if (!user || (user.role !== 'Admin' && !user.modulePermissions?.includes('POSITIONS_MANAGE'))) {
     return handleApiError(req, createForbiddenError('Insufficient permissions to update positions'));
   }
-  const { id } = params;
+  const { id } = await params;
   let body;
   try {
     body = await req.json();
@@ -172,7 +172,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   if (!user || (user.role !== 'Admin' && !user.modulePermissions?.includes('POSITIONS_MANAGE'))) {
     return handleApiError(req, createForbiddenError('Insufficient permissions to delete positions'));
   }
-  const { id } = params;
+  const { id } = await params;
   const client = await getPool().connect();
   try {
     await client.query('BEGIN');

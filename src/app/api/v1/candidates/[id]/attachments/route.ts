@@ -61,7 +61,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     });
   }
   
-  const { id } = params;
+  const { id } = await params;
   
   const authHeader = req.headers.get('authorization');
   const token = authHeader?.split(' ')[1];
@@ -99,7 +99,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     });
   }
   
-  const { id } = params;
+  const { id } = await params;
   
   const authHeader = req.headers.get('authorization');
   const token = authHeader?.split(' ')[1];
@@ -226,7 +226,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 // PATCH: Upload an attachment from URL
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   
-  const { id } = params;
+  const { id } = await params;
   
   const authHeader = req.headers.get('authorization');
   const token = authHeader?.split(' ')[1];
@@ -335,7 +335,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
 // PUT: Set an attachment as primary
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
-  const { id } = params;
+  const { id } = await params;
   
   const authHeader = req.headers.get('authorization');
   const token = authHeader?.split(' ')[1];
@@ -377,7 +377,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
 // DELETE: Remove an attachment
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
-  const { id } = params;
+  const { id } = await params;
   
   const authHeader = req.headers.get('authorization');
   const token = authHeader?.split(' ')[1];

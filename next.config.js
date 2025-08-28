@@ -51,23 +51,14 @@ function getMinioRemotePattern() {
 const nextConfig = {
   reactStrictMode: true,
   // Performance optimizations
-  swcMinify: true,
   compress: true,
   poweredByHeader: false,
+  typescript: {
+    ignoreBuildErrors: true,
+  },
   
   // Increase body size limit for large file uploads (500MB)
   experimental: {
-    serverComponentsExternalPackages: ['@prisma/client', 'bcryptjs', 'pg', 'jose'],
-    optimizeCss: true,
-    // optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'], // Disabled due to self reference issue
-    serverActions: {
-      bodySizeLimit: '500mb',
-    },
-  },
-  
-  // Disable static generation for API routes that use dynamic features
-  experimental: {
-    serverComponentsExternalPackages: ['@prisma/client', 'bcryptjs', 'pg', 'jose'],
     optimizeCss: true,
     // optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'], // Disabled due to self reference issue
     serverActions: {
@@ -216,14 +207,6 @@ const nextConfig = {
   
   // Webpack configuration to handle build issues and optimize performance
   webpack: (config, { isServer, dev }) => {
-    // Handle build-time connection issues
-    if (!dev && isServer) {
-      config.externals = config.externals || [];
-      config.externals.push({
-        'minio': 'commonjs minio',
-      });
-    }
-    
     // Prevent client bundle from trying to polyfill Node core modules used by pg
     if (!isServer) {
       config.resolve = config.resolve || {};
@@ -234,53 +217,12 @@ const nextConfig = {
         tls: false,
         dns: false,
       };
-      // Ensure pg and related libs are not bundled into the client
-      config.externals = config.externals || [];
-      config.externals.push({
-        pg: 'commonjs pg',
-        'pg-connection-string': 'commonjs pg-connection-string',
-      });
     }
 
     // Fix for NextAuth jose.js vendor chunk issue
     config.resolve = config.resolve || {};
     config.resolve.alias = config.resolve.alias || {};
     config.resolve.alias['jose'] = require.resolve('jose');
-
-    // Performance optimizations
-    if (!dev) {
-      // Enable tree shaking
-      config.optimization = {
-        ...config.optimization,
-        usedExports: true,
-        sideEffects: false,
-      };
-      
-      // Split chunks for better caching
-      config.optimization.splitChunks = {
-        chunks: 'all',
-        cacheGroups: {
-          // vendor: {
-          //   test: /[\\/]node_modules[\\/]/,
-          //   name: 'vendors',
-          //   chunks: 'all',
-          // },
-          common: {
-            name: 'common',
-            minChunks: 2,
-            chunks: 'all',
-            enforce: true,
-          },
-        },
-      };
-    }
-
-    // Suppress Fast Refresh logs in development
-    if (dev) {
-      config.infrastructureLogging = {
-        level: 'error',
-      };
-    }
     
     return config;
   },

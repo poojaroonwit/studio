@@ -27,7 +27,7 @@ export async function GET(
     return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
   }
 
-  const { id } = params;
+  const { id } = await params;
 
   try {
     const systemPrompt = await prisma.systemPrompt.findUnique({
@@ -60,7 +60,7 @@ export async function PUT(
     return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
   }
 
-  const { id } = params;
+  const { id } = await params;
 
   let body;
   try {
@@ -157,7 +157,7 @@ export async function DELETE(
     return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
   }
 
-  const { id } = params;
+  const { id } = await params;
 
   try {
     await prisma.systemPrompt.delete({

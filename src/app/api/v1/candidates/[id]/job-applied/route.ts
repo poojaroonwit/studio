@@ -19,7 +19,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: handleCors(req) });
   }
   
-  const { id } = params;
+  const { id } = await params;
   const client = await getPool().connect();
   
   try {
@@ -67,7 +67,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to manage job_applied data' }), { status: 403, headers: handleCors(req) });
   }
 
-  const { id } = params;
+  const { id } = await params;
   let body;
   
   try {
@@ -172,7 +172,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to manage job_applied data' }), { status: 403, headers: handleCors(req) });
   }
 
-  const { id } = params;
+  const { id } = await params;
   let body;
   
   try {
@@ -276,7 +276,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to manage job_applied data' }), { status: 403, headers: handleCors(req) });
   }
 
-  const { id } = params;
+  const { id } = await params;
   const client = await getPool().connect();
   
   try {

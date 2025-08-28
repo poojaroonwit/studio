@@ -122,7 +122,16 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
 
   // Custom signout function that handles cleanup and redirect
   const handleSignOut = async () => {
+    // Prevent multiple logout attempts
+    if (window.location.pathname === '/auth/signin' && window.location.search.includes('signout=true')) {
+      console.log('[HEADER] Already on signin page with signout parameter, skipping logout');
+      return;
+    }
+    
     console.log('[HEADER] Starting signout process...');
+    console.log('[HEADER] Current URL:', window.location.href);
+    console.log('[HEADER] Session status:', status);
+    
     try {
       // Clear any cached data
       if (session?.user?.id) {
@@ -138,11 +147,17 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
       }
       
       console.log('[HEADER] Performing signout with redirect to /auth/signin?signout=true');
-      // Perform signout with redirect
-      await signOut({ 
+      // Use a more direct approach to prevent redirect loops
+      const signOutResult = await signOut({ 
         callbackUrl: '/auth/signin?signout=true', 
-        redirect: true 
+        redirect: false 
       });
+      
+      console.log('[HEADER] SignOut result:', signOutResult);
+      
+      // Manually redirect after signOut completes
+      console.log('[HEADER] Manually redirecting to /auth/signin?signout=true');
+      window.location.href = '/auth/signin?signout=true';
     } catch (error) {
       console.error('[HEADER] Signout error:', error);
       // Fallback to window.location if signOut fails

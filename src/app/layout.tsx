@@ -10,6 +10,7 @@ import { NotificationProvider } from '@/contexts/NotificationContext';
 import { WarningProvider } from '@/contexts/WarningContext';
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
+import { ModalCleanupMonitor } from '@/components/ui/ModalCleanupMonitor';
 
 // Temporarily disabled resource tracking to fix loading issue
 // import { initializeResourceTracking } from '@/lib/resource-leak-fixes';
@@ -94,6 +95,7 @@ export default async function RootLayout({
                   </AppLayout>
                 </ErrorBoundary>
                 <ToastClient />
+                <ModalCleanupMonitor />
               </WarningProvider>
             </NotificationProvider>
           </AuthProvider>

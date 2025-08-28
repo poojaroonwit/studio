@@ -152,6 +152,19 @@ export async function POST(request: NextRequest) {
     }
 
     const { name, description, permissions } = validation.data;
+    
+    // Validate permissions if provided
+    if (permissions && Array.isArray(permissions)) {
+        const platformModuleIds = PLATFORM_MODULES.map(m => m.id);
+        const invalidPermissions = permissions.filter(permission => !platformModuleIds.includes(permission));
+        if (invalidPermissions.length > 0) {
+            console.error('POST /api/settings/user-groups - Invalid permissions:', invalidPermissions);
+            return NextResponse.json({ 
+                message: 'Invalid permissions provided', 
+                errors: { permissions: [`Invalid permissions: ${invalidPermissions.join(', ')}`] } 
+            }, { status: 400 });
+        }
+    }
     const newId = uuidv4();
     
     const client = await getPool().connect();

@@ -49,7 +49,7 @@ export const runtime = 'nodejs';
  *               $ref: '#/components/schemas/User'
  */
 
-const platformModuleIds = PLATFORM_MODULES.map(m => m.id) as [PlatformModuleId, ...PlatformModuleId[]];
+const platformModuleIds = PLATFORM_MODULES.map(m => m.id);
 
 const userRoleEnum = z.enum(['Admin', 'Recruiter', 'Hiring Manager']);
 
@@ -59,7 +59,7 @@ const createUserSchema = z.object({
   // Password is only required for 'basic' users; for 'azure', it is optional
   password: z.string().min(8, "Password must be at least 8 characters long").optional(),
   role: userRoleEnum,
-  modulePermissions: z.array(z.enum(platformModuleIds)).optional().default([]),
+  modulePermissions: z.array(z.string()).optional().default([]),
   userTeamIds: z.array(z.string().uuid()).optional().default([]),
   authenticationMethod: z.enum(['basic', 'azure']).optional().default('basic'),
   forcePasswordChange: z.boolean().optional().default(false),
@@ -239,6 +239,18 @@ export async function POST(request: NextRequest) {
   }
 
   const { name, email, password, role, modulePermissions, userTeamIds, authenticationMethod, forcePasswordChange, personalColor } = validationResult.data;
+  
+  // Validate modulePermissions if provided
+  if (modulePermissions && Array.isArray(modulePermissions)) {
+    const invalidPermissions = modulePermissions.filter(permission => !platformModuleIds.includes(permission));
+    if (invalidPermissions.length > 0) {
+      console.error('POST /api/users - Invalid modulePermissions:', invalidPermissions);
+      return NextResponse.json({ 
+        message: 'Invalid module permissions provided', 
+        errors: { modulePermissions: [`Invalid permissions: ${invalidPermissions.join(', ')}`] } 
+      }, { status: 400 });
+    }
+  }
 
 
   const saltRounds = 10;

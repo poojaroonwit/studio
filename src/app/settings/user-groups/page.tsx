@@ -45,12 +45,12 @@ import {
   DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
 
-const platformModuleIds = PLATFORM_MODULES.map(m => m.id) as [PlatformModuleId, ...PlatformModuleId[]];
+const platformModuleIds = PLATFORM_MODULES.map(m => m.id);
 
 const roleFormSchema = z.object({
   name: z.string().min(1, "Role name is required").max(100),
   description: z.string().optional().nullable(),
-  permissions: z.array(z.enum(platformModuleIds)).optional().default([]),
+  permissions: z.array(z.string()).optional().default([]),
   is_default: z.boolean().optional().default(false),
 });
 type RoleFormValues = z.infer<typeof roleFormSchema>;

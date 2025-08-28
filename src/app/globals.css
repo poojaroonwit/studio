@@ -111,9 +111,35 @@
 [data-radix-dialog-overlay][data-state="closed"] {
   display: none !important;
   pointer-events: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
 }
 
 [data-radix-dialog-content][data-state="closed"] {
+  display: none !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+/* Force cleanup of any remaining modal elements */
+[data-radix-dialog-overlay]:not([data-state="open"]) {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+[data-radix-dialog-content]:not([data-state="open"]) {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+/* Ensure body is always clickable */
+body {
+  pointer-events: auto !important;
+}
+
+/* Prevent any fixed overlays from blocking interactions when closed */
+.fixed[style*="z-index"]:not([data-state="open"]) {
   display: none !important;
   pointer-events: none !important;
 }

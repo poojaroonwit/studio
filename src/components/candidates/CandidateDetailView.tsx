@@ -6,6 +6,7 @@ import FullCandidateDetail from './FullCandidateDetail';
 import { useUnifiedRealtime } from '@/hooks/use-unified-realtime';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
 
 interface CandidateDetailViewProps {
   candidateId: string;
@@ -18,6 +19,8 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
   const [resumes, setResumes] = useState<any[]>([]);
   const [attachments, setAttachments] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [candidateExists, setCandidateExists] = useState<boolean | null>(null);
+  const [error, setError] = useState<string | null>(null);
   
   // Refs for cleanup
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -41,8 +44,43 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
   const { status } = useSession();
   const router = useRouter();
 
+  // First, validate that the candidate exists
+  const validateCandidate = useCallback(async () => {
+    if (!candidateId || !isMountedRef.current) return false;
+    
+    try {
+      const res = await fetch(`/api/candidates/${candidateId}`, {
+        method: 'HEAD', // Just check if it exists, don't fetch data
+        signal: abortControllerRef.current?.signal
+      });
+      
+      if (!isMountedRef.current) return false;
+      
+      if (res.ok) {
+        setCandidateExists(true);
+        return true;
+      } else if (res.status === 404) {
+        setCandidateExists(false);
+        setError('Candidate not found');
+        return false;
+      } else {
+        setCandidateExists(false);
+        setError(`Failed to validate candidate: ${res.status}`);
+        return false;
+      }
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        return false;
+      }
+      console.error('Error validating candidate:', error);
+      setCandidateExists(false);
+      setError('Failed to validate candidate');
+      return false;
+    }
+  }, [candidateId]);
+
   const fetchComments = useCallback(async (limit = 10, offset = 0) => {
-    if (!isMountedRef.current) return [];
+    if (!isMountedRef.current || !candidateExists) return [];
     
     try {
       // Create new abort controller for this request
@@ -67,10 +105,10 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
       console.error('Error fetching comments:', error);
       return [];
     }
-  }, [candidateId]);
+  }, [candidateId, candidateExists]);
 
   const fetchResumes = useCallback(async (limit = 20, offset = 0) => {
-    if (!isMountedRef.current) return [];
+    if (!isMountedRef.current || !candidateExists) return [];
     
     try {
       // Create new abort controller for this request
@@ -95,11 +133,11 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
       console.error('Error fetching resumes:', error);
       return [];
     }
-  }, [candidateId]);
+  }, [candidateId, candidateExists]);
 
   // Merge attachments from resumes and comments (same logic as candidate ID page)
   const loadAllAttachments = useCallback(async () => {
-    if (!isMountedRef.current) return;
+    if (!isMountedRef.current || !candidateExists) return;
     
     setIsLoading(true);
     
@@ -144,7 +182,7 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
         setIsLoading(false);
       }
     }
-  }, [fetchResumes, fetchComments]);
+  }, [fetchResumes, fetchComments, candidateExists]);
 
   const handleRefresh = useCallback(() => {
     if (isMountedRef.current) {
@@ -154,7 +192,20 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
 
   useEffect(() => {
     isMountedRef.current = true;
-    loadAllAttachments();
+    
+    const initialize = async () => {
+      // First validate the candidate exists
+      const exists = await validateCandidate();
+      if (exists && isMountedRef.current) {
+        // Only load attachments if candidate exists
+        await loadAllAttachments();
+      } else if (isMountedRef.current) {
+        // If candidate doesn't exist, stop loading
+        setIsLoading(false);
+      }
+    };
+    
+    initialize();
     
     return () => {
       isMountedRef.current = false;
@@ -164,7 +215,7 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
         abortControllerRef.current = null;
       }
     };
-  }, [loadAllAttachments]);
+  }, [validateCandidate, loadAllAttachments]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -176,6 +227,25 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
       }
     };
   }, []);
+
+  // Show error if candidate doesn't exist
+  if (candidateExists === false) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="flex flex-col items-center space-y-4 text-center">
+          <div>
+            <h3 className="text-lg font-medium text-foreground">Candidate Not Found</h3>
+            <p className="text-muted-foreground text-sm mb-4">{error || 'The requested candidate could not be found.'}</p>
+            {onClose && (
+              <Button onClick={onClose} variant="outline" size="sm">
+                Close
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

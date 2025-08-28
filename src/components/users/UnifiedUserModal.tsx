@@ -40,7 +40,7 @@ import { UserAvatarUpload } from '@/components/ui/user-avatar-upload';
 import { PersonalColorPicker } from '@/components/settings/PersonalColorPicker';
 
 const userRoleOptions: UserProfile['role'][] = ['Admin', 'Recruiter', 'Hiring Manager'];
-const platformModuleIds = PLATFORM_MODULES.map(m => m.id) as [PlatformModuleId, ...PlatformModuleId[]];
+const platformModuleIds = PLATFORM_MODULES.map(m => m.id);
 
 // Unified form schema that handles all scenarios
 const unifiedUserFormSchema = z.object({

@@ -1235,8 +1235,15 @@ export function CandidatesPageClient({
   }
 
   if (sessionStatus === 'unauthenticated') {
-    // Redirect to signin page instead of showing error message
-    router.replace('/auth/signin');
+    // Check if we're already on the signin page or if a logout is in progress
+    const isOnSigninPage = typeof window !== 'undefined' && window.location.pathname === '/auth/signin';
+    const isLogoutInProgress = typeof window !== 'undefined' && window.location.search.includes('signout=true');
+    
+    if (!isOnSigninPage && !isLogoutInProgress) {
+      // Redirect to signin page instead of showing error message
+      router.replace('/auth/signin');
+    }
+    
     return (
       <div className="flex flex-col h-full bg-background">
         <div className="flex-1 flex items-center justify-center">

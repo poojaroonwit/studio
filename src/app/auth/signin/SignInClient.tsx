@@ -270,8 +270,20 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
       const isSignoutRedirect = nextSearchParams.get('signout') === 'true';
       if (isSignoutRedirect) {
         console.log('[SIGNIN CLIENT] Signout redirect detected, not redirecting back');
+        // Clear the signout parameter from URL
+        if (typeof window !== 'undefined') {
+          const url = new URL(window.location.href);
+          url.searchParams.delete('signout');
+          window.history.replaceState({}, '', url.toString());
+        }
         return;
       }
+      
+      // Add a timeout to prevent getting stuck
+      const redirectTimeout = setTimeout(() => {
+        console.log('[SIGNIN CLIENT] Redirect timeout reached, forcing redirect');
+        window.location.href = callbackUrl;
+      }, 5000); // 5 second timeout
       
       // Check if user has any permissions before redirecting
       const hasAnyPermissions = session?.user?.modulePermissions && session.user.modulePermissions.length > 0;
@@ -301,7 +313,10 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
           window.location.href = callbackUrl;
         }
       }, 100);
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(redirectTimeout);
+      };
     }
     
     // No timeout for authentication loading

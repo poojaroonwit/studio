@@ -81,8 +81,15 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
   }
 
   if (status === "unauthenticated" && isClient) {
-    // Redirect to signin page instead of showing error message
-    router.replace('/auth/signin');
+    // Check if we're already on the signin page or if a logout is in progress
+    const isOnSigninPage = typeof window !== 'undefined' && window.location.pathname === '/auth/signin';
+    const isLogoutInProgress = typeof window !== 'undefined' && window.location.search.includes('signout=true');
+    
+    if (!isOnSigninPage && !isLogoutInProgress) {
+      // Redirect to signin page instead of showing error message
+      router.replace('/auth/signin');
+    }
+    
     return (
       <div className="flex h-full items-center justify-center">
         <div className="flex flex-col items-center space-y-4">

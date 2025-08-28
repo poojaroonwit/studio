@@ -46,8 +46,10 @@ export function useSessionValidation(options: {
         if (autoSignOut) {
           await signOut({ 
             callbackUrl: `${redirectTo}?signout=true`,
-            redirect: true 
+            redirect: false 
           });
+          // Manually redirect after signOut completes
+          window.location.href = `${redirectTo}?signout=true`;
         }
       }
     } catch (error) {

@@ -250,13 +250,18 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
   }, [onUploadSuccess]);
 
   const handleModalClose = useCallback((open: boolean) => {
-
     onOpenChange(open);
     if (!open) {
       setSelectedFiles([]);
       setSelectedPositionId("");
       setSelectedPositionIds(new Set());
       setSelectedFileIndex(0);
+      
+      // Force cleanup of any remaining modal elements
+      setTimeout(() => {
+        const { cleanupAllModals } = require('@/lib/modal-cleanup');
+        cleanupAllModals();
+      }, 100);
     }
   }, [onOpenChange]);
 

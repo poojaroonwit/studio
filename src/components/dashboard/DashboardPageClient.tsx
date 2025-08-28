@@ -563,8 +563,15 @@ export default function DashboardPageClient({
   }
 
   if (status === 'unauthenticated') {
-    // Redirect to signin page instead of showing message
-    router.replace('/auth/signin');
+    // Check if we're already on the signin page or if a logout is in progress
+    const isOnSigninPage = typeof window !== 'undefined' && window.location.pathname === '/auth/signin';
+    const isLogoutInProgress = typeof window !== 'undefined' && window.location.search.includes('signout=true');
+    
+    if (!isOnSigninPage && !isLogoutInProgress) {
+      // Redirect to signin page instead of showing message
+      router.replace('/auth/signin');
+    }
+    
     return <div>Redirecting to sign in...</div>;
   }
 
@@ -620,12 +627,15 @@ export default function DashboardPageClient({
                   // Perform signout with redirect
                   await signOut({ 
                     callbackUrl: '/auth/signin?signout=true', 
-                    redirect: true 
+                    redirect: false 
                   });
+                  
+                  // Manually redirect after signOut completes
+                  window.location.href = '/auth/signin?signout=true';
                 } catch (error) {
                   console.error('Signout error:', error);
-                        // Fallback to window.location if signOut fails
-      window.location.href = '/auth/signin?signout=true';
+                  // Fallback to window.location if signOut fails
+                  window.location.href = '/auth/signin?signout=true';
                 }
               }} 
               variant="ghost"

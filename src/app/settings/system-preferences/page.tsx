@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, type ChangeEvent } from "react";
+import React, { useEffect, useState, useRef, useCallback, type ChangeEvent } from "react";
 import { Loader2, Save, X, Palette, ImageUp, Trash2, XCircle, PenSquare, Sun, Moon, RotateCcw, Sidebar as SidebarIcon, LogIn, Settings2 } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 import { useSession, signIn } from "next-auth/react";
@@ -352,21 +352,72 @@ export default function SystemPreferencesPage() {
   const [primaryGradientStart, setPrimaryGradientStart] = useState<string>(DEFAULT_PRIMARY_GRADIENT_START);
   const [primaryGradientEnd, setPrimaryGradientEnd] = useState<string>(DEFAULT_PRIMARY_GRADIENT_END);
 
-      const canEdit = session?.user?.role === "Admin";
+  const canEdit = session?.user?.role === "Admin";
+
+  // Refs for cleanup and resource management
+  const isMountedRef = useRef(true);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const objectUrlsRef = useRef<Set<string>>(new Set());
+
+  // Cleanup function for object URLs
+  const cleanupObjectUrls = useCallback(() => {
+    objectUrlsRef.current.forEach(url => {
+      try {
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        // Ignore errors when revoking URLs
+      }
+    });
+    objectUrlsRef.current.clear();
+  }, []);
+
+  // Helper to create and track object URLs
+  const createTrackedObjectUrl = useCallback((file: File): string => {
+    const url = URL.createObjectURL(file);
+    objectUrlsRef.current.add(url);
+    return url;
+  }, []);
+
+  // Helper to remove tracked object URL
+  const removeTrackedObjectUrl = useCallback((url: string) => {
+    if (objectUrlsRef.current.has(url)) {
+      try {
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        // Ignore errors when revoking URLs
+      }
+      objectUrlsRef.current.delete(url);
+    }
+  }, []);
 
   useEffect(() => {
+    isMountedRef.current = true;
     setIsClient(true);
     if (sessionStatus === 'unauthenticated') {
       signIn(undefined, { callbackUrl: pathname });
     } else if (sessionStatus === 'authenticated') {
       // Fetch from backend
       async function fetchPrefs() {
+        if (!isMountedRef.current) return;
+        
+        // Cancel any existing request
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+        }
+        
+        // Create new abort controller
+        abortControllerRef.current = new AbortController();
+        
         setLoading(true);
         setErrorMsg(null);
         try {
-          const res = await fetch('/api/settings/system-settings');
+          const res = await fetch('/api/settings/system-settings', {
+            signal: abortControllerRef.current.signal
+          });
           if (!res.ok) throw new Error('Failed to load system preferences');
           const data = await res.json();
+          
+          if (!isMountedRef.current) return;
           setThemePreference((data[APP_THEME_KEY] as ThemePreference) || DEFAULT_THEME);
           setAppName(data[APP_NAME_KEY] || DEFAULT_APP_NAME);
           setSavedLogoUrl(data.appLogoDataUrl || null);
@@ -435,21 +486,40 @@ export default function SystemPreferencesPage() {
           setAppMenuIcon(data.appMenuIcon || "");
           setAppMenuIconType(data.appMenuIcon && (data.appMenuIcon.startsWith('http') || data.appMenuIcon.startsWith('/')) ? "image" : "lucide");
         } catch (e: any) {
-          setErrorMsg(e.message);
+          if (!isMountedRef.current) return;
+          if (e.name !== 'AbortError') {
+            setErrorMsg(e.message);
+          }
         } finally {
-          setLoading(false);
+          if (isMountedRef.current) {
+            setLoading(false);
+          }
         }
       }
       fetchPrefs();
     }
-  }, [sessionStatus]);
+    
+    // Cleanup function
+    return () => {
+      isMountedRef.current = false;
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+      cleanupObjectUrls();
+    };
+  }, [sessionStatus, pathname, cleanupObjectUrls]);
 
   useEffect(() => {
-    applySidebarStyles(sidebarColors);
+    if (isMountedRef.current) {
+      applySidebarStyles(sidebarColors);
+    }
   }, [sidebarColors]);
 
   // Apply sidebar background settings when they change
   useEffect(() => {
+    if (!isMountedRef.current) return;
+    
     applySidebarBackgroundSettings({
       sidebarBackgroundType,
       sidebarBackgroundImageUrl: savedSidebarImageUrl || undefined,
@@ -477,20 +547,25 @@ export default function SystemPreferencesPage() {
       setSelectedLogoFile(file);
       
       // Immediately show preview for instant feedback
-      const previewUrl = URL.createObjectURL(file);
+      const previewUrl = createTrackedObjectUrl(file);
       setLogoPreviewUrl(previewUrl);
       
       // Upload to MinIO
       const formData = new FormData();
       formData.append('file', file);
       try {
+        const uploadController = new AbortController();
         const res = await fetch('/api/settings/upload-image', {
           method: 'PUT',
           body: formData,
+          signal: uploadController.signal,
         });
         if (!res.ok) throw new Error('Failed to upload logo');
         const { url } = await res.json();
-        setLogoPreviewUrl(url); // Update with MinIO URL
+        
+        // Clean up the object URL and update with MinIO URL
+        removeTrackedObjectUrl(previewUrl);
+        setLogoPreviewUrl(url);
         
         // Immediately save the logo URL to the database
         const saveRes = await fetch('/api/settings/system-settings', {
@@ -522,9 +597,12 @@ export default function SystemPreferencesPage() {
           throw new Error('Failed to save logo to database');
         }
       } catch (e: any) {
-        showError(e.message || 'Failed to upload logo');
-        // Clear preview on error
-        setLogoPreviewUrl(null);
+        if (e.name !== 'AbortError') {
+          showError(e.message || 'Failed to upload logo');
+          // Clean up object URL and clear preview on error
+          removeTrackedObjectUrl(previewUrl);
+          setLogoPreviewUrl(null);
+        }
       }
     }
   };
@@ -544,20 +622,25 @@ export default function SystemPreferencesPage() {
       }
       
       // Immediately show preview for instant feedback
-      const previewUrl = URL.createObjectURL(file);
+      const previewUrl = createTrackedObjectUrl(file);
       setPreviewUrl(previewUrl);
       
       // Upload to MinIO
       const formData = new FormData();
       formData.append('file', file);
       try {
+        const uploadController = new AbortController();
         const res = await fetch('/api/settings/upload-image', {
           method: 'PUT',
           body: formData,
+          signal: uploadController.signal,
         });
         if (!res.ok) throw new Error('Failed to upload logo');
         const { url } = await res.json();
-        setPreviewUrl(url); // Update with MinIO URL
+        
+        // Clean up the object URL and update with MinIO URL
+        removeTrackedObjectUrl(previewUrl);
+        setPreviewUrl(url);
         
         // Immediately save the logo URL to the database
         const saveRes = await fetch('/api/settings/system-settings', {
@@ -599,9 +682,12 @@ export default function SystemPreferencesPage() {
           throw new Error('Failed to save logo to database');
         }
       } catch (e: any) {
-        showError(e.message || 'Failed to upload logo');
-        // Clear preview on error
-        setPreviewUrl(null);
+        if (e.name !== 'AbortError') {
+          showError(e.message || 'Failed to upload logo');
+          // Clean up object URL and clear preview on error
+          removeTrackedObjectUrl(previewUrl);
+          setPreviewUrl(null);
+        }
       }
     }
   };
@@ -885,10 +971,14 @@ export default function SystemPreferencesPage() {
   };
 
   const handleSavePreferences = async () => {
-    if (!canEdit) return;
+    if (!canEdit || !isMountedRef.current) return;
     setSaving(true);
     setErrorMsg(null);
     setSuccessMsg(false);
+    
+    // Create abort controller for save request
+    const saveController = new AbortController();
+    
     try {
       // Convert to the format expected by the backend
       const allowedKeys = [
@@ -971,6 +1061,7 @@ export default function SystemPreferencesPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(settingsToSave),
+        signal: saveController.signal,
       });
       
       if (!res.ok) {
@@ -1025,10 +1116,14 @@ export default function SystemPreferencesPage() {
       }));
       
     } catch (e: any) {
-      setErrorMsg(e.message);
-      console.error('Failed to save preferences:', e);
+      if (isMountedRef.current && e.name !== 'AbortError') {
+        setErrorMsg(e.message);
+        console.error('Failed to save preferences:', e);
+      }
     } finally {
-      setSaving(false);
+      if (isMountedRef.current) {
+        setSaving(false);
+      }
     }
   };
 

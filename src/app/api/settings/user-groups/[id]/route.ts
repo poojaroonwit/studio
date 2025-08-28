@@ -8,21 +8,21 @@ import { PLATFORM_MODULES } from '@/lib/types';
 import { logAudit } from '@/lib/auditLog';
 import { getPool } from '../../../../../lib/db';
 
-const platformModuleIds = PLATFORM_MODULES.map(m => m.id) as [PlatformModuleId, ...PlatformModuleId[]];
+const platformModuleIds = PLATFORM_MODULES.map(m => m.id);
 
 console.log('Available permission IDs:', platformModuleIds);
 
 const updateGroupFormSchema = z.object({
   name: z.string().min(1, "Group name is required").max(100),
   description: z.string().optional().nullable(),
-  permissions: z.array(z.enum(platformModuleIds)).optional(),
+  permissions: z.array(z.string()).optional(),
   is_default: z.boolean().optional(),
 });
 
 const userGroupUpdateSchema = z.object({
   name: z.string().min(1, 'Group name cannot be empty.').optional(),
   description: z.string().optional().nullable(),
-  permissions: z.array(z.enum(platformModuleIds)).optional(),
+  permissions: z.array(z.string()).optional(),
   is_default: z.boolean().optional(),
 });
 
@@ -167,6 +167,18 @@ export async function PUT(request: NextRequest) {
     }
     
     const fields = validation.data;
+    
+    // Validate permissions if provided
+    if (fields.permissions && Array.isArray(fields.permissions)) {
+        const invalidPermissions = fields.permissions.filter(permission => !platformModuleIds.includes(permission));
+        if (invalidPermissions.length > 0) {
+            console.error('PUT /api/settings/user-groups/[id] - Invalid permissions:', invalidPermissions);
+            return NextResponse.json({ 
+                message: 'Invalid permissions provided', 
+                errors: { permissions: [`Invalid permissions: ${invalidPermissions.join(', ')}`] } 
+            }, { status: 400 });
+        }
+    }
 
     
     if (Object.keys(fields).length === 0) {

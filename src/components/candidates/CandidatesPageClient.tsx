@@ -136,7 +136,7 @@ export function CandidatesPageClient({
 
   // Use our custom hooks
   const {
-    filters,
+    filters: filtersFromHook,
     setFilters,
     horizontalSelectedFitScoreGrades,
     setHorizontalSelectedFitScoreGrades,
@@ -152,6 +152,9 @@ export function CandidatesPageClient({
     lastAppliedFiltersRef,
     optimisticUpdateRef
   } = useCandidateFilters(initialFilters);
+
+  // Ensure filters is always defined to prevent "filters is not defined" errors
+  const filters = filtersFromHook || {};
 
   // Add ref to track current filters
   const currentFiltersRef = useRef(filters);
@@ -211,7 +214,8 @@ export function CandidatesPageClient({
     sessionStatus,
     serverAuthError,
     serverPermissionError,
-    initialFetchError
+    initialFetchError,
+    filters
   });
 
   const {
@@ -330,7 +334,9 @@ export function CandidatesPageClient({
       
       // Clear selection and refresh data
       setSelectedCandidateIds(new Set());
-      fetchTableData(filters, page, pageSize);
+      if (filters) {
+        fetchTableData(filters, page, pageSize);
+      }
       fetchAllCandidatesForCounts();
     } catch (error) {
       toast.error((error as Error).message || 'Bulk delete failed');
@@ -360,7 +366,9 @@ export function CandidatesPageClient({
       
       // Clear selection and refresh data
       setSelectedCandidateIds(new Set());
-      fetchTableData(filters, page, pageSize);
+      if (filters) {
+        fetchTableData(filters, page, pageSize);
+      }
       fetchAllCandidatesForCounts();
     } catch (error) {
       toast.error((error as Error).message || 'Bulk status change failed');
@@ -390,7 +398,9 @@ export function CandidatesPageClient({
       
       // Clear selection and refresh data
       setSelectedCandidateIds(new Set());
-      fetchTableData(filters, page, pageSize);
+      if (filters) {
+        fetchTableData(filters, page, pageSize);
+      }
       fetchAllCandidatesForCounts();
     } catch (error) {
       toast.error((error as Error).message || 'Bulk recruiter assignment failed');
@@ -939,6 +949,12 @@ export function CandidatesPageClient({
     try {
       setTableLoading(true);
       
+      // Safety check: ensure filters is defined
+      if (!filters) {
+        toast.error('Filters not available for export');
+        return;
+      }
+      
       // Build query parameters from current filters
       const params = new URLSearchParams();
       if (filters.name) params.append('name', filters.name);
@@ -1106,6 +1122,11 @@ export function CandidatesPageClient({
       return;
     }
     
+    // Safety check: ensure filters is defined
+    if (!filters) {
+      return;
+    }
+    
     // Check if we have an advanced query from URL that's being processed
     const advancedQueryFromUrl = searchParams.get('query');
     if (advancedQueryFromUrl && !filters.name && !filters.email && !filters.phone && !filters.selectedPositionIds?.length && !filters.selectedStatuses?.length) {
@@ -1152,7 +1173,7 @@ export function CandidatesPageClient({
 
   // Fetch fit score counts on mount and when filters change
   useEmergencySafeEffect(() => {
-    if (sessionStatus === 'authenticated' && hasInitialDataFetch && initialCandidates.length > 0) {
+    if (sessionStatus === 'authenticated' && hasInitialDataFetch && initialCandidates.length > 0 && filters) {
       // Create a copy of filters without fit score filters to prevent circular dependency
       const filtersForCounts = { ...filters };
       
@@ -1595,7 +1616,9 @@ export function CandidatesPageClient({
                         setPageSize(newPageSize);
                         setPage(1); // Reset to first page when changing page size
                         // Fetch data with new page size
-                        fetchTableData(filters, 1, newPageSize);
+                        if (filters) {
+                          fetchTableData(filters, 1, newPageSize);
+                        }
                       }}
                     >
                       <SelectTrigger className="w-20 h-8">
@@ -1669,7 +1692,9 @@ export function CandidatesPageClient({
         onOpenChange={setIsAddModalOpen}
         availableStages={availableStages}
         onAddCandidate={async () => {
-          fetchTableData(filters, page, pageSize);
+          if (filters) {
+            fetchTableData(filters, page, pageSize);
+          }
         }}
       />
 
@@ -1677,7 +1702,9 @@ export function CandidatesPageClient({
         isOpen={isBulkUploadModalOpen}
         onOpenChange={setIsBulkUploadModalOpen}
         onUploadSuccess={() => {
-          fetchTableData(filters, page, pageSize);
+          if (filters) {
+            fetchTableData(filters, page, pageSize);
+          }
         }}
       />
 
@@ -1685,7 +1712,9 @@ export function CandidatesPageClient({
         isOpen={isImportModalOpen}
         onOpenChange={setIsImportModalOpen}
         onImportSuccess={() => {
-          fetchTableData(filters, page, pageSize);
+          if (filters) {
+            fetchTableData(filters, page, pageSize);
+          }
         }}
       />
 

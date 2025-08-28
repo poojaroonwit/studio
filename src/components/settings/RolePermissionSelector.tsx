@@ -44,6 +44,9 @@ export function RolePermissionSelector({
   const togglePermission = (permissionId: PlatformModuleId) => {
     if (disabled) return;
     
+    // Preserve scroll position
+    preserveScrollPosition();
+    
     // Prevent removing protected permissions
     if (selectedPermissions.includes(permissionId) && protectedPermissions.includes(permissionId)) {
       return;
@@ -54,26 +57,41 @@ export function RolePermissionSelector({
       : [...selectedPermissions, permissionId];
     
     onPermissionsChange(newPermissions);
+    
+    // Restore scroll position after a short delay
+    setTimeout(restoreScrollPosition, 0);
   };
 
   const selectAllPermissions = () => {
     if (disabled) return;
+    
+    // Preserve scroll position
+    preserveScrollPosition();
+    
     const allPermissions = PLATFORM_MODULES.map(p => p.id);
     onPermissionsChange(allPermissions);
+    
+    // Restore scroll position after a short delay
+    setTimeout(restoreScrollPosition, 0);
   };
 
   const clearAllPermissions = () => {
     if (disabled) return;
     
+    // Preserve scroll position
+    preserveScrollPosition();
+    
     // If there are no protected permissions, clear all
     if (protectedPermissions.length === 0) {
       onPermissionsChange([]);
-      return;
+    } else {
+      // Preserve protected permissions when clearing all
+      const preservedPermissions = selectedPermissions.filter(p => protectedPermissions.includes(p));
+      onPermissionsChange(preservedPermissions);
     }
     
-    // Preserve protected permissions when clearing all
-    const preservedPermissions = selectedPermissions.filter(p => protectedPermissions.includes(p));
-    onPermissionsChange(preservedPermissions);
+    // Restore scroll position after a short delay
+    setTimeout(restoreScrollPosition, 0);
   };
 
   const selectCategoryPermissions = useCallback((category: string) => {
@@ -236,6 +254,7 @@ export function RolePermissionSelector({
                         <Checkbox
                           checked={isSelected}
                           onCheckedChange={() => togglePermission(permission.id)}
+                          onClick={(e) => e.preventDefault()}
                           disabled={isDisabled}
                           className="rounded border-2 border-primary/30 focus:ring-2 focus:ring-primary text-primary"
                         />

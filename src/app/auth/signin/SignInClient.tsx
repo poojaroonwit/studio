@@ -279,28 +279,27 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
         return;
       }
       
-      // Add a timeout to prevent getting stuck
-      const redirectTimeout = setTimeout(() => {
-        console.log('[SIGNIN CLIENT] Redirect timeout reached, forcing redirect');
-        window.location.href = callbackUrl;
-      }, 3000); // Reduced timeout to 3 seconds
+      // If user is authenticated and on signin page, redirect them
+      const currentPath = window.location.pathname;
+      const hasCallbackUrl = nextSearchParams.get('callbackUrl');
       
-      // Simplified redirect logic - always redirect to the intended destination
-      const timer = setTimeout(() => {
-        try {
-          console.log('[SIGNIN CLIENT] Redirecting to:', callbackUrl);
-          router.replace(callbackUrl);
-        } catch (error) {
-          console.error('[SIGNIN CLIENT] Router error:', error);
-          // Fallback to window.location if router fails
-          window.location.href = callbackUrl;
-        }
-      }, 100);
-      
-      return () => {
-        clearTimeout(timer);
-        clearTimeout(redirectTimeout);
-      };
+      if (currentPath === '/auth/signin') {
+        const redirectUrl = hasCallbackUrl || '/'; // Default to dashboard if no callback URL
+        console.log('[SIGNIN CLIENT] Authenticated user on signin page, redirecting to:', redirectUrl);
+        
+        // Use a small delay to ensure the session is fully established
+        const timer = setTimeout(() => {
+          try {
+            router.replace(redirectUrl);
+          } catch (error) {
+            console.error('[SIGNIN CLIENT] Router error:', error);
+            // Fallback to window.location if router fails
+            window.location.href = redirectUrl;
+          }
+        }, 100);
+        
+        return () => clearTimeout(timer);
+      }
     }
     
     // No timeout for authentication loading

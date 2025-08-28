@@ -17,7 +17,7 @@ export default function ToastClient() {
       position="top-right"
       gutter={16}
       containerStyle={{
-        zIndex: 10001, // Higher than modal z-index (10000)
+        zIndex: 100002, // Higher than drawer z-index (10001) and dialog z-index (100000)
       }}
       toastOptions={{
         duration: 4000,

@@ -85,15 +85,6 @@ function UploadPageContent() {
               <ScrollArea className="h-full pr-4">
                 <div className="space-y-6">
                   <div>
-                    <div className="mb-4">
-                      <h2 className="flex items-center gap-2 text-xl font-semibold">
-                        <ListTodo className="h-5 w-5 text-primary" />
-                        Queue Management
-                      </h2>
-                      <p className="text-sm text-muted-foreground">
-                        Monitor and manage the upload queue items
-                      </p>
-                    </div>
                     <CandidateImportUploadQueue 
                       initialPage={initialPage}
                       initialPageSize={initialPageSize}
@@ -108,15 +99,6 @@ function UploadPageContent() {
               <ScrollArea className="h-full pr-4">
                 <div className="space-y-6">
                   <div>
-                    <div className="mb-4">
-                      <h2 className="flex items-center gap-2 text-xl font-semibold">
-                        <BarChart3 className="h-5 w-5 text-primary" />
-                        Upload Queue Analytics
-                      </h2>
-                      <p className="text-sm text-muted-foreground">
-                        Real-time analytics and insights for the upload queue
-                      </p>
-                    </div>
                     <UploadQueueStatistics />
                   </div>
                 </div>

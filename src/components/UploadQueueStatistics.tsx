@@ -641,7 +641,7 @@ export function UploadQueueStatistics() {
                            <text x="50%" y="95%" textAnchor="middle" className="text-sm font-semibold fill-current text-gray-700 dark:text-gray-300">
                              Upload Date
                            </text>
-                           <text x="5%" y="50%" textAnchor="middle" className="text-sm font-semibold fill-current text-gray-700 dark:text-gray-300" transform="rotate(-90, 5%, 50%)">
+                           <text x="5%" y="50%" textAnchor="middle" className="text-sm font-semibold fill-current text-gray-700 dark:text-gray-300" transform="rotate(-45, 5%, 50%)">
                              Processing Time (seconds)
                            </text>
 

@@ -14,6 +14,7 @@ interface UseCandidateDataProps {
   serverAuthError: boolean;
   serverPermissionError: boolean;
   initialFetchError?: string;
+  filters?: CandidateFilterValues;
 }
 
 export function useCandidateData({
@@ -23,7 +24,8 @@ export function useCandidateData({
   sessionStatus,
   serverAuthError,
   serverPermissionError,
-  initialFetchError
+  initialFetchError,
+  filters
 }: UseCandidateDataProps) {
   
   const [filteredCandidates, setFilteredCandidates] = useState<Candidate[]>([]);
@@ -198,6 +200,12 @@ export function useCandidateData({
     try {
       // Build query parameters from current filters
       const params = new URLSearchParams();
+      
+      // Safety check: ensure filters is defined
+      if (!filters) {
+        console.warn('Filters not available for fit score counts');
+        return;
+      }
       
       // Add all current filters except fit score filters to prevent circular dependency
       if (filters.name) params.append('name', filters.name);

@@ -626,21 +626,32 @@ export function UnifiedRoleDrawer({
                  )}
 
                  {activeTab === 'permissions' && (
-                   <RolePermissionSelector
-                     key={`${role.id}-${currentPermissions.length}`}
-                     selectedPermissions={isAdminRole ? PLATFORM_MODULES.map(p => p.id) : currentPermissions}
-                     onPermissionsChange={handlePermissionUpdate}
-                     disabled={isAdminRole || isUpdatingPermissions}
-                     isLoading={isUpdatingPermissions}
-                     title={`${role.name} Permissions`}
-                     description={isAdminRole ? 
-                       "Admin role has all permissions by default and cannot be modified." : 
-                       isUpdatingPermissions ? "Updating permissions..." :
-                       "Configure what users with this role can do."
-                     }
-                     className="h-full"
-                     noCard={true}
-                   />
+                   <div 
+                     className="flex-1 min-h-0 flex flex-col"
+                     onKeyDown={(e) => {
+                       // Prevent form submission on Enter key
+                       if (e.key === 'Enter') {
+                         e.preventDefault();
+                         e.stopPropagation();
+                       }
+                     }}
+                   >
+                     <RolePermissionSelector
+                       key={`${role.id}-${currentPermissions.length}`}
+                       selectedPermissions={isAdminRole ? PLATFORM_MODULES.map(p => p.id) : currentPermissions}
+                       onPermissionsChange={handlePermissionUpdate}
+                       disabled={isAdminRole || isUpdatingPermissions}
+                       isLoading={isUpdatingPermissions}
+                       title={`${role.name} Permissions`}
+                       description={isAdminRole ? 
+                         "Admin role has all permissions by default and cannot be modified." : 
+                         isUpdatingPermissions ? "Updating permissions..." :
+                         "Configure what users with this role can do."
+                       }
+                       className="h-full"
+                       noCard={true}
+                     />
+                   </div>
                  )}
 
                  {activeTab === 'members' && (

@@ -201,6 +201,8 @@ export function CandidatesPageClient({
     refreshCandidateInList,
     applyOptimisticUpdate,
     revertOptimisticUpdate,
+    databaseFitScoreCounts,
+    isFitScoreCountsLoading,
     fetchFitScoreCounts
   } = useCandidateData({
     initialCandidates,
@@ -580,7 +582,9 @@ export function CandidatesPageClient({
     }
     
     // For regular filtered results, use database fit score counts from API
-    // Note: databaseFitScoreCounts was removed, so we always fall back to client-side calculation
+    if (databaseFitScoreCounts) {
+      return databaseFitScoreCounts;
+    }
     
     // Fallback to client-side calculation if database counts not available
     const scoreRanges = getScoreRangesForChart();
@@ -675,17 +679,17 @@ export function CandidatesPageClient({
     };
     
     return result;
-  }, [candidatesForFitScoreCounts, normalizeFitScore, getBestMatchingFitScore, isAiSearchActive, aiMatchedCandidateIds, allCandidatesForCounts]);
+  }, [candidatesForFitScoreCounts, normalizeFitScore, getBestMatchingFitScore, isAiSearchActive, aiMatchedCandidateIds, allCandidatesForCounts, databaseFitScoreCounts]);
 
   // Calculate loading state for fit score counts
-  const isFitScoreCountsLoading = useMemo(() => {
-    // Show loading if we're in initial loading state
-    if (isLoading || tableLoading) {
+  const isFitScoreCountsLoadingState = useMemo(() => {
+    // Show loading if we're in initial loading state or if fit score counts are loading
+    if (isLoading || tableLoading || isFitScoreCountsLoading) {
       return true;
     }
     
     return false;
-  }, [isLoading, tableLoading]);
+  }, [isLoading, tableLoading, isFitScoreCountsLoading]);
 
   // Calculate candidate counts by stage for the pipeline stage filter
   const candidateCountsByStage = useMemo(() => {
@@ -1321,7 +1325,7 @@ export function CandidatesPageClient({
                           filterMode={candidateSettings.fitScoreFilterMode}
                           aiMatchedCount={aiRecordCount}
                           isAiSearchActive={isAiSearchActive}
-                          isLoading={isFitScoreCountsLoading}
+                          isLoading={isFitScoreCountsLoadingState}
                         />
                       )}
                       {candidateSettings.fitScoreType === 'matching' && (
@@ -1343,7 +1347,7 @@ export function CandidatesPageClient({
                           filterMode={candidateSettings.fitScoreFilterMode}
                           aiMatchedCount={aiRecordCount}
                           isAiSearchActive={isAiSearchActive}
-                          isLoading={isFitScoreCountsLoading}
+                          isLoading={isFitScoreCountsLoadingState}
                         />
                       )}
                     </div>

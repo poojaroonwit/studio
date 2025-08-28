@@ -132,10 +132,38 @@ const nextConfig = {
           },
         ],
       },
-      // Cache static assets
+      // Cache static assets with proper MIME types
       {
         source: '/_next/static/(.*)',
         headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      // Ensure CSS files are served with correct MIME type
+      {
+        source: '/_next/static/css/(.*)',
+        headers: [
+          {
+            key: 'Content-Type',
+            value: 'text/css; charset=utf-8',
+          },
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      // Ensure JS files are served with correct MIME type
+      {
+        source: '/_next/static/chunks/(.*)',
+        headers: [
+          {
+            key: 'Content-Type',
+            value: 'application/javascript; charset=utf-8',
+          },
           {
             key: 'Cache-Control',
             value: 'public, max-age=31536000, immutable',

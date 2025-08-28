@@ -317,6 +317,7 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
           }
           setIsLoading(false);
           return;
+
         }
         
         if (exists && isMountedRef.current) {
@@ -403,6 +404,30 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
     );
   }
 
+  // Show error state
+  if (error && !isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="flex flex-col items-center space-y-4 text-center">
+          <div>
+            <h3 className="text-lg font-medium text-foreground">Loading Error</h3>
+            <p className="text-muted-foreground text-sm mb-4">{error}</p>
+            <div className="flex gap-2">
+              <Button onClick={() => window.location.reload()} variant="outline" size="sm">
+                Retry
+              </Button>
+              {onClose && (
+                <Button onClick={onClose} variant="outline" size="sm">
+                  Close
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -463,4 +488,4 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
   );
 };
 
-export default CandidateDetailView; 
+export default CandidateDetailView;

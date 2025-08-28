@@ -167,11 +167,13 @@ export const authOptions: NextAuthOptions = {
           const client = await getPool().connect();
           try {
             const oid = (profile as any)?.oid ?? (profile as any)?.sub ?? profile?.email;
+            console.log('[JWT CALLBACK] Looking up user for Azure AD:', { oid, email: profile?.email });
             // Looking up user with oid
             const res = await client.query('SELECT id FROM "User" WHERE email = $1 OR "azure_oid" = $2', [profile?.email, oid]);
             const dbUser = res.rows[0];
             if (dbUser) {
               // Found user with UUID
+              console.log('[JWT CALLBACK] Found user with UUID:', dbUser.id);
               token.id = dbUser.id;
             } else {
               console.error('[JWT CALLBACK] No user found for oid:', oid, 'email:', profile?.email);
@@ -184,7 +186,7 @@ export const authOptions: NextAuthOptions = {
           }
         }
         // Only fetch fresh permissions if we don't have them or if this is a new sign-in
-        if (typeof token.id === 'string' && validateUuid(token.id) && (!token.modulePermissions || token.modulePermissions.length === 0 || account)) {
+        if (typeof token.id === 'string' && validateUuid(token.id as string) && (!token.modulePermissions || token.modulePermissions.length === 0 || account)) {
           try {
             const freshPermissions = await getUserPermissions(token.id as string);
             token.modulePermissions = freshPermissions as PlatformModuleId[];
@@ -237,6 +239,14 @@ export const authOptions: NextAuthOptions = {
             session.user.avatarUrl = (token as any).avatarUrl || null;
             session.user.personalColor = (token as any).personalColor || null;
           }
+          
+          // Ensure session is properly established even if some data is missing
+          console.log('[SESSION CALLBACK] Session established for user:', {
+            id: session.user.id,
+            email: session.user.email,
+            role: session.user.role,
+            hasPermissions: session.user.modulePermissions && session.user.modulePermissions.length > 0
+          });
         }
         return session;
       },
@@ -267,7 +277,7 @@ export const authOptions: NextAuthOptions = {
                       const placeholderPassword = await bcrypt.hash('azure-ad-placeholder-' + Date.now(), 10);
                       const uuid = uuidv4(); // always generate a new UUID for the user id
                       await client.query(
-                          'INSERT INTO "User" (id, name, email, "emailVerified", image, role, password, "authenticationMethod", "azure_oid") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
+                          'INSERT INTO "User" (id, name, email, "emailVerified", image, role, password, "authentication_method", "azure_oid") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
                           [uuid, profile.name, profile.email, new Date(), picture, 'Recruiter', placeholderPassword, 'azure', oid]
                       );
                       await logAudit('AUDIT', `New user '${profile.name}' created via Azure AD SSO.`, 'Auth:SignIn', uuid);

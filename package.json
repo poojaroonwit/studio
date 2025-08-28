@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "powershell -ExecutionPolicy Bypass -File ./node_modules/.bin/cross-env.ps1 NEXT_TELEMETRY_DISABLED=1 next dev -p 8021",
+    "dev:custom": "powershell -ExecutionPolicy Bypass -File ./node_modules/.bin/cross-env.ps1 NEXT_TELEMETRY_DISABLED=1 node server.js",
     "dev:with-processor": "concurrently \"npm run dev\" \"npm run processor\"",
     "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
@@ -14,6 +15,7 @@
     "typecheck": "tsc --noEmit",
     "postbuild": "echo Build finished",
     "start": "node --max-old-space-size=4096 --optimize-for-size ./node_modules/.bin/next start -p 8021",
+    "start:custom": "node server.js",
     "start:with-processor": "concurrently \"npm run start\" \"npm run processor\"",
     "start:local": "node start-local.js",
     "start:local:with-processor": "node start-local.js --with-processor",

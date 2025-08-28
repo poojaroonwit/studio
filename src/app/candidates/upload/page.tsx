@@ -1,18 +1,19 @@
 "use client";
 
 import React, { useState } from "react";
-import { BarChart3, ListTodo } from "lucide-react";
+import { BarChart3, ListTodo, UploadCloud } from "lucide-react";
 import { CandidateQueueProvider } from "@/components/candidates/CandidateImportUploadQueue";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { useRouter, useSearchParams } from 'next/navigation';
 import { CandidateImportUploadQueue } from '@/components/candidates/CandidateImportUploadQueue';
 import { UploadQueueStatistics } from '@/components/UploadQueueStatistics';
-
-
+import { Button } from "@/components/ui/button";
+import BulkUploadCVsModal from "@/components/BulkUploadCVsModal";
 
 function UploadPageContent() {
   const [activeTab, setActiveTab] = useState('queue');
+  const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -30,8 +31,6 @@ function UploadPageContent() {
     router.replace(`/candidates/upload${newURL}`, { scroll: false });
   };
 
-
-
   return (
     <div className="h-full flex flex-col p-6">
       {/* Header */}
@@ -40,6 +39,13 @@ function UploadPageContent() {
           <h1 className="text-2xl font-bold text-foreground">Process Queue</h1>
           <p className="text-muted-foreground">Monitor and manage the upload queue and view analytics</p>
         </div>
+        <Button
+          onClick={() => setIsBulkUploadModalOpen(true)}
+          className="mb-2 h-9 px-3"
+        >
+          <UploadCloud className="mr-2 h-4 w-4" />
+          Upload CVs
+        </Button>
       </div>
 
       {/* Main Content */}
@@ -119,6 +125,15 @@ function UploadPageContent() {
           </div>
         </div>
       </div>
+      
+      <BulkUploadCVsModal
+        isOpen={isBulkUploadModalOpen}
+        onOpenChange={setIsBulkUploadModalOpen}
+        onUploadSuccess={() => {
+          // Refresh the queue display after successful upload
+          window.dispatchEvent(new CustomEvent('refreshCandidateQueue'));
+        }}
+      />
     </div>
   );
 }

@@ -94,6 +94,20 @@ const SidebarNavComponent = () => {
   const { open } = useSidebar();
   const { pendingCount, isLoading } = usePendingCount();
 
+  // Check if user has permission to access My Task Board
+  const canAccessMyTasks = session?.user?.role === 'Admin' || 
+    session?.user?.modulePermissions?.includes('USERS_MANAGE') ||
+    session?.user?.modulePermissions?.includes('TASK_BOARD_VIEW') ||
+    session?.user?.modulePermissions?.includes('CANDIDATES_VIEW');
+
+  // Filter navigation items based on permissions
+  const filteredMainNavItems = mainNavItems.filter(item => {
+    if (item.href === '/my-tasks') {
+      return canAccessMyTasks;
+    }
+    return true; // Show all other items
+  });
+
   // Simple loading state
   if (status === 'loading') {
     return (
@@ -119,7 +133,7 @@ const SidebarNavComponent = () => {
     return (
       <div className="flex flex-col h-full">
         <SidebarMenu className="flex-1">
-          {mainNavItems.map((item) => (
+          {filteredMainNavItems.map((item) => (
             <SidebarMenuItem key={item.href}>
               <MenuItemWithTooltip label={item.label}>
                 <Link href={item.href} className="w-full">
@@ -184,7 +198,7 @@ const SidebarNavComponent = () => {
     <div className="flex flex-col h-full">
       <SidebarMenu className="flex-1">
         <SidebarGroupLabel>General</SidebarGroupLabel>
-        {mainNavItems.map((item) => (
+        {filteredMainNavItems.map((item) => (
           <SidebarMenuItem key={item.href}>
             <MenuItemWithTooltip label={item.label}>
               <Link href={item.href} className="w-full">

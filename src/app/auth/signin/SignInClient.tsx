@@ -283,29 +283,12 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
       const redirectTimeout = setTimeout(() => {
         console.log('[SIGNIN CLIENT] Redirect timeout reached, forcing redirect');
         window.location.href = callbackUrl;
-      }, 5000); // 5 second timeout
+      }, 3000); // Reduced timeout to 3 seconds
       
-      // Check if user has any permissions before redirecting
-      const hasAnyPermissions = session?.user?.modulePermissions && session.user.modulePermissions.length > 0;
-      const isAdmin = session?.user?.role === 'Admin';
-      
-      // If user has no permissions and is not admin, redirect to a fallback page
-      if (!hasAnyPermissions && !isAdmin && callbackUrl === '/') {
-        console.log('[SIGNIN CLIENT] User has no permissions, redirecting to my-tasks instead of dashboard');
-        const timer = setTimeout(() => {
-          try {
-            router.replace('/my-tasks');
-          } catch (error) {
-            console.error('[SIGNIN CLIENT] Router error:', error);
-            window.location.href = '/my-tasks';
-          }
-        }, 100);
-        return () => clearTimeout(timer);
-      }
-      
-      // Add a small delay to ensure the session is fully established
+      // Simplified redirect logic - always redirect to the intended destination
       const timer = setTimeout(() => {
         try {
+          console.log('[SIGNIN CLIENT] Redirecting to:', callbackUrl);
           router.replace(callbackUrl);
         } catch (error) {
           console.error('[SIGNIN CLIENT] Router error:', error);
@@ -313,6 +296,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
           window.location.href = callbackUrl;
         }
       }, 100);
+      
       return () => {
         clearTimeout(timer);
         clearTimeout(redirectTimeout);

@@ -4,7 +4,8 @@ import React from 'react';
 import { getScoreRangesForChart } from '@/lib/scoreUtils';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { Loader2, Clock } from 'lucide-react';
 
 interface FitScoreFilterTabsProps {
   selectedGrades?: Set<string>;
@@ -31,6 +32,7 @@ export function FitScoreFilterTabs({
 }: FitScoreFilterTabsProps) {
 
   const scoreRanges = getScoreRangesForChart();
+  const [showPerformanceIndicator, setShowPerformanceIndicator] = useState(false);
 
   // Ensure selectedGrades is always a Set
   const safeSelectedGrades = selectedGrades || new Set<string>();
@@ -44,6 +46,17 @@ export function FitScoreFilterTabs({
   const safeOnClearAll = typeof onClearAll === 'function' ? onClearAll : () => {
     // Silent fallback for missing function
   };
+
+  // Show performance indicator briefly when loading completes
+  useEffect(() => {
+    if (isLoading) {
+      setShowPerformanceIndicator(false);
+    } else if (candidateCounts.length > 0) {
+      setShowPerformanceIndicator(true);
+      const timer = setTimeout(() => setShowPerformanceIndicator(false), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading, candidateCounts.length]);
 
   const formatCount = (count: number) => {
     if (count >= 1000) {
@@ -108,6 +121,34 @@ export function FitScoreFilterTabs({
     }
   };
 
+  // Render count badge with loading state
+  const renderCountBadge = (count: number, isLoading: boolean) => {
+    if (isLoading) {
+      return (
+        <Badge 
+          variant="secondary" 
+          className="ml-1 text-xs px-1.5 py-0.5 h-5 min-w-5 flex items-center justify-center text-foreground bg-muted/50 animate-pulse"
+        >
+          <Loader2 className="h-3 w-3 animate-spin mr-1" />
+          ...
+        </Badge>
+      );
+    }
+    
+    return (
+      <Badge 
+        variant="secondary" 
+        className={cn(
+          "ml-1 text-xs px-1.5 py-0.5 h-5 min-w-5 flex items-center justify-center text-foreground transition-all duration-200",
+          showPerformanceIndicator && "bg-green-100 text-green-700 border-green-200"
+        )}
+      >
+        {showPerformanceIndicator && <Clock className="h-2.5 w-2.5 mr-0.5" />}
+        {formatCount(count)}
+      </Badge>
+    );
+  };
+
   return (
     <div className={cn("w-full", className)}>
       <div className="flex w-full border-b border-border/50">
@@ -124,7 +165,8 @@ export function FitScoreFilterTabs({
               : "text-black hover:text-foreground hover:bg-muted/30 border-b-2 border-gray-300"
           )}
         >
-          {isAiSearchActive && aiMatchedCount > 0 ? "AI Matched" : "All (0-100)"} <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0.5 h-5 min-w-5 flex items-center justify-center text-foreground">{isLoading ? "..." : formatCount(getTotalCount())}</Badge>
+          {isAiSearchActive && aiMatchedCount > 0 ? "AI Matched" : "All (0-100)"} 
+          {renderCountBadge(getTotalCount(), isLoading)}
         </div>
         {scoreRanges.map((grade) => (
           <div
@@ -147,7 +189,8 @@ export function FitScoreFilterTabs({
                 : cn("hover:bg-muted/30", getGradeTextColor(grade.letter))
             )}
           >
-            {grade.letter} ({grade.min}-{grade.max}) <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0.5 h-5 min-w-5 flex items-center justify-center text-foreground">{isLoading ? "..." : formatCount(getCount(grade.letter))}</Badge>
+            {grade.letter} ({grade.min}-{grade.max}) 
+            {renderCountBadge(getCount(grade.letter), isLoading)}
           </div>
         ))}
         <div
@@ -169,9 +212,18 @@ export function FitScoreFilterTabs({
               : cn("hover:bg-muted/30", getGradeTextColor('no-score'))
           )}
         >
-          No Score <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0.5 h-5 min-w-5 flex items-center justify-center text-foreground">{isLoading ? "..." : formatCount(getCount('no-score'))}</Badge>
+          No Score 
+          {renderCountBadge(getCount('no-score'), isLoading)}
         </div>
       </div>
+      
+      {/* Performance indicator */}
+      {showPerformanceIndicator && (
+        <div className="mt-1 text-xs text-green-600 dark:text-green-400 flex items-center gap-1 animate-fade-in">
+          <Clock className="h-3 w-3" />
+          <span>Counts updated from database</span>
+        </div>
+      )}
     </div>
   );
 }

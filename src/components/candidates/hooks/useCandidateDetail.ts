@@ -199,121 +199,142 @@ export const useCandidateDetail = (candidateId: string) => {
       abortControllerRef.current.abort();
     }
 
-    // Create new abort controller
+    // Create new abort controller with timeout
     const controller = new AbortController();
     abortControllerRef.current = controller;
+    
+    // Set a timeout to abort the request if it takes too long
+    const timeoutId = setTimeout(() => {
+      if (controller && !controller.signal.aborted) {
+        controller.abort();
+      }
+    }, 15000); // 15 second timeout
 
     // Retry configuration - reduced for faster loading
     const maxRetries = 1; // Reduced from 2 for faster failure
     const baseDelay = 500; // Reduced from 1000ms for faster retry
 
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      try {
-        const res = await fetch(`/api/candidates/${candidateId}`, {
-          headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'max-age=30',
-          },
-          signal: controller.signal,
-        });
+    try {
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          const res = await fetch(`/api/candidates/${candidateId}`, {
+            headers: {
+              'Content-Type': 'application/json',
+              'Cache-Control': 'max-age=30',
+            },
+            signal: controller.signal,
+          });
 
-        if (!res.ok) {
-          if (res.status === 401) {
-            throw new Error('Authentication required. Please sign in to view candidate details.');
-          } else if (res.status === 404) {
-            throw new Error('Candidate not found');
-          } else if (res.status === 403) {
-            throw new Error('Access denied to candidate');
-          } else if (res.status === 408) {
-            throw new Error('Request timed out. The server may be experiencing high load. Please try again in a moment.');
-          } else if (res.status === 503) {
-            throw new Error('Database connection error. Please try again in a moment.');
-          } else if (res.status === 502 || res.status === 504) {
-            throw new Error('Gateway timeout. Please try again in a moment.');
-          } else if (res.status >= 500) {
-            throw new Error('Server error occurred. Please try again later.');
-          } else if (res.status === 429) {
-            throw new Error('Too many requests. Please wait a moment before trying again.');
+          if (!res.ok) {
+            if (res.status === 401) {
+              throw new Error('Authentication required. Please sign in to view candidate details.');
+            } else if (res.status === 404) {
+              throw new Error('Candidate not found');
+            } else if (res.status === 403) {
+              throw new Error('Access denied to candidate');
+            } else if (res.status === 408) {
+              throw new Error('Request timed out. The server may be experiencing high load. Please try again in a moment.');
+            } else if (res.status === 503) {
+              throw new Error('Database connection error. Please try again in a moment.');
+            } else if (res.status === 502 || res.status === 504) {
+              throw new Error('Gateway timeout. Please try again in a moment.');
+            } else if (res.status >= 500) {
+              throw new Error('Server error occurred. Please try again later.');
+            } else if (res.status === 429) {
+              throw new Error('Too many requests. Please wait a moment before trying again.');
+            } else {
+              throw new Error(`Failed to fetch candidate: ${res.status}`);
+            }
+          }
+
+          const data = await res.json();
+
+          // Validate basic candidate data structure
+          if (!data || typeof data !== 'object' || !data.id) {
+            throw new Error('Invalid candidate data received');
+          }
+
+          // Cache the result
+          cacheRef.current.set(cacheKey, { data, timestamp: now });
+
+          // Safely process candidate data
+          setCandidate({
+            ...data,
+            fitScore: data.fitScore !== undefined && data.fitScore !== null ? Number(data.fitScore) : null,
+            parsedData: data.parsedData || {
+              personal_info: {},
+              contact_info: {},
+              education: [],
+              experience: [],
+              skills: [],
+              job_suitable: [],
+              job_matches: [],
+            },
+          });
+
+          // Success - break out of retry loop
+          break;
+
+        } catch (err) {
+          // Check if request was aborted
+          if (err instanceof Error && err.name === 'AbortError') {
+            if (isMountedRef.current) {
+              setError('Request timed out. Please try again.');
+            }
+            return;
+          }
+
+          console.error(`Error fetching candidate (attempt ${attempt + 1}/${maxRetries + 1}):`, err);
+
+          if (err instanceof Error) {
+            if (err.message === 'Candidate not found' || err.message === 'Access denied to candidate') {
+              if (isMountedRef.current) {
+                setError(err.message);
+              }
+              break;
+            } else if (err.message.includes('Authentication required')) {
+              if (isMountedRef.current) {
+                setError(err.message);
+              }
+              break;
+            } else if (attempt === maxRetries) {
+              if (isMountedRef.current) {
+                setError(err.message);
+              }
+              break;
+            } else {
+              console.error(`Error on attempt ${attempt + 1}, retrying...`);
+            }
           } else {
-            throw new Error(`Failed to fetch candidate: ${res.status}`);
+            if (attempt === maxRetries) {
+              if (isMountedRef.current) {
+                setError('Failed to fetch candidate. Please check your connection and try again.');
+              }
+              break;
+            }
+            console.error(`Unknown error on attempt ${attempt + 1}, retrying...`);
           }
-        }
 
-        const data = await res.json();
-
-        // Validate basic candidate data structure
-        if (!data || typeof data !== 'object' || !data.id) {
-          throw new Error('Invalid candidate data received');
-        }
-
-        // Cache the result
-        cacheRef.current.set(cacheKey, { data, timestamp: now });
-
-        // Safely process candidate data
-        setCandidate({
-          ...data,
-          fitScore: data.fitScore !== undefined && data.fitScore !== null ? Number(data.fitScore) : null,
-          parsedData: data.parsedData || {
-            personal_info: {},
-            contact_info: {},
-            education: [],
-            experience: [],
-            skills: [],
-            job_suitable: [],
-            job_matches: [],
-          },
-        });
-
-        // Success - break out of retry loop
-        break;
-
-      } catch (err) {
-        // Check if request was aborted
-        if (err instanceof Error && err.name === 'AbortError') {
-          return;
-        }
-
-        console.error(`Error fetching candidate (attempt ${attempt + 1}/${maxRetries + 1}):`, err);
-
-        if (err instanceof Error) {
-          if (err.message === 'Candidate not found' || err.message === 'Access denied to candidate') {
-            if (isMountedRef.current) {
-              setError(err.message);
-            }
-            break;
-          } else if (err.message.includes('Authentication required')) {
-            if (isMountedRef.current) {
-              setError(err.message);
-            }
-            break;
-          } else if (attempt === maxRetries) {
-            if (isMountedRef.current) {
-              setError(err.message);
-            }
-            break;
-          } else {
-            console.error(`Error on attempt ${attempt + 1}, retrying...`);
+          // Wait before retrying (exponential backoff)
+          if (attempt < maxRetries) {
+            const delay = baseDelay * Math.pow(2, attempt);
+            await new Promise(resolve => setTimeout(resolve, delay));
           }
-        } else {
-          if (attempt === maxRetries) {
-            if (isMountedRef.current) {
-              setError('Failed to fetch candidate. Please check your connection and try again.');
-            }
-            break;
-          }
-          console.error(`Unknown error on attempt ${attempt + 1}, retrying...`);
-        }
-
-        // Wait before retrying (exponential backoff)
-        if (attempt < maxRetries) {
-          const delay = baseDelay * Math.pow(2, attempt);
-          await new Promise(resolve => setTimeout(resolve, delay));
         }
       }
-    }
-
-    if (isMountedRef.current) {
-      setLoading(false);
+    } catch (error) {
+      console.error('Unexpected error in fetchCandidate:', error);
+      if (isMountedRef.current) {
+        setError('An unexpected error occurred while loading candidate details.');
+      }
+    } finally {
+      // Clean up timeout
+      clearTimeout(timeoutId);
+      
+      // Always set loading to false, regardless of success or failure
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
   }, [candidateId]);
 

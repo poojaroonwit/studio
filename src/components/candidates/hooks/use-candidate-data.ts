@@ -39,6 +39,15 @@ export function useCandidateData({
   const [authError, setAuthError] = useState(serverAuthError);
   const [permissionError, setPermissionError] = useState(serverPermissionError);
 
+  // Add state for database fit score counts
+  const [databaseFitScoreCounts, setDatabaseFitScoreCounts] = useState<{
+    applied: Array<{ letter: string; count: number }>;
+    matching: Array<{ letter: string; count: number }>;
+  } | null>(null);
+  
+  // Add loading state for fit score counts
+  const [isFitScoreCountsLoading, setIsFitScoreCountsLoading] = useState(false);
+
   // Add debouncing for fetch requests
   const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const currentRequestRef = useRef<string | null>(null);
@@ -183,8 +192,36 @@ export function useCandidateData({
   const fetchFitScoreCounts = useCallback(async () => {
     if (sessionStatus !== 'authenticated') return;
 
+    setIsFitScoreCountsLoading(true);
+    const startTime = Date.now();
+
     try {
-      const response = await fetch('/api/candidates/fit-score-counts');
+      // Build query parameters from current filters
+      const params = new URLSearchParams();
+      
+      // Add all current filters except fit score filters to prevent circular dependency
+      if (filters.name) params.append('name', filters.name);
+      if (filters.nameOperator) params.append('nameOperator', filters.nameOperator);
+      if (filters.email) params.append('email', filters.email);
+      if (filters.emailOperator) params.append('emailOperator', filters.emailOperator);
+      if (filters.phone) params.append('phone', filters.phone);
+      if (filters.phoneOperator) params.append('phoneOperator', filters.phoneOperator);
+      if (filters.positionId) params.append('positionId', filters.positionId);
+      if (filters.status) params.append('status', filters.status);
+      if (filters.education) params.append('education', filters.education);
+      if (filters.minExperienceYears) params.append('minExperienceYears', filters.minExperienceYears.toString());
+      if (filters.maxExperienceYears) params.append('maxExperienceYears', filters.maxExperienceYears.toString());
+      if (filters.applicationDateStart) params.append('applicationDateStart', filters.applicationDateStart.toISOString());
+      if (filters.applicationDateEnd) params.append('applicationDateEnd', filters.applicationDateEnd.toISOString());
+      if (filters.recruiterId) params.append('recruiterId', filters.recruiterId);
+      if (filters.sourceId) params.append('sourceId', filters.sourceId);
+      if (filters.location) params.append('location', filters.location);
+      if (filters.locationOperator) params.append('locationOperator', filters.locationOperator);
+      if (filters.skills) params.append('skills', filters.skills);
+
+      const url = `/api/candidates/fit-score-counts?${params.toString()}`;
+      const response = await fetch(url);
+      
       if (response.ok) {
         const data = await response.json();
         const newCounts = {
@@ -197,14 +234,21 @@ export function useCandidateData({
             count: item.count
           }))
         };
-        // setDatabaseFitScoreCounts(newCounts); // This state is removed, so this line is removed
+        setDatabaseFitScoreCounts(newCounts);
+        
+        const responseTime = Date.now() - startTime;
+        console.log(`✅ Fit score counts loaded in ${responseTime}ms`);
       } else {
-        // fetchFitScoreCounts failed
+        console.error('❌ Failed to fetch fit score counts:', response.status, response.statusText);
+        setDatabaseFitScoreCounts(null);
       }
     } catch (error) {
-      console.error('Error fetching fit score counts:', error);
+      console.error('❌ Error fetching fit score counts:', error);
+      setDatabaseFitScoreCounts(null);
+    } finally {
+      setIsFitScoreCountsLoading(false);
     }
-  }, [sessionStatus]);
+  }, [sessionStatus, filters]);
 
   // Fetch positions and stages if not provided initially
   useSafeEffect(() => {
@@ -406,7 +450,8 @@ export function useCandidateData({
     applyOptimisticUpdate,
     revertOptimisticUpdate,
     // Database-level fit score counts
-    // databaseFitScoreCounts, // This state is removed, so this line is removed
+    databaseFitScoreCounts,
+    isFitScoreCountsLoading,
     fetchFitScoreCounts
   };
 }

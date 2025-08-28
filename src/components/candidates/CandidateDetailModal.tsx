@@ -168,7 +168,7 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
       modalTimeoutRef.current = setTimeout(() => {
         console.error('Modal loading timeout - marking as failed');
         setModalTimedOut(true);
-      }, 20000); // Reduced to 20 seconds for faster failure
+      }, 15000); // Reduced to 15 seconds for faster failure detection
     } else {
       // Clean up when modal closes
       cleanupModal();

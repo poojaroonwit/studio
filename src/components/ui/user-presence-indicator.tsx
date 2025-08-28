@@ -3,12 +3,11 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Badge } from '@/components/ui/badge';
 import { useUnifiedRealtime } from '@/hooks/use-unified-realtime';
 import { useSession } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
-import { Users, Circle } from 'lucide-react';
+import { Circle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // UserPresence type definition
@@ -24,17 +23,15 @@ interface UserPresence {
 }
 
 interface UserPresenceIndicatorProps {
-  maxVisible?: number;
   className?: string;
 }
 
-export function UserPresenceIndicator({ maxVisible = 5, className }: UserPresenceIndicatorProps) {
+export function UserPresenceIndicator({ className }: UserPresenceIndicatorProps) {
   const { data: session } = useSession();
   const pathname = usePathname();
   const [onlineUsers, setOnlineUsers] = useState<UserPresence[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isExpanded, setIsExpanded] = useState(false);
   
   // Use refs to prevent stale closures and track mounted state
   const mountedRef = useRef(true);
@@ -196,31 +193,25 @@ export function UserPresenceIndicator({ maxVisible = 5, className }: UserPresenc
     [filteredUsers]
   );
 
-  // Get users to display
+  // Get users to display - limit to 5 maximum
   const displayUsers = useMemo(() => 
-    filteredUsers.slice(0, maxVisible), 
-    [filteredUsers, maxVisible]
+    filteredUsers.slice(0, 5), 
+    [filteredUsers]
   );
   
   const hasMoreUsers = useMemo(() => 
-    filteredUsers.length > maxVisible, 
-    [filteredUsers.length, maxVisible]
+    filteredUsers.length > 5, 
+    [filteredUsers.length]
   );
 
-  // Memoized handlers for expand/collapse
-  const handleExpand = useCallback(() => {
-    if (!mountedRef.current) return;
-    setIsExpanded(true);
-  }, []);
-
-  const handleCollapse = useCallback(() => {
-    if (!mountedRef.current) return;
-    setIsExpanded(false);
-  }, []);
+  const moreUsersCount = useMemo(() => 
+    filteredUsers.length - 5, 
+    [filteredUsers.length]
+  );
 
   if (isLoading) {
     return (
-      <div className={cn("flex items-center gap-1", className)}>
+      <div className={cn("flex items-center", className)}>
         <div className="flex -space-x-2">
           <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />
           <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />
@@ -235,13 +226,7 @@ export function UserPresenceIndicator({ maxVisible = 5, className }: UserPresenc
     // Show current user's avatar when alone
     return (
       <TooltipProvider>
-        <div className={cn("flex items-center gap-2", className)}>
-          {/* Online count badge */}
-          <Badge variant="secondary" className="text-xs px-2 py-1 h-6">
-            <Users className="w-3 h-3 mr-1" />
-            You're online
-          </Badge>
-
+        <div className={cn("flex items-center", className)}>
           {/* Current user avatar */}
           <div className="flex items-center">
             <div className="flex -space-x-2">
@@ -287,24 +272,52 @@ export function UserPresenceIndicator({ maxVisible = 5, className }: UserPresenc
 
   if (error) {
     return (
-      <div className={cn("flex items-center gap-2", className)}>
-        <Badge variant="secondary" className="text-xs px-2 py-1 h-6">
-          <Users className="w-3 h-3 mr-1" />
-          Error loading users
-        </Badge>
+      <div className={cn("flex items-center", className)}>
+        {/* Show current user avatar even on error */}
+        <div className="flex items-center">
+          <div className="flex -space-x-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="relative">
+                  <Avatar className="w-8 h-8 border-2 border-background transition-all duration-200 hover:scale-110 rounded-full">
+                    <AvatarImage 
+                      src={sessionRef.current?.user?.image || sessionRef.current?.user?.avatarUrl || undefined} 
+                      alt={sessionRef.current?.user?.name || 'You'}
+                      className="rounded-full"
+                    />
+                    <AvatarFallback 
+                      className="text-xs font-medium rounded-full bg-green-500/20 text-green-700 dark:text-green-300"
+                    >
+                      {sessionRef.current?.user?.name ? getInitials(sessionRef.current.user.name) : 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                  
+                  {/* Online indicator */}
+                  <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-background" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs">
+                <div className="space-y-1">
+                  <div className="font-medium">{sessionRef.current?.user?.name || 'You'}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {sessionRef.current?.user?.role || 'User'}
+                  </div>
+                  <div className="text-xs text-green-600 flex items-center gap-1">
+                    <Circle className="w-2 h-2 fill-current" />
+                    Online - {getPageDisplayName(pathname)}
+                  </div>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
     <TooltipProvider>
-      <div className={cn("flex items-center gap-2", className)}>
-        {/* Online count badge */}
-        <Badge variant="secondary" className="text-xs px-2 py-1 h-6">
-          <Users className="w-3 h-3 mr-1" />
-          {`${onlineCount} online`}
-        </Badge>
-
+      <div className={cn("flex items-center", className)}>
         {/* User avatars - only show if there are users */}
         {totalCount > 0 && (
           <div className="flex items-center">
@@ -359,39 +372,17 @@ export function UserPresenceIndicator({ maxVisible = 5, className }: UserPresenc
                 </Tooltip>
               ))}
 
-              {/* Show more indicator */}
+              {/* Show more indicator - simplified */}
               {hasMoreUsers && (
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <button
-                      onClick={handleExpand}
-                      className="w-8 h-8 rounded-full bg-muted border-2 border-background text-xs font-medium hover:bg-muted/80 transition-colors flex items-center justify-center"
-                    >
-                      +{filteredUsers.length - maxVisible}
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">
-                    <div className="text-xs">
-                      Click to see all {filteredUsers.length} users
+                    <div className="w-8 h-8 rounded-full bg-muted border-2 border-background text-xs font-medium flex items-center justify-center">
+                      +{moreUsersCount}
                     </div>
-                  </TooltipContent>
-                </Tooltip>
-              )}
-
-              {/* Collapse button when expanded */}
-              {isExpanded && hasMoreUsers && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      onClick={handleCollapse}
-                      className="w-8 h-8 rounded-full bg-muted border-2 border-background text-xs font-medium hover:bg-muted/80 transition-colors flex items-center justify-center"
-                    >
-                      −
-                    </button>
                   </TooltipTrigger>
                   <TooltipContent side="bottom">
                     <div className="text-xs">
-                      Show less
+                      {moreUsersCount} more online users
                     </div>
                   </TooltipContent>
                 </Tooltip>

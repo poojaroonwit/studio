@@ -7,6 +7,10 @@ import { logAudit } from '@/lib/auditLog';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
+// Performance monitoring
+const CACHE_DURATION = 60; // 60 seconds cache
+const STALE_WHILE_REVALIDATE = 120; // 2 minutes stale-while-revalidate
+
 // Helper for session and permission checks
 async function requireSessionAndPermission(requiredPermission: string, request: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -179,28 +183,23 @@ export async function GET(request: NextRequest) {
           break;
       }
       
-      whereClauses.push(`c.location ${operator} $${paramIndex++}`);
+      whereClauses.push(`c."parsedData"->>'location' ${operator} $${paramIndex++}`);
       queryParams.push(value);
     }
 
     // Handle status filter
     if (filters.status && filters.status.trim() !== '') {
       const statuses = filters.status.split(',').map(s => s.trim()).filter(s => s !== '');
-      const nullStatuses = statuses.filter(s => s === 'null' || s === '');
-      const regularStatuses = statuses.filter(s => s !== 'null' && s !== '');
       
-      if (nullStatuses.length > 0 && regularStatuses.length > 0) {
-        whereClauses.push(`(c.status = ANY($${paramIndex++}) OR c.status = '' OR c.status = 'null')`);
-        queryParams.push(regularStatuses);
-      } else if (nullStatuses.length > 0) {
-        whereClauses.push(`(c.status = '' OR c.status = 'null' OR c.status IS NULL)`);
+      if (statuses.includes('select-all')) {
+        // Don't add any status filter - show all statuses
       } else {
-        if (regularStatuses.length === 1) {
+        if (statuses.length === 1) {
           whereClauses.push(`c.status = $${paramIndex++}`);
-          queryParams.push(regularStatuses[0]);
+          queryParams.push(statuses[0]);
         } else {
           whereClauses.push(`c.status = ANY($${paramIndex++})`);
-          queryParams.push(regularStatuses);
+          queryParams.push(statuses);
         }
       }
     }
@@ -350,67 +349,22 @@ export async function GET(request: NextRequest) {
       }
     }
 
-
-
-    // Note: We do NOT include fit score filters in the WHERE clause to prevent circular dependency
-    // The fit score counts API should return counts for ALL candidates based on other filters only
-    // The client-side logic will handle filtering the counts based on the current fit score filter state
-
-    // Build the WHERE clause
+    // Build the final WHERE clause
     const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
-    
-    // Debug logging - essential info only
-    console.log('🔍 Final WHERE clause:', whereClause);
 
-  
+    // Get database connection
     const client = await getPool().connect();
+    
     try {
-      // Debug: Test with the actual WHERE clause to see if it filters out all candidates
-      const testWithWhereClauseQuery = `
-        SELECT COUNT(*) as total_with_filters
-        FROM "Candidate" c
-        ${whereClause}
-      `;
-      const testWithWhereClauseResult = await client.query(testWithWhereClauseQuery, queryParams);
-      console.log('🔍 Total candidates with filters applied:', testWithWhereClauseResult.rows[0].total_with_filters);
-      
-      // Also test the same query with the WHERE clause to see the difference
-      const filteredTestQuery = `
-        SELECT 
-          CASE 
-            WHEN c."fitScore" IS NULL THEN 'no-score'
-            WHEN (c."fitScore" * 100) >= 81 THEN 'A'
-            WHEN (c."fitScore" * 100) >= 61 THEN 'B'
-            WHEN (c."fitScore" * 100) >= 41 THEN 'C'
-            WHEN (c."fitScore" * 100) >= 21 THEN 'D'
-            ELSE 'E'
-          END as grade,
-          COUNT(*) as count
-        FROM "Candidate" c
-        ${whereClause}
-        GROUP BY 
-          CASE 
-            WHEN c."fitScore" IS NULL THEN 'no-score'
-            WHEN (c."fitScore" * 100) >= 81 THEN 'A'
-            WHEN (c."fitScore" * 100) >= 61 THEN 'B'
-            WHEN (c."fitScore" * 100) >= 41 THEN 'C'
-            WHEN (c."fitScore" * 100) >= 21 THEN 'D'
-            ELSE 'E'
-          END
-        ORDER BY grade
-      `;
-      const filteredTestResult = await client.query(filteredTestQuery, queryParams);
-      console.log('🔍 Filtered fit score count result (with filters):', filteredTestResult.rows);
-      
-      // Efficient fit score count queries
+      // Optimized fit score count queries
       const appliedFitScoreCountsQuery = `
         SELECT 
           CASE 
-            WHEN c."fitScore" IS NULL THEN 'no-score'
-            WHEN (c."fitScore" * 100) >= 81 THEN 'A'
-            WHEN (c."fitScore" * 100) >= 61 THEN 'B'
-            WHEN (c."fitScore" * 100) >= 41 THEN 'C'
-            WHEN (c."fitScore" * 100) >= 21 THEN 'D'
+            WHEN c."fitScore" IS NULL OR c."fitScore" = 0 THEN 'no-score'
+            WHEN c."fitScore" >= 0.81 THEN 'A'
+            WHEN c."fitScore" >= 0.61 THEN 'B'
+            WHEN c."fitScore" >= 0.41 THEN 'C'
+            WHEN c."fitScore" >= 0.21 THEN 'D'
             ELSE 'E'
           END as grade,
           COUNT(*) as count
@@ -418,11 +372,11 @@ export async function GET(request: NextRequest) {
         ${whereClause}
         GROUP BY 
           CASE 
-            WHEN c."fitScore" IS NULL THEN 'no-score'
-            WHEN (c."fitScore" * 100) >= 81 THEN 'A'
-            WHEN (c."fitScore" * 100) >= 61 THEN 'B'
-            WHEN (c."fitScore" * 100) >= 41 THEN 'C'
-            WHEN (c."fitScore" * 100) >= 21 THEN 'D'
+            WHEN c."fitScore" IS NULL OR c."fitScore" = 0 THEN 'no-score'
+            WHEN c."fitScore" >= 0.81 THEN 'A'
+            WHEN c."fitScore" >= 0.61 THEN 'B'
+            WHEN c."fitScore" >= 0.41 THEN 'C'
+            WHEN c."fitScore" >= 0.21 THEN 'D'
             ELSE 'E'
           END
         ORDER BY grade
@@ -431,11 +385,11 @@ export async function GET(request: NextRequest) {
       const matchingFitScoreCountsQuery = `
         SELECT 
           CASE 
-            WHEN best_match_score IS NULL THEN 'no-score'
-            WHEN (best_match_score * 100) >= 81 THEN 'A'
-            WHEN (best_match_score * 100) >= 61 THEN 'B'
-            WHEN (best_match_score * 100) >= 41 THEN 'C'
-            WHEN (best_match_score * 100) >= 21 THEN 'D'
+            WHEN best_match_score IS NULL OR best_match_score = 0 THEN 'no-score'
+            WHEN best_match_score >= 0.81 THEN 'A'
+            WHEN best_match_score >= 0.61 THEN 'B'
+            WHEN best_match_score >= 0.41 THEN 'C'
+            WHEN best_match_score >= 0.21 THEN 'D'
             ELSE 'E'
           END as grade,
           COUNT(*) as count
@@ -460,29 +414,31 @@ export async function GET(request: NextRequest) {
         ) as candidate_scores
         GROUP BY 
           CASE 
-            WHEN best_match_score IS NULL THEN 'no-score'
-            WHEN (best_match_score * 100) >= 81 THEN 'A'
-            WHEN (best_match_score * 100) >= 61 THEN 'B'
-            WHEN (best_match_score * 100) >= 41 THEN 'C'
-            WHEN (best_match_score * 100) >= 21 THEN 'D'
+            WHEN best_match_score IS NULL OR best_match_score = 0 THEN 'no-score'
+            WHEN best_match_score >= 0.81 THEN 'A'
+            WHEN best_match_score >= 0.61 THEN 'B'
+            WHEN best_match_score >= 0.41 THEN 'C'
+            WHEN best_match_score >= 0.21 THEN 'D'
             ELSE 'E'
           END
         ORDER BY grade
       `;
 
-      // Debug queries removed to reduce noise
-
       // Execute both queries in parallel
       let appliedResult: any, matchingResult: any;
       try {
+        const queryStartTime = Date.now();
+        
         [appliedResult, matchingResult] = await Promise.all([
           client.query(appliedFitScoreCountsQuery, queryParams),
           client.query(matchingFitScoreCountsQuery, queryParams)
         ]);
 
-        // Remove debug logs for cleaner output
+        const queryTime = Date.now() - queryStartTime;
+        console.log(`⚡ Fit score count queries completed in ${queryTime}ms`);
+        
       } catch (error) {
-        console.error('🔍 Database query error:', error);
+        console.error('❌ Database query error:', error);
         throw error;
       }
 
@@ -499,14 +455,20 @@ export async function GET(request: NextRequest) {
 
       const responseTime = Date.now() - startTime;
 
+      // Generate cache key based on filters for better caching
+      const cacheKey = Buffer.from(JSON.stringify({ filters, responseTime })).toString('base64').slice(0, 8);
+
       return NextResponse.json({
         applied: appliedCounts,
         matching: matchingCounts,
         responseTime: `${responseTime}ms`
       }, {
         headers: {
-          'Cache-Control': 'public, max-age=30, stale-while-revalidate=60',
-          'X-Response-Time': `${responseTime}ms`
+          'Cache-Control': `public, max-age=${CACHE_DURATION}, stale-while-revalidate=${STALE_WHILE_REVALIDATE}`,
+          'ETag': `"${cacheKey}"`,
+          'X-Response-Time': `${responseTime}ms`,
+          'X-Cache-Duration': `${CACHE_DURATION}s`,
+          'X-Stale-While-Revalidate': `${STALE_WHILE_REVALIDATE}s`
         }
       });
 
@@ -516,6 +478,8 @@ export async function GET(request: NextRequest) {
 
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
+    
+    console.error('❌ Fit score counts API error:', error);
     
     return NextResponse.json({ 
       message: 'Error fetching fit score counts', 

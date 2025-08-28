@@ -267,6 +267,42 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 }
 
+export async function HEAD(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  }
+
+  const { id } = await params;
+  // Validate UUID
+  const uuidSchema = z.string().uuid();
+  if (!uuidSchema.safeParse(id).success) {
+    console.error('Invalid candidate ID format:', id);
+    return NextResponse.json({ message: 'Invalid candidate ID format' }, { status: 400 });
+  }
+
+  const client = await getPool().connect();
+  try {
+    // Set query timeout to prevent hanging queries
+    await client.query('SET statement_timeout = 30000');
+    
+    // Simple query to check if candidate exists
+    const result = await client.query('SELECT id FROM "Candidate" WHERE id = $1::uuid', [id]);
+    
+    if (result.rows.length === 0) {
+      return NextResponse.json({ message: 'Candidate not found' }, { status: 404 });
+    }
+
+    // Return 200 if candidate exists
+    return new NextResponse(null, { status: 200 });
+  } catch (error: any) {
+    console.error('Error checking candidate existence:', error);
+    return NextResponse.json({ message: 'Error checking candidate existence', error: error.message }, { status: 500 });
+  } finally {
+    client.release();
+  }
+}
+
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   const actingUserId = session?.user?.id;

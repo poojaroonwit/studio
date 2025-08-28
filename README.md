@@ -499,3 +499,54 @@ tail -f logs/app.log
 ---
 
 **FitScan** - Modern, scalable, and feature-rich Applicant Tracking System 
+
+## Troubleshooting
+
+### Candidate Detail Modal Stuck on "Loading candidate details..."
+
+If you encounter this issue, it's likely due to authentication problems. Here's how to fix it:
+
+1. **Check if you're authenticated**:
+   - Navigate to `http://localhost:8021/auth/signin`
+   - Sign in with the admin credentials:
+     - Email: `admin@qsncc.com`
+     - Password: `nccadmin`
+
+2. **If the admin user doesn't exist**:
+   ```bash
+   # Set the database URL environment variable
+   $env:DATABASE_URL="postgresql://studio_user:local_dev_password@localhost:8521/studio_dev"
+   
+   # Create the admin user
+   node scripts/create-admin-user.js
+   ```
+
+3. **Verify the database is running**:
+   ```bash
+   # Check if PostgreSQL is running on port 8521
+   netstat -an | findstr :8521
+   ```
+
+4. **Check if the development server is running**:
+   ```bash
+   # Check if Next.js is running on port 8021
+   netstat -an | findstr :8021
+   ```
+
+5. **Restart the development server if needed**:
+   ```bash
+   npm run dev
+   ```
+
+### Common Error Messages
+
+- **"Failed to fetch" errors**: Usually indicate authentication issues or network problems
+- **"Authentication required"**: User needs to sign in
+- **"Candidate not found"**: The candidate ID is invalid or doesn't exist
+- **"Access denied"**: User doesn't have permission to view the candidate
+
+### API Endpoints
+
+- Health check: `http://localhost:8021/api/health`
+- Session check: `http://localhost:8021/api/auth/session`
+- Login page: `http://localhost:8021/auth/signin` 

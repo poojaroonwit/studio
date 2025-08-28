@@ -192,14 +192,24 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
           <div>
             <h3 className="text-lg font-medium text-foreground">Failed to load candidate</h3>
             <p className="text-muted-foreground text-sm mb-4">{error || 'Candidate not found'}</p>
-            <Button 
-              onClick={() => window.location.reload()} 
-              variant="outline"
-              size="sm"
-            >
-              <Loader2 className="h-4 w-4 mr-2" />
-              Retry
-            </Button>
+            {error && error.includes('Authentication required') ? (
+              <Button 
+                onClick={() => window.location.href = '/auth/signin'} 
+                variant="outline"
+                size="sm"
+              >
+                Sign In
+              </Button>
+            ) : (
+              <Button 
+                onClick={() => window.location.reload()} 
+                variant="outline"
+                size="sm"
+              >
+                <Loader2 className="h-4 w-4 mr-2" />
+                Retry
+              </Button>
+            )}
           </div>
         </div>
       </div>

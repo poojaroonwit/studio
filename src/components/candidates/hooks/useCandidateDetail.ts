@@ -218,7 +218,9 @@ export const useCandidateDetail = (candidateId: string) => {
         });
 
         if (!res.ok) {
-          if (res.status === 404) {
+          if (res.status === 401) {
+            throw new Error('Authentication required. Please sign in to view candidate details.');
+          } else if (res.status === 404) {
             throw new Error('Candidate not found');
           } else if (res.status === 403) {
             throw new Error('Access denied to candidate');
@@ -279,6 +281,11 @@ export const useCandidateDetail = (candidateId: string) => {
               setError(err.message);
             }
             break;
+          } else if (err.message.includes('Authentication required')) {
+            if (isMountedRef.current) {
+              setError(err.message);
+            }
+            break;
           } else if (attempt === maxRetries) {
             if (isMountedRef.current) {
               setError(err.message);
@@ -334,6 +341,10 @@ export const useCandidateDetail = (candidateId: string) => {
       if (res.ok) {
         const data = await res.json();
         setAllDbPositions(data.data || []);
+      } else if (res.status === 401) {
+        console.error('Authentication required to fetch positions');
+      } else {
+        console.error('Error fetching positions:', res.status, res.statusText);
       }
     } catch (e) {
       console.error('Error fetching positions:', e);
@@ -349,6 +360,10 @@ export const useCandidateDetail = (candidateId: string) => {
         const responseData = await res.json();
         const recruitersArray = responseData?.users || [];
         setAvailableRecruiters(recruitersArray);
+      } else if (res.status === 401) {
+        console.error('Authentication required to fetch recruiters');
+      } else {
+        console.error('Error fetching recruiters:', res.status, res.statusText);
       }
     } catch (e) {
       console.error('Error fetching recruiters:', e);
@@ -363,6 +378,10 @@ export const useCandidateDetail = (candidateId: string) => {
       if (res.ok) {
         const data = await res.json();
         setAvailableSources(data || []);
+      } else if (res.status === 401) {
+        console.error('Authentication required to fetch sources');
+      } else {
+        console.error('Error fetching sources:', res.status, res.statusText);
       }
     } catch (e) {
       console.error('Error fetching sources:', e);
@@ -377,6 +396,10 @@ export const useCandidateDetail = (candidateId: string) => {
       if (res.ok) {
         const data = await res.json();
         setAvailableStages(data || []);
+      } else if (res.status === 401) {
+        console.error('Authentication required to fetch stages');
+      } else {
+        console.error('Error fetching stages:', res.status, res.statusText);
       }
     } catch (e) {
       console.error('Error fetching stages:', e);
@@ -389,6 +412,10 @@ export const useCandidateDetail = (candidateId: string) => {
       if (res.ok) {
         const data = await res.json();
         setTransitionHistory(data || []);
+      } else if (res.status === 401) {
+        console.error('Authentication required to fetch transition history');
+      } else {
+        console.error('Error fetching transition history:', res.status, res.statusText);
       }
     } catch (e) {
       console.error('Error fetching transition history:', e);

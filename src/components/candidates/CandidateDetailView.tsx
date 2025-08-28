@@ -4,6 +4,8 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, X } from 'lucide-react';
 import FullCandidateDetail from './FullCandidateDetail';
 import { useUnifiedRealtime } from '@/hooks/use-unified-realtime';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 
 interface CandidateDetailViewProps {
   candidateId: string;
@@ -35,6 +37,9 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
     showNotifications: false, // Disable notifications to prevent conflicts
     showErrorNotifications: false // Disable error toast notifications
   });
+
+  const { status } = useSession();
+  const router = useRouter();
 
   const fetchComments = useCallback(async (limit = 10, offset = 0) => {
     if (!isMountedRef.current) return [];
@@ -178,6 +183,38 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
         <div className="flex flex-col items-center space-y-4">
           <Loader2 className="animate-spin h-8 w-8 text-primary" />
           <p className="text-muted-foreground">Loading candidate details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading while checking authentication
+  if (status === 'loading') {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="flex flex-col items-center space-y-4">
+          <Loader2 className="animate-spin h-8 w-8 text-primary" />
+          <p className="text-muted-foreground">Checking authentication...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect if not authenticated
+  if (status === 'unauthenticated') {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="flex flex-col items-center space-y-4 text-center">
+          <div>
+            <h3 className="text-lg font-medium text-foreground">Authentication Required</h3>
+            <p className="text-muted-foreground text-sm mb-4">Please sign in to view candidate details.</p>
+            <button 
+              onClick={() => router.push('/auth/signin')} 
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+            >
+              Sign In
+            </button>
+          </div>
         </div>
       </div>
     );

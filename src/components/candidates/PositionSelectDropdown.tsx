@@ -59,9 +59,7 @@ export function PositionSelectDropdown({
           disabled={disabled}
           className={className}
         />
-        <p className="text-xs text-muted-foreground">
-          Database connection unavailable. Please enter position title manually.
-        </p>
+      
       </div>
     );
   }

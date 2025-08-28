@@ -109,93 +109,115 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const startTime = Date.now();
   const client = await getPool().connect();
   try {
-    // Set query timeout to prevent hanging queries - increased to match pool configuration
-    await client.query('SET statement_timeout = 30000'); // 30 seconds timeout to match pool config
+    // Set query timeout to prevent hanging queries
+    await client.query('SET statement_timeout = 180000'); // 180 seconds timeout (increased)
     
     // Check cache first (implement Redis or in-memory cache in production)
     const cacheKey = `candidate:${id}:${session.user.id}`;
     
   
-    // Optimized query with selective data fetching
-    const candidateQuery = `
+    // Optimized query with better performance and reduced complexity
+    const combinedQuery = `
+      WITH candidate_data AS (
+        SELECT 
+          c.*,
+          p.title as "positionTitle", 
+          p.department as "positionDepartment",
+          r.name as "recruiterName", 
+          r."avatarUrl" as "recruiterAvatarUrl",
+          cs.name as "sourceName", 
+          cs.description as "sourceDescription", 
+          cs.logo as "sourceLogo"
+        FROM "Candidate" c
+        LEFT JOIN "Position" p ON c."positionId" = p.id
+        LEFT JOIN "User" r ON c."recruiterId" = r.id
+        LEFT JOIN "CandidateSource" cs ON c."sourceId" = cs.id
+        WHERE c.id = $1::uuid
+      ),
+      job_matches_data AS (
+        SELECT 
+          jm.id,
+          jm."candidateId",
+          jm."jobId",
+          jm."fitScore",
+          jm."createdAt",
+          jm."updatedAt",
+          p.title as "positionTitle",
+          p.department as "positionDepartment",
+          p.description as "positionDescription"
+        FROM "JobMatch" jm
+        LEFT JOIN "Position" p ON jm."jobId" = p.id
+        WHERE jm."candidateId" = $1::uuid
+        ORDER BY jm."fitScore" DESC NULLS LAST
+        LIMIT 5
+      ),
+      attachments_data AS (
+        SELECT 
+          a.id,
+          a."candidateId",
+          a."uploadedById",
+          a."filePath",
+          a."fileName",
+          a.label,
+          a."isPrimary",
+          a."uploadedAt",
+          a."updatedAt",
+          a."headcountId",
+          u.name as "uploadedByUserName"
+        FROM "Attachment" a
+        LEFT JOIN "User" u ON a."uploadedById" = u.id
+        WHERE a."candidateId" = $1::uuid
+        ORDER BY a."uploadedAt" DESC NULLS LAST
+        LIMIT 3
+      )
       SELECT 
-        c.*,
-        p.title as "positionTitle", 
-        p.department as "positionDepartment",
-        r.name as "recruiterName", 
-        r."avatarUrl" as "recruiterAvatarUrl",
-        cs.name as "sourceName", 
-        cs.description as "sourceDescription", 
-        cs.logo as "sourceLogo"
-      FROM "Candidate" c
-      LEFT JOIN "Position" p ON c."positionId" = p.id
-      LEFT JOIN "User" r ON c."recruiterId" = r.id
-      LEFT JOIN "CandidateSource" cs ON c."sourceId" = cs.id
-      WHERE c.id = $1::uuid
+        'candidate' as data_type,
+        to_json(c.*) as data
+      FROM candidate_data c
+      UNION ALL
+      SELECT 
+        'job_matches' as data_type,
+        COALESCE(json_agg(to_json(jm.*)), '[]'::json) as data
+      FROM job_matches_data jm
+      UNION ALL
+      SELECT 
+        'attachments' as data_type,
+        COALESCE(json_agg(to_json(a.*)), '[]'::json) as data
+      FROM attachments_data a
     `;
     
-    const candidateStartTime = Date.now();
-    const candidateResult = await client.query(candidateQuery, [id]);
-    const candidateQueryTime = Date.now() - candidateStartTime;
-    console.log(`[PERF] Candidate query completed in ${candidateQueryTime}ms`);
+    const queryStartTime = Date.now();
+    const result = await client.query(combinedQuery, [id]);
+    const queryTime = Date.now() - queryStartTime;
+    console.log(`[PERF] Combined query completed in ${queryTime}ms for candidate ${id}`);
+    
+    // Log warning if query takes too long
+    if (queryTime > 5000) {
+      console.warn(`[PERF] Slow query detected: ${queryTime}ms for candidate ${id}`);
+    }
  
-    if (candidateResult.rows.length === 0) {
+    if (result.rows.length === 0) {
       return NextResponse.json({ message: 'Candidate not found' }, { status: 404 });
     }
 
-    const candidate = candidateResult.rows[0];
+    // Parse the combined results
+    let candidate: any = null;
+    let jobMatches: any[] = [];
+    let attachments: any[] = [];
 
-    // Fetch job matches separately with pagination (reduced limit for performance)
-    const jobMatchesQuery = `
-      SELECT 
-        jm.id,
-        jm."candidateId",
-        jm."jobId",
-        jm."fitScore",
-        jm."createdAt",
-        jm."updatedAt",
-        p.title as "positionTitle",
-        p.department as "positionDepartment",
-        p.description as "positionDescription"
-      FROM "JobMatch" jm
-      LEFT JOIN "Position" p ON jm."jobId" = p.id
-      WHERE jm."candidateId" = $1::uuid
-      ORDER BY jm."fitScore" DESC
-      LIMIT 5
-    `;
-    
-    const jobMatchesStartTime = Date.now();
-    const jobMatchesResult = await client.query(jobMatchesQuery, [id]);
-    const jobMatchesQueryTime = Date.now() - jobMatchesStartTime;
-    console.log(`[PERF] Job matches query completed in ${jobMatchesQueryTime}ms`);
-    const jobMatches = jobMatchesResult.rows || [];
+    for (const row of result.rows) {
+      if (row.data_type === 'candidate') {
+        candidate = row.data;
+      } else if (row.data_type === 'job_matches') {
+        jobMatches = row.data || [];
+      } else if (row.data_type === 'attachments') {
+        attachments = row.data || [];
+      }
+    }
 
-    // Fetch recent attachments only (reduced limit for performance)
-    const attachmentsQuery = `
-      SELECT 
-        a.id,
-        a."candidateId",
-        a."uploadedById",
-        a."filePath",
-        a."fileName",
-        a.label,
-        a."isPrimary",
-        a."uploadedAt",
-        a."updatedAt",
-        a."headcountId",
-        u.name as "uploadedByUserName"
-      FROM "Attachment" a
-      LEFT JOIN "User" u ON a."uploadedById" = u.id
-      WHERE a."candidateId" = $1::uuid
-      ORDER BY a."uploadedAt" DESC
-      LIMIT 3
-    `;
-    
-    const attachmentsStartTime = Date.now();
-    const attachmentsResult = await client.query(attachmentsQuery, [id]);
-    const attachmentsQueryTime = Date.now() - attachmentsStartTime;
-    console.log(`[PERF] Attachments query completed in ${attachmentsQueryTime}ms`);
-    const attachments = attachmentsResult.rows || [];
+    if (!candidate) {
+      return NextResponse.json({ message: 'Candidate not found' }, { status: 404 });
+    }
 
     const totalTime = Date.now() - startTime;
     console.log(`[PERF] Total candidate API response time: ${totalTime}ms`);
@@ -245,7 +267,16 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   } catch (error: any) {
     console.error('Error fetching candidate', id, error);
     
-
+    // Handle timeout errors specifically
+    if (error.code === '57014' || error.message?.includes('timeout') || error.message?.includes('canceling statement')) {
+      console.error('Database query timeout for candidate:', id, error);
+      return NextResponse.json({ 
+        message: 'Request timed out. The server may be experiencing high load. Please try again in a moment.',
+        error: 'Database query timeout',
+        candidateId: id,
+        suggestion: 'Try refreshing the page or contact support if the issue persists.'
+      }, { status: 408 }); // 408 Request Timeout
+    }
     
     // Handle connection errors
     if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
@@ -284,20 +315,26 @@ export async function HEAD(request: NextRequest, { params }: { params: Promise<{
   const client = await getPool().connect();
   try {
     // Set query timeout to prevent hanging queries
-    await client.query('SET statement_timeout = 30000');
+    await client.query('SET statement_timeout = 120000');
+    
+    console.log('[HEAD] Checking candidate existence for ID:', id);
     
     // Simple query to check if candidate exists
     const result = await client.query('SELECT id FROM "Candidate" WHERE id = $1::uuid', [id]);
     
+    console.log('[HEAD] Query result rows:', result.rows.length);
+    
     if (result.rows.length === 0) {
-      return NextResponse.json({ message: 'Candidate not found' }, { status: 404 });
+      console.log('[HEAD] Candidate not found, returning 404');
+      return new NextResponse(null, { status: 404 });
     }
 
+    console.log('[HEAD] Candidate found, returning 200');
     // Return 200 if candidate exists
     return new NextResponse(null, { status: 200 });
   } catch (error: any) {
     console.error('Error checking candidate existence:', error);
-    return NextResponse.json({ message: 'Error checking candidate existence', error: error.message }, { status: 500 });
+    return new NextResponse(null, { status: 500 });
   } finally {
     client.release();
   }

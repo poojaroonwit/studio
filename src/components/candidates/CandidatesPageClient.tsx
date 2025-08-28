@@ -1169,7 +1169,7 @@ export function CandidatesPageClient({
     }, 300); // Increased delay to prevent resource leaks
     
     return () => clearTimeout(timeoutId);
-  }, [filters, page, pageSize, sortColumn, sortDirection, sessionStatus, serverAuthError, serverPermissionError, isClearingFilters, hasInitialDataFetch, fetchTableData, initialCandidates.length, searchParams]);
+  }, [filters, page, pageSize, sortColumn, sortDirection, sessionStatus, serverAuthError, serverPermissionError, isClearingFilters, hasInitialDataFetch, initialCandidates.length, searchParams]);
 
     // Show error as toast popup if present
   useEffect(() => {
@@ -1194,7 +1194,7 @@ export function CandidatesPageClient({
       
       fetchFitScoreCounts();
     }
-  }, [sessionStatus, hasInitialDataFetch, initialCandidates.length, filters, fetchFitScoreCounts], 'fetchFitScoreCounts');
+  }, [sessionStatus, hasInitialDataFetch, initialCandidates.length, filters], 'fetchFitScoreCounts');
 
   // DISABLED: This useEffect was causing resource leaks due to conflicts with onFilterChange
   // The fetchFitScoreCounts is now properly handled in the onFilterChange callback

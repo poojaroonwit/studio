@@ -271,12 +271,12 @@ export function useCandidateData({
 
           if (positionsResponse.ok) {
             const positionsData = await positionsResponse.json();
-            stableSetAvailablePositions(Array.isArray(positionsData) ? positionsData : (positionsData.positions || []));
+            setAvailablePositions(Array.isArray(positionsData) ? positionsData : (positionsData.positions || []));
           }
 
           if (stagesResponse.ok) {
             const stagesData = await stagesResponse.json();
-            stableSetAvailableStages(Array.isArray(stagesData) ? stagesData : (stagesData.stages || []));
+            setAvailableStages(Array.isArray(stagesData) ? stagesData : (stagesData.stages || []));
           }
         } catch (error) {
           console.error('Error fetching positions and stages:', error);
@@ -285,7 +285,7 @@ export function useCandidateData({
 
       fetchPositionsAndStages();
     }
-  }, [sessionStatus, initialAvailablePositions.length, stableSetAvailablePositions, stableSetAvailableStages], 'fetchPositionsAndStages', 10);
+  }, [sessionStatus, initialAvailablePositions.length], 'fetchPositionsAndStages', 10);
 
   // Fetch stages independently if not provided initially
   useSafeEffect(() => {
@@ -297,7 +297,7 @@ export function useCandidateData({
 
           if (stagesResponse.ok) {
             const stagesData = await stagesResponse.json();
-            stableSetAvailableStages(Array.isArray(stagesData) ? stagesData : (stagesData.stages || []));
+            setAvailableStages(Array.isArray(stagesData) ? stagesData : (stagesData.stages || []));
           } else {
             // Could not load recruitment stages
           }
@@ -307,7 +307,7 @@ export function useCandidateData({
       };
       fetchStages();
     }
-  }, [sessionStatus, initialAvailableStages.length, stableSetAvailableStages], 'fetchStages', 10);
+  }, [sessionStatus, initialAvailableStages.length], 'fetchStages', 10);
 
   // Fetch full candidates on mount and when session changes
   useSafeEffect(() => {
@@ -320,7 +320,7 @@ export function useCandidateData({
       
       return () => clearTimeout(timeoutId);
     }
-  }, [sessionStatus, fetchAllCandidatesForCounts, initialCandidates.length], 'fetchFullCandidates', 10);
+  }, [sessionStatus, initialCandidates.length], 'fetchFullCandidates', 10);
 
   // Fetch sources and recruiters on mount
   useSafeEffect(() => {
@@ -328,7 +328,7 @@ export function useCandidateData({
       fetchSources();
       fetchRecruiters();
     }
-  }, [sessionStatus, fetchSources, fetchRecruiters], 'fetchSourcesAndRecruiters', 10);
+  }, [sessionStatus], 'fetchSourcesAndRecruiters', 10);
 
   // Fetch fit score counts on mount
   useSafeEffect(() => {
@@ -340,7 +340,7 @@ export function useCandidateData({
       
       return () => clearTimeout(timeoutId);
     }
-  }, [sessionStatus, fetchFitScoreCounts], 'fetchFitScoreCounts', 10);
+  }, [sessionStatus], 'fetchFitScoreCounts', 10);
 
   // Simplified helper function to normalize fit scores
   const getBestMatchingFitScore = (candidate: Candidate): number => {

@@ -133,9 +133,9 @@ function TaskBoardContent() {
   });
 
   // Local state for immediate UI updates
-  const [searchTerm, setSearchTerm] = useState(preferences.searchTerm);
-  const [filterPriority, setFilterPriority] = useState(preferences.filterPriority);
-  const [filterAssignee, setFilterAssignee] = useState(preferences.filterAssignee);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterPriority, setFilterPriority] = useState('all');
+  const [filterAssignee, setFilterAssignee] = useState('all');
 
   // Update local state when preferences are loaded
   useEffect(() => {

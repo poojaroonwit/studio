@@ -46,6 +46,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 
 interface CandidateTableProps {
@@ -214,6 +215,7 @@ export function CandidateTable({
   onBulkChangeStatus,
   onBulkAssignRecruiter,
 }: CandidateTableProps) {
+  const router = useRouter();
   // Ensure selectedCandidateIds is always a Set
   const safeSelectedCandidateIds = selectedCandidateIds || new Set<string>();
   const [selectedCandidateForModal, setSelectedCandidateForModal] = useState<Candidate | null>(null);
@@ -325,8 +327,8 @@ export function CandidateTable({
       return;
     }
     
-    // Navigate to candidate detail page
-    window.location.href = `/candidates/${candidate.id}`;
+    // Navigate to candidate detail page using Next.js router
+    router.push(`/candidates/${candidate.id}`);
   };
 
   const renderSortIcon = (col: string) => {

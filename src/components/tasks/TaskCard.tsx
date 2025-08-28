@@ -1,5 +1,6 @@
 // src/components/tasks/TaskCard.tsx
 import React, { useCallback } from 'react';
+import { useSession } from 'next-auth/react';
 import { Badge } from '@/components/ui/badge';
 import { UserAvatarCompact } from '@/components/ui/user-avatar';
 import { ScoreBadge, getScoreColorInfo } from '@/components/ui/score-color';
@@ -101,6 +102,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   isDragging,
   cardPreferences 
 }) => {
+  const { data: session, status } = useSession();
   const getFitScoreColor = useCallback((score: number) => {
     const colorInfo = getScoreColorInfo(score);
     const borderColorMap: Record<string, string> = {
@@ -126,11 +128,20 @@ export const TaskCard: React.FC<TaskCardProps> = ({
 
   const handleClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
-    onClick?.();
+    if (onClick) {
+      onClick();
+    }
   }, [onClick]);
 
-  const canManageOwnTasks = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('TASK_BOARD_MANAGE_OWN') || false;
-  const canManageAllTasks = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('TASK_BOARD_MANAGE_ALL') || false;
+  // Safely access session data with fallbacks
+  const canManageOwnTasks = Boolean(
+    session?.user?.role === 'Admin' || 
+    session?.user?.modulePermissions?.includes('TASK_BOARD_MANAGE_OWN')
+  );
+  const canManageAllTasks = Boolean(
+    session?.user?.role === 'Admin' || 
+    session?.user?.modulePermissions?.includes('TASK_BOARD_MANAGE_ALL')
+  );
 
   return (
     <div

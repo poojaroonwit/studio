@@ -53,3 +53,6 @@ src/**/*.jsx
 # Ignore legacy configs
 tailwind.config.js
 prisma/seed.js
+
+# Ignore local environment setup scripts with secrets
+scripts/fix-local-env.js

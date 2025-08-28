@@ -17,7 +17,7 @@ export function getPool() {
       idleTimeoutMillis: parseInt(process.env.DATABASE_IDLE_TIMEOUT || '30000'),
       connectionTimeoutMillis: parseInt(process.env.DATABASE_CONNECTION_TIMEOUT || '1800000'),
       // Add query timeout to prevent hanging queries
-      statement_timeout: parseInt(process.env.DATABASE_STATEMENT_TIMEOUT || '30000'), // 30 seconds
+      statement_timeout: parseInt(process.env.DATABASE_STATEMENT_TIMEOUT || '120000'), // 120 seconds
       // Add better error handling
       allowExitOnIdle: false,
     };

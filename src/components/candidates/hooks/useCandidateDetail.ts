@@ -61,6 +61,9 @@ export const useCandidateDetail = (candidateId: string) => {
   const avatarForceRefreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const isMountedRef = useRef(true);
+  const currentRequestIdRef = useRef<string | null>(null);
+  const isFetchingRef = useRef(false);
+  const effectCleanupRef = useRef<(() => void) | null>(null);
 
   // Cache duration: 30 seconds
   const CACHE_DURATION = 30000;
@@ -168,11 +171,25 @@ export const useCandidateDetail = (candidateId: string) => {
 
   // Memoized fetch function with caching
   const fetchCandidate = useCallback(async (forceRefresh = false) => {
-    if (!candidateId || !isMountedRef.current) {
+    console.log('[fetchCandidate] Starting fetch for candidateId:', candidateId, 'forceRefresh:', forceRefresh);
+    
+    if (!candidateId) {
+      console.log('[fetchCandidate] Early return - no candidateId');
       setError('No candidate ID provided');
       setLoading(false);
       return;
     }
+
+    // Prevent multiple simultaneous requests
+    if (isFetchingRef.current && !forceRefresh) {
+      console.log('[fetchCandidate] Already fetching, skipping');
+      return;
+    }
+
+    // Generate a unique request ID to prevent race conditions
+    const requestId = `${candidateId}-${Date.now()}-${Math.random()}`;
+    currentRequestIdRef.current = requestId;
+    console.log('[fetchCandidate] Generated request ID:', requestId);
 
     // Check cache first
     const cacheKey = `candidate:${candidateId}`;
@@ -185,152 +202,125 @@ export const useCandidateDetail = (candidateId: string) => {
       return;
     }
 
-    // Prevent multiple simultaneous requests
-    if (now - lastFetchRef.current < 1000) {
-      return;
-    }
-    lastFetchRef.current = now;
-
     setLoading(true);
     setError(null);
 
     // Abort any existing request
     if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
+      try {
+        console.log('[fetchCandidate] Aborting previous request');
+        abortControllerRef.current.abort();
+      } catch (e) {
+        console.warn('Error aborting previous request:', e);
+      }
     }
 
     // Create new abort controller with timeout
     const controller = new AbortController();
     abortControllerRef.current = controller;
+    console.log('[fetchCandidate] Created new AbortController');
     
     // Set a timeout to abort the request if it takes too long
     const timeoutId = setTimeout(() => {
+      console.log('[fetchCandidate] Timeout reached, aborting request');
       if (controller && !controller.signal.aborted) {
         controller.abort();
       }
-    }, 30000); // 30 second timeout - increased for complex queries
-
-    // Retry configuration - reduced for faster loading
-    const maxRetries = 1; // Reduced from 2 for faster failure
-    const baseDelay = 500; // Reduced from 1000ms for faster retry
+    }, 30000); // 30 second timeout (reduced from 180s)
 
     try {
-      for (let attempt = 0; attempt <= maxRetries; attempt++) {
-        try {
-          const res = await fetch(`/api/candidates/${candidateId}`, {
-            headers: {
-              'Content-Type': 'application/json',
-              'Cache-Control': 'max-age=30',
-            },
-            signal: controller.signal,
-          });
+      const res = await fetch(`/api/candidates/${candidateId}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'max-age=30',
+        },
+        signal: controller.signal,
+      });
 
-          if (!res.ok) {
-            if (res.status === 401) {
-              throw new Error('Authentication required. Please sign in to view candidate details.');
-            } else if (res.status === 404) {
-              throw new Error('Candidate not found');
-            } else if (res.status === 403) {
-              throw new Error('Access denied to candidate');
-            } else if (res.status === 408) {
-              throw new Error('Request timed out. The server may be experiencing high load. Please try again in a moment.');
-            } else if (res.status === 503) {
-              throw new Error('Database connection error. Please try again in a moment.');
-            } else if (res.status === 502 || res.status === 504) {
-              throw new Error('Gateway timeout. Please try again in a moment.');
-            } else if (res.status >= 500) {
-              throw new Error('Server error occurred. Please try again later.');
-            } else if (res.status === 429) {
-              throw new Error('Too many requests. Please wait a moment before trying again.');
-            } else {
-              throw new Error(`Failed to fetch candidate: ${res.status}`);
-            }
-          }
-
-          const data = await res.json();
-
-          // Validate basic candidate data structure
-          if (!data || typeof data !== 'object' || !data.id) {
-            throw new Error('Invalid candidate data received');
-          }
-
-          // Cache the result
-          cacheRef.current.set(cacheKey, { data, timestamp: now });
-
-          // Safely process candidate data
-          setCandidate({
-            ...data,
-            fitScore: data.fitScore !== undefined && data.fitScore !== null ? Number(data.fitScore) : null,
-            parsedData: data.parsedData || {
-              personal_info: {},
-              contact_info: {},
-              education: [],
-              experience: [],
-              skills: [],
-              job_suitable: [],
-              job_matches: [],
-            },
-          });
-
-          // Success - break out of retry loop
-          break;
-
-        } catch (err) {
-          // Check if request was aborted
-          if (err instanceof Error && err.name === 'AbortError') {
-            if (isMountedRef.current) {
-              setError('Request timed out. Please try again.');
-            }
-            // Break out to ensure finally runs and loading resets
-            break;
-          }
-
-          console.error(`Error fetching candidate (attempt ${attempt + 1}/${maxRetries + 1}):`, err);
-
-          if (err instanceof Error) {
-            if (err.message === 'Candidate not found' || err.message === 'Access denied to candidate') {
-              if (isMountedRef.current) {
-                setError(err.message);
-              }
-              break;
-            } else if (err.message.includes('Authentication required')) {
-              if (isMountedRef.current) {
-                setError(err.message);
-              }
-              break;
-            } else if (attempt === maxRetries) {
-              if (isMountedRef.current) {
-                setError(err.message);
-              }
-              break;
-            } else {
-              console.error(`Error on attempt ${attempt + 1}, retrying...`);
-            }
-          } else {
-            if (attempt === maxRetries) {
-              if (isMountedRef.current) {
-                setError('Failed to fetch candidate. Please check your connection and try again.');
-              }
-              break;
-            }
-            console.error(`Unknown error on attempt ${attempt + 1}, retrying...`);
-          }
-
-          // Wait before retrying (exponential backoff)
-          if (attempt < maxRetries) {
-            const delay = baseDelay * Math.pow(2, attempt);
-            await new Promise(resolve => setTimeout(resolve, delay));
-          }
+      if (!res.ok) {
+        if (res.status === 401) {
+          throw new Error('Authentication required. Please sign in to view candidate details.');
+        } else if (res.status === 404) {
+          throw new Error('Candidate not found');
+        } else if (res.status === 403) {
+          throw new Error('Access denied to candidate');
+        } else if (res.status >= 500) {
+          throw new Error('Server error occurred. Please try again later.');
+        } else {
+          throw new Error(`Failed to fetch candidate: ${res.status}`);
         }
       }
-    } catch (error) {
-      console.error('Unexpected error in fetchCandidate:', error);
+
+      const data = await res.json();
+
+      // Check if this request is still current
+      if (currentRequestIdRef.current !== requestId) {
+        console.log('[fetchCandidate] Request outdated, ignoring response');
+        return;
+      }
+
+      // Check if component is still mounted before setting state
+      if (!isMountedRef.current) {
+        console.log('[fetchCandidate] Component unmounted, ignoring response');
+        return;
+      }
+
+      // Validate basic candidate data structure
+      if (!data || typeof data !== 'object' || !data.id) {
+        throw new Error('Invalid candidate data received');
+      }
+
+      // Cache the result
+      cacheRef.current.set(cacheKey, { data, timestamp: now });
+
+      // Safely process candidate data
+      setCandidate({
+        ...data,
+        fitScore: data.fitScore !== undefined && data.fitScore !== null ? Number(data.fitScore) : null,
+        parsedData: data.parsedData || {
+          personal_info: {},
+          contact_info: {},
+          education: [],
+          experience: [],
+          skills: [],
+          job_suitable: [],
+          job_matches: [],
+        },
+      });
+
+    } catch (err) {
+      console.log('[fetchCandidate] Error caught:', err);
+      
+      // Check if this request is still current
+      if (currentRequestIdRef.current !== requestId) {
+        console.log('[fetchCandidate] Request outdated, ignoring error');
+        return;
+      }
+
+      // Check if component is still mounted before setting state
+      if (!isMountedRef.current) {
+        console.log('[fetchCandidate] Component unmounted, ignoring error');
+        return;
+      }
+
+      // Check if request was aborted
+      if (err instanceof Error && err.name === 'AbortError') {
+        console.log('[fetchCandidate] AbortError detected');
+        setError('Request timed out. The server may be experiencing high load. Please try again in a moment.');
+        return;
+      }
+
+      console.error('Error fetching candidate:', err);
+      
       if (isMountedRef.current) {
-        setError('An unexpected error occurred while loading candidate details.');
+        setError(err instanceof Error ? err.message : 'Failed to fetch candidate. Please check your connection and try again.');
       }
     } finally {
       // Clean up timeout
       clearTimeout(timeoutId);
+      
+      // Reset fetching flag
+      isFetchingRef.current = false;
       
       // Always set loading to false, regardless of success or failure
       if (isMountedRef.current) {
@@ -341,18 +331,43 @@ export const useCandidateDetail = (candidateId: string) => {
 
   // Fetch candidate data with optimized dependencies
   useEffect(() => {
+
+    // Prevent multiple simultaneous requests
+    if (isFetchingRef.current) {
+      console.log('[useCandidateDetail] Already fetching, skipping');
+      return;
+    }
+    
     isMountedRef.current = true;
+    isFetchingRef.current = true;
+    
+    // Clean up previous effect if it exists
+    if (effectCleanupRef.current) {
+      effectCleanupRef.current();
+    }
+    
     fetchCandidate();
     
-    return () => {
+    const cleanup = () => {
+      console.log('[useCandidateDetail] Cleanup function called for candidateId:', candidateId);
       isMountedRef.current = false;
+      isFetchingRef.current = false;
       // Abort any ongoing requests
       if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
+        try {
+          console.log('[useCandidateDetail] Aborting previous request');
+          abortControllerRef.current.abort();
+        } catch (e) {
+          console.warn('Error aborting request on cleanup:', e);
+        }
         abortControllerRef.current = null;
       }
     };
-  }, [candidateId, fetchCandidate]);
+    
+    effectCleanupRef.current = cleanup;
+    
+    return cleanup;
+  }, [candidateId]); // Remove fetchCandidate from dependencies to prevent infinite loops
 
   // Memoized fetch functions for static data
   const fetchPositions = useCallback(async () => {
@@ -660,12 +675,13 @@ export const useCandidateDetail = (candidateId: string) => {
       const updatedCandidate = await response.json();
       setCandidate(updatedCandidate);
       toast.success(newRecruiterId ? 'Recruiter assigned successfully' : 'Recruiter unassigned successfully');
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error assigning recruiter:', error);
-      if (error.name === 'AbortError') {
+      if (error instanceof Error && error.name === 'AbortError') {
         toast.error('Request timed out. Please try again.');
       } else {
-        toast.error(error.message || 'Failed to assign recruiter');
+        const errorMessage = error instanceof Error ? error.message : 'Failed to assign recruiter';
+        toast.error(errorMessage);
       }
     } finally {
       clearTimeout(timeoutId);
@@ -693,9 +709,10 @@ export const useCandidateDetail = (candidateId: string) => {
       const updatedCandidate = await response.json();
       setCandidate(updatedCandidate);
       toast.success(newSourceId ? 'Source assigned successfully' : 'Source unassigned successfully');
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error assigning source:', error);
-      toast.error('Failed to assign source');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to assign source';
+      toast.error(errorMessage);
     } finally {
       setIsAssigningSource(false);
     }

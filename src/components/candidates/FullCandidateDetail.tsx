@@ -48,13 +48,30 @@ interface FullCandidateDetailProps {
 const uuidSchema = z.string().uuid();
 
 const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ 
-  candidateId, 
+  candidateId: propCandidateId, 
   isModal = false, 
   onClose, 
   comments, 
   resumes, 
   onRefresh 
 }) => {
+  // Extract candidate ID from URL if not provided as prop
+  const getCandidateIdFromUrl = () => {
+    if (typeof window !== 'undefined') {
+      const pathSegments = window.location.pathname.split('/');
+      const candidateIndex = pathSegments.findIndex(segment => segment === 'candidates');
+      if (candidateIndex !== -1 && pathSegments[candidateIndex + 1]) {
+        return pathSegments[candidateIndex + 1];
+      }
+    }
+    return null;
+  };
+
+  const urlCandidateId = getCandidateIdFromUrl();
+  const candidateId = propCandidateId || urlCandidateId || '';
+  console.log('[FullCandidateDetail] Candidate ID from props:', propCandidateId);
+  console.log('[FullCandidateDetail] Candidate ID from URL:', urlCandidateId);
+  console.log('[FullCandidateDetail] Final candidate ID:', candidateId);
   const { data: session } = useSession();
   const [avatarInputRef] = useState<React.RefObject<HTMLInputElement>>(React.createRef());
   
@@ -153,7 +170,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
       setLoadTimedOut(false);
       timeoutId = setTimeout(() => {
         setLoadTimedOut(true);
-      }, 30000); // 30 second timeout - increased for complex queries
+      }, 180000); // 180 second timeout (increased from 120s)
     }
     return () => {
       if (timeoutId) clearTimeout(timeoutId);
@@ -161,7 +178,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
   }, [loading]);
 
   // Validate candidateId
-  const isValidCandidateId = candidateId && uuidSchema.safeParse(candidateId).success;
+  const isValidCandidateId = candidateId && candidateId.trim() !== '' && uuidSchema.safeParse(candidateId).success;
 
   // Cleanup timeouts on component unmount
   React.useEffect(() => {
@@ -196,6 +213,10 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
           <Loader2 className="animate-spin h-8 w-8 text-primary" />
           <p className="text-muted-foreground">Loading candidate details...</p>
           <p className="text-xs text-muted-foreground">This may take a few moments</p>
+          <div className="flex items-center space-x-2 text-xs text-muted-foreground">
+            <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+            <span>Connecting to database...</span>
+          </div>
         </div>
       </div>
     );

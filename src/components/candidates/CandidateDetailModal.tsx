@@ -33,6 +33,7 @@ import RecruiterAssignmentDropdown from '@/components/candidates/RecruiterAssign
 import CandidateCommentsSection from './CandidateCommentsSection';
 import CandidateResumesSection from './CandidateResumesSection';
 import CandidateDetailView from './CandidateDetailView';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
 
 interface CandidateDetailModalProps {
   candidateId: string | null;
@@ -266,11 +267,23 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
         className="w-full max-w-[95vw] h-full max-h-[95vh] flex flex-col bg-background rounded-lg shadow-2xl border border-border overflow-hidden relative pointer-events-auto"
         onClick={handleModalClick}
       >
-        <CandidateDetailView 
-          candidateId={candidateId} 
-          isModal={true} 
-          onClose={handleClose}
-        />
+        <ErrorBoundary
+          fallback={(
+            <div className="flex items-center justify-center h-full p-8 text-center">
+              <div>
+                <h3 className="text-lg font-medium text-foreground mb-2">Component Error</h3>
+                <p className="text-muted-foreground text-sm mb-4">An error occurred while rendering the candidate details.</p>
+                <Button onClick={handleClose} size="sm">Close</Button>
+              </div>
+            </div>
+          )}
+        >
+          <CandidateDetailView 
+            candidateId={candidateId} 
+            isModal={true} 
+            onClose={handleClose}
+          />
+        </ErrorBoundary>
       </div>
     </div>
   );

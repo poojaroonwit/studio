@@ -305,6 +305,34 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
     // No timeout for authentication loading
   }, [session, status, router, callbackUrl]);
 
+  // Fallback redirect: if we're on /auth/signin and a server session exists, redirect immediately
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.location.pathname !== '/auth/signin') return;
+
+    const cbFromQuery = nextSearchParams.get('callbackUrl') || '/';
+    let cancelled = false;
+
+    async function ensureRedirect() {
+      try {
+        if (status === 'authenticated' && session?.user) {
+          router.replace(cbFromQuery);
+          return;
+        }
+        const res = await fetch('/api/auth/session', { credentials: 'include', cache: 'no-store' });
+        if (!cancelled && res.ok) {
+          const data = await res.json();
+          if (data?.user) {
+            router.replace(cbFromQuery);
+          }
+        }
+      } catch {}
+    }
+
+    const t = setTimeout(ensureRedirect, 100);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [status, session, router, nextSearchParams]);
+
   // Use backend-provided Azure AD config status
   const [isAzureAdConfigured, setIsAzureAdConfigured] = useState<boolean>(false);
 

@@ -281,7 +281,8 @@ export const useCandidateDetail = (candidateId: string) => {
             if (isMountedRef.current) {
               setError('Request timed out. Please try again.');
             }
-            return;
+            // Break out to ensure finally runs and loading resets
+            break;
           }
 
           console.error(`Error fetching candidate (attempt ${attempt + 1}/${maxRetries + 1}):`, err);

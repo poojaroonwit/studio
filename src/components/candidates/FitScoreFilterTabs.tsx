@@ -140,10 +140,10 @@ export function FitScoreFilterTabs({
         variant="secondary" 
         className={cn(
           "ml-1 text-xs px-1.5 py-0.5 h-5 min-w-5 flex items-center justify-center text-foreground transition-all duration-200",
-          showPerformanceIndicator && "bg-green-100 text-green-700 border-green-200"
+          showPerformanceIndicator && "bg-secondary text-foreground border-transparent"
         )}
       >
-        {showPerformanceIndicator && <Clock className="h-2.5 w-2.5 mr-0.5" />}
+        {/* {showPerformanceIndicator && <Clock className="h-2.5 w-2.5 mr-0.5" />} */}
         {formatCount(count)}
       </Badge>
     );
@@ -217,13 +217,7 @@ export function FitScoreFilterTabs({
         </div>
       </div>
       
-      {/* Performance indicator */}
-      {showPerformanceIndicator && (
-        <div className="mt-1 text-xs text-green-600 dark:text-green-400 flex items-center gap-1 animate-fade-in">
-          <Clock className="h-3 w-3" />
-          <span>Counts updated from database</span>
-        </div>
-      )}
+     
     </div>
   );
 }

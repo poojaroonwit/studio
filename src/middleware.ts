@@ -25,10 +25,9 @@ export async function middleware(req: NextRequest) {
     }
 
     // Check for authentication token in cookies
+    // Only treat session-token cookies as authenticated; CSRF cookies are not auth
     const token = req.cookies.get('next-auth.session-token')?.value || 
-                  req.cookies.get('__Secure-next-auth.session-token')?.value ||
-                  req.cookies.get('next-auth.csrf-token')?.value ||
-                  req.cookies.get('__Host-next-auth.csrf-token')?.value;
+                  req.cookies.get('__Secure-next-auth.session-token')?.value;
 
     // If no token and trying to access protected routes, redirect to sign in
     if (!token && !pathname.startsWith('/auth/signin')) {

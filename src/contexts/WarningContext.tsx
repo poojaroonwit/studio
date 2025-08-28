@@ -38,8 +38,14 @@ export function WarningProvider({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
   const [warnings, setWarnings] = useState<Warning[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isClient, setIsClient] = useState(false);
 
   const unreadCount = warnings.length;
+
+  // Set client flag to prevent SSR issues
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const fetchWarnings = useCallback(async () => {
     if (!session?.user) return;
@@ -79,7 +85,7 @@ export function WarningProvider({ children }: { children: React.ReactNode }) {
 
   // Initialize warnings and trigger automatic check for existing data
   useEffect(() => {
-    if (!session?.user) return;
+    if (!session?.user || !isClient) return;
 
     // Fetch current warnings
     fetchWarnings();
@@ -128,15 +134,18 @@ export function WarningProvider({ children }: { children: React.ReactNode }) {
         timeoutId = null;
       }
     };
-  }, [session?.user?.id, fetchWarnings]);
+  }, [session?.user?.id, fetchWarnings, isClient]);
 
-  // Use unified real-time hook instead of individual SSE connection
+  // Use unified real-time hook instead of individual SSE connection (only on client)
   const { isConnected } = useUnifiedRealtime({
     onWarningUpdate: () => {
       // Refresh warnings when warning updates are received
       fetchWarnings();
     }
   });
+
+  // Only run realtime effects on client side
+  const shouldUseRealtime = isClient && session?.user;
 
   return (
     <WarningContext.Provider value={{

@@ -173,11 +173,8 @@ export const authOptions: NextAuthOptions = {
             const dbUser = res.rows[0];
             if (dbUser) {
               // Found user with UUID
-              console.log('[JWT CALLBACK] Found user with UUID:', dbUser.id);
+              // console.log('[JWT CALLBACK] Found user with UUID:', dbUser.id);
               token.id = dbUser.id;
-            } else {
-              console.error('[JWT CALLBACK] No user found for oid:', oid, 'email:', profile?.email);
-              // Don't set token.id to null, let it remain as the original value
             }
           } catch (e) {
             console.error('[JWT CALLBACK] Error fetching user UUID for Azure AD:', e);

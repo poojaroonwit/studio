@@ -73,6 +73,12 @@ interface CandidateTableProps {
   sortDirection?: 'asc' | 'desc' | null;
   onSort?: (column: string | null, direction?: 'asc' | 'desc' | null) => void;
   canManageCandidates?: boolean;
+  canEditCandidates?: boolean;
+  canDeleteCandidates?: boolean;
+  canChangeStatus?: boolean;
+  canViewDetailed?: boolean;
+  canAssignSource?: boolean;
+  canAssignRecruiter?: boolean;
   // Settings
   settings?: {
     showCandidateColumn?: boolean;
@@ -196,6 +202,12 @@ export function CandidateTable({
   sortDirection,
   onSort,
   canManageCandidates = false,
+  canEditCandidates = false,
+  canDeleteCandidates = false,
+  canChangeStatus = false,
+  canViewDetailed = false,
+  canAssignSource = false,
+  canAssignRecruiter = false,
   settings,
   tableHeight = 400,
   onBulkDelete,
@@ -355,7 +367,7 @@ export function CandidateTable({
   };
 
   const handleAssignSource = async (candidateId: string, sourceId: string | null, subSource?: string | null) => {
-    if (!canManageCandidates || !onAssignSource) return;
+    if (!canAssignSource || !onAssignSource) return;
     
     setAssigningSource(candidateId);
     try {
@@ -460,27 +472,25 @@ export function CandidateTable({
                   <span className="inline-flex items-center gap-1">
                     Candidate
                     <DropdownMenu open={openMenu === 'candidate'} onOpenChange={handleOpenChange('candidate')}>
-                      <DropdownMenuTrigger>
+                      <DropdownMenuTrigger asChild>
                         {sortColumn === 'name' ? (
-                          <Button
-                            variant="ghost"
-                            size="sm"
+                          <button
+                            type="button"
                             className="text-primary font-bold p-1 rounded hover:bg-muted h-auto w-auto"
                             onClick={handleMenuClick('candidate')}
                             aria-label="Sort options"
                           >
                             {sortDirection === 'asc' ? <ChevronUp size={16} /> : sortDirection === 'desc' ? <ChevronDown size={16} /> : <MoreVertical size={16} />}
-                          </Button>
+                          </button>
                         ) : (
-                          <Button
-                            variant="ghost"
-                            size="sm"
+                          <button
+                            type="button"
                             className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted h-auto w-auto"
                             onClick={handleMenuClick('candidate')}
                             aria-label="Sort options"
                           >
                             <MoreVertical size={16} />
-                          </Button>
+                          </button>
                         )}
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
@@ -508,27 +518,25 @@ export function CandidateTable({
                   <span className="inline-flex items-center gap-1">
                     Fit Score
                     <DropdownMenu open={openMenu === 'fitScore'} onOpenChange={handleOpenChange('fitScore')}>
-                      <DropdownMenuTrigger>
+                      <DropdownMenuTrigger asChild>
                         {sortColumn === 'fitScore' ? (
-                          <Button
-                            variant="ghost"
-                            size="sm"
+                          <button
+                            type="button"
                             className="text-primary font-bold p-1 rounded hover:bg-muted h-auto w-auto"
                             onClick={handleMenuClick('fitScore')}
                             aria-label="Sort options"
                           >
                             {sortDirection === 'asc' ? <ChevronUp size={16} /> : sortDirection === 'desc' ? <ChevronDown size={16} /> : <MoreVertical size={16} />}
-                          </Button>
+                          </button>
                         ) : (
-                          <Button
-                            variant="ghost"
-                            size="sm"
+                          <button
+                            type="button"
                             className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted h-auto w-auto"
                             onClick={handleMenuClick('fitScore')}
                             aria-label="Sort options"
                           >
                             <MoreVertical size={16} />
-                          </Button>
+                          </button>
                         )}
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
@@ -551,27 +559,25 @@ export function CandidateTable({
                   <span className="inline-flex items-center gap-1">
                     Source
                     <DropdownMenu open={openMenu === 'source'} onOpenChange={handleOpenChange('source')}>
-                      <DropdownMenuTrigger>
+                      <DropdownMenuTrigger asChild>
                         {sortColumn === 'source' ? (
-                          <Button
-                            variant="ghost"
-                            size="sm"
+                          <button
+                            type="button"
                             className="text-primary font-bold p-1 rounded hover:bg-muted h-auto w-auto"
                             onClick={handleMenuClick('source')}
                             aria-label="Sort options"
                           >
                             {sortDirection === 'asc' ? <ChevronUp size={16} /> : sortDirection === 'desc' ? <ChevronDown size={16} /> : <MoreVertical size={16} />}
-                          </Button>
+                          </button>
                         ) : (
-                          <Button
-                            variant="ghost"
-                            size="sm"
+                          <button
+                            type="button"
                             className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted h-auto w-auto"
                             onClick={handleMenuClick('source')}
                             aria-label="Sort options"
                           >
                             <MoreVertical size={16} />
-                          </Button>
+                          </button>
                         )}
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
@@ -589,27 +595,25 @@ export function CandidateTable({
                   <span className="inline-flex items-center gap-1">
                     Status
                     <DropdownMenu open={openMenu === 'status'} onOpenChange={handleOpenChange('status')}>
-                      <DropdownMenuTrigger>
+                      <DropdownMenuTrigger asChild>
                         {sortColumn === 'status' ? (
-                          <Button
-                            variant="ghost"
-                            size="sm"
+                          <button
+                            type="button"
                             className="text-primary font-bold p-1 rounded hover:bg-muted h-auto w-auto"
                             onClick={handleMenuClick('status')}
                             aria-label="Sort options"
                           >
                             {sortDirection === 'asc' ? <ChevronUp size={16} /> : sortDirection === 'desc' ? <ChevronDown size={16} /> : <MoreVertical size={16} />}
-                          </Button>
+                          </button>
                         ) : (
-                          <Button
-                            variant="ghost"
-                            size="sm"
+                          <button
+                            type="button"
                             className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted h-auto w-auto"
                             onClick={handleMenuClick('status')}
                             aria-label="Sort options"
                           >
                             <MoreVertical size={16} />
-                          </Button>
+                          </button>
                         )}
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
@@ -627,27 +631,25 @@ export function CandidateTable({
                   <span className="inline-flex items-center gap-1">
                     Applied Date
                     <DropdownMenu open={openMenu === 'applicationDate'} onOpenChange={handleOpenChange('applicationDate')}>
-                      <DropdownMenuTrigger>
+                      <DropdownMenuTrigger asChild>
                         {sortColumn === 'applicationDate' ? (
-                          <Button
-                            variant="ghost"
-                            size="sm"
+                          <button
+                            type="button"
                             className="text-primary font-bold p-1 rounded hover:bg-muted h-auto w-auto"
                             onClick={handleMenuClick('applicationDate')}
                             aria-label="Sort options"
                           >
                             {sortDirection === 'asc' ? <ChevronUp size={16} /> : sortDirection === 'desc' ? <ChevronDown size={16} /> : <MoreVertical size={16} />}
-                          </Button>
+                          </button>
                         ) : (
-                          <Button
-                            variant="ghost"
-                            size="sm"
+                          <button
+                            type="button"
                             className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted h-auto w-auto"
                             onClick={handleMenuClick('applicationDate')}
                             aria-label="Sort options"
                           >
                             <MoreVertical size={16} />
-                          </Button>
+                          </button>
                         )}
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
@@ -665,27 +667,25 @@ export function CandidateTable({
                   <span className="inline-flex items-center gap-1">
                     Last Update
                     <DropdownMenu open={openMenu === 'lastUpdate'} onOpenChange={handleOpenChange('lastUpdate')}>
-                      <DropdownMenuTrigger>
+                      <DropdownMenuTrigger asChild>
                         {sortColumn === 'lastUpdate' ? (
-                          <Button
-                            variant="ghost"
-                            size="sm"
+                          <button
+                            type="button"
                             className="text-primary font-bold p-1 rounded hover:bg-muted h-auto w-auto"
                             onClick={handleMenuClick('lastUpdate')}
                             aria-label="Sort options"
                           >
                             {sortDirection === 'asc' ? <ChevronUp size={16} /> : sortDirection === 'desc' ? <ChevronDown size={16} /> : <MoreVertical size={16} />}
-                          </Button>
+                          </button>
                         ) : (
-                          <Button
-                            variant="ghost"
-                            size="sm"
+                          <button
+                            type="button"
                             className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted h-auto w-auto"
                             onClick={handleMenuClick('lastUpdate')}
                             aria-label="Sort options"
                           >
                             <MoreVertical size={16} />
-                          </Button>
+                          </button>
                         )}
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
@@ -839,7 +839,7 @@ export function CandidateTable({
                       <CandidateRecruiterCell
                         candidate={candidate}
                         availableRecruiters={availableRecruiters}
-                        canManageCandidates={canManageCandidates}
+                        canManageCandidates={canEditCandidates}
                         isAssigning={assigningRecruiter === candidate.id}
                         onAssignRecruiter={handleAssignRecruiter}
                         onResetAssigning={handleResetAssigning}
@@ -851,7 +851,7 @@ export function CandidateTable({
                                              <CandidateSourceCell
                          candidate={candidate}
                          availableSources={availableSources}
-                         canManageCandidates={canManageCandidates}
+                         canManageCandidates={canAssignSource}
                          isAssigning={assigningSource === candidate.id}
                          onAssignSource={handleAssignSource}
                          onResetAssigning={handleResetAssigning}
@@ -1079,7 +1079,7 @@ export function CandidateTable({
                                 <CandidateRecruiterCell
                                   candidate={candidate}
                                   availableRecruiters={availableRecruiters}
-                                  canManageCandidates={canManageCandidates}
+                                  canManageCandidates={canAssignRecruiter}
                                   isAssigning={assigningRecruiter === candidate.id}
                                   onAssignRecruiter={handleAssignRecruiter}
                                   onResetAssigning={handleResetAssigning}
@@ -1091,7 +1091,7 @@ export function CandidateTable({
                                 <CandidateSourceCell
                                   candidate={candidate}
                                   availableSources={availableSources}
-                                  canManageCandidates={canManageCandidates}
+                                  canManageCandidates={canAssignSource}
                                   isAssigning={assigningSource === candidate.id}
                                   onAssignSource={handleAssignSource}
                                   onResetAssigning={handleResetAssigning}

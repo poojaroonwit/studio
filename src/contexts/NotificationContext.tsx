@@ -39,6 +39,12 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [isClient, setIsClient] = useState(false);
+
+  // Set client flag to prevent SSR issues
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const fetchNotifications = useCallback(async () => {
     if (!session?.user) return;
@@ -202,10 +208,12 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     }
   });
 
-  // Fetch notifications on mount and when session changes
+  // Fetch notifications on mount and when session changes (only on client)
   useEffect(() => {
-    fetchNotifications();
-  }, [fetchNotifications]);
+    if (isClient) {
+      fetchNotifications();
+    }
+  }, [fetchNotifications, isClient]);
 
   const value: NotificationContextType = {
     notifications,

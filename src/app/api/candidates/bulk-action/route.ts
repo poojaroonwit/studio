@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Check if user has permission to manage candidates
-  if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('CANDIDATES_MANAGE')) {
+      if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('CANDIDATES_PIPELINE_STAGE_BULK_UPDATE')) {
     await logAudit('WARN', `Forbidden attempt to perform bulk candidate action by ${actingUserName}.`, 'API:Candidates:BulkAction', actingUserId);
     return NextResponse.json({ message: 'Forbidden: Insufficient permissions to perform bulk candidate actions' }, { status: 403 });
   }

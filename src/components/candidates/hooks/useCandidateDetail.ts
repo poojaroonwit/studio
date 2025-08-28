@@ -208,7 +208,7 @@ export const useCandidateDetail = (candidateId: string) => {
       if (controller && !controller.signal.aborted) {
         controller.abort();
       }
-    }, 15000); // 15 second timeout
+    }, 30000); // 30 second timeout - increased for complex queries
 
     // Retry configuration - reduced for faster loading
     const maxRetries = 1; // Reduced from 2 for faster failure

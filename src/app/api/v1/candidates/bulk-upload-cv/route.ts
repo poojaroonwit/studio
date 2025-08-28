@@ -23,8 +23,7 @@ export async function POST(req: NextRequest) {
  
     
     if (user.role !== 'Admin' && 
-        !user.modulePermissions?.includes('CANDIDATES_MANAGE') && 
-        !user.modulePermissions?.includes('UPLOAD_QUEUE_MANAGE')) {
+        !user.modulePermissions?.includes('BULK_UPLOAD_EXECUTE')) {
       return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions' }), { status: 403, headers: handleCors(req) });
     }
 

@@ -30,6 +30,12 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
   const reconnectAttemptsRef = useRef(0);
   const maxReconnectAttempts = 5;
   const isConnectingRef = useRef(false);
+  const [isClient, setIsClient] = useState(false);
+
+  // Set client flag to prevent SSR issues
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // Update options ref when options change
   useEffect(() => {
@@ -87,7 +93,7 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
   }, []);
 
   const connect = useCallback(() => {
-    if (!session?.user || !mountedRef.current || isConnectingRef.current) return;
+    if (!session?.user || !mountedRef.current || isConnectingRef.current || !isClient) return;
 
     // Prevent excessive reconnection attempts
     if (reconnectAttemptsRef.current >= maxReconnectAttempts) {
@@ -115,8 +121,15 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
 
     try {
       const eventSource = new EventSource('/api/realtime/unified');
+      if (!eventSource) {
+        console.error('Failed to create EventSource');
+        isConnectingRef.current = false;
+        return;
+      }
       eventSourceRef.current = eventSource;
       globalEventSource = eventSource;
+
+
 
       eventSource.onopen = () => {
         if (!mountedRef.current) return;
@@ -198,27 +211,20 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
       eventSource.addEventListener('presence_update', presenceHandler);
       eventSource.addEventListener('keepalive', keepaliveHandler);
 
-      // Store handlers for cleanup
-      const handlers = {
-        candidate: candidateHandler,
-        position: positionHandler,
-        warning: warningHandler,
-        notification: notificationHandler,
-        upload_queue: uploadQueueHandler,
-        presence: presenceHandler,
-        keepalive: keepaliveHandler
-      };
-
-      // Store cleanup function
+      // Store cleanup function for this EventSource
       const cleanupEventListeners = () => {
-        if (eventSource) {
-          eventSource.removeEventListener('candidate_update', handlers.candidate);
-          eventSource.removeEventListener('position_update', handlers.position);
-          eventSource.removeEventListener('warning_update', handlers.warning);
-          eventSource.removeEventListener('notification_update', handlers.notification);
-          eventSource.removeEventListener('upload_queue_update', handlers.upload_queue);
-          eventSource.removeEventListener('presence_update', handlers.presence);
-          eventSource.removeEventListener('keepalive', handlers.keepalive);
+        try {
+          if (eventSource) {
+            eventSource.removeEventListener('candidate_update', candidateHandler);
+            eventSource.removeEventListener('position_update', positionHandler);
+            eventSource.removeEventListener('warning_update', warningHandler);
+            eventSource.removeEventListener('notification_update', notificationHandler);
+            eventSource.removeEventListener('upload_queue_update', uploadQueueHandler);
+            eventSource.removeEventListener('presence_update', presenceHandler);
+            eventSource.removeEventListener('keepalive', keepaliveHandler);
+          }
+        } catch (error) {
+          console.warn('Error during event listener cleanup:', error);
         }
       };
 
@@ -228,13 +234,14 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
     } catch (error) {
       console.error('Failed to connect to unified real-time:', error);
       setIsConnected(false);
+      isConnectingRef.current = false;
     }
   }, [session?.user]);
 
   useEffect(() => {
     mountedRef.current = true;
     
-    if (session?.user) {
+    if (session?.user && isClient) {
       // Add small delay to prevent rapid connection attempts
       const connectTimeout = setTimeout(() => {
         if (mountedRef.current) {
@@ -250,7 +257,7 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
     } else {
       cleanup();
     }
-  }, [session?.user, connect, cleanup]);
+  }, [session?.user, connect, cleanup, isClient]);
 
   // Separate cleanup effect for unmounting
   useEffect(() => {
@@ -275,6 +282,16 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
       cleanup();
     };
   }, [cleanup]);
+
+  // Return early if not on client side to prevent SSR issues
+  if (!isClient) {
+    return {
+      isConnected: false,
+      lastUpdate: null,
+      reconnect: () => {},
+      disconnect: () => {}
+    };
+  }
 
   return {
     isConnected,

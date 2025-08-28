@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -40,6 +40,22 @@ export function RolePermissionSelector({
   isLoading = false
 }: RolePermissionSelectorProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const scrollPositionRef = useRef<number>(0);
+
+  // Function to preserve scroll position
+  const preserveScrollPosition = () => {
+    if (scrollContainerRef.current) {
+      scrollPositionRef.current = scrollContainerRef.current.scrollTop;
+    }
+  };
+
+  // Function to restore scroll position
+  const restoreScrollPosition = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = scrollPositionRef.current;
+    }
+  };
 
   const togglePermission = (permissionId: PlatformModuleId) => {
     if (disabled) return;
@@ -196,7 +212,7 @@ export function RolePermissionSelector({
         </div>
 
         {/* Scrollable Permission Groups */}
-        <div className="flex-1 overflow-y-auto min-h-0">
+        <div className="flex-1 overflow-y-auto min-h-0" ref={scrollContainerRef}>
           {filteredGroupedPermissions.map(({ category, permissions }) => (
             <div key={category} className="border-b border-border last:border-b-0">
               {/* Category Header */}
@@ -254,7 +270,6 @@ export function RolePermissionSelector({
                         <Checkbox
                           checked={isSelected}
                           onCheckedChange={() => togglePermission(permission.id)}
-                          onClick={(e) => e.preventDefault()}
                           disabled={isDisabled}
                           className="rounded border-2 border-primary/30 focus:ring-2 focus:ring-primary text-primary"
                         />
@@ -269,6 +284,25 @@ export function RolePermissionSelector({
                                   Protected
                                 </Badge>
                               )}
+                              {/* Risk Level Badge */}
+                              <Badge 
+                                variant="outline" 
+                                className={cn(
+                                  "text-xs",
+                                  permission.riskLevel === 'LOW' && "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800",
+                                  permission.riskLevel === 'MEDIUM' && "bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-800",
+                                  permission.riskLevel === 'HIGH' && "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/20 dark:text-orange-300 dark:border-orange-800",
+                                  permission.riskLevel === 'CRITICAL' && "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800"
+                                )}
+                              >
+                                {permission.riskLevel}
+                              </Badge>
+                              {/* Approval Required Badge */}
+                              {permission.requiresApproval && (
+                                <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800">
+                                  Approval Required
+                                </Badge>
+                              )}
                             </div>
                             <Badge variant="outline" className="text-xs ml-2 flex-shrink-0">
                               {permission.id}
@@ -276,12 +310,28 @@ export function RolePermissionSelector({
                           </div>
                           <p className="text-xs text-muted-foreground mt-0.5">
                             {permission.description}
-                            {isProtected && isSelected && (
-                              <span className="block text-amber-600 dark:text-amber-400 mt-1">
-                                This permission cannot be removed for security reasons.
-                              </span>
-                            )}
                           </p>
+                          {/* Detailed Description (collapsible) */}
+                          <details className="mt-2">
+                            <summary className="text-xs text-primary cursor-pointer hover:text-primary/80">
+                              View Details
+                            </summary>
+                            <div className="mt-2 space-y-2 text-xs">
+                              <div>
+                                <span className="font-medium text-foreground">Detailed Description:</span>
+                                <p className="text-muted-foreground mt-1">{permission.detailedDescription}</p>
+                              </div>
+                              <div>
+                                <span className="font-medium text-foreground">Impact:</span>
+                                <p className="text-muted-foreground mt-1">{permission.impact}</p>
+                              </div>
+                            </div>
+                          </details>
+                          {isProtected && isSelected && (
+                            <span className="block text-amber-600 dark:text-amber-400 mt-1 text-xs">
+                              This permission cannot be removed for security reasons.
+                            </span>
+                          )}
                         </div>
                       </label>
                     </div>
@@ -301,6 +351,52 @@ export function RolePermissionSelector({
                 Selected Permissions ({selectedPermissions.length})
               </p>
             </div>
+            
+            {/* Permission Statistics */}
+            <div className="mb-3">
+              <div className="flex flex-wrap gap-2 text-xs">
+                {(() => {
+                  const stats = {
+                    LOW: 0,
+                    MEDIUM: 0,
+                    HIGH: 0,
+                    CRITICAL: 0,
+                    requiresApproval: 0
+                  };
+                  
+                  selectedPermissions.forEach(permissionId => {
+                    const permission = PLATFORM_MODULES.find(p => p.id === permissionId);
+                    if (permission) {
+                      stats[permission.riskLevel]++;
+                      if (permission.requiresApproval) stats.requiresApproval++;
+                    }
+                  });
+                  
+                  return (
+                    <>
+                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800">
+                        {stats.LOW} Low Risk
+                      </Badge>
+                      <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-800">
+                        {stats.MEDIUM} Medium Risk
+                      </Badge>
+                      <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/20 dark:text-orange-300 dark:border-orange-800">
+                        {stats.HIGH} High Risk
+                      </Badge>
+                      <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800">
+                        {stats.CRITICAL} Critical Risk
+                      </Badge>
+                      {stats.requiresApproval > 0 && (
+                        <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800">
+                          {stats.requiresApproval} Require Approval
+                        </Badge>
+                      )}
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
+            
             <div className="flex flex-wrap gap-1">
               {selectedPermissions.slice(0, 5).map(permissionId => {
                 const permission = PLATFORM_MODULES.find(p => p.id === permissionId);

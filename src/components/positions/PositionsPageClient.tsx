@@ -415,7 +415,13 @@ export default function PositionsPageClient() {
     }
   };
 
-  const canManagePositions = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('POSITIONS_MANAGE');
+  const canManagePositions = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('POSITIONS_EDIT_BASIC') || false;
+  const canCreatePositions = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('POSITIONS_CREATE') || false;
+  const canEditPositions = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('POSITIONS_EDIT_BASIC') || false;
+  const canDeletePositions = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('POSITIONS_DELETE') || false;
+  const canImportPositions = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('POSITIONS_IMPORT') || false;
+  const canExportPositions = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('POSITIONS_EXPORT') || false;
+  const canAssignPositionRecruiter = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('POSITIONS_RECRUITER_ASSIGN') || false;
   
 
 
@@ -1275,7 +1281,7 @@ export default function PositionsPageClient() {
               ? 'Try adjusting your filters' 
               : 'Get started by adding your first position'}
           </p>
-          {canManagePositions && !searchTerm && statusFilter === 'all' && departmentFilter === 'all' && !selectedRecruiterId && (
+                          {canCreatePositions && !searchTerm && statusFilter === 'all' && departmentFilter === 'all' && !selectedRecruiterId && (
             <Button onClick={() => setIsAddModalOpen(true)} className="btn-primary-gradient">
               <PlusCircle className="mr-2 h-4 w-4" />
               Add First Position
@@ -1507,7 +1513,7 @@ export default function PositionsPageClient() {
                     <RecruiterCell
                       position={position}
                       availableRecruiters={availableRecruiters}
-                      canManagePositions={canManagePositions ?? false}
+                      canManagePositions={canAssignPositionRecruiter}
                       isAssigning={assigningRecruiter === position.id}
                       onAssignRecruiter={handleAssignRecruiterToPosition}
                       onResetAssigning={resetAssigningRecruiter}

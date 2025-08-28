@@ -129,6 +129,9 @@ export const TaskCard: React.FC<TaskCardProps> = ({
     onClick?.();
   }, [onClick]);
 
+  const canManageOwnTasks = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('TASK_BOARD_MANAGE_OWN') || false;
+  const canManageAllTasks = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('TASK_BOARD_MANAGE_ALL') || false;
+
   return (
     <div
       className={cn(

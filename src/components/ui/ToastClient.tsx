@@ -1,7 +1,7 @@
 "use client";
 import { Toaster, ToastBar, toast } from 'react-hot-toast';
 import { CheckCircle, AlertTriangle, Info, Loader2, XCircle, X, Bell } from 'lucide-react';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 // Utility to detect dark mode
 function isDarkMode() {
@@ -12,12 +12,23 @@ function isDarkMode() {
 }
 
 export default function ToastClient() {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  // Don't render on server side to prevent hydration mismatch
+  if (!isClient) {
+    return null;
+  }
+
   return (
     <Toaster
       position="top-right"
       gutter={16}
       containerStyle={{
-        zIndex: 100002, // Higher than drawer z-index (10001) and dialog z-index (100000)
+        zIndex: 10002, // Higher z-index to appear above drawers
       }}
       toastOptions={{
         duration: 4000,

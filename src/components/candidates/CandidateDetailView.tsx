@@ -348,7 +348,7 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
             setError('Loading timed out. The server may be experiencing issues.');
             setIsLoading(false);
           }
-        }, 12000); // Reduced timeout to 12 seconds
+        }, 25000); // 25 second timeout - increased for complex queries
         
         console.log('[CandidateDetailView] Starting candidate validation');
         // First validate the candidate exists

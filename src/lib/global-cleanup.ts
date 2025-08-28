@@ -6,8 +6,14 @@ window.addEventListener('beforeunload', () => {
   eventSources.forEach(script => {
     const scriptElement = script as HTMLScriptElement;
     if (scriptElement.src) {
-      const eventSource = new EventSource(scriptElement.src);
-      eventSource.close();
+      try {
+        const eventSource = new EventSource(scriptElement.src);
+        if (eventSource && typeof eventSource.close === 'function') {
+          eventSource.close();
+        }
+      } catch (error) {
+        console.error('Error cleaning up EventSource:', error);
+      }
     }
   });
 

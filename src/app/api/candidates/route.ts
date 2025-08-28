@@ -111,7 +111,7 @@ async function requireSessionAndPermission(requiredPermission: string, request: 
 }
 
 export async function POST(request: NextRequest) {
-  const { session, error } = await requireSessionAndPermission('CANDIDATES_MANAGE', request);
+  const { session, error } = await requireSessionAndPermission('CANDIDATES_CREATE', request);
   if (error) return error;
   const actingUserId = session.user.id;
   const actingUserName = session.user.name || session.user.email || 'System';

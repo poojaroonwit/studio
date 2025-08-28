@@ -153,7 +153,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
       setLoadTimedOut(false);
       timeoutId = setTimeout(() => {
         setLoadTimedOut(true);
-      }, 15000);
+      }, 30000); // 30 second timeout - increased for complex queries
     }
     return () => {
       if (timeoutId) clearTimeout(timeoutId);

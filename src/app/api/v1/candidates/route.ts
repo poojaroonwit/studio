@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
     return handleApiError(request, createUnauthorizedError('Authentication required'));
   }
 
-  if (user.role !== 'Admin' && !user.modulePermissions?.includes('CANDIDATES_MANAGE')) {
+  if (user.role !== 'Admin' && !user.modulePermissions?.includes('CANDIDATES_CREATE')) {
     return handleApiError(request, createForbiddenError('Insufficient permissions to create candidates'));
   }
 

@@ -87,19 +87,8 @@ export default function DashboardPageClient({
 
   // Check permissions for dashboard access - based on actual permissions, not hardcoded roles
   // Allow access if user has any permissions or is authenticated (more permissive)
-  const canViewDashboard = session?.user?.modulePermissions?.includes('USERS_MANAGE') ||
-                          session?.user?.modulePermissions?.includes('DASHBOARD_VIEW') ||
-                          session?.user?.modulePermissions?.includes('CANDIDATES_VIEW') ||
-                          session?.user?.modulePermissions?.includes('POSITIONS_VIEW') ||
-                          session?.user?.modulePermissions?.includes('TASK_BOARD_VIEW') ||
-                          session?.user?.modulePermissions?.includes('LOGS_VIEW') ||
-                          session?.user?.modulePermissions?.includes('ANALYTICS_VIEW') ||
-                          session?.user?.modulePermissions?.includes('USER_PREFERENCES_MANAGE') ||
-                          session?.user?.modulePermissions?.includes('RECRUITMENT_STAGES_MANAGE') ||
-                          session?.user?.modulePermissions?.includes('BULK_UPLOAD') ||
-                          session?.user?.modulePermissions?.includes('AUTOMATION_UPLOAD') ||
-                          (session?.user?.modulePermissions && session.user.modulePermissions.length > 0) ||
-                          session?.user?.role === 'Admin';
+  const canViewDashboard = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('DASHBOARD_VIEW') || false;
+  const canGenerateReports = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('REPORTS_GENERATE') || false;
 
   // Check if user can view all candidates (for conditional rendering)
   const canViewAllCandidates = session?.user?.modulePermissions?.includes('USERS_MANAGE') || 

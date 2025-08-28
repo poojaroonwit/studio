@@ -324,6 +324,7 @@ export function UnifiedRoleDrawer({
       
       const result = await response.json();
       toast.success(`Role "${result.name}" updated successfully`);
+      // Only call onRoleChange for role detail changes, not permission changes
       onRoleChange?.();
     } catch (error) {
       console.error('Error updating role:', error);
@@ -335,6 +336,8 @@ export function UnifiedRoleDrawer({
 
   const handlePermissionUpdate = useCallback(async (permissions: PlatformModuleId[]) => {
     if (!role) return;
+    
+    console.log('Permission update triggered:', permissions);
     
     // Update local state immediately for better UX
     setCurrentPermissions(permissions);
@@ -358,6 +361,7 @@ export function UnifiedRoleDrawer({
     permissionUpdateTimeoutRef.current = setTimeout(async () => {
       if (!role) return;
       
+      console.log('Sending permission update to API...');
       setIsUpdatingPermissions(true);
       
       const requestBody = {
@@ -380,12 +384,19 @@ export function UnifiedRoleDrawer({
           throw new Error(errorData.message || 'Failed to update permissions');
         }
         
+        console.log('Permission update successful');
+        
         // Update the role object locally to avoid reload
         if (role) {
           role.permissions = permissions;
         }
         
-        toast.success('Permissions updated successfully');
+        // Show toast notification without reloading the UI
+        toast.success('Permissions updated successfully', {
+          duration: 3000,
+          position: 'top-right'
+        });
+        
         // Don't call onRoleChange to avoid drawer reload
         // onRoleChange?.();
       } catch (error) {

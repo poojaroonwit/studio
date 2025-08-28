@@ -57,17 +57,25 @@ export function initializeResourceTracking() {
 
   // Override EventSource constructor
   (window as any).EventSource = function(url: string, eventSourceInitDict?: EventSourceInit) {
-    const eventSource = new originalEventSource(url, eventSourceInitDict);
-    resourceRegistry.eventSources.add(eventSource);
-    
-    // Override the close method to remove from tracking
-    const originalClose = eventSource.close;
-    eventSource.close = function() {
-      resourceRegistry.eventSources.delete(eventSource);
-      return originalClose.call(this);
-    };
-    
-    return eventSource;
+    try {
+      const eventSource = new originalEventSource(url, eventSourceInitDict);
+      resourceRegistry.eventSources.add(eventSource);
+      
+      // Override the close method to remove from tracking
+      const originalClose = eventSource.close;
+      if (originalClose && typeof originalClose === 'function') {
+        eventSource.close = function() {
+          resourceRegistry.eventSources.delete(eventSource);
+          return originalClose.call(this);
+        };
+      }
+      
+      return eventSource;
+    } catch (error) {
+      console.error('Error creating EventSource:', error);
+      // Fallback to original constructor
+      return new originalEventSource(url, eventSourceInitDict);
+    }
   };
 
   console.log('🔧 Resource tracking initialized');

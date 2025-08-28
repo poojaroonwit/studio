@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Check if user has permission to import candidates
-  if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('CANDIDATES_MANAGE')) {
+  if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('CANDIDATES_IMPORT')) {
     await logAudit('WARN', `Forbidden attempt to import candidates by ${actingUserName}`, 'API:Candidates:Import', actingUserId);
     return NextResponse.json({ error: 'Forbidden: Insufficient permissions to import candidates' }, { status: 403 });
   }
@@ -308,7 +308,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Check if user has permission to import candidates
-  if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('CANDIDATES_MANAGE')) {
+  if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('CANDIDATES_IMPORT')) {
     return NextResponse.json({ error: 'Forbidden: Insufficient permissions to import candidates' }, { status: 403 });
   }
 

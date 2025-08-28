@@ -26,19 +26,19 @@ export async function POST(request: NextRequest) {
     const userRole = session.user.role || 'Recruiter';
     const userModulePermissions = session.user.modulePermissions || [];
 
-    // Check if user has any of the requested permissions
-    const hasAnyPermission = permissions.some(permission => {
-      // Admin role has all permissions
-      if (userRole === 'Admin') return true;
-      
-      // Check specific module permissions
-      return userModulePermissions.includes(permission);
-    });
+      // Check if user has any of the requested permissions
+  const hasAnyPermission = permissions.some(permission => {
+    // Admin role has all permissions
+    if (userRole === 'Admin') return true;
+    
+    // Check specific module permissions
+    return userModulePermissions.includes(permission);
+  });
 
-    return NextResponse.json({
-      hasPermission: hasAnyPermission,
-      userRole,
-      userModulePermissions,
+          return NextResponse.json({
+        hasPermission: hasAnyPermission,
+        userRole,
+        userModulePermissions,
       requestedPermissions: permissions
     });
 

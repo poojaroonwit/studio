@@ -58,7 +58,6 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  
   // Increase body size limit for large file uploads (500MB)
   experimental: {
     optimizeCss: false, // Disabled to reduce memory usage during build
@@ -68,12 +67,19 @@ const nextConfig = {
     },
   },
   
+  // Allow cross-origin requests in development
+  allowedDevOrigins: ['192.168.1.36'],
+  
   // Force Node.js runtime for all API routes to avoid Edge Runtime issues
   async rewrites() {
     return [
       {
         source: '/api/:path*',
         destination: '/api/:path*',
+      },
+      {
+        source: '/api/health',
+        destination: '/api/health',
       },
     ];
   },
@@ -257,15 +263,7 @@ const nextConfig = {
     return config;
   },
   
-  // Disable static optimization for API routes that might cause issues
-  async rewrites() {
-    return [
-      {
-        source: '/api/health',
-        destination: '/api/health',
-      },
-    ];
-  },
+
 };
 
 module.exports = nextConfig; 

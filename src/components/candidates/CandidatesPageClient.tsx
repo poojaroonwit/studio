@@ -457,7 +457,14 @@ export function CandidatesPageClient({
 
   // Permissions
   const canExportCandidates = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('CANDIDATES_EXPORT') || false;
-  const canManageCandidates = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('CANDIDATES_MANAGE') || false;
+  const canCreateCandidates = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('CANDIDATES_CREATE') || false;
+  const canEditCandidates = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('CANDIDATES_EDIT_BASIC') || false;
+  const canDeleteCandidates = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('CANDIDATES_DELETE') || false;
+  const canChangeStatus = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('CANDIDATES_PIPELINE_STAGE_UPDATE') || false;
+  const canBulkChangeStatus = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('CANDIDATES_PIPELINE_STAGE_BULK_UPDATE') || false;
+  const canViewDetailed = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('CANDIDATES_VIEW_DETAILED') || false;
+  const canAssignSource = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('CANDIDATES_SOURCE_ASSIGN') || false;
+  const canAssignRecruiter = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('CANDIDATES_RECRUITER_ASSIGN') || false;
 
   // Calculate total pages for pagination
   const totalPages = useMemo(() => {
@@ -1465,7 +1472,13 @@ export function CandidatesPageClient({
                 availableStages={availableStages}
                 availableRecruiters={availableRecruiters}
                 availableSources={availableSources}
-                canManageCandidates={canManageCandidates}
+                                    canManageCandidates={canEditCandidates}
+                  canEditCandidates={canEditCandidates}
+                  canDeleteCandidates={canDeleteCandidates}
+                  canChangeStatus={canChangeStatus}
+                  canViewDetailed={canViewDetailed}
+                  canAssignSource={canAssignSource}
+                  canAssignRecruiter={canAssignRecruiter}
                 sortColumn={sortColumn}
                 sortDirection={sortDirection}
                 onSort={(column, direction) => {
@@ -1530,7 +1543,7 @@ export function CandidatesPageClient({
                     <div className="flex items-center gap-1">
                       <Button
                         onClick={() => handleBulkDelete(Array.from(selectedCandidateIds))}
-                        disabled={!canManageCandidates}
+                        disabled={!canDeleteCandidates}
                         variant="ghost"
                         size="sm"
                         className="h-7 px-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
@@ -1546,7 +1559,7 @@ export function CandidatesPageClient({
                           setIsBulkStatusModalOpen(true);
           
                         }}
-                        disabled={!canManageCandidates}
+                        disabled={!canBulkChangeStatus}
                         variant="ghost"
                         size="sm"
                         className="h-7 px-2"
@@ -1560,7 +1573,7 @@ export function CandidatesPageClient({
                           setBulkNewRecruiterId(null);
                           setIsBulkRecruiterModalOpen(true);
                         }}
-                        disabled={!canManageCandidates}
+                        disabled={!canEditCandidates}
                         variant="ghost"
                         size="sm"
                         className="h-7 px-2"

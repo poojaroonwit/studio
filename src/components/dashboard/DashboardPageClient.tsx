@@ -81,7 +81,7 @@ export default function DashboardPageClient({
   const { refreshPermissions } = usePermissionRefresh();
 
   // Use the new chart setup hook
-  const { chartReady, isLoading: chartLoading, error: chartError } = useChartSetup();0
+  const { chartReady, isLoading: chartLoading, error: chartError } = useChartSetup();
   
   // Placeholder for removed performance monitoring hooks
 
@@ -690,8 +690,7 @@ export default function DashboardPageClient({
     // For non-admin users, show loading while redirecting
     return <div className="flex items-center justify-center h-screen">Redirecting to My Tasks...</div>;
   }
-  }
-
+  // Remove stray closing brace and ensure this is inside a function/component body
   if (authError) {
     return (
       <div className="flex flex-col items-center justify-center h-[calc(100vh-10rem)] text-center p-4">
@@ -1776,6 +1775,6 @@ export default function DashboardPageClient({
         }}
         positionId={selectedPositionId}
       />
-        </div>
-      );}
-
+    </div>
+  );
+}

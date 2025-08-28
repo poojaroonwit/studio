@@ -1,5 +1,7 @@
 // src/app/dashboard/page.tsx - Server Component
 import { getServerSession } from 'next-auth/next';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 import DashboardPageClient from '@/components/dashboard/DashboardPageClient';
 import { authOptions } from '@/lib/auth';
 import { getPool } from '@/lib/db';

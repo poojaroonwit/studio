@@ -61,7 +61,7 @@ const nextConfig = {
   
   // Increase body size limit for large file uploads (500MB)
   experimental: {
-    optimizeCss: true,
+    optimizeCss: false, // Disabled to reduce memory usage during build
     // optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'], // Disabled due to self reference issue
     serverActions: {
       bodySizeLimit: '500mb',
@@ -225,6 +225,25 @@ const nextConfig = {
     config.resolve = config.resolve || {};
     config.resolve.alias = config.resolve.alias || {};
     config.resolve.alias['jose'] = require.resolve('jose');
+    
+    // Optimize for memory usage during build
+    if (!dev) {
+      config.optimization = {
+        ...config.optimization,
+        splitChunks: {
+          ...config.optimization.splitChunks,
+          chunks: 'all',
+          cacheGroups: {
+            ...config.optimization.splitChunks.cacheGroups,
+            vendor: {
+              test: /[\\/]node_modules[\\/]/,
+              name: 'vendors',
+              chunks: 'all',
+            },
+          },
+        },
+      };
+    }
     
     return config;
   },

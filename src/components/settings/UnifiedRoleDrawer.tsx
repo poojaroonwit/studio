@@ -159,15 +159,10 @@ export function UnifiedRoleDrawer({
     }
   }, [isOpen, role, activeTab]);
 
-  // Load available users when add user modal opens or search term changes
+  // Load available users when add user modal opens
   useEffect(() => {
     if (isAddUserModalOpen && role) {
-      // Debounce search to prevent too many API calls
-      const timeoutId = setTimeout(() => {
-        loadAvailableUsers();
-      }, 300);
-      
-      return () => clearTimeout(timeoutId);
+      loadAvailableUsers();
     }
   }, [isAddUserModalOpen, role, searchTerm]);
 
@@ -662,15 +657,8 @@ export function UnifiedRoleDrawer({
       </Sheet>
 
       {/* Add User Modal */}
-      <Dialog open={isAddUserModalOpen} onOpenChange={(open) => {
-        setIsAddUserModalOpen(open);
-        if (!open) {
-          setSelectedUserId('');
-          setSearchTerm('');
-          setAvailableUsers([]);
-        }
-      }}>
-        <DialogContent className="w-[95vw] max-w-md sm:w-full z-[100000] max-h-[90vh] overflow-y-auto">
+      <Dialog open={isAddUserModalOpen} onOpenChange={setIsAddUserModalOpen}>
+        <DialogContent className="w-[95vw] max-w-md sm:w-full z-[100]">
           <DialogHeader>
             <DialogTitle>Add User to {role.name}</DialogTitle>
             <DialogDescription>
@@ -680,31 +668,23 @@ export function UnifiedRoleDrawer({
 
           <div className="space-y-4">
             {/* User Selection */}
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Search Users</label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search by name or email..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 h-10 text-sm"
-                    disabled={isLoadingAvailable}
-                  />
-                  {isLoadingAvailable && (
-                    <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
-                  )}
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Select User</label>
-                <Select value={selectedUserId} onValueChange={setSelectedUserId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose a user to add" />
-                  </SelectTrigger>
-                  <SelectContent className="z-[100001]">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Select User</label>
+              <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a user to add" />
+                </SelectTrigger>
+                <SelectContent className="z-[100003]">
+                  {/* Search inside dropdown */}
+                  <div className="relative p-2 border-b">
+                    <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search users..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10 h-8 text-sm"
+                    />
+                  </div>
                   
                   {isLoadingAvailable ? (
                     <div className="flex items-center justify-center p-4">
@@ -712,49 +692,36 @@ export function UnifiedRoleDrawer({
                     </div>
                   ) : availableUsers.length === 0 ? (
                     <div className="p-4 text-center text-muted-foreground">
-                      {searchTerm ? 'No users found matching your search' : 'No users available to add'}
-                    </div>
-                  ) : availableUsers.filter(user => !members.some(member => member.id === user.id)).length === 0 ? (
-                    <div className="p-4 text-center text-muted-foreground">
-                      All available users are already members of this role
+                      {searchTerm ? 'No users found matching your search' : 'No users available'}
                     </div>
                   ) : (
                     <div className="max-h-[200px] overflow-y-auto">
-                      {availableUsers
-                        .filter(user => {
-                          if (!searchTerm) return true;
-                          const searchLower = searchTerm.toLowerCase();
-                          return (
-                            user.name.toLowerCase().includes(searchLower) ||
-                            user.email.toLowerCase().includes(searchLower)
-                          );
-                        })
-                        .map((user) => {
-                          const isAlreadyMember = members.some(member => member.id === user.id);
-                          return (
-                            <SelectItem 
-                              key={user.id} 
-                              value={user.id}
-                              disabled={isAlreadyMember}
-                              className={isAlreadyMember ? 'opacity-60 cursor-not-allowed' : ''}
-                            >
-                              <div className="flex items-center gap-2 w-full">
-                                <Avatar className="h-6 w-6 flex-shrink-0 rounded-full">
-                                  <AvatarFallback className="text-xs rounded-full">
-                                    {getInitials(user.name)}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div className="flex-1 min-w-0">
-                                  <div className="font-medium truncate">{user.name}</div>
-                                  <div className="text-xs text-muted-foreground truncate">{user.email}</div>
-                                </div>
-                                {isAlreadyMember && (
-                                  <Check className="h-4 w-4 text-green-600 flex-shrink-0 ml-2" />
-                                )}
+                      {availableUsers.map((user) => {
+                        const isAlreadyMember = members.some(member => member.id === user.id);
+                        return (
+                          <SelectItem 
+                            key={user.id} 
+                            value={user.id}
+                            disabled={isAlreadyMember}
+                            className={isAlreadyMember ? 'opacity-60 cursor-not-allowed' : ''}
+                          >
+                            <div className="flex items-center gap-2 w-full">
+                              <Avatar className="h-6 w-6 flex-shrink-0 rounded-full">
+                                <AvatarFallback className="text-xs rounded-full">
+                                  {getInitials(user.name)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium truncate">{user.name}</div>
+                                <div className="text-xs text-muted-foreground truncate">{user.email}</div>
                               </div>
-                            </SelectItem>
-                          );
-                        })}
+                              {isAlreadyMember && (
+                                <Check className="h-4 w-4 text-green-600 flex-shrink-0 ml-2" />
+                              )}
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
                     </div>
                   )}
                 </SelectContent>
@@ -769,7 +736,6 @@ export function UnifiedRoleDrawer({
                   setIsAddUserModalOpen(false);
                   setSelectedUserId('');
                   setSearchTerm('');
-                  setAvailableUsers([]);
                 }}
               >
                 Cancel

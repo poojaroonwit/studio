@@ -1,5 +1,7 @@
 // src/app/page.tsx (Server Component)
 import { getServerSession } from 'next-auth/next';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 import { authOptions } from '@/lib/auth';
 import DashboardPageClient from '@/components/dashboard/DashboardPageClient';
 import type { Candidate, Position, UserProfile } from '@/lib/types';

@@ -1,5 +1,7 @@
 // src/app/candidates/page.tsx - Server Component
 import { getServerSession } from 'next-auth/next';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 import { CandidatesPageClient } from '@/components/candidates/CandidatesPageClient';
 import type { Candidate, Position, RecruitmentStage, UserProfile } from '@/lib/types';
 import { authOptions } from '@/lib/auth';

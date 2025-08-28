@@ -36,6 +36,11 @@ export function UserPresenceIndicator({ className }: UserPresenceIndicatorProps)
   // Use refs to prevent stale closures and track mounted state
   const mountedRef = useRef(true);
   const sessionRef = useRef(session);
+  const updateIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const presenceIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isUpdatingRef = useRef(false);
+  const retryCountRef = useRef(0);
+  const maxRetries = 3;
 
   // Update session ref when session changes
   useEffect(() => {
@@ -46,6 +51,14 @@ export function UserPresenceIndicator({ className }: UserPresenceIndicatorProps)
   useEffect(() => {
     return () => {
       mountedRef.current = false;
+      if (updateIntervalRef.current) {
+        clearInterval(updateIntervalRef.current);
+        updateIntervalRef.current = null;
+      }
+      if (presenceIntervalRef.current) {
+        clearInterval(presenceIntervalRef.current);
+        presenceIntervalRef.current = null;
+      }
     };
   }, []);
 
@@ -91,28 +104,113 @@ export function UserPresenceIndicator({ className }: UserPresenceIndicatorProps)
       .slice(0, 2);
   }, []);
 
+  // Update current user's presence with error handling
+  const updatePresence = useCallback(async () => {
+    if (!sessionRef.current?.user?.id || isUpdatingRef.current || !mountedRef.current) return;
+
+    isUpdatingRef.current = true;
+    try {
+      const response = await fetch('/api/realtime/presence', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: sessionRef.current.user.id,
+          userName: sessionRef.current.user.name || sessionRef.current.user.email || 'User',
+          userRole: sessionRef.current.user.role || 'User',
+          avatarUrl: (sessionRef.current.user as any).avatarUrl,
+          personalColor: (sessionRef.current.user as any).personalColor,
+          currentPage: pathname,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      // Reset retry count on success
+      retryCountRef.current = 0;
+    } catch (error) {
+      console.error('Failed to update presence:', error);
+      retryCountRef.current++;
+      
+      // Stop retrying after max retries
+      if (retryCountRef.current >= maxRetries) {
+        console.error('Max retries reached for presence update');
+        if (mountedRef.current) {
+          setError('Failed to update presence after multiple attempts');
+        }
+      }
+    } finally {
+      if (mountedRef.current) {
+        isUpdatingRef.current = false;
+      }
+    }
+  }, [pathname]);
+
+  // Fetch all users' presence with error handling
+  const fetchPresence = useCallback(async () => {
+    if (!sessionRef.current?.user?.id || !mountedRef.current) return;
+
+    if (mountedRef.current) {
+      setIsLoading(true);
+      setError(null);
+    }
+    
+    try {
+      const response = await fetch('/api/realtime/presence');
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      if (mountedRef.current) {
+        setOnlineUsers(data.users || []);
+        setError(null); // Clear any previous errors
+      }
+    } catch (error) {
+      console.error('Failed to fetch presence:', error);
+      if (mountedRef.current) {
+        setError((error as Error).message);
+        // Don't clear onlineUsers on error to maintain last known state
+      }
+    } finally {
+      if (mountedRef.current) {
+        setIsLoading(false);
+      }
+    }
+  }, []);
+
   // Memoized event handlers to prevent recreation
   const handlePresenceUpdate = useCallback((presence: any) => {
     if (!mountedRef.current) return;
     
-    // Handle presence updates
-    if (presence.action === 'joined') {
-      setOnlineUsers(prev => {
-        const existing = prev.find(u => u.userId === presence.userId);
-        if (existing) {
-          return prev.map(u => u.userId === presence.userId ? { ...u, ...presence.userData } : u);
-        } else {
-          return [...prev, presence.userData];
-        }
-      });
-    } else if (presence.action === 'left') {
-      setOnlineUsers(prev => prev.filter(u => u.userId !== presence.userId));
+    try {
+      // Handle presence updates
+      if (presence.action === 'joined') {
+        setOnlineUsers(prev => {
+          const existing = prev.find(u => u.userId === presence.userId);
+          if (existing) {
+            return prev.map(u => u.userId === presence.userId ? { ...u, ...presence.userData } : u);
+          } else {
+            return [...prev, presence.userData];
+          }
+        });
+      } else if (presence.action === 'left') {
+        setOnlineUsers(prev => prev.filter(u => u.userId !== presence.userId));
+      }
+    } catch (error) {
+      console.error('Error handling presence update:', error);
     }
   }, []);
 
   const handleUserListUpdate = useCallback((users: UserPresence[]) => {
     if (!mountedRef.current) return;
-    setOnlineUsers(users);
+    
+    try {
+      setOnlineUsers(users);
+    } catch (error) {
+      console.error('Error handling user list update:', error);
+    }
   }, []);
 
   // Unified realtime hook with memoized handlers
@@ -123,35 +221,59 @@ export function UserPresenceIndicator({ className }: UserPresenceIndicatorProps)
     showErrorNotifications: false // Disable error notifications
   });
 
-  // Fetch initial presence data - only once on mount
+  // Set up periodic presence updates and fetching with proper cleanup
   useEffect(() => {
-    const fetchPresence = async () => {
-      if (!sessionRef.current?.user?.id || !mountedRef.current) return;
+    if (!sessionRef.current?.user?.id) return;
 
-      setIsLoading(true);
-      setError(null);
-      
-      try {
-        // Note: Initial presence data is now handled by the unified SSE system
-        // The useUnifiedRealtime hook will automatically fetch and maintain presence data
-        // No need to manually fetch from the old endpoint
-        if (mountedRef.current) {
-          setOnlineUsers([]);
-        }
-      } catch (error) {
-        if (mountedRef.current) {
-          console.error('Failed to fetch presence:', error);
-          setError((error as Error).message);
-        }
-      } finally {
-        if (mountedRef.current) {
-          setIsLoading(false);
-        }
+    // Clear any existing intervals
+    if (updateIntervalRef.current) {
+      clearInterval(updateIntervalRef.current);
+      updateIntervalRef.current = null;
+    }
+    if (presenceIntervalRef.current) {
+      clearInterval(presenceIntervalRef.current);
+      presenceIntervalRef.current = null;
+    }
+
+    // Initial presence update
+    updatePresence();
+    
+    // Fetch initial presence data
+    fetchPresence();
+
+    // Update presence every 30 seconds
+    presenceIntervalRef.current = setInterval(() => {
+      if (mountedRef.current) {
+        updatePresence();
+      }
+    }, 30000);
+    
+    // Fetch presence data every 10 seconds
+    updateIntervalRef.current = setInterval(() => {
+      if (mountedRef.current) {
+        fetchPresence();
+      }
+    }, 10000);
+
+    // Cleanup on unmount or dependency change
+    return () => {
+      if (presenceIntervalRef.current) {
+        clearInterval(presenceIntervalRef.current);
+        presenceIntervalRef.current = null;
+      }
+      if (updateIntervalRef.current) {
+        clearInterval(updateIntervalRef.current);
+        updateIntervalRef.current = null;
       }
     };
+  }, [session?.user?.id]); // Only depend on user ID, not the functions
 
-    fetchPresence();
-  }, []); // Empty dependency array - only run once on mount
+  // Update presence when pathname changes
+  useEffect(() => {
+    if (sessionRef.current?.user?.id && mountedRef.current) {
+      updatePresence();
+    }
+  }, [pathname]); // Only depend on pathname
 
   // Include current user in the list and sort by online status and last seen
   const filteredUsers = useMemo(() => {
@@ -181,7 +303,7 @@ export function UserPresenceIndicator({ className }: UserPresenceIndicatorProps)
       // Then by last seen (most recent first)
       return new Date(b.lastSeen).getTime() - new Date(a.lastSeen).getTime();
     });
-  }, [onlineUsers, pathname]); // Add pathname dependency
+  }, [onlineUsers, pathname]);
 
   const onlineCount = useMemo(() => 
     filteredUsers.filter(user => user.isOnline).length, 
@@ -216,6 +338,54 @@ export function UserPresenceIndicator({ className }: UserPresenceIndicatorProps)
           <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />
           <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />
           <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className={cn("flex items-center", className)}>
+        <div className="flex items-center">
+          <div className="flex -space-x-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="relative">
+                  <Avatar className="w-8 h-8 border-2 border-background transition-all duration-200 hover:scale-110 rounded-full">
+                    <AvatarImage 
+                      src={sessionRef.current?.user?.image || sessionRef.current?.user?.avatarUrl || undefined} 
+                      alt={sessionRef.current?.user?.name || 'You'}
+                      className="rounded-full"
+                    />
+                    <AvatarFallback 
+                      className="text-xs font-medium rounded-full bg-red-500/20 text-red-700 dark:text-red-300"
+                    >
+                      {sessionRef.current?.user?.name ? getInitials(sessionRef.current.user.name) : 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                  
+                  {/* Error indicator */}
+                  <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-background" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs">
+                <div className="space-y-1">
+                  <div className="font-medium">{sessionRef.current?.user?.name || 'You'}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {sessionRef.current?.user?.role || 'User'}
+                  </div>
+                  <div className="text-xs text-red-600 flex items-center gap-1">
+                    <Circle className="w-2 h-2 fill-current" />
+                    Connection Error
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {error}
+                  </div>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </div>
         </div>
       </div>
     );
@@ -267,51 +437,6 @@ export function UserPresenceIndicator({ className }: UserPresenceIndicatorProps)
           </div>
         </div>
       </TooltipProvider>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className={cn("flex items-center", className)}>
-        {/* Show current user avatar even on error */}
-        <div className="flex items-center">
-          <div className="flex -space-x-2">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="relative">
-                  <Avatar className="w-8 h-8 border-2 border-background transition-all duration-200 hover:scale-110 rounded-full">
-                    <AvatarImage 
-                      src={sessionRef.current?.user?.image || sessionRef.current?.user?.avatarUrl || undefined} 
-                      alt={sessionRef.current?.user?.name || 'You'}
-                      className="rounded-full"
-                    />
-                    <AvatarFallback 
-                      className="text-xs font-medium rounded-full bg-green-500/20 text-green-700 dark:text-green-300"
-                    >
-                      {sessionRef.current?.user?.name ? getInitials(sessionRef.current.user.name) : 'U'}
-                    </AvatarFallback>
-                  </Avatar>
-                  
-                  {/* Online indicator */}
-                  <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-background" />
-                </div>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="max-w-xs">
-                <div className="space-y-1">
-                  <div className="font-medium">{sessionRef.current?.user?.name || 'You'}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {sessionRef.current?.user?.role || 'User'}
-                  </div>
-                  <div className="text-xs text-green-600 flex items-center gap-1">
-                    <Circle className="w-2 h-2 fill-current" />
-                    Online - {getPageDisplayName(pathname)}
-                  </div>
-                </div>
-              </TooltipContent>
-            </Tooltip>
-          </div>
-        </div>
-      </div>
     );
   }
 

@@ -1,41 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { 
+  setUserPresence, 
+  getAllUserPresence, 
+  markUserOffline, 
+  cleanupOfflineUsers,
+  type UserPresence 
+} from '@/lib/presence-store';
 
 export const dynamic = 'force-dynamic';
-
-// In-memory storage for user presence (in production, use Redis)
-interface UserPresence {
-  userId: string;
-  userName: string;
-  userRole: string;
-  avatarUrl?: string | null;
-  personalColor?: string | null;
-  currentPage: string;
-  lastSeen: Date;
-  isOnline: boolean;
-}
-
-const userPresenceStore = new Map<string, UserPresence>();
-
-// Clean up offline users (older than 6 hours)
-const OFFLINE_THRESHOLD = 6 * 60 * 60 * 1000; // 6 hours in milliseconds
-
-function cleanupOfflineUsers() {
-  const now = new Date();
-  for (const [userId, presence] of userPresenceStore.entries()) {
-    const timeSinceLastSeen = now.getTime() - presence.lastSeen.getTime();
-    if (timeSinceLastSeen > OFFLINE_THRESHOLD) {
-      userPresenceStore.delete(userId);
-    }
-  }
-}
-
-// Clean up every 5 minutes (guard against dev hot-reloads)
-const __presenceGlobal = globalThis as unknown as { __presenceCleanupInterval?: NodeJS.Timeout };
-if (!__presenceGlobal.__presenceCleanupInterval) {
-  __presenceGlobal.__presenceCleanupInterval = setInterval(cleanupOfflineUsers, 5 * 60 * 1000);
-}
 
 /**
  * @openapi
@@ -138,7 +112,7 @@ export async function POST(request: NextRequest) {
       isOnline: true
     };
 
-    userPresenceStore.set(userId, presence);
+    setUserPresence(userId, presence);
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -166,12 +140,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Mark user as offline but keep their presence for 6 hours
-    const existingPresence = userPresenceStore.get(userId);
-    if (existingPresence) {
-      existingPresence.isOnline = false;
-      existingPresence.lastSeen = new Date();
-      userPresenceStore.set(userId, existingPresence);
-    }
+    markUserOffline(userId);
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -195,7 +164,7 @@ export async function GET() {
     cleanupOfflineUsers();
 
     // Return all users (both online and recently offline)
-    const users = Array.from(userPresenceStore.values()).map(presence => ({
+    const users = getAllUserPresence().map(presence => ({
       userId: presence.userId,
       userName: presence.userName,
       userRole: presence.userRole,

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, type ChangeEvent } from "react";
-import { Loader2, Save, X, Palette, ImageUp, Trash2, XCircle, PenSquare, Sun, Moon, RotateCcw, Sidebar as SidebarIcon, LogIn, Settings2 } from "lucide-react";
+import { Loader2, Save, X, Palette, ImageUp, Trash2, XCircle, PenSquare, Sun, Moon, RotateCcw, Sidebar as SidebarIcon, LogIn, Settings2, Lock } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,12 +34,13 @@ interface SystemPreferencesFormProps {
 }
 
 export function SystemPreferencesForm({ onSave, onCancel }: SystemPreferencesFormProps) {
-  const { data: session } = useSession();
+  const { data: session, status: sessionStatus } = useSession();
   const router = useRouter();
   const { success: showSuccess, error: showError } = useToast();
   
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isClient, setIsClient] = useState(false);
   const [currentAppName, setCurrentAppName] = useState(DEFAULT_APP_NAME);
   const [appLogoUrl, setAppLogoUrl] = useState<string | null>(null);
   const [appFaviconUrl, setAppFaviconUrl] = useState<string | null>(null);
@@ -47,58 +48,93 @@ export function SystemPreferencesForm({ onSave, onCancel }: SystemPreferencesFor
   const [showLogoOnly, setShowLogoOnly] = useState<boolean>(false);
   const [sidebarLogoSize, setSidebarLogoSize] = useState<number>(48);
 
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   // Load current settings
   useEffect(() => {
-    const loadSettings = async () => {
-      try {
-        setIsLoading(true);
-        const res = await fetch('/api/settings/system-settings');
-        const data = await res.json();
+    if (sessionStatus === 'authenticated' && isClient) {
+      const loadSettings = async () => {
+        try {
+          setIsLoading(true);
+          
+          // Add timeout to prevent hanging
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+          
+          const res = await fetch('/api/settings/system-settings', {
+            signal: controller.signal
+          });
+          
+          clearTimeout(timeoutId);
+          
+          if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+          }
+          
+          const data = await res.json();
 
-        let prefs: any = {};
-        if (data.settings && Array.isArray(data.settings)) {
-          prefs = Object.fromEntries(data.settings.map((setting: any) => [setting.key, setting.value]));
-        } else {
-          prefs = data;
+          let prefs: any = {};
+          if (data.settings && Array.isArray(data.settings)) {
+            prefs = Object.fromEntries(data.settings.map((setting: any) => [setting.key, setting.value]));
+          } else {
+            prefs = data;
+          }
+
+          setCurrentAppName(prefs.appName || DEFAULT_APP_NAME);
+          setAppLogoUrl(prefs.appLogoDataUrl || null);
+          setAppFaviconUrl(prefs.appFaviconDataUrl || null);
+          setThemePreference(prefs.appThemePreference || DEFAULT_THEME);
+          setShowLogoOnly(prefs.showLogoOnly === 'true' || prefs.showLogoOnly === true);
+          setSidebarLogoSize(prefs.sidebarLogoSize ? parseInt(prefs.sidebarLogoSize) : 48);
+        } catch (error) {
+          console.error('Error loading settings:', error);
+          if (error instanceof Error && error.name === 'AbortError') {
+            showError("Request timed out. Please try again.");
+          } else {
+            showError("Failed to load system settings");
+          }
+        } finally {
+          setIsLoading(false);
         }
+      };
 
-        setCurrentAppName(prefs.appName || DEFAULT_APP_NAME);
-        setAppLogoUrl(prefs.appLogoDataUrl || null);
-        setAppFaviconUrl(prefs.appFaviconDataUrl || null);
-        setThemePreference(prefs.appThemePreference || DEFAULT_THEME);
-        setShowLogoOnly(prefs.showLogoOnly === 'true' || prefs.showLogoOnly === true);
-        setSidebarLogoSize(prefs.sidebarLogoSize ? parseInt(prefs.sidebarLogoSize) : 48);
-      } catch (error) {
-        console.error('Error loading settings:', error);
-        showError("Failed to load system settings");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadSettings();
-  }, [showError]);
+      loadSettings();
+    }
+  }, [sessionStatus, isClient]); // Wait for session to be authenticated and client to be ready
 
   const handleSave = async () => {
     try {
       setIsSaving(true);
       
-      const settings = {
-        appName: currentAppName,
-        appLogoDataUrl: appLogoUrl,
-        appFaviconDataUrl: appFaviconUrl,
-        appThemePreference: themePreference,
-        showLogoOnly: showLogoOnly.toString(),
-        sidebarLogoSize: sidebarLogoSize.toString(),
-      };
+      const settingsToSave = [
+        { key: 'appName', value: currentAppName },
+        { key: 'appLogoDataUrl', value: appLogoUrl || '' },
+        { key: 'appFaviconDataUrl', value: appFaviconUrl || '' },
+        { key: 'appThemePreference', value: themePreference },
+        { key: 'showLogoOnly', value: showLogoOnly.toString() },
+        { key: 'sidebarLogoSize', value: sidebarLogoSize.toString() },
+      ];
 
+      // Add timeout to prevent hanging
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+      
       const res = await fetch('/api/settings/system-settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settings),
+        body: JSON.stringify(settingsToSave),
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
 
-      if (!res.ok) throw new Error('Failed to save settings');
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ message: 'Failed to save settings' }));
+        console.error('Save settings error:', errorData);
+        throw new Error(errorData.message || 'Failed to save settings');
+      }
 
       showSuccess("System settings saved successfully");
 
@@ -114,17 +150,53 @@ export function SystemPreferencesForm({ onSave, onCancel }: SystemPreferencesFor
       onSave?.();
     } catch (error) {
       console.error('Error saving settings:', error);
-      showError("Failed to save system settings");
+      if (error instanceof Error && error.name === 'AbortError') {
+        showError("Request timed out. Please try again.");
+      } else {
+        showError("Failed to save system settings");
+      }
     } finally {
       setIsSaving(false);
     }
   };
 
-  if (isLoading) {
+  if (sessionStatus === 'loading' || !isClient || isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
         <Loader2 className="h-8 w-8 animate-spin" />
-        <span className="ml-2">Loading settings...</span>
+        <span className="ml-2">
+          {sessionStatus === 'loading' ? 'Loading session...' : 
+           !isClient ? 'Initializing...' : 'Loading settings...'}
+        </span>
+      </div>
+    );
+  }
+
+  // Check if user has permission to access system settings
+  if (sessionStatus === 'unauthenticated') {
+    return (
+      <div className="flex flex-col items-center justify-center p-8 text-center">
+        <div className="p-4 rounded-full bg-muted/50 mb-4">
+          <Lock className="h-8 w-8 text-muted-foreground" />
+        </div>
+        <h3 className="text-lg font-semibold mb-2">Access Denied</h3>
+        <p className="text-muted-foreground max-w-md">
+          You need to be logged in to access system preferences.
+        </p>
+      </div>
+    );
+  }
+
+  if (session?.user?.role !== 'Admin' && !session?.user?.modulePermissions?.includes('SYSTEM_SETTINGS_MANAGE')) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8 text-center">
+        <div className="p-4 rounded-full bg-muted/50 mb-4">
+          <Lock className="h-8 w-8 text-muted-foreground" />
+        </div>
+        <h3 className="text-lg font-semibold mb-2">Insufficient Permissions</h3>
+        <p className="text-muted-foreground max-w-md">
+          You don't have permission to access system preferences. Contact your administrator for access.
+        </p>
       </div>
     );
   }

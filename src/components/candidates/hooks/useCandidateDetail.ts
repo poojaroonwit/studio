@@ -203,9 +203,9 @@ export const useCandidateDetail = (candidateId: string) => {
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
-    // Retry configuration
-    const maxRetries = 2; // Reduced from 3
-    const baseDelay = 1000;
+    // Retry configuration - reduced for faster loading
+    const maxRetries = 1; // Reduced from 2 for faster failure
+    const baseDelay = 500; // Reduced from 1000ms for faster retry
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
@@ -395,18 +395,26 @@ export const useCandidateDetail = (candidateId: string) => {
     }
   }, [candidateId]);
 
-  // Fetch static data only once on mount
+  // Fetch static data only once on mount with parallel execution
   useEffect(() => {
-    fetchPositions();
-    fetchRecruiters();
-    fetchSources();
-    fetchStages();
-  }, []);
+    // Fetch all static data in parallel for better performance
+    Promise.all([
+      fetchPositions(),
+      fetchRecruiters(),
+      fetchSources(),
+      fetchStages()
+    ]).catch(error => {
+      console.error('Error fetching static data:', error);
+    });
+  }, [fetchPositions, fetchRecruiters, fetchSources, fetchStages]);
 
-  // Fetch transition history when candidateId is available
+  // Fetch transition history when candidateId is available (non-blocking)
   useEffect(() => {
     if (candidateId) {
-      fetchTransitionHistory();
+      // Fetch transition history in background without blocking main candidate data
+      fetchTransitionHistory().catch(error => {
+        console.error('Error fetching transition history:', error);
+      });
     }
   }, [candidateId, fetchTransitionHistory]);
 
@@ -421,6 +429,8 @@ export const useCandidateDetail = (candidateId: string) => {
         abortControllerRef.current.abort();
         abortControllerRef.current = null;
       }
+      // Clear cache to prevent memory leaks
+      cacheRef.current.clear();
     };
   }, []);
 
@@ -579,16 +589,23 @@ export const useCandidateDetail = (candidateId: string) => {
 
   const handleAssignRecruiter = async (newRecruiterId: string | null) => {
     setIsAssigningRecruiter(true);
+    
+    // Add timeout to prevent hanging requests
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+    
     try {
       const response = await fetch(`/api/candidates/${candidateId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ recruiterId: newRecruiterId }),
         credentials: 'include',
+        signal: controller.signal,
       });
 
       if (!response.ok) {
-        throw new Error('Failed to assign recruiter');
+        const errorData = await response.json().catch(() => ({ message: 'Failed to assign recruiter' }));
+        throw new Error(errorData.message || `Failed to assign recruiter: ${response.status}`);
       }
 
       const updatedCandidate = await response.json();
@@ -596,8 +613,13 @@ export const useCandidateDetail = (candidateId: string) => {
       toast.success(newRecruiterId ? 'Recruiter assigned successfully' : 'Recruiter unassigned successfully');
     } catch (error) {
       console.error('Error assigning recruiter:', error);
-      toast.error('Failed to assign recruiter');
+      if (error.name === 'AbortError') {
+        toast.error('Request timed out. Please try again.');
+      } else {
+        toast.error(error.message || 'Failed to assign recruiter');
+      }
     } finally {
+      clearTimeout(timeoutId);
       setIsAssigningRecruiter(false);
     }
   };

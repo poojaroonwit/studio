@@ -221,11 +221,13 @@ export class WarningAutomation {
       await this.triggerEntityCheck(entityType, entityId, userId);
     } catch (error) {
       if (attempts < this.config.retryAttempts) {
+        // Use setTimeout with Promise to avoid blocking
         await new Promise(resolve => setTimeout(resolve, this.config.retryDelay));
         return this.triggerEntityCheckWithRetry(entityType, entityId, userId, attempts + 1);
       } else {
         console.error(`❌ Failed to check warnings for ${entityType} ${entityId} after ${this.config.retryAttempts} attempts`);
-        throw error;
+        // Don't throw error to prevent blocking the main operation
+        return;
       }
     }
   }

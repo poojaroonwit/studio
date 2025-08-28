@@ -87,13 +87,22 @@ export function ManageTransitionsModal({
     if (isOpen) {
       setLoadingStages(true);
       fetch('/api/recruitment-stages')
-        .then(res => res.json())
+        .then(res => {
+          if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+          }
+          return res.json();
+        })
         .then(data => {
           setStages(Array.isArray(data) ? data : []);
-      
         })
-        .catch(() => setStages([]))
-        .finally(() => setLoadingStages(false));
+        .catch((error) => {
+          console.error('Failed to fetch recruitment stages:', error);
+          setStages([]);
+        })
+        .finally(() => {
+          setLoadingStages(false);
+        });
     }
   }, [isOpen]);
 
@@ -319,8 +328,8 @@ export function ManageTransitionsModal({
                     availableStages={stages}
                     label="New Stage"
                     error={form.formState.errors.newStatus?.message}
+                    loading={loadingStages}
                   />
-                  {loadingStages && <div className="text-xs text-muted-foreground mt-1">Loading stages...</div>}
                 </div>
                 <div>
                   <Label htmlFor="notes" className="text-sm font-medium text-muted-foreground">Notes (Optional)</Label>

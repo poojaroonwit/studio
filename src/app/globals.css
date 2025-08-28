@@ -107,6 +107,17 @@
   z-index: 100000 !important;
 }
 
+/* Ensure dialog overlays are properly removed when closed */
+[data-radix-dialog-overlay][data-state="closed"] {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+[data-radix-dialog-content][data-state="closed"] {
+  display: none !important;
+  pointer-events: none !important;
+}
+
 /* Force all alert dialogs to have very high z-index */
 [data-radix-alert-dialog-overlay] {
   z-index: 99999 !important;

@@ -191,7 +191,7 @@ export default function ManageUsersPage() {
       }
       fetchUsers({name: nameFilter, email: emailFilter, role: roleFilter, teamId: teamFilter}, currentPage, pageSize); 
       toast.success(`User ${result.name} added successfully.`);
-      setIsUserModalOpen(false);
+      handleModalClose();
     } catch (error) {
       toast.error((error as Error).message);
     }
@@ -227,8 +227,7 @@ export default function ManageUsersPage() {
       // Force avatar refresh after user update
       setAvatarRefreshKey(prev => prev + 1);
       toast.success(`User ${result.name} updated successfully.`);
-      setIsUserModalOpen(false);
-      setSelectedUser(null);
+      handleModalClose();
 
       // If the current user is editing their own permissions, refresh the session
       if (session?.user?.id === userId) {
@@ -542,6 +541,7 @@ export default function ManageUsersPage() {
         isOpen={isUserModalOpen}
         onOpenChange={(isOpen: boolean) => {
           if (!isOpen) {
+            // Handle modal close (e.g., clicking outside, pressing escape)
             handleModalClose();
           } else {
             setIsUserModalOpen(isOpen);

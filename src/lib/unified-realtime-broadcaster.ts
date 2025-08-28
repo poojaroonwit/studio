@@ -200,35 +200,54 @@ export class UnifiedRealtimeBroadcaster {
       maxRetries = 3
     } = options;
 
-    try {
-      const event = {
-        type: eventType as EventType,
-        data,
-        timestamp: new Date().toISOString(),
-        targetUserId,
-        actingUserId
-      };
+    // Add timeout to prevent hanging
+    const timeoutPromise = new Promise<BroadcastResult>((_, reject) => {
+      setTimeout(() => reject(new Error('Broadcast timeout')), 10000); // 10 second timeout
+    });
 
-      broadcastEvent(event);
+    const broadcastPromise = (async () => {
+      try {
+        const event = {
+          type: eventType as EventType,
+          data,
+          timestamp: new Date().toISOString(),
+          targetUserId,
+          actingUserId
+        };
 
-      const recipients = targetUserId ? 1 : getConnectedUsersCount();
-      
-      return {
-        success: true,
-        recipients,
-        timestamp: new Date().toISOString()
-      };
-    } catch (error) {
-      console.error(`Failed to broadcast ${eventType}:`, error);
-      
-      if (retryOnFailure) {
-        this.addToRetryQueue(eventType, data, options, maxRetries);
+        broadcastEvent(event);
+
+        const recipients = targetUserId ? 1 : getConnectedUsersCount();
+        
+        return {
+          success: true,
+          recipients,
+          timestamp: new Date().toISOString()
+        };
+      } catch (error) {
+        console.error(`Failed to broadcast ${eventType}:`, error);
+        
+        if (retryOnFailure) {
+          this.addToRetryQueue(eventType, data, options, maxRetries);
+        }
+
+        return {
+          success: false,
+          recipients: 0,
+          error: (error as Error).message,
+          timestamp: new Date().toISOString()
+        };
       }
+    })();
 
+    try {
+      return await Promise.race([broadcastPromise, timeoutPromise]);
+    } catch (error) {
+      console.error(`Broadcast timeout for ${eventType}:`, error);
       return {
         success: false,
         recipients: 0,
-        error: (error as Error).message,
+        error: 'Broadcast timeout',
         timestamp: new Date().toISOString()
       };
     }

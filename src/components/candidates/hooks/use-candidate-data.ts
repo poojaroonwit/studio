@@ -148,7 +148,7 @@ export function useCandidateData({
     if (sessionStatus !== 'authenticated') return;
 
     try {
-      const response = await fetch('/api/candidate-sources');
+      const response = await fetch('/api/settings/candidate-sources');
       if (response.ok) {
         const data = await response.json();
         stableSetAvailableSources(Array.isArray(data) ? data : (data.sources || []));

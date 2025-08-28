@@ -8,38 +8,28 @@ export function useChartSetup() {
 
   useEffect(() => {
     const initializeChart = async () => {
-      console.log('useChartSetup: initializeChart called, chartReady:', chartReady);
-      
       // If already ready, don't do anything
       if (chartReady) {
-        console.log('useChartSetup: Chart already ready, returning');
         return;
       }
 
       // If already set up, mark as ready
       if (isChartJSSetup()) {
-        console.log('useChartSetup: Chart.js already set up, marking as ready');
         setChartReady(true);
         setIsLoading(false);
         setError(null);
         return;
       }
 
-      console.log('useChartSetup: Starting chart setup...');
       setIsLoading(true);
       setError(null);
 
       try {
         // Always call setupChartJS - it will return the existing promise if setup is in progress
-        console.log('useChartSetup: Calling setupChartJS...');
-        const startTime = Date.now();
         await setupChartJS();
-        const endTime = Date.now();
-        console.log(`useChartSetup: setupChartJS completed in ${endTime - startTime}ms`);
         
         // Check setup completion
         if (isChartJSSetup()) {
-          console.log('useChartSetup: Chart setup successful, marking as ready');
           setChartReady(true);
           setIsLoading(false);
         } else {
@@ -59,7 +49,6 @@ export function useChartSetup() {
 
   // Function to manually retry setup
   const retrySetup = () => {
-    console.log('useChartSetup: Manual retry requested');
     setError(null);
     setChartReady(false);
     setIsLoading(true);
@@ -69,11 +58,9 @@ export function useChartSetup() {
     // Re-run the initialization
     const initializeChart = async () => {
       try {
-        console.log('useChartSetup: Retry - calling setupChartJS...');
         await setupChartJS();
         
         if (isChartJSSetup()) {
-          console.log('useChartSetup: Retry successful, marking as ready');
           setChartReady(true);
           setIsLoading(false);
         } else {

@@ -437,10 +437,10 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
         
         <div 
           className="flex items-center justify-center"
-          style={{ 
-            height: dynamicHeight && dynamicHeight > 0 ? `${dynamicHeight}px` : '256px',
-            minHeight: '256px'
-          }}
+          // style={{ 
+          //   height: dynamicHeight && dynamicHeight > 0 ? `${dynamicHeight}px` : '256px',
+          //   minHeight: '256px'
+          // }}
         >
           {isLoading ? (
             <div className="flex items-center justify-center">

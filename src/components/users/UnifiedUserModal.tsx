@@ -119,6 +119,17 @@ export function UnifiedUserModal({
     };
   }, []);
 
+  // Cleanup modal state when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      // Reset form and state when modal closes
+      form.reset();
+      setActiveTab('personal');
+      setIsLoading(false);
+      setUserTeams([]);
+    }
+  }, [isOpen, form]);
+
   const { isSubmitting } = form.formState;
 
   // Check permissions for different fields

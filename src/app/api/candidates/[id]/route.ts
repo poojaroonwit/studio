@@ -137,6 +137,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const candidateStartTime = Date.now();
     const candidateResult = await client.query(candidateQuery, [id]);
     const candidateQueryTime = Date.now() - candidateStartTime;
+    console.log(`[PERF] Candidate query completed in ${candidateQueryTime}ms`);
  
     if (candidateResult.rows.length === 0) {
       return NextResponse.json({ message: 'Candidate not found' }, { status: 404 });
@@ -166,7 +167,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const jobMatchesStartTime = Date.now();
     const jobMatchesResult = await client.query(jobMatchesQuery, [id]);
     const jobMatchesQueryTime = Date.now() - jobMatchesStartTime;
-    // console.log(`[PERF] Job matches query completed in ${jobMatchesQueryTime}ms`);
+    console.log(`[PERF] Job matches query completed in ${jobMatchesQueryTime}ms`);
     const jobMatches = jobMatchesResult.rows || [];
 
     // Fetch recent attachments only (reduced limit for performance)
@@ -193,10 +194,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const attachmentsStartTime = Date.now();
     const attachmentsResult = await client.query(attachmentsQuery, [id]);
     const attachmentsQueryTime = Date.now() - attachmentsStartTime;
-    // console.log(`[PERF] Attachments query completed in ${attachmentsQueryTime}ms`);
+    console.log(`[PERF] Attachments query completed in ${attachmentsQueryTime}ms`);
     const attachments = attachmentsResult.rows || [];
 
     const totalTime = Date.now() - startTime;
+    console.log(`[PERF] Total candidate API response time: ${totalTime}ms`);
   
     const responseData = {
       ...candidate,
@@ -790,21 +792,31 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       customAttributes = {};
     }
     
-    // Check for warnings after candidate update using automation system
+    // Check for warnings after candidate update using automation system (non-blocking)
     try {
       const { WarningAutomation } = await import('@/lib/warningAutomation');
-      WarningAutomation.triggerEntityCheckWithRetry('candidate', id, actingUserId);
+      // Don't await this to prevent blocking the response
+      WarningAutomation.triggerEntityCheckWithRetry('candidate', id, actingUserId).catch(error => {
+        console.error('Failed to trigger warning check for updated candidate:', error);
+      });
     } catch (warningError) {
-      console.error('Failed to trigger warning check for updated candidate:', warningError);
+      console.error('Failed to import warning automation:', warningError);
       // Don't fail the request if warning check fails
     }
     
-    // Broadcast update with safe candidate data
-    await unifiedBroadcaster.broadcastCandidateUpdated({ ...candidate, customAttributes }, actingUserId, {
-      priority: 'high',
-      retryOnFailure: true,
-      maxRetries: 3
-    });
+    // Broadcast update with safe candidate data (non-blocking)
+    try {
+      unifiedBroadcaster.broadcastCandidateUpdated({ ...candidate, customAttributes }, actingUserId, {
+        priority: 'high',
+        retryOnFailure: true,
+        maxRetries: 3
+      }).catch(error => {
+        console.error('Failed to broadcast candidate update:', error);
+      });
+    } catch (broadcastError) {
+      console.error('Failed to broadcast candidate update:', broadcastError);
+      // Don't fail the request if broadcasting fails
+    }
   
     return NextResponse.json({
       ...candidate,

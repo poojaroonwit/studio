@@ -1,5 +1,10 @@
-# Use Node.js 18 Alpine for smaller image size
+# Alternative Dockerfile using Yarn instead of npm
 FROM node:18-alpine
+
+WORKDIR /app
+
+# Install Yarn
+RUN npm install -g yarn
 
 # Install necessary build tools and dependencies
 RUN apk add --no-cache \
@@ -10,15 +15,12 @@ RUN apk add --no-cache \
     curl \
     wget
 
-WORKDIR /app
-
 # Copy package files first for better caching
 COPY package*.json ./
+COPY yarn.lock* ./
 
-# Install dependencies with fallback options
-RUN npm cache clean --force && \
-    (npm ci --no-audit --no-fund --prefer-offline || \
-     npm install --no-audit --no-fund --legacy-peer-deps)
+# Install dependencies using Yarn
+RUN yarn install --frozen-lockfile --production=false --network-timeout 1000000
 
 # Copy source code
 COPY . .
@@ -31,15 +33,11 @@ RUN npx prisma generate
 
 # Build the application with increased memory
 ENV NODE_OPTIONS="--max-old-space-size=4096"
-ENV NEXT_TELEMETRY_DISABLED=1
-RUN npm run build
+RUN yarn build
 
 # Make entrypoint scripts executable
 RUN chmod +x ./entrypoint.sh
 RUN chmod +x ./entrypoint-processor.sh
-
-# Set environment variables
-ENV NODE_ENV=production
 
 EXPOSE 8021
 

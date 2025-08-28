@@ -53,6 +53,8 @@ const nextConfig = {
   // Performance optimizations
   compress: true,
   poweredByHeader: false,
+  // Enable standalone output for Docker optimization
+  output: 'standalone',
   typescript: {
     ignoreBuildErrors: true,
   },

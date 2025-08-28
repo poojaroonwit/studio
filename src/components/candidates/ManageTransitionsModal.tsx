@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -51,7 +51,7 @@ interface ManageTransitionsModalProps {
   candidate: Candidate | null;
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onUpdateCandidate: (candidateId: string, status: CandidateStatus, notes?: string, suppressToast?: boolean) => Promise<void>; // Modified to accept notes and suppressToast
+  onUpdateCandidate: (candidateId: string, status: CandidateStatus, notes?: string, suppressToast?: boolean) => Promise<void>;
   onRefreshCandidateData: (candidateId: string) => Promise<void>;
   availableStages: RecruitmentStage[];
   preselectedStage?: string | null;
@@ -77,34 +77,18 @@ export function ManageTransitionsModal({
   const [statusSearchQuery, setStatusSearchQuery] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [stages, setStages] = useState<RecruitmentStage[]>(initialAvailableStages || []);
-  const [loadingStages, setLoadingStages] = useState(false);
 
-  // Ref for timeout cleanup
+  // Refs for cleanup and preventing memory leaks
   const modalCloseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isMountedRef = useRef(true);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Fetch latest stages every time modal opens
+  // Update stages when prop changes (memoized to prevent unnecessary updates)
   useEffect(() => {
-    if (isOpen) {
-      setLoadingStages(true);
-      fetch('/api/recruitment-stages')
-        .then(res => {
-          if (!res.ok) {
-            throw new Error(`HTTP error! status: ${res.status}`);
-          }
-          return res.json();
-        })
-        .then(data => {
-          setStages(Array.isArray(data) ? data : []);
-        })
-        .catch((error) => {
-          console.error('Failed to fetch recruitment stages:', error);
-          setStages([]);
-        })
-        .finally(() => {
-          setLoadingStages(false);
-        });
+    if (isMountedRef.current && initialAvailableStages) {
+      setStages(initialAvailableStages);
     }
-  }, [isOpen]);
+  }, [initialAvailableStages]);
 
   const form = useForm<TransitionFormValues>({
     resolver: zodResolver(transitionFormSchema),
@@ -114,8 +98,9 @@ export function ManageTransitionsModal({
     },
   });
 
+  // Reset form when modal opens/closes or candidate changes
   useEffect(() => {
-    if (candidate && isOpen) {
+    if (isMountedRef.current && candidate && isOpen) {
       form.reset({
         newStatus: preselectedStage || candidate.status,
         notes: '',
@@ -123,20 +108,40 @@ export function ManageTransitionsModal({
       setEditingTransitionId(null);
       setStatusSearchQuery('');
     }
-  }, [candidate, isOpen, form, stages, preselectedStage]);
+  }, [candidate?.id, isOpen, preselectedStage]); // Removed form and stages from dependencies to prevent infinite loops
 
-  // Cleanup timeout on component unmount
+  // Cleanup function to prevent memory leaks
+  const cleanup = useCallback(() => {
+    if (modalCloseTimeoutRef.current) {
+      clearTimeout(modalCloseTimeoutRef.current);
+      modalCloseTimeoutRef.current = null;
+    }
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+  }, []);
+
+  // Cleanup on component unmount
   useEffect(() => {
     return () => {
-      if (modalCloseTimeoutRef.current) {
-        clearTimeout(modalCloseTimeoutRef.current);
-      }
+      isMountedRef.current = false;
+      cleanup();
     };
-  }, []);
+  }, [cleanup]);
+
+  // Cleanup when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      cleanup();
+    }
+  }, [isOpen, cleanup]);
 
   if (!candidate) return null;
 
-  const handleAddTransitionSubmit = async (data: TransitionFormValues) => {
+  const handleAddTransitionSubmit = useCallback(async (data: TransitionFormValues) => {
+    if (!isMountedRef.current) return;
+
     const trimmedNotes = data.notes?.trim() || '';
     const noChangeCondition = data.newStatus === candidate.status && !trimmedNotes;
     
@@ -144,110 +149,95 @@ export function ManageTransitionsModal({
         toast("Please select a new status or add notes to create a transition.");
         return;
     }
-    
 
     setIsSaving(true);
+    
+    // Create abort controller for this request
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
-        // console.log('Starting transition update:', { candidateId: candidate.id, newStatus: data.newStatus, notes: trimmedNotes });
-        
         // Call the onUpdateCandidate function
         if (onUpdateCandidate) {
             await onUpdateCandidate(candidate.id, data.newStatus, trimmedNotes, true);
-            // console.log('Transition update completed successfully');
         } else {
             console.error('onUpdateCandidate function is not provided');
             throw new Error('Update function not available');
         }
         
+        if (!isMountedRef.current) return;
+        
         // Reset form and state
         form.reset({ newStatus: data.newStatus, notes: '' }); 
         setStatusSearchQuery(''); 
-        setIsSaving(false);
         
         // Refresh data and comments
-        // console.log('Refreshing candidate data...');
         if (onRefreshCandidateData) {
             await onRefreshCandidateData(candidate.id);
-            // console.log('Candidate data refreshed successfully');
-        } else {
-            console.warn('onRefreshCandidateData function is not provided');
         }
         
-        // console.log('Refreshing comments...');
         if (onCommentsChange) {
             onCommentsChange();
-            // console.log('Comments refreshed successfully');
-        } else {
-            console.warn('onCommentsChange function is not provided');
         }
         
         // Show success message and close modal
         toast.success("Candidate details updated successfully.");
-        // console.log('Attempting to close modal with onOpenChange...');
         
-        try {
-            // Try multiple approaches to close the modal
-            // console.log('Calling onOpenChange(false) to close modal');
-            onOpenChange(false); // Close modal on success
-            // console.log('onOpenChange called');
-            
-            // Force a small delay and try again
-            const timeoutId = setTimeout(() => {
-                try {
-                    
-                    if (onOpenChange) {
-                        onOpenChange(false);
-                       
-                    }
-                    
-                    // Force the modal closed by manipulating DOM (last resort)
-                    const closeButtons = document.querySelectorAll('[aria-label="Close"]');
-                   
-                    if (closeButtons.length > 0) {
-                      
-                        (closeButtons[0] as HTMLElement).click();
-                    }
-                } catch (closeError) {
-                    console.error('Error in delayed modal close:', closeError);
-                }
-            }, 300);
-            
-            // Store timeout ID for cleanup
-            if (modalCloseTimeoutRef.current) {
-                clearTimeout(modalCloseTimeoutRef.current);
-            }
-            modalCloseTimeoutRef.current = timeoutId;
-        } catch (closeError) {
-            console.error('Error closing modal:', closeError);
-        }
+        // Close modal - simplified approach
+        onOpenChange(false);
+        
     } catch (error) {
-        setIsSaving(false);
+        if (!isMountedRef.current) return;
+        
         console.error('Transition save error:', error);
         const errorMessage = error instanceof Error ? error.message : 'Failed to save transition. Please try again.';
         toast.error(errorMessage);
+    } finally {
+        if (isMountedRef.current) {
+            setIsSaving(false);
+        }
+        abortControllerRef.current = null;
     }
-  };
+  }, [candidate, onUpdateCandidate, onRefreshCandidateData, onCommentsChange, onOpenChange, form]);
 
-  const handleEditNotesClick = (transition: TransitionRecord) => {
+  const handleEditNotesClick = useCallback((transition: TransitionRecord) => {
+    if (!isMountedRef.current) return;
     setEditingTransitionId(transition.id);
     setEditingNotes(transition.notes || '');
-  };
+  }, []);
 
-  const handleSaveNotes = async (transitionId: string) => {
+  const handleSaveNotes = useCallback(async (transitionId: string) => {
+    if (!isMountedRef.current) return;
+
+    // Create abort controller for this request
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
       const response = await fetch(`/api/transitions/${transitionId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ notes: editingNotes }),
+        signal: controller.signal,
       });
+      
+      if (!isMountedRef.current) return;
+      
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: "An unknown error occurred" }));
         throw new Error(errorData.message || `Failed to update notes: ${response.statusText}`);
       }
+      
       toast("Transition notes have been successfully updated.");
       setEditingTransitionId(null);
       await onRefreshCandidateData(candidate.id);
     } catch (error) {
+      if (!isMountedRef.current) return;
+      
+      if (error instanceof Error && error.name === 'AbortError') {
+        return;
+      }
+      
       toast("Error Updating Notes", {
         icon: "❌",
         duration: 5000,
@@ -256,26 +246,45 @@ export function ManageTransitionsModal({
           color: "#fff",
         },
       });
+    } finally {
+      abortControllerRef.current = null;
     }
-  };
+  }, [editingNotes, onRefreshCandidateData, candidate?.id]);
 
-  const confirmDeleteTransition = (transition: TransitionRecord) => {
+  const confirmDeleteTransition = useCallback((transition: TransitionRecord) => {
+    if (!isMountedRef.current) return;
     setTransitionToDelete(transition);
-  };
+  }, []);
 
-  const handleDeleteTransition = async () => {
-    if (!transitionToDelete) return;
+  const handleDeleteTransition = useCallback(async () => {
+    if (!transitionToDelete || !isMountedRef.current) return;
+
+    // Create abort controller for this request
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
       const response = await fetch(`/api/transitions/${transitionToDelete.id}`, {
         method: 'DELETE',
+        signal: controller.signal,
       });
+      
+      if (!isMountedRef.current) return;
+      
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: "An unknown error occurred" }));
         throw new Error(errorData.message || `Failed to delete transition: ${response.statusText}`);
       }
+      
       toast("The transition record has been successfully deleted.");
       await onRefreshCandidateData(candidate.id);
     } catch (error) {
+      if (!isMountedRef.current) return;
+      
+      if (error instanceof Error && error.name === 'AbortError') {
+        return;
+      }
+      
       toast("Error Deleting Transition", {
         icon: "❌",
         duration: 5000,
@@ -285,9 +294,23 @@ export function ManageTransitionsModal({
         },
       });
     } finally {
-      setTransitionToDelete(null);
+      if (isMountedRef.current) {
+        setTransitionToDelete(null);
+      }
+      abortControllerRef.current = null;
     }
-  };
+  }, [transitionToDelete, onRefreshCandidateData, candidate?.id]);
+
+  const handleModalOpenChange = useCallback((open: boolean) => {
+    if (!isMountedRef.current) return;
+    
+    onOpenChange(open);
+    if (!open) {
+      setEditingTransitionId(null);
+      setStatusSearchQuery('');
+      cleanup();
+    }
+  }, [onOpenChange, cleanup]);
 
   const filteredStages = statusSearchQuery
     ? stages.filter(stage => stage.name.toLowerCase().includes(statusSearchQuery.toLowerCase()))
@@ -297,15 +320,7 @@ export function ManageTransitionsModal({
     <>
       <Dialog 
         open={isOpen} 
-        onOpenChange={(open) => {
-       
-          onOpenChange(open);
-          if (!open) {
-           
-            setEditingTransitionId(null);
-            setStatusSearchQuery('');
-          }
-        }}
+        onOpenChange={handleModalOpenChange}
       >
         <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
@@ -315,7 +330,7 @@ export function ManageTransitionsModal({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid grid-cols-1  gap-x-6 gap-y-4 py-4">
+          <div className="grid grid-cols-1 gap-x-6 gap-y-4 py-4">
               <h3 className="text-lg font-semibold mb-1 text-foreground">Add New Transition</h3>
               <p className="text-xs text-muted-foreground mb-3">
                 Select a new stage and add notes. This will update the candidate&#39;s current status and record the change.
@@ -328,7 +343,7 @@ export function ManageTransitionsModal({
                     availableStages={stages}
                     label="New Stage"
                     error={form.formState.errors.newStatus?.message}
-                    loading={loadingStages}
+                    loading={false}
                   />
                 </div>
                 <div>
@@ -354,16 +369,12 @@ export function ManageTransitionsModal({
               variant="default" 
               disabled={isSaving}
               onClick={async () => {
-                // console.log('Save button clicked directly');
                 const formValues = form.getValues();
-                // console.log('Form values:', formValues);
                 
                 // Manually trigger validation
                 const isValid = await form.trigger();
-                // console.log('Form validation result:', isValid);
                 
                 if (isValid) {
-                  // Manually call the submit handler
                   await handleAddTransitionSubmit(formValues);
                 } else {
                   console.error('Form validation failed:', form.formState.errors);
@@ -378,7 +389,12 @@ export function ManageTransitionsModal({
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={!!transitionToDelete} onOpenChange={(open) => { if(!open) setTransitionToDelete(null);}}>
+      <AlertDialog 
+        open={!!transitionToDelete} 
+        onOpenChange={(open) => { 
+          if (!open) setTransitionToDelete(null);
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>

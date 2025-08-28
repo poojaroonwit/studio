@@ -399,8 +399,6 @@ export function applySidebarBackgroundToCSS() {
   const backgroundImageFit = localStorage.getItem('sidebarBackgroundImageFit') || 'cover';
   const backgroundImagePosition = localStorage.getItem('sidebarBackgroundImagePosition') || 'center';
   
-  console.log('Applying sidebar background:', { backgroundType, backgroundImageUrl, backgroundImageFit, backgroundImagePosition });
-  
   // Reset all background properties
   sidebarElement.style.backgroundImage = '';
   sidebarElement.style.backgroundColor = '';

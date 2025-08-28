@@ -232,11 +232,6 @@ export function AppLayout({ children }: AppLayoutProps) {
 
         // Handle sidebar background updates
         if (customEvent.detail.sidebarBackgroundImageUrl !== undefined || customEvent.detail.sidebarBackgroundType !== undefined) {
-          console.log('Applying sidebar background settings:', {
-            sidebarBackgroundImageUrl: customEvent.detail.sidebarBackgroundImageUrl,
-            sidebarBackgroundType: customEvent.detail.sidebarBackgroundType
-          });
-
           // Import and apply sidebar background settings
           import('@/lib/themeUtils').then(({ applySidebarBackgroundSettings }) => {
             applySidebarBackgroundSettings({

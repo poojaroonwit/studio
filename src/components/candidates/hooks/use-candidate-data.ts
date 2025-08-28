@@ -197,10 +197,9 @@ export function useCandidateData({
             count: item.count
           }))
         };
-        console.log('🔍 Setting databaseFitScoreCounts to:', newCounts);
         // setDatabaseFitScoreCounts(newCounts); // This state is removed, so this line is removed
       } else {
-        console.log('🔍 fetchFitScoreCounts failed:', response.status, response.statusText);
+        // fetchFitScoreCounts failed
       }
     } catch (error) {
       console.error('Error fetching fit score counts:', error);

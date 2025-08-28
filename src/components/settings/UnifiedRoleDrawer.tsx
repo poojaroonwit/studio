@@ -125,10 +125,59 @@ export function UnifiedRoleDrawer({
   const isSystemRole = role?.is_system_role || false;
   const isAdminRole = role?.name === 'Admin';
 
+  // Initialize permissions when role changes
+  useEffect(() => {
+    if (role) {
+      if (role.name === 'Admin') {
+        setCurrentPermissions(PLATFORM_MODULES.map(p => p.id));
+      } else {
+        setCurrentPermissions(role.permissions || []);
+      }
+    }
+  }, [role]);
+
+  // Reset states when drawer closes to prevent memory leaks
+  useEffect(() => {
+    if (!isOpen) {
+      // Clear any pending timeouts
+      if (permissionUpdateTimeoutRef.current) {
+        clearTimeout(permissionUpdateTimeoutRef.current);
+        permissionUpdateTimeoutRef.current = null;
+      }
+      
+      // Abort any ongoing requests
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+      
+      // Reset states
+      setActiveTab('details');
+      setMembers([]);
+      setAvailableUsers([]);
+      setIsLoadingMembers(false);
+      setIsLoadingAvailable(false);
+      setIsAddUserModalOpen(false);
+      setSelectedUserId('');
+      setSearchTerm('');
+      setIsRemovingUser(null);
+      setIsAddingUser(false);
+      setIsSavingRole(false);
+      setIsUpdatingPermissions(false);
+    }
+  }, [isOpen]);
+
   const form = useForm<RoleFormValues>({
     resolver: zodResolver(roleFormSchema),
     defaultValues: { name: '', description: '', is_default: false },
   });
+
+  // Cleanup form when component unmounts
+  useEffect(() => {
+    return () => {
+      form.reset();
+    };
+  }, [form]);
 
   // Load role data when drawer opens
   useEffect(() => {
@@ -140,7 +189,7 @@ export function UnifiedRoleDrawer({
       });
       
       // For Admin role, always show all permissions
-      if (isAdminRole) {
+      if (role.name === 'Admin') {
         setCurrentPermissions(PLATFORM_MODULES.map(p => p.id));
       } else {
         setCurrentPermissions(role.permissions || []);
@@ -150,7 +199,7 @@ export function UnifiedRoleDrawer({
         loadGroupMembers();
       }
     }
-  }, [isOpen, role, form, activeTab, isAdminRole]);
+  }, [isOpen, role, form, activeTab]);
 
   // Load group members when members tab is selected
   useEffect(() => {
@@ -166,35 +215,52 @@ export function UnifiedRoleDrawer({
     }
   }, [isAddUserModalOpen, role, searchTerm]);
 
-  // Cleanup effect to prevent memory leaks
+  // Cleanup effect to prevent memory leaks and handle component unmounting
   useEffect(() => {
     return () => {
       // Clear any pending timeout
       if (permissionUpdateTimeoutRef.current) {
         clearTimeout(permissionUpdateTimeoutRef.current);
+        permissionUpdateTimeoutRef.current = null;
       }
       
       // Abort any ongoing request
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
+        abortControllerRef.current = null;
       }
     };
   }, []);
 
+
+
   const loadGroupMembers = async () => {
     if (!role) return;
     
+    // Create abort controller for this request
+    const abortController = new AbortController();
+    
     setIsLoadingMembers(true);
     try {
-      const response = await fetch(`/api/settings/user-groups/${role.id}/members`);
+      const response = await fetch(`/api/settings/user-groups/${role.id}/members`, {
+        signal: abortController.signal
+      });
+      
       if (!response.ok) {
-        throw new Error('Failed to load group members');
+        const errorData = await response.json().catch(() => ({ message: 'Failed to load group members' }));
+        throw new Error(errorData.message || 'Failed to load group members');
       }
+      
       const data = await response.json();
       setMembers(data.users || []);
     } catch (error) {
+      // Don't show error if request was aborted
+      if (error instanceof Error && error.name === 'AbortError') {
+        return;
+      }
+      
       console.error('Error loading group members:', error);
-      toast.error('Failed to load group members');
+      toast.error((error as Error).message || 'Failed to load group members');
     } finally {
       setIsLoadingMembers(false);
     }
@@ -203,6 +269,9 @@ export function UnifiedRoleDrawer({
   const loadAvailableUsers = async () => {
     if (!role) return;
     
+    // Create abort controller for this request
+    const abortController = new AbortController();
+    
     setIsLoadingAvailable(true);
     try {
       const url = new URL('/api/users', window.location.origin);
@@ -210,15 +279,25 @@ export function UnifiedRoleDrawer({
         url.searchParams.set('search', searchTerm);
       }
       
-      const response = await fetch(url.toString());
+      const response = await fetch(url.toString(), {
+        signal: abortController.signal
+      });
+      
       if (!response.ok) {
-        throw new Error('Failed to load users');
+        const errorData = await response.json().catch(() => ({ message: 'Failed to load users' }));
+        throw new Error(errorData.message || 'Failed to load users');
       }
+      
       const data = await response.json();
       setAvailableUsers(Array.isArray(data) ? data : (data.users || []));
     } catch (error) {
+      // Don't show error if request was aborted
+      if (error instanceof Error && error.name === 'AbortError') {
+        return;
+      }
+      
       console.error('Error loading users:', error);
-      toast.error('Failed to load users');
+      toast.error((error as Error).message || 'Failed to load users');
     } finally {
       setIsLoadingAvailable(false);
     }
@@ -239,7 +318,7 @@ export function UnifiedRoleDrawer({
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({ message: 'Failed to update role' }));
         throw new Error(errorData.message || 'Failed to update role');
       }
       
@@ -248,7 +327,7 @@ export function UnifiedRoleDrawer({
       onRoleChange?.();
     } catch (error) {
       console.error('Error updating role:', error);
-      toast.error((error as Error).message);
+      toast.error((error as Error).message || 'Failed to update role');
     } finally {
       setIsSavingRole(false);
     }
@@ -263,11 +342,13 @@ export function UnifiedRoleDrawer({
     // Clear any existing timeout
     if (permissionUpdateTimeoutRef.current) {
       clearTimeout(permissionUpdateTimeoutRef.current);
+      permissionUpdateTimeoutRef.current = null;
     }
     
     // Cancel any ongoing request
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
+      abortControllerRef.current = null;
     }
     
     // Create new abort controller for this request
@@ -286,8 +367,6 @@ export function UnifiedRoleDrawer({
         is_default: role.is_default
       };
       
-
-      
       try {
         const response = await fetch(`/api/settings/user-groups/${role.id}`, {
           method: 'PUT',
@@ -296,11 +375,8 @@ export function UnifiedRoleDrawer({
           signal: abortControllerRef.current?.signal,
         });
         
-
-        
         if (!response.ok) {
-          const errorData = await response.json();
-
+          const errorData = await response.json().catch(() => ({ message: 'Failed to update permissions' }));
           throw new Error(errorData.message || 'Failed to update permissions');
         }
         
@@ -319,7 +395,7 @@ export function UnifiedRoleDrawer({
         }
         
         console.error('Error updating permissions:', error);
-        toast.error((error as Error).message);
+        toast.error((error as Error).message || 'Failed to update permissions');
         // Revert on error
         setCurrentPermissions(role.permissions || []);
       } finally {
@@ -341,7 +417,7 @@ export function UnifiedRoleDrawer({
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({ message: 'Failed to add user to group' }));
         throw new Error(errorData.message || 'Failed to add user to group');
       }
       
@@ -352,7 +428,7 @@ export function UnifiedRoleDrawer({
       onMembersChange?.();
     } catch (error) {
       console.error('Error adding user to group:', error);
-      toast.error((error as Error).message);
+      toast.error((error as Error).message || 'Failed to add user to group');
     } finally {
       setIsAddingUser(false);
     }
@@ -368,7 +444,7 @@ export function UnifiedRoleDrawer({
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({ message: 'Failed to remove user from group' }));
         throw new Error(errorData.message || 'Failed to remove user from group');
       }
       
@@ -377,7 +453,7 @@ export function UnifiedRoleDrawer({
       onMembersChange?.();
     } catch (error) {
       console.error('Error removing user from group:', error);
-      toast.error((error as Error).message);
+      toast.error((error as Error).message || 'Failed to remove user from group');
     } finally {
       setIsRemovingUser(null);
     }
@@ -396,7 +472,23 @@ export function UnifiedRoleDrawer({
     return new Date(dateString).toLocaleDateString();
   };
 
-  if (!role) return null;
+  // Prevent rendering if no role is provided
+  if (!role) {
+    return null;
+  }
+
+  // Prevent infinite loops by checking if component is mounted
+  const [isMounted, setIsMounted] = useState(false);
+  
+  useEffect(() => {
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, []);
+
+  // Error boundary for the component
+  if (!isMounted) {
+    return null;
+  }
 
   return (
     <>
@@ -535,6 +627,7 @@ export function UnifiedRoleDrawer({
 
                  {activeTab === 'permissions' && (
                    <RolePermissionSelector
+                     key={`${role.id}-${currentPermissions.length}`}
                      selectedPermissions={isAdminRole ? PLATFORM_MODULES.map(p => p.id) : currentPermissions}
                      onPermissionsChange={handlePermissionUpdate}
                      disabled={isAdminRole || isUpdatingPermissions}

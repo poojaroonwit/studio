@@ -8,6 +8,8 @@ import { useUnifiedRealtime } from '@/hooks/use-unified-realtime';
 import { useSession } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
+import { Users, Circle } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 // UserPresence type definition
 interface UserPresence {
@@ -20,8 +22,6 @@ interface UserPresence {
   lastSeen: string;
   isOnline: boolean;
 }
-import { Users, Circle } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 interface UserPresenceIndicatorProps {
   maxVisible?: number;
@@ -156,22 +156,35 @@ export function UserPresenceIndicator({ maxVisible = 5, className }: UserPresenc
     fetchPresence();
   }, []); // Empty dependency array - only run once on mount
 
-  // Filter out current user and sort by online status and last seen
+  // Include current user in the list and sort by online status and last seen
   const filteredUsers = useMemo(() => {
     const currentUserId = sessionRef.current?.user?.id;
     if (!currentUserId) return [];
     
-    return onlineUsers
-      .filter(user => user.userId !== currentUserId)
-      .sort((a, b) => {
-        // Online users first
-        if (a.isOnline && !b.isOnline) return -1;
-        if (!a.isOnline && b.isOnline) return 1;
-        
-        // Then by last seen (most recent first)
-        return new Date(b.lastSeen).getTime() - new Date(a.lastSeen).getTime();
-      });
-  }, [onlineUsers]); // Remove session?.user?.id dependency to prevent infinite loops
+    // Include current user in the list
+    const currentUser: UserPresence = {
+      userId: currentUserId,
+      userName: sessionRef.current?.user?.name || sessionRef.current?.user?.email || 'You',
+      userRole: sessionRef.current?.user?.role || 'User',
+      avatarUrl: sessionRef.current?.user?.image || (sessionRef.current?.user as any)?.avatarUrl,
+      personalColor: (sessionRef.current?.user as any)?.personalColor,
+      currentPage: pathname,
+      lastSeen: new Date().toISOString(),
+      isOnline: true
+    };
+    
+    // Combine current user with other users
+    const allUsers = [currentUser, ...onlineUsers.filter(user => user.userId !== currentUserId)];
+    
+    return allUsers.sort((a, b) => {
+      // Online users first
+      if (a.isOnline && !b.isOnline) return -1;
+      if (!a.isOnline && b.isOnline) return 1;
+      
+      // Then by last seen (most recent first)
+      return new Date(b.lastSeen).getTime() - new Date(a.lastSeen).getTime();
+    });
+  }, [onlineUsers, pathname]); // Add pathname dependency
 
   const onlineCount = useMemo(() => 
     filteredUsers.filter(user => user.isOnline).length, 
@@ -209,9 +222,9 @@ export function UserPresenceIndicator({ maxVisible = 5, className }: UserPresenc
     return (
       <div className={cn("flex items-center gap-1", className)}>
         <div className="flex -space-x-2">
-          <div className="w-6 h-6 rounded-full bg-muted animate-pulse" />
-          <div className="w-6 h-6 rounded-full bg-muted animate-pulse" />
-          <div className="w-6 h-6 rounded-full bg-muted animate-pulse" />
+          <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />
+          <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />
+          <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />
         </div>
       </div>
     );
@@ -235,7 +248,7 @@ export function UserPresenceIndicator({ maxVisible = 5, className }: UserPresenc
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div className="relative">
-                    <Avatar className="w-6 h-6 border-2 border-background transition-all duration-200 hover:scale-110 rounded-full">
+                    <Avatar className="w-8 h-8 border-2 border-background transition-all duration-200 hover:scale-110 rounded-full">
                       <AvatarImage 
                         src={sessionRef.current?.user?.image || sessionRef.current?.user?.avatarUrl || undefined} 
                         alt={sessionRef.current?.user?.name || 'You'}
@@ -297,96 +310,96 @@ export function UserPresenceIndicator({ maxVisible = 5, className }: UserPresenc
           <div className="flex items-center">
             <div className="flex -space-x-2">
               {displayUsers.map((user, index) => (
-              <Tooltip key={user.userId}>
-                <TooltipTrigger asChild>
-                  <div className="relative">
-                    <Avatar className={cn(
-                      "w-6 h-6 border-2 border-background transition-all duration-200 hover:scale-110 rounded-full",
-                      !user.isOnline && "opacity-50 grayscale"
-                    )}>
-                      <AvatarImage 
-                        src={user.avatarUrl || undefined} 
-                        alt={user.userName}
-                        className="rounded-full"
-                      />
-                      <AvatarFallback 
-                        className={cn(
-                          "text-xs font-medium rounded-full",
-                          user.personalColor && `bg-[${user.personalColor}] text-white`
-                        )}
-                      >
-                        {getInitials(user.userName)}
-                      </AvatarFallback>
-                    </Avatar>
-                    
-                    {/* Online indicator */}
-                    {user.isOnline && (
-                      <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-background" />
-                    )}
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="max-w-xs">
-                  <div className="space-y-1">
-                    <div className="font-medium">{user.userName}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {user.userRole}
+                <Tooltip key={user.userId}>
+                  <TooltipTrigger asChild>
+                    <div className="relative">
+                      <Avatar className={cn(
+                        "w-8 h-8 border-2 border-background transition-all duration-200 hover:scale-110 rounded-full",
+                        !user.isOnline && "opacity-50 grayscale"
+                      )}>
+                        <AvatarImage 
+                          src={user.avatarUrl || undefined} 
+                          alt={user.userName}
+                          className="rounded-full"
+                        />
+                        <AvatarFallback 
+                          className={cn(
+                            "text-xs font-medium rounded-full",
+                            user.personalColor && `bg-[${user.personalColor}] text-white`
+                          )}
+                        >
+                          {getInitials(user.userName)}
+                        </AvatarFallback>
+                      </Avatar>
+                      
+                      {/* Online indicator */}
+                      {user.isOnline && (
+                        <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-background" />
+                      )}
                     </div>
-                    {user.isOnline ? (
-                      <div className="text-xs text-green-600 flex items-center gap-1">
-                        <Circle className="w-2 h-2 fill-current" />
-                        Online - {getPageDisplayName(user.currentPage)}
-                      </div>
-                    ) : (
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-xs">
+                    <div className="space-y-1">
+                      <div className="font-medium">{user.userName}</div>
                       <div className="text-xs text-muted-foreground">
-                        Last seen {formatDistanceToNow(new Date(user.lastSeen), { addSuffix: true })}
+                        {user.userRole}
                       </div>
-                    )}
-                  </div>
-                </TooltipContent>
-              </Tooltip>
-            ))}
+                      {user.isOnline ? (
+                        <div className="text-xs text-green-600 flex items-center gap-1">
+                          <Circle className="w-2 h-2 fill-current" />
+                          Online - {getPageDisplayName(user.currentPage)}
+                        </div>
+                      ) : (
+                        <div className="text-xs text-muted-foreground">
+                          Last seen {formatDistanceToNow(new Date(user.lastSeen), { addSuffix: true })}
+                        </div>
+                      )}
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              ))}
+
+              {/* Show more indicator */}
+              {hasMoreUsers && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={handleExpand}
+                      className="w-8 h-8 rounded-full bg-muted border-2 border-background text-xs font-medium hover:bg-muted/80 transition-colors flex items-center justify-center"
+                    >
+                      +{filteredUsers.length - maxVisible}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <div className="text-xs">
+                      Click to see all {filteredUsers.length} users
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+
+              {/* Collapse button when expanded */}
+              {isExpanded && hasMoreUsers && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={handleCollapse}
+                      className="w-8 h-8 rounded-full bg-muted border-2 border-background text-xs font-medium hover:bg-muted/80 transition-colors flex items-center justify-center"
+                    >
+                      −
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <div className="text-xs">
+                      Show less
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+            </div>
           </div>
-
-                     {/* Show more indicator */}
-           {hasMoreUsers && (
-             <Tooltip>
-               <TooltipTrigger asChild>
-                 <button
-                   onClick={handleExpand}
-                   className="w-6 h-6 rounded-full bg-muted border-2 border-background text-xs font-medium hover:bg-muted/80 transition-colors flex items-center justify-center"
-                 >
-                   +{filteredUsers.length - maxVisible}
-                 </button>
-               </TooltipTrigger>
-               <TooltipContent side="bottom">
-                 <div className="text-xs">
-                   Click to see all {filteredUsers.length} users
-                 </div>
-               </TooltipContent>
-             </Tooltip>
-           )}
-
-           {/* Collapse button when expanded */}
-           {isExpanded && hasMoreUsers && (
-             <Tooltip>
-               <TooltipTrigger asChild>
-                 <button
-                   onClick={handleCollapse}
-                   className="w-6 h-6 rounded-full bg-muted border-2 border-background text-xs font-medium hover:bg-muted/80 transition-colors flex items-center justify-center"
-                 >
-                   −
-                 </button>
-               </TooltipTrigger>
-               <TooltipContent side="bottom">
-                 <div className="text-xs">
-                   Show less
-                 </div>
-               </TooltipContent>
-             </Tooltip>
-           )}
-         </div>
-       )}
-     </div>
-   </TooltipProvider>
- );
- }
+        )}
+      </div>
+    </TooltipProvider>
+  );
+}

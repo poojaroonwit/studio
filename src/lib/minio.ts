@@ -1,13 +1,12 @@
 import { Client as Minio } from 'minio';
 
 export const MINIO_BUCKET = process.env.MINIO_BUCKET_NAME || process.env.MINIO_BUCKET || 'uploads';
-export const MINIO_PUBLIC_BASE_URL = process.env.MINIO_PUBLIC_BASE_URL || 'http://localhost:8621'; // Use console port for public access
-
-
+// Use the console port for public access to match environment configuration
+export const MINIO_PUBLIC_BASE_URL = process.env.MINIO_PUBLIC_BASE_URL || 'http://localhost:9001';
 
 export const minioClient = new Minio({
   endPoint: process.env.MINIO_ENDPOINT || 'localhost',
-  port: parseInt(process.env.MINIO_PORT || '9000', 10),
+  port: parseInt(process.env.MINIO_CONSOLE_PORT || process.env.MINIO_PORT || '9001', 10), // Use console port
   useSSL: process.env.MINIO_USE_SSL === 'true',
   accessKey: process.env.MINIO_ACCESS_KEY || 'minioadmin',
   secretKey: process.env.MINIO_SECRET_KEY || 'minioadmin',

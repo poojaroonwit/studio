@@ -84,6 +84,17 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   const router = useRouter();
   const [metadataLoaded, setMetadataLoaded] = useState(false);
   
+  // Redirect admin users to dashboard when they land on my-tasks
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user) {
+      const isAdmin = session.user.role === 'Admin';
+      if (isAdmin) {
+        console.log('[MY-TASKS] Admin user detected, redirecting to dashboard');
+        router.replace('/');
+      }
+    }
+  }, [status, session, router]);
+  
   // Add debouncing for search
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   

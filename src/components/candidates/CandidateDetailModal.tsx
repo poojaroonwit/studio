@@ -42,65 +42,112 @@ interface CandidateDetailModalProps {
 
 export default function CandidateDetailModal({ candidateId, open, onClose }: CandidateDetailModalProps) {
   const [mounted, setMounted] = useState(false);
+  const [modalTimedOut, setModalTimedOut] = useState(false);
   const portalContainerRef = useRef<HTMLDivElement | null>(null);
   const originalBodyOverflowRef = useRef<string>('');
+  const modalTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Enhanced cleanup function
+  // Enhanced cleanup function with comprehensive resource management
   const cleanupModal = useCallback(() => {
-    // Restore body scroll
-    if (originalBodyOverflowRef.current !== undefined) {
-      document.body.style.overflow = originalBodyOverflowRef.current;
-    } else {
-      document.body.style.overflow = '';
+    try {
+      // Restore body scroll
+      if (originalBodyOverflowRef.current !== undefined) {
+        document.body.style.overflow = originalBodyOverflowRef.current;
+      } else {
+        document.body.style.overflow = '';
+      }
+
+      // Clean up any remaining modal overlays
+      const remainingOverlays = document.querySelectorAll('[data-radix-dialog-overlay][data-state="closed"]');
+      remainingOverlays.forEach(overlay => {
+        try {
+          if (overlay.parentNode) {
+            overlay.parentNode.removeChild(overlay);
+          }
+        } catch (e) {
+          console.warn('Error removing overlay:', e);
+        }
+      });
+
+      // Clean up any remaining portal containers (except the current one)
+      const remainingPortals = document.querySelectorAll('[data-candidate-modal-portal="true"]');
+      remainingPortals.forEach(portal => {
+        try {
+          if (portal !== portalContainerRef.current && portal.parentNode) {
+            portal.parentNode.removeChild(portal);
+          }
+        } catch (e) {
+          console.warn('Error removing portal:', e);
+        }
+      });
+
+      // Clear modal timeout
+      if (modalTimeoutRef.current) {
+        clearTimeout(modalTimeoutRef.current);
+        modalTimeoutRef.current = null;
+      }
+
+      // Force a reflow to ensure cleanup
+      document.body.offsetHeight;
+    } catch (error) {
+      console.warn('Error during modal cleanup:', error);
     }
-
-    // Clean up any remaining modal overlays
-    const remainingOverlays = document.querySelectorAll('[data-radix-dialog-overlay][data-state="closed"]');
-    remainingOverlays.forEach(overlay => {
-      if (overlay.parentNode) {
-        overlay.parentNode.removeChild(overlay);
-      }
-    });
-
-    // Clean up any remaining portal containers
-    const remainingPortals = document.querySelectorAll('[data-candidate-modal-portal="true"]');
-    remainingPortals.forEach(portal => {
-      if (portal.parentNode) {
-        portal.parentNode.removeChild(portal);
-      }
-    });
-
-    // Force a reflow to ensure cleanup
-    document.body.offsetHeight;
   }, []);
 
-  // Create portal container on mount
+  // Create portal container on mount with leak prevention
   useEffect(() => {
-    setMounted(true);
+    let containerCreated = false;
     
-    // Store original body overflow
-    originalBodyOverflowRef.current = window.getComputedStyle(document.body).overflow;
-    
-    // Create portal container if it doesn't exist
-    if (!portalContainerRef.current) {
-      portalContainerRef.current = document.createElement('div');
-      portalContainerRef.current.setAttribute('data-candidate-modal-portal', 'true');
-      document.body.appendChild(portalContainerRef.current);
+    try {
+      setMounted(true);
+      
+      // Store original body overflow
+      originalBodyOverflowRef.current = window.getComputedStyle(document.body).overflow;
+      
+      // Create portal container if it doesn't exist
+      if (!portalContainerRef.current) {
+        portalContainerRef.current = document.createElement('div');
+        portalContainerRef.current.setAttribute('data-candidate-modal-portal', 'true');
+        portalContainerRef.current.setAttribute('data-creation-time', Date.now().toString());
+        document.body.appendChild(portalContainerRef.current);
+        containerCreated = true;
+      }
+    } catch (error) {
+      console.error('Error creating modal portal:', error);
+      setMounted(false);
     }
 
     return () => {
-      setMounted(false);
-      cleanupModal();
-      
-      // Clean up portal container on unmount
-      if (portalContainerRef.current && portalContainerRef.current.parentNode) {
-        portalContainerRef.current.parentNode.removeChild(portalContainerRef.current);
-        portalContainerRef.current = null;
+      try {
+        setMounted(false);
+        cleanupModal();
+        
+        // Clean up portal container on unmount
+        if (portalContainerRef.current && portalContainerRef.current.parentNode) {
+          portalContainerRef.current.parentNode.removeChild(portalContainerRef.current);
+          portalContainerRef.current = null;
+        }
+        
+        // Defensive cleanup: remove any orphaned portals older than 1 minute
+        const orphanedPortals = document.querySelectorAll('[data-candidate-modal-portal="true"]');
+        const now = Date.now();
+        orphanedPortals.forEach(portal => {
+          try {
+            const creationTime = parseInt(portal.getAttribute('data-creation-time') || '0');
+            if (now - creationTime > 60000) { // 1 minute
+              portal.parentNode?.removeChild(portal);
+            }
+          } catch (e) {
+            console.warn('Error cleaning orphaned portal:', e);
+          }
+        });
+      } catch (error) {
+        console.warn('Error during portal cleanup:', error);
       }
     };
   }, [cleanupModal]);
 
-  // Handle escape key and body scroll
+  // Handle escape key and body scroll with comprehensive cleanup
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && open) {
@@ -112,15 +159,30 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
       document.addEventListener('keydown', handleEscape);
       // Prevent body scroll when modal is open
       document.body.style.overflow = 'hidden';
+      
+      // Set a safety timeout for the entire modal (reduced time, no retry)
+      setModalTimedOut(false);
+      if (modalTimeoutRef.current) {
+        clearTimeout(modalTimeoutRef.current);
+      }
+      modalTimeoutRef.current = setTimeout(() => {
+        console.error('Modal loading timeout - marking as failed');
+        setModalTimedOut(true);
+      }, 20000); // Reduced to 20 seconds for faster failure
     } else {
       // Clean up when modal closes
       cleanupModal();
+      setModalTimedOut(false);
     }
 
     return () => {
-      document.removeEventListener('keydown', handleEscape);
-      if (!open) {
-        cleanupModal();
+      try {
+        document.removeEventListener('keydown', handleEscape);
+        if (!open) {
+          cleanupModal();
+        }
+      } catch (error) {
+        console.warn('Error during modal effect cleanup:', error);
       }
     };
   }, [open, onClose, cleanupModal]);
@@ -168,6 +230,32 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
     e.stopPropagation();
     e.preventDefault();
   };
+
+  // Show timeout fallback if modal has been loading too long (NO RETRY - just error)
+  if (modalTimedOut) {
+    const timeoutContent = (
+      <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[10000] flex items-center justify-center p-4 pointer-events-auto">
+        <div className="w-full max-w-md bg-background rounded-lg shadow-2xl border border-border overflow-hidden relative pointer-events-auto">
+          <div className="flex flex-col items-center justify-center p-8 text-center">
+            <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mb-4">
+              <X className="w-8 h-8 text-destructive" />
+            </div>
+            <h3 className="text-lg font-medium text-foreground mb-2">Loading Failed</h3>
+            <p className="text-muted-foreground text-sm mb-6">
+              The candidate details failed to load within the expected time. This may be due to server issues, network problems, or the candidate data being unavailable.
+            </p>
+            <div className="flex gap-2">
+              <Button onClick={handleClose} size="sm">
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+    
+    return createPortal(timeoutContent, portalContainerRef.current);
+  }
 
   const modalContent = (
     <div

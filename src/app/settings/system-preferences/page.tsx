@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { setThemeAndColors, applySidebarStyles, getSidebarActiveStyle, setSidebarActiveStyle, type SidebarActiveStyle, applySidebarBackgroundSettings } from "@/lib/themeUtils";
+import { setThemeAndColors, applySidebarStyles, getSidebarActiveStyle, setSidebarActiveStyle, type SidebarActiveStyle, applySidebarBackgroundSettings, cleanupSidebarBackground } from "@/lib/themeUtils";
 
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -507,6 +507,7 @@ export default function SystemPreferencesPage() {
         abortControllerRef.current = null;
       }
       cleanupObjectUrls();
+      cleanupSidebarBackground();
     };
   }, [sessionStatus, pathname, cleanupObjectUrls]);
 
@@ -520,22 +521,170 @@ export default function SystemPreferencesPage() {
   useEffect(() => {
     if (!isMountedRef.current) return;
     
-    applySidebarBackgroundSettings({
-      sidebarBackgroundType,
-      sidebarBackgroundImageUrl: savedSidebarImageUrl || undefined,
-      sidebarBackgroundImageFit: sidebarImageFit,
-      sidebarBackgroundImagePosition: sidebarImagePosition,
-    });
-    
-    // Dispatch event for immediate sidebar update
-    console.log('Dispatching appConfigChanged event for sidebar background type change:', sidebarBackgroundType);
-    window.dispatchEvent(new CustomEvent('appConfigChanged', {
-      detail: {
-        sidebarBackgroundType: sidebarBackgroundType,
-        sidebarBackgroundImageUrl: savedSidebarImageUrl || null,
-      }
-    }));
+    try {
+      applySidebarBackgroundSettings({
+        sidebarBackgroundType,
+        sidebarBackgroundImageUrl: savedSidebarImageUrl || undefined,
+        sidebarBackgroundImageFit: sidebarImageFit,
+        sidebarBackgroundImagePosition: sidebarImagePosition,
+      });
+      
+      // Dispatch event for immediate sidebar update
+      console.log('Dispatching appConfigChanged event for sidebar background type change:', sidebarBackgroundType);
+      window.dispatchEvent(new CustomEvent('appConfigChanged', {
+        detail: {
+          sidebarBackgroundType: sidebarBackgroundType,
+          sidebarBackgroundImageUrl: savedSidebarImageUrl || null,
+        }
+      }));
+    } catch (error) {
+      console.error('Error applying sidebar background settings:', error);
+    }
   }, [sidebarBackgroundType, savedSidebarImageUrl, sidebarImageFit, sidebarImagePosition]);
+
+  // Save sidebar background type changes to database
+  useEffect(() => {
+    if (!isMountedRef.current || loading) return;
+    
+    let isCancelled = false;
+    
+    const saveBackgroundType = async () => {
+      if (isCancelled) return;
+      
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        
+        const saveRes = await fetch('/api/settings/system-settings', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify([
+            { key: SIDEBAR_BACKGROUND_TYPE_KEY, value: sidebarBackgroundType }
+          ]),
+          signal: controller.signal,
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (isCancelled) return;
+        
+        if (!saveRes.ok) {
+          console.error('Failed to save sidebar background type to database');
+        }
+              } catch (error: any) {
+          if (isCancelled) return;
+          if (error?.name === 'AbortError') {
+            console.error('Request timeout saving sidebar background type');
+          } else {
+            console.error('Error saving sidebar background type:', error);
+          }
+        }
+    };
+    
+    saveBackgroundType();
+    
+    return () => {
+      isCancelled = true;
+    };
+  }, [sidebarBackgroundType, loading]);
+
+  // Save sidebar background image fit changes to database
+  useEffect(() => {
+    if (!isMountedRef.current || loading) return;
+    
+    let isCancelled = false;
+    
+    const saveImageFit = async () => {
+      if (isCancelled) return;
+      
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        
+        const saveRes = await fetch('/api/settings/system-settings', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify([
+            { key: SIDEBAR_BACKGROUND_IMAGE_FIT_KEY, value: sidebarImageFit }
+          ]),
+          signal: controller.signal,
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (isCancelled) return;
+        
+        if (!saveRes.ok) {
+          console.error('Failed to save sidebar background image fit to database');
+        }
+              } catch (error: any) {
+          if (isCancelled) return;
+          if (error?.name === 'AbortError') {
+            console.error('Request timeout saving sidebar background image fit');
+          } else {
+            console.error('Error saving sidebar background image fit:', error);
+          }
+        }
+    };
+    
+    saveImageFit();
+    
+    return () => {
+      isCancelled = true;
+    };
+  }, [sidebarImageFit, loading]);
+
+  // Save sidebar background image position changes to database
+  useEffect(() => {
+    if (!isMountedRef.current || loading) return;
+    
+    let isCancelled = false;
+    
+    const saveImagePosition = async () => {
+      if (isCancelled) return;
+      
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        
+        const saveRes = await fetch('/api/settings/system-settings', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify([
+            { key: SIDEBAR_BACKGROUND_IMAGE_POSITION_KEY, value: sidebarImagePosition }
+          ]),
+          signal: controller.signal,
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (isCancelled) return;
+        
+        if (!saveRes.ok) {
+          console.error('Failed to save sidebar background image position to database');
+        }
+              } catch (error: any) {
+          if (isCancelled) return;
+          if (error?.name === 'AbortError') {
+            console.error('Request timeout saving sidebar background image position');
+          } else {
+            console.error('Error saving sidebar background image position:', error);
+          }
+        }
+      };
+      
+      saveImagePosition();
+      
+      return () => {
+        isCancelled = true;
+      };
+    }, [sidebarImagePosition, loading]);
 
   const handleLogoFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -754,6 +903,10 @@ export default function SystemPreferencesPage() {
         setSavedSidebarImageUrl(null);
         success('Sidebar background image removed!');
         
+        // Force refresh sidebar background by clearing localStorage and reapplying
+        localStorage.removeItem('sidebarBackgroundImageUrl');
+        localStorage.setItem('sidebarBackgroundType', 'gradient');
+        
         // Dispatch event to update sidebar background immediately
         console.log('Dispatching appConfigChanged event to remove sidebar background image');
         window.dispatchEvent(new CustomEvent('appConfigChanged', {
@@ -762,6 +915,16 @@ export default function SystemPreferencesPage() {
             sidebarBackgroundType: 'gradient',
           }
         }));
+        
+        // Force reapply sidebar background settings
+        setTimeout(() => {
+          applySidebarBackgroundSettings({
+            sidebarBackgroundType: 'gradient',
+            sidebarBackgroundImageUrl: '',
+            sidebarBackgroundImageFit: sidebarImageFit,
+            sidebarBackgroundImagePosition: sidebarImagePosition,
+          });
+        }, 100);
       } else {
         throw new Error('Failed to remove sidebar background image from database');
       }
@@ -773,62 +936,119 @@ export default function SystemPreferencesPage() {
   // Sidebar background image upload handler
   const handleSidebarImageFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      if (file.size > 500 * 1024 * 1024) { // 500MB limit
-        showError('Sidebar background image file size must be less than 500MB');
-        return;
-      }
-      setSelectedSidebarImageFile(file);
+    if (!file) return;
+    
+    if (file.size > 500 * 1024 * 1024) { // 500MB limit
+      showError('Sidebar background image file size must be less than 500MB');
+      return;
+    }
+    
+    setSelectedSidebarImageFile(file);
+    
+    // Immediately show preview for instant feedback
+    const previewUrl = URL.createObjectURL(file);
+    setSidebarImagePreviewUrl(previewUrl);
+    
+    let uploadController: AbortController | null = null;
+    let saveController: AbortController | null = null;
+    
+    try {
+      // Upload to MinIO with timeout
+      uploadController = new AbortController();
+      const uploadTimeout = setTimeout(() => uploadController?.abort(), 30000); // 30 second timeout
       
-      // Immediately show preview for instant feedback
-      const previewUrl = URL.createObjectURL(file);
-      setSidebarImagePreviewUrl(previewUrl);
-      
-      // Upload to MinIO
       const formData = new FormData();
       formData.append('file', file);
-      try {
-        const res = await fetch('/api/settings/upload-image', {
-          method: 'PUT',
-          body: formData,
-        });
-        if (!res.ok) throw new Error('Failed to upload sidebar background image');
-        const { url } = await res.json();
-        setSidebarImagePreviewUrl(url); // Update with MinIO URL
-        
-        // Immediately save the image URL and set background type to image
-        const saveRes = await fetch('/api/settings/system-settings', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify([
-            { key: SIDEBAR_BACKGROUND_IMAGE_KEY, value: url },
-            { key: SIDEBAR_BACKGROUND_TYPE_KEY, value: 'image' }
-          ]),
-        });
-        
-        if (saveRes.ok) {
-          setSavedSidebarImageUrl(url);
-          setSelectedSidebarImageFile(null);
-          success('Sidebar background image uploaded and saved!');
-          
-          // Dispatch event to update sidebar background immediately
-          console.log('Dispatching appConfigChanged event with sidebar background image:', url);
-          window.dispatchEvent(new CustomEvent('appConfigChanged', {
-            detail: {
-              sidebarBackgroundImageUrl: url,
-              sidebarBackgroundType: 'image',
-            }
-          }));
-        } else {
-          throw new Error('Failed to save sidebar background image to database');
-        }
-      } catch (e: any) {
-        showError(e.message || 'Failed to upload sidebar background image');
-        // Clear preview on error
-        setSidebarImagePreviewUrl(null);
+      
+      const res = await fetch('/api/settings/upload-image', {
+        method: 'PUT',
+        body: formData,
+        signal: uploadController.signal,
+      });
+      
+      clearTimeout(uploadTimeout);
+      
+      if (!res.ok) {
+        throw new Error(`Failed to upload sidebar background image: ${res.status} ${res.statusText}`);
       }
+      
+      const { url } = await res.json();
+      setSidebarImagePreviewUrl(url); // Update with MinIO URL
+      
+      // Immediately save the image URL and set background type to image
+      saveController = new AbortController();
+      const saveTimeout = setTimeout(() => saveController?.abort(), 10000); // 10 second timeout
+      
+      const saveRes = await fetch('/api/settings/system-settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify([
+          { key: SIDEBAR_BACKGROUND_IMAGE_KEY, value: url },
+          { key: SIDEBAR_BACKGROUND_TYPE_KEY, value: 'image' }
+        ]),
+        signal: saveController.signal,
+      });
+      
+      clearTimeout(saveTimeout);
+      
+      if (!saveRes.ok) {
+        throw new Error(`Failed to save sidebar background image to database: ${saveRes.status} ${saveRes.statusText}`);
+      }
+      
+      setSavedSidebarImageUrl(url);
+      setSelectedSidebarImageFile(null);
+      success('Sidebar background image uploaded and saved!');
+      
+      // Force refresh sidebar background by clearing localStorage and reapplying
+      localStorage.removeItem('sidebarBackgroundImageUrl');
+      localStorage.setItem('sidebarBackgroundImageUrl', url);
+      
+      // Dispatch event to update sidebar background immediately
+      console.log('Dispatching appConfigChanged event with sidebar background image:', url);
+      window.dispatchEvent(new CustomEvent('appConfigChanged', {
+        detail: {
+          sidebarBackgroundImageUrl: url,
+          sidebarBackgroundType: 'image',
+        }
+      }));
+      
+      // Force reapply sidebar background settings with cache busting
+      setTimeout(() => {
+        try {
+          applySidebarBackgroundSettings({
+            sidebarBackgroundType: 'image',
+            sidebarBackgroundImageUrl: url,
+            sidebarBackgroundImageFit: sidebarImageFit,
+            sidebarBackgroundImagePosition: sidebarImagePosition,
+          });
+        } catch (error) {
+          console.error('Error reapplying sidebar background settings:', error);
+        }
+      }, 100);
+      
+    } catch (error: any) {
+      // Clean up preview URL
+      URL.revokeObjectURL(previewUrl);
+      
+      if (error?.name === 'AbortError') {
+        if (uploadController?.signal.aborted) {
+          showError('Upload timeout: Please try again with a smaller file or check your connection');
+        } else if (saveController?.signal.aborted) {
+          showError('Save timeout: Image uploaded but failed to save settings. Please try again.');
+        }
+      } else {
+        showError(error?.message || 'Failed to upload sidebar background image');
+      }
+      
+      // Clear preview on error
+      setSidebarImagePreviewUrl(null);
+      setSelectedSidebarImageFile(null);
+    } finally {
+      // Clean up controllers
+      uploadController = null;
+      saveController = null;
     }
   };
 

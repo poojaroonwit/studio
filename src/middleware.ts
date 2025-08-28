@@ -37,10 +37,10 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(signInUrl);
     }
 
-    // If user is authenticated but trying to access signin page, redirect to dashboard
+    // If user is authenticated but trying to access signin page, redirect to my-tasks
     // But allow access if there's a signout parameter in the URL (indicating signout in progress)
     if (token && pathname.startsWith('/auth/signin') && !req.nextUrl.searchParams.has('signout')) {
-      return NextResponse.redirect(new URL('/', req.url));
+      return NextResponse.redirect(new URL('/my-tasks', req.url));
     }
 
     // For authenticated users, let the page components handle permission checks

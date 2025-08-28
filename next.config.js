@@ -152,25 +152,6 @@ const nextConfig = {
           },
         ],
       },
-      // API routes for large file uploads
-      {
-        source: '/api/upload-image',
-        headers: [
-          {
-            key: 'Content-Length',
-            value: '524288000', // 500MB in bytes
-          },
-        ],
-      },
-      {
-        source: '/api/settings/upload-image',
-        headers: [
-          {
-            key: 'Content-Length',
-            value: '524288000', // 500MB in bytes
-          },
-        ],
-      },
     ];
   },
   
@@ -180,19 +161,19 @@ const nextConfig = {
       {
         protocol: 'http',
         hostname: 'localhost',
-        port: '8621',
+        port: '9001',
         pathname: '/studio-production/settings/**',
       },
       {
         protocol: 'http',
         hostname: 'localhost',
-        port: '9000',
+        port: '9001',
         pathname: '/uploads/**',
       },
       {
         protocol: 'https',
         hostname: 'localhost',
-        port: '9000',
+        port: '9001',
         pathname: '/uploads/**',
       },
       getMinioRemotePattern(),

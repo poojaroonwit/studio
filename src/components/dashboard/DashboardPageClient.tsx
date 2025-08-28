@@ -93,6 +93,11 @@ export default function DashboardPageClient({
                           session?.user?.modulePermissions?.includes('POSITIONS_VIEW') ||
                           session?.user?.modulePermissions?.includes('TASK_BOARD_VIEW') ||
                           session?.user?.modulePermissions?.includes('LOGS_VIEW') ||
+                          session?.user?.modulePermissions?.includes('ANALYTICS_VIEW') ||
+                          session?.user?.modulePermissions?.includes('USER_PREFERENCES_MANAGE') ||
+                          session?.user?.modulePermissions?.includes('RECRUITMENT_STAGES_MANAGE') ||
+                          session?.user?.modulePermissions?.includes('BULK_UPLOAD') ||
+                          session?.user?.modulePermissions?.includes('AUTOMATION_UPLOAD') ||
                           (session?.user?.modulePermissions && session.user.modulePermissions.length > 0) ||
                           session?.user?.role === 'Admin';
 
@@ -575,98 +580,116 @@ export default function DashboardPageClient({
     return <div>Redirecting to sign in...</div>;
   }
 
+  // Auto-redirect non-admin users without dashboard permissions to my-tasks
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user && !canViewDashboard) {
+      const isAdmin = session.user.role === 'Admin';
+      if (!isAdmin) {
+        console.log('[DASHBOARD] Non-admin user without dashboard permissions, redirecting to my-tasks');
+        router.replace('/my-tasks');
+      }
+    }
+  }, [status, session, canViewDashboard, router]);
+
   if (!canViewDashboard) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-center max-w-md mx-auto p-6">
-          <h1 className="text-2xl font-bold text-destructive mb-4">Dashboard Access Restricted</h1>
-          <p className="text-muted-foreground mb-6">
-            You don't have permission to view the dashboard. This could be because:
-          </p>
-          <ul className="text-sm text-muted-foreground mb-6 text-left space-y-2">
-            <li>• Your account doesn't have the required permissions assigned</li>
-            <li>• Your role or permissions were recently updated</li>
-            <li>• You need to be assigned to a user group with dashboard access</li>
-          </ul>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Button 
-              onClick={async () => {
-                const result = await refreshPermissions();
-                if (result.success) {
-                  toast.success('Permissions refreshed successfully');
-                  window.location.reload();
-                } else {
-                  toast.error('Failed to refresh permissions');
-                }
-              }} 
-              className="btn-hover-primary-gradient"
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh Permissions
-            </Button>
-            <Button 
-              onClick={() => router.push('/my-tasks')} 
-              variant="outline"
-            >
-              Go to My Tasks
-            </Button>
-            <Button 
-              onClick={async () => {
-                try {
-                  // Clear any cached data
-                  if (session?.user?.id) {
-                    await fetch('/api/auth/clear-user-cache', {
+    // For admin users without permissions, show the permission error page
+    if (session?.user?.role === 'Admin') {
+      return (
+        <div className="flex items-center justify-center h-screen">
+          <div className="text-center max-w-md mx-auto p-6">
+            <h1 className="text-2xl font-bold text-destructive mb-4">Dashboard Access Restricted</h1>
+            <p className="text-muted-foreground mb-6">
+              You don't have permission to view the dashboard. This could be because:
+            </p>
+            <ul className="text-sm text-muted-foreground mb-6 text-left space-y-2">
+              <li>• Your account doesn't have the required permissions assigned</li>
+              <li>• Your role or permissions were recently updated</li>
+              <li>• You need to be assigned to a user group with dashboard access</li>
+            </ul>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Button 
+                onClick={async () => {
+                  const result = await refreshPermissions();
+                  if (result.success) {
+                    toast.success('Permissions refreshed successfully');
+                    window.location.reload();
+                  } else {
+                    toast.error('Failed to refresh permissions');
+                  }
+                }} 
+                className="btn-hover-primary-gradient"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh Permissions
+              </Button>
+              <Button 
+                onClick={() => router.push('/my-tasks')} 
+                variant="outline"
+              >
+                Go to My Tasks
+              </Button>
+              <Button 
+                onClick={async () => {
+                  try {
+                    // Clear any cached data
+                    if (session?.user?.id) {
+                      await fetch('/api/auth/clear-user-cache', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ userId: session.user.id }),
+                      }).catch(() => {
+                        // Ignore errors in cache clearing
+                      });
+                    }
+                    
+                    // Perform signout with redirect
+                    await signOut({ 
+                      callbackUrl: '/auth/signin?signout=true', 
+                      redirect: false 
+                    });
+                    
+                    // Manually redirect after signOut completes
+                    window.location.href = '/auth/signin?signout=true';
+                  } catch (error) {
+                    console.error('Signout error:', error);
+                    // Fallback to window.location if signOut fails
+                    window.location.href = '/auth/signin?signout=true';
+                  }
+                }} 
+                variant="ghost"
+              >
+                Sign Out
+              </Button>
+              <Button 
+                onClick={async () => {
+                  try {
+                    const response = await fetch('/api/auth/force-refresh-session', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ userId: session.user.id }),
-                    }).catch(() => {
-                      // Ignore errors in cache clearing
                     });
+                    if (response.ok) {
+                      toast.success('Session cleared. Please sign in again.');
+                      window.location.href = '/auth/signin';
+                    } else {
+                      toast.error('Failed to clear session');
+                    }
+                  } catch (error) {
+                    toast.error('Error clearing session');
                   }
-                  
-                  // Perform signout with redirect
-                  await signOut({ 
-                    callbackUrl: '/auth/signin?signout=true', 
-                    redirect: false 
-                  });
-                  
-                  // Manually redirect after signOut completes
-                  window.location.href = '/auth/signin?signout=true';
-                } catch (error) {
-                  console.error('Signout error:', error);
-                  // Fallback to window.location if signOut fails
-                  window.location.href = '/auth/signin?signout=true';
-                }
-              }} 
-              variant="ghost"
-            >
-              Sign Out
-            </Button>
-            <Button 
-              onClick={async () => {
-                try {
-                  const response = await fetch('/api/auth/force-refresh-session', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                  });
-                  if (response.ok) {
-                    toast.success('Session cleared. Please sign in again.');
-                    window.location.href = '/auth/signin';
-                  } else {
-                    toast.error('Failed to clear session');
-                  }
-                } catch (error) {
-                  toast.error('Error clearing session');
-                }
-              }} 
-              variant="destructive"
-            >
-              Force Session Refresh
-            </Button>
+                }} 
+                variant="destructive"
+              >
+                Force Session Refresh
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
-    );
+      );
+    }
+    
+    // For non-admin users, show loading while redirecting
+    return <div className="flex items-center justify-center h-screen">Redirecting to My Tasks...</div>;
+  }
   }
 
   if (authError) {

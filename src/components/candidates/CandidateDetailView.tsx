@@ -48,10 +48,24 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
   const validateCandidate = useCallback(async () => {
     if (!candidateId || !isMountedRef.current) return false;
     
+    let controller: AbortController | null = null;
+    let timeoutId: NodeJS.Timeout | null = null;
+    
     try {
+      // Create dedicated controller with timeout
+      controller = new AbortController();
+      
+      // Set timeout for the request
+      timeoutId = setTimeout(() => {
+        if (controller) controller.abort();
+      }, 8000); // 8 second timeout (shorter for modal)
+      
       const res = await fetch(`/api/candidates/${candidateId}`, {
         method: 'HEAD', // Just check if it exists, don't fetch data
-        signal: abortControllerRef.current?.signal
+        signal: controller.signal,
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
       });
       
       if (!isMountedRef.current) return false;
@@ -63,29 +77,57 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
         setCandidateExists(false);
         setError('Candidate not found');
         return false;
+      } else if (res.status === 401) {
+        setCandidateExists(false);
+        setError('Authentication required. Please sign in again.');
+        return false;
+      } else if (res.status === 403) {
+        setCandidateExists(false);
+        setError('Access denied to this candidate');
+        return false;
+      } else if (res.status >= 500) {
+        setCandidateExists(false);
+        setError(`Server error (${res.status}). Cannot load candidate details.`);
+        return false;
       } else {
         setCandidateExists(false);
-        setError(`Failed to validate candidate: ${res.status}`);
+        setError(`Failed to validate candidate (status: ${res.status})`);
         return false;
       }
     } catch (error) {
+      if (!isMountedRef.current) return false;
+      
       if (error instanceof Error && error.name === 'AbortError') {
+        setCandidateExists(false);
+        setError('Request timed out. The server may be slow or unreachable.');
+        return false;
+      }
+      if (error instanceof Error && error.message.includes('Failed to fetch')) {
+        setCandidateExists(false);
+        setError('Network error. Check your connection or try again later.');
         return false;
       }
       console.error('Error validating candidate:', error);
       setCandidateExists(false);
-      setError('Failed to validate candidate');
+      setError(`Failed to validate candidate: ${error instanceof Error ? error.message : 'Unknown error'}`);
       return false;
+    } finally {
+      // Critical: Always clean up resources
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+      controller = null;
     }
   }, [candidateId]);
 
   const fetchComments = useCallback(async (limit = 10, offset = 0) => {
     if (!isMountedRef.current || !candidateExists) return [];
     
+    let controller: AbortController | null = null;
     try {
-      // Create new abort controller for this request
-      const controller = new AbortController();
-      abortControllerRef.current = controller;
+      // Create dedicated controller for this request
+      controller = new AbortController();
       
       const res = await fetch(`/api/candidates/${candidateId}/comments?limit=${limit}&offset=${offset}`, {
         signal: controller.signal
@@ -96,24 +138,30 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
       if (res.ok) {
         const data = await res.json();
         return Array.isArray(data.data) ? data.data : [];
+      } else {
+        console.error(`Comments API error: ${res.status} ${res.statusText}`);
+        return [];
       }
-      return [];
     } catch (error) {
+      if (!isMountedRef.current) return [];
+      
       if (error instanceof Error && error.name === 'AbortError') {
         return [];
       }
       console.error('Error fetching comments:', error);
       return [];
+    } finally {
+      controller = null; // Clear reference to prevent leaks
     }
   }, [candidateId, candidateExists]);
 
   const fetchResumes = useCallback(async (limit = 20, offset = 0) => {
     if (!isMountedRef.current || !candidateExists) return [];
     
+    let controller: AbortController | null = null;
     try {
-      // Create new abort controller for this request
-      const controller = new AbortController();
-      abortControllerRef.current = controller;
+      // Create dedicated controller for this request
+      controller = new AbortController();
       
       const res = await fetch(`/api/candidates/${candidateId}/resumes?limit=${limit}&offset=${offset}`, {
         signal: controller.signal
@@ -124,14 +172,20 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
       if (res.ok) {
         const data = await res.json();
         return Array.isArray(data.data) ? data.data : [];
+      } else {
+        console.error(`Resumes API error: ${res.status} ${res.statusText}`);
+        return [];
       }
-      return [];
     } catch (error) {
+      if (!isMountedRef.current) return [];
+      
       if (error instanceof Error && error.name === 'AbortError') {
         return [];
       }
       console.error('Error fetching resumes:', error);
       return [];
+    } finally {
+      controller = null; // Clear reference to prevent leaks
     }
   }, [candidateId, candidateExists]);
 
@@ -140,44 +194,86 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
     if (!isMountedRef.current || !candidateExists) return;
     
     setIsLoading(true);
+    let timeoutId: NodeJS.Timeout | null = null;
     
     try {
+      // Add timeout for the entire attachment loading process
+      let hasTimedOut = false;
+      timeoutId = setTimeout(() => {
+        hasTimedOut = true;
+      }, 10000); // Reduced to 10 seconds for faster failure
+      
       const [resumeAttachments, commentList] = await Promise.all([
-        fetchResumes(),
-        fetchComments(),
+        fetchResumes().catch(err => {
+          console.error('Resume fetch failed:', err);
+          return [];
+        }),
+        fetchComments().catch(err => {
+          console.error('Comments fetch failed:', err);
+          return [];
+        })
       ]);
       
-      if (!isMountedRef.current) return;
+      // Check if we timed out
+      if (hasTimedOut || !isMountedRef.current) {
+        if (hasTimedOut) {
+          console.warn('Attachment loading timed out');
+          setError('Loading timed out. Some attachments may not be visible.');
+        }
+        return;
+      }
       
       // Set individual states for backward compatibility
-      setResumes(resumeAttachments);
-      setComments(commentList);
+      setResumes(resumeAttachments || []);
+      setComments(commentList || []);
       
-      // Extract attachments from comments
-      const commentAttachments = (commentList || []).flatMap((comment: any) =>
-        (comment.attachments || []).map((att: any) => ({
+      // Extract attachments from comments safely
+      const commentAttachments = (commentList || []).flatMap((comment: any) => {
+        if (!comment || !Array.isArray(comment.attachments)) return [];
+        return comment.attachments.map((att: any) => ({
           ...att,
           label: att.label || 'comment',
           updatedAt: att.updatedAt || comment.createdAt || new Date().toISOString(),
-        }))
-      );
+        }));
+      });
       
-      // Merge and remove duplicates by filePath, id, or url
+      // Merge and remove duplicates safely
       const all = [...(resumeAttachments || []), ...commentAttachments];
       const unique: any[] = [];
       const seen = new Set();
+      
       for (const att of all) {
-        const key = att.filePath || att.id || att.url;
+        if (!att) continue;
+        const key = att.filePath || att.id || att.url || JSON.stringify(att);
         if (!seen.has(key)) {
           seen.add(key);
           unique.push(att);
         }
       }
-      unique.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+      
+      // Sort safely
+      unique.sort((a, b) => {
+        const dateA = new Date(b.updatedAt || 0).getTime();
+        const dateB = new Date(a.updatedAt || 0).getTime();
+        return dateA - dateB;
+      });
+      
       setAttachments(unique);
     } catch (error) {
       console.error('Error loading attachments:', error);
+      // Always set empty arrays to prevent hanging
+      if (isMountedRef.current) {
+        setResumes([]);
+        setComments([]);
+        setAttachments([]);
+        setError(`Failed to load attachments: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
     } finally {
+      // Critical: Always clean up resources
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
       if (isMountedRef.current) {
         setIsLoading(false);
       }
@@ -191,17 +287,58 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
   }, [loadAllAttachments]);
 
   useEffect(() => {
+    // Prevent multiple initializations
+    if (!candidateId || !isMountedRef.current) return;
+    
     isMountedRef.current = true;
+    let initTimeoutId: NodeJS.Timeout | null = null;
+    let isInitializing = false;
     
     const initialize = async () => {
-      // First validate the candidate exists
-      const exists = await validateCandidate();
-      if (exists && isMountedRef.current) {
-        // Only load attachments if candidate exists
-        await loadAllAttachments();
-      } else if (isMountedRef.current) {
-        // If candidate doesn't exist, stop loading
-        setIsLoading(false);
+      // Prevent multiple simultaneous initializations
+      if (isInitializing) return;
+      isInitializing = true;
+      
+      try {
+        // Set overall timeout for initialization (no promises - direct timeout)
+        let hasTimedOut = false;
+        initTimeoutId = setTimeout(() => {
+          hasTimedOut = true;
+          console.warn('Candidate detail initialization timed out');
+        }, 15000); // Reduced timeout
+        
+        // First validate the candidate exists
+        const exists = await validateCandidate();
+        
+        // Check timeout before proceeding
+        if (hasTimedOut || !isMountedRef.current) {
+          if (hasTimedOut) {
+            setError('Loading timed out. The server may be experiencing issues.');
+          }
+          setIsLoading(false);
+          return;
+        }
+        
+        if (exists && isMountedRef.current) {
+          // Only load attachments if candidate exists and we haven't timed out
+          await loadAllAttachments();
+        } else if (isMountedRef.current) {
+          // If candidate doesn't exist, stop loading
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error('Error during candidate detail initialization:', error);
+        if (isMountedRef.current) {
+          setError(`Failed to load candidate details: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          setIsLoading(false);
+        }
+      } finally {
+        isInitializing = false;
+        // Critical: Always clean up timeout
+        if (initTimeoutId) {
+          clearTimeout(initTimeoutId);
+          initTimeoutId = null;
+        }
       }
     };
     
@@ -209,22 +346,41 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
     
     return () => {
       isMountedRef.current = false;
+      isInitializing = false;
+      
+      // Critical: Clean up all resources
+      if (initTimeoutId) {
+        clearTimeout(initTimeoutId);
+        initTimeoutId = null;
+      }
+      
       // Abort any ongoing requests
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
         abortControllerRef.current = null;
       }
     };
-  }, [validateCandidate, loadAllAttachments]);
+  }, [candidateId]); // Only depend on candidateId to prevent re-initialization
 
-  // Cleanup on unmount
+  // Comprehensive cleanup on unmount
   useEffect(() => {
     return () => {
+      // Mark as unmounted first
       isMountedRef.current = false;
+      
+      // Abort any ongoing requests
       if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-        abortControllerRef.current = null;
+        try {
+          abortControllerRef.current.abort();
+        } catch (e) {
+          console.warn('Error aborting request:', e);
+        } finally {
+          abortControllerRef.current = null;
+        }
       }
+      
+      // Note: Individual timeouts are cleaned up in their respective functions
+      // No need for global timeout cleanup as it can interfere with other components
     };
   }, []);
 
@@ -253,6 +409,11 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
         <div className="flex flex-col items-center space-y-4">
           <Loader2 className="animate-spin h-8 w-8 text-primary" />
           <p className="text-muted-foreground">Loading candidate details...</p>
+          {isModal && (
+            <p className="text-xs text-muted-foreground opacity-75">
+              If this takes too long, try closing and reopening the modal
+            </p>
+          )}
         </div>
       </div>
     );

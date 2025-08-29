@@ -23,7 +23,6 @@ export const CandidateSidebar: React.FC<CandidateSidebarProps> = ({
   calculateTotalExperienceDuration,
   calculateAverageDurationPerCompany
 }) => {
-  console.log('[CandidateSidebar] Rendering with candidate:', candidate?.id, 'comments:', comments?.length, 'resumes:', resumes?.length);
   const [activeTab, setActiveTab] = useState<string>('comments');
   const getExperience = (candidate: Candidate) => {
     if (!candidate) return [];

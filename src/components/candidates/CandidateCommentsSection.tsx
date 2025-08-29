@@ -43,7 +43,6 @@ interface CombinedActivityItem {
 }
 
 const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ candidateId, comments: initialComments, isEditing, onCommentsChange }) => {
-  console.log('[CandidateCommentsSection] Rendering with candidateId:', candidateId, 'initialComments:', initialComments?.length, 'isEditing:', isEditing);
   const [newComment, setNewComment] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState('');

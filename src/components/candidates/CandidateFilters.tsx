@@ -323,9 +323,9 @@ export function CandidateFilters({
       return;
     }
     
-    // Rate limiting: prevent applying filters more than once every 200ms (increased to prevent resource leaks)
+    // Rate limiting: prevent applying filters more than once every 300ms to prevent infinite loops
     const now = Date.now();
-    if (now - lastFilterApplyTimeRef.current < 200) {
+    if (now - lastFilterApplyTimeRef.current < 300) {
       return;
     }
     
@@ -401,44 +401,19 @@ export function CandidateFilters({
     // Reset flag after a delay - store timeout ID for cleanup
     const timeoutId = setTimeout(() => {
       setIsApplyingFilters(false);
-    }, 50); // Reduced from 100ms to 50ms for better responsiveness
+    }, 100); // Increased to 100ms to prevent rapid state changes
     
     // Store timeout ID for cleanup
     if (applyingFiltersTimeoutRef.current) {
       clearTimeout(applyingFiltersTimeoutRef.current);
     }
     applyingFiltersTimeoutRef.current = timeoutId;
-  }, [name, nameOperator, email, emailOperator, phone, phoneOperator, selectedPositionIds, selectedStatuses, selectedSourceIds, skills, location, locationOperator, experienceYearsRange, applicationDateRange, selectedRecruiterIds]); // Removed onFilterChange from dependencies
+  }, [name, nameOperator, email, emailOperator, phone, phoneOperator, selectedPositionIds, selectedStatuses, selectedSourceIds, skills, location, locationOperator, experienceYearsRange, applicationDateRange, selectedRecruiterIds, isApplyingFilters]); // Added isApplyingFilters to dependencies
 
-  // Single auto-apply effect for all filter changes
+  // Single consolidated auto-apply effect for all filter changes
   useEffect(() => {
-    if (!isInitialLoadRef.current && !isSyncingFromInitialFiltersRef.current && isComponentInitializedRef.current) {
-      handleApplyStandardFilters();
-    }
-  }, [
-    name, nameOperator,
-    email, emailOperator,
-    phone, phoneOperator,
-    location, locationOperator,
-    selectedPositionIds,
-    selectedStatuses,
-    selectedRecruiterIds,
-    selectedSourceIds,
-    skills,
-    experienceYearsRange,
-    applicationDateRange
-  ]);
-
-  // Auto-apply filters when input values change (debounced to prevent resource leaks)
-  // Note: Fit score ranges are now handled separately through debounced handlers
-  useEffect(() => {
-    // Clear any existing timeout
-    if (autoApplyTimeoutRef.current) {
-      clearTimeout(autoApplyTimeoutRef.current);
-    }
-    
-    // Skip auto-apply if we're currently syncing state from incoming props or not fully initialized
-    if (isSyncingFromInitialFiltersRef.current || !isComponentInitializedRef.current) {
+    // Skip if we're not ready to apply filters
+    if (isInitialLoadRef.current || isSyncingFromInitialFiltersRef.current || !isComponentInitializedRef.current) {
       return;
     }
     
@@ -457,16 +432,15 @@ export function CandidateFilters({
       return;
     }
     
-    // Skip if we're in the middle of a rapid position change (within 200ms)
-    const now = Date.now();
-    if (now - lastPositionChangeTimeRef.current < 200) {
-      return;
+    // Clear any existing timeout
+    if (autoApplyTimeoutRef.current) {
+      clearTimeout(autoApplyTimeoutRef.current);
     }
     
-    // Debounce filter application to prevent resource leaks from rapid changes
+    // Debounce filter application to prevent rapid successive calls
     autoApplyTimeoutRef.current = setTimeout(() => {
       handleApplyStandardFilters();
-    }, 150); // Increased debounce time to prevent rapid successive calls
+    }, 200); // Increased debounce time to prevent infinite loops
     
     // Cleanup timeout on unmount or dependency change
     return () => {
@@ -475,7 +449,20 @@ export function CandidateFilters({
         autoApplyTimeoutRef.current = null;
       }
     };
-  }, [name, email, phone, selectedPositionIds, selectedStatuses, selectedSourceIds, skills, location, experienceYearsRange, applicationDateRange, selectedRecruiterIds, advancedQueryInput, handleApplyStandardFilters]);
+  }, [
+    name, nameOperator,
+    email, emailOperator,
+    phone, phoneOperator,
+    location, locationOperator,
+    selectedPositionIds,
+    selectedStatuses,
+    selectedRecruiterIds,
+    selectedSourceIds,
+    skills,
+    experienceYearsRange,
+    applicationDateRange,
+    advancedQueryInput
+  ]);
 
   // Component initialization
   useEffect(() => {
@@ -971,9 +958,9 @@ export function CandidateFilters({
 
   // Wrapper functions to apply filters when dropdown values change
   const handlePositionChange = (newSelectedIds: Set<string>) => {
-    // Rate limiting: prevent position changes more than once every 150ms to prevent resource leaks
+    // Rate limiting: prevent position changes more than once every 200ms to prevent infinite loops
     const now = Date.now();
-    if (now - lastPositionChangeTimeRef.current < 150) {
+    if (now - lastPositionChangeTimeRef.current < 200) {
       return;
     }
     lastPositionChangeTimeRef.current = now;
@@ -1021,7 +1008,7 @@ export function CandidateFilters({
     positionChangeTimeoutRef.current = setTimeout(() => {
       isHandlingPositionChangeRef.current = false;
       positionChangeTimeoutRef.current = null; // Clear the ref after execution
-    }, 100);
+    }, 150); // Increased delay to prevent conflicts
   };
 
   const handleStatusChange = (newSelectedStatuses: Set<string>) => {
@@ -1032,7 +1019,7 @@ export function CandidateFilters({
       clearTimeout(multiselectTimeoutRef.current);
       multiselectTimeoutRef.current = null;
     }
-    multiselectTimeoutRef.current = setTimeout(() => handleApplyStandardFilters(), 100);
+    multiselectTimeoutRef.current = setTimeout(() => handleApplyStandardFilters(), 200); // Increased debounce time
   };
 
   const handleRecruiterChange = (newSelectedRecruiterIds: Set<string>) => {
@@ -1043,7 +1030,7 @@ export function CandidateFilters({
       clearTimeout(multiselectTimeoutRef.current);
       multiselectTimeoutRef.current = null;
     }
-    multiselectTimeoutRef.current = setTimeout(() => handleApplyStandardFilters(), 100);
+    multiselectTimeoutRef.current = setTimeout(() => handleApplyStandardFilters(), 200); // Increased debounce time
   };
 
   const handleSourceChange = (newSelectedSourceIds: Set<string>) => {
@@ -1054,7 +1041,7 @@ export function CandidateFilters({
       clearTimeout(multiselectTimeoutRef.current);
       multiselectTimeoutRef.current = null;
     }
-    multiselectTimeoutRef.current = setTimeout(() => handleApplyStandardFilters(), 100);
+    multiselectTimeoutRef.current = setTimeout(() => handleApplyStandardFilters(), 200); // Increased debounce time
   };
 
   const handleExperienceYearsChange = (newRange: [number, number]) => {
@@ -1065,7 +1052,7 @@ export function CandidateFilters({
       clearTimeout(multiselectTimeoutRef.current);
       multiselectTimeoutRef.current = null;
     }
-    multiselectTimeoutRef.current = setTimeout(() => handleApplyStandardFilters(), 100);
+    multiselectTimeoutRef.current = setTimeout(() => handleApplyStandardFilters(), 200); // Increased debounce time
   };
 
 

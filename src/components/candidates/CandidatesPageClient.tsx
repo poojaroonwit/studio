@@ -192,7 +192,7 @@ export function CandidatesPageClient({
     setAuthError,
     permissionError,
     setPermissionError,
-    fetchTimeoutRef,
+
     currentRequestRef,
     latestRequestIdRef,
     normalizeFitScore,
@@ -221,7 +221,6 @@ export function CandidatesPageClient({
   const {
     fetchTableData,
     debouncedFetchTableData,
-    fetchTimeoutRef: fetchTimeoutRefFromHook,
     currentRequestRef: currentRequestRefFromHook,
     latestRequestIdRef: latestRequestIdRefFromHook
   } = useCandidateFetching({
@@ -307,9 +306,6 @@ export function CandidatesPageClient({
     },
     showNotifications: true,
     showErrorNotifications: false, // Disable error toast notifications
-    maxReconnectAttempts: 15, // More reconnection attempts
-    reconnectDelayMs: 500, // Faster initial reconnection
-    maxReconnectDelayMs: 15000, // Shorter max delay
   });
 
   // Bulk action handlers
@@ -851,7 +847,7 @@ export function CandidatesPageClient({
     };
   }, [horizontalSelectedFitScoreGrades, horizontalSelectedMatchingFitScoreGrades, applyHorizontalFitScoreFilters, isClearingFilters, hasInitialDataFetch]);
 
-  // Handle filter changes (OPTIMIZED to prevent resource leaks)
+  // Handle filter changes (OPTIMIZED to prevent infinite loops)
   const onFilterChange = useCallback((newFilters: CandidateFilterValues) => {
     // Skip if we're currently clearing filters to prevent conflicts
     if (isClearingFilters) {
@@ -861,7 +857,7 @@ export function CandidatesPageClient({
     // Reset page to 1 when filters change
     setPage(1);
     
-    // Apply filters immediately for better responsiveness
+    // Apply filters with increased debounce to prevent infinite loops
     handleFilterChange(newFilters, (filters) => {
       setTableLoading(true);
       
@@ -881,7 +877,7 @@ export function CandidatesPageClient({
         delete filtersForCounts.includeNoScoreInMatching;
         
         fetchFitScoreCounts(); // Update fit score counts when filters change
-      }, 100); // Small delay to batch API calls
+      }, 200); // Increased delay to prevent infinite loops
       
       // Store timeout for cleanup
       if (batchTimeoutRef.current) {
@@ -1247,14 +1243,12 @@ export function CandidatesPageClient({
       if (filterChangeTimeoutRef?.current) {
         clearTimeout(filterChangeTimeoutRef.current);
       }
-      if (fetchTimeoutRefFromHook?.current) {
-        clearTimeout(fetchTimeoutRefFromHook.current);
-      }
+
       if (batchTimeoutRef?.current) {
         clearTimeout(batchTimeoutRef.current);
       }
     };
-  }, [fetchTimeoutRefFromHook], 'cleanupTimeouts');
+  }, [], 'cleanupTimeouts');
 
   // Handle authentication
   if (sessionStatus === 'loading') {

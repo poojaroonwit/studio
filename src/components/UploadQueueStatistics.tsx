@@ -89,7 +89,7 @@ export function UploadQueueStatistics() {
   });
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  // Use lastUpdate from unified realtime hook instead of local state
   const [hoveredPoint, setHoveredPoint] = useState<{
     x: number;
     y: number;
@@ -136,7 +136,6 @@ export function UploadQueueStatistics() {
 
       // Process analytics data
       processAnalyticsData(items);
-      setLastUpdate(new Date());
     } catch (error) {
       console.error('Failed to fetch queue:', error);
       setErrorMessage('Network error. Please check your connection and try again.');
@@ -257,12 +256,7 @@ export function UploadQueueStatistics() {
     fetchQueueData();
   }, []);
 
-  // Listen for SSE updates
-  useEffect(() => {
-    if (lastMessage && lastMessage.type === 'queue') {
-      fetchQueueData();
-    }
-  }, [lastMessage]);
+  // Realtime updates are handled via useUnifiedRealtime onUploadQueueUpdate
 
   // Reprocess analytics when date filters change
   useEffect(() => {

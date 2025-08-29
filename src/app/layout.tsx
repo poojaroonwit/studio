@@ -12,6 +12,9 @@ import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { ModalCleanupMonitor } from '@/components/ui/ModalCleanupMonitor';
 
+// Import Ramda polyfill to prevent R.filter errors from third-party libraries
+import '@/lib/ramda-polyfill';
+
 // Temporarily disabled resource tracking to fix loading issue
 // import { initializeResourceTracking } from '@/lib/resource-leak-fixes';
 

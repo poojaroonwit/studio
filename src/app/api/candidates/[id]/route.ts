@@ -387,7 +387,12 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   }
 
   // Check if user has permission to manage candidates
-  if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('CANDIDATES_MANAGE')) {
+  const hasBasicEditPermission = session.user.role === 'Admin' || session.user.modulePermissions?.includes('CANDIDATES_EDIT_BASIC');
+  const hasSensitiveEditPermission = session.user.role === 'Admin' || session.user.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE');
+  const hasPipelineUpdatePermission = session.user.role === 'Admin' || session.user.modulePermissions?.includes('CANDIDATES_PIPELINE_STAGE_UPDATE');
+  
+  // Check if user has any required permission
+  if (!hasBasicEditPermission && !hasSensitiveEditPermission && !hasPipelineUpdatePermission) {
     await logAudit('WARN', `Forbidden attempt to update candidate by ${actingUserName}.`, 'API:Candidates:Update', actingUserId);
     return NextResponse.json({ message: 'Forbidden: Insufficient permissions to update candidates' }, { status: 403 });
   }

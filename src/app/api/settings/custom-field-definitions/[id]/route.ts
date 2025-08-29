@@ -160,7 +160,7 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
-  if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('CUSTOM_FIELDS_MANAGE')) {
+  if (session.user.role !== 'Admin' &&  !session.user.modulePermissions?.includes('CUSTOM_FIELDS_MANAGE')) {
     await logAudit('WARN', `Forbidden attempt to update custom field by ${session.user.name}.`, 'API:CustomFields:Update', session.user.id);
     return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
   }
@@ -285,7 +285,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
-  if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('CUSTOM_FIELDS_MANAGE')) {
+  if (session.user.role !== 'Admin' &&  !session.user.modulePermissions?.includes('CUSTOM_FIELDS_MANAGE')) {
     await logAudit('WARN', `Forbidden attempt to delete custom field by ${session.user.name}.`, 'API:CustomFields:Delete', session.user.id);
     return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
   }

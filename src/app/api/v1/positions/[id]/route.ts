@@ -64,7 +64,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   const authHeader = req.headers.get('authorization');
   const token = authHeader?.split(' ')[1];
   const user = token ? await verifyApiToken(token) : null;
-  if (!user || (user.role !== 'Admin' && !user.modulePermissions?.includes('POSITIONS_MANAGE'))) {
+  if (!user || (user.role !== 'Admin' && !user.modulePermissions?.includes('POSITIONS_EDIT_DETAILED'))) {
     return handleApiError(req, createForbiddenError('Insufficient permissions to update positions'));
   }
   const { id } = await params;
@@ -169,7 +169,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   const authHeader = req.headers.get('authorization');
   const token = authHeader?.split(' ')[1];
   const user = token ? await verifyApiToken(token) : null;
-  if (!user || (user.role !== 'Admin' && !user.modulePermissions?.includes('POSITIONS_MANAGE'))) {
+  if (!user || (user.role !== 'Admin' && !user.modulePermissions?.includes('POSITIONS_DELETE'))) {
     return handleApiError(req, createForbiddenError('Insufficient permissions to delete positions'));
   }
   const { id } = await params;

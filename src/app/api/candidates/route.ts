@@ -19,10 +19,17 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 // Performance optimization constants
-const MAX_PAGE_SIZE = 1000; // Reasonable limit for efficiency
+const MAX_PAGE_SIZE = Number.MAX_SAFE_INTEGER; // No limit - allow all candidates
 const DEFAULT_PAGE_SIZE = 50; // Reduced from 100 for faster initial loads
 const CACHE_DURATION = 30; // seconds
 const QUERY_TIMEOUT = 25000; // 25 seconds
+
+// Fast count query for performance
+const FAST_COUNT_QUERY = `
+  SELECT COUNT(*) as total 
+  FROM "Candidate" c
+  WHERE 1=1
+`;
 
 
 /**
@@ -96,7 +103,7 @@ async function requireSessionAndPermission(requiredPermission: string, request: 
     return { error: NextResponse.json({ message: 'Unauthorized' }, { status: 401 }) };
   }
   if (
-    session.user.role !== 'Admin' &&
+    session.user.role !== 'Admin' ||
     !session.user.modulePermissions?.includes(requiredPermission)
   ) {
     await logAudit(

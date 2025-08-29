@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
-  if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('USER_GROUPS_MANAGE')) {
+  if (session.user.role !== 'Admin' &&  !session.user.modulePermissions?.includes('USER_GROUPS_VIEW')) {
     await logAudit('WARN', `Forbidden attempt to GET available users for group (Group ID: ${groupId}) by user ${session.user.email}.`, 'API:UserGroups:GetAvailableUsers', session.user.id, { targetGroupId: groupId });
     return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
   }

@@ -62,6 +62,7 @@ import type { UserGroup, PlatformModuleId } from '@/lib/types';
 import { PLATFORM_MODULES, PLATFORM_MODULE_CATEGORIES } from '@/lib/types';
 import { RolePermissionSelector } from './RolePermissionSelector';
 import { cn } from '@/lib/utils';
+import { useSafeEffect, useInfiniteLoopPrevention } from '@/hooks/use-safe-effect';
 
 // Form schema for role editing
 const roleFormSchema = z.object({
@@ -120,24 +121,41 @@ export function UnifiedRoleDrawer({
   // Refs for debouncing and request cancellation
   const permissionUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const lastPermissionUpdateRef = useRef<string>('');
+
+  // Infinite loop prevention hooks
+  const { trackRun: trackPermissionUpdate } = useInfiniteLoopPrevention('UnifiedRoleDrawer_permissionUpdate', 50, () => {
+    console.error('🚨 Excessive permission updates detected in UnifiedRoleDrawer');
+    toast.error('Too many permission updates. Please wait a moment before trying again.');
+  });
+
+  const { trackRun: trackRoleLoad } = useInfiniteLoopPrevention('UnifiedRoleDrawer_roleLoad', 20, () => {
+    console.error('🚨 Excessive role loading detected in UnifiedRoleDrawer');
+  });
 
   // Calculate isAdminRole early to avoid scope issues
   const isSystemRole = role?.is_system_role || false;
   const isAdminRole = role?.name === 'Admin';
 
-  // Initialize permissions when role changes
-  useEffect(() => {
+  // Get all available permissions for Admin role
+  const allPermissions = PLATFORM_MODULES.map(p => p.id);
+
+  // Initialize permissions when role changes with infinite loop prevention
+  useSafeEffect(() => {
+    if (!trackRoleLoad()) return;
+    
     if (role) {
       if (role.name === 'Admin') {
-        setCurrentPermissions(PLATFORM_MODULES.map(p => p.id));
+        // Admin role should always have all permissions
+        setCurrentPermissions(allPermissions);
       } else {
         setCurrentPermissions(role.permissions || []);
       }
     }
-  }, [role]);
+  }, [role, allPermissions], 'rolePermissionInit', 10);
 
   // Reset states when drawer closes to prevent memory leaks
-  useEffect(() => {
+  useSafeEffect(() => {
     if (!isOpen) {
       // Clear any pending timeouts
       if (permissionUpdateTimeoutRef.current) {
@@ -164,8 +182,9 @@ export function UnifiedRoleDrawer({
       setIsAddingUser(false);
       setIsSavingRole(false);
       setIsUpdatingPermissions(false);
+      lastPermissionUpdateRef.current = '';
     }
-  }, [isOpen]);
+  }, [isOpen], 'drawerReset', 5);
 
   const form = useForm<RoleFormValues>({
     resolver: zodResolver(roleFormSchema),
@@ -173,14 +192,14 @@ export function UnifiedRoleDrawer({
   });
 
   // Cleanup form when component unmounts
-  useEffect(() => {
+  useSafeEffect(() => {
     return () => {
       form.reset();
     };
-  }, [form]);
+  }, [form], 'formCleanup', 1);
 
   // Load role data when drawer opens
-  useEffect(() => {
+  useSafeEffect(() => {
     if (isOpen && role) {
       form.reset({
         name: role.name,
@@ -190,7 +209,7 @@ export function UnifiedRoleDrawer({
       
       // For Admin role, always show all permissions
       if (role.name === 'Admin') {
-        setCurrentPermissions(PLATFORM_MODULES.map(p => p.id));
+        setCurrentPermissions(allPermissions);
       } else {
         setCurrentPermissions(role.permissions || []);
       }
@@ -199,24 +218,24 @@ export function UnifiedRoleDrawer({
         loadGroupMembers();
       }
     }
-  }, [isOpen, role, form, activeTab]);
+  }, [isOpen, role, form, activeTab, allPermissions], 'roleDataLoad', 10);
 
   // Load group members when members tab is selected
-  useEffect(() => {
+  useSafeEffect(() => {
     if (isOpen && role && activeTab === 'members') {
       loadGroupMembers();
     }
-  }, [isOpen, role, activeTab]);
+  }, [isOpen, role, activeTab], 'membersTabLoad', 5);
 
   // Load available users when add user modal opens
-  useEffect(() => {
+  useSafeEffect(() => {
     if (isAddUserModalOpen && role) {
       loadAvailableUsers();
     }
-  }, [isAddUserModalOpen, role, searchTerm]);
+  }, [isAddUserModalOpen, role, searchTerm], 'availableUsersLoad', 10);
 
   // Cleanup effect to prevent memory leaks and handle component unmounting
-  useEffect(() => {
+  useSafeEffect(() => {
     return () => {
       // Clear any pending timeout
       if (permissionUpdateTimeoutRef.current) {
@@ -230,7 +249,7 @@ export function UnifiedRoleDrawer({
         abortControllerRef.current = null;
       }
     };
-  }, []);
+  }, [], 'componentCleanup', 1);
 
 
 
@@ -337,6 +356,20 @@ export function UnifiedRoleDrawer({
   const handlePermissionUpdate = useCallback(async (permissions: PlatformModuleId[]) => {
     if (!role) return;
     
+    // Prevent infinite loops with tracking
+    if (!trackPermissionUpdate()) {
+      console.warn('Permission update blocked due to excessive calls');
+      return;
+    }
+    
+    // Prevent duplicate permission updates
+    const permissionString = JSON.stringify(permissions.sort());
+    if (lastPermissionUpdateRef.current === permissionString) {
+      console.warn('Permission update prevented - no changes detected');
+      return;
+    }
+    lastPermissionUpdateRef.current = permissionString;
+
     console.log('Permission update triggered:', permissions);
     
     // Update local state immediately for better UX
@@ -364,10 +397,13 @@ export function UnifiedRoleDrawer({
       console.log('Sending permission update to API...');
       setIsUpdatingPermissions(true);
       
+      // Ensure Admin role always has all permissions
+      const finalPermissions = isAdminRole ? allPermissions : permissions;
+      
       const requestBody = {
         name: role.name,
         description: role.description,
-        permissions,
+        permissions: finalPermissions,
         is_default: role.is_default
       };
       
@@ -388,7 +424,7 @@ export function UnifiedRoleDrawer({
         
         // Update the role object locally to avoid reload
         if (role) {
-          role.permissions = permissions;
+          role.permissions = finalPermissions;
         }
         
         // Show toast notification without reloading the UI
@@ -414,7 +450,7 @@ export function UnifiedRoleDrawer({
         abortControllerRef.current = null;
       }
     }, 500); // 500ms debounce delay
-  }, [role]);
+  }, [role, isAdminRole, allPermissions, trackPermissionUpdate]);
 
   const handleAddUser = async () => {
     if (!selectedUserId || !role) return;

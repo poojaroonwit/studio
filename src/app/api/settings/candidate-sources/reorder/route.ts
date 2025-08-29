@@ -46,8 +46,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Check permissions
-  if (session.user.role !== 'Admin' && 
-      !session.user.modulePermissions?.includes('SYSTEM_SETTINGS_MANAGE')) {
+  if (session?.user?.role !== 'Admin' && !session?.user?.modulePermissions?.includes('SYSTEM_SETTINGS_EDIT')) {
     return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
   }
 

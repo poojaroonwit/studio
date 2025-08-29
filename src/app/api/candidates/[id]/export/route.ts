@@ -102,7 +102,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 
   // Check if user has permission to export candidates
-  if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('CANDIDATES_EXPORT')) {
+  if (session.user.role !== 'Admin' &&  !session.user.modulePermissions?.includes('CANDIDATES_EXPORT')) {
     await logAudit('WARN', `Forbidden attempt to export candidate by ${actingUserName}`, 'API:Candidate:Export', actingUserId);
     return NextResponse.json({ error: 'Forbidden: Insufficient permissions to export candidates' }, { status: 403 });
   }

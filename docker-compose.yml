@@ -77,7 +77,7 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-    restart: always
+    restart: unless-stopped
     mem_limit: 8g
     cpus: 2
     deploy:
@@ -89,14 +89,14 @@ services:
           memory: 4g
           cpus: '2'
       restart_policy:
-        condition: on-failure
+        condition: any
         delay: 5s
-        max_attempts: 3
+        max_attempts: 5
         window: 120s
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://app:8021/api/health"]
+      test: ["CMD", "/app/healthcheck.sh"]
       interval: 30s
-      timeout: 10s
+      timeout: 15s
       retries: 3
       start_period: 120s
     # The command to run the application is defined in the Dockerfile's CMD instruction

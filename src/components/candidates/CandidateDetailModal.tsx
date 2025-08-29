@@ -1,41 +1,12 @@
 "use client";
 
-import * as React from "react";
-import { useEffect, useState, useRef } from "react";
-import { createPortal } from "react-dom";
-import type { Candidate, TransitionRecord, EducationEntry, ExperienceEntry, SkillEntry, JobSuitableEntry, PersonalInfo, AutomationJobMatch, UserProfile, Position, positionLevel, RecruitmentStage } from '@/lib/types';
-import { useSession } from 'next-auth/react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
-import { Progress } from '@/components/ui/progress';
-import { format } from 'date-fns';
-import parseISO from 'date-fns/parseISO';
-import { ArrowLeft, Briefcase, Building, CalendarDays, DollarSign, Edit, GraduationCap, HardDrive, Info, LinkIcon, ListChecks, Loader2, Mail, MapPin, MessageSquare, Percent, Phone, ServerCrash, ShieldAlert, Star, Tag, UploadCloud, User, UserCircle, UserCog, Users, Zap, ExternalLink, Edit3, Save, X, PlusCircle, Trash2, Lightbulb, ChevronDown, ChevronRight, ChevronUp, ChevronLeft, Activity, Clock, BarChart3, Eye, Download } from 'lucide-react';
-import { formatScoreWithGrade, getScoreColor, getScoreBgColor } from "@/lib/scoreUtils";
-import { formatCandidateName, formatCandidateNameWithLang } from "@/lib/candidateUtils";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
-import { toast } from 'react-hot-toast';
-import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { RecruitmentPipelineCard } from '@/components/candidates/RecruitmentPipelineCard';
-import { PositionSelectDropdown } from '@/components/candidates/PositionSelectDropdown';
-import { differenceInMonths, parse, isValid } from 'date-fns';
-import RecruiterAssignmentDropdown from '@/components/candidates/RecruiterAssignmentDropdown';
-import CandidateCommentsSection from './CandidateCommentsSection';
-import CandidateResumesSection from './CandidateResumesSection';
+import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import CandidateDetailView from './CandidateDetailView';
+import { useSafeEffect, useInfiniteLoopPrevention } from '@/hooks/use-safe-effect';
 
 interface CandidateDetailModalProps {
-  candidateId: string | null;
+  candidateId: string;
   open: boolean;
   onClose: () => void;
 }
@@ -44,8 +15,13 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
   const [mounted, setMounted] = useState(false);
   const portalContainerRef = useRef<HTMLDivElement | null>(null);
 
-  // Create portal container on mount
-  useEffect(() => {
+  // Add infinite loop prevention
+  const { trackRun: trackModalOpen } = useInfiniteLoopPrevention('CandidateDetailModal_open', 50, () => {
+    console.error('🚨 Excessive modal open/close cycles detected in CandidateDetailModal');
+  });
+
+  // Create portal container on mount with safe effect
+  useSafeEffect(() => {
     setMounted(true);
     
     // Create portal container if it doesn't exist
@@ -63,10 +39,12 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
         portalContainerRef.current = null;
       }
     };
-  }, []);
+  }, [], 'portalSetup', 1);
 
-  // Handle escape key
-  useEffect(() => {
+  // Handle escape key with safe effect
+  useSafeEffect(() => {
+    if (!trackModalOpen()) return;
+
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && open) {
         onClose();
@@ -84,15 +62,15 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
       // Restore body scroll when modal closes
       document.body.style.overflow = '';
     };
-  }, [open, onClose]);
+  }, [open, onClose], 'escapeKeyHandler', 10);
 
-  // Cleanup on unmount
-  useEffect(() => {
+  // Cleanup on unmount with safe effect
+  useSafeEffect(() => {
     return () => {
       // Ensure body scroll is restored
       document.body.style.overflow = '';
     };
-  }, []);
+  }, [], 'bodyScrollCleanup', 1);
 
   if (!open || !candidateId || !mounted || !portalContainerRef.current) return null;
 

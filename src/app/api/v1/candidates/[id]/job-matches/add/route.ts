@@ -24,7 +24,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: handleCors(req) });
   }
   
-  if (user.role !== 'Admin' && !user.modulePermissions?.includes('JOB_MATCH_MANAGE')) {
+  if (user.role !== 'Admin' &&  !user.modulePermissions?.includes('JOB_MATCH_MANAGE')) {
     return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to manage job matches' }), { status: 403, headers: handleCors(req) });
   }
 

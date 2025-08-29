@@ -63,7 +63,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: handleCors(req) });
   }
   
-  if (user.role !== 'Admin' && !user.modulePermissions?.includes('CANDIDATES_MANAGE')) {
+  if (user.role !== 'Admin' &&  !user.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE')) {
     return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to manage job_applied data' }), { status: 403, headers: handleCors(req) });
   }
 
@@ -168,7 +168,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: handleCors(req) });
   }
   
-  if (user.role !== 'Admin' && !user.modulePermissions?.includes('CANDIDATES_MANAGE')) {
+  if (user.role !== 'Admin' &&  !user.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE')) {
     return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to manage job_applied data' }), { status: 403, headers: handleCors(req) });
   }
 
@@ -272,7 +272,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: handleCors(req) });
   }
   
-  if (user.role !== 'Admin' && !user.modulePermissions?.includes('CANDIDATES_MANAGE')) {
+  if (user.role !== 'Admin' &&  !user.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE')) {
     return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to manage job_applied data' }), { status: 403, headers: handleCors(req) });
   }
 

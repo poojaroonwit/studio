@@ -85,7 +85,7 @@ const userGroupSchema = z.object({
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
 
-  if (session?.user?.role !== 'Admin' && !session?.user?.modulePermissions?.includes('USER_GROUPS_MANAGE')) {
+  if (session?.user?.role !== 'Admin' &&  !session?.user?.modulePermissions?.includes('USER_GROUPS_VIEW')) {
     await logAudit('WARN', `Forbidden attempt to GET user groups by user ${session?.user?.email || 'Unknown'}.`, 'API:UserGroups:GetAll', session?.user?.id);
     return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
   }
@@ -138,6 +138,12 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions);
     const actingUserId = session?.user?.id;
     if (!actingUserId) return new NextResponse('Unauthorized', { status: 401 });
+
+    // Check permissions - only Admin or users with USER_GROUPS_CREATE can create user groups
+    if (session?.user?.role !== 'Admin' &&  !session?.user?.modulePermissions?.includes('USER_GROUPS_CREATE')) {
+        await logAudit('WARN', `Forbidden attempt to CREATE user group by user ${session?.user?.email || 'Unknown'}.`, 'API:UserGroups:Create', session?.user?.id);
+        return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
+    }
 
     let body;
     try {

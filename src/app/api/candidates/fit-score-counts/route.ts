@@ -18,7 +18,7 @@ async function requireSessionAndPermission(requiredPermission: string, request: 
     return { error: NextResponse.json({ message: 'Unauthorized' }, { status: 401 }) };
   }
   if (
-    session.user.role !== 'Admin' &&
+    session.user.role !== 'Admin' ||
     !session.user.modulePermissions?.includes(requiredPermission)
   ) {
     await logAudit(

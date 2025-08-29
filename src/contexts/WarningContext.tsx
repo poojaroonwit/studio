@@ -136,12 +136,15 @@ export function WarningProvider({ children }: { children: React.ReactNode }) {
     };
   }, [session?.user?.id, fetchWarnings, isClient]);
 
+  // FIXED: Stabilize callback function to prevent infinite loops
+  const handleWarningUpdate = useCallback(() => {
+    // Refresh warnings when warning updates are received
+    fetchWarnings();
+  }, [fetchWarnings]);
+
   // Use unified real-time hook instead of individual SSE connection (only on client)
   const { isConnected } = useUnifiedRealtime({
-    onWarningUpdate: () => {
-      // Refresh warnings when warning updates are received
-      fetchWarnings();
-    }
+    onWarningUpdate: handleWarningUpdate
   });
 
   // Only run realtime effects on client side

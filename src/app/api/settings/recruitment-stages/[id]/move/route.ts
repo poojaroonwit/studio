@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Check permissions
-    if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('RECRUITMENT_STAGES_MANAGE')) {
+    if (session.user.role !== 'Admin' &&  !session.user.modulePermissions?.includes('RECRUITMENT_STAGES_MANAGE')) {
         await logAudit('WARN', `Forbidden attempt to move recruitment stage by ${session.user.name || session.user.email}.`, 'API:RecruitmentStages:Move', actingUserId);
         return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
     }

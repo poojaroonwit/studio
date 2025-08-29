@@ -1,7 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+"use client";
+
+import React, { useState, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Loader2, ServerCrash, UserX } from 'lucide-react';
 import FullCandidateDetail from './FullCandidateDetail';
+import { useSafeEffect, useInfiniteLoopPrevention } from '@/hooks/use-safe-effect';
 
 interface CandidateDetailViewProps {
   candidateId: string;
@@ -16,9 +19,26 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
   const [error, setError] = useState<string | null>(null);
   const [candidateExists, setCandidateExists] = useState<boolean | null>(null);
 
-  // Simple data loading function
+  // Add infinite loop prevention
+  const { trackRun: trackLoadData } = useInfiniteLoopPrevention('CandidateDetailView_loadData', 20, () => {
+    console.error('🚨 Excessive data loading detected in CandidateDetailView');
+  });
+
+  // Add abort controller for cleanup
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Simple data loading function with infinite loop prevention
   const loadData = useCallback(async () => {
+    if (!trackLoadData()) return;
     if (!candidateId) return;
+
+    // Abort any existing request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Create new abort controller
+    abortControllerRef.current = new AbortController();
 
     setIsLoading(true);
     setError(null);
@@ -27,10 +47,12 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
       // Load all data in parallel with simple error handling
       const [commentsRes, attachmentsRes] = await Promise.allSettled([
         fetch(`/api/candidates/${candidateId}/comments?limit=5&offset=0`, {
-          credentials: 'include'
+          credentials: 'include',
+          signal: abortControllerRef.current.signal
         }),
         fetch(`/api/candidates/${candidateId}/resumes?limit=20&offset=0`, {
-          credentials: 'include'
+          credentials: 'include',
+          signal: abortControllerRef.current.signal
         })
       ]);
 
@@ -53,7 +75,8 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
       // Check if candidate exists by trying to load basic candidate data
       try {
         const candidateRes = await fetch(`/api/candidates/${candidateId}`, {
-          credentials: 'include'
+          credentials: 'include',
+          signal: abortControllerRef.current.signal
         });
         
         if (candidateRes.ok) {
@@ -69,17 +92,29 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
       }
 
     } catch (error: any) {
+      // Don't set error for aborted requests
+      if (error.name === 'AbortError') {
+        return;
+      }
+      
       setError('Failed to load candidate data. Please try again.');
       setCandidateExists(false);
     } finally {
       setIsLoading(false);
     }
-  }, [candidateId]);
+  }, [candidateId, trackLoadData]);
 
-  // Load data when component mounts or candidateId changes
-  useEffect(() => {
+  // Load data when component mounts or candidateId changes with safe effect
+  useSafeEffect(() => {
     loadData();
-  }, [loadData]);
+    
+    return () => {
+      // Abort any ongoing requests on cleanup
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [loadData], 'loadData', 10);
 
   const handleRefresh = useCallback(() => {
     loadData();

@@ -222,7 +222,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (session?.user?.role !== 'Admin' && !session?.user?.modulePermissions?.includes('SYSTEM_SETTINGS_MANAGE')) {
+  if (session?.user?.role !== 'Admin' && !session?.user?.modulePermissions?.includes('SYSTEM_SETTINGS_EDIT')) {
     await logAudit('WARN', `Forbidden attempt to update system settings by user ${session?.user?.email || 'Unknown'}.`, 'API:SystemSettings:Update', session?.user?.id);
     return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
   }
@@ -365,7 +365,7 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   // Only allow Admin or SYSTEM_SETTINGS_MANAGE
   const session = await getServerSession(authOptions);
-  if (session?.user?.role !== 'Admin' && !session?.user?.modulePermissions?.includes('SYSTEM_SETTINGS_MANAGE')) {
+  if (session?.user?.role !== 'Admin' && !session?.user?.modulePermissions?.includes('SYSTEM_SETTINGS_EDIT')) {
     await logAudit('WARN', `Forbidden attempt to upload settings image by user ${session?.user?.email || 'Unknown'}.`, 'API:SystemSettings:UploadImage', session?.user?.id);
     return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
   }

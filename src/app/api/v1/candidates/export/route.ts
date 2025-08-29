@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: handleCors(req) });
   }
 
-  if (user.role !== 'Admin' && !user.modulePermissions?.includes('CANDIDATES_EXPORT')) {
+  if (user.role !== 'Admin' &&  !user.modulePermissions?.includes('CANDIDATES_EXPORT')) {
     return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to export candidates' }), { status: 403, headers: handleCors(req) });
   }
 

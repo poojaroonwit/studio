@@ -83,26 +83,7 @@ export function HeadcountAttachmentModal({
     }
   };
 
-  // Test function to verify API endpoint without file upload
-  const testApiEndpoint = async () => {
-    if (!headcount) return;
-    
-    try {
-      const response = await fetch(`/api/headcount/${headcount.id}/attachments`, {
-        method: 'GET',
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        toast.success('API endpoint is working');
-      } else {
-        toast.error(`API test failed: ${response.status}`);
-      }
-    } catch (error) {
-      console.error('API test error:', error);
-      toast.error('API test failed');
-    }
-  };
+
 
   const handleDeleteAttachment = async (attachmentId: string) => {
     if (!confirm('Are you sure you want to delete this attachment?') || !headcount) {
@@ -199,18 +180,7 @@ export function HeadcountAttachmentModal({
                     You can select multiple files to upload
                   </p>
                   
-                  {/* Test button for debugging */}
-                  <div className="mt-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={testApiEndpoint}
-                      className="text-xs"
-                    >
-                      Test API Endpoint
-                    </Button>
-                  </div>
+
                 </div>
                 
                 {uploading && (

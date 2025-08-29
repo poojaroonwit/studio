@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
-  if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('USER_GROUPS_MANAGE')) {
+  if (session.user.role !== 'Admin' &&  !session.user.modulePermissions?.includes('USER_GROUPS_VIEW')) {
     await logAudit('WARN', `Forbidden attempt to GET group members (Group ID: ${groupId}) by user ${session.user.email}.`, 'API:UserGroups:GetMembers', session.user.id, { targetGroupId: groupId });
     return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
   }
@@ -165,7 +165,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
-  if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('USER_GROUPS_MANAGE')) {
+  if (session.user.role !== 'Admin' &&  !session.user.modulePermissions?.includes('USER_GROUPS_EDIT')) {
     await logAudit('WARN', `Forbidden attempt to add user to group (Group ID: ${groupId}) by user ${session.user.email}.`, 'API:UserGroups:AddMember', session.user.id, { targetGroupId: groupId });
     return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
   }
@@ -281,7 +281,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
-  if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('USER_GROUPS_MANAGE')) {
+  if (session.user.role !== 'Admin' &&  !session.user.modulePermissions?.includes('USER_GROUPS_EDIT')) {
     await logAudit('WARN', `Forbidden attempt to remove user from group (Group ID: ${groupId}) by user ${session.user.email}.`, 'API:UserGroups:RemoveMember', session.user.id, { targetGroupId: groupId, targetUserId: userId });
     return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
   }

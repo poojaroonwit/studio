@@ -83,6 +83,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [metadataLoaded, setMetadataLoaded] = useState(false);
+  const [totalCandidates, setTotalCandidates] = useState(0);
   
   // Admin users can access my-tasks page - no automatic redirect
   
@@ -96,46 +97,54 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     selectedStages: [] 
   });
 
-      // Unified realtime hook
-    const { isConnected: realtimeConnected } = useUnifiedRealtime({
-    onCandidateUpdate: (updatedCandidate) => {
-      setCandidates(prevCandidates => {
-        const existingIndex = prevCandidates.findIndex(c => c.id === updatedCandidate.id);
-        if (existingIndex !== -1) {
-          const existingCandidate = prevCandidates[existingIndex];
-          // Only update if there are actual changes to prevent infinite loops
-          const hasChanges = Object.keys(updatedCandidate).some(key => 
-            existingCandidate[key as keyof typeof existingCandidate] !== updatedCandidate[key]
-          );
-          
-          if (hasChanges) {
-            const updated = [...prevCandidates];
-            updated[existingIndex] = { ...existingCandidate, ...updatedCandidate };
-            return updated;
-          }
-          // No changes, return same array to prevent unnecessary re-renders
-          return prevCandidates;
-        } else {
-          // New candidate, add to list
-          return [...prevCandidates, updatedCandidate];
+  // FIXED: Stabilize callback functions to prevent infinite loops
+  const handleCandidateUpdate = useCallback((updatedCandidate: any) => {
+    setCandidates(prevCandidates => {
+      const existingIndex = prevCandidates.findIndex(c => c.id === updatedCandidate.id);
+      if (existingIndex !== -1) {
+        const existingCandidate = prevCandidates[existingIndex];
+        // Only update if there are actual changes to prevent infinite loops
+        const hasChanges = Object.keys(updatedCandidate).some(key => 
+          existingCandidate[key as keyof typeof existingCandidate] !== updatedCandidate[key]
+        );
+        
+        if (hasChanges) {
+          const updated = [...prevCandidates];
+          updated[existingIndex] = { ...existingCandidate, ...updatedCandidate };
+          return updated;
         }
-      });
-    },
-    onPositionUpdate: (updatedPosition) => {
-      // Handle position updates if needed
-    },
-    onPresenceUpdate: (presence) => {
-      // Handle presence updates if needed
-    },
-    onNotification: (notification) => {
-      // Handle notifications if needed
-    },
+        // No changes, return same array to prevent unnecessary re-renders
+        return prevCandidates;
+      } else {
+        // New candidate, add to list
+        return [...prevCandidates, updatedCandidate];
+      }
+    });
+  }, []);
+
+  const handlePositionUpdate = useCallback((updatedPosition: any) => {
+    // Handle position updates if needed
+  }, []);
+
+  const handlePresenceUpdate = useCallback((presence: any) => {
+    // Handle presence updates if needed
+  }, []);
+
+  const handleNotification = useCallback((notification: any) => {
+    // Handle notifications if needed
+  }, []);
+
+  // Unified realtime hook with stabilized callbacks
+  const { isConnected: realtimeConnected } = useUnifiedRealtime({
+    onCandidateUpdate: handleCandidateUpdate,
+    onPositionUpdate: handlePositionUpdate,
+    onPresenceUpdate: handlePresenceUpdate,
+    onNotification: handleNotification,
     showErrorNotifications: false // Disable error toast notifications
   });
 
   // Permission check: can view all candidates?
   const canViewAllCandidates = userSession?.role === 'Admin' || 
-    userSession?.session?.user?.modulePermissions?.includes('USERS_VIEW') || session?.user?.modulePermissions?.includes('USERS_CREATE') || session?.user?.modulePermissions?.includes('USERS_EDIT') || session?.user?.modulePermissions?.includes('USERS_DELETE') || session?.user?.modulePermissions?.includes('USERS_PERMISSIONS_MANAGE') || 
     userSession?.modulePermissions?.includes('CANDIDATES_VIEW');
 
   // Update local state when preferences are loaded - only once
@@ -253,12 +262,26 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     fetchMeta();
   }, []);
 
-  // Initial load of candidates
+  // Get total count first (fast query)
+  useEffect(() => {
+    const fetchTotalCount = async () => {
+      try {
+        const res = await fetch('/api/candidates?forCounts=true');
+        const data = await res.json();
+        setTotalCandidates(data.total || 0);
+      } catch (e) {
+        console.error('Error fetching total count:', e);
+      }
+    };
+    fetchTotalCount();
+  }, []);
+
+  // Initial load of candidates (all candidates, no limit)
   useEffect(() => {
     const fetchCandidates = async () => {
       setLoading(true);
       try {
-        const res = await fetch('/api/candidates?limit=1000');
+        const res = await fetch('/api/candidates'); // No limit - fetch all candidates
         const data = await res.json();
         setCandidates(Array.isArray(data) ? data : (data.data || []));
       } catch (e) {
@@ -282,13 +305,13 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       const fetchCandidates = async () => {
         setLoading(true);
         try {
-                  const params = new URLSearchParams();
-        if (filters.name) params.append('name', filters.name);
-        if (filters.positionId) params.append('positionId', filters.positionId);
-        if (filters.stage) params.append('status', filters.stage);
-        if (filters.recruiterId) params.append('recruiterId', filters.recruiterId);
-        params.append('limit', '1000'); // Increase limit to show more candidates
-        
+          const params = new URLSearchParams();
+          if (filters.name) params.append('name', filters.name);
+          if (filters.positionId) params.append('positionId', filters.positionId);
+          if (filters.stage) params.append('status', filters.stage);
+          if (filters.recruiterId) params.append('recruiterId', filters.recruiterId);
+          // No limit parameter - fetch all matching candidates
+          
           const res = await fetch(`/api/candidates?${params.toString()}`);
           const data = await res.json();
           setCandidates(Array.isArray(data) ? data : (data.data || []));
@@ -600,7 +623,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                    ) : (
                      <div className="flex items-center gap-2">
                        <Users className="w-3 h-3" />
-                       {displayedCandidates.length} candidate{displayedCandidates.length !== 1 ? 's' : ''}
+                                               {totalCandidates} total candidates ({displayedCandidates.length} filtered)
                      </div>
                    )}
                  </Badge>

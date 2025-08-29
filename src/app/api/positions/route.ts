@@ -333,7 +333,7 @@ export async function POST(request: NextRequest) {
   const actingUserId = session?.user?.id || null;
   const actingUserName = session?.user?.name || session?.user?.email || 'System (API Create)';
 
-  if (!session?.user || (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('POSITIONS_MANAGE'))) {
+  if (!session?.user || (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('POSITIONS_CREATE'))) {
     await logAudit('WARN', `Forbidden attempt to create position by ${actingUserName}.`, 'API:Positions:Create', actingUserId);
     return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403, headers: handleCors(request) });
   }

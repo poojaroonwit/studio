@@ -144,8 +144,7 @@ export async function PUT(
   }
 
   // Check permissions
-  if (session.user.role !== 'Admin' && 
-      !session.user.modulePermissions?.includes('SYSTEM_SETTINGS_MANAGE')) {
+  if (session?.user?.role !== 'Admin' && !session?.user?.modulePermissions?.includes('SYSTEM_SETTINGS_EDIT')) {
     return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
   }
 
@@ -250,8 +249,7 @@ export async function DELETE(
   }
 
   // Check permissions
-  if (session.user.role !== 'Admin' && 
-      !session.user.modulePermissions?.includes('SYSTEM_SETTINGS_MANAGE')) {
+  if (session?.user?.role !== 'Admin' && !session?.user?.modulePermissions?.includes('SYSTEM_SETTINGS_EDIT')) {
     return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
   }
 

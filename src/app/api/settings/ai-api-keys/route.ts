@@ -37,7 +37,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (session?.user?.role !== 'Admin' && !session?.user?.modulePermissions?.includes('SYSTEM_SETTINGS_MANAGE')) {
+  if (session?.user?.role !== 'Admin' && !session?.user?.modulePermissions?.includes('AI_INTEGRATION_EDIT')) {
     await logAudit('WARN', `Forbidden attempt to access AI API keys by user ${session?.user?.email || 'Unknown'}.`, 'API:AiApiKeys:Get', session?.user?.id);
     return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
   }
@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (session?.user?.role !== 'Admin' && !session?.user?.modulePermissions?.includes('SYSTEM_SETTINGS_MANAGE')) {
+  if (session?.user?.role !== 'Admin' && !session?.user?.modulePermissions?.includes('AI_INTEGRATION_EDIT')) {
     await logAudit('WARN', `Forbidden attempt to update AI API keys by user ${session?.user?.email || 'Unknown'}.`, 'API:AiApiKeys:Update', session?.user?.id);
     return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
   }

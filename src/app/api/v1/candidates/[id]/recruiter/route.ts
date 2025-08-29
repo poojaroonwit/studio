@@ -63,7 +63,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   const authHeader = req.headers.get('authorization');
   const token = authHeader?.split(' ')[1];
   const user = token ? await verifyApiToken(token) : null;
-  if (!user || (user.role !== 'Admin' && !user.modulePermissions?.includes('CANDIDATES_MANAGE'))) {
+  if (!user || (user.role !== 'Admin' &&  !user.modulePermissions?.includes('CANDIDATES_RECRUITER_ASSIGN'))) {
     return handleApiError(req, createForbiddenError('Insufficient permissions to update candidate recruiter'));
   }
   
@@ -196,7 +196,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   const authHeader = req.headers.get('authorization');
   const token = authHeader?.split(' ')[1];
   const user = token ? await verifyApiToken(token) : null;
-  if (!user || (user.role !== 'Admin' && !user.modulePermissions?.includes('CANDIDATES_MANAGE'))) {
+  if (!user || (user.role !== 'Admin' &&  !user.modulePermissions?.includes('CANDIDATES_RECRUITER_ASSIGN'))) {
     return handleApiError(req, createForbiddenError('Insufficient permissions to unassign candidate recruiter'));
   }
   

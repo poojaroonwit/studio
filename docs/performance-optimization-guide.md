@@ -62,14 +62,28 @@ FROM "Candidate";
 
 ### 2. **API Endpoint Optimizations**
 
-#### Reduced Page Sizes
+#### Unlimited Page Sizes with Smart Pagination
 ```typescript
 // Performance optimization constants
-const MAX_PAGE_SIZE = 500; // Reduced from 1000
+const MAX_PAGE_SIZE = Number.MAX_SAFE_INTEGER; // No limit - allow all candidates
 const DEFAULT_PAGE_SIZE = 50; // Reduced from 100 for faster initial loads
 const CACHE_DURATION = 30; // seconds
 const QUERY_TIMEOUT = 25000; // 25 seconds
+
+// Fast count query for performance
+const FAST_COUNT_QUERY = `
+  SELECT COUNT(*) as total 
+  FROM "Candidate" c
+  WHERE 1=1
+`;
 ```
+
+**Task Board Optimization:**
+- **Fast Count**: Uses `SELECT COUNT(*)` for instant total candidate count
+- **Unlimited Loading**: Loads ALL candidates without artificial limits
+- **Smart Display**: Shows 20 candidates per column initially
+- **Progressive Loading**: "See More" buttons load additional candidates within each column
+- **Efficient Queries**: Optimized database queries with proper indexing
 
 #### Query Timeout Protection
 ```typescript

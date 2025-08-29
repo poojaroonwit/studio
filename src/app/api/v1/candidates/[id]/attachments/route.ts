@@ -109,7 +109,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return handleApiError(req, createUnauthorizedError('Authentication required'));
   }
 
-  if (user.role !== 'Admin' && !user.modulePermissions?.includes('CANDIDATES_MANAGE')) {
+  if (user.role !== 'Admin' && !user.modulePermissions?.includes('CANDIDATES_RESUMES_UPLOAD')) {
     return handleApiError(req, createForbiddenError('Insufficient permissions to upload attachments'));
   }
 
@@ -236,7 +236,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     return handleApiError(req, createUnauthorizedError('Authentication required'));
   }
 
-  if (user.role !== 'Admin' && !user.modulePermissions?.includes('CANDIDATES_MANAGE')) {
+  if (user.role !== 'Admin' && !user.modulePermissions?.includes('CANDIDATES_RESUMES_UPLOAD')) {
     return handleApiError(req, createForbiddenError('Insufficient permissions to upload attachments'));
   }
 

@@ -6,6 +6,7 @@ import { differenceInMonths } from 'date-fns';
 import * as z from 'zod';
 import type { Candidate, Position, UserProfile, RecruitmentStage, TransitionRecord, CandidateSource } from '@/lib/types';
 import { useUnifiedRealtime } from '@/hooks/use-unified-realtime';
+import { useSafeEffect, useInfiniteLoopPrevention } from '@/hooks/use-safe-effect';
 
 // Form schemas - validation removed
 const editCandidateDetailSchema = z.object({
@@ -47,9 +48,19 @@ export const useCandidateDetail = (candidateId: string) => {
   const cacheRef = useRef<Map<string, { data: any; timestamp: number }>>(new Map());
   const avatarForceRefreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isMountedRef = useRef(true);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Cache duration: 30 seconds
   const CACHE_DURATION = 30000;
+
+  // Add infinite loop prevention
+  const { trackRun: trackFetchCandidate } = useInfiniteLoopPrevention('useCandidateDetail_fetchCandidate', 20, () => {
+    console.error('🚨 Excessive fetchCandidate calls detected in useCandidateDetail');
+  });
+
+  const { trackRun: trackRealtimeUpdate } = useInfiniteLoopPrevention('useCandidateDetail_realtimeUpdate', 50, () => {
+    console.error('🚨 Excessive realtime updates detected in useCandidateDetail');
+  });
 
   // Safe default values to prevent temporal dead zone issues
   const getDefaultFormValues = (): EditCandidateFormValues => ({
@@ -136,27 +147,18 @@ export const useCandidateDetail = (candidateId: string) => {
     keyName: 'field_id',
   });
 
-  // Unified realtime hook
-  const { isConnected: realtimeConnected } = useUnifiedRealtime({
-    onCandidateUpdate: (updatedCandidate) => {
-      if (updatedCandidate.id === candidateId) {
-        // Refresh candidate data when updated
-        fetchCandidate(true); // Force refresh
-        fetchTransitionHistory();
-      }
-    },
-    onNotification: (notification) => {
-      // Handle notifications if needed
-    },
-    showNotifications: false, // Disable notifications to prevent conflicts
-    showErrorNotifications: false // Disable error toast notifications
-  });
-
-  // Memoized fetch function with caching
+  // Memoized fetch function with caching and infinite loop prevention
   const fetchCandidate = useCallback(async (forceRefresh = false) => {
+    if (!trackFetchCandidate()) return;
     if (!candidateId) return;
 
-    // Simple fetch without request tracking
+    // Abort any existing request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Create new abort controller
+    abortControllerRef.current = new AbortController();
 
     // Check cache first
     const cacheKey = `candidate:${candidateId}`;
@@ -172,13 +174,13 @@ export const useCandidateDetail = (candidateId: string) => {
     setLoading(true);
     setError(null);
 
-    // Simple fetch without abort controller or validation
     try {
       const res = await fetch(`/api/candidates/${candidateId}`, {
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
+        signal: abortControllerRef.current.signal,
       });
 
       if (!res.ok) {
@@ -202,22 +204,16 @@ export const useCandidateDetail = (candidateId: string) => {
 
     } catch (error: any) {
       if (!isMountedRef.current) return;
+      
+      // Don't set error for aborted requests
+      if (error.name === 'AbortError') {
+        return;
+      }
 
       setError('Failed to load candidate details');
       setLoading(false);
     }
-  }, [candidateId]);
-
-  // Fetch candidate data
-  useEffect(() => {
-    isMountedRef.current = true;
-    
-    fetchCandidate();
-    
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, [candidateId]); // Remove fetchCandidate from dependencies to prevent infinite loops
+  }, [candidateId, trackFetchCandidate]);
 
   // Memoized fetch functions for static data
   const fetchPositions = useCallback(async () => {
@@ -307,8 +303,43 @@ export const useCandidateDetail = (candidateId: string) => {
     }
   }, [candidateId]);
 
+  // Stable realtime update handler
+  const handleRealtimeUpdate = useCallback((updatedCandidate: any) => {
+    if (!trackRealtimeUpdate()) return;
+    if (updatedCandidate.id === candidateId) {
+      // Refresh candidate data when updated
+      fetchCandidate(true); // Force refresh
+      fetchTransitionHistory();
+    }
+  }, [candidateId, fetchCandidate, fetchTransitionHistory, trackRealtimeUpdate]);
+
+  // Unified realtime hook with stable handlers
+  const { isConnected: realtimeConnected } = useUnifiedRealtime({
+    onCandidateUpdate: handleRealtimeUpdate,
+    onNotification: (notification) => {
+      // Handle notifications if needed
+    },
+    showNotifications: false, // Disable notifications to prevent conflicts
+    showErrorNotifications: false // Disable error toast notifications
+  });
+
+  // Fetch candidate data with safe effect
+  useSafeEffect(() => {
+    isMountedRef.current = true;
+    
+    fetchCandidate();
+    
+    return () => {
+      isMountedRef.current = false;
+      // Abort any ongoing requests
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [candidateId], 'fetchCandidate', 10);
+
   // Fetch static data only once on mount with parallel execution
-  useEffect(() => {
+  useSafeEffect(() => {
     // Fetch all static data in parallel for better performance
     Promise.all([
       fetchPositions(),
@@ -318,33 +349,36 @@ export const useCandidateDetail = (candidateId: string) => {
     ]).catch(error => {
       console.error('Error fetching static data:', error);
     });
-  }, [fetchPositions, fetchRecruiters, fetchSources, fetchStages]);
+  }, [], 'fetchStaticData', 5);
 
   // Fetch transition history when candidateId is available (non-blocking)
-  useEffect(() => {
+  useSafeEffect(() => {
     if (candidateId) {
       // Fetch transition history in background without blocking main candidate data
       fetchTransitionHistory().catch(error => {
         console.error('Error fetching transition history:', error);
       });
     }
-  }, [candidateId, fetchTransitionHistory]);
+  }, [candidateId], 'fetchTransitionHistory', 10);
 
   // Cleanup on unmount
-  useEffect(() => {
+  useSafeEffect(() => {
     return () => {
       isMountedRef.current = false;
       if (avatarForceRefreshTimeoutRef.current) {
         clearTimeout(avatarForceRefreshTimeoutRef.current);
       }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
 
       // Clear cache to prevent memory leaks
       cacheRef.current.clear();
     };
-  }, []);
+  }, [], 'cleanup', 1);
 
   // Populate form with candidate data when entering edit mode
-  useEffect(() => {
+  useSafeEffect(() => {
     if (isEditing && candidate) {
       console.log('Populating form with candidate data:', candidate);
       
@@ -393,9 +427,7 @@ export const useCandidateDetail = (candidateId: string) => {
         console.log('Form reset completed');
       }, 0);
     }
-  }, [isEditing, candidate, reset]);
-
-
+  }, [isEditing, candidate, reset], 'populateForm', 20);
 
   // Handle entering edit mode
   const handleEnterEditMode = useCallback(() => {

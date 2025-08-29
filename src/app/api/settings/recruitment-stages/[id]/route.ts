@@ -109,7 +109,7 @@ export async function PUT(request: NextRequest) {
     if (!actingUserId) return new NextResponse('Unauthorized', { status: 401 });
     
     // Check permissions
-    if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('RECRUITMENT_STAGES_MANAGE')) {
+    if (session.user.role !== 'Admin' &&  !session.user.modulePermissions?.includes('RECRUITMENT_STAGES_MANAGE')) {
         await logAudit('WARN', `Forbidden attempt to update recruitment stage by ${session.user.name || session.user.email}.`, 'API:RecruitmentStages:Update', actingUserId);
         return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
     }
@@ -179,7 +179,7 @@ export async function DELETE(request: NextRequest) {
     if (!actingUserId) return new NextResponse('Unauthorized', { status: 401 });
     
     // Check permissions
-    if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('RECRUITMENT_STAGES_MANAGE')) {
+    if (session.user.role !== 'Admin' &&  !session.user.modulePermissions?.includes('RECRUITMENT_STAGES_MANAGE')) {
         await logAudit('WARN', `Forbidden attempt to delete recruitment stage by ${session.user.name || session.user.email}.`, 'API:RecruitmentStages:Delete', actingUserId);
         return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
     }

@@ -74,25 +74,32 @@ export function RealtimeCollaboration({
     fetchNotifications();
   }, [session?.user?.id]);
 
+  // FIXED: Stabilize callback functions to prevent infinite loops
+  const handleCandidateUpdate = useCallback((data: any) => {
+    // Handle candidate updates as collaboration events
+    setCollaborationEvents((prev) => [data, ...prev].slice(0, maxItems));
+    setLastUpdate(new Date());
+  }, [maxItems]);
+
+  const handlePositionUpdate = useCallback((data: any) => {
+    // Handle position updates as collaboration events
+    setCollaborationEvents((prev) => [data, ...prev].slice(0, maxItems));
+    setLastUpdate(new Date());
+  }, [maxItems]);
+
+  const handleNotificationUpdate = useCallback((data: any) => {
+    // Handle notification updates
+    if (data.type === 'new_notification') {
+      setCollaborationEvents((prev) => [data, ...prev].slice(0, maxItems));
+      setLastUpdate(new Date());
+    }
+  }, [maxItems]);
+
   // Use unified real-time hook for all real-time updates
   const { isConnected } = useUnifiedRealtime({
-    onCandidateUpdate: (data) => {
-      // Handle candidate updates as collaboration events
-      setCollaborationEvents((prev) => [data, ...prev].slice(0, maxItems));
-      setLastUpdate(new Date());
-    },
-    onPositionUpdate: (data) => {
-      // Handle position updates as collaboration events
-      setCollaborationEvents((prev) => [data, ...prev].slice(0, maxItems));
-      setLastUpdate(new Date());
-    },
-    onNotificationUpdate: (data) => {
-      // Handle notification updates
-      if (data.type === 'new_notification') {
-        setCollaborationEvents((prev) => [data, ...prev].slice(0, maxItems));
-        setLastUpdate(new Date());
-      }
-    }
+    onCandidateUpdate: handleCandidateUpdate,
+    onPositionUpdate: handlePositionUpdate,
+    onNotificationUpdate: handleNotificationUpdate
   });
 
   // Mark notification as read (still uses API)

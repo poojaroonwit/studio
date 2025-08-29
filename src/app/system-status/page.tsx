@@ -287,7 +287,7 @@ export default function SystemStatusPage() {
                      item.id === 'minio_bucket_check' ? <HardDrive className="mr-2 h-4 w-4" /> : null}
                     {item.isLoading ? "Processing..." : item.actionLabel}
                   </Button>
-                   {item.id === 'minio_bucket_check' && session?.user?.role !== 'Admin' && (
+                   {item.id === 'minio_bucket_check' && session?.user?.role !== 'Admin' || (
                      <p className="text-xs text-destructive mt-1">Admin role required to perform this check.</p>
                    )}
                 </div>

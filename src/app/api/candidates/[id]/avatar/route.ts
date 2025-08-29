@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Check if user has permission to manage candidates
-  if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('CANDIDATES_EDIT_BASIC')) {
+  if (session.user.role !== 'Admin' &&  !session.user.modulePermissions?.includes('CANDIDATES_EDIT_BASIC')) {
     await logAudit('WARN', `Forbidden attempt to upload avatar by ${actingUserName}.`, 'API:Candidates:Avatar:Upload', actingUserId);
     return NextResponse.json({ message: 'Forbidden: Insufficient permissions to upload avatars' }, { status: 403 });
   }

@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: handleCors(req) });
   }
 
-  if (user.role !== 'Admin' && !user.modulePermissions?.includes('POSITIONS_MANAGE')) {
+  if (user.role !== 'Admin' && !user.modulePermissions?.includes('POSITIONS_IMPORT')) {
     return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to import positions' }), { status: 403, headers: handleCors(req) });
   }
 

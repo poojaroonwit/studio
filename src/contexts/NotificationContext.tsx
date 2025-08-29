@@ -154,58 +154,65 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     setNotificationsEnabled(enabled);
   }, []);
 
+  // FIXED: Stabilize callback functions to prevent infinite loops
+  const handleNotificationUpdate = useCallback((data: any) => {
+    if (data.type === 'new_notification') {
+      // Only show notifications meant for the current user
+      if (data.targetUserId && data.targetUserId !== session?.user?.id) {
+        return; // Skip notifications not meant for this user
+      }
+      
+      // Prevent self-notifications: don't show notifications about user's own actions
+      if (data.notification.data?.actingUserId && data.notification.data.actingUserId === session?.user?.id) {
+        return; // Skip notifications about user's own actions
+      }
+      
+      addNotification({
+        type: data.notification.type,
+        title: data.notification.title,
+        message: data.notification.message,
+        data: data.notification.data || {},
+      });
+    }
+  }, [session?.user?.id, addNotification]);
+
+  const handleCandidateUpdate = useCallback((data: any) => {
+    if (data.type === 'candidate_update' && data.candidate) {
+      // Prevent self-notifications: don't show notifications about user's own actions
+      if (data.actingUserId && data.actingUserId === session?.user?.id) {
+        return; // Skip notifications about user's own actions
+      }
+      
+      addNotification({
+        type: 'candidate_update',
+        title: 'Candidate Updated',
+        message: `Candidate ${data.candidate.name || data.candidate.email} has been updated`,
+        data: { candidateId: data.candidate.id, ...data },
+      });
+    }
+  }, [session?.user?.id, addNotification]);
+
+  const handlePositionUpdate = useCallback((data: any) => {
+    if (data.type === 'position_update' && data.position) {
+      // Prevent self-notifications: don't show notifications about user's own actions
+      if (data.actingUserId && data.actingUserId === session?.user?.id) {
+        return; // Skip notifications about user's own actions
+      }
+      
+      addNotification({
+        type: 'position_update',
+        title: 'Position Updated',
+        message: `Position "${data.position.title}" has been updated`,
+        data: { positionId: data.position.id, ...data },
+      });
+    }
+  }, [session?.user?.id, addNotification]);
+
   // Use unified real-time hook instead of individual SSE connection
   const { isConnected } = useUnifiedRealtime({
-    onNotificationUpdate: (data) => {
-      if (data.type === 'new_notification') {
-        // Only show notifications meant for the current user
-        if (data.targetUserId && data.targetUserId !== session?.user?.id) {
-          return; // Skip notifications not meant for this user
-        }
-        
-        // Prevent self-notifications: don't show notifications about user's own actions
-        if (data.notification.data?.actingUserId && data.notification.data.actingUserId === session?.user?.id) {
-          return; // Skip notifications about user's own actions
-        }
-        
-        addNotification({
-          type: data.notification.type,
-          title: data.notification.title,
-          message: data.notification.message,
-          data: data.notification.data || {},
-        });
-      }
-    },
-    onCandidateUpdate: (data) => {
-      if (data.type === 'candidate_update' && data.candidate) {
-        // Prevent self-notifications: don't show notifications about user's own actions
-        if (data.actingUserId && data.actingUserId === session?.user?.id) {
-          return; // Skip notifications about user's own actions
-        }
-        
-        addNotification({
-          type: 'candidate_update',
-          title: 'Candidate Updated',
-          message: `Candidate ${data.candidate.name || data.candidate.email} has been updated`,
-          data: { candidateId: data.candidate.id, ...data },
-        });
-      }
-    },
-    onPositionUpdate: (data) => {
-      if (data.type === 'position_update' && data.position) {
-        // Prevent self-notifications: don't show notifications about user's own actions
-        if (data.actingUserId && data.actingUserId === session?.user?.id) {
-          return; // Skip notifications about user's own actions
-        }
-        
-        addNotification({
-          type: 'position_update',
-          title: 'Position Updated',
-          message: `Position "${data.position.title}" has been updated`,
-          data: { positionId: data.position.id, ...data },
-        });
-      }
-    }
+    onNotificationUpdate: handleNotificationUpdate,
+    onCandidateUpdate: handleCandidateUpdate,
+    onPositionUpdate: handlePositionUpdate
   });
 
   // Fetch notifications on mount and when session changes (only on client)

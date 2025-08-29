@@ -137,7 +137,7 @@ export async function PUT(
   if (!actingUserId) return new NextResponse('Unauthorized', { status: 401 });
 
   // Check permissions
-  if (session?.user?.role !== 'Admin' && !session?.user?.modulePermissions?.includes('USERS_MANAGE')) {
+  if (session?.user?.role !== 'Admin' &&  !session?.user?.modulePermissions?.includes('USERS_MANAGE')) {
     return new NextResponse('Forbidden: Insufficient permissions', { status: 403 });
   }
 
@@ -188,7 +188,7 @@ export async function DELETE(
   if (!actingUserId) return new NextResponse('Unauthorized', { status: 401 });
 
   // Check permissions
-  if (session?.user?.role !== 'Admin' && !session?.user?.modulePermissions?.includes('USERS_MANAGE')) {
+  if (session?.user?.role !== 'Admin' &&  !session?.user?.modulePermissions?.includes('USERS_MANAGE')) {
     return new NextResponse('Forbidden: Insufficient permissions', { status: 403 });
   }
 

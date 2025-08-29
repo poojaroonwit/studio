@@ -56,13 +56,25 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
     if (!isClient || status !== 'authenticated' || !session?.user) return false;
     const userRole = session.user.role || 'Recruiter'; // Default fallback
 
-    if (item.adminOnly && userRole !== 'Admin' && !session.user.session?.user?.modulePermissions?.includes('USERS_VIEW') || session?.user?.modulePermissions?.includes('USERS_CREATE') || session?.user?.modulePermissions?.includes('USERS_EDIT') || session?.user?.modulePermissions?.includes('USERS_DELETE') || session?.user?.modulePermissions?.includes('USERS_PERMISSIONS_MANAGE')) return false;
-    if (item.adminOnlyOrPermission) { 
-      if (userRole === 'Admin' || session.user.session?.user?.modulePermissions?.includes('USERS_VIEW') || session?.user?.modulePermissions?.includes('USERS_CREATE') || session?.user?.modulePermissions?.includes('USERS_EDIT') || session?.user?.modulePermissions?.includes('USERS_DELETE') || session?.user?.modulePermissions?.includes('USERS_PERMISSIONS_MANAGE')) return true;
-      if (item.permissionId && session.user.modulePermissions?.includes(item.permissionId)) return true;
+    // Admin has access to everything
+    if (userRole === 'Admin') return true;
+
+    // Check for adminOnly items
+    if (item.adminOnly) return false;
+
+    // Check for adminOnlyOrPermission items
+    if (item.adminOnlyOrPermission) {
+      if (item.permissionId && session.user.modulePermissions?.includes(item.permissionId)) {
+        return true;
+      }
       return false;
     }
-    if (item.permissionId && userRole !== 'Admin' && !session.user.modulePermissions?.includes(item.permissionId)) return false;
+
+    // Check for specific permission items
+    if (item.permissionId && !session.user.modulePermissions?.includes(item.permissionId)) {
+      return false;
+    }
+
     return true;
   }, [isClient, status, session?.user?.role, session?.user?.modulePermissions]);
   

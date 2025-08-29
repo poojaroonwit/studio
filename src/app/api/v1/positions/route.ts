@@ -103,7 +103,7 @@ export async function POST(req: NextRequest) {
   const authHeader = req.headers.get('authorization');
   const token = authHeader?.split(' ')[1];
   const user = token ? await verifyApiToken(token) : null;
-  if (!user || (user.role !== 'Admin' && !user.modulePermissions?.includes('POSITIONS_MANAGE'))) {
+  if (!user || (user.role !== 'Admin' && !user.modulePermissions?.includes('POSITIONS_CREATE'))) {
     return handleApiError(req, createForbiddenError('Insufficient permissions to create positions'));
   }
 

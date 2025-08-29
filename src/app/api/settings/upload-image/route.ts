@@ -10,10 +10,11 @@ export const maxDuration = 300; // 5 minutes timeout
 export const dynamic = 'force-dynamic';
 
 export async function PUT(request: NextRequest) {
+  const session = await getServerSession(authOptions);
+  
   try {
-    // Only allow Admin or SYSTEM_SETTINGS_MANAGE
-    const session = await getServerSession(authOptions);
-    if (session?.user?.role !== 'Admin' && !session?.user?.modulePermissions?.includes('SYSTEM_SETTINGS_MANAGE')) {
+    // Only allow Admin or SYSTEM_SETTINGS_EDIT
+    if (session?.user?.role !== 'Admin' && !session?.user?.modulePermissions?.includes('SYSTEM_SETTINGS_EDIT')) {
       await logAudit('WARN', `Forbidden attempt to upload settings image by user ${session?.user?.email || 'Unknown'}.`, 'API:SystemSettings:UploadImage', session?.user?.id);
       return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
     }

@@ -37,6 +37,7 @@ RUN npm run build
 # Make entrypoint scripts executable
 RUN chmod +x ./entrypoint.sh
 RUN chmod +x ./entrypoint-processor.sh
+RUN chmod +x ./healthcheck.sh
 
 # Set environment variables
 ENV NODE_ENV=production

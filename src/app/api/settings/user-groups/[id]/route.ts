@@ -10,6 +10,26 @@ import { getPool } from '../../../../../lib/db';
 
 const platformModuleIds = PLATFORM_MODULES.map(m => m.id);
 
+// Add logging to debug the platformModuleIds array
+console.log('PUT /api/settings/user-groups/[id] - platformModuleIds created:', {
+  totalModules: PLATFORM_MODULES.length,
+  totalIds: platformModuleIds.length,
+  sampleIds: platformModuleIds.slice(0, 10)
+});
+
+// Test specific permissions from the error message
+const errorPermissions = [
+  'CANDIDATES_VIEW', 'CANDIDATES_VIEW_DETAILED', 'CANDIDATES_CREATE', 'CANDIDATES_EDIT_BASIC', 
+  'CANDIDATES_EDIT_SENSITIVE', 'CANDIDATES_DELETE', 'CANDIDATES_RESUMES_UPLOAD', 'CANDIDATES_RESUMES_DELETE',
+  'REPORTS_GENERATE', 'WEBHOOK_ANALYTICS_VIEW', 'LOGS_VIEW', 'LOGS_EXPORT', 'APP_PERFORMANCE_VIEW',
+  'TASK_BOARD_VIEW', 'TASK_BOARD_MANAGE_OWN', 'TASK_BOARD_MANAGE_ALL', 'JOB_MATCH_VIEW', 
+  'JOB_MATCH_MANAGE', 'WARNING_CONFIGURATIONS_VIEW', 'WARNING_CONFIGURATIONS_MANAGE',
+  'USER_PREFERENCES_MANAGE_OWN', 'USER_PREFERENCES_MANAGE_ALL'
+];
+
+const missingFromError = errorPermissions.filter(perm => !platformModuleIds.includes(perm));
+console.log('PUT /api/settings/user-groups/[id] - Missing permissions from error:', missingFromError);
+
 const updateGroupFormSchema = z.object({
   name: z.string().min(1, "Group name is required").max(100),
   description: z.string().optional().nullable(),
@@ -60,7 +80,7 @@ export async function GET(request: NextRequest) {
   const id = extractIdFromUrl(request);
   const session = await getServerSession(authOptions);
 
-  if (session?.user?.role !== 'Admin' && !session?.user?.modulePermissions?.includes('USER_GROUPS_MANAGE')) {
+  if (session?.user?.role !== 'Admin' &&  !session?.user?.modulePermissions?.includes('USER_GROUPS_VIEW')) {
     await logAudit('WARN', `Forbidden attempt to GET user group (ID: ${id}) by user ${session?.user?.email || 'Unknown'}.`, 'API:UserGroups:GetById', session?.user?.id, { targetGroupId: id });
     return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
   }
@@ -141,8 +161,8 @@ export async function PUT(request: NextRequest) {
     const actingUserId = session?.user?.id;
     if (!actingUserId) return new NextResponse('Unauthorized', { status: 401 });
 
-    // Check permissions - only Admin or users with USER_GROUPS_MANAGE can update user groups
-    if (session?.user?.role !== 'Admin' && !session?.user?.modulePermissions?.includes('USER_GROUPS_MANAGE')) {
+    // Check permissions - only Admin or users with USER_GROUPS_EDIT can update user groups
+    if (session?.user?.role !== 'Admin' &&  !session?.user?.modulePermissions?.includes('USER_GROUPS_EDIT')) {
         await logAudit('WARN', `Forbidden attempt to UPDATE user group (ID: ${id}) by user ${session?.user?.email || 'Unknown'}.`, 'API:UserGroups:Update', session?.user?.id, { targetGroupId: id });
         return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
     }
@@ -168,9 +188,21 @@ export async function PUT(request: NextRequest) {
     
     // Validate permissions if provided
     if (fields.permissions && Array.isArray(fields.permissions)) {
+        console.log('PUT /api/settings/user-groups/[id] - Validating permissions:', {
+            receivedPermissions: fields.permissions.length > 20 ? `${fields.permissions.slice(0, 20).join(', ')}... (${fields.permissions.length} total)` : fields.permissions,
+            totalReceived: fields.permissions.length,
+            permissionsType: typeof fields.permissions,
+            isArray: Array.isArray(fields.permissions),
+            samplePermission: fields.permissions[0],
+            samplePermissionType: typeof fields.permissions[0]
+        });
+        
         const invalidPermissions = fields.permissions.filter(permission => !platformModuleIds.includes(permission));
+        console.log('PUT /api/settings/user-groups/[id] - Invalid permissions found:', invalidPermissions);
+        
         if (invalidPermissions.length > 0) {
             console.error('PUT /api/settings/user-groups/[id] - Invalid permissions:', invalidPermissions);
+            console.error('PUT /api/settings/user-groups/[id] - Valid permissions available:', platformModuleIds.slice(0, 20));
             return NextResponse.json({ 
                 message: 'Invalid permissions provided', 
                 errors: { permissions: [`Invalid permissions: ${invalidPermissions.join(', ')}`] } 
@@ -216,7 +248,7 @@ export async function PUT(request: NextRequest) {
  * /api/settings/user-groups/{id}:
  *   delete:
  *     summary: Delete a user group by ID
- *     description: Deletes a user group. Requires Admin or USER_GROUPS_MANAGE permission.
+ *     description: Deletes a user group. Requires Admin or USER_GROUPS_DELETE permission.
  *     parameters:
  *       - in: path
  *         name: id
@@ -245,6 +277,12 @@ export async function DELETE(request: NextRequest) {
     const session = await getServerSession(authOptions);
     const actingUserId = session?.user?.id;
     if (!actingUserId) return new NextResponse('Unauthorized', { status: 401 });
+    
+    // Check permissions - only Admin or users with USER_GROUPS_DELETE can delete user groups
+    if (session?.user?.role !== 'Admin' &&  !session?.user?.modulePermissions?.includes('USER_GROUPS_DELETE')) {
+        await logAudit('WARN', `Forbidden attempt to DELETE user group (ID: ${id}) by user ${session?.user?.email || 'Unknown'}.`, 'API:UserGroups:Delete', session?.user?.id, { targetGroupId: id });
+        return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
+    }
     
     const client = await getPool().connect();
     try {

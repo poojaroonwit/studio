@@ -1,5 +1,5 @@
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { useSafeEffect, useInfiniteLoopPrevention } from './use-safe-effect';
 
@@ -27,11 +27,20 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const healthCheckRef = useRef<NodeJS.Timeout | null>(null);
   const mountedRef = useRef(true);
-  const optionsRef = useRef(options);
   const reconnectAttemptsRef = useRef(0);
   const maxReconnectAttempts = 5;
   const isConnectingRef = useRef(false);
   const [isClient, setIsClient] = useState(false);
+
+  // Memoize options to prevent unnecessary re-renders
+  const memoizedOptions = useMemo(() => options, [
+    options.onCandidateUpdate,
+    options.onPositionUpdate,
+    options.onWarningUpdate,
+    options.onNotificationUpdate,
+    options.onUploadQueueUpdate,
+    options.onPresenceUpdate
+  ]);
 
   // Add infinite loop prevention
   const { trackRun: trackConnectionAttempt } = useInfiniteLoopPrevention('UnifiedRealtimeConnection', 20, () => {
@@ -47,10 +56,11 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
     setIsClient(true);
   }, [], 'UnifiedRealtimeClientCheck', 5);
 
-  // Update options ref when options change
+  // Update options ref when options change - FIXED: Use memoized options and stable reference
+  const optionsRef = useRef(memoizedOptions);
   useSafeEffect(() => {
-    optionsRef.current = options;
-  }, [options], 'UnifiedRealtimeOptionsUpdate', 10);
+    optionsRef.current = memoizedOptions;
+  }, [memoizedOptions], 'UnifiedRealtimeOptionsUpdate', 10);
 
   const cleanup = useCallback(() => {
     if (eventSourceRef.current) {
@@ -100,7 +110,7 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
     // Reset connection state
     setIsConnected(false);
     isConnectingRef.current = false;
-  }, []);
+  }, []); // FIXED: Empty dependency array to prevent recreation
 
   const connect = useCallback(() => {
     if (!trackConnectionAttempt()) return;
@@ -246,8 +256,9 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
       setIsConnected(false);
       isConnectingRef.current = false;
     }
-  }, [session?.user, trackConnectionAttempt, trackReconnectAttempt]);
+  }, [session?.user, trackConnectionAttempt, trackReconnectAttempt, isClient]); // FIXED: Stable dependencies
 
+  // FIXED: Use stable dependencies and prevent infinite loops
   useSafeEffect(() => {
     mountedRef.current = true;
     
@@ -267,7 +278,7 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
     } else {
       cleanup();
     }
-  }, [session?.user, connect, cleanup, isClient], 'UnifiedRealtimeConnection', 10);
+  }, [session?.user?.id, isClient], 'UnifiedRealtimeConnection', 10); // FIXED: Use session.user.id instead of session?.user
 
   // Separate cleanup effect for unmounting
   useSafeEffect(() => {
@@ -291,7 +302,7 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
 
       cleanup();
     };
-  }, [cleanup], 'UnifiedRealtimeUnmount', 5);
+  }, [], 'UnifiedRealtimeUnmount', 5); // FIXED: Empty dependency array
 
   // Return early if not on client side to prevent SSR issues
   if (!isClient) {

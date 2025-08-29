@@ -169,7 +169,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Check permissions
-    if (user.role !== 'Admin' && !user.modulePermissions?.includes('LOGS_VIEW')) {
+    if (user.role !== 'Admin' &&  !user.modulePermissions?.includes('LOGS_VIEW')) {
       return handleApiError(req, createForbiddenError('Insufficient permissions to view logs'));
     }
 

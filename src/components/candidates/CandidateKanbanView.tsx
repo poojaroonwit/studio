@@ -1533,6 +1533,11 @@ export function SingleRowKanbanView({
 
   // Filter candidates to only show those that match the current row/column configuration
   const filteredCandidates = useMemo(() => {
+    // Defensive check to prevent "filter is not a function" errors
+    if (!Array.isArray(candidates)) {
+      return [];
+    }
+    
     return candidates.filter(candidate => {
       const rowValue = getFieldValue(candidate, rowField);
       const colValue = columnField && columnField !== 'none' 

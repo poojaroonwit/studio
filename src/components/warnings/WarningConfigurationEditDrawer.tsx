@@ -203,7 +203,7 @@ export function WarningConfigurationEditDrawer({
   const removeConditionGroup = (groupId: string) => {
     setFormData(prev => ({
       ...prev,
-      conditionGroups: prev.conditionGroups.filter(group => group.id !== groupId),
+      conditionGroups: Array.isArray(prev.conditionGroups) ? prev.conditionGroups.filter(group => group.id !== groupId) : [],
     }));
     setExpandedGroups(prev => {
       const newSet = new Set(prev);
@@ -237,15 +237,15 @@ export function WarningConfigurationEditDrawer({
   const removeCondition = (groupId: string, conditionId: string) => {
     setFormData(prev => ({
       ...prev,
-      conditionGroups: prev.conditionGroups.map(group => {
+      conditionGroups: Array.isArray(prev.conditionGroups) ? prev.conditionGroups.map(group => {
         if (group.id === groupId) {
           return {
             ...group,
-            conditions: group.conditions.filter(condition => condition.id !== conditionId),
+            conditions: Array.isArray(group.conditions) ? group.conditions.filter(condition => condition.id !== conditionId) : [],
           };
         }
         return group;
-      }),
+      }) : [],
     }));
   };
 

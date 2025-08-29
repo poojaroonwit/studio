@@ -114,40 +114,40 @@ export function safeFilter<T>(
   array: T[] | null | undefined | any, 
   predicate: (value: T, index: number, array: T[]) => boolean
 ): T[] {
-  const safeArray = Array.isArray(array) ? array : [];
-  return safeArray.filter(predicate);
+  const safeArrayValue = Array.isArray(array) ? array : [];
+  return safeArrayValue.filter(predicate);
 }
 
 export function safeMap<T, U>(
   array: T[] | null | undefined | any, 
   mapper: (value: T, index: number, array: T[]) => U
 ): U[] {
-  const safeArray = Array.isArray(array) ? array : [];
-  return safeArray.map(mapper);
+  const safeArrayValue = Array.isArray(array) ? array : [];
+  return safeArrayValue.map(mapper);
 }
 
 export function safeFind<T>(
   array: T[] | null | undefined | any, 
   predicate: (value: T, index: number, array: T[]) => boolean
 ): T | undefined {
-  const safeArray = Array.isArray(array) ? array : [];
-  return safeArray.find(predicate);
+  const safeArrayValue = Array.isArray(array) ? array : [];
+  return safeArrayValue.find(predicate);
 }
 
 export function safeSome<T>(
   array: T[] | null | undefined | any, 
   predicate: (value: T, index: number, array: T[]) => boolean
 ): boolean {
-  const safeArray = Array.isArray(array) ? array : [];
-  return safeArray.some(predicate);
+  const safeArrayValue = Array.isArray(array) ? array : [];
+  return safeArrayValue.some(predicate);
 }
 
 export function safeEvery<T>(
   array: T[] | null | undefined | any, 
   predicate: (value: T, index: number, array: T[]) => boolean
 ): boolean {
-  const safeArray = Array.isArray(array) ? array : [];
-  return safeArray.every(predicate);
+  const safeArrayValue = Array.isArray(array) ? array : [];
+  return safeArrayValue.every(predicate);
 }
 
 export function safeLength(array: any[] | null | undefined | any): number {
@@ -159,6 +159,6 @@ export function safeSlice<T>(
   start?: number, 
   end?: number
 ): T[] {
-  const safeArray = Array.isArray(array) ? array : [];
-  return safeArray.slice(start, end);
+  const safeArrayValue = Array.isArray(array) ? array : [];
+  return safeArrayValue.slice(start, end);
 }

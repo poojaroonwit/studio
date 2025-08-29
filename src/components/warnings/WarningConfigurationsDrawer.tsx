@@ -299,7 +299,7 @@ export function WarningConfigurationsDrawer({
                   {configurations.length} Configuration{configurations.length !== 1 ? 's' : ''}
                 </Badge>
                 <Badge variant="outline" className="text-sm">
-                  {configurations.filter(c => c.isActive).length} Active
+                  {Array.isArray(configurations) ? configurations.filter(c => c.isActive).length : 0} Active
                 </Badge>
               </div>
               <Button onClick={handleCreateConfiguration} size="sm">

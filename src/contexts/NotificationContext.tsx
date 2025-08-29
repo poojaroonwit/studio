@@ -55,7 +55,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       if (response.ok) {
         const data = await response.json();
         setNotifications(data);
-        setUnreadCount(data.filter((n: Notification) => !n.isRead).length);
+        setUnreadCount(Array.isArray(data) ? data.filter((n: Notification) => !n.isRead).length : 0);
       }
     } catch (error) {
       console.error('Error fetching notifications:', error);

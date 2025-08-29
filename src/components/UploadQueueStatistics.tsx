@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Clock, CheckCircle, XCircle, Loader2, AlertCircle, BarChart3, TrendingUp, Calendar, Filter } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useUploadQueueSSE } from '@/hooks/use-upload-queue-sse';
+import { useUnifiedRealtime } from '@/hooks/use-unified-realtime';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -102,8 +102,13 @@ export function UploadQueueStatistics() {
   const [completionDateFrom, setCompletionDateFrom] = useState<Date | undefined>(undefined);
   const [completionDateTo, setCompletionDateTo] = useState<Date | undefined>(undefined);
   
-  // Use shared SSE connection
-  const { isConnected: isRealtimeActive, lastMessage } = useUploadQueueSSE();
+  // Use centralized realtime connection
+  const { isConnected: isRealtimeActive, lastUpdate } = useUnifiedRealtime({
+    onUploadQueueUpdate: (queueData: any) => {
+      // Refresh data when we receive realtime updates
+      fetchQueueData();
+    }
+  });
 
   const fetchQueueData = async () => {
     setLoading(true);

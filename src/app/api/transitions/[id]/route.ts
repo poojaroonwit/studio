@@ -29,7 +29,7 @@ export async function PUT(request: NextRequest) {
 
   // Check permissions
   const canManageTransitions = session.user.role === 'Admin' || session.user.modulePermissions?.includes('USERS_MANAGE') || 
-    session.user.modulePermissions?.includes('CANDIDATES_TRANSITIONS');
+    session.user.modulePermissions?.includes('CANDIDATES_PIPELINE_STAGE_UPDATE');
   
   if (!canManageTransitions) {
     await logAudit('WARN', `Forbidden attempt to update transition by ${session.user.name || session.user.email || 'Unknown'}`, 'API:Transitions:Update', actingUserId);
@@ -98,7 +98,7 @@ export async function DELETE(request: NextRequest) {
 
   // Check permissions
   const canManageTransitions = session.user.role === 'Admin' || session.user.modulePermissions?.includes('USERS_MANAGE') || 
-    session.user.modulePermissions?.includes('CANDIDATES_TRANSITIONS');
+    session.user.modulePermissions?.includes('CANDIDATES_PIPELINE_STAGE_UPDATE');
   
   if (!canManageTransitions) {
     await logAudit('WARN', `Forbidden attempt to delete transition by ${session.user.name || session.user.email || 'Unknown'}`, 'API:Transitions:Delete', actingUserId);

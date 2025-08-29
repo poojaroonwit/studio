@@ -359,7 +359,7 @@ export function TaskBoard({
         dragThrottleRef.current = null;
       }
     };
-  }, [updateScrollButtons, visibleStagesList], 'TaskBoardScrollSetup', 10);
+  }, [updateScrollButtons], 'TaskBoardScrollSetup', 10);
 
   // Update scroll buttons when window resizes with proper cleanup
   useSafeEffect(() => {

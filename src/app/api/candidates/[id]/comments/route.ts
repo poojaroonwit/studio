@@ -121,7 +121,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   // Check permissions
   const canManageComments = session.user.role === 'Admin' || session.user.modulePermissions?.includes('USERS_MANAGE') || 
-    session.user.modulePermissions?.includes('CANDIDATES_COMMENTS');
+    session.user.modulePermissions?.includes('CANDIDATES_COMMENTS_ADD') ||
+    session.user.modulePermissions?.includes('CANDIDATES_COMMENTS_EDIT');
   
   if (!canManageComments) {
     return NextResponse.json({ message: 'Forbidden: Insufficient permissions to manage candidate comments' }, { status: 403 });

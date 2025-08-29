@@ -3,7 +3,6 @@ import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { useSafeEffect, useInfiniteLoopPrevention } from './use-safe-effect';
 
-
 interface UnifiedRealtimeOptions {
   onCandidateUpdate?: (candidate: any) => void;
   onPositionUpdate?: (position: any) => void;
@@ -11,6 +10,15 @@ interface UnifiedRealtimeOptions {
   onNotificationUpdate?: (notification: any) => void;
   onUploadQueueUpdate?: (queue: any) => void;
   onPresenceUpdate?: (presence: any) => void;
+  onUserListUpdate?: (users: any[]) => void;
+  onDashboardUpdate?: (dashboardData: any) => void;
+  onSessionExpired?: () => void;
+  onHealthCheck?: (healthData: any) => void;
+  
+  // Configuration
+  showNotifications?: boolean;
+  showErrorNotifications?: boolean;
+  errorToastCooldownMs?: number;
 }
 
 // Global connection state to prevent multiple connections
@@ -18,11 +26,22 @@ let globalEventSource: EventSource | null = null;
 let globalConnectionCount = 0;
 let globalReconnectTimeout: NodeJS.Timeout | null = null;
 let globalCleanupFunctions = new Map<EventSource, () => void>();
+let globalConnectionTimeout: NodeJS.Timeout | null = null; // Add timeout protection
+
+// Add global connection timeout protection
+const GLOBAL_CONNECTION_TIMEOUT = 30000; // 30 seconds
+const MAX_GLOBAL_CONNECTIONS = 10; // Prevent too many global connections
 
 export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
   const { data: session } = useSession();
   const [isConnected, setIsConnected] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [isReconnecting, setIsReconnecting] = useState(false);
+  const [reconnectAttempts, setReconnectAttempts] = useState(0);
+  const [connectionHealth, setConnectionHealth] = useState<'excellent' | 'good' | 'poor' | 'disconnected'>('disconnected');
+  const [connectedUsers, setConnectedUsers] = useState(0);
+  const [totalConnections, setTotalConnections] = useState(0);
+  
   const eventSourceRef = useRef<EventSource | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const healthCheckRef = useRef<NodeJS.Timeout | null>(null);
@@ -31,6 +50,10 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
   const maxReconnectAttempts = 5;
   const isConnectingRef = useRef(false);
   const [isClient, setIsClient] = useState(false);
+  const lastMessageTimeRef = useRef<number>(Date.now());
+  const lastErrorToastTimeRef = useRef<number>(0);
+  const messageCountRef = useRef<number>(0);
+  const errorCountRef = useRef<number>(0);
 
   // Memoize options to prevent unnecessary re-renders
   const memoizedOptions = useMemo(() => options, [
@@ -39,7 +62,14 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
     options.onWarningUpdate,
     options.onNotificationUpdate,
     options.onUploadQueueUpdate,
-    options.onPresenceUpdate
+    options.onPresenceUpdate,
+    options.onUserListUpdate,
+    options.onDashboardUpdate,
+    options.onSessionExpired,
+    options.onHealthCheck,
+    options.showNotifications,
+    options.showErrorNotifications,
+    options.errorToastCooldownMs
   ]);
 
   // Add infinite loop prevention
@@ -56,7 +86,7 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
     setIsClient(true);
   }, [], 'UnifiedRealtimeClientCheck', 5);
 
-  // Update options ref when options change - FIXED: Use memoized options and stable reference
+  // Update options ref when options change
   const optionsRef = useRef(memoizedOptions);
   useSafeEffect(() => {
     optionsRef.current = memoizedOptions;
@@ -88,6 +118,10 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
           clearTimeout(globalReconnectTimeout);
           globalReconnectTimeout = null;
         }
+        if (globalConnectionTimeout) {
+          clearTimeout(globalConnectionTimeout);
+          globalConnectionTimeout = null;
+        }
       }
 
       // Close local reference safely
@@ -109,8 +143,10 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
     
     // Reset connection state
     setIsConnected(false);
+    setIsReconnecting(false);
+    setConnectionHealth('disconnected');
     isConnectingRef.current = false;
-  }, []); // FIXED: Empty dependency array to prevent recreation
+  }, []);
 
   const connect = useCallback(() => {
     if (!trackConnectionAttempt()) return;
@@ -123,6 +159,12 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
       return;
     }
 
+    // Prevent too many global connections
+    if (globalConnectionCount >= MAX_GLOBAL_CONNECTIONS) {
+      console.warn('🚨 Too many global connections, waiting for cleanup');
+      return;
+    }
+
     // Prevent multiple connection attempts
     if (eventSourceRef.current && eventSourceRef.current.readyState === EventSource.CONNECTING) {
       console.log('Connection already in progress, skipping duplicate attempt');
@@ -130,14 +172,36 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
     }
 
     isConnectingRef.current = true;
+    setIsReconnecting(true);
+
+    // Add connection timeout protection
+    if (globalConnectionTimeout) {
+      clearTimeout(globalConnectionTimeout);
+    }
+    globalConnectionTimeout = setTimeout(() => {
+      console.error('🚨 Global connection timeout, cleaning up');
+      if (globalEventSource) {
+        globalEventSource.close();
+        globalEventSource = null;
+      }
+      globalConnectionCount = 0;
+      isConnectingRef.current = false;
+      setIsReconnecting(false);
+    }, GLOBAL_CONNECTION_TIMEOUT);
 
     // Use global connection if available and ready
     if (globalEventSource && globalEventSource.readyState === EventSource.OPEN) {
       eventSourceRef.current = globalEventSource;
       setIsConnected(true);
+      setIsReconnecting(false);
+      setConnectionHealth('excellent');
       setLastUpdate(new Date());
       globalConnectionCount++;
       isConnectingRef.current = false;
+      if (globalConnectionTimeout) {
+        clearTimeout(globalConnectionTimeout);
+        globalConnectionTimeout = null;
+      }
       return;
     }
 
@@ -146,6 +210,7 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
       if (!eventSource) {
         console.error('Failed to create EventSource');
         isConnectingRef.current = false;
+        setIsReconnecting(false);
         return;
       }
       eventSourceRef.current = eventSource;
@@ -154,16 +219,24 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
       eventSource.onopen = () => {
         if (!mountedRef.current) return;
         setIsConnected(true);
+        setIsReconnecting(false);
+        setConnectionHealth('excellent');
         setLastUpdate(new Date());
         globalConnectionCount++;
         reconnectAttemptsRef.current = 0; // Reset reconnect attempts on successful connection
         isConnectingRef.current = false;
+        lastMessageTimeRef.current = Date.now();
+        messageCountRef.current = 0;
+        errorCountRef.current = 0;
       };
 
       eventSource.onerror = () => {
         if (!mountedRef.current) return;
         setIsConnected(false);
+        setIsReconnecting(false);
+        setConnectionHealth('disconnected');
         isConnectingRef.current = false;
+        errorCountRef.current++;
         
         // Decrement global connection count
         globalConnectionCount = Math.max(0, globalConnectionCount - 1);
@@ -178,9 +251,11 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
           
           // Increment reconnect attempts
           reconnectAttemptsRef.current++;
+          setReconnectAttempts(reconnectAttemptsRef.current);
           
           // Reconnect after 5 seconds, but only if under max attempts
           if (reconnectAttemptsRef.current < maxReconnectAttempts && trackReconnectAttempt()) {
+            setIsReconnecting(true);
             globalReconnectTimeout = setTimeout(() => {
               if (session?.user && mountedRef.current) {
                 connect();
@@ -199,6 +274,19 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
           
           try {
             const data = JSON.parse(event.data);
+            messageCountRef.current++;
+            lastMessageTimeRef.current = Date.now();
+            
+            // Update connection health based on message frequency
+            const timeSinceLastMessage = Date.now() - lastMessageTimeRef.current;
+            if (timeSinceLastMessage < 1000) {
+              setConnectionHealth('excellent');
+            } else if (timeSinceLastMessage < 5000) {
+              setConnectionHealth('good');
+            } else {
+              setConnectionHealth('poor');
+            }
+            
             // Use current options from ref
             const currentOptions = optionsRef.current;
             if (handler) {
@@ -217,9 +305,18 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
       const notificationHandler = handleEvent('notification', optionsRef.current.onNotificationUpdate);
       const uploadQueueHandler = handleEvent('upload_queue', optionsRef.current.onUploadQueueUpdate);
       const presenceHandler = handleEvent('presence', optionsRef.current.onPresenceUpdate);
+      const userListHandler = handleEvent('user_list', optionsRef.current.onUserListUpdate);
+      const dashboardHandler = handleEvent('dashboard', optionsRef.current.onDashboardUpdate);
+      const sessionExpiredHandler = () => {
+        if (mountedRef.current && optionsRef.current.onSessionExpired) {
+          optionsRef.current.onSessionExpired();
+        }
+      };
+      const healthCheckHandler = handleEvent('health_check', optionsRef.current.onHealthCheck);
       const keepaliveHandler = () => {
         if (mountedRef.current) {
           setLastUpdate(new Date());
+          lastMessageTimeRef.current = Date.now();
         }
       };
 
@@ -229,6 +326,10 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
       eventSource.addEventListener('notification_update', notificationHandler);
       eventSource.addEventListener('upload_queue_update', uploadQueueHandler);
       eventSource.addEventListener('presence_update', presenceHandler);
+      eventSource.addEventListener('user_list_update', userListHandler);
+      eventSource.addEventListener('dashboard_update', dashboardHandler);
+      eventSource.addEventListener('session_expired', sessionExpiredHandler);
+      eventSource.addEventListener('health_check', healthCheckHandler);
       eventSource.addEventListener('keepalive', keepaliveHandler);
 
       // Store cleanup function for this EventSource
@@ -241,6 +342,10 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
             eventSource.removeEventListener('notification_update', notificationHandler);
             eventSource.removeEventListener('upload_queue_update', uploadQueueHandler);
             eventSource.removeEventListener('presence_update', presenceHandler);
+            eventSource.removeEventListener('user_list_update', userListHandler);
+            eventSource.removeEventListener('dashboard_update', dashboardHandler);
+            eventSource.removeEventListener('session_expired', sessionExpiredHandler);
+            eventSource.removeEventListener('health_check', healthCheckHandler);
             eventSource.removeEventListener('keepalive', keepaliveHandler);
           }
         } catch (error) {
@@ -254,11 +359,13 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
     } catch (error) {
       console.error('Failed to connect to unified real-time:', error);
       setIsConnected(false);
+      setIsReconnecting(false);
+      setConnectionHealth('disconnected');
       isConnectingRef.current = false;
     }
-  }, [session?.user, trackConnectionAttempt, trackReconnectAttempt, isClient]); // FIXED: Stable dependencies
+  }, [session?.user, trackConnectionAttempt, trackReconnectAttempt, isClient]);
 
-  // FIXED: Use stable dependencies and prevent infinite loops
+  // Connection effect
   useSafeEffect(() => {
     mountedRef.current = true;
     
@@ -278,7 +385,7 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
     } else {
       cleanup();
     }
-  }, [session?.user?.id, isClient], 'UnifiedRealtimeConnection', 10); // FIXED: Use session.user.id instead of session?.user
+  }, [session?.user?.id, isClient], 'UnifiedRealtimeConnection', 10);
 
   // Separate cleanup effect for unmounting
   useSafeEffect(() => {
@@ -302,13 +409,18 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
 
       cleanup();
     };
-  }, [], 'UnifiedRealtimeUnmount', 5); // FIXED: Empty dependency array
+  }, [], 'UnifiedRealtimeUnmount', 5);
 
   // Return early if not on client side to prevent SSR issues
   if (!isClient) {
     return {
       isConnected: false,
+      isReconnecting: false,
+      reconnectAttempts: 0,
       lastUpdate: null,
+      connectionHealth: 'disconnected' as const,
+      connectedUsers: 0,
+      totalConnections: 0,
       reconnect: () => {},
       disconnect: () => {}
     };
@@ -316,7 +428,12 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
 
   return {
     isConnected,
+    isReconnecting,
+    reconnectAttempts,
     lastUpdate,
+    connectionHealth,
+    connectedUsers,
+    totalConnections,
     reconnect: connect,
     disconnect: cleanup
   };

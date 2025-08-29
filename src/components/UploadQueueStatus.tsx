@@ -1,82 +1,83 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Clock, CheckCircle, XCircle, Loader2, AlertCircle, Wifi, WifiOff } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Separator } from '@/components/ui/separator';
+import { Clock, Loader2, CheckCircle, XCircle, Search, Filter, RefreshCw, AlertCircle, Info } from 'lucide-react';
+import { useUnifiedRealtime } from '@/hooks/use-unified-realtime';
 
 interface QueueItem {
   id: string;
   file_name: string;
-  status: string;
+  status: 'queued' | 'inprocess' | 'success' | 'error' | 'fail';
   upload_date: string;
+  process_date?: string;
   completed_date?: string;
   error?: string;
   error_details?: string;
-  webhook_payload?: any;
-  position_title?: string;
+  progress?: number;
+  total_candidates?: number;
+  processed_candidates?: number;
+  user_id: string;
+  user_email?: string;
 }
 
-interface QueueStatus {
+interface QueueResponse {
+  items: QueueItem[];
   total: number;
-  queued: number;
-  inprocess: number;
-  success: number;
-  error: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
 }
 
-export function UploadQueueStatus() {
-  const [queueItems, setQueueItems] = useState<QueueItem[]>([]);
-  const [queueStatus, setQueueStatus] = useState<QueueStatus>({
-    total: 0,
-    queued: 0,
-    inprocess: 0,
-    success: 0,
-    error: 0
-  });
-  const [loading, setLoading] = useState(false);
+export default function UploadQueueStatus() {
+  const [queueData, setQueueData] = useState<QueueResponse | null>(null);
+  const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<QueueItem | null>(null);
   const [showDetails, setShowDetails] = useState(false);
-  const [isRealtimeActive, setIsRealtimeActive] = useState(false);
-  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
-  
-  // Pagination state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
-  const [total, setTotal] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
-  const fetchQueue = async (currentPage = page, currentPageSize = pageSize) => {
+  // Centralized realtime hook
+  const { isConnected: isRealtimeActive, lastUpdate: realtimeLastUpdate } = useUnifiedRealtime({
+    onUploadQueueUpdate: (queueData: any) => {
+      // Refresh the queue data when we receive realtime updates
+      fetchQueue(page, pageSize);
+      setLastUpdate(new Date());
+    }
+  });
+
+  const fetchQueue = useCallback(async (currentPage = 1, currentPageSize = 10) => {
     setLoading(true);
+    setErrorMessage(null);
+    
     try {
-      const offset = (currentPage - 1) * currentPageSize;
-      const response = await fetch(`/api/upload-queue?limit=${currentPageSize}&offset=${offset}`);
-      if (!response.ok) {
-        // Capture and display API errors (e.g., Unauthorized)
-        const text = await response.text();
-        setErrorMessage(response.status === 401 ? 'Unauthorized. Please sign in to view the upload queue.' : (text || 'Failed to load upload queue.'));
-        setQueueItems([]);
-        setTotal(0);
-        setQueueStatus({ total: 0, queued: 0, inprocess: 0, success: 0, error: 0 });
-        return;
-      }
-
-      const data = await response.json();
-      setErrorMessage(null);
-      setQueueItems(Array.isArray(data.data) ? data.data : []);
-      // total may come as string from PG count(*). Parse defensively.
-      const parsedTotal = typeof data.total === 'string' ? parseInt(data.total) : (data.total || 0);
-      setTotal(Number.isFinite(parsedTotal) ? parsedTotal : 0);
-      setQueueStatus({
-        total: parseInt(data.summary?.total) || 0,
-        queued: parseInt(data.summary?.queued) || 0,
-        inprocess: parseInt(data.summary?.inprocess) || 0,
-        success: parseInt(data.summary?.success) || 0,
-        error: parseInt(data.summary?.error) || 0
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        pageSize: currentPageSize.toString(),
+        ...(searchTerm && { search: searchTerm }),
+        ...(statusFilter !== 'all' && { status: statusFilter })
       });
+
+      const response = await fetch(`/api/upload-queue?${params}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data: QueueResponse = await response.json();
+      setQueueData(data);
       setLastUpdate(new Date());
     } catch (error) {
       console.error('Failed to fetch queue:', error);
@@ -84,65 +85,11 @@ export function UploadQueueStatus() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [searchTerm, statusFilter]);
 
   useEffect(() => {
-    let mounted = true;
-    let eventSource: EventSource | null = null;
-    
-    fetchQueue();
-    
-    // Set up real-time updates
-    const connectSSE = () => {
-      if (!mounted) return;
-      
-      try {
-        eventSource = new EventSource('/api/upload-queue/sse');
-        
-        eventSource.onopen = () => {
-          if (mounted) {
-            setIsRealtimeActive(true);
-          }
-        };
-        
-        eventSource.onmessage = (event) => {
-          if (!mounted) return;
-          
-          try {
-            const data = JSON.parse(event.data);
-            if (data.type === 'queue') {
-              // For real-time updates, we'll refresh the current page
-              fetchQueue(page, pageSize);
-              setIsRealtimeActive(true);
-            }
-          } catch (error) {
-            console.error('Failed to parse SSE data:', error);
-          }
-        };
-        
-        eventSource.onerror = () => {
-          if (mounted) {
-            setIsRealtimeActive(false);
-          }
-        };
-      } catch (error) {
-        console.error('Failed to create EventSource:', error);
-      }
-    };
-    
-    connectSSE();
-
-    return () => {
-      mounted = false;
-      if (eventSource) {
-        try {
-          eventSource.close();
-        } catch (error) {
-          console.error('Error closing EventSource:', error);
-        }
-      }
-    };
-  }, []); // Remove pagination dependencies to prevent multiple connections
+    fetchQueue(page, pageSize);
+  }, [fetchQueue, page, pageSize]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -175,159 +122,211 @@ export function UploadQueueStatus() {
     setShowDetails(true);
   };
 
+  const handleSearch = () => {
+    setPage(1);
+    fetchQueue(1, pageSize);
+  };
+
+  const handleStatusFilterChange = (value: string) => {
+    setStatusFilter(value);
+    setPage(1);
+    fetchQueue(1, pageSize);
+  };
+
+  const handleRefresh = () => {
+    fetchQueue(page, pageSize);
+  };
+
   return (
     <div className="space-y-4">
-      {/* Real-time Status Header */}
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Upload Queue Status</h3>
-        <div className="flex items-center gap-2">
-       
-          {lastUpdate && (
-            <span className="text-xs text-muted-foreground">
-              Last update: {lastUpdate.toLocaleTimeString()}
-            </span>
-          )}
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Upload Queue Status</h2>
+          <p className="text-muted-foreground">
+            Monitor the status of your CV uploads in real-time
+          </p>
+        </div>
+        <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+            <div className={`w-2 h-2 rounded-full ${isRealtimeActive ? 'bg-green-500' : 'bg-red-500'}`} />
+            <span>{isRealtimeActive ? 'Live' : 'Offline'}</span>
+          </div>
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          </Button>
         </div>
       </div>
 
-      {/* Status Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total</p>
-                <p className="text-2xl font-bold">{queueStatus.total}</p>
-              </div>
-              <div className="h-8 w-8 rounded-full bg-gray-500 flex items-center justify-center">
-                <span className="text-white text-xs font-bold">T</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Queued</p>
-                <p className="text-2xl font-bold text-blue-600">{queueStatus.queued}</p>
-              </div>
-              <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center">
-                <Clock className="h-4 w-4 text-white" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Processing</p>
-                <p className="text-2xl font-bold text-yellow-600">{queueStatus.inprocess}</p>
-              </div>
-              <div className="h-8 w-8 rounded-full bg-yellow-500 flex items-center justify-center">
-                <Loader2 className="h-4 w-4 text-white animate-spin" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Success</p>
-                <p className="text-2xl font-bold text-green-600">{queueStatus.success}</p>
-              </div>
-              <div className="h-8 w-8 rounded-full bg-green-500 flex items-center justify-center">
-                <CheckCircle className="h-4 w-4 text-white" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Error</p>
-                <p className="text-2xl font-bold text-red-600">{queueStatus.error}</p>
-              </div>
-              <div className="h-8 w-8 rounded-full bg-red-500 flex items-center justify-center">
-                <XCircle className="h-4 w-4 text-white" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Recent Items */}
+      {/* Filters */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            Queue Items
-            <Button variant="outline" size="sm" onClick={() => fetchQueue()} disabled={loading}>
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Refresh'}
-            </Button>
+          <CardTitle className="flex items-center space-x-2">
+            <Filter className="h-5 w-5" />
+            <span>Filters</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2">
-            {errorMessage && (
-              <div className="text-center py-4 text-red-600">
-                {errorMessage}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="search">Search Files</Label>
+              <div className="flex space-x-2">
+                <Input
+                  id="search"
+                  placeholder="Search by filename..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                />
+                <Button onClick={handleSearch}>
+                  <Search className="h-4 w-4" />
+                </Button>
               </div>
-            )}
-            {queueItems.map((item) => (
-              <div key={item.id} className="flex items-center justify-between p-2 border rounded">
-                <div className="flex items-center gap-2">
-                  {getStatusIcon(item.status)}
-                  <span className="font-medium">{item.file_name}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge className={getStatusColor(item.status)}>
-                    {item.status}
-                  </Badge>
-                  <span className="text-xs text-muted-foreground">
-                    {new Date(item.upload_date).toLocaleDateString()}
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="status">Status Filter</Label>
+              <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="queued">Queued</SelectItem>
+                  <SelectItem value="inprocess">Processing</SelectItem>
+                  <SelectItem value="success">Completed</SelectItem>
+                  <SelectItem value="error">Error</SelectItem>
+                  <SelectItem value="fail">Failed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="pageSize">Items per Page</Label>
+              <Select value={pageSize.toString()} onValueChange={(value) => setPageSize(Number(value))}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="25">25</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Error Alert */}
+      {errorMessage && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{errorMessage}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* Queue Items */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Queue Items</CardTitle>
+              <CardDescription>
+                {queueData ? `${queueData.total} total items` : 'Loading...'}
+                {lastUpdate && (
+                  <span className="ml-2 text-xs text-muted-foreground">
+                    Last updated: {formatDate(lastUpdate.toISOString())}
                   </span>
-                </div>
-              </div>
-            ))}
-            {!errorMessage && queueItems.length === 0 && (
-              <div className="text-center py-4 text-muted-foreground">
-                No items in queue
-              </div>
+                )}
+              </CardDescription>
+            </div>
+            {isRealtimeActive && (
+              <Badge variant="secondary" className="flex items-center space-x-1">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                <span>Live Updates</span>
+              </Badge>
             )}
           </div>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin" />
+              <span className="ml-2">Loading queue...</span>
+            </div>
+          ) : queueData?.items.length === 0 ? (
+            <div className="text-center py-8">
+              <Info className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground">No queue items found</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {queueData?.items.map((item) => (
+                <div
+                  key={item.id}
+                  className="border rounded-lg p-4 hover:bg-muted/50 cursor-pointer transition-colors"
+                  onClick={() => handleItemClick(item)}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      {getStatusIcon(item.status)}
+                      <div>
+                        <h3 className="font-medium">{item.file_name}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Uploaded: {formatDate(item.upload_date)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Badge className={getStatusColor(item.status)}>
+                        {item.status}
+                      </Badge>
+                      {item.progress !== undefined && (
+                        <span className="text-sm text-muted-foreground">
+                          {item.progress}%
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {item.error && (
+                    <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                      <strong>Error:</strong> {item.error}
+                    </div>
+                  )}
+                  
+                  {item.processed_candidates !== undefined && item.total_candidates !== undefined && (
+                    <div className="mt-2 text-sm text-muted-foreground">
+                      Processed: {item.processed_candidates} / {item.total_candidates} candidates
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
           
-          {/* Pagination Controls */}
-          {total > pageSize && (
-            <div className="flex items-center justify-between mt-4">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">
-                  Showing {((page - 1) * pageSize) + 1} - {Math.min(page * pageSize, total)} of {total}
-                </span>
+          {/* Pagination */}
+          {queueData && queueData.totalPages > 1 && (
+            <div className="flex items-center justify-between mt-6">
+              <div className="text-sm text-muted-foreground">
+                Page {page} of {queueData.totalPages}
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex space-x-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setPage(prev => Math.max(1, prev - 1))}
-                  disabled={page === 1 || loading}
+                  onClick={() => setPage(Math.max(1, page - 1))}
+                  disabled={page === 1}
                 >
                   Previous
                 </Button>
-                <span className="text-sm">
-                  Page {page} of {Math.ceil(total / pageSize)}
-                </span>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setPage(prev => Math.min(Math.ceil(total / pageSize), prev + 1))}
-                  disabled={page >= Math.ceil(total / pageSize) || loading}
+                  onClick={() => setPage(Math.min(queueData.totalPages, page + 1))}
+                  disabled={page === queueData.totalPages}
                 >
                   Next
                 </Button>
@@ -337,57 +336,96 @@ export function UploadQueueStatus() {
         </CardContent>
       </Card>
 
-      {/* Details Modal */}
+      {/* Details Dialog */}
       <Dialog open={showDetails} onOpenChange={setShowDetails}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Queue Item Details</DialogTitle>
+            <DialogDescription>
+              Detailed information about the selected queue item
+            </DialogDescription>
           </DialogHeader>
           
           {selectedItem && (
             <div className="space-y-4">
-              <div>
-                <h4 className="font-medium">File Information</h4>
-                <p><strong>Name:</strong> {selectedItem.file_name}</p>
-                <p><strong>Status:</strong> 
-                  <Badge className={`ml-2 ${getStatusColor(selectedItem.status)}`}>
-                    {selectedItem.status}
-                  </Badge>
-                </p>
-                <p><strong>Upload Date:</strong> {formatDate(selectedItem.upload_date)}</p>
-                {selectedItem.completed_date && (
-                  <p><strong>Completed Date:</strong> {formatDate(selectedItem.completed_date)}</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-medium">File Name</Label>
+                  <p className="text-sm">{selectedItem.file_name}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Status</Label>
+                  <div className="flex items-center space-x-2">
+                    {getStatusIcon(selectedItem.status)}
+                    <Badge className={getStatusColor(selectedItem.status)}>
+                      {selectedItem.status}
+                    </Badge>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Upload Date</Label>
+                  <p className="text-sm">{formatDate(selectedItem.upload_date)}</p>
+                </div>
+                {selectedItem.process_date && (
+                  <div>
+                    <Label className="text-sm font-medium">Process Date</Label>
+                    <p className="text-sm">{formatDate(selectedItem.process_date)}</p>
+                  </div>
                 )}
-                {selectedItem.position_title && (
-                  <p><strong>Position:</strong> {selectedItem.position_title}</p>
+                {selectedItem.completed_date && (
+                  <div>
+                    <Label className="text-sm font-medium">Completed Date</Label>
+                    <p className="text-sm">{formatDate(selectedItem.completed_date)}</p>
+                  </div>
+                )}
+                {selectedItem.user_email && (
+                  <div>
+                    <Label className="text-sm font-medium">Uploaded By</Label>
+                    <p className="text-sm">{selectedItem.user_email}</p>
+                  </div>
                 )}
               </div>
-
-              {selectedItem.error && (
+              
+              {selectedItem.progress !== undefined && (
                 <div>
-                  <h4 className="font-medium text-red-600">Error</h4>
-                  <p className="text-sm text-red-600">{selectedItem.error}</p>
+                  <Label className="text-sm font-medium">Progress</Label>
+                  <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+                    <div
+                      className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${selectedItem.progress}%` }}
+                    />
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {selectedItem.progress}% complete
+                  </p>
                 </div>
               )}
-
-              {selectedItem.webhook_payload && (
+              
+              {selectedItem.processed_candidates !== undefined && selectedItem.total_candidates !== undefined && (
                 <div>
-                  <h4 className="font-medium">Webhook Response</h4>
-                  <ScrollArea className="h-32 border rounded p-2">
-                    <pre className="text-xs">
-                      {JSON.stringify(selectedItem.webhook_payload, null, 2)}
-                    </pre>
-                  </ScrollArea>
+                  <Label className="text-sm font-medium">Candidates Processed</Label>
+                  <p className="text-sm">
+                    {selectedItem.processed_candidates} of {selectedItem.total_candidates} candidates
+                  </p>
+                </div>
+              )}
+              
+              {selectedItem.error && (
+                <div>
+                  <Label className="text-sm font-medium text-red-700">Error</Label>
+                  <p className="text-sm text-red-700 mt-1">{selectedItem.error}</p>
+                  {selectedItem.error_details && (
+                    <details className="mt-2">
+                      <summary className="text-sm text-red-600 cursor-pointer">View Error Details</summary>
+                      <pre className="text-xs text-red-700 mt-2 p-2 bg-red-50 rounded overflow-auto">
+                        {selectedItem.error_details}
+                      </pre>
+                    </details>
+                  )}
                 </div>
               )}
             </div>
           )}
-
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button>Close</Button>
-            </DialogClose>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

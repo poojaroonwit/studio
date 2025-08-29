@@ -85,10 +85,10 @@ export async function GET(request: NextRequest) {
           console.error('[Unified Realtime] Failed to send user list:', userListError);
         }
         
-        // Send keepalive every 30 seconds
+        // Send keepalive every 30 seconds with error protection
         keepaliveInterval = setInterval(() => {
           try {
-            if (isConnected) {
+            if (isConnected && controller.desiredSize !== null) {
               controller.enqueue(encoder.encode(`event: keepalive\ndata: ${JSON.stringify({ timestamp: new Date().toISOString() })}\n\n`));
             }
           } catch (error) {
@@ -97,10 +97,10 @@ export async function GET(request: NextRequest) {
           }
         }, 30000);
 
-        // Send presence updates every 10 seconds
+        // Send presence updates every 10 seconds with error protection
         presenceInterval = setInterval(() => {
           try {
-            if (!isConnected) return;
+            if (!isConnected || controller.desiredSize === null) return;
             
             // Clean up offline users
             cleanupOfflineUsers();

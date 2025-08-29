@@ -7,9 +7,17 @@ import { logAudit } from '@/lib/auditLog';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-// Performance monitoring
-const CACHE_DURATION = 60; // 60 seconds cache
-const STALE_WHILE_REVALIDATE = 120; // 2 minutes stale-while-revalidate
+// Performance monitoring and circuit breaker
+const CACHE_DURATION = 300; // 5 minutes cache (increased from 60s)
+const STALE_WHILE_REVALIDATE = 600; // 10 minutes stale-while-revalidate
+const QUERY_TIMEOUT = 30000; // 30 seconds timeout
+const MAX_RETRIES = 2;
+
+// Circuit breaker for API protection
+let consecutiveFailures = 0;
+let lastFailureTime = 0;
+const CIRCUIT_BREAKER_THRESHOLD = 5;
+const CIRCUIT_BREAKER_RESET_TIME = 60000; // 1 minute
 
 // Helper for session and permission checks
 async function requireSessionAndPermission(requiredPermission: string, request: NextRequest) {
@@ -18,7 +26,7 @@ async function requireSessionAndPermission(requiredPermission: string, request: 
     return { error: NextResponse.json({ message: 'Unauthorized' }, { status: 401 }) };
   }
   if (
-    session.user.role !== 'Admin' ||
+    session.user.role !== 'Admin' &&
     !session.user.modulePermissions?.includes(requiredPermission)
   ) {
     await logAudit(
@@ -32,8 +40,117 @@ async function requireSessionAndPermission(requiredPermission: string, request: 
   return { session };
 }
 
+// Circuit breaker check
+function isCircuitBreakerOpen(): boolean {
+  const now = Date.now();
+  if (consecutiveFailures >= CIRCUIT_BREAKER_THRESHOLD) {
+    if (now - lastFailureTime < CIRCUIT_BREAKER_RESET_TIME) {
+      return true; // Circuit is open
+    } else {
+      // Reset circuit breaker after timeout
+      consecutiveFailures = 0;
+      lastFailureTime = 0;
+    }
+  }
+  return false;
+}
+
+// Optimized query builder with parameterized queries
+function buildOptimizedQueries(whereClause: string, queryParams: any[]) {
+  // Create a CTE (Common Table Expression) for better performance
+  const baseQuery = `
+    WITH filtered_candidates AS (
+      SELECT 
+        c.id,
+        c."fitScore",
+        c."parsedData",
+        COALESCE(c."fitScore", 0) as applied_score,
+        GREATEST(
+          COALESCE(c."fitScore", 0),
+          COALESCE((
+            SELECT MAX(CAST(job_match->>'fitScore' AS DECIMAL))
+            FROM jsonb_array_elements(c."parsedData"->'job_matches') AS job_match
+            WHERE job_match->>'fitScore' IS NOT NULL
+          ), 0),
+          COALESCE((
+            SELECT MAX(jm."fitScore")
+            FROM "JobMatch" jm
+            WHERE jm."candidateId" = c.id
+          ), 0)
+        ) as best_match_score
+      FROM "Candidate" c
+      ${whereClause}
+    )
+  `;
+
+  const appliedFitScoreCountsQuery = `
+    ${baseQuery}
+    SELECT 
+      CASE 
+        WHEN applied_score IS NULL OR applied_score = 0 THEN 'no-score'
+        WHEN applied_score >= 0.81 THEN 'A'
+        WHEN applied_score >= 0.61 THEN 'B'
+        WHEN applied_score >= 0.41 THEN 'C'
+        WHEN applied_score >= 0.21 THEN 'D'
+        ELSE 'E'
+      END as grade,
+      COUNT(*) as count
+    FROM filtered_candidates
+    GROUP BY 
+      CASE 
+        WHEN applied_score IS NULL OR applied_score = 0 THEN 'no-score'
+        WHEN applied_score >= 0.81 THEN 'A'
+        WHEN applied_score >= 0.61 THEN 'B'
+        WHEN applied_score >= 0.41 THEN 'C'
+        WHEN applied_score >= 0.21 THEN 'D'
+        ELSE 'E'
+      END
+    ORDER BY grade
+  `;
+
+  const matchingFitScoreCountsQuery = `
+    ${baseQuery}
+    SELECT 
+      CASE 
+        WHEN best_match_score IS NULL OR best_match_score = 0 THEN 'no-score'
+        WHEN best_match_score >= 0.81 THEN 'A'
+        WHEN best_match_score >= 0.61 THEN 'B'
+        WHEN best_match_score >= 0.41 THEN 'C'
+        WHEN best_match_score >= 0.21 THEN 'D'
+        ELSE 'E'
+      END as grade,
+      COUNT(*) as count
+    FROM filtered_candidates
+    GROUP BY 
+      CASE 
+        WHEN best_match_score IS NULL OR best_match_score = 0 THEN 'no-score'
+        WHEN best_match_score >= 0.81 THEN 'A'
+        WHEN best_match_score >= 0.61 THEN 'B'
+        WHEN best_match_score >= 0.41 THEN 'C'
+        WHEN best_match_score >= 0.21 THEN 'D'
+        ELSE 'E'
+      END
+    ORDER BY grade
+  `;
+
+  return { appliedFitScoreCountsQuery, matchingFitScoreCountsQuery };
+}
+
 export async function GET(request: NextRequest) {
   const startTime = Date.now();
+  
+  // Circuit breaker check
+  if (isCircuitBreakerOpen()) {
+    return NextResponse.json({ 
+      message: 'Service temporarily unavailable due to high load',
+      retryAfter: Math.ceil((CIRCUIT_BREAKER_RESET_TIME - (Date.now() - lastFailureTime)) / 1000)
+    }, { 
+      status: 503,
+      headers: {
+        'Retry-After': Math.ceil((CIRCUIT_BREAKER_RESET_TIME - (Date.now() - lastFailureTime)) / 1000).toString()
+      }
+    });
+  }
   
   try {
     const { session, error } = await requireSessionAndPermission('CANDIDATES_VIEW', request);
@@ -352,94 +469,51 @@ export async function GET(request: NextRequest) {
     // Build the final WHERE clause
     const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
 
-    // Get database connection
+    // Get database connection with timeout
     const client = await getPool().connect();
     
     try {
-      // Optimized fit score count queries
-      const appliedFitScoreCountsQuery = `
-        SELECT 
-          CASE 
-            WHEN c."fitScore" IS NULL OR c."fitScore" = 0 THEN 'no-score'
-            WHEN c."fitScore" >= 0.81 THEN 'A'
-            WHEN c."fitScore" >= 0.61 THEN 'B'
-            WHEN c."fitScore" >= 0.41 THEN 'C'
-            WHEN c."fitScore" >= 0.21 THEN 'D'
-            ELSE 'E'
-          END as grade,
-          COUNT(*) as count
-        FROM "Candidate" c
-        ${whereClause}
-        GROUP BY 
-          CASE 
-            WHEN c."fitScore" IS NULL OR c."fitScore" = 0 THEN 'no-score'
-            WHEN c."fitScore" >= 0.81 THEN 'A'
-            WHEN c."fitScore" >= 0.61 THEN 'B'
-            WHEN c."fitScore" >= 0.41 THEN 'C'
-            WHEN c."fitScore" >= 0.21 THEN 'D'
-            ELSE 'E'
-          END
-        ORDER BY grade
-      `;
+      // Set query timeout
+      await client.query('SET statement_timeout = $1', [QUERY_TIMEOUT]);
+      
+      // Build optimized queries
+      const { appliedFitScoreCountsQuery, matchingFitScoreCountsQuery } = buildOptimizedQueries(whereClause, queryParams);
 
-      const matchingFitScoreCountsQuery = `
-        SELECT 
-          CASE 
-            WHEN best_match_score IS NULL OR best_match_score = 0 THEN 'no-score'
-            WHEN best_match_score >= 0.81 THEN 'A'
-            WHEN best_match_score >= 0.61 THEN 'B'
-            WHEN best_match_score >= 0.41 THEN 'C'
-            WHEN best_match_score >= 0.21 THEN 'D'
-            ELSE 'E'
-          END as grade,
-          COUNT(*) as count
-        FROM (
-          SELECT 
-            c.id,
-            GREATEST(
-              COALESCE(c."fitScore", 0),
-              COALESCE((
-                SELECT MAX(CAST(job_match->>'fitScore' AS DECIMAL))
-                FROM jsonb_array_elements(c."parsedData"->'job_matches') AS job_match
-                WHERE job_match->>'fitScore' IS NOT NULL
-              ), 0),
-              COALESCE((
-                SELECT MAX(jm."fitScore")
-                FROM "JobMatch" jm
-                WHERE jm."candidateId" = c.id
-              ), 0)
-            ) as best_match_score
-          FROM "Candidate" c
-          ${whereClause}
-        ) as candidate_scores
-        GROUP BY 
-          CASE 
-            WHEN best_match_score IS NULL OR best_match_score = 0 THEN 'no-score'
-            WHEN best_match_score >= 0.81 THEN 'A'
-            WHEN best_match_score >= 0.61 THEN 'B'
-            WHEN best_match_score >= 0.41 THEN 'C'
-            WHEN best_match_score >= 0.21 THEN 'D'
-            ELSE 'E'
-          END
-        ORDER BY grade
-      `;
-
-      // Execute both queries in parallel
+      // Execute both queries in parallel with retry logic
       let appliedResult: any, matchingResult: any;
-      try {
-        const queryStartTime = Date.now();
-        
-        [appliedResult, matchingResult] = await Promise.all([
-          client.query(appliedFitScoreCountsQuery, queryParams),
-          client.query(matchingFitScoreCountsQuery, queryParams)
-        ]);
+      let retryCount = 0;
+      
+      while (retryCount <= MAX_RETRIES) {
+        try {
+          const queryStartTime = Date.now();
+          
+          [appliedResult, matchingResult] = await Promise.all([
+            client.query(appliedFitScoreCountsQuery, queryParams),
+            client.query(matchingFitScoreCountsQuery, queryParams)
+          ]);
 
-        const queryTime = Date.now() - queryStartTime;
-        console.log(`⚡ Fit score count queries completed in ${queryTime}ms`);
-        
-      } catch (error) {
-        console.error('❌ Database query error:', error);
-        throw error;
+          const queryTime = Date.now() - queryStartTime;
+          console.log(`⚡ Fit score count queries completed in ${queryTime}ms`);
+          
+          // Reset circuit breaker on success
+          consecutiveFailures = 0;
+          lastFailureTime = 0;
+          break;
+          
+        } catch (error: any) {
+          retryCount++;
+          console.error(`❌ Database query error (attempt ${retryCount}):`, error);
+          
+          if (retryCount > MAX_RETRIES) {
+            // Update circuit breaker
+            consecutiveFailures++;
+            lastFailureTime = Date.now();
+            throw error;
+          }
+          
+          // Wait before retry with exponential backoff
+          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+        }
       }
 
       // Transform results to expected format
@@ -478,6 +552,10 @@ export async function GET(request: NextRequest) {
 
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
+    
+    // Update circuit breaker on error
+    consecutiveFailures++;
+    lastFailureTime = Date.now();
     
     console.error('❌ Fit score counts API error:', error);
     

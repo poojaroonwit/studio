@@ -420,10 +420,37 @@ export async function GET(request: NextRequest) {
       });
     }
   } catch (error) {
-    await logAudit('ERROR', `Failed to export candidates by ${actingUserName}. Error: ${(error as Error).message}`, 'API:Candidates:Export', actingUserId, { 
-      error: (error as Error).message 
+    console.error('Export error details:', {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      actingUserName,
+      actingUserId
     });
-    return NextResponse.json({ error: 'Failed to export candidates' }, { status: 500 });
+    
+    await logAudit('ERROR', `Failed to export candidates by ${actingUserName}. Error: ${(error as Error).message}`, 'API:Candidates:Export', actingUserId, { 
+      error: (error as Error).message,
+      stack: error instanceof Error ? error.stack : undefined
+    });
+    
+    // Provide more specific error messages based on error type
+    let errorMessage = 'Failed to export candidates';
+    
+    if (error instanceof Error) {
+      if (error.message.includes('connection') || error.message.includes('pool')) {
+        errorMessage = 'Database connection error. Please try again.';
+      } else if (error.message.includes('timeout')) {
+        errorMessage = 'Export timed out. Please try with fewer filters or contact support.';
+      } else if (error.message.includes('memory') || error.message.includes('heap')) {
+        errorMessage = 'Export too large. Please try with fewer filters.';
+      } else if (error.message.includes('permission') || error.message.includes('access')) {
+        errorMessage = 'Permission denied. Please check your access rights.';
+      }
+    }
+    
+    return NextResponse.json({ 
+      error: errorMessage,
+      details: error instanceof Error ? error.message : String(error)
+    }, { status: 500 });
   }
 }
 

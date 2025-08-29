@@ -211,6 +211,33 @@ fi
 
 echo "✅ Comprehensive permission setup completed"
 
+# Apply fit score performance optimizations
+echo "⚡ Applying fit score performance optimizations..."
+echo "  📋 Step 1: Applying database indexes for fit score queries..."
+
+# Try to apply the fit score indexes migration (if it exists in Prisma migrations)
+if [ -f "prisma/migrations/20241220000000_add_fit_score_performance_indexes/migration.sql" ]; then
+    echo "    📦 Found Prisma migration for fit score indexes"
+    # The migration will be applied automatically by the migration system above
+    echo "    ✅ Fit score indexes will be applied via Prisma migration system"
+else
+    echo "    📄 Applying standalone fit score indexes SQL file..."
+    # Apply the fit score indexes migration as standalone SQL
+    if npx prisma db execute --file=prisma/migrations/add_fit_score_indexes.sql --schema=prisma/schema.prisma; then
+        echo "    ✅ Fit score indexes applied successfully"
+    else
+        echo "    ⚠️  Fit score indexes failed or already applied"
+    fi
+fi
+
+echo "  📋 Step 2: Running performance optimization script..."
+if node scripts/optimize-fit-score-performance.js; then
+    echo "    ✅ Performance optimization completed"
+else
+    echo "    ⚠️  Performance optimization failed or already completed"
+fi
+
+echo "✅ Fit score performance optimization completed"
 
 
 echo "✅ Database and permission setup complete!"

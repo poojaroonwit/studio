@@ -178,6 +178,8 @@ export class UnifiedRealtimeBroadcaster {
     maxRetries: number;
   }> = [];
   private isProcessingRetries = false;
+  private maxRetryQueueSize = 100; // Add queue size limit
+  private retryProcessingTimeout = 30000; // 30 second timeout for retry processing
 
   static getInstance(): UnifiedRealtimeBroadcaster {
     if (!UnifiedRealtimeBroadcaster.instance) {
@@ -481,28 +483,49 @@ export class UnifiedRealtimeBroadcaster {
       return;
     }
 
-    this.isProcessingRetries = true;
-
-    while (this.retryQueue.length > 0) {
-      const item = this.retryQueue.shift();
-      if (!item) continue;
-
-      if (item.retryCount < item.maxRetries) {
-        try {
-          await this.broadcast(item.event.type, item.event.data, item.options);
-        } catch (error) {
-          item.retryCount++;
-          if (item.retryCount < item.maxRetries) {
-            this.retryQueue.push(item);
-          }
-        }
-      }
-
-      // Wait a bit between retries
-      await new Promise(resolve => setTimeout(resolve, 1000));
+    // Add queue overflow protection
+    if (this.retryQueue.length > this.maxRetryQueueSize) {
+      console.error(`🚨 Retry queue overflow (${this.retryQueue.length} items), clearing queue`);
+      this.retryQueue = [];
+      this.isProcessingRetries = false;
+      return;
     }
 
-    this.isProcessingRetries = false;
+    this.isProcessingRetries = true;
+
+    // Add timeout protection for retry processing
+    const processingTimeout = setTimeout(() => {
+      console.error('🚨 Retry queue processing timeout, stopping processing');
+      this.isProcessingRetries = false;
+    }, this.retryProcessingTimeout);
+
+    try {
+      while (this.retryQueue.length > 0) {
+        const item = this.retryQueue.shift();
+        if (!item) continue;
+
+        if (item.retryCount < item.maxRetries) {
+          try {
+            await this.broadcast(item.event.type, item.event.data, item.options);
+          } catch (error) {
+            item.retryCount++;
+            if (item.retryCount < item.maxRetries) {
+              // Add exponential backoff to prevent rapid retries
+              const backoffDelay = Math.min(1000 * Math.pow(2, item.retryCount), 10000);
+              setTimeout(() => {
+                this.retryQueue.push(item);
+              }, backoffDelay);
+            }
+          }
+        }
+
+        // Wait a bit between retries
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    } finally {
+      clearTimeout(processingTimeout);
+      this.isProcessingRetries = false;
+    }
   }
 
   // Statistics and monitoring

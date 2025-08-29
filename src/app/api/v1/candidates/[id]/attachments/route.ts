@@ -345,7 +345,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     return handleApiError(req, createUnauthorizedError('Authentication required'));
   }
 
-  if (user.role !== 'Admin' && !user.modulePermissions?.includes('CANDIDATES_MANAGE')) {
+  if (user.role !== 'Admin' && !user.modulePermissions?.includes('CANDIDATES_EDIT_BASIC') && !user.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE')) {
     return handleApiError(req, createForbiddenError('Insufficient permissions to manage attachments'));
   }
 
@@ -387,7 +387,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     return handleApiError(req, createUnauthorizedError('Authentication required'));
   }
 
-  if (user.role !== 'Admin' && !user.modulePermissions?.includes('CANDIDATES_MANAGE')) {
+  if (user.role !== 'Admin' && !user.modulePermissions?.includes('CANDIDATES_EDIT_BASIC') && !user.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE')) {
     return handleApiError(req, createForbiddenError('Insufficient permissions to delete attachments'));
   }
 

@@ -206,7 +206,9 @@ export function CandidatesPageClient({
     revertOptimisticUpdate,
     databaseFitScoreCounts,
     isFitScoreCountsLoading,
-    fetchFitScoreCounts
+    fetchFitScoreCounts,
+    debouncedFetchFitScoreCounts,
+    forceRefreshFitScoreCounts
   } = useCandidateData({
     initialCandidates,
     initialAvailablePositions,
@@ -876,7 +878,7 @@ export function CandidatesPageClient({
         delete filtersForCounts.includeNoScoreInApplied;
         delete filtersForCounts.includeNoScoreInMatching;
         
-        fetchFitScoreCounts(); // Update fit score counts when filters change
+        debouncedFetchFitScoreCounts(); // Update fit score counts when filters change (debounced)
       }, 200); // Increased delay to prevent infinite loops
       
       // Store timeout for cleanup
@@ -946,7 +948,7 @@ export function CandidatesPageClient({
     // Use a small delay to ensure state updates are processed
     const clearTimeoutId = setTimeout(() => {
       fetchTableData(defaultFilters, 1, pageSize);
-      fetchFitScoreCounts(); // Update fit score counts when clearing all filters
+      forceRefreshFitScoreCounts(); // Update fit score counts when clearing all filters (force refresh)
       // Don't reset isClearingFilters here - let the useEffect handle it when fitscore counts finish loading
     }, 100);
     
@@ -989,13 +991,42 @@ export function CandidatesPageClient({
       // Add format parameter (XLSX by default)
       params.append('format', 'excel');
       
-      const response = await fetch(`/api/candidates/export?${params.toString()}`);
+      console.log('Starting export with params:', params.toString());
+      
+      const response = await fetch(`/api/candidates/export?${params.toString()}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      console.log('Export response status:', response.status);
       
       if (!response.ok) {
-        throw new Error('Export failed');
+        const errorText = await response.text();
+        console.error('Export failed with status:', response.status, 'Error:', errorText);
+        
+        let errorMessage = 'Export failed. Please try again.';
+        
+        if (response.status === 401) {
+          errorMessage = 'Authentication required. Please refresh the page and try again.';
+        } else if (response.status === 403) {
+          errorMessage = 'Permission denied. You may not have permission to export candidates.';
+        } else if (response.status === 500) {
+          errorMessage = 'Server error. Please try again or contact support if the problem persists.';
+        } else if (response.status === 504) {
+          errorMessage = 'Request timed out. The export may be too large. Please try with fewer filters.';
+        }
+        
+        throw new Error(errorMessage);
       }
       
       const blob = await response.blob();
+      
+      if (blob.size === 0) {
+        throw new Error('Export returned empty file. Please check your filters and try again.');
+      }
+      
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -1005,9 +1036,25 @@ export function CandidatesPageClient({
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
       
-      toast.success('Export completed successfully');
+      toast.success(`Export completed successfully! File size: ${(blob.size / 1024).toFixed(1)} KB`);
     } catch (error) {
-      toast.error('Export failed. Please try again.');
+      console.error('Export error:', error);
+      
+      let errorMessage = 'Export failed. Please try again.';
+      
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          errorMessage = 'Request timed out. Please try again.';
+        } else if (error.message.includes('fetch failed')) {
+          errorMessage = 'Network connection failed. Please check your internet connection and try again.';
+        } else if (error.message.includes('timeout')) {
+          errorMessage = 'Request timed out. The server took too long to respond. Please try again.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setTableLoading(false);
     }
@@ -1200,7 +1247,7 @@ export function CandidatesPageClient({
       delete filtersForCounts.includeNoScoreInApplied;
       delete filtersForCounts.includeNoScoreInMatching;
       
-      fetchFitScoreCounts();
+      forceRefreshFitScoreCounts();
     }
   }, [sessionStatus, hasInitialDataFetch, initialCandidates.length], 'fetchFitScoreCounts');
 

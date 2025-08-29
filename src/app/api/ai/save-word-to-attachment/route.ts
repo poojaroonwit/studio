@@ -18,7 +18,8 @@ export async function POST(request: NextRequest) {
 
   // Check permissions
   const canManageAttachments = session.user.role === 'Admin' || session.user.modulePermissions?.includes('USERS_MANAGE') || 
-    session.user.modulePermissions?.includes('CANDIDATES_MANAGE');
+    session.user.modulePermissions?.includes('CANDIDATES_EDIT_BASIC') ||
+    session.user.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE');
   
   if (!canManageAttachments) {
     return NextResponse.json({ error: 'Forbidden: Insufficient permissions to manage candidate attachments' }, { status: 403 });

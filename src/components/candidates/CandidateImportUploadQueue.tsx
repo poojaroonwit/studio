@@ -1,2068 +1,581 @@
 "use client";
 
-import React, { createContext, useContext, useState, useCallback, useEffect, useRef, useMemo } from "react"
-
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Loader2, XCircle, CheckCircle, FileText, ExternalLink, AlertCircle, Eye, FileUp, UploadCloud, X, Download, ChevronLeft, ChevronRight, MoreHorizontal, Play, MoreVertical, ChevronUp, ChevronDown, Send, Search, RotateCcw } from "lucide-react";
-import Link from "next/link";
-import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
-import { MINIO_PUBLIC_BASE_URL, MINIO_BUCKET } from '@/lib/minio-constants';
-import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
-import { useToast } from '@/hooks/use-toast';
-import { addDays, format, isAfter, isBefore, parseISO, subDays } from 'date-fns';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
-import { useSession } from 'next-auth/react';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import type { Position } from '@/lib/types';
-import { FileViewerModal } from "@/components/ui/file-viewer-modal";
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Separator } from '@/components/ui/separator';
+import { Clock, Loader2, CheckCircle, XCircle, Search, Filter, RefreshCw, AlertCircle, Info, Upload, FileText, Users, Calendar } from 'lucide-react';
+import { useUnifiedRealtime } from '@/hooks/use-unified-realtime';
 
-
-// Error boundary for this component
-class CandidateImportUploadQueueErrorBoundary extends React.Component<
-  { children: React.ReactNode },
-  { hasError: boolean; error?: Error }
-> {
-  constructor(props: { children: React.ReactNode }) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('CandidateImportUploadQueue Error Boundary caught an error:', error, errorInfo);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="flex flex-col items-center justify-center p-8">
-          <div className="text-center">
-            <h2 className="text-xl font-semibold mb-2">Something went wrong</h2>
-            <p className="text-muted-foreground mb-4">
-              There was an error loading the upload queue. Please try refreshing the page.
-            </p>
-            <Button onClick={() => window.location.reload()}>
-              Refresh Page
-            </Button>
-          </div>
-        </div>
-      );
-    }
-
-    return this.props.children;
-  }
-}
-
-export type CandidateJobType = "upload" | "import";
-
-export interface CandidateJob {
+interface QueueItem {
   id: string;
   file_name: string;
-  file_size: number;
-  status: string;
+  status: 'queued' | 'inprocess' | 'success' | 'error' | 'fail';
+  upload_date: string;
+  process_date?: string;
+  completed_date?: string;
   error?: string;
   error_details?: string;
-  source: string;
-  upload_date?: string;
-  completed_date?: string;
-  upload_id?: string;
-  created_by?: string;
-  updatedAt?: string;
-  file_path?: string;
-  file?: File;
-  type: CandidateJobType;
-  webhook_payload?: any;
-  process_date?: string;
-  url?: string;
-  position_id?: string;
+  progress?: number;
+  total_candidates?: number;
+  processed_candidates?: number;
+  user_id: string;
+  user_email?: string;
   position_title?: string;
+  position_id?: string;
 }
 
-interface QueueContextType {
-  jobs: CandidateJob[];
-  addJob: (job: CandidateJob) => void;
-  updateJob: (id: string, update: Partial<CandidateJob>) => void;
-  removeJob: (id: string) => void;
+interface QueueResponse {
+  items: QueueItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  summary?: {
+    total: number;
+    queued: number;
+    inprocess: number;
+    success: number;
+    error: number;
+  };
 }
 
-const CandidateQueueContext = createContext<QueueContextType | undefined>(undefined);
+export default function CandidateImportUploadQueue() {
+  const [queueData, setQueueData] = useState<QueueResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [selectedItem, setSelectedItem] = useState<QueueItem | null>(null);
+  const [showDetails, setShowDetails] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [positionFilter, setPositionFilter] = useState<string>('all');
+  const [dateRange, setDateRange] = useState<{ start?: Date; end?: Date }>({});
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [positions, setPositions] = useState<Array<{ id: string; title: string }>>([]);
 
-export function useCandidateQueue() {
-  const ctx = useContext(CandidateQueueContext);
-  if (!ctx) throw new Error("useCandidateQueue must be used within CandidateQueueProvider");
-  return ctx;
-}
-
-export const CandidateQueueProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [jobs, setJobs] = useState<CandidateJob[]>([]);
-
-  const addJob = useCallback((job: CandidateJob) => {
-    setJobs((prev) => [...prev, job]);
-  }, []);
-
-  const updateJob = useCallback((id: string, update: Partial<CandidateJob>) => {
-    setJobs((prev) => prev.map((j) => (j.id === id ? { ...j, ...update } : j)));
-  }, []);
-
-  const removeJob = useCallback((id: string) => {
-    setJobs((prev) => prev.filter((j) => j.id !== id));
-  }, []);
-
-  return (
-    <CandidateQueueContext.Provider value={{ jobs, addJob, updateJob, removeJob }}>
-      {children}
-    </CandidateQueueContext.Provider>
-  );
-};
-
-const CandidateImportUploadQueueInner: React.FC<{
-  initialPage?: number;
-  initialPageSize?: number;
-  onPaginationChange?: (page: number, pageSize: number) => void;
-}> = ({ initialPage = 1, initialPageSize = 20, onPaginationChange }) => {
-  const [jobs, setJobs] = useState<CandidateJob[]>([]);
-  const [total, setTotal] = useState(0);
-  const [statusSummary, setStatusSummary] = useState<any>(null); // For static status cards
-  const [page, setPage] = useState(initialPage);
-  const [pageSize, setPageSize] = useState(initialPageSize);
-  const [isLoading, setIsLoading] = useState(false);
-  const [fetchError, setFetchError] = useState<string | null>(null);
-  const [isRealtimeActive, setIsRealtimeActive] = useState(false);
-  const [showErrorLogId, setShowErrorLogId] = useState<string | null>(null);
-  const [showCombinedDialogId, setShowCombinedDialogId] = useState<string | null>(null);
-  const [filter, setFilter] = useState("");
-  const [debouncedFilter, setDebouncedFilter] = useState("");
-  const [isSearching, setIsSearching] = useState(false);
-  const [statusFilter, setStatusFilter] = useState("");
-  const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [bulkDeleteIds, setBulkDeleteIds] = useState<string[]>([]);
-  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
-  const [deleteLoading, setDeleteLoading] = useState(false);
-  const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
-  const [showBulkRetryConfirm, setShowBulkRetryConfirm] = useState(false);
-  const [bulkRetryLoading, setBulkRetryLoading] = useState(false);
-  const [cancelId, setCancelId] = useState<string | null>(null);
-  const [cancelLoading, setCancelLoading] = useState(false);
-  // Remove isRealtimeActive state and always use SSE
-  // const [isRealtimeActive, setIsRealtimeActive] = useState(false);
-  const [jumpToPage, setJumpToPage] = useState<string>("");
-  const { success, error: showError } = useToast();
-  // Change: default dateRange is null (no filter)
-  const [dateRange, setDateRange] = useState<{ start: Date | null; end: Date | null }>(() => ({ start: null, end: null }));
-  const { data: session, status: sessionStatus } = useSession();
-  const isFetchingRef = useRef(false);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const fetchJobsRef = useRef<() => Promise<void>>();
-  const [summary, setSummary] = useState<any>(null);
-  const [maxConcurrentProcessors, setMaxConcurrentProcessors] = useState<number | null>(null);
-
-  // Add sort state and handler at the top of the component
-  const [sortColumn, setSortColumn] = useState<string | null>(null);
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc' | null>('asc');
-  const [openMenu, setOpenMenu] = useState<string | null>(null);
-
-  // Add after other useState hooks at the top of the component
-  const [positionIdFilter, setPositionIdFilter] = useState<string>("");
-  const [availablePositions, setAvailablePositions] = useState<Position[]>([]);
-  const [positionPopoverOpen, setPositionPopoverOpen] = useState(false);
-
-  // Add state for file viewer modal
-  const [fileViewerOpen, setFileViewerOpen] = useState(false);
-  const [fileViewerFile, setFileViewerFile] = useState<{
-    fileName: string;
-    url: string;
-    label?: string;
-    updatedAt?: string;
-    fileSize?: number;
-  } | null>(null);
-
-
-
-
-  // Function to generate curl command from webhook payload
-  const generateCurlCommand = (webhookPayload: any): string => {
-    if (!webhookPayload) return '';
-    
-    const url = webhookPayload.webhookUrl || '';
-    const method = webhookPayload.method || 'POST';
-    const headers = webhookPayload.headers || {};
-    const payload = webhookPayload.originalPayload || webhookPayload;
-    
-    let curlCommand = `curl -X ${method.toUpperCase()} "${url}"`;
-    
-    // Add headers
-    Object.entries(headers).forEach(([key, value]) => {
-      curlCommand += ` \\\n  -H "${key}: ${value}"`;
-    });
-    
-    // Add payload for non-GET requests
-    if (method.toUpperCase() !== 'GET' && payload) {
-      const jsonPayload = JSON.stringify(payload, null, 2);
-      // Escape quotes and newlines for curl
-      const escapedPayload = jsonPayload.replace(/"/g, '\\"').replace(/\n/g, '\\n');
-      curlCommand += ` \\\n  -d "${escapedPayload}"`;
+  // Centralized realtime hook
+  const { isConnected: isRealtimeActive, lastUpdate: realtimeLastUpdate } = useUnifiedRealtime({
+    onUploadQueueUpdate: (queueData: any) => {
+      // Refresh the queue data when we receive realtime updates
+      fetchQueue(page, pageSize);
+      setLastUpdate(new Date());
     }
-    
-    return curlCommand;
-  };
+  });
 
-  // Helper function to check if date is in range - moved before usage
-  const isInRange = (dateString?: string) => {
-    if (!dateString) return true;
-    if (!dateRange.start && !dateRange.end) return true;
-    const date = new Date(dateString);
-    if (dateRange.start && date < dateRange.start) return false;
-    if (dateRange.end && date > addDays(dateRange.end, 1)) return false;
-    return true;
-  };
-
-  // Helper function to get display status for filtering - moved before usage
-  const getDisplayStatus = (status: string) => {
-    switch (status) {
-      case 'inprocess':
-        return 'inprocess';
-      case 'error':
-      case 'fail':
-        return 'error';
-      default:
-        return status;
-    }
-  };
-
-  // Map display labels to all possible status codes that share the label - moved before usage
-  const statusLabelToCodes: { [label: string]: string[] } = {
-    'Queued': ['queued'],
-    'Inprocess': ['inprocess'],
-    'Success': ['success'],
-    'Error': ['error', 'fail'],
-    'Cancelled': ['cancelled'],
-  };
-  const uniqueStatusLabels = Object.keys(statusLabelToCodes);
-
-  const handleSort = (column: string | null, direction?: 'asc' | 'desc' | null) => {
-    if (!column) {
-      setSortColumn(null);
-      setSortDirection('asc');
-      return;
-    }
-    if (sortColumn === column && (direction === null || direction === undefined)) {
-      // 3-state toggle: unsorted -> asc -> desc -> unsorted
-      if (sortDirection === 'asc') {
-        setSortDirection('desc');
-      } else if (sortDirection === 'desc') {
-        // Clear sort - go back to unsorted
-        setSortDirection(null);
-      } else {
-        // From unsorted (null) to asc
-        setSortDirection('asc');
+  const fetchPositions = useCallback(async () => {
+    try {
+      const response = await fetch('/api/positions');
+      if (response.ok) {
+        const data = await response.json();
+        setPositions(data.positions || []);
       }
-    } else {
-      setSortColumn(column);
-      setSortDirection(direction || 'desc');
+    } catch (error) {
+      console.error('Failed to fetch positions:', error);
     }
-  };
+  }, []);
 
-  const getSortableValue = (job: CandidateJob, column: string) => {
-    switch (column) {
-      case 'file_name': return job.file_name?.toLowerCase() || '';
-      case 'file_size': return job.file_size || 0;
-      case 'status': return job.status?.toLowerCase() || '';
-      case 'process_date': return job.process_date || '';
-      case 'completed_date': return job.completed_date || '';
-      case 'upload_date': return job.upload_date || '';
-      case 'duration': 
-        if (!job.process_date) return 0;
-        const start = new Date(job.process_date);
-        const end = job.completed_date ? new Date(job.completed_date) : new Date();
-        return end.getTime() - start.getTime();
-      default: return '';
-    }
-  };
-
-  // Server-side filtering is used, so we use jobs directly
-  const sortedJobs = useMemo(() => {
-    if (!sortColumn) return jobs;
-    return [...jobs].sort((a, b) => {
-      const aValue = getSortableValue(a, sortColumn);
-      const bValue = getSortableValue(b, sortColumn);
-      if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
-      if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
-      return 0;
-    });
-  }, [jobs, sortColumn, sortDirection]);
-
-  // Fetch paginated jobs
-  const fetchJobs = useCallback(async () => {
-    if (isFetchingRef.current) {
-      return;
-    }
-
-    // Prevent rapid successive requests
-    const now = Date.now();
-    if (now - (isFetchingRef.current as any) < 500) {
-      return;
-    }
-    
-    isFetchingRef.current = true;
-    let isMounted = true;
-    setIsLoading(true);
-    setFetchError(null);
+  const fetchQueue = useCallback(async (currentPage = 1, currentPageSize = 10) => {
+    setLoading(true);
+    setErrorMessage(null);
     
     try {
       const params = new URLSearchParams({
-        limit: String(pageSize),
-        offset: String((page - 1) * pageSize),
+        page: currentPage.toString(),
+        pageSize: currentPageSize.toString(),
+        ...(searchTerm && { search: searchTerm }),
+        ...(statusFilter !== 'all' && { status: statusFilter }),
+        ...(positionFilter !== 'all' && { positionId: positionFilter })
       });
-      if (debouncedFilter) params.set('file_name', debouncedFilter);
-      if (statusFilter) {
-        // Convert display label to actual status codes for backend
-        const codes = statusLabelToCodes[statusFilter] || [];
-        if (codes.length === 1) {
-          params.set('status', codes[0]);
-        } else if (codes.length > 1) {
-          // For multiple codes (like Error: ['error', 'fail']), send all codes
-          params.set('status', codes.join(','));
-        }
+
+      // Handle dateRange separately since it's an object
+      if (dateRange.start) {
+        params.append('dateRangeStart', dateRange.start.toISOString());
       }
-      if (dateRange.start) params.set('date_start', format(dateRange.start, 'yyyy-MM-dd'));
-      if (dateRange.end) params.set('date_end', format(dateRange.end, 'yyyy-MM-dd'));
-      if (positionIdFilter) params.set('position_id', positionIdFilter);
+      if (dateRange.end) {
+        params.append('dateRangeEnd', dateRange.end.toISOString());
+      }
+
+      const response = await fetch(`/api/upload-queue?${params}`);
       
-      const res = await fetch(`/api/upload-queue?${params.toString()}`, {
-        credentials: 'include',
-        headers: {
-          'Cache-Control': 'no-cache'
-        }
-      });
-      
-      if (!res.ok) {
-        let errorMsg = `Failed to fetch jobs: ${res.status} ${res.statusText}`;
-        let errorDetails = '';
-        let suggestion = '';
-        
-        try {
-          const errorData = await res.json();
-          if (errorData && errorData.error) {
-            errorMsg = errorData.error;
-            if (errorData.details) {
-              errorDetails = errorData.details;
-            }
-            if (errorData.suggestion) {
-              suggestion = errorData.suggestion;
-            }
-          }
-        } catch (parseError) {
-          // Silent parse error
-        }
-        
-        // If it's a 401 error, provide more specific guidance
-        if (res.status === 401) {
-          errorMsg = 'Your session has expired. Please refresh the page and sign in again.';
-        }
-        
-        // If it's a 504 error, provide specific guidance
-        if (res.status === 504) {
-          errorMsg = 'Request timeout - the query took too long to complete.';
-          if (!errorDetails) {
-            errorDetails = 'The upload queue query exceeded the timeout limit. This may be due to a large number of records or database performance issues.';
-          }
-          if (!suggestion) {
-            suggestion = 'Try reducing the page size, adding more specific filters, or contact an administrator to optimize the database.';
-          }
-        }
-        
-        // Create a more detailed error message
-        const fullErrorMsg = suggestion 
-          ? `${errorMsg} ${suggestion}`
-          : errorMsg;
-        
-        throw new Error(fullErrorMsg);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
       
-      const { data, total, summary } = await res.json();
-      
-      if (isMounted) {
-        // Update state directly (removed performance tracking)
-        setJobs(Array.isArray(data) ? data : []);
-        setTotal(total);
-        setSummary(summary || null);
-      }
-    } catch (err) {
-      console.error('Error fetching jobs:', err);
-      if (isMounted) {
-        setFetchError((err as Error).message);
-        showError((err as Error).message);
-      }
+      const data: QueueResponse = await response.json();
+      setQueueData(data);
+      setLastUpdate(new Date());
+    } catch (error) {
+      console.error('Failed to fetch queue:', error);
+      setErrorMessage('Network error. Please check your connection and try again.');
     } finally {
-      if (isMounted) {
-        setIsLoading(false);
-      }
-      isFetchingRef.current = false;
+      setLoading(false);
     }
-  }, [page, pageSize, debouncedFilter, statusFilter, dateRange, positionIdFilter, showError]);
-
-  // Store fetchJobs in ref to avoid dependency issues
-  useEffect(() => {
-    fetchJobsRef.current = fetchJobs;
-  }, [fetchJobs]);
-
-  // Debounce filter changes
-  useEffect(() => {
-    if (filter !== debouncedFilter) {
-      setIsSearching(true);
-    }
-    
-    const timeoutId = setTimeout(() => {
-      setDebouncedFilter(filter);
-      setIsSearching(false);
-    }, 500); // 500ms delay
-
-    return () => {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-    };
-  }, [filter, debouncedFilter]);
-
-  // Fetch status summary for static status cards (excludes status filter, includes date filter)
-  const fetchStatusSummary = useCallback(async () => {
-    
-    try {
-      const params = new URLSearchParams();
-      // Include date filter but NOT status filter
-      if (dateRange.start) params.set('date_start', format(dateRange.start, 'yyyy-MM-dd'));
-      if (dateRange.end) params.set('date_end', format(dateRange.end, 'yyyy-MM-dd'));
-      if (positionIdFilter) params.set('position_id', positionIdFilter);
-      // Add a small limit since we only need the summary
-      params.set('limit', '1');
-      params.set('offset', '0');
-      
-      const res = await fetch(`/api/upload-queue?${params.toString()}`, {
-        credentials: 'include'
-      });
-      if (res.ok) {
-        const { summary } = await res.json();
-        setStatusSummary(summary || null);
-      }
-    } catch (err) {
-      // Silently fail for status summary - it's not critical
-    }
-  }, [dateRange, positionIdFilter]);
-
-  // Update browser title with current page
-  useEffect(() => {
-    const totalPages = Math.ceil(total / pageSize);
-    if (totalPages > 1) {
-      document.title = `Upload Queue - Page ${page} of ${totalPages} | Studio`;
-    } else {
-      document.title = 'Upload Queue | Studio';
-    }
-  }, [page, total, pageSize]);
-
-  // Keyboard shortcuts for pagination
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Only handle shortcuts when not typing in an input
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-        return;
-      }
-
-      const totalPages = Math.ceil(total / pageSize);
-      
-      switch (e.key) {
-        case 'ArrowLeft':
-          if (page > 1) {
-            e.preventDefault();
-            handlePageChange(page - 1);
-          }
-          break;
-        case 'ArrowRight':
-          if (page < totalPages) {
-            e.preventDefault();
-            handlePageChange(page + 1);
-          }
-          break;
-        case 'Home':
-          if (page > 1) {
-            e.preventDefault();
-            handlePageChange(1);
-          }
-          break;
-        case 'End':
-          if (page < totalPages) {
-            e.preventDefault();
-            handlePageChange(totalPages);
-          }
-          break;
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [page, total, pageSize]);
-
-  // Placeholder for removed performance monitoring hooks
-
-  // Removed manual refresh function (button removed)
-
-  // Fallback polling (less frequent since we have SSE) - temporarily disabled to fix hook error
-  // useExtendedSafeEffect(() => {
-  //   // Always use SSE, so this effect is effectively removed
-  //   // const interval = setInterval(() => {
-
-  //   //   fetchJobs();
-  //   // }, 30000); // Poll every 30 seconds as fallback
-  //   // return () => {
-  //   //   clearInterval(interval);
-   
-  //   // };
-  // }, [], 'fallbackPolling', 5);
-
-  // Use effect for session-based fetching
-  useEffect(() => {
-    // Only fetch if session is loaded and available
-    if (sessionStatus === 'authenticated' && session) {
-      fetchJobsRef.current?.();
-    } else if (sessionStatus === 'unauthenticated') {
-      setFetchError('Please sign in to view the upload queue');
-    }
-  }, [sessionStatus, session]);
-
-  // Fetch status summary separately - only when date/position filters change, not status filter
-  useEffect(() => {
-    // Only fetch if session is loaded and available
-    if (sessionStatus === 'authenticated' && session) {
-      fetchStatusSummary();
-    }
-  }, [sessionStatus, session]);
+  }, [searchTerm, statusFilter, positionFilter, dateRange]);
 
   useEffect(() => {
-    function handleRefreshEvent() {
-      fetchJobsRef.current?.();
-    }
-    window.addEventListener('refreshCandidateQueue', handleRefreshEvent);
-    return () => {
-      window.removeEventListener('refreshCandidateQueue', handleRefreshEvent);
-    };
-  }, []);
-
-  // Debounced effect for filter changes
-  useEffect(() => {
-    if (sessionStatus === 'authenticated' && session) {
-      fetchJobsRef.current?.();
-    }
-  }, [debouncedFilter, statusFilter, dateRange, positionIdFilter, sessionStatus, session]);
-
-  // Effect for pagination changes
-  useEffect(() => {
-    if (sessionStatus === 'authenticated' && session) {
-      fetchJobsRef.current?.();
-    }
-  }, [page, pageSize, sessionStatus, session]);
-
-  // Server-Sent Events (SSE) for real-time updates
-  useEffect(() => {
-    let eventSource: EventSource | null = null;
-    let pollInterval: NodeJS.Timeout | null = null;
-    let isConnected = false;
-    let reconnectAttempts = 0;
-    const maxReconnectAttempts = 3;
-    const baseReconnectDelay = 1000;
-    const maxReconnectDelay = 10000;
-    let latestSSEData: any = null;
-    let mounted = true;
-
-    const applySSEUpdate = () => {
-      if (latestSSEData && mounted) {
-        // Update state directly (removed performance tracking)
-        setJobs(latestSSEData.jobs || []);
-        setSummary(latestSSEData.summary || { total: 0 });
-        setStatusSummary(latestSSEData.statusSummary || {});
-        setTotal(latestSSEData.total || 0);
-        latestSSEData = null;
-      }
-    };
-
-    const connectSSE = () => {
-      if (!mounted) return;
-      
-      try {
-        // Prepare URLSearchParams with proper string values
-        const params = new URLSearchParams({
-          filter: debouncedFilter || '',
-          status: statusFilter || '',
-          page: page.toString(),
-          pageSize: pageSize.toString(),
-          positionId: positionIdFilter || ''
-        });
-
-        // Handle dateRange separately since it's an object
-        if (dateRange) {
-          if (dateRange.start) {
-            params.append('dateRangeStart', dateRange.start.toISOString());
-          }
-          if (dateRange.end) {
-            params.append('dateRangeEnd', dateRange.end.toISOString());
-          }
-        }
-
-        eventSource = new EventSource(`/api/upload-queue/sse?${params}`);
-
-        eventSource.onopen = () => {
-          if (mounted) {
-            isConnected = true;
-            setIsRealtimeActive(true);
-            reconnectAttempts = 0;
-          }
-        };
-
-        eventSource.onerror = () => {
-          if (!mounted) return;
-          
-          isConnected = false;
-          setIsRealtimeActive(false);
-
-          // Attempt to reconnect if under max attempts
-          if (reconnectAttempts < maxReconnectAttempts) {
-            reconnectAttempts++;
-            const delay = Math.min(baseReconnectDelay * reconnectAttempts, maxReconnectDelay);
-           
-            const reconnectTimeout = setTimeout(() => {
-              if (mounted && !isConnected) {
-                // Close existing connection before reconnecting
-                if (eventSource) {
-                  try {
-                    eventSource.close();
-                  } catch (error) {
-                    // Ignore close errors
-                  }
-                  eventSource = null;
-                }
-                connectSSE();
-              }
-            }, delay);
-            
-            // Store timeout for cleanup
-            reconnectTimeoutRef.current = reconnectTimeout;
-          } else {
-            console.warn('🚨 Maximum reconnection attempts reached, falling back to polling');
-            // Fall back to polling if SSE fails completely
-            if (pollInterval) {
-              clearInterval(pollInterval);
-            }
-            pollInterval = setInterval(() => {
-              if (mounted && !isConnected) {
-                fetchJobs();
-              } else if (mounted && isConnected && pollInterval) {
-                clearInterval(pollInterval);
-                pollInterval = null;
-              }
-            }, 10000); // Poll every 10 seconds as fallback
-          }
-        };
-
-        eventSource.onmessage = (event) => {
-          if (!mounted) return;
-          
-          try {
-            const msg = JSON.parse(event.data);
-            if (msg.type === 'queue') {
-              // Update immediately without debouncing for faster response
-              latestSSEData = msg;
-              applySSEUpdate();
-              
-            } else if (msg.type === 'error') {
-              // Silent error handling
-            }
-          } catch (error) {
-            // Silent parse error
-          }
-        };
-      } catch (error) {
-        // Silent connection error
-      }
-    };
-
-    connectSSE();
-
-    return () => {
-      mounted = false;
-      isConnected = false;
-      setIsRealtimeActive(false);
-      
-      if (eventSource) {
-        try {
-          eventSource.close();
-        } catch (error) {
-          console.error('Error closing EventSource:', error);
-        }
-        eventSource = null;
-      }
-      
-      if (pollInterval) {
-        clearInterval(pollInterval);
-        pollInterval = null;
-      }
-      
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-        reconnectTimeoutRef.current = null;
-      }
-    };
-  }, [debouncedFilter, statusFilter, dateRange, page, pageSize, positionIdFilter, sessionStatus, session]); // Keep all dependencies as they affect the SSE connection
-
-  useEffect(() => {
-    async function fetchMaxConcurrent() {
-      try {
-        const response = await fetch('/api/settings/system-settings');
-        if (!response.ok) return;
-        const responseData = await response.json();
-        let settings: any = {};
-        if (responseData.settings && Array.isArray(responseData.settings)) {
-          settings = Object.fromEntries(responseData.settings.map((setting: any) => [setting.key, setting.value]));
-        } else {
-          settings = responseData;
-        }
-        if (settings.maxConcurrentProcessors) {
-          setMaxConcurrentProcessors(parseInt(settings.maxConcurrentProcessors, 10));
-        }
-      } catch {}
-    }
-    fetchMaxConcurrent();
-  }, []);
-
-  function formatBytes(bytes: number | string | undefined) {
-    // Handle string or undefined values
-    if (typeof bytes === 'string') {
-      bytes = parseInt(bytes, 10) || 0;
-    }
-    if (bytes === undefined || bytes === null) {
-      bytes = 0;
-    }
-    
-    if (bytes === 0) return "0 Bytes";
-    const k = 1024;
-    const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
-  }
-
-  // Function to calculate and format duration
-  function formatDuration(startDate: string, endDate?: string): string {
-    const start = new Date(startDate);
-    const end = endDate ? new Date(endDate) : new Date();
-    const diffMs = end.getTime() - start.getTime();
-    
-    if (diffMs < 1000) return "0s";
-    
-    const seconds = Math.floor(diffMs / 1000);
-    const minutes = Math.floor(seconds / 60);
-    const hours = Math.floor(minutes / 60);
-    
-    if (hours > 0) {
-      return `${hours}h ${minutes % 60}m ${seconds % 60}s`;
-    } else if (minutes > 0) {
-      return `${minutes}m ${seconds % 60}s`;
-    } else {
-      return `${seconds}s`;
-    }
-  }
-
-
-
-  // Helper function to get display label and color for status
-  const getStatusDisplayLabelAndColor = (status: string) => {
-    switch (status) {
-      case 'queued':
-        return { label: 'Queued', className: 'bg-blue-200 text-blue-900 border-blue-200' };
-      case 'inprocess':
-        return { label: 'Inprocess', className: 'bg-yellow-200 text-yellow-900 border-yellow-200' };
-      case 'success':
-        return { label: 'Success', className: 'bg-green-200 text-green-900 border-green-200' };
-      case 'error':
-      case 'fail':
-        return { label: 'Error', className: 'bg-red-200 text-red-900 border-red-200' };
-      default:
-        return { label: status.charAt(0).toUpperCase() + status.slice(1), className: 'bg-gray-100 text-gray-700 border-gray-200' };
-    }
-  };
-
-  // Real-time duration updates for in-progress jobs
-  const [currentTime, setCurrentTime] = useState(new Date());
-  
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Status counts - Use statusSummary (no status filter) for status cards, summary for table info
-  const numQueued = statusSummary ? Number(statusSummary.queued) : jobs.filter(j => j.status === 'queued').length;
-  const numInProgress = statusSummary ? Number(statusSummary.inprocess) : jobs.filter(j => j.status === 'inprocess').length;
-  const numSuccess = statusSummary ? Number(statusSummary.success) : jobs.filter(j => j.status === 'success').length;
-  const numError = statusSummary ? Number(statusSummary.error) : jobs.filter(j => j.status === 'error' || j.status === 'fail').length;
-  const totalFilteredJobs = summary ? Number(summary.total) : jobs.length;
-
-  // Collect all unique statuses from jobs for the filter dropdown
-  const allPossibleStatuses = [
-    'queued',
-    'inprocess',
-    'success',
-    'error',
-    'cancelled',
-    'fail',
-  ];
-
-  // Helper to get the selected job for the combined dialog:
-  const selectedCombinedJob = jobs.find(j => j.id === showCombinedDialogId);
-
-  // Enhanced pagination logic
-  const totalPages = Math.ceil(total / pageSize);
-  const startItem = (page - 1) * pageSize + 1;
-  const endItem = Math.min(page * pageSize, total);
-
-  // Generate page numbers with ellipsis
-  const getPageNumbers = () => {
-    const pages = [];
-    const maxVisiblePages = 7;
-    
-    if (totalPages <= maxVisiblePages) {
-      // Show all pages if total is small
-      for (let i = 1; i <= totalPages; i++) {
-        pages.push(i);
-      }
-    } else {
-      // Always show first page
-      pages.push(1);
-      
-      if (page > 4) {
-        pages.push('...');
-      }
-      
-      // Show pages around current page
-      const start = Math.max(2, page - 1);
-      const end = Math.min(totalPages - 1, page + 1);
-      
-      for (let i = start; i <= end; i++) {
-        pages.push(i);
-      }
-      
-      if (page < totalPages - 3) {
-        pages.push('...');
-      }
-      
-      // Always show last page
-      if (totalPages > 1) {
-        pages.push(totalPages);
-      }
-    }
-    
-    return pages;
-  };
-
-  const handlePageSizeChange = (newPageSize: number) => {
-    setPageSize(newPageSize);
-    setPage(1); // Reset to first page when changing page size
-    onPaginationChange?.(1, newPageSize);
-  };
-
-  const handlePageChange = (newPage: number) => {
-    setPage(newPage);
-    onPaginationChange?.(newPage, pageSize);
-    // Scroll to top when changing pages
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handleJumpToPage = () => {
-    const pageNum = parseInt(jumpToPage, 10);
-    if (pageNum >= 1 && pageNum <= totalPages) {
-      handlePageChange(pageNum);
-      setJumpToPage("");
-    }
-  };
-
-  // Helper function to get display label for status
-  const getStatusDisplayLabel = (status: string) => {
-    switch (status) {
-      case 'queued':
-        return 'Queued';
-      case 'inprocess':
-        return 'Inprocess';
-      case 'success':
-        return 'Success';
-      case 'error':
-      case 'fail':
-        return 'Error';
-      default:
-        return status.charAt(0).toUpperCase() + status.slice(1);
-    }
-  };
-
-  // Bulk selection logic
-  const allSelected = jobs.length > 0 && bulkDeleteIds.length === jobs.length;
-  const someSelected = bulkDeleteIds.length > 0 && bulkDeleteIds.length < jobs.length;
-
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      setBulkDeleteIds(jobs.map(job => job.id));
-    } else {
-      setBulkDeleteIds([]);
-    }
-  };
-
-  const handleCheckboxChange = (jobId: string, checked: boolean) => {
-    if (checked) {
-      setBulkDeleteIds(prev => [...prev, jobId]);
-    } else {
-      setBulkDeleteIds(prev => prev.filter(id => id !== jobId));
-    }
-  };
-
-  const handleBulkDelete = useCallback(async () => {
-    setShowBulkDeleteConfirm(true);
-  }, []);
-
-  const handleBulkRetryAll = useCallback(async () => {
-    setBulkRetryLoading(true);
-    try {
-      const errorJobIds = jobs.filter(job => job.status === 'error' || job.status === 'fail').map(job => job.id);
-      await Promise.all(errorJobIds.map(async (id) => {
-        await fetch(`/api/upload-queue/${id}`, {
-          method: 'PATCH',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: 'queued', error: null, error_details: null, completed_date: null })
-        });
-      }));
-      fetchJobs();
-      setBulkDeleteIds([]);
-      success('All error jobs retried!');
-    } catch (err) {
-      showError('Failed to retry all error jobs');
-    } finally {
-      setBulkRetryLoading(false);
-    }
-  }, [jobs, fetchJobs, success, showError]);
-
-  const handleDownloadCSV = useCallback(() => {
-    const csvRows = [
-      ['File Name', 'File Size', 'Position', 'Status', 'Source', 'Upload Date', 'Completed Date', 'ID'],
-      ...jobs.map(job => [
-        job.file_name,
-        job.file_size,
-        job.position_title || '',
-        job.status,
-        job.source,
-        job.upload_date || '',
-        job.completed_date || '',
-        job.id
-      ])
-    ];
-    const csvContent = csvRows.map(row => row.map(String).map(cell => '"' + cell.replace(/"/g, '""') + '"').join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'upload_queue.csv';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }, [jobs]);
-
-  // Fetch available positions for filter
-  useEffect(() => {
-    const fetchPositions = async () => {
-      try {
-        const response = await fetch('/api/positions/all', {
-          credentials: 'include'
-        });
-        if (!response.ok) return;
-        const result = await response.json();
-        setAvailablePositions(result.data || []);
-      } catch {}
-    };
     fetchPositions();
-  }, []);
+  }, [fetchPositions]);
 
+  useEffect(() => {
+    fetchQueue(page, pageSize);
+  }, [fetchQueue, page, pageSize]);
 
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'queued': return <Clock className="h-4 w-4 text-blue-500" />;
+      case 'inprocess': return <Loader2 className="h-4 w-4 text-yellow-500 animate-spin" />;
+      case 'success': return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case 'error':
+      case 'fail': return <XCircle className="h-4 w-4 text-red-500" />;
+      default: return <Clock className="h-4 w-4 text-gray-500" />;
+    }
+  };
 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'queued': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'inprocess': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'success': return 'bg-green-100 text-green-800 border-green-200';
+      case 'error':
+      case 'fail': return 'bg-red-100 text-red-800 border-red-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
 
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleString();
+  };
 
+  const handleItemClick = (item: QueueItem) => {
+    setSelectedItem(item);
+    setShowDetails(true);
+  };
 
+  const handleSearch = () => {
+    setPage(1);
+    fetchQueue(1, pageSize);
+  };
+
+  const handleStatusFilterChange = (value: string) => {
+    setStatusFilter(value);
+    setPage(1);
+    fetchQueue(1, pageSize);
+  };
+
+  const handlePositionFilterChange = (value: string) => {
+    setPositionFilter(value);
+    setPage(1);
+    fetchQueue(1, pageSize);
+  };
+
+  const handleRefresh = () => {
+    fetchQueue(page, pageSize);
+  };
 
   return (
-    <div className="mb-6">
-      {/* Filters and Bulk Actions */}
-      <div className="mb-4 flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
-        <div className="flex flex-wrap items-center gap-2 flex-1">
-          {/* Filters */}
-          <div className="relative min-w-[180px] max-w-xs">
-            <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Filter by file name..."
-              value={filter}
-              onChange={e => setFilter(e.target.value)}
-              className="pl-8 pr-8"
-            />
-            {isSearching && (
-              <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
-                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-              </div>
-            )}
-            {filter && !isSearching && (
-              <button
-                onClick={() => setFilter("")}
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                aria-label="Clear search"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            )}
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Candidate Import Queue</h2>
+          <p className="text-muted-foreground">
+            Monitor the status of your candidate imports in real-time
+          </p>
+        </div>
+        <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+            <div className={`w-2 h-2 rounded-full ${isRealtimeActive ? 'bg-green-500' : 'bg-red-500'}`} />
+            <span>{isRealtimeActive ? 'Live' : 'Offline'}</span>
           </div>
-          <Popover open={positionPopoverOpen} onOpenChange={setPositionPopoverOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                role="combobox"
-                className="min-w-[130px] max-w-xs justify-between"
-              >
-                {positionIdFilter ? availablePositions.find(pos => pos.id === positionIdFilter)?.title : "All Positions"}
-                <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="min-w-[130px] p-0 z-[10003]">
-              <Command>
-                <div className="flex items-center border-b px-3">
-                  <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-                  <input
-                    placeholder="Search positions..."
-                    className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
-                    onChange={(e) => {
-                      const searchTerm = e.target.value.toLowerCase();
-                      const selectContent = e.target.closest('[data-radix-popover-content]');
-                      if (selectContent) {
-                        const items = selectContent.querySelectorAll('[data-position-item]');
-                        items.forEach((item) => {
-                          const text = item.textContent?.toLowerCase() || '';
-                          if (text.includes(searchTerm) || item.getAttribute('data-position-item') === 'all') {
-                            (item as HTMLElement).style.display = '';
-                          } else {
-                            (item as HTMLElement).style.display = 'none';
-                          }
-                        });
-                      }
-                    }}
-                  />
-                </div>
-                <CommandList>
-                  <div className="max-h-[200px] p-1">
-                    <div
-                      className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
-                      onClick={() => {
-                        setPositionIdFilter("");
-                        setPositionPopoverOpen(false);
-                      }}
-                      data-position-item="all"
-                    >
-                      All Positions
-                    </div>
-                    {availablePositions.map((pos) => (
-                      <div
-                        key={pos.id}
-                        className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
-                        onClick={() => {
-                          setPositionIdFilter(pos.id);
-                          setPositionPopoverOpen(false);
-                        }}
-                        data-position-item={pos.id}
-                      >
-                        {pos.title}
-                      </div>
-                    ))}
-                  </div>
-                </CommandList>
-              </Command>
-            </PopoverContent>
-          </Popover>
-          <Select value={statusFilter || "all"} onValueChange={(value) => setStatusFilter(value === "all" ? "" : value)}>
-            <SelectTrigger className="min-w-[130px] max-w-xs">
-              <SelectValue placeholder="All Statuses" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              {uniqueStatusLabels.map(label => (
-                <SelectItem key={label} value={label}>{label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground whitespace-nowrap">Date:</span>
-            <input
-              type="date"
-              value={dateRange.start ? format(dateRange.start, 'yyyy-MM-dd') : ''}
-              onChange={e => setDateRange(r => ({ ...r, start: e.target.value ? new Date(e.target.value) : null }))}
-              className="border rounded bg-background px-2 py-1 text-sm"
-            />
-            <span className="text-sm text-muted-foreground">-</span>
-            <input
-              type="date"
-              value={dateRange.end ? format(dateRange.end, 'yyyy-MM-dd') : ''}
-              onChange={e => setDateRange(r => ({ ...r, end: e.target.value ? new Date(e.target.value) : null }))}
-              className="border rounded bg-background px-2 py-1 text-sm"
-            />
-          </div>
-          
-          
-          {/* Bulk Actions */}
-          {/* <input
-            type="checkbox"
-            checked={allSelected}
-            ref={el => {
-              if (el) el.indeterminate = someSelected;
-            }}
-            onChange={e => handleSelectAll(e.target.checked)}
-            aria-label="Select all filtered jobs"
-            className="scale-110"
-          />
-          <span className="text-sm">Select All</span> */}
-          {/* {bulkDeleteIds.length > 0 && filteredJobs.filter(job => bulkDeleteIds.includes(job.id) && (job.status === "error" || job.status === "fail")).length > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={bulkRetryLoading}
-              onClick={() => setShowBulkRetryConfirm(true)}
-              aria-label="Retry selected jobs"
-            >
-              {bulkRetryLoading ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : null}
-              Retry Selected
-            </Button>
-          )} */}
-          {/* <Button
-            variant="destructive"
-            size="sm"
-            disabled={bulkDeleteIds.length === 0 || bulkDeleteLoading}
-            onClick={() => setShowBulkDeleteConfirm(true)}
-            aria-label="Delete selected jobs"
-          >
-            {bulkDeleteLoading ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : null}
-            Delete Selected
-          </Button> */}
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          </Button>
         </div>
       </div>
-        {/* Status Cards */}
-        <div className="mb-6">
-          {/* Real-time Status Indicator */}
 
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
-            {/* All Upload Jobs Card - Black */}
-            <Card
-              className="group relative overflow-hidden border-2 border-gray-200 dark:border-gray-800 hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-950/50 dark:to-gray-900/50 backdrop-blur-sm"
-            >
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">All Jobs</p>
-                    <p className="text-2xl font-bold text-foreground">{totalFilteredJobs}</p>
-                  </div>
-                  <div className="h-8 w-8 rounded-xl bg-gray-500 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
-                    <span className="text-white text-xs font-bold">A</span>
-                  </div>
+      {/* Summary Cards */}
+      {queueData?.summary && (
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Total</p>
+                  <p className="text-2xl font-bold">{queueData.summary.total}</p>
                 </div>
-              </CardContent>
-            </Card>
-            
-            {/* Queued Card - Blue */}
-            <Card
-              className="group relative overflow-hidden border-2 border-blue-200 dark:border-blue-800 hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/50 backdrop-blur-sm"
-            >
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Queue</p>
-                    <p className="text-2xl font-bold text-foreground">{numQueued}</p>
-                  </div>
-                  <div className="h-8 w-8 rounded-xl bg-blue-500 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
-                    <span className="text-white text-xs font-bold">Q</span>
-                  </div>
+                <div className="h-8 w-8 rounded-full bg-gray-500 flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">T</span>
                 </div>
-              </CardContent>
-            </Card>
-            
-            {/* In Progress Card - Yellow */}
-            <Card
-              className="group relative overflow-hidden border-2 border-yellow-200 dark:border-yellow-800 hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-950/50 dark:to-yellow-900/50 backdrop-blur-sm"
-            >
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">In Process</p>
-                    <p className="text-2xl font-bold text-foreground">{numInProgress}</p>
-                    {maxConcurrentProcessors !== null && (
-                      <span className="text-xs text-muted-foreground">Max concurrent: {maxConcurrentProcessors}</span>
-                    )}
-                  </div>
-                  <div className="h-8 w-8 rounded-xl bg-yellow-500 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
-                    <span className="text-white text-xs font-bold">P</span>
-                  </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Queued</p>
+                  <p className="text-2xl font-bold text-blue-600">{queueData.summary.queued}</p>
                 </div>
-              </CardContent>
-            </Card>
-            
-            {/* Success Card - Green */}
-            <Card
-              className="group relative overflow-hidden border-2 border-green-200 dark:border-green-800 hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/50 dark:to-green-900/50 backdrop-blur-sm"
-            >
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Success</p>
-                    <p className="text-2xl font-bold text-foreground">{numSuccess}</p>
-                  </div>
-                  <div className="h-8 w-8 rounded-xl bg-green-500 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
-                    <CheckCircle className="h-4 w-4 text-white" />
-                  </div>
+                <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center">
+                  <Clock className="h-4 w-4 text-white" />
                 </div>
-              </CardContent>
-            </Card>
-            
-            {/* Error Card - Red */}
-            <Card
-              className="group relative overflow-hidden border-2 border-red-200 dark:border-red-800 hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/50 dark:to-red-900/50 backdrop-blur-sm"
-            >
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Error</p>
-                    <p className="text-2xl font-bold text-foreground">{numError}</p>
-                  </div>
-                  <div className="h-8 w-8 rounded-xl bg-red-500 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
-                    <XCircle className="h-4 w-4 text-white" />
-                  </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Processing</p>
+                  <p className="text-2xl font-bold text-yellow-600">{queueData.summary.inprocess}</p>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      {/* Bulk Action Bar - show only when items are selected */}
-      {bulkDeleteIds.length > 0 && (
-        <div className="flex items-center gap-2 mb-2 p-2 bg-muted/30 rounded border">
-          <span className="text-sm text-muted-foreground">{bulkDeleteIds.length} selected</span>
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={bulkRetryLoading || !bulkDeleteIds.some(id => jobs.find(job => job.id === id && (job.status === 'error' || job.status === 'fail')))}
-            onClick={() => setShowBulkRetryConfirm(true)}
-            aria-label="Retry selected jobs"
-            className="h-7 px-2"
-          >
-            {bulkRetryLoading ? <Loader2 className="animate-spin h-3 w-3 mr-1" /> : null}
-            Retry
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleDownloadCSV}
-            aria-label="Download CSV"
-            className="h-7 px-2"
-          >
-            <Download className="h-3 w-3 mr-1" />
-            CSV
-          </Button>
-          <Button
-            className="ml-auto h-7 px-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
-            variant="ghost"
-            size="sm"
-            disabled={bulkDeleteIds.length === 0 || bulkDeleteLoading}
-            onClick={handleBulkDelete}
-            aria-label="Delete selected jobs"
-          >
-            {bulkDeleteLoading ? <Loader2 className="animate-spin h-3 w-3 mr-1" /> : null}
-            Delete
-          </Button>
+                <div className="h-8 w-8 rounded-full bg-yellow-500 flex items-center justify-center">
+                  <Loader2 className="h-4 w-4 text-white animate-spin" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Success</p>
+                  <p className="text-2xl font-bold text-green-600">{queueData.summary.success}</p>
+                </div>
+                <div className="h-8 w-8 rounded-full bg-green-500 flex items-center justify-center">
+                  <CheckCircle className="h-4 w-4 text-white" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Error</p>
+                  <p className="text-2xl font-bold text-red-600">{queueData.summary.error}</p>
+                </div>
+                <div className="h-8 w-8 rounded-full bg-red-500 flex items-center justify-center">
+                  <XCircle className="h-4 w-4 text-white" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
-  
-      <div className="border rounded-lg overflow-x-auto">
-        {/* Table Header with Real-time Indicator */}
-        <div className="flex items-center justify-between p-4 border-b bg-muted/50">
-          <h4 className="font-medium">Upload Queue Jobs</h4>
-          <div className="flex items-center gap-2">
-            {isRealtimeActive ? (
-              <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
-                <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-xs">Live</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-1 text-yellow-600 dark:text-yellow-400">
-                <div className="w-1.5 h-1.5 bg-yellow-500 rounded-full"></div>
-                <span className="text-xs">Polling</span>
-              </div>
-            )}
-          </div>
-        </div>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-8 text-center">
-                <input
-                  type="checkbox"
-                  checked={allSelected}
-                  ref={el => { if (el) el.indeterminate = someSelected; }}
-                  onChange={e => handleSelectAll(e.target.checked)}
-                  aria-label="Select all jobs"
-                  className="scale-110"
+
+      {/* Filters */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Filter className="h-5 w-5" />
+            <span>Filters</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="search">Search Files</Label>
+              <div className="flex space-x-2">
+                <Input
+                  id="search"
+                  placeholder="Search by filename..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                 />
-              </TableHead>
-              <TableHead className="group cursor-pointer select-none" onClick={() => { handleSort('file_name'); setOpenMenu(null); }}>
-                <span className="inline-flex items-center gap-1">
-                  File Name
-                  <DropdownMenu open={openMenu === 'file_name'} onOpenChange={open => setOpenMenu(open ? 'file_name' : null)}>
-                    <DropdownMenuTrigger asChild>
-                      {sortColumn === 'file_name' ? (
-                        <button type="button" className="text-primary font-bold p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('file_name'); }} aria-label="Sort options">
-                          {sortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                        </button>
-                      ) : (
-                        <button type="button" className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('file_name'); }} aria-label="Sort options">
-                          <MoreVertical size={16} />
-                        </button>
-                      )}
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => { handleSort('file_name', 'asc'); setOpenMenu(null); }}>Sort Ascending <ChevronUp size={16} className="ml-1 inline" /></DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => { handleSort('file_name', 'desc'); setOpenMenu(null); }}>Sort Descending <ChevronDown size={16} className="ml-1 inline" /></DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => { handleSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </span>
-              </TableHead>
-              <TableHead>Size</TableHead>
-              <TableHead>Position</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="group cursor-pointer select-none" onClick={() => { handleSort('process_date'); setOpenMenu(null); }}>
-                <span className="inline-flex items-center gap-1">
-                  Process Date
-                  <DropdownMenu open={openMenu === 'process_date'} onOpenChange={open => setOpenMenu(open ? 'process_date' : null)}>
-                    <DropdownMenuTrigger asChild>
-                      {sortColumn === 'process_date' ? (
-                        <button type="button" className="text-primary font-bold p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('process_date'); }} aria-label="Sort options">
-                          {sortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                        </button>
-                      ) : (
-                        <button type="button" className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('process_date'); }} aria-label="Sort options">
-                          <MoreVertical size={16} />
-                        </button>
-                      )}
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => { handleSort('process_date', 'asc'); setOpenMenu(null); }}>Sort Ascending <ChevronUp size={16} className="ml-1 inline" /></DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => { handleSort('process_date', 'desc'); setOpenMenu(null); }}>Sort Descending <ChevronDown size={16} className="ml-1 inline" /></DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => { handleSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </span>
-              </TableHead>
-              <TableHead className="group cursor-pointer select-none" onClick={() => { handleSort('completed_date'); setOpenMenu(null); }}>
-                <span className="inline-flex items-center gap-1">
-                  Completed Date
-                  <DropdownMenu open={openMenu === 'completed_date'} onOpenChange={open => setOpenMenu(open ? 'completed_date' : null)}>
-                    <DropdownMenuTrigger asChild>
-                      {sortColumn === 'completed_date' ? (
-                        <button type="button" className="text-primary font-bold p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('completed_date'); }} aria-label="Sort options">
-                          {sortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                        </button>
-                      ) : (
-                        <button type="button" className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('completed_date'); }} aria-label="Sort options">
-                          <MoreVertical size={16} />
-                        </button>
-                      )}
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => { handleSort('completed_date', 'asc'); setOpenMenu(null); }}>Sort Ascending <ChevronUp size={16} className="ml-1 inline" /></DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => { handleSort('completed_date', 'desc'); setOpenMenu(null); }}>Sort Descending <ChevronDown size={16} className="ml-1 inline" /></DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => { handleSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </span>
-              </TableHead>
-              <TableHead className="group cursor-pointer select-none" onClick={() => { handleSort('duration'); setOpenMenu(null); }}>
-                <span className="inline-flex items-center gap-1">
-                  Duration
-                  <DropdownMenu open={openMenu === 'duration'} onOpenChange={open => setOpenMenu(open ? 'duration' : null)}>
-                    <DropdownMenuTrigger asChild>
-                      {sortColumn === 'duration' ? (
-                        <button type="button" className="text-primary font-bold p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('duration'); }} aria-label="Sort options">
-                          {sortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                        </button>
-                      ) : (
-                        <button type="button" className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('duration'); }} aria-label="Sort options">
-                          <MoreVertical size={16} />
-                        </button>
-                      )}
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => { handleSort('duration', 'asc'); setOpenMenu(null); }}>Sort Ascending <ChevronUp size={16} className="ml-1 inline" /></DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => { handleSort('duration', 'desc'); setOpenMenu(null); }}>Sort Descending <ChevronDown size={16} className="ml-1 inline" /></DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => { handleSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </span>
-              </TableHead>
-              <TableHead className="group cursor-pointer select-none" onClick={() => { handleSort('upload_date'); setOpenMenu(null); }}>
-                <span className="inline-flex items-center gap-1">
-                  Upload Date
-                  <DropdownMenu open={openMenu === 'upload_date'} onOpenChange={open => setOpenMenu(open ? 'upload_date' : null)}>
-                    <DropdownMenuTrigger asChild>
-                      {sortColumn === 'upload_date' ? (
-                        <button type="button" className="text-primary font-bold p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('upload_date'); }} aria-label="Sort options">
-                          {sortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                        </button>
-                      ) : (
-                        <button type="button" className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('upload_date'); }} aria-label="Sort options">
-                          <MoreVertical size={16} />
-                        </button>
-                      )}
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => { handleSort('upload_date', 'asc'); setOpenMenu(null); }}>Sort Ascending <ChevronUp size={16} className="ml-1 inline" /></DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => { handleSort('upload_date', 'desc'); setOpenMenu(null); }}>Sort Descending <ChevronDown size={16} className="ml-1 inline" /></DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => { handleSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </span>
-              </TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading && jobs.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={10} className="text-center py-8">
-                  <div className="flex items-center justify-center gap-2">
-                    <Loader2 className="h-6 w-6 animate-spin" />
-                    <span>Loading upload queue...</span>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : fetchError ? (
-              <TableRow>
-                <TableCell colSpan={10} className="text-center text-destructive">
-                  <div className="flex flex-col items-center gap-2">
-                    <AlertCircle className="h-6 w-6 text-destructive" />
-                    <span>{fetchError.includes('401') ? 'You are not authorized to view the upload queue. Please sign in again.' : fetchError}</span>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : jobs.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
-                  <div className="flex flex-col items-center gap-2">
-                    <span>No queue</span>
-                    <span className="text-sm text-muted-foreground">Upload CVs to see them in the queue</span>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : (
-              sortedJobs.map((item) => (
-                <React.Fragment key={item.id}>
-                  <TableRow>
-                    <TableCell>
-                      <input
-                        type="checkbox"
-                        checked={bulkDeleteIds.includes(item.id)}
-                        onChange={e => handleCheckboxChange(item.id, e.target.checked)}
-                        aria-label={`Select job ${item.file_name}`}
-                      />
-                    </TableCell>
-                    <TableCell className="font-medium flex items-center gap-2">
-                      {item.file_path && item.url ? (
-                        <span
-                          className="text-primary underline hover:text-primary/80 truncate max-w-xs cursor-pointer"
-                          title={item.file_name}
-                          onClick={() => {
-                            if (item.url) {
-                              setFileViewerFile({
-                                fileName: item.file_name,
-                                url: item.url,
-                                label: item.position_title,
-                                updatedAt: item.upload_date,
-                                fileSize: item.file_size
-                              });
-                              setFileViewerOpen(true);
-                            }
-                          }}
-                        >
-                          {item.file_name}
-                        </span>
-                      ) : (
-                        <span className="truncate max-w-xs" title={item.file_name}>{item.file_name}</span>
-                      )}
-                    </TableCell>
-                    <TableCell>{formatBytes(item.file_size)}</TableCell>
-                    <TableCell>
-                      {item.position_title ? (
-                        <span className="text-sm font-medium" title={item.position_title}>
-                          {item.position_title}
-                        </span>
-                      ) : (
-                        <span className="text-sm text-muted-foreground">
-                          No position assigned
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {(() => {
-                        const status = item.status;
-                        const { label, className } = getStatusDisplayLabelAndColor(status);
-                        return (
-                          <Badge className={`capitalize border ${className}`}>
-                            {label}
-                          </Badge>
-                        );
-                      })()}
-                    </TableCell>
-                    <TableCell>{item.process_date ? format(new Date(item.process_date), 'yyyy-MM-dd HH:mm:ss') : '-'}</TableCell>
-                    <TableCell>{item.completed_date ? new Date(item.completed_date).toLocaleString() : '-'}</TableCell>
-                    <TableCell>
-                      {item.process_date && (item.status === 'success' || item.status === 'error' || item.status === 'fail') ? 
-                        formatDuration(item.process_date, item.completed_date || undefined) : 
-                        '-'
-                      }
-                    </TableCell>
-                    <TableCell>{item.upload_date ? new Date(item.upload_date).toLocaleString() : '-'}</TableCell>
-                    <TableCell className="flex gap-1">
-                      {item.file_path && item.url && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          title="Preview / Download CV"
-                          onClick={() => {
-                            if (item.url) {
-                              setFileViewerFile({
-                                fileName: item.file_name,
-                                url: item.url,
-                                label: item.position_title,
-                                updatedAt: item.upload_date,
-                                fileSize: item.file_size
-                              });
-                              setFileViewerOpen(true);
-                            }
-                          }}
-                        >
-                          <FileText className="h-4 w-4 text-primary" />
-                        </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        title="Details & Webhook Log"
-                        onClick={() => setShowCombinedDialogId(item.id)}
-                      >
-                        <Eye className="h-4 w-4 text-primary" />
-                      </Button>
-                      {(item.status === "error" || item.status === "fail") && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          title="Retry"
-                          onClick={async () => {
-                            await fetch(`/api/upload-queue/${item.id}`, {
-                              method: 'PATCH',
-                              credentials: 'include',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ status: 'queued', error: null, error_details: null, completed_date: null })
-                            });
-                            fetchJobs();
-                          }}
-                        >
-                          <RotateCcw className="h-4 w-4 text-primary" />
-                        </Button>
-                      )}
-                      {(item.status === "queued") && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          title="Process Now (Send to Webhook)"
-                          onClick={async () => {
-                            try {
-                              const res = await fetch(`/api/upload-queue/${item.id}`, { 
-                                method: 'POST',
-                                credentials: 'include'
-                              });
-                              if (res.ok) {
-                                success('Job sent to webhook!');
-                              } else {
-                                const data = await res.json();
-                                showError(data.error || 'Failed to process job');
-                              }
-                            } catch (err) {
-                              showError('Failed to process job');
-                            }
-                            fetchJobs();
-                          }}
-                        >
-                          <Play className="h-4 w-4 text-green-600" />
-                        </Button>
-                      )}
-                      {(item.status === "queued" || item.status === "uploading") && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          title="Cancel"
-                          disabled={cancelLoading}
-                          onClick={() => setCancelId(item.id)}
-                        >
-                          {cancelLoading && cancelId === item.id ? <Loader2 className="animate-spin h-4 w-4" /> : <X className="h-4 w-4 text-orange-500" />}
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                </React.Fragment>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
-      {/* Pagination Controls */}
-      <div className="flex items-center justify-between mt-4">
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => handlePageChange(1)}
-            disabled={page === 1}
-            aria-label="First page"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            <ChevronLeft className="h-4 w-4 -ml-2" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => handlePageChange(page - 1)}
-            disabled={page === 1}
-            aria-label="Previous page"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="text-sm">
-            Page {page} of {Math.ceil(total / pageSize)}
-          </span>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => handlePageChange(page + 1)}
-            disabled={page === Math.ceil(total / pageSize)}
-            aria-label="Next page"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => handlePageChange(Math.ceil(total / pageSize))}
-            disabled={page === Math.ceil(total / pageSize)}
-            aria-label="Last page"
-          >
-            <ChevronRight className="h-4 w-4" />
-            <ChevronRight className="h-4 w-4 -ml-2" />
-          </Button>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm">Rows per page:</span>
-          <select
-            value={pageSize}
-            onChange={e => handlePageSizeChange(Number(e.target.value))}
-            className="border rounded-md px-2 py-1 text-sm bg-background text-foreground"
-          >
-            {[10, 20, 50, 100].map(size => (
-              <option key={size} value={size}>{size}</option>
-            ))}
-          </select>
-        </div>
-      </div>
+                <Button onClick={handleSearch}>
+                  <Search className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="status">Status Filter</Label>
+              <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="queued">Queued</SelectItem>
+                  <SelectItem value="inprocess">Processing</SelectItem>
+                  <SelectItem value="success">Completed</SelectItem>
+                  <SelectItem value="error">Error</SelectItem>
+                  <SelectItem value="fail">Failed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-      {/* Error Dialog */}
-      <Dialog open={!!showErrorLogId} onOpenChange={open => !open && setShowErrorLogId(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Error Log</DialogTitle>
-          </DialogHeader>
-          <div className="max-h-60 overflow-auto text-sm text-destructive">
-            {jobs.find(j => j.id === showErrorLogId)?.error_details || 'No error details available.'}
+            <div className="space-y-2">
+              <Label htmlFor="position">Position Filter</Label>
+              <Select value={positionFilter} onValueChange={handlePositionFilterChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select position" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Positions</SelectItem>
+                  {positions.map((position) => (
+                    <SelectItem key={position.id} value={position.id}>
+                      {position.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="pageSize">Items per Page</Label>
+              <Select value={pageSize.toString()} onValueChange={(value) => setPageSize(Number(value))}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="25">25</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button type="button" variant="outline">Close</Button>
-            </DialogClose>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </CardContent>
+      </Card>
 
-      {/* Bulk Delete Confirm Dialog */}
-      <AlertDialog open={showBulkDeleteConfirm} onOpenChange={open => !open && setShowBulkDeleteConfirm(false)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>Confirm Bulk Delete</AlertDialogHeader>
-          <div>Are you sure you want to delete the selected jobs?</div>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setShowBulkDeleteConfirm(false)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              disabled={bulkDeleteLoading}
-              onClick={async () => {
-                setBulkDeleteLoading(true);
-                try {
-                  await Promise.all(bulkDeleteIds.map(id => fetch(`/api/upload-queue/${id}`, { 
-                    method: 'DELETE',
-                    credentials: 'include'
-                  })));
-                  setBulkDeleteIds([]);
-                  await fetchJobs();
-                } catch (err) {
-                  showError('Failed to delete some jobs');
-                } finally {
-                  setBulkDeleteLoading(false);
-                  setShowBulkDeleteConfirm(false);
-                }
-              }}
-            >{bulkDeleteLoading ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : null}Delete All</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Error Alert */}
+      {errorMessage && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{errorMessage}</AlertDescription>
+        </Alert>
+      )}
 
-      {/* Bulk Retry Confirm Dialog */}
-      <AlertDialog open={showBulkRetryConfirm} onOpenChange={open => !open && setShowBulkRetryConfirm(false)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>Confirm Bulk Retry</AlertDialogHeader>
-          <div>Are you sure you want to retry the selected failed jobs? This will add them back to the queue for reprocessing.</div>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setShowBulkRetryConfirm(false)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              disabled={bulkRetryLoading}
-              onClick={async () => {
-                setBulkRetryLoading(true);
-                try {
-                  const jobsToRetry = jobs.filter(job => 
-                    bulkDeleteIds.includes(job.id) && (job.status === "error" || job.status === "fail")
-                  );
-                  await Promise.all(jobsToRetry.map(job => fetch(`/api/upload-queue/${job.id}`, {
-                    method: 'PATCH',
-                    credentials: 'include',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ status: 'queued', error: null, error_details: null, completed_date: null })
-                  })));
-                  setBulkDeleteIds([]);
-                  await fetchJobs();
-                } catch (err) {
-                  showError('Failed to retry some jobs');
-                } finally {
-                  setBulkRetryLoading(false);
-                  setShowBulkRetryConfirm(false);
-                }
-              }}
-            >{bulkRetryLoading ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : null}Retry All</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Cancel Job Confirm Dialog */}
-      <AlertDialog open={!!cancelId} onOpenChange={open => !open && setCancelId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>Confirm Cancel</AlertDialogHeader>
-          <div>Are you sure you want to cancel this job?</div>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setCancelId(null)}>No, Keep Running</AlertDialogCancel>
-            <AlertDialogAction
-              disabled={cancelLoading}
-              onClick={async () => {
-                if (cancelId) {
-                  setCancelLoading(true);
-                  try {
-                    const res = await fetch(`/api/upload-queue/${cancelId}`, {
-                      method: 'PATCH',
-                      credentials: 'include',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ status: 'cancelled', completed_date: new Date().toISOString() })
-                    });
-                    if (!res.ok) throw new Error('Cancel failed');
-                    success('Job cancelled successfully');
-                  } catch (err) {
-                    showError('Failed to cancel job');
-                  } finally {
-                    setCancelLoading(false);
-                    setCancelId(null);
-                  }
-                }
-              }}
-            >{cancelLoading ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : null}Yes, Cancel Job</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Details & Webhook Log Dialog */}
-      <Dialog open={!!showCombinedDialogId} onOpenChange={open => !open && setShowCombinedDialogId(null)}>
-        <DialogContent className="max-w-6xl w-full max-h-[90vh]">
-          <DialogHeader>
-            <DialogTitle>Job Details & Webhook Log</DialogTitle>
-          </DialogHeader>
-          {selectedCombinedJob ? (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(90vh-120px)]">
-              {/* Left Column - Job Details */}
-              <ScrollArea className="h-full pr-4">
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="font-semibold mb-3 text-lg border-b pb-2">Job Information</h3>
-                    <div className="grid grid-cols-1 gap-3 text-sm">
-                      <div className="flex justify-between">
-                        <span className="font-medium text-muted-foreground">File Name:</span>
-                        <span className="font-mono text-xs break-all">{selectedCombinedJob.file_name}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="font-medium text-muted-foreground">File Size:</span>
-                        <span>{formatBytes(selectedCombinedJob.file_size)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="font-medium text-muted-foreground">Status:</span>
-                        <Badge variant={selectedCombinedJob.status === 'success' ? 'default' : (selectedCombinedJob.status === 'error' || selectedCombinedJob.status === 'fail') ? 'destructive' : 'secondary'}>
-                          {getStatusDisplayLabel(selectedCombinedJob.status)}
-                        </Badge>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="font-medium text-muted-foreground">Source:</span>
-                        <span>{selectedCombinedJob.source || '-'}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="font-medium text-muted-foreground">Upload Date:</span>
-                        <span>{selectedCombinedJob.upload_date ? format(new Date(selectedCombinedJob.upload_date), 'yyyy-MM-dd HH:mm:ss') : '-'}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="font-medium text-muted-foreground">Completed Date:</span>
-                        <span>{selectedCombinedJob.completed_date ? format(new Date(selectedCombinedJob.completed_date), 'yyyy-MM-dd HH:mm:ss') : '-'}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="font-medium text-muted-foreground">Duration:</span>
-                        <span>{selectedCombinedJob.upload_date && (selectedCombinedJob.status === 'success' || selectedCombinedJob.status === 'error' || selectedCombinedJob.status === 'fail') ? formatDuration(selectedCombinedJob.upload_date, selectedCombinedJob.completed_date) : '-'}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="font-medium text-muted-foreground">Process Date:</span>
-                        <span>{selectedCombinedJob.process_date ? format(new Date(selectedCombinedJob.process_date), 'yyyy-MM-dd HH:mm:ss') : '-'}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="font-medium text-muted-foreground">Job ID:</span>
-                        <span className="font-mono text-xs">{selectedCombinedJob.id}</span>
+      {/* Queue Items */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Queue Items</CardTitle>
+              <CardDescription>
+                {queueData ? `${queueData.total} total items` : 'Loading...'}
+                {lastUpdate && (
+                  <span className="ml-2 text-xs text-muted-foreground">
+                    Last updated: {formatDate(lastUpdate.toISOString())}
+                  </span>
+                )}
+              </CardDescription>
+            </div>
+            {isRealtimeActive && (
+              <Badge variant="secondary" className="flex items-center space-x-1">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                <span>Live Updates</span>
+              </Badge>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin" />
+              <span className="ml-2">Loading queue...</span>
+            </div>
+          ) : queueData?.items.length === 0 ? (
+            <div className="text-center py-8">
+              <Info className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground">No queue items found</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {queueData?.items.map((item) => (
+                <div
+                  key={item.id}
+                  className="border rounded-lg p-4 hover:bg-muted/50 cursor-pointer transition-colors"
+                  onClick={() => handleItemClick(item)}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      {getStatusIcon(item.status)}
+                      <div>
+                        <h3 className="font-medium">{item.file_name}</h3>
+                        <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                          <span>Uploaded: {formatDate(item.upload_date)}</span>
+                          {item.position_title && (
+                            <span className="flex items-center space-x-1">
+                              <FileText className="h-3 w-3" />
+                              <span>{item.position_title}</span>
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                    {selectedCombinedJob.file_path && (
-                      <div className="mt-4">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => {
-                            const downloadUrl = `/api/download?url=${encodeURIComponent(`${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${selectedCombinedJob.file_path}`)}&fileName=${encodeURIComponent(selectedCombinedJob.file_name)}`;
-                            const link = document.createElement('a');
-                            link.href = downloadUrl;
-                            link.download = selectedCombinedJob.file_name;
-                            link.target = '_blank';
-                            link.style.display = 'none';
-                            document.body.appendChild(link);
-                            link.click();
-                            document.body.removeChild(link);
-                          }}
-                        >
-                          <Download className="h-4 w-4 mr-2" />
-                          Download File
-                        </Button>
-                      </div>
-                    )}
+                    <div className="flex items-center space-x-2">
+                      <Badge className={getStatusColor(item.status)}>
+                        {item.status}
+                      </Badge>
+                      {item.progress !== undefined && (
+                        <span className="text-sm text-muted-foreground">
+                          {item.progress}%
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {item.error && (
+                    <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                      <strong>Error:</strong> {item.error}
+                    </div>
+                  )}
+                  
+                  {item.processed_candidates !== undefined && item.total_candidates !== undefined && (
+                    <div className="mt-2 text-sm text-muted-foreground flex items-center space-x-1">
+                      <Users className="h-3 w-3" />
+                      <span>Processed: {item.processed_candidates} / {item.total_candidates} candidates</span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {/* Pagination */}
+          {queueData && queueData.totalPages > 1 && (
+            <div className="flex items-center justify-between mt-6">
+              <div className="text-sm text-muted-foreground">
+                Page {page} of {queueData.totalPages}
+              </div>
+              <div className="flex space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(Math.max(1, page - 1))}
+                  disabled={page === 1}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(Math.min(queueData.totalPages, page + 1))}
+                  disabled={page === queueData.totalPages}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Details Dialog */}
+      <Dialog open={showDetails} onOpenChange={setShowDetails}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Queue Item Details</DialogTitle>
+            <DialogDescription>
+              Detailed information about the selected queue item
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedItem && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-medium">File Name</Label>
+                  <p className="text-sm">{selectedItem.file_name}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Status</Label>
+                  <div className="flex items-center space-x-2">
+                    {getStatusIcon(selectedItem.status)}
+                    <Badge className={getStatusColor(selectedItem.status)}>
+                      {selectedItem.status}
+                    </Badge>
                   </div>
                 </div>
-              </ScrollArea>
-
-              {/* Right Column - Accordion with Error Details, Success Response & Webhook Log */}
-              <ScrollArea className="h-full pr-4">
-                <Accordion type="multiple" defaultValue={["webhook-log"]} className="w-full">
-                  {/* Error Details Accordion */}
-                  {selectedCombinedJob.error_details && (
-                    <AccordionItem value="error-details" className="border rounded-lg mb-4">
-                      <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-destructive/5">
-                        <div className="flex items-center text-destructive">
-                          <AlertCircle className="h-5 w-5 mr-2" />
-                          <span className="font-semibold">Error Details</span>
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="px-4 pb-4">
-                        <pre className="bg-destructive/10 border border-destructive/20 rounded p-3 text-xs text-destructive max-h-60 overflow-auto whitespace-pre-wrap">
-                          {selectedCombinedJob.error_details}
-                        </pre>
-                      </AccordionContent>
-                    </AccordionItem>
+                <div>
+                  <Label className="text-sm font-medium">Upload Date</Label>
+                  <p className="text-sm">{formatDate(selectedItem.upload_date)}</p>
+                </div>
+                {selectedItem.process_date && (
+                  <div>
+                    <Label className="text-sm font-medium">Process Date</Label>
+                    <p className="text-sm">{formatDate(selectedItem.process_date)}</p>
+                  </div>
+                )}
+                {selectedItem.completed_date && (
+                  <div>
+                    <Label className="text-sm font-medium">Completed Date</Label>
+                    <p className="text-sm">{formatDate(selectedItem.completed_date)}</p>
+                  </div>
+                )}
+                {selectedItem.position_title && (
+                  <div>
+                    <Label className="text-sm font-medium">Position</Label>
+                    <p className="text-sm">{selectedItem.position_title}</p>
+                  </div>
+                )}
+                {selectedItem.user_email && (
+                  <div>
+                    <Label className="text-sm font-medium">Uploaded By</Label>
+                    <p className="text-sm">{selectedItem.user_email}</p>
+                  </div>
+                )}
+              </div>
+              
+              {selectedItem.progress !== undefined && (
+                <div>
+                  <Label className="text-sm font-medium">Progress</Label>
+                  <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+                    <div
+                      className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${selectedItem.progress}%` }}
+                    />
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {selectedItem.progress}% complete
+                  </p>
+                </div>
+              )}
+              
+              {selectedItem.processed_candidates !== undefined && selectedItem.total_candidates !== undefined && (
+                <div>
+                  <Label className="text-sm font-medium">Candidates Processed</Label>
+                  <p className="text-sm">
+                    {selectedItem.processed_candidates} of {selectedItem.total_candidates} candidates
+                  </p>
+                </div>
+              )}
+              
+              {selectedItem.error && (
+                <div>
+                  <Label className="text-sm font-medium text-red-700">Error</Label>
+                  <p className="text-sm text-red-700 mt-1">{selectedItem.error}</p>
+                  {selectedItem.error_details && (
+                    <details className="mt-2">
+                      <summary className="text-sm text-red-600 cursor-pointer">View Error Details</summary>
+                      <pre className="text-xs text-red-700 mt-2 p-2 bg-red-50 rounded overflow-auto">
+                        {selectedItem.error_details}
+                      </pre>
+                    </details>
                   )}
-
-                  {/* Success Response Accordion */}
-                  {selectedCombinedJob.status === 'success' && selectedCombinedJob.webhook_payload?.webhookResJson && (
-                    <AccordionItem value="success-response" className="border rounded-lg mb-4">
-                      <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-green-50 dark:hover:bg-green-950/20">
-                        <div className="flex items-center text-green-600 dark:text-green-400">
-                          <CheckCircle className="h-5 w-5 mr-2" />
-                          <span className="font-semibold">Success Response</span>
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="px-4 pb-4">
-                        <pre className="bg-green-50 dark:bg-green-950/50 border border-green-200 dark:border-green-800 rounded p-3 text-xs text-green-900 dark:text-green-100 max-h-60 overflow-auto whitespace-pre-wrap">
-                          {JSON.stringify(selectedCombinedJob.webhook_payload.webhookResJson, null, 2)}
-                        </pre>
-                      </AccordionContent>
-                    </AccordionItem>
-                  )}
-
-
-
-                  {/* Webhook Log Accordion */}
-                  <AccordionItem value="webhook-log" className="border rounded-lg">
-                    <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-blue-50 dark:hover:bg-blue-950/20">
-                      <div className="flex items-center text-blue-600 dark:text-blue-400">
-                        <ExternalLink className="h-5 w-5 mr-2" />
-                        <span className="font-semibold">Webhook Log</span>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="px-4 pb-4">
-                      {selectedCombinedJob.webhook_payload ? (
-                        <div className="space-y-4">
-                          {/* Response Mode */}
-                          {selectedCombinedJob.webhook_payload.responseMode && (
-                            <div>
-                              <div className="font-medium text-sm mb-2 text-blue-600 dark:text-blue-400">Response Mode:</div>
-                              <div className="bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded p-2 text-sm">
-                                <Badge variant="outline">
-                                  {selectedCombinedJob.webhook_payload.responseMode}
-                                </Badge>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Full Request Details */}
-                          <div>
-                            <div className="font-medium text-sm mb-2 text-blue-600 dark:text-blue-400">Full Request Details:</div>
-                            <pre className="whitespace-pre-wrap break-all max-h-48 overflow-auto bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded p-3 text-xs text-blue-900 dark:text-blue-100">
-                              {JSON.stringify(selectedCombinedJob.webhook_payload, null, 2)}
-                            </pre>
-                          </div>
-
-                          {/* Webhook Response Status */}
-                          {selectedCombinedJob.webhook_payload.webhookResStatus && (
-                            <div>
-                              <div className="font-medium text-sm mb-2 text-blue-600 dark:text-blue-400">Response Status:</div>
-                              <div className="bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded p-2 text-sm">
-                                <Badge variant={selectedCombinedJob.webhook_payload.webhookResStatus === 200 ? 'default' : 'destructive'}>
-                                  {selectedCombinedJob.webhook_payload.webhookResStatus}
-                                </Badge>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Webhook Response Text (for streaming) */}
-                          {selectedCombinedJob.webhook_payload.webhookResponseText && (
-                            <div>
-                              <div className="font-medium text-sm mb-2 text-purple-600 dark:text-purple-400">Raw Response Text:</div>
-                              <pre className="whitespace-pre-wrap break-all max-h-48 overflow-auto bg-purple-50 dark:bg-purple-950/50 border border-purple-200 dark:border-purple-800 rounded p-3 text-xs text-purple-900 dark:text-purple-100">
-                                {selectedCombinedJob.webhook_payload.webhookResponseText}
-                              </pre>
-                            </div>
-                          )}
-
-                          {/* Webhook Error */}
-                          {selectedCombinedJob.webhook_payload.webhookError && (
-                            <div>
-                              <div className="font-medium text-sm mb-2 text-red-600 dark:text-red-400">Webhook Error:</div>
-                              <pre className="whitespace-pre-wrap break-all max-h-32 overflow-auto bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 rounded p-3 text-xs text-red-700 dark:text-red-300">
-                                {selectedCombinedJob.webhook_payload.webhookError}
-                              </pre>
-                            </div>
-                          )}
-
-                          {/* Webhook Response JSON */}
-                          {selectedCombinedJob.webhook_payload.webhookResJson && (
-                            <div>
-                              <div className="font-medium text-sm mb-2 text-green-600 dark:text-green-400">Webhook Response JSON:</div>
-                              <pre className="whitespace-pre-wrap break-all max-h-48 overflow-auto bg-green-50 dark:bg-green-950/50 border border-green-200 dark:border-green-800 rounded p-3 text-xs text-green-900 dark:text-green-100">
-                                {JSON.stringify(selectedCombinedJob.webhook_payload.webhookResJson, null, 2)}
-                              </pre>
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="text-center py-8 text-muted-foreground">
-                          <ExternalLink className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                          <p>No webhook data available</p>
-                          <p className="text-xs">This job may not have been processed by a webhook</p>
-                        </div>
-                      )}
-                    </AccordionContent>
-                  </AccordionItem>
-                </Accordion>
-              </ScrollArea>
+                </div>
+              )}
             </div>
-          ) : <div>Job not found.</div>}
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button type="button" variant="outline">Close</Button>
-            </DialogClose>
-          </DialogFooter>
+          )}
         </DialogContent>
       </Dialog>
-      <FileViewerModal
-        isOpen={fileViewerOpen}
-        onOpenChange={setFileViewerOpen}
-        file={fileViewerFile}
-      />
     </div>
   );
-};
-
-export const CandidateImportUploadQueue: React.FC<{
-  initialPage?: number;
-  initialPageSize?: number;
-  onPaginationChange?: (page: number, pageSize: number) => void;
-}> = (props) => {
-  // Simple fallback for testing
-  const [hasError, setHasError] = useState(false);
-  
-  if (hasError) {
-    return (
-      <div className="flex flex-col items-center justify-center p-8">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold mb-2">Component Error</h2>
-          <p className="text-muted-foreground mb-4">
-            There was an error loading the upload queue.
-          </p>
-          <Button onClick={() => setHasError(false)}>
-            Try Again
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <CandidateImportUploadQueueErrorBoundary>
-      <CandidateImportUploadQueueInner {...props} />
-    </CandidateImportUploadQueueErrorBoundary>
-  );
-}; 
+} 

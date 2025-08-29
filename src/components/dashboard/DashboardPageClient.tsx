@@ -91,7 +91,7 @@ export default function DashboardPageClient({
   const canGenerateReports = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('REPORTS_GENERATE') || false;
 
   // Check if user can view all candidates (for conditional rendering)
-  const canViewAllCandidates = session?.user?.session?.user?.modulePermissions?.includes('USERS_VIEW') || session?.user?.modulePermissions?.includes('USERS_CREATE') || session?.user?.modulePermissions?.includes('USERS_EDIT') || session?.user?.modulePermissions?.includes('USERS_DELETE') || session?.user?.modulePermissions?.includes('USERS_PERMISSIONS_MANAGE') || 
+  const canViewAllCandidates = session?.user?.role === 'Admin' || 
                                session?.user?.modulePermissions?.includes('CANDIDATES_VIEW');
 
   // Function to re-fetch data on client if needed (e.g., after an action or for a refresh button)
@@ -111,9 +111,14 @@ export default function DashboardPageClient({
       const fetchOptions = { credentials: 'include' as const };
       const promises = [];
       // Check permissions to determine what data to fetch
-      const canViewAllCandidates = session?.user?.session?.user?.modulePermissions?.includes('USERS_VIEW') || session?.user?.modulePermissions?.includes('USERS_CREATE') || session?.user?.modulePermissions?.includes('USERS_EDIT') || session?.user?.modulePermissions?.includes('USERS_DELETE') || session?.user?.modulePermissions?.includes('USERS_PERMISSIONS_MANAGE') || 
+      const canViewAllCandidates = session?.user?.role === 'Admin' || 
                                    session?.user?.modulePermissions?.includes('CANDIDATES_VIEW');
-      const canViewAllUsers = session?.user?.session?.user?.modulePermissions?.includes('USERS_VIEW') || session?.user?.modulePermissions?.includes('USERS_CREATE') || session?.user?.modulePermissions?.includes('USERS_EDIT') || session?.user?.modulePermissions?.includes('USERS_DELETE') || session?.user?.modulePermissions?.includes('USERS_PERMISSIONS_MANAGE');
+      const canViewAllUsers = session?.user?.role === 'Admin' || 
+                              session?.user?.modulePermissions?.includes('USERS_VIEW') ||
+                              session?.user?.modulePermissions?.includes('USERS_CREATE') ||
+                              session?.user?.modulePermissions?.includes('USERS_EDIT') ||
+                              session?.user?.modulePermissions?.includes('USERS_DELETE') ||
+                              session?.user?.modulePermissions?.includes('USERS_PERMISSIONS_MANAGE');
       
       if (canViewAllCandidates) {
         promises.push(fetch('/api/candidates', fetchOptions));
@@ -223,7 +228,7 @@ export default function DashboardPageClient({
     setFilteredCandidates(initialCandidates || []);
     
     // Check if user can view all candidates or only their assigned ones
-    const canViewAllCandidates = session?.user?.session?.user?.modulePermissions?.includes('USERS_VIEW') || session?.user?.modulePermissions?.includes('USERS_CREATE') || session?.user?.modulePermissions?.includes('USERS_EDIT') || session?.user?.modulePermissions?.includes('USERS_DELETE') || session?.user?.modulePermissions?.includes('USERS_PERMISSIONS_MANAGE') || 
+    const canViewAllCandidates = session?.user?.role === 'Admin' || 
                                  session?.user?.modulePermissions?.includes('CANDIDATES_VIEW');
     
     if (!canViewAllCandidates) {
@@ -331,8 +336,10 @@ export default function DashboardPageClient({
     // Count users who can manage candidates (not just hardcoded 'Recruiter' role)
     return safeAllUsers.filter((u: UserProfile) => 
       u.role === 'Recruiter' || 
-      u.session?.user?.modulePermissions?.includes('CANDIDATES_VIEW') || session?.user?.modulePermissions?.includes('CANDIDATES_CREATE') || session?.user?.modulePermissions?.includes('CANDIDATES_EDIT_BASIC') || session?.user?.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE') ||
-      u.modulePermissions?.includes('CANDIDATES_VIEW')
+      u.modulePermissions?.includes('CANDIDATES_VIEW') ||
+      u.modulePermissions?.includes('CANDIDATES_CREATE') ||
+      u.modulePermissions?.includes('CANDIDATES_EDIT_BASIC') ||
+      u.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE')
     ).length;
   }, [allUsers]);
   const newCandidatesTodayAdminList = useMemo(() => {

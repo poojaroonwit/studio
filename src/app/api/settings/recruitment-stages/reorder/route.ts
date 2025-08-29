@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
   }
   // Optional: Add permission check for RECRUITMENT_STAGES_MANAGE
   if (
-    session.user.role !== 'Admin' ||
+    session.user.role !== 'Admin' &&
     !session.user.modulePermissions?.includes('RECRUITMENT_STAGES_MANAGE')
   ) {
     return NextResponse.json({ message: 'Forbidden' }, { status: 403 });

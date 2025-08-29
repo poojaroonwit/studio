@@ -134,7 +134,7 @@ export function UnifiedUserModal({
 
   // Check permissions for different fields
   const isAdmin = session?.user?.role === 'Admin';
-  const hasUserManagePermission = session?.user?.session?.user?.modulePermissions?.includes('USERS_VIEW') || session?.user?.modulePermissions?.includes('USERS_CREATE') || session?.user?.modulePermissions?.includes('USERS_EDIT') || session?.user?.modulePermissions?.includes('USERS_DELETE') || session?.user?.modulePermissions?.includes('USERS_PERMISSIONS_MANAGE');
+  const hasUserManagePermission = session?.user?.modulePermissions?.includes('USERS_VIEW') || session?.user?.modulePermissions?.includes('USERS_CREATE') || session?.user?.modulePermissions?.includes('USERS_EDIT') || session?.user?.modulePermissions?.includes('USERS_DELETE') || session?.user?.modulePermissions?.includes('USERS_PERMISSIONS_MANAGE');
   const isEditingSelf = user?.id === session?.user?.id;
   
   const canManageUsers = isAdmin || hasUserManagePermission;

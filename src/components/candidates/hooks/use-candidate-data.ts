@@ -194,11 +194,61 @@ export function useCandidateData({
   const filtersRef = useRef(filters);
   filtersRef.current = filters;
 
-  // Fetch fit score counts
-  const fetchFitScoreCounts = useCallback(async () => {
+  // Circuit breaker for fit score counts
+  const fitScoreCountsCircuitBreaker = useRef({
+    consecutiveFailures: 0,
+    lastFailureTime: 0,
+    isOpen: false,
+    threshold: 3,
+    resetTime: 30000 // 30 seconds
+  });
+
+  // Debounce ref for fit score counts
+  const fitScoreCountsDebounceRef = useRef<NodeJS.Timeout | null>(null);
+  const isFetchingFitScoreCountsRef = useRef(false);
+
+  // Fetch fit score counts with circuit breaker and debouncing
+  const fetchFitScoreCounts = useCallback(async (forceRefresh = false) => {
     if (sessionStatus !== 'authenticated') return;
 
+    // Circuit breaker check
+    const circuitBreaker = fitScoreCountsCircuitBreaker.current;
+    const now = Date.now();
+    
+    if (circuitBreaker.isOpen) {
+      if (now - circuitBreaker.lastFailureTime < circuitBreaker.resetTime) {
+        console.warn('🚫 Fit score counts circuit breaker is open, skipping request');
+        return;
+      } else {
+        // Reset circuit breaker after timeout
+        circuitBreaker.isOpen = false;
+        circuitBreaker.consecutiveFailures = 0;
+        circuitBreaker.lastFailureTime = 0;
+      }
+    }
+
+    // Prevent concurrent requests
+    if (isFetchingFitScoreCountsRef.current && !forceRefresh) {
+      console.warn('🚫 Fit score counts request already in progress, skipping');
+      return;
+    }
+
+    // Clear existing debounce
+    if (fitScoreCountsDebounceRef.current) {
+      clearTimeout(fitScoreCountsDebounceRef.current);
+      fitScoreCountsDebounceRef.current = null;
+    }
+
+    // Debounce non-forced requests
+    if (!forceRefresh) {
+      fitScoreCountsDebounceRef.current = setTimeout(() => {
+        fetchFitScoreCounts(forceRefresh);
+      }, 300); // 300ms debounce
+      return;
+    }
+
     setIsFitScoreCountsLoading(true);
+    isFetchingFitScoreCountsRef.current = true;
     const startTime = Date.now();
 
     try {
@@ -233,7 +283,20 @@ export function useCandidateData({
       if (currentFilters.skills) params.append('skills', currentFilters.skills);
 
       const url = `/api/candidates/fit-score-counts?${params.toString()}`;
-      const response = await fetch(url);
+      
+      // Add timeout to fetch request
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+      
+      const response = await fetch(url, {
+        signal: controller.signal,
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
+      
+      clearTimeout(timeoutId);
       
       if (response.ok) {
         const data = await response.json();
@@ -250,17 +313,57 @@ export function useCandidateData({
         setDatabaseFitScoreCounts(newCounts);
         
         const responseTime = Date.now() - startTime;
+        console.log(`✅ Fit score counts fetched successfully in ${responseTime}ms`);
+        
+        // Reset circuit breaker on success
+        circuitBreaker.consecutiveFailures = 0;
+        circuitBreaker.lastFailureTime = 0;
+        circuitBreaker.isOpen = false;
+        
+      } else if (response.status === 503) {
+        // Service unavailable - circuit breaker on server side
+        console.warn('⚠️ Fit score counts service temporarily unavailable');
+        setDatabaseFitScoreCounts(null);
+        
+        // Don't update circuit breaker for 503 errors as they're handled server-side
       } else {
         console.error('❌ Failed to fetch fit score counts:', response.status, response.statusText);
         setDatabaseFitScoreCounts(null);
+        
+        // Update circuit breaker
+        circuitBreaker.consecutiveFailures++;
+        circuitBreaker.lastFailureTime = now;
+        if (circuitBreaker.consecutiveFailures >= circuitBreaker.threshold) {
+          circuitBreaker.isOpen = true;
+          console.warn(`🚫 Fit score counts circuit breaker opened after ${circuitBreaker.consecutiveFailures} failures`);
+        }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error fetching fit score counts:', error);
       setDatabaseFitScoreCounts(null);
+      
+      // Update circuit breaker
+      circuitBreaker.consecutiveFailures++;
+      circuitBreaker.lastFailureTime = now;
+      if (circuitBreaker.consecutiveFailures >= circuitBreaker.threshold) {
+        circuitBreaker.isOpen = true;
+        console.warn(`🚫 Fit score counts circuit breaker opened after ${circuitBreaker.consecutiveFailures} failures`);
+      }
     } finally {
       setIsFitScoreCountsLoading(false);
+      isFetchingFitScoreCountsRef.current = false;
     }
   }, [sessionStatus]);
+
+  // Debounced version for filter changes
+  const debouncedFetchFitScoreCounts = useCallback(() => {
+    fetchFitScoreCounts(false); // Use debouncing
+  }, [fetchFitScoreCounts]);
+
+  // Force refresh version for manual updates
+  const forceRefreshFitScoreCounts = useCallback(() => {
+    fetchFitScoreCounts(true); // Force refresh without debouncing
+  }, [fetchFitScoreCounts]);
 
   // Fetch positions and stages if not provided initially
   useSafeEffect(() => {
@@ -464,6 +567,8 @@ export function useCandidateData({
     // Database-level fit score counts
     databaseFitScoreCounts,
     isFitScoreCountsLoading,
-    fetchFitScoreCounts
+    fetchFitScoreCounts,
+    debouncedFetchFitScoreCounts, // Expose debounced function
+    forceRefreshFitScoreCounts // Expose force refresh function
   };
 }

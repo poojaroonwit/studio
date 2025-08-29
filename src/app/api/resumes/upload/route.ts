@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
 
   // Check if user has permission to manage candidate resumes
   const canManageResumes = session.user.role === 'Admin' || session.user.modulePermissions?.includes('USERS_MANAGE') || 
-    session.user.modulePermissions?.includes('CANDIDATES_RESUMES');
+    session.user.modulePermissions?.includes('CANDIDATES_RESUMES_UPLOAD');
   
   if (!canManageResumes) {
     await logAudit('WARN', `Forbidden attempt to upload resume by ${actingUserName}`, 'API:Resumes:Upload', actingUserId);

@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import React, { useEffect, useState } from "react";
 
 const SwaggerUI = dynamic(() => import("swagger-ui-react"), { ssr: false });
-import "swagger-ui-react/swagger-ui.css";
+// CSS will be loaded dynamically
 
 type Server = { url: string; description?: string };
 
@@ -17,6 +17,12 @@ export default function ApiDocsPage() {
 
   // Fetch server list and OpenAPI spec
   useEffect(() => {
+    // Load Swagger UI CSS dynamically
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui.css';
+    document.head.appendChild(link);
+
     Promise.all([
       fetch("/api-docs/servers").then(res => res.json()),
       fetch("/api-docs").then(res => res.json())
@@ -32,6 +38,14 @@ export default function ApiDocsPage() {
         setError(err.message || "Failed to load spec or servers");
         setLoading(false);
       });
+
+    // Cleanup function to remove the CSS link
+    return () => {
+      const existingLink = document.querySelector('link[href*="swagger-ui.css"]');
+      if (existingLink) {
+        existingLink.remove();
+      }
+    };
   }, []);
 
   // Update the servers array in the spec when serverUrl changes

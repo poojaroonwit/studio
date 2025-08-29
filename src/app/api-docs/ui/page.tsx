@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
-import 'swagger-ui-react/swagger-ui.css';
+// CSS will be loaded dynamically
 
 const SwaggerUI = dynamic(() => import('swagger-ui-react'), { ssr: false });
 
@@ -11,6 +11,12 @@ export default function ApiDocsUIPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Load Swagger UI CSS dynamically
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui.css';
+    document.head.appendChild(link);
+
     const fetchSwaggerSpec = async () => {
       try {
         const response = await fetch('/api-docs', {
@@ -34,6 +40,14 @@ export default function ApiDocsUIPage() {
     };
 
     fetchSwaggerSpec();
+
+    // Cleanup function to remove the CSS link
+    return () => {
+      const existingLink = document.querySelector('link[href*="swagger-ui.css"]');
+      if (existingLink) {
+        existingLink.remove();
+      }
+    };
   }, []);
 
   if (error) {

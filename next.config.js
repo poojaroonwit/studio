@@ -249,11 +249,7 @@ const nextConfig = {
     config.module = config.module || {};
     config.module.rules = config.module.rules || [];
     
-    // Ignore Swagger UI CSS files to prevent build issues
-    config.module.rules.push({
-      test: /swagger-ui\.css$/,
-      use: 'ignore-loader',
-    });
+
     
     // Optimize for memory usage during build
     if (!dev) {

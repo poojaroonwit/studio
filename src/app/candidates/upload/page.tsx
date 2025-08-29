@@ -2,11 +2,10 @@
 
 import React, { useState } from "react";
 import { BarChart3, ListTodo, UploadCloud } from "lucide-react";
-import { CandidateQueueProvider } from "@/components/candidates/CandidateImportUploadQueue";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { useRouter, useSearchParams } from 'next/navigation';
-import { CandidateImportUploadQueue } from '@/components/candidates/CandidateImportUploadQueue';
+import CandidateImportUploadQueue from '@/components/candidates/CandidateImportUploadQueue';
 import { UploadQueueStatistics } from '@/components/UploadQueueStatistics';
 import { Button } from "@/components/ui/button";
 import BulkUploadCVsModal from "@/components/BulkUploadCVsModal";
@@ -85,11 +84,7 @@ function UploadPageContent() {
               <ScrollArea className="h-full pr-4">
                 <div className="space-y-6">
                   <div>
-                    <CandidateImportUploadQueue 
-                      initialPage={initialPage}
-                      initialPageSize={initialPageSize}
-                      onPaginationChange={updateURL}
-                    />
+                    <CandidateImportUploadQueue />
                   </div>
                 </div>
               </ScrollArea>
@@ -121,9 +116,5 @@ function UploadPageContent() {
 }
 
 export default function MultiCandidateUploadPage() {
-  return (
-    <CandidateQueueProvider>
-      <UploadPageContent />
-    </CandidateQueueProvider>
-  );
+  return <UploadPageContent />;
 } 

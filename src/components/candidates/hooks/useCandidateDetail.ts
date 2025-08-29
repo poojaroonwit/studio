@@ -316,7 +316,7 @@ export const useCandidateDetail = (candidateId: string) => {
   // Unified realtime hook with stable handlers
   const { isConnected: realtimeConnected } = useUnifiedRealtime({
     onCandidateUpdate: handleRealtimeUpdate,
-    onNotification: (notification) => {
+    onNotificationUpdate: (notification: any) => {
       // Handle notifications if needed
     },
     showNotifications: false, // Disable notifications to prevent conflicts
@@ -338,8 +338,8 @@ export const useCandidateDetail = (candidateId: string) => {
     };
   }, [candidateId], 'fetchCandidate', 10);
 
-  // Fetch static data only once on mount with parallel execution
-  useSafeEffect(() => {
+  // Fetch static data only once on mount with parallel execution - FIXED: Use useEffect instead of useSafeEffect
+  useEffect(() => {
     // Fetch all static data in parallel for better performance
     Promise.all([
       fetchPositions(),
@@ -349,20 +349,20 @@ export const useCandidateDetail = (candidateId: string) => {
     ]).catch(error => {
       console.error('Error fetching static data:', error);
     });
-  }, [], 'fetchStaticData', 5);
+  }, []); // FIXED: Empty dependency array since this should only run once
 
-  // Fetch transition history when candidateId is available (non-blocking)
-  useSafeEffect(() => {
+  // Fetch transition history when candidateId is available (non-blocking) - FIXED: Use useEffect
+  useEffect(() => {
     if (candidateId) {
       // Fetch transition history in background without blocking main candidate data
       fetchTransitionHistory().catch(error => {
         console.error('Error fetching transition history:', error);
       });
     }
-  }, [candidateId], 'fetchTransitionHistory', 10);
+  }, [candidateId]); // FIXED: Only depend on candidateId
 
-  // Cleanup on unmount
-  useSafeEffect(() => {
+  // Cleanup on unmount - FIXED: Use useEffect instead of useSafeEffect
+  useEffect(() => {
     return () => {
       isMountedRef.current = false;
       if (avatarForceRefreshTimeoutRef.current) {
@@ -375,7 +375,7 @@ export const useCandidateDetail = (candidateId: string) => {
       // Clear cache to prevent memory leaks
       cacheRef.current.clear();
     };
-  }, [], 'cleanup', 1);
+  }, []); // FIXED: Empty dependency array for cleanup
 
   // Populate form with candidate data when entering edit mode
   useSafeEffect(() => {

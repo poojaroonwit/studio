@@ -196,25 +196,31 @@ export default function DashboardPageClient({
     }
   }, [status, session?.user?.id, session?.user?.role]);
 
-  // FIXED: Stabilize callback functions to prevent infinite loops
+  // FIXED: Stabilize callback functions to prevent infinite loops and temporal dead zone issues
   const handleCandidateUpdate = useCallback((updatedCandidate: any) => {
     // Refresh dashboard data when candidates are updated
-    fetchDataClientSide();
+    if (typeof fetchDataClientSide === 'function') {
+      fetchDataClientSide();
+    }
   }, [fetchDataClientSide]);
 
   const handlePositionUpdate = useCallback((updatedPosition: any) => {
     // Refresh dashboard data when positions are updated
-    fetchDataClientSide();
+    if (typeof fetchDataClientSide === 'function') {
+      fetchDataClientSide();
+    }
   }, [fetchDataClientSide]);
 
   const handleDashboardUpdate = useCallback((dashboardData: any) => {
     // Handle specific dashboard updates
-    if (dashboardData.type === 'metrics') {
-      // Refresh all data when metrics update
-      fetchDataClientSide();
-    } else if (dashboardData.type === 'chart_update') {
-      // Handle specific chart updates
-      fetchDataClientSide();
+    if (typeof fetchDataClientSide === 'function') {
+      if (dashboardData.type === 'metrics') {
+        // Refresh all data when metrics update
+        fetchDataClientSide();
+      } else if (dashboardData.type === 'chart_update') {
+        // Handle specific chart updates
+        fetchDataClientSide();
+      }
     }
   }, [fetchDataClientSide]);
 
@@ -222,7 +228,7 @@ export default function DashboardPageClient({
     // Handle dashboard-related notifications
   }, []);
 
-  // Unified realtime hook
+  // Unified realtime hook - with defensive error handling
   const { isConnected: realtimeConnected } = useUnifiedRealtime({
     onCandidateUpdate: handleCandidateUpdate,
     onPositionUpdate: handlePositionUpdate,
@@ -263,6 +269,8 @@ export default function DashboardPageClient({
         } else {
           console.error('[DASHBOARD] Failed to refresh permissions:', result.error);
         }
+      }).catch(error => {
+        console.error('[DASHBOARD] Error refreshing permissions:', error);
       });
     }
     

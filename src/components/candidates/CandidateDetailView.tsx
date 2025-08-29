@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Loader2, ServerCrash, UserX } from 'lucide-react';
 import FullCandidateDetail from './FullCandidateDetail';
@@ -26,8 +26,9 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
 
   // Add abort controller for cleanup
   const abortControllerRef = useRef<AbortController | null>(null);
+  const mountedRef = useRef(true);
 
-  // Simple data loading function with infinite loop prevention
+  // Simple data loading function with infinite loop prevention - FIXED: Remove trackLoadData from dependencies
   const loadData = useCallback(async () => {
     if (!trackLoadData()) return;
     if (!candidateId) return;
@@ -102,19 +103,21 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
     } finally {
       setIsLoading(false);
     }
-  }, [candidateId, trackLoadData]);
+  }, [candidateId]); // FIXED: Remove trackLoadData from dependencies
 
-  // Load data when component mounts or candidateId changes with safe effect
-  useSafeEffect(() => {
+  // Load data when component mounts or candidateId changes - FIXED: Use useEffect instead of useSafeEffect
+  useEffect(() => {
+    mountedRef.current = true;
     loadData();
     
     return () => {
+      mountedRef.current = false;
       // Abort any ongoing requests on cleanup
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
     };
-  }, [loadData], 'loadData', 10);
+  }, [loadData]);
 
   const handleRefresh = useCallback(() => {
     loadData();

@@ -1,11 +1,11 @@
 // src/app/candidates/page.tsx - Server Component
-import { getServerSession } from 'next-auth/next';
+import { getServerSession } from 'next-auth';
+import { redirect } from 'next/navigation';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 import { CandidatesPageClient } from '@/components/candidates/CandidatesPageClient';
 import type { Candidate, Position, RecruitmentStage, UserProfile } from '@/lib/types';
 import { authOptions } from '@/lib/auth';
-import { CandidateQueueProvider } from "@/components/candidates/CandidateImportUploadQueue";
 import { Suspense } from 'react';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import SafeComponentWrapper from '@/components/ui/safe-component-wrapper';
@@ -142,16 +142,14 @@ export default async function CandidatesPageServer() {
           fallbackTitle="Candidates Page Error"
           fallbackDescription="There was an issue loading the candidates page. This may be due to a temporary initialization problem."
         >
-          <CandidateQueueProvider>
-            <ErrorBoundary>
-              <CandidatesPageClient
-                initialCandidates={initialCandidates}
-                initialAvailablePositions={initialAvailablePositions}
-                initialAvailableStages={initialAvailableStages}
-                initialFetchError={initialFetchError}
-              />
-            </ErrorBoundary>
-          </CandidateQueueProvider>
+          <ErrorBoundary>
+            <CandidatesPageClient
+              initialCandidates={initialCandidates}
+              initialAvailablePositions={initialAvailablePositions}
+              initialAvailableStages={initialAvailableStages}
+              initialFetchError={initialFetchError}
+            />
+          </ErrorBoundary>
         </SafeComponentWrapper>
       </Suspense>
     </ErrorBoundary>

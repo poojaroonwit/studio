@@ -33,6 +33,22 @@ const GLOBAL_CONNECTION_TIMEOUT = 30000; // 30 seconds
 const MAX_GLOBAL_CONNECTIONS = 10; // Prevent too many global connections
 
 export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
+  // Defensive check to prevent initialization errors
+  if (typeof window === 'undefined') {
+    // Return safe defaults for SSR
+    return {
+      isConnected: false,
+      isReconnecting: false,
+      reconnectAttempts: 0,
+      lastUpdate: null,
+      connectionHealth: 'disconnected' as const,
+      connectedUsers: 0,
+      totalConnections: 0,
+      reconnect: () => {},
+      disconnect: () => {}
+    };
+  }
+
   const { data: session } = useSession();
   const [isConnected, setIsConnected] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
@@ -64,14 +80,20 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
     console.error('🚨 Excessive reconnection attempts detected in useUnifiedRealtime');
   });
 
-  // Set client flag to prevent SSR issues
-  useSafeEffect(() => {
+  // Set client flag to prevent SSR issues - FIXED: Use useEffect instead of useSafeEffect for this simple operation
+  useEffect(() => {
     setIsClient(true);
-  }, [], 'UnifiedRealtimeClientCheck', 5);
+  }, []);
 
   // Use ref for options to avoid infinite loops - update directly without effect
   const optionsRef = useRef(options);
   optionsRef.current = options; // Direct assignment to avoid effect dependency issues
+
+  // Defensive check to ensure options is valid
+  if (!options || typeof options !== 'object') {
+    console.warn('useUnifiedRealtime: Invalid options provided, using defaults');
+    optionsRef.current = {};
+  }
 
   const cleanup = useCallback(() => {
     if (eventSourceRef.current) {
@@ -344,9 +366,9 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
       setConnectionHealth('disconnected');
       isConnectingRef.current = false;
     }
-  }, [session?.user, trackConnectionAttempt, trackReconnectAttempt, isClient]);
+  }, [session?.user?.id, trackConnectionAttempt, trackReconnectAttempt, isClient]);
 
-  // Connection effect
+  // Connection effect - FIXED: Stabilize dependencies to prevent infinite loops
   useSafeEffect(() => {
     mountedRef.current = true;
     
@@ -366,9 +388,9 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
     } else {
       cleanup();
     }
-  }, [session?.user?.id, isClient], 'UnifiedRealtimeConnection', 10);
+  }, [session?.user?.id, isClient, connect, cleanup], 'UnifiedRealtimeConnection', 10);
 
-  // Separate cleanup effect for unmounting
+  // Separate cleanup effect for unmounting - FIXED: Remove dependencies that cause loops
   useSafeEffect(() => {
     return () => {
       mountedRef.current = false;
@@ -388,7 +410,10 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
         globalCleanupFunctions.clear();
       }
 
-      cleanup();
+      // Call cleanup function
+      if (eventSourceRef.current) {
+        cleanup();
+      }
     };
   }, [], 'UnifiedRealtimeUnmount', 5);
 

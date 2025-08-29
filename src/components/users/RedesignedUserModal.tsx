@@ -331,18 +331,24 @@ function AccountSettingsContent({ form, mode, canManageAuthentication, canForceP
               <FormLabel className="text-sm font-medium text-slate-700 dark:text-slate-300">
                 System Role <span className="text-red-500">*</span>
               </FormLabel>
-              <Select onValueChange={field.onChange} value={field.value} disabled={mode === 'profile'}>
-                <FormControl>
-                  <SelectTrigger className="h-11 border-slate-300 dark:border-slate-600 focus:border-blue-500 focus:ring-blue-500">
-                    <SelectValue placeholder="Select a role" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent className="z-[100003]">
-                  {userRoleOptions.map(roleValue => (
-                    <SelectItem key={roleValue} value={roleValue}>{roleValue}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {mode === 'profile' ? (
+                <div className="h-11 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center">
+                  {field.value || 'No role assigned'}
+                </div>
+              ) : (
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger className="h-11 border-slate-300 dark:border-slate-600 focus:border-blue-500 focus:ring-blue-500">
+                      <SelectValue placeholder="Select a role" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent className="z-[100003]">
+                    {userRoleOptions.map(roleValue => (
+                      <SelectItem key={roleValue} value={roleValue}>{roleValue}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
               <FormMessage />
             </FormItem>
           )}

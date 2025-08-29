@@ -140,8 +140,8 @@ export function UnifiedRoleDrawer({
   // Get all available permissions for Admin role
   const allPermissions = PLATFORM_MODULES.map(p => p.id);
 
-  // Initialize permissions when role changes with infinite loop prevention
-  useSafeEffect(() => {
+  // Initialize permissions when role changes - FIXED: Use useEffect instead of useSafeEffect
+  useEffect(() => {
     if (!trackRoleLoad()) return;
     
     if (role) {
@@ -152,10 +152,10 @@ export function UnifiedRoleDrawer({
         setCurrentPermissions(role.permissions || []);
       }
     }
-  }, [role, allPermissions], 'rolePermissionInit', 10);
+  }, [role, allPermissions, trackRoleLoad]); // FIXED: Include trackRoleLoad in dependencies
 
-  // Reset states when drawer closes to prevent memory leaks
-  useSafeEffect(() => {
+  // Reset states when drawer closes to prevent memory leaks - FIXED: Use useEffect instead of useSafeEffect
+  useEffect(() => {
     if (!isOpen) {
       // Clear any pending timeouts
       if (permissionUpdateTimeoutRef.current) {
@@ -184,22 +184,22 @@ export function UnifiedRoleDrawer({
       setIsUpdatingPermissions(false);
       lastPermissionUpdateRef.current = '';
     }
-  }, [isOpen], 'drawerReset', 5);
+  }, [isOpen]); // FIXED: Remove max run limit
 
   const form = useForm<RoleFormValues>({
     resolver: zodResolver(roleFormSchema),
     defaultValues: { name: '', description: '', is_default: false },
   });
 
-  // Cleanup form when component unmounts
-  useSafeEffect(() => {
+  // Cleanup form when component unmounts - FIXED: Use useEffect instead of useSafeEffect
+  useEffect(() => {
     return () => {
       form.reset();
     };
-  }, [form], 'formCleanup', 1);
+  }, [form]); // FIXED: Include form in dependencies
 
-  // Load role data when drawer opens
-  useSafeEffect(() => {
+  // Load role data when drawer opens - FIXED: Use useEffect instead of useSafeEffect
+  useEffect(() => {
     if (isOpen && role) {
       form.reset({
         name: role.name,
@@ -218,24 +218,24 @@ export function UnifiedRoleDrawer({
         loadGroupMembers();
       }
     }
-  }, [isOpen, role, form, activeTab, allPermissions], 'roleDataLoad', 10);
+  }, [isOpen, role, form, activeTab, allPermissions]); // FIXED: Remove max run limit
 
-  // Load group members when members tab is selected
-  useSafeEffect(() => {
+  // Load group members when members tab is selected - FIXED: Use useEffect instead of useSafeEffect
+  useEffect(() => {
     if (isOpen && role && activeTab === 'members') {
       loadGroupMembers();
     }
-  }, [isOpen, role, activeTab], 'membersTabLoad', 5);
+  }, [isOpen, role, activeTab]); // FIXED: Remove max run limit
 
-  // Load available users when add user modal opens
-  useSafeEffect(() => {
+  // Load available users when add user modal opens - FIXED: Use useEffect instead of useSafeEffect
+  useEffect(() => {
     if (isAddUserModalOpen && role) {
       loadAvailableUsers();
     }
-  }, [isAddUserModalOpen, role, searchTerm], 'availableUsersLoad', 10);
+  }, [isAddUserModalOpen, role, searchTerm]); // FIXED: Remove max run limit
 
-  // Cleanup effect to prevent memory leaks and handle component unmounting
-  useSafeEffect(() => {
+  // Cleanup effect to prevent memory leaks and handle component unmounting - FIXED: Use useEffect instead of useSafeEffect
+  useEffect(() => {
     return () => {
       // Clear any pending timeout
       if (permissionUpdateTimeoutRef.current) {
@@ -249,7 +249,7 @@ export function UnifiedRoleDrawer({
         abortControllerRef.current = null;
       }
     };
-  }, [], 'componentCleanup', 1);
+  }, []); // FIXED: Empty dependency array for cleanup
 
 
 

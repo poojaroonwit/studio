@@ -623,7 +623,24 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                    ) : (
                      <div className="flex items-center gap-2">
                        <Users className="w-3 h-3" />
-                                               {totalCandidates} total candidates ({displayedCandidates.length} filtered)
+                       {(() => {
+                         // Check if any manual filters are applied
+                         const hasManualFilters = filters.name || filters.positionId || filters.stage || filters.recruiterId || 
+                                                  filters.minFitScore !== undefined || filters.maxFitScore !== undefined;
+                         
+                         // If no manual filters and user can view all candidates, show simple count
+                         if (!hasManualFilters && canViewAllCandidates) {
+                           return `${totalCandidates} candidates`;
+                         }
+                         
+                         // If no manual filters but user has limited permissions, show permission-based count
+                         if (!hasManualFilters && !canViewAllCandidates) {
+                           return `${totalCandidates} total candidates (${displayedCandidates.length} assigned to you)`;
+                         }
+                         
+                         // If manual filters are applied, show filtered count
+                         return `${totalCandidates} total candidates (${displayedCandidates.length} filtered)`;
+                       })()}
                      </div>
                    )}
                  </Badge>

@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import CandidateDetailView from './CandidateDetailView';
-import { useSafeEffect, useInfiniteLoopPrevention } from '@/hooks/use-safe-effect';
+import { useInfiniteLoopPrevention } from '@/hooks/use-safe-effect';
 
 interface CandidateDetailModalProps {
   candidateId: string;
@@ -20,8 +20,8 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
     console.error('🚨 Excessive modal open/close cycles detected in CandidateDetailModal');
   });
 
-  // Create portal container on mount with safe effect
-  useSafeEffect(() => {
+  // Create portal container on mount - FIXED: Use useEffect instead of useSafeEffect
+  useEffect(() => {
     setMounted(true);
     
     // Create portal container if it doesn't exist
@@ -39,10 +39,10 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
         portalContainerRef.current = null;
       }
     };
-  }, [], 'portalSetup', 1);
+  }, []); // FIXED: Empty dependency array since this should only run once
 
-  // Handle escape key with safe effect
-  useSafeEffect(() => {
+  // Handle escape key - FIXED: Use useEffect instead of useSafeEffect
+  useEffect(() => {
     if (!trackModalOpen()) return;
 
     const handleEscape = (event: KeyboardEvent) => {
@@ -62,15 +62,15 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
       // Restore body scroll when modal closes
       document.body.style.overflow = '';
     };
-  }, [open, onClose], 'escapeKeyHandler', 10);
+  }, [open, onClose, trackModalOpen]); // FIXED: Include trackModalOpen in dependencies
 
-  // Cleanup on unmount with safe effect
-  useSafeEffect(() => {
+  // Cleanup on unmount - FIXED: Use useEffect instead of useSafeEffect
+  useEffect(() => {
     return () => {
       // Ensure body scroll is restored
       document.body.style.overflow = '';
     };
-  }, [], 'bodyScrollCleanup', 1);
+  }, []); // FIXED: Empty dependency array for cleanup
 
   if (!open || !candidateId || !mounted || !portalContainerRef.current) return null;
 

@@ -601,18 +601,24 @@ export function UnifiedUserModal({
                                     <FormLabel htmlFor="role-edit" className="text-sm font-medium">
                                       System Role <span className="text-destructive">*</span>
                                     </FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value} disabled={mode === 'profile'}>
-                                      <FormControl>
-                                        <SelectTrigger id="role-edit" className="h-10 transition-all duration-200 focus:ring-2 focus:ring-primary/20">
-                                          <SelectValue placeholder="Select a role" />
-                                        </SelectTrigger>
-                                      </FormControl>
-                                      <SelectContent className="z-[100003]">
-                                        {userRoleOptions.map(roleValue => (
-                                          <SelectItem key={roleValue} value={roleValue}>{roleValue}</SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
+                                    {mode === 'profile' ? (
+                                      <div className="h-10 px-3 py-2 border border-input rounded-md bg-muted text-foreground flex items-center transition-all duration-200">
+                                        {field.value || 'No role assigned'}
+                                      </div>
+                                    ) : (
+                                      <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
+                                        <FormControl>
+                                          <SelectTrigger id="role-edit" className="h-10 transition-all duration-200 focus:ring-2 focus:ring-primary/20">
+                                            <SelectValue placeholder="Select a role" />
+                                          </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent className="z-[100003]">
+                                          {userRoleOptions.map(roleValue => (
+                                            <SelectItem key={roleValue} value={roleValue}>{roleValue}</SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    )}
                                     <FormMessage />
                                   </FormItem>
                                 )}

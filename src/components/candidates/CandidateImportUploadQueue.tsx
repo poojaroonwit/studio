@@ -1051,7 +1051,7 @@ const CandidateImportUploadQueueInner: React.FC<{
                 <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="min-w-[130px] p-0 z-[10001]">
+            <PopoverContent className="min-w-[130px] p-0 z-[10003]">
               <Command>
                 <div className="flex items-center border-b px-3">
                   <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />

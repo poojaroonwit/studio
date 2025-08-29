@@ -190,6 +190,10 @@ export function useCandidateData({
     }
   }, [sessionStatus, stableSetAvailableRecruiters]);
 
+  // Store current filters in a ref to avoid dependency issues
+  const filtersRef = useRef(filters);
+  filtersRef.current = filters;
+
   // Fetch fit score counts
   const fetchFitScoreCounts = useCallback(async () => {
     if (sessionStatus !== 'authenticated') return;
@@ -202,30 +206,31 @@ export function useCandidateData({
       const params = new URLSearchParams();
       
       // Safety check: ensure filters is defined
-      if (!filters) {
+      const currentFilters = filtersRef.current;
+      if (!currentFilters) {
         console.warn('Filters not available for fit score counts');
         return;
       }
       
       // Add all current filters except fit score filters to prevent circular dependency
-      if (filters.name) params.append('name', filters.name);
-      if (filters.nameOperator) params.append('nameOperator', filters.nameOperator);
-      if (filters.email) params.append('email', filters.email);
-      if (filters.emailOperator) params.append('emailOperator', filters.emailOperator);
-      if (filters.phone) params.append('phone', filters.phone);
-      if (filters.phoneOperator) params.append('phoneOperator', filters.phoneOperator);
-      if (filters.positionId) params.append('positionId', filters.positionId);
-      if (filters.status) params.append('status', filters.status);
-      if (filters.education) params.append('education', filters.education);
-      if (filters.minExperienceYears) params.append('minExperienceYears', filters.minExperienceYears.toString());
-      if (filters.maxExperienceYears) params.append('maxExperienceYears', filters.maxExperienceYears.toString());
-      if (filters.applicationDateStart) params.append('applicationDateStart', filters.applicationDateStart.toISOString());
-      if (filters.applicationDateEnd) params.append('applicationDateEnd', filters.applicationDateEnd.toISOString());
-      if (filters.recruiterId) params.append('recruiterId', filters.recruiterId);
-      if (filters.sourceId) params.append('sourceId', filters.sourceId);
-      if (filters.location) params.append('location', filters.location);
-      if (filters.locationOperator) params.append('locationOperator', filters.locationOperator);
-      if (filters.skills) params.append('skills', filters.skills);
+      if (currentFilters.name) params.append('name', currentFilters.name);
+      if (currentFilters.nameOperator) params.append('nameOperator', currentFilters.nameOperator);
+      if (currentFilters.email) params.append('email', currentFilters.email);
+      if (currentFilters.emailOperator) params.append('emailOperator', currentFilters.emailOperator);
+      if (currentFilters.phone) params.append('phone', currentFilters.phone);
+      if (currentFilters.phoneOperator) params.append('phoneOperator', currentFilters.phoneOperator);
+      if (currentFilters.positionId) params.append('positionId', currentFilters.positionId);
+      if (currentFilters.status) params.append('status', currentFilters.status);
+      if (currentFilters.education) params.append('education', currentFilters.education);
+      if (currentFilters.minExperienceYears) params.append('minExperienceYears', currentFilters.minExperienceYears.toString());
+      if (currentFilters.maxExperienceYears) params.append('maxExperienceYears', currentFilters.maxExperienceYears.toString());
+      if (currentFilters.applicationDateStart) params.append('applicationDateStart', currentFilters.applicationDateStart.toISOString());
+      if (currentFilters.applicationDateEnd) params.append('applicationDateEnd', currentFilters.applicationDateEnd.toISOString());
+      if (currentFilters.recruiterId) params.append('recruiterId', currentFilters.recruiterId);
+      if (currentFilters.sourceId) params.append('sourceId', currentFilters.sourceId);
+      if (currentFilters.location) params.append('location', currentFilters.location);
+      if (currentFilters.locationOperator) params.append('locationOperator', currentFilters.locationOperator);
+      if (currentFilters.skills) params.append('skills', currentFilters.skills);
 
       const url = `/api/candidates/fit-score-counts?${params.toString()}`;
       const response = await fetch(url);
@@ -256,7 +261,7 @@ export function useCandidateData({
     } finally {
       setIsFitScoreCountsLoading(false);
     }
-  }, [sessionStatus, filters]);
+  }, [sessionStatus]);
 
   // Fetch positions and stages if not provided initially
   useSafeEffect(() => {

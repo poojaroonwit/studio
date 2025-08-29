@@ -1178,11 +1178,15 @@ export function CandidatesPageClient({
     }
   }, [initialFetchError]);
 
-  // Fetch fit score counts on mount and when filters change
+  // Store current filters in a ref to avoid dependency issues
+  const filtersRef = useRef(filters);
+  filtersRef.current = filters;
+
+  // Fetch fit score counts on mount and when session changes
   useEmergencySafeEffect(() => {
-    if (sessionStatus === 'authenticated' && hasInitialDataFetch && initialCandidates.length > 0 && filters) {
+    if (sessionStatus === 'authenticated' && hasInitialDataFetch && initialCandidates.length > 0 && filtersRef.current) {
       // Create a copy of filters without fit score filters to prevent circular dependency
-      const filtersForCounts = { ...filters };
+      const filtersForCounts = { ...filtersRef.current };
       
       // Remove fit score filters to prevent circular dependency
       delete filtersForCounts.minAppliedJobFitScore;
@@ -1194,7 +1198,7 @@ export function CandidatesPageClient({
       
       fetchFitScoreCounts();
     }
-  }, [sessionStatus, hasInitialDataFetch, initialCandidates.length, filters], 'fetchFitScoreCounts');
+  }, [sessionStatus, hasInitialDataFetch, initialCandidates.length], 'fetchFitScoreCounts');
 
   // DISABLED: This useEffect was causing resource leaks due to conflicts with onFilterChange
   // The fetchFitScoreCounts is now properly handled in the onFilterChange callback

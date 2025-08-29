@@ -26,7 +26,7 @@ The candidate detail page was experiencing performance issues and slow loading t
 ### 1. API Endpoint Optimizations
 
 #### Comments API (`/api/candidates/[id]/comments/route.ts`)
-- ✅ Added pagination support (`?limit=10&offset=0`)
+- ✅ Added pagination support (`?limit=5&offset=0`)
 - ✅ Optimized attachment loading with batch queries instead of N+1 queries
 - ✅ Added performance monitoring with query timing
 - ✅ Used `Promise.all` for parallel database queries
@@ -85,7 +85,7 @@ The APIs now support pagination parameters:
 
 ```javascript
 // Comments with pagination
-fetch('/api/candidates/123/comments?limit=10&offset=0')
+fetch('/api/candidates/123/comments?limit=5&offset=0')
 
 // Resumes with pagination  
 fetch('/api/candidates/123/resumes?limit=20&offset=0')

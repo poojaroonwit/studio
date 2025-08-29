@@ -59,7 +59,7 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMoreComments, setHasMoreComments] = useState(true);
   const [commentsOffset, setCommentsOffset] = useState(0);
-  const COMMENTS_PER_LOAD = 10;
+  const COMMENTS_PER_LOAD = 5;
   
   // Drag-and-drop and file state
   const [files, setFiles] = useState<File[]>([]);

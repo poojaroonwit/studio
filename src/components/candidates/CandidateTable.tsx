@@ -16,11 +16,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
 import { CandidateAvatarCompact } from '@/components/ui/candidate-avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, FileEdit, Trash2, Eye, Users, UploadCloud, Briefcase, MoreVertical, ChevronUp, ChevronDown } from 'lucide-react';
+import { MoreHorizontal, Trash2, Eye, Users, MoreVertical, ChevronUp, ChevronDown } from 'lucide-react';
 import { formatScoreWithGrade, getScoreColor, getScoreBgColor } from "@/lib/scoreUtils";
 import { formatCandidateName, formatCandidateNameWithLang } from "@/lib/candidateUtils";
 import type { Candidate, CandidateStatus, Position, RecruitmentStage, CandidateSource } from '@/lib/types';
-import { ManageTransitionsModal } from './ManageTransitionsModal';
 import { format, formatDistanceToNow, parseISO, isValid, differenceInDays } from 'date-fns';
 import { formatDateInTimezone, convertUtcToTimezone } from '@/lib/dateUtils';
 import Link from 'next/link';
@@ -39,7 +38,6 @@ import { cn } from '@/lib/utils';
 import { z } from 'zod';
 import { getScoreColorInfo, ScoreBadge } from '@/components/ui/score-color';
 import CandidateDetailModal from './CandidateDetailModal';
-import UploadResumeModal from './UploadResumeModal';
 import { CandidateRecruiterCell } from './CandidateRecruiterCell';
 import { CandidateSourceCell } from './CandidateSourceCell';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -218,19 +216,12 @@ export function CandidateTable({
   const router = useRouter();
   // Ensure selectedCandidateIds is always a Set
   const safeSelectedCandidateIds = selectedCandidateIds || new Set<string>();
-  const [selectedCandidateForModal, setSelectedCandidateForModal] = useState<Candidate | null>(null);
   const [candidateToDelete, setCandidateToDelete] = useState<Candidate | null>(null);
-  // Add state for comments and logs
-  const [modalComments, setModalComments] = useState<any[]>([]);
-  const [modalLogs, setModalLogs] = useState<any[]>([]);
   const [selectedCandidateSummary, setSelectedCandidateSummary] = useState<Partial<Candidate> & { id: string; name: string } | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [isManageTransitionsModalOpen, setIsManageTransitionsModalOpen] = useState(false);
   // Add state for each column's dropdown menu open state
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [expandedEmails, setExpandedEmails] = useState<Record<string, boolean>>({});
-  const [isUploadResumeModalOpen, setIsUploadResumeModalOpen] = useState(false);
-  const [selectedCandidateForUpload, setSelectedCandidateForUpload] = useState<Candidate | null>(null);
   const [assigningRecruiter, setAssigningRecruiter] = useState<string | null>(null);
   const [assigningSource, setAssigningSource] = useState<string | null>(null);
   
@@ -277,30 +268,7 @@ export function CandidateTable({
     }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   };
 
-  const handleManageTransitionsClick = async (candidate: Candidate) => {
-    setSelectedCandidateForModal(candidate);
-    setIsManageTransitionsModalOpen(true);
-    // Fetch comments for this candidate
-    try {
-      const res = await fetch(`/api/candidates/${candidate.id}/comments`, {
-        credentials: 'include'
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setModalComments(Array.isArray(data) ? data : (data.data || []));
-      }
-    } catch (error) {
-      setModalComments([]);
-    }
-  };
 
-  const handleEditPositionClick = (positionId: string | null | undefined) => {
-    if (!positionId) return;
-    const position = availablePositions.find(p => p.id === positionId);
-    if (position) {
-      onEditPosition(position);
-    }
-  };
 
   const confirmDelete = (candidate: Candidate) => {
     setCandidateToDelete(candidate);
@@ -338,17 +306,7 @@ export function CandidateTable({
     return sortDirection === 'asc' ? <ChevronUp size={16} /> : sortDirection === 'desc' ? <ChevronDown size={16} /> : <MoreVertical size={16} />;
   };
 
-  const handleUploadResumeClick = (candidate: Candidate) => {
-    setSelectedCandidateForUpload(candidate);
-    setIsUploadResumeModalOpen(true);
-  };
 
-  const handleUploadSuccess = (updatedCandidate: Candidate) => {
-    // Refresh the candidate data in the table
-    onRefreshCandidateData(updatedCandidate.id);
-    setIsUploadResumeModalOpen(false);
-    setSelectedCandidateForUpload(null);
-  };
 
   const handleAssignRecruiter = async (candidateId: string, recruiterId: string | null) => {
     setAssigningRecruiter(candidateId);
@@ -904,14 +862,6 @@ export function CandidateTable({
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
                           <DropdownMenuItem 
-                            key="upload-resume" 
-                            onSelect={() => handleUploadResumeClick(candidate)}
-                            className="text-sm py-2"
-                          >
-                            <UploadCloud className="mr-2 h-4 w-4" /> 
-                            Upload Resume
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
                             key="view-details" 
                             onSelect={() => { setSelectedCandidateSummary({ id: candidate.id, name: candidate.name }); setIsDetailModalOpen(true); }}
                             className="text-sm py-2"
@@ -919,24 +869,6 @@ export function CandidateTable({
                             <Eye className="mr-2 h-4 w-4" /> 
                             View Details
                           </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            key="manage-transitions" 
-                            onSelect={() => handleManageTransitionsClick(candidate)}
-                            className="text-sm py-2"
-                          >
-                            <FileEdit className="mr-2 h-4 w-4" /> 
-                            Manage Transitions
-                          </DropdownMenuItem>
-                          {candidate.positionId && (
-                            <DropdownMenuItem 
-                              key="edit-position" 
-                              onSelect={() => handleEditPositionClick(candidate.positionId)}
-                              className="text-sm py-2"
-                            >
-                              <Briefcase className="mr-2 h-4 w-4" /> 
-                              Edit Applied Job
-                            </DropdownMenuItem>
-                          )}
                           <DropdownMenuSeparator key="separator" />
                           <DropdownMenuItem 
                             key="delete" 
@@ -1144,14 +1076,6 @@ export function CandidateTable({
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end" className="w-48">
                                     <DropdownMenuItem 
-                                      key="upload-resume" 
-                                      onSelect={() => handleUploadResumeClick(candidate)}
-                                      className="text-sm py-2"
-                                    >
-                                      <UploadCloud className="mr-2 h-4 w-4" /> 
-                                      Upload Resume
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem 
                                       key="view-details" 
                                       onSelect={() => { setSelectedCandidateSummary({ id: candidate.id, name: candidate.name }); setIsDetailModalOpen(true); }}
                                       className="text-sm py-2"
@@ -1159,24 +1083,6 @@ export function CandidateTable({
                                       <Eye className="mr-2 h-4 w-4" /> 
                                       View Details
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem 
-                                      key="manage-transitions" 
-                                      onSelect={() => handleManageTransitionsClick(candidate)}
-                                      className="text-sm py-2"
-                                    >
-                                      <FileEdit className="mr-2 h-4 w-4" /> 
-                                      Manage Transitions
-                                    </DropdownMenuItem>
-                                    {candidate.positionId && (
-                                      <DropdownMenuItem 
-                                        key="edit-position" 
-                                        onSelect={() => handleEditPositionClick(candidate.positionId)}
-                                        className="text-sm py-2"
-                                      >
-                                        <Briefcase className="mr-2 h-4 w-4" /> 
-                                        Edit Applied Job
-                                      </DropdownMenuItem>
-                                    )}
                                     <DropdownMenuSeparator key="separator" />
                                     <DropdownMenuItem 
                                       key="delete" 
@@ -1245,29 +1151,7 @@ export function CandidateTable({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      <ManageTransitionsModal
-        candidate={selectedCandidateForModal}
-        isOpen={isManageTransitionsModalOpen}
-        onOpenChange={setIsManageTransitionsModalOpen}
-        onUpdateCandidate={onUpdateCandidate}
-        onRefreshCandidateData={onRefreshCandidateData}
-        availableStages={availableStages}
-        comments={modalComments}
-        onCommentsChange={() => {
-          // Refresh comments when needed
-          if (selectedCandidateForModal) {
-            fetch(`/api/candidates/${selectedCandidateForModal.id}/comments`)
-              .then(res => res.json())
-              .then(data => setModalComments(Array.isArray(data) ? data : (data.data || [])));
-          }
-        }}
-      />
-      <UploadResumeModal
-        candidate={selectedCandidateForUpload}
-        isOpen={isUploadResumeModalOpen}
-        onOpenChange={setIsUploadResumeModalOpen}
-        onUploadSuccess={handleUploadSuccess}
-      />
+
     </>
   );
 }

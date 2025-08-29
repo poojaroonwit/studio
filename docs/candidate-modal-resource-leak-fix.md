@@ -96,7 +96,7 @@ useEffect(() => {
 const abortControllerRef = useRef<AbortController | null>(null);
 const isMountedRef = useRef(true);
 
-const fetchComments = useCallback(async (limit = 10, offset = 0) => {
+  const fetchComments = useCallback(async (limit = 5, offset = 0) => {
   if (!isMountedRef.current) return [];
   
   try {

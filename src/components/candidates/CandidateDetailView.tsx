@@ -28,7 +28,7 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
 
       // Load all data in parallel with simple error handling
       const [commentsRes, attachmentsRes] = await Promise.allSettled([
-        fetch(`/api/candidates/${candidateId}/comments?limit=10&offset=0`, {
+        fetch(`/api/candidates/${candidateId}/comments?limit=5&offset=0`, {
           credentials: 'include'
         }),
         fetch(`/api/candidates/${candidateId}/resumes?limit=20&offset=0`, {

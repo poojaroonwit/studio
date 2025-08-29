@@ -114,7 +114,7 @@ async function testCommentsAPI() {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
     
-    const response = await fetch(`${TEST_CONFIG.baseUrl}/api/candidates/${TEST_CONFIG.candidateId}/comments?limit=10&offset=0`, {
+    const response = await fetch(`${TEST_CONFIG.baseUrl}/api/candidates/${TEST_CONFIG.candidateId}/comments?limit=5&offset=0`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -195,7 +195,7 @@ async function testParallelAPICalls() {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
       }),
-      fetch(`${TEST_CONFIG.baseUrl}/api/candidates/${TEST_CONFIG.candidateId}/comments?limit=10&offset=0`, {
+      fetch(`${TEST_CONFIG.baseUrl}/api/candidates/${TEST_CONFIG.candidateId}/comments?limit=5&offset=0`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
       }),

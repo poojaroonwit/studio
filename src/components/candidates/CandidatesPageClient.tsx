@@ -260,52 +260,63 @@ export function CandidatesPageClient({
     aiMatchedCandidateIds
   });
 
+  // FIXED: Stabilize callback functions to prevent infinite loops
+  const handleCandidateUpdate = useCallback((updatedCandidate: any) => {
+    setFilteredCandidates(prevCandidates => {
+      const existingIndex = prevCandidates.findIndex(c => c.id === updatedCandidate.id);
+      if (existingIndex !== -1) {
+        const updated = [...prevCandidates];
+        updated[existingIndex] = { ...updated[existingIndex], ...updatedCandidate };
+        return updated;
+      } else {
+        return [...prevCandidates, updatedCandidate];
+      }
+    });
+    
+    setAllCandidatesForCounts(prevCandidates => {
+      const existingIndex = prevCandidates.findIndex(c => c.id === updatedCandidate.id);
+      if (existingIndex !== -1) {
+        const updated = [...prevCandidates];
+        updated[existingIndex] = { ...updated[existingIndex], ...updatedCandidate };
+        return updated;
+      } else {
+        return [...prevCandidates, updatedCandidate];
+      }
+    });
+  }, []);
+
+  const handlePositionUpdate = useCallback((updatedPosition: any) => {
+    setAvailablePositions(prevPositions => {
+      const existingIndex = prevPositions.findIndex(p => p.id === updatedPosition.id);
+      if (existingIndex !== -1) {
+        const updated = [...prevPositions];
+        updated[existingIndex] = { ...updated[existingIndex], ...updatedPosition };
+        return updated;
+      } else {
+        return [...prevPositions, updatedPosition];
+      }
+    });
+  }, []);
+
+  const handlePresenceUpdate = useCallback((presence: any) => {
+    // Handle presence updates if needed
+  }, []);
+
+  const handleUserListUpdate = useCallback((users: any[]) => {
+    // Handle user list updates if needed
+  }, []);
+
+  const handleNotificationUpdate = useCallback((notification: any) => {
+    // Handle notifications if needed
+  }, []);
+
   // Unified realtime hook
   const { isConnected: realtimeConnected } = useUnifiedRealtime({
-    onCandidateUpdate: (updatedCandidate) => {
-      setFilteredCandidates(prevCandidates => {
-        const existingIndex = prevCandidates.findIndex(c => c.id === updatedCandidate.id);
-        if (existingIndex !== -1) {
-          const updated = [...prevCandidates];
-          updated[existingIndex] = { ...updated[existingIndex], ...updatedCandidate };
-          return updated;
-        } else {
-          return [...prevCandidates, updatedCandidate];
-        }
-      });
-      
-      setAllCandidatesForCounts(prevCandidates => {
-        const existingIndex = prevCandidates.findIndex(c => c.id === updatedCandidate.id);
-        if (existingIndex !== -1) {
-          const updated = [...prevCandidates];
-          updated[existingIndex] = { ...updated[existingIndex], ...updatedCandidate };
-          return updated;
-        } else {
-          return [...prevCandidates, updatedCandidate];
-        }
-      });
-    },
-    onPositionUpdate: (updatedPosition) => {
-      setAvailablePositions(prevPositions => {
-        const existingIndex = prevPositions.findIndex(p => p.id === updatedPosition.id);
-        if (existingIndex !== -1) {
-          const updated = [...prevPositions];
-          updated[existingIndex] = { ...updated[existingIndex], ...updatedPosition };
-          return updated;
-        } else {
-          return [...prevPositions, updatedPosition];
-        }
-      });
-    },
-    onPresenceUpdate: (presence) => {
-      // Handle presence updates if needed
-    },
-    onUserListUpdate: (users) => {
-      // Handle user list updates if needed
-    },
-    onNotification: (notification) => {
-      // Handle notifications if needed
-    },
+    onCandidateUpdate: handleCandidateUpdate,
+    onPositionUpdate: handlePositionUpdate,
+    onPresenceUpdate: handlePresenceUpdate,
+    onUserListUpdate: handleUserListUpdate,
+    onNotificationUpdate: handleNotificationUpdate,
     showNotifications: true,
     showErrorNotifications: false, // Disable error toast notifications
   });

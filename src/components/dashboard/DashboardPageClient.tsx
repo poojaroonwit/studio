@@ -196,29 +196,38 @@ export default function DashboardPageClient({
     }
   }, [status, session?.user?.id, session?.user?.role]);
 
+  // FIXED: Stabilize callback functions to prevent infinite loops
+  const handleCandidateUpdate = useCallback((updatedCandidate: any) => {
+    // Refresh dashboard data when candidates are updated
+    fetchDataClientSide();
+  }, [fetchDataClientSide]);
+
+  const handlePositionUpdate = useCallback((updatedPosition: any) => {
+    // Refresh dashboard data when positions are updated
+    fetchDataClientSide();
+  }, [fetchDataClientSide]);
+
+  const handleDashboardUpdate = useCallback((dashboardData: any) => {
+    // Handle specific dashboard updates
+    if (dashboardData.type === 'metrics') {
+      // Refresh all data when metrics update
+      fetchDataClientSide();
+    } else if (dashboardData.type === 'chart_update') {
+      // Handle specific chart updates
+      fetchDataClientSide();
+    }
+  }, [fetchDataClientSide]);
+
+  const handleNotificationUpdate = useCallback((notification: any) => {
+    // Handle dashboard-related notifications
+  }, []);
+
   // Unified realtime hook
   const { isConnected: realtimeConnected } = useUnifiedRealtime({
-    onCandidateUpdate: (updatedCandidate) => {
-      // Refresh dashboard data when candidates are updated
-      fetchDataClientSide();
-    },
-    onPositionUpdate: (updatedPosition) => {
-      // Refresh dashboard data when positions are updated
-      fetchDataClientSide();
-    },
-    onDashboardUpdate: (dashboardData) => {
-      // Handle specific dashboard updates
-      if (dashboardData.type === 'metrics') {
-        // Refresh all data when metrics update
-        fetchDataClientSide();
-      } else if (dashboardData.type === 'chart_update') {
-        // Handle specific chart updates
-        fetchDataClientSide();
-      }
-    },
-    onNotification: (notification) => {
-      // Handle dashboard-related notifications
-    },
+    onCandidateUpdate: handleCandidateUpdate,
+    onPositionUpdate: handlePositionUpdate,
+    onDashboardUpdate: handleDashboardUpdate,
+    onNotificationUpdate: handleNotificationUpdate,
     showNotifications: true,
     showErrorNotifications: false, // Disable error toast notifications
   });

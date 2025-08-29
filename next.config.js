@@ -160,6 +160,10 @@ const nextConfig = {
             key: 'Cache-Control',
             value: 'public, max-age=31536000, immutable',
           },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
         ],
       },
       // Ensure JS files are served with correct MIME type
@@ -240,6 +244,17 @@ const nextConfig = {
     config.resolve = config.resolve || {};
     config.resolve.alias = config.resolve.alias || {};
     config.resolve.alias['jose'] = require.resolve('jose');
+    
+    // Add MIME type handling for static assets
+    config.module = config.module || {};
+    config.module.rules = config.module.rules || [];
+    
+    // Ensure CSS files are handled correctly
+    config.module.rules.push({
+      test: /\.css$/,
+      use: ['style-loader', 'css-loader'],
+      type: 'javascript/auto',
+    });
     
     // Optimize for memory usage during build
     if (!dev) {

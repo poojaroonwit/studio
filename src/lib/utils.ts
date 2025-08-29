@@ -1,4 +1,4 @@
-import { clsx, type ClassValue } from "clsx"
+import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 
 export function cn(...inputs: ClassValue[]) {
@@ -121,3 +121,64 @@ export function safeJsonParse<T>(jsonString: string | null | undefined, defaultV
 }
 
 export { formatScoreWithGrade } from './scoreUtils';
+
+// Safe array utilities to prevent "filter is not a function" errors
+export function safeArray<T>(input: T[] | null | undefined | any): T[] {
+  if (Array.isArray(input)) {
+    return input;
+  }
+  return [];
+}
+
+export function safeFilter<T>(
+  array: T[] | null | undefined | any, 
+  predicate: (value: T, index: number, array: T[]) => boolean
+): T[] {
+  const safeArray = Array.isArray(array) ? array : [];
+  return safeArray.filter(predicate);
+}
+
+export function safeMap<T, U>(
+  array: T[] | null | undefined | any, 
+  mapper: (value: T, index: number, array: T[]) => U
+): U[] {
+  const safeArray = Array.isArray(array) ? array : [];
+  return safeArray.map(mapper);
+}
+
+export function safeFind<T>(
+  array: T[] | null | undefined | any, 
+  predicate: (value: T, index: number, array: T[]) => boolean
+): T | undefined {
+  const safeArray = Array.isArray(array) ? array : [];
+  return safeArray.find(predicate);
+}
+
+export function safeSome<T>(
+  array: T[] | null | undefined | any, 
+  predicate: (value: T, index: number, array: T[]) => boolean
+): boolean {
+  const safeArray = Array.isArray(array) ? array : [];
+  return safeArray.some(predicate);
+}
+
+export function safeEvery<T>(
+  array: T[] | null | undefined | any, 
+  predicate: (value: T, index: number, array: T[]) => boolean
+): boolean {
+  const safeArray = Array.isArray(array) ? array : [];
+  return safeArray.every(predicate);
+}
+
+export function safeLength(array: any[] | null | undefined | any): number {
+  return Array.isArray(array) ? array.length : 0;
+}
+
+export function safeSlice<T>(
+  array: T[] | null | undefined | any, 
+  start?: number, 
+  end?: number
+): T[] {
+  const safeArray = Array.isArray(array) ? array : [];
+  return safeArray.slice(start, end);
+}

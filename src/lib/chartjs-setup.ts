@@ -41,9 +41,14 @@ export function setupChartJS(): Promise<void> {
     import('chartjs-plugin-datalabels').catch(error => {
       console.warn('setupChartJS: Failed to import chartjs-plugin-datalabels, continuing without data labels:', error);
       return null; // Return null instead of throwing error
+    }),
+    // Import Filler plugin for fill option support
+    import('chart.js/auto').catch(error => {
+      console.warn('setupChartJS: Failed to import chart.js/auto, continuing without auto-registration:', error);
+      return null;
     })
-  ]).then(([chartJS, dateAdapter, dataLabels]) => {
-    const { Chart: ChartJS, LinearScale, PointElement, Tooltip, Legend, TimeScale, ArcElement, CategoryScale, LogarithmicScale, BarElement, LineElement, Title } = chartJS;
+  ]).then(([chartJS, dateAdapter, dataLabels, chartAuto]) => {
+    const { Chart: ChartJS, LinearScale, PointElement, Tooltip, Legend, TimeScale, ArcElement, CategoryScale, LogarithmicScale, BarElement, LineElement, Title, Filler } = chartJS;
     
     try {
       // Register scales first
@@ -62,6 +67,7 @@ export function setupChartJS(): Promise<void> {
       ChartJS.register(Tooltip);
       ChartJS.register(Legend);
       ChartJS.register(Title);
+      ChartJS.register(Filler); // Register Filler plugin for fill option support
       
       // Only register data labels plugin if it loaded successfully
       if (dataLabels) {

@@ -1,5 +1,5 @@
 
-import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useSafeEffect, useInfiniteLoopPrevention } from './use-safe-effect';
 
@@ -55,23 +55,6 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
   const messageCountRef = useRef<number>(0);
   const errorCountRef = useRef<number>(0);
 
-  // Memoize options to prevent unnecessary re-renders
-  const memoizedOptions = useMemo(() => options, [
-    options.onCandidateUpdate,
-    options.onPositionUpdate,
-    options.onWarningUpdate,
-    options.onNotificationUpdate,
-    options.onUploadQueueUpdate,
-    options.onPresenceUpdate,
-    options.onUserListUpdate,
-    options.onDashboardUpdate,
-    options.onSessionExpired,
-    options.onHealthCheck,
-    options.showNotifications,
-    options.showErrorNotifications,
-    options.errorToastCooldownMs
-  ]);
-
   // Add infinite loop prevention
   const { trackRun: trackConnectionAttempt } = useInfiniteLoopPrevention('UnifiedRealtimeConnection', 20, () => {
     console.error('🚨 Excessive connection attempts detected in useUnifiedRealtime');
@@ -86,11 +69,9 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
     setIsClient(true);
   }, [], 'UnifiedRealtimeClientCheck', 5);
 
-  // Update options ref when options change
-  const optionsRef = useRef(memoizedOptions);
-  useSafeEffect(() => {
-    optionsRef.current = memoizedOptions;
-  }, [memoizedOptions], 'UnifiedRealtimeOptionsUpdate', 10);
+  // Use ref for options to avoid infinite loops - update directly without effect
+  const optionsRef = useRef(options);
+  optionsRef.current = options; // Direct assignment to avoid effect dependency issues
 
   const cleanup = useCallback(() => {
     if (eventSourceRef.current) {

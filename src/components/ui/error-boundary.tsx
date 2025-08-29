@@ -1,122 +1,168 @@
 "use client";
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, RefreshCw, Home, Bug } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { RefreshCw, AlertTriangle, Bug } from 'lucide-react';
 
 interface Props {
   children: ReactNode;
   fallback?: ReactNode;
-  onError?: (error: Error, errorInfo: ErrorInfo) => void;
 }
 
 interface State {
   hasError: boolean;
   error?: Error;
   errorInfo?: ErrorInfo;
+  timestamp: number;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
-    this.state = { hasError: false };
+  public state: State = {
+    hasError: false,
+    timestamp: Date.now(),
+  };
+
+  public static getDerivedStateFromError(error: Error): State {
+    // Update state so the next render will show the fallback UI
+    return {
+      hasError: true,
+      error,
+      timestamp: Date.now(),
+    };
   }
 
-  static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
+  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('ErrorBoundary caught an error:', error);
+    console.error('ErrorBoundary error info:', errorInfo);
+
+    // Log the error to console for debugging
+    console.error('Production error:', {
+      error: error.message,
+      stack: error.stack,
+      componentStack: errorInfo.componentStack,
+      timestamp: new Date().toISOString(),
+    });
+
+    // Update state with error info
+    this.setState({
+      error,
+      errorInfo,
+    });
+
+    // You can also log the error to an error reporting service here
+    // Example: logErrorToService(error, errorInfo);
   }
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
-    
-    // Log error to monitoring service in production
-    if (process.env.NODE_ENV === 'production') {
-      // You can integrate with services like Sentry, LogRocket, etc.
-      console.error('Production error:', {
-        error: error.message,
-        stack: error.stack,
-        componentStack: errorInfo.componentStack,
-        timestamp: new Date().toISOString(),
-      });
-    }
+  private handleRetry = () => {
+    this.setState({
+      hasError: false,
+      error: undefined,
+      errorInfo: undefined,
+      timestamp: Date.now(),
+    });
+  };
 
-    this.props.onError?.(error, errorInfo);
-  }
+  private handleReload = () => {
+    window.location.reload();
+  };
 
-  render() {
+  public render() {
     if (this.state.hasError) {
+      // Custom fallback UI
       if (this.props.fallback) {
         return this.props.fallback;
       }
 
-      return <ErrorFallback error={this.state.error} />;
+      const isFilterError = this.state.error?.message?.includes('filter is not a function');
+      const isChartError = this.state.error?.message?.includes('Filler plugin');
+      const isMimeError = this.state.error?.message?.includes('MIME type');
+
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-background p-4">
+          <div className="max-w-md w-full space-y-4">
+            <Alert variant="destructive" className="border-red-200 bg-red-50">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Something went wrong</AlertTitle>
+              <AlertDescription className="mt-2">
+                {isFilterError && (
+                  <div className="space-y-2">
+                    <p className="text-sm text-red-700">
+                      A data filtering error occurred. This is usually caused by unexpected data format.
+                    </p>
+                    <p className="text-xs text-red-600">
+                      Error: {this.state.error?.message}
+                    </p>
+                  </div>
+                )}
+                {isChartError && (
+                  <div className="space-y-2">
+                    <p className="text-sm text-red-700">
+                      A chart rendering error occurred. The chart library may need to be reinitialized.
+                    </p>
+                    <p className="text-xs text-red-600">
+                      Error: {this.state.error?.message}
+                    </p>
+                  </div>
+                )}
+                {isMimeError && (
+                  <div className="space-y-2">
+                    <p className="text-sm text-red-700">
+                      A resource loading error occurred. This may be due to browser caching issues.
+                    </p>
+                    <p className="text-xs text-red-600">
+                      Error: {this.state.error?.message}
+                    </p>
+                  </div>
+                )}
+                {!isFilterError && !isChartError && !isMimeError && (
+                  <div className="space-y-2">
+                    <p className="text-sm text-red-700">
+                      An unexpected error occurred. Please try refreshing the page.
+                    </p>
+                    <p className="text-xs text-red-600">
+                      Error: {this.state.error?.message}
+                    </p>
+                  </div>
+                )}
+              </AlertDescription>
+            </Alert>
+
+            <div className="flex flex-col space-y-2">
+              <Button 
+                onClick={this.handleRetry} 
+                className="w-full"
+                variant="outline"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Try Again
+              </Button>
+              
+              <Button 
+                onClick={this.handleReload} 
+                className="w-full"
+                variant="default"
+              >
+                <Bug className="h-4 w-4 mr-2" />
+                Reload Page
+              </Button>
+            </div>
+
+            {process.env.NODE_ENV === 'development' && this.state.errorInfo && (
+              <details className="mt-4 p-3 bg-gray-100 rounded text-xs">
+                <summary className="cursor-pointer font-medium">Error Details (Development)</summary>
+                <pre className="mt-2 whitespace-pre-wrap text-gray-700">
+                  {this.state.errorInfo.componentStack}
+                </pre>
+              </details>
+            )}
+          </div>
+        </div>
+      );
     }
 
     return this.props.children;
   }
-}
-
-interface ErrorFallbackProps {
-  error?: Error;
-}
-
-function ErrorFallback({ error }: ErrorFallbackProps) {
-  const router = useRouter();
-
-  const handleReload = () => {
-    window.location.reload();
-  };
-
-  const handleGoHome = () => {
-    router.push('/');
-  };
-
-  const handleReportError = () => {
-    const errorDetails = {
-      message: error?.message,
-      stack: error?.stack,
-      url: window.location.href,
-      userAgent: navigator.userAgent,
-      timestamp: new Date().toISOString(),
-    };
-    // In a real app, you'd send this to your error reporting service
-    console.error('Error report:', errorDetails);
-    navigator.clipboard.writeText(JSON.stringify(errorDetails, null, 2));
-    alert('Error details copied to clipboard. Please report this to support.');
-  };
-
-  return (
-    <div className="flex flex-col items-center justify-center min-h-[300px] p-8">
-      <Card className="max-w-md w-full">
-        <CardHeader>
-          <CardTitle>Something went wrong</CardTitle>
-          <CardDescription>
-            An unexpected error occurred. Please try again or contact support if the problem persists.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {process.env.NODE_ENV === 'development' && error?.stack && (
-            <details className="mt-4">
-              <summary className="cursor-pointer text-sm text-muted-foreground">
-                Error Details (Development)
-              </summary>
-              <pre className="mt-2 text-xs text-muted-foreground overflow-auto bg-muted p-2 rounded">
-                {error.stack}
-              </pre>
-            </details>
-          )}
-          <div className="flex gap-2 mt-6">
-            <Button onClick={handleReload}>Reload</Button>
-            <Button variant="secondary" onClick={handleGoHome}>Go Home</Button>
-            <Button variant="outline" onClick={handleReportError}>Report Error</Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
 }
 
 // Hook for functional components to handle errors

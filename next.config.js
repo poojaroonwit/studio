@@ -245,6 +245,9 @@ const nextConfig = {
     config.resolve.alias = config.resolve.alias || {};
     config.resolve.alias['jose'] = require.resolve('jose');
     
+    // Fix for ramda-adjunct dependency issue
+    config.resolve.alias['ramda'] = require.resolve('ramda');
+    
     // Add MIME type handling for static assets
     config.module = config.module || {};
     config.module.rules = config.module.rules || [];

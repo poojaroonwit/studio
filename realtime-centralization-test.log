@@ -1,0 +1,87 @@
+[2025-08-29T08:33:16.841Z] [INFO] Starting realtime centralization tests...
+[2025-08-29T08:33:16.936Z] [INFO] Testing main realtime hook...
+[2025-08-29T08:33:16.953Z] [INFO] ✅ Main hook: Has global connection sharing
+[2025-08-29T08:33:16.958Z] [INFO] ✅ Main hook: Has reconnection limits
+[2025-08-29T08:33:16.962Z] [INFO] ✅ Main hook: Has infinite loop prevention
+[2025-08-29T08:33:16.967Z] [INFO] ✅ Main hook: Has comprehensive event handling
+[2025-08-29T08:33:16.971Z] [INFO] ✅ Main hook: Has proper error handling
+[2025-08-29T08:33:16.974Z] [INFO] Testing components...
+[2025-08-29T08:33:16.998Z] [INFO] ✅ UploadQueueStatus: Uses centralized realtime hook
+[2025-08-29T08:33:17.003Z] [INFO] ✅ UploadQueueStatus: No manual EventSource usage
+[2025-08-29T08:33:17.006Z] [WARN] ⚠️  UploadQueueStatus: Missing infinite loop prevention
+[2025-08-29T08:33:17.009Z] [WARN] ⚠️  UploadQueueStatus: Missing cleanup mechanisms
+[2025-08-29T08:33:17.030Z] [INFO] ✅ UploadQueueStatistics: Uses centralized realtime hook
+[2025-08-29T08:33:17.035Z] [INFO] ✅ UploadQueueStatistics: No manual EventSource usage
+[2025-08-29T08:33:17.039Z] [WARN] ⚠️  UploadQueueStatistics: Missing infinite loop prevention
+[2025-08-29T08:33:17.041Z] [WARN] ⚠️  UploadQueueStatistics: Missing cleanup mechanisms
+[2025-08-29T08:33:17.061Z] [INFO] ✅ CandidateImportUploadQueue: Uses centralized realtime hook
+[2025-08-29T08:33:17.066Z] [INFO] ✅ CandidateImportUploadQueue: No manual EventSource usage
+[2025-08-29T08:33:17.070Z] [WARN] ⚠️  CandidateImportUploadQueue: Missing infinite loop prevention
+[2025-08-29T08:33:17.072Z] [WARN] ⚠️  CandidateImportUploadQueue: Missing cleanup mechanisms
+[2025-08-29T08:33:17.087Z] [INFO] ✅ UserPresenceIndicator: Uses centralized realtime hook
+[2025-08-29T08:33:17.090Z] [INFO] ✅ UserPresenceIndicator: No manual EventSource usage
+[2025-08-29T08:33:17.092Z] [WARN] ⚠️  UserPresenceIndicator: Missing infinite loop prevention
+[2025-08-29T08:33:17.093Z] [INFO] ✅ UserPresenceIndicator: Has proper cleanup
+[2025-08-29T08:33:17.116Z] [INFO] ✅ RealtimeCollaboration: Uses centralized realtime hook
+[2025-08-29T08:33:17.120Z] [INFO] ✅ RealtimeCollaboration: No manual EventSource usage
+[2025-08-29T08:33:17.122Z] [WARN] ⚠️  RealtimeCollaboration: Missing infinite loop prevention
+[2025-08-29T08:33:17.124Z] [WARN] ⚠️  RealtimeCollaboration: Missing cleanup mechanisms
+[2025-08-29T08:33:17.165Z] [INFO] ✅ DashboardPageClient: Uses centralized realtime hook
+[2025-08-29T08:33:17.168Z] [INFO] ✅ DashboardPageClient: No manual EventSource usage
+[2025-08-29T08:33:17.171Z] [WARN] ⚠️  DashboardPageClient: Missing infinite loop prevention
+[2025-08-29T08:33:17.174Z] [WARN] ⚠️  DashboardPageClient: Missing cleanup mechanisms
+[2025-08-29T08:33:17.204Z] [INFO] ✅ PositionsPageClient: Uses centralized realtime hook
+[2025-08-29T08:33:17.207Z] [INFO] ✅ PositionsPageClient: No manual EventSource usage
+[2025-08-29T08:33:17.210Z] [WARN] ⚠️  PositionsPageClient: Missing infinite loop prevention
+[2025-08-29T08:33:17.212Z] [INFO] ✅ PositionsPageClient: Has proper cleanup
+[2025-08-29T08:33:17.239Z] [INFO] ✅ CandidatesPageClient: Uses centralized realtime hook
+[2025-08-29T08:33:17.242Z] [INFO] ✅ CandidatesPageClient: No manual EventSource usage
+[2025-08-29T08:33:17.245Z] [WARN] ⚠️  CandidatesPageClient: Missing infinite loop prevention
+[2025-08-29T08:33:17.249Z] [INFO] ✅ CandidatesPageClient: Has proper cleanup
+[2025-08-29T08:33:17.293Z] [INFO] ✅ MyTasksPageClient: Uses centralized realtime hook
+[2025-08-29T08:33:17.296Z] [INFO] ✅ MyTasksPageClient: No manual EventSource usage
+[2025-08-29T08:33:17.298Z] [WARN] ⚠️  MyTasksPageClient: Missing infinite loop prevention
+[2025-08-29T08:33:17.302Z] [WARN] ⚠️  MyTasksPageClient: Missing cleanup mechanisms
+[2025-08-29T08:33:17.315Z] [INFO] ✅ TaskBoardPage: Uses centralized realtime hook
+[2025-08-29T08:33:17.319Z] [INFO] ✅ TaskBoardPage: No manual EventSource usage
+[2025-08-29T08:33:17.321Z] [INFO] ✅ TaskBoardPage: Has infinite loop prevention
+[2025-08-29T08:33:17.323Z] [WARN] ⚠️  TaskBoardPage: Missing cleanup mechanisms
+[2025-08-29T08:33:17.326Z] [INFO] Testing hooks...
+[2025-08-29T08:33:17.340Z] [INFO] ✅ useUnifiedRealtime (export): Uses centralized realtime hook
+[2025-08-29T08:33:17.343Z] [INFO] ✅ useUnifiedRealtime (export): No manual EventSource usage
+[2025-08-29T08:33:17.345Z] [WARN] ⚠️  useUnifiedRealtime (export): Missing infinite loop prevention
+[2025-08-29T08:33:17.349Z] [WARN] ⚠️  useUnifiedRealtime (export): Missing cleanup mechanisms
+[2025-08-29T08:33:17.359Z] [INFO] ✅ useUploadQueueSSE: Uses centralized realtime hook
+[2025-08-29T08:33:17.362Z] [INFO] ✅ useUploadQueueSSE: No manual EventSource usage
+[2025-08-29T08:33:17.363Z] [WARN] ⚠️  useUploadQueueSSE: Missing infinite loop prevention
+[2025-08-29T08:33:17.365Z] [WARN] ⚠️  useUploadQueueSSE: Missing cleanup mechanisms
+[2025-08-29T08:33:17.369Z] [INFO] === REALTIME CENTRALIZATION TEST REPORT ===
+[2025-08-29T08:33:17.371Z] [INFO] 
+[2025-08-29T08:33:17.372Z] [INFO] === MAIN HOOK TEST ===
+[2025-08-29T08:33:17.374Z] [INFO] ✅ Main realtime hook: PASSED
+[2025-08-29T08:33:17.376Z] [INFO] 
+[2025-08-29T08:33:17.377Z] [INFO] === COMPONENT TESTS ===
+[2025-08-29T08:33:17.379Z] [INFO] ✅ UploadQueueStatus: PASSED
+[2025-08-29T08:33:17.380Z] [INFO] ✅ UploadQueueStatistics: PASSED
+[2025-08-29T08:33:17.383Z] [INFO] ✅ CandidateImportUploadQueue: PASSED
+[2025-08-29T08:33:17.384Z] [INFO] ✅ UserPresenceIndicator: PASSED
+[2025-08-29T08:33:17.386Z] [INFO] ✅ RealtimeCollaboration: PASSED
+[2025-08-29T08:33:17.388Z] [INFO] ✅ DashboardPageClient: PASSED
+[2025-08-29T08:33:17.390Z] [INFO] ✅ PositionsPageClient: PASSED
+[2025-08-29T08:33:17.391Z] [INFO] ✅ CandidatesPageClient: PASSED
+[2025-08-29T08:33:17.393Z] [INFO] ✅ MyTasksPageClient: PASSED
+[2025-08-29T08:33:17.395Z] [INFO] ✅ TaskBoardPage: PASSED
+[2025-08-29T08:33:17.396Z] [INFO] 
+[2025-08-29T08:33:17.398Z] [INFO] === HOOK TESTS ===
+[2025-08-29T08:33:17.400Z] [INFO] ✅ useUnifiedRealtime (export): PASSED
+[2025-08-29T08:33:17.402Z] [INFO] ✅ useUploadQueueSSE: PASSED
+[2025-08-29T08:33:17.404Z] [INFO] 
+[2025-08-29T08:33:17.405Z] [INFO] === SUMMARY ===
+[2025-08-29T08:33:17.407Z] [INFO] Total tests: 13
+[2025-08-29T08:33:17.409Z] [INFO] Passed: 13
+[2025-08-29T08:33:17.410Z] [INFO] Failed: 0
+[2025-08-29T08:33:17.413Z] [INFO] Success rate: 100.0%
+[2025-08-29T08:33:17.414Z] [INFO] 🎉 All tests passed! Realtime centralization is working correctly.
+[2025-08-29T08:33:17.427Z] [INFO] Detailed results saved to realtime-test-results.json
+[2025-08-29T08:33:17.430Z] [INFO] Realtime centralization tests completed.
+[2025-08-29T08:33:17.434Z] [INFO] Check realtime-centralization-test.log for detailed logs.

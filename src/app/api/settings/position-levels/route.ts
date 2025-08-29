@@ -6,29 +6,21 @@ import { getPool } from '@/lib/db';
 export async function GET(request: NextRequest) {
   let client: any = null;
   try {
-    console.log('[PositionLevels API] Starting request');
-    
     const session = await getServerSession(authOptions);
-    // Removed session logging to reduce container logs
     
     if (!session?.user?.id) {
-      // Removed unauthorized logging to reduce container logs
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    console.log('[PositionLevels API] Getting database pool');
     const pool = getPool();
-    console.log('[PositionLevels API] Connecting to database');
     client = await pool.connect();
     
-    console.log('[PositionLevels API] Executing query');
     const query = `
       SELECT id, name, description, color, "is_active" as "isActive", "sort_order" as "sortOrder", "createdAt", "updatedAt"
       FROM "PositionLevel"
       ORDER BY "sort_order" ASC, name ASC
     `;
     const result = await client.query(query);
-    console.log('[PositionLevels API] Query successful, rows:', result.rows.length);
     return NextResponse.json(result.rows);
   } catch (error: any) {
     console.error('[PositionLevels API] Error:', error);
@@ -39,7 +31,6 @@ export async function GET(request: NextRequest) {
     }, { status: 500 });
   } finally {
     if (client) {
-      console.log('[PositionLevels API] Releasing database connection');
       client.release();
     }
   }

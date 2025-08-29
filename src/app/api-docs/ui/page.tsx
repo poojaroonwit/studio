@@ -4,6 +4,9 @@ import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 // CSS will be loaded dynamically
 
+// Import the R polyfill to ensure it's available for swagger-ui-react
+import '@/lib/ramda-polyfill';
+
 const SwaggerUI = dynamic(() => import('swagger-ui-react'), { ssr: false });
 
 export default function ApiDocsUIPage() {
@@ -11,6 +14,23 @@ export default function ApiDocsUIPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Ensure R is available before loading Swagger UI
+    const ensureR = async () => {
+      try {
+        // Import the polyfill again to make sure it's loaded
+        await import('@/lib/ramda-polyfill');
+        
+        // Test if R is working
+        if (typeof (window as any).R === 'undefined' || typeof (window as any).R.filter !== 'function') {
+          console.warn('R object not available, attempting to fix...');
+          // Force reload the polyfill
+          await import('@/lib/ramda-polyfill');
+        }
+      } catch (err) {
+        console.error('Failed to ensure R polyfill:', err);
+      }
+    };
+
     // Load Swagger UI CSS dynamically
     const link = document.createElement('link');
     link.rel = 'stylesheet';
@@ -19,6 +39,9 @@ export default function ApiDocsUIPage() {
 
     const fetchSwaggerSpec = async () => {
       try {
+        // Ensure R is available before fetching
+        await ensureR();
+        
         const response = await fetch('/api-docs', {
           method: 'GET',
           headers: {

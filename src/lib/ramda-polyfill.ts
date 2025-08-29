@@ -1,7 +1,8 @@
 // Ramda polyfill for commonly used functions
 // This prevents R.filter errors from third-party libraries that expect Ramda to be available
 
-export const R = {
+// Create the R object with all necessary functions
+const R = {
   // Array functions
   filter: <T>(predicate: (item: T, index: number, array: T[]) => boolean, list: T[]): T[] => {
     if (!Array.isArray(list)) return [];
@@ -146,9 +147,69 @@ export const R = {
   }
 };
 
-// Make R available globally if needed
-if (typeof window !== 'undefined') {
-  (window as any).R = R;
+// Function to test if R is working correctly
+export function testR() {
+  try {
+    const testArray = [1, 2, 3, 4, 5];
+    const filtered = R.filter((x: number) => x > 2, testArray);
+    const mapped = R.map((x: number) => x * 2, testArray);
+    
+    if (filtered.length === 3 && mapped.length === 5) {
+      console.log('✅ R polyfill is working correctly');
+      return true;
+    } else {
+      console.error('❌ R polyfill test failed');
+      return false;
+    }
+  } catch (error) {
+    console.error('❌ R polyfill test error:', error);
+    return false;
+  }
 }
 
+// Function to ensure R is available globally
+function ensureRGlobal() {
+  // Check if R is already defined globally
+  const globalR = (typeof window !== 'undefined' ? (window as any).R : 
+                   typeof global !== 'undefined' ? (global as any).R :
+                   typeof self !== 'undefined' ? (self as any).R : null);
+  
+  // Only set if R is not already defined or if it doesn't have the required methods
+  if (!globalR || typeof globalR.filter !== 'function') {
+    if (typeof window !== 'undefined') {
+      (window as any).R = R;
+    } else if (typeof global !== 'undefined') {
+      (global as any).R = R;
+    } else if (typeof self !== 'undefined') {
+      (self as any).R = R;
+    }
+  }
+}
+
+// Execute immediately
+ensureRGlobal();
+
+// Also set up a periodic check to ensure R stays available
+if (typeof window !== 'undefined') {
+  // Check every 100ms for the first 5 seconds to ensure R is available
+  let checkCount = 0;
+  const maxChecks = 50; // 5 seconds at 100ms intervals
+  
+  const intervalId = setInterval(() => {
+    checkCount++;
+    ensureRGlobal();
+    
+    if (checkCount >= maxChecks) {
+      clearInterval(intervalId);
+    }
+  }, 100);
+  
+  // Test R after a short delay to ensure it's working
+  setTimeout(() => {
+    testR();
+  }, 1000);
+}
+
+// Also export for module usage
+export { R };
 export default R;

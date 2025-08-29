@@ -9,6 +9,7 @@ import { unifiedBroadcaster } from '@/lib/unified-realtime-broadcaster';
 import { dispatchWebhooks } from '@/lib/webhookDispatcher';
 import { z } from 'zod';
 
+
 export const dynamic = 'force-dynamic';
 
 
@@ -105,8 +106,6 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     });
   } catch (err) {
     console.error(`[GET /api/candidates/${id}/comments] Error:`, err);
-    
-
     
     return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
   }

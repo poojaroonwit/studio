@@ -131,6 +131,7 @@ export function useUserPreferences() {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         // Increase timeout to prevent hanging requests
         signal: AbortSignal.timeout(30000), // 30 second timeout instead of 10
       });
@@ -185,6 +186,7 @@ export function useUserPreferences() {
               modelType,
               updates,
             }),
+            credentials: 'include',
             // Increase timeout to prevent hanging requests
             signal: AbortSignal.timeout(30000), // 30 second timeout instead of 10
           });
@@ -286,6 +288,7 @@ export function useUserPreferences() {
     try {
       const response = await fetch('/api/user-preferences?modelType=taskBoard', {
         method: 'DELETE',
+        credentials: 'include'
       });
 
       if (response.ok) {
@@ -314,6 +317,7 @@ export function useUserPreferences() {
     try {
       const response = await fetch('/api/user-preferences?modelType=positions', {
         method: 'DELETE',
+        credentials: 'include'
       });
 
       if (response.ok) {
@@ -342,6 +346,7 @@ export function useUserPreferences() {
     try {
       const response = await fetch('/api/user-preferences?modelType=appearance', {
         method: 'DELETE',
+        credentials: 'include'
       });
 
       if (response.ok) {
@@ -367,6 +372,7 @@ export function useUserPreferences() {
     try {
       const response = await fetch('/api/user-preferences', {
         method: 'DELETE',
+        credentials: 'include'
       });
 
       if (response.ok) {

@@ -371,7 +371,9 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
     
   
     setInitializing(true);
-    fetch('/api/settings/user-preferences')
+    fetch('/api/settings/user-preferences', {
+      credentials: 'include'
+    })
       .then(res => {
      
         return res.json();
@@ -529,6 +531,7 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(prefs),
+        credentials: 'include',
         signal: controller.signal,
       });
       

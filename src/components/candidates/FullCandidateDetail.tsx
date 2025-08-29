@@ -30,7 +30,6 @@ import { useCandidateDetail } from './hooks/useCandidateDetail';
 import { formatScoreWithGrade } from "@/lib/scoreUtils";
 import { updateCandidateStatusWithNotes } from '@/lib/candidateTransitionUtils';
 import { Badge } from '@/components/ui/badge';
-import { ErrorBoundary } from '@/components/ui/error-boundary';
 
 // Types
 import type { Candidate, Position } from '@/lib/types';
@@ -45,33 +44,14 @@ interface FullCandidateDetailProps {
   onRefresh: () => void;
 }
 
-const uuidSchema = z.string().uuid();
-
 const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ 
-  candidateId: propCandidateId, 
+  candidateId, 
   isModal = false, 
   onClose, 
   comments, 
   resumes, 
   onRefresh 
 }) => {
-  // Extract candidate ID from URL if not provided as prop
-  const getCandidateIdFromUrl = () => {
-    if (typeof window !== 'undefined') {
-      const pathSegments = window.location.pathname.split('/');
-      const candidateIndex = pathSegments.findIndex(segment => segment === 'candidates');
-      if (candidateIndex !== -1 && pathSegments[candidateIndex + 1]) {
-        return pathSegments[candidateIndex + 1];
-      }
-    }
-    return null;
-  };
-
-  const urlCandidateId = getCandidateIdFromUrl();
-  const candidateId = propCandidateId || urlCandidateId || '';
-  console.log('[FullCandidateDetail] Candidate ID from props:', propCandidateId);
-  console.log('[FullCandidateDetail] Candidate ID from URL:', urlCandidateId);
-  console.log('[FullCandidateDetail] Final candidate ID:', candidateId);
   const { data: session } = useSession();
   const [avatarInputRef] = useState<React.RefObject<HTMLInputElement>>(React.createRef());
   
@@ -97,7 +77,6 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
   const [selectedJobMatch, setSelectedJobMatch] = useState<any>(null);
 
   const [activeTab, setActiveTab] = useState<string>('jobs');
-  const [loadTimedOut, setLoadTimedOut] = useState(false);
 
   // Refs for timeout cleanup
   const copiedJobAppliedTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -160,25 +139,9 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
     removeJobMatch,
     setCandidate,
     setTransitionHistory,
-    fetchCandidate,
   } = useCandidateDetail(candidateId);
 
-  // Safety timeout: if loading takes too long, surface an error with retry
-  React.useEffect(() => {
-    let timeoutId: NodeJS.Timeout | null = null;
-    if (loading) {
-      setLoadTimedOut(false);
-      timeoutId = setTimeout(() => {
-        setLoadTimedOut(true);
-      }, 180000); // 180 second timeout (increased from 120s)
-    }
-    return () => {
-      if (timeoutId) clearTimeout(timeoutId);
-    };
-  }, [loading]);
-
-  // Validate candidateId
-  const isValidCandidateId = candidateId && candidateId.trim() !== '' && uuidSchema.safeParse(candidateId).success;
+  // UUID validation removed
 
   // Cleanup timeouts on component unmount
   React.useEffect(() => {
@@ -192,57 +155,16 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
     };
   }, []);
 
-  // Early return for invalid candidate ID
-  if (!isValidCandidateId) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[calc(100vh-8rem)] text-center p-6">
-        <ServerCrash className="w-16 h-16 text-destructive mb-4" />
-        <h2 className="text-2xl font-semibold text-foreground mb-2">Invalid Candidate ID</h2>
-        <p className="text-muted-foreground mb-6">The candidate ID is not valid.</p>
-        {onClose && <Button onClick={onClose}>Close</Button>}
-      </div>
-    );
-  }
+  // UUID validation removed - proceed with any candidate ID
 
   // Loading state
-  if (loading && !loadTimedOut) {
-    console.log('[FullCandidateDetail] Loading state - fetching candidate data from API');
+  if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="flex flex-col items-center space-y-4">
           <Loader2 className="animate-spin h-8 w-8 text-primary" />
           <p className="text-muted-foreground">Loading candidate details...</p>
           <p className="text-xs text-muted-foreground">This may take a few moments</p>
-          <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-            <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
-            <span>Connecting to database...</span>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Timed out loading state with Retry
-  if (loading && loadTimedOut) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="flex flex-col items-center space-y-4 text-center">
-          <ServerCrash className="h-12 w-12 text-destructive" />
-          <div>
-            <h3 className="text-lg font-medium text-foreground">Loading timed out</h3>
-            <p className="text-muted-foreground text-sm mb-4">The server is taking too long to respond.</p>
-            <Button
-              onClick={() => {
-                setLoadTimedOut(false);
-                fetchCandidate(true);
-              }}
-              variant="outline"
-              size="sm"
-            >
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Retry
-            </Button>
-          </div>
         </div>
       </div>
     );
@@ -250,7 +172,6 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
 
   // Error state
   if (error || !candidate) {
-    console.error('[FullCandidateDetail] Error state:', error, 'Candidate:', candidate);
     return (
       <div className="flex items-center justify-center h-64">
         <div className="flex flex-col items-center space-y-4 text-center">
@@ -258,24 +179,14 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
           <div>
             <h3 className="text-lg font-medium text-foreground">Failed to load candidate</h3>
             <p className="text-muted-foreground text-sm mb-4">{error || 'Candidate not found'}</p>
-            {error && error.includes('Authentication required') ? (
-              <Button 
-                onClick={() => window.location.href = '/auth/signin'} 
-                variant="outline"
-                size="sm"
-              >
-                Sign In
-              </Button>
-            ) : (
-              <Button 
-                onClick={() => window.location.reload()} 
-                variant="outline"
-                size="sm"
-              >
-                <Loader2 className="h-4 w-4 mr-2" />
-                Retry
-              </Button>
-            )}
+            <Button 
+              onClick={() => window.location.reload()} 
+              variant="outline"
+              size="sm"
+            >
+              <Loader2 className="h-4 w-4 mr-2" />
+              Retry
+            </Button>
           </div>
         </div>
       </div>
@@ -381,50 +292,22 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
   const handleSaveDetails = async (data: any) => {
     if (!candidate) return;
 
-    if (Object.keys(errors).length > 0) {
-      toast.error('Please fix form validation errors before saving');
-      return;
-    }
+    // Validation check removed
 
     if (isSaving) return;
     setIsSaving(true);
 
     try {
-      // Normalize fitScore to ensure it's within 0-1 range
-      let normalizedData = { ...data };
-      if (typeof data.fitScore === 'number') {
-        // If fitScore is a percentage (0-100), convert to decimal (0-1)
-        if (data.fitScore > 1) {
-          normalizedData.fitScore = data.fitScore / 100;
-        }
-        // Ensure the value is within 0-1 range
-        normalizedData.fitScore = Math.max(0, Math.min(1, normalizedData.fitScore));
-      }
-
       const res = await fetch(`/api/candidates/${candidate.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(normalizedData),
+        body: JSON.stringify(data),
         credentials: 'include',
       });
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({ message: 'Unknown error' }));
-        
-        // Enhanced error handling for validation errors
-        if (errorData.message === 'Invalid input' && errorData.errors) {
-          // Format validation errors for better user experience
-          const errorMessages = Object.entries(errorData.errors)
-            .map(([field, errors]) => {
-              const fieldName = field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
-              return `${fieldName}: ${Array.isArray(errors) ? errors.join(', ') : errors}`;
-            })
-            .join('\n');
-          
-          throw new Error(`Validation errors:\n${errorMessages}`);
-        } else {
-          throw new Error(`Failed to update candidate: ${errorData.message || res.statusText}`);
-        }
+        throw new Error(`Failed to update candidate: ${errorData.message || res.statusText}`);
       }
 
       const updatedCandidate = await res.json();
@@ -487,45 +370,31 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
   return (
     <div className={isModal ? "h-full overflow-y-auto bg-background pointer-events-auto" : "h-full flex flex-col bg-background"}>
       {/* Header */}
-      <ErrorBoundary
-        onError={(error, errorInfo) => {
-          console.error('[FullCandidateDetail] CandidateHeader error:', error, errorInfo);
-        }}
-        fallback={(
-          <div className="bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-100/20 dark:from-slate-900 dark:via-slate-800/50 dark:to-slate-700/30 shadow-lg backdrop-blur-sm border-b border-border p-4">
-            <div className="text-center">
-              <h3 className="text-lg font-medium text-foreground">Header Error</h3>
-              <p className="text-muted-foreground text-sm">Failed to load candidate header</p>
-            </div>
-          </div>
-        )}
-      >
-        <CandidateHeader
-          candidate={candidate}
-          isModal={isModal}
-          onClose={onClose}
-          isEditing={isEditing}
-          availableStages={availableStages}
-          availableRecruiters={availableRecruiters}
-          availableSources={availableSources}
-          isAssigningRecruiter={isAssigningRecruiter}
-          isAssigningSource={isAssigningSource}
-          onAssignRecruiter={handleAssignRecruiter}
-          onAssignSource={handleAssignSource}
-          onResetAssigning={() => setIsAssigningRecruiter(false)}
-          onResetSourceAssigning={() => setIsAssigningSource(false)}
-          onEditClick={handleEnterEditMode}
-          onManageTransitions={openManageTransitionsModal}
-          onReprocess={() => setIsReprocessModalOpen(true)}
-          onGenerativeAI={() => setIsGenerativeAIModalOpen(true)}
-          avatarInputRef={avatarInputRef}
-          avatarUploading={avatarUploading}
-          avatarError={avatarError}
-          avatarForceRefresh={avatarForceRefresh}
-          onAvatarUpload={handleAvatarUpload}
-          realtimeConnected={realtimeConnected}
-        />
-      </ErrorBoundary>
+      <CandidateHeader
+        candidate={candidate}
+        isModal={isModal}
+        onClose={onClose}
+        isEditing={isEditing}
+        availableStages={availableStages}
+        availableRecruiters={availableRecruiters}
+        availableSources={availableSources}
+        isAssigningRecruiter={isAssigningRecruiter}
+        isAssigningSource={isAssigningSource}
+        onAssignRecruiter={handleAssignRecruiter}
+        onAssignSource={handleAssignSource}
+        onResetAssigning={() => setIsAssigningRecruiter(false)}
+        onResetSourceAssigning={() => setIsAssigningSource(false)}
+        onEditClick={handleEnterEditMode}
+        onManageTransitions={openManageTransitionsModal}
+        onReprocess={() => setIsReprocessModalOpen(true)}
+        onGenerativeAI={() => setIsGenerativeAIModalOpen(true)}
+        avatarInputRef={avatarInputRef}
+        avatarUploading={avatarUploading}
+        avatarError={avatarError}
+        avatarForceRefresh={avatarForceRefresh}
+        onAvatarUpload={handleAvatarUpload}
+        realtimeConnected={realtimeConnected}
+      />
       
       {/* Pipeline Section - Above main content and sidebar */}
       <div className="grid grid-cols-1 lg:grid-cols-10 border-t bg-card flex-shrink-0">
@@ -546,7 +415,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
               const res = await fetch(`/api/transitions?candidateId=${candidateId}`, { credentials: 'include' });
               if (res.ok) {
                 const data = await res.json();
-                setTransitionHistory(data || []);
+                // Update transition history in the hook
               }
             }}
             candidateId={candidateId}
@@ -661,7 +530,6 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
              
             <div className="p-8 flex-1 overflow-y-auto bg-background h-full pointer-events-auto">
               <CandidateTabsContent
-                key={`${candidate.id}-${isEditing}`} // Force re-render when editing state changes
                 activeTab={activeTab}
                 candidate={candidate}
                 allDbPositions={allDbPositions}
@@ -875,18 +743,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
       {/* Floating Save/Cancel buttons when editing */}
       {isEditing && (
         <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2">
-          {Object.keys(errors).length > 0 && (
-            <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 text-sm text-destructive max-w-md">
-              <div className="font-semibold mb-2">Form validation errors:</div>
-              <ul className="space-y-1">
-                {Object.entries(errors).map(([field, error]) => (
-                  <li key={field}>
-                    <strong>{field}:</strong> {(error as any)?.message || 'Invalid field'}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+          {/* Validation error display removed */}
           
           <div className="flex gap-2">
           <Button

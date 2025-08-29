@@ -94,6 +94,7 @@ export function UserPreferencesModal({ isOpen, onOpenChange, user }: UserPrefere
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include'
       });
 
       if (response.ok) {
@@ -172,6 +173,7 @@ export function UserPreferencesModal({ isOpen, onOpenChange, user }: UserPrefere
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(preferences),
+        credentials: 'include'
       });
 
       if (response.ok) {

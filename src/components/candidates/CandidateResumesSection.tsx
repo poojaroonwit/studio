@@ -76,6 +76,7 @@ const CandidateResumesSection: React.FC<CandidateResumesSectionProps> = ({ candi
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ attachmentId }),
+        credentials: 'include'
       });
       if (!res.ok) throw new Error('Failed to set primary');
       onResumesChange(); // Trigger manual refresh after user action
@@ -92,6 +93,7 @@ const CandidateResumesSection: React.FC<CandidateResumesSectionProps> = ({ candi
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ attachmentId }),
+        credentials: 'include'
       });
       if (!res.ok) throw new Error('Failed to delete');
       onResumesChange(); // Trigger manual refresh after user action

@@ -238,12 +238,6 @@ export const authOptions: NextAuthOptions = {
           }
           
           // Ensure session is properly established even if some data is missing
-          console.log('[SESSION CALLBACK] Session established for user:', {
-            id: session.user.id,
-            email: session.user.email,
-            role: session.user.role,
-            hasPermissions: session.user.modulePermissions && session.user.modulePermissions.length > 0
-          });
         }
         return session;
       },

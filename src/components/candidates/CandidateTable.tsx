@@ -282,7 +282,9 @@ export function CandidateTable({
     setIsManageTransitionsModalOpen(true);
     // Fetch comments for this candidate
     try {
-      const res = await fetch(`/api/candidates/${candidate.id}/comments`);
+      const res = await fetch(`/api/candidates/${candidate.id}/comments`, {
+        credentials: 'include'
+      });
       if (res.ok) {
         const data = await res.json();
         setModalComments(Array.isArray(data) ? data : (data.data || []));

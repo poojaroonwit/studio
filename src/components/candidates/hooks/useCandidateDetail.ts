@@ -7,34 +7,22 @@ import * as z from 'zod';
 import type { Candidate, Position, UserProfile, RecruitmentStage, TransitionRecord, CandidateSource } from '@/lib/types';
 import { useUnifiedRealtime } from '@/hooks/use-unified-realtime';
 
-// Form schemas
+// Form schemas - validation removed
 const editCandidateDetailSchema = z.object({
-  name: z.string().optional().nullable(),
-  email: z.union([z.string().email("Invalid email address"), z.literal(''), z.literal(null)]).optional(),
-  phone: z.string().optional().nullable(),
-  positionId: z.string().uuid().nullable().optional(),
-  recruiterId: z.string().uuid().nullable().optional(),
-  fitScore: z.number().min(0).max(1).nullable().optional(),
-  status: z.string().optional().nullable(),
-  assignmentJustification: z.array(z.string()).optional(),
-  parsedData: z.object({
-    personal_info: z.any().optional(),
-    contact_info: z.any().optional(),
-    education: z.array(z.any()).optional(),
-    experience: z.array(z.any()).optional(),
-    skills: z.array(z.any()).optional(),
-    job_suitable: z.array(z.any()).optional(),
-    job_matches: z.array(z.any()).optional(),
-  }).optional(),
+  name: z.any().optional(),
+  email: z.any().optional(),
+  phone: z.any().optional(),
+  positionId: z.any().optional(),
+  recruiterId: z.any().optional(),
+  fitScore: z.any().optional(),
+  status: z.any().optional(),
+  assignmentJustification: z.any().optional(),
+  parsedData: z.any().optional(),
 });
 
 type EditCandidateFormValues = z.infer<typeof editCandidateDetailSchema>;
 
 export const useCandidateDetail = (candidateId: string) => {
-  // Validate candidateId early to prevent initialization issues
-  if (!candidateId || typeof candidateId !== 'string') {
-    throw new Error('Invalid candidate ID provided to useCandidateDetail hook');
-  }
 
   const [candidate, setCandidate] = useState<Candidate | null>(null);
   const [loading, setLoading] = useState(true);
@@ -57,13 +45,8 @@ export const useCandidateDetail = (candidateId: string) => {
 
   // Add refs for caching and cleanup
   const cacheRef = useRef<Map<string, { data: any; timestamp: number }>>(new Map());
-  const lastFetchRef = useRef<number>(0);
   const avatarForceRefreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const abortControllerRef = useRef<AbortController | null>(null);
   const isMountedRef = useRef(true);
-  const currentRequestIdRef = useRef<string | null>(null);
-  const isFetchingRef = useRef(false);
-  const effectCleanupRef = useRef<(() => void) | null>(null);
 
   // Cache duration: 30 seconds
   const CACHE_DURATION = 30000;
@@ -100,7 +83,7 @@ export const useCandidateDetail = (candidateId: string) => {
     setValue,
   } = useForm<EditCandidateFormValues>({
     defaultValues: getDefaultFormValues(),
-    mode: 'onChange',
+    mode: 'onSubmit', // Changed from 'onChange' to reduce validation
   });
 
   const {
@@ -173,23 +156,9 @@ export const useCandidateDetail = (candidateId: string) => {
   const fetchCandidate = useCallback(async (forceRefresh = false) => {
     console.log('[fetchCandidate] Starting fetch for candidateId:', candidateId, 'forceRefresh:', forceRefresh);
     
-    if (!candidateId) {
-      console.log('[fetchCandidate] Early return - no candidateId');
-      setError('No candidate ID provided');
-      setLoading(false);
-      return;
-    }
+    if (!candidateId) return;
 
-    // Prevent multiple simultaneous requests
-    if (isFetchingRef.current && !forceRefresh) {
-      console.log('[fetchCandidate] Already fetching, skipping');
-      return;
-    }
-
-    // Generate a unique request ID to prevent race conditions
-    const requestId = `${candidateId}-${Date.now()}-${Math.random()}`;
-    currentRequestIdRef.current = requestId;
-    console.log('[fetchCandidate] Generated request ID:', requestId);
+    // Simple fetch without request tracking
 
     // Check cache first
     const cacheKey = `candidate:${candidateId}`;
@@ -205,59 +174,22 @@ export const useCandidateDetail = (candidateId: string) => {
     setLoading(true);
     setError(null);
 
-    // Abort any existing request
-    if (abortControllerRef.current) {
-      try {
-        console.log('[fetchCandidate] Aborting previous request');
-        abortControllerRef.current.abort();
-      } catch (e) {
-        console.warn('Error aborting previous request:', e);
-      }
-    }
-
-    // Create new abort controller with timeout
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
-    console.log('[fetchCandidate] Created new AbortController');
-    
-    // Set a timeout to abort the request if it takes too long
-    const timeoutId = setTimeout(() => {
-      console.log('[fetchCandidate] Timeout reached, aborting request');
-      if (controller && !controller.signal.aborted) {
-        controller.abort();
-      }
-    }, 30000); // 30 second timeout (reduced from 180s)
+    // Simple fetch without abort controller or validation
+    console.log('[fetchCandidate] Starting fetch for candidate:', candidateId);
 
     try {
       const res = await fetch(`/api/candidates/${candidateId}`, {
         headers: {
           'Content-Type': 'application/json',
-          'Cache-Control': 'max-age=30',
         },
-        signal: controller.signal,
+        credentials: 'include',
       });
 
       if (!res.ok) {
-        if (res.status === 401) {
-          throw new Error('Authentication required. Please sign in to view candidate details.');
-        } else if (res.status === 404) {
-          throw new Error('Candidate not found');
-        } else if (res.status === 403) {
-          throw new Error('Access denied to candidate');
-        } else if (res.status >= 500) {
-          throw new Error('Server error occurred. Please try again later.');
-        } else {
-          throw new Error(`Failed to fetch candidate: ${res.status}`);
-        }
+        throw new Error(`Failed to fetch candidate: ${res.status} ${res.statusText}`);
       }
 
       const data = await res.json();
-
-      // Check if this request is still current
-      if (currentRequestIdRef.current !== requestId) {
-        console.log('[fetchCandidate] Request outdated, ignoring response');
-        return;
-      }
 
       // Check if component is still mounted before setting state
       if (!isMountedRef.current) {
@@ -265,121 +197,47 @@ export const useCandidateDetail = (candidateId: string) => {
         return;
       }
 
-      // Validate basic candidate data structure
-      if (!data || typeof data !== 'object' || !data.id) {
-        throw new Error('Invalid candidate data received');
-      }
-
       // Cache the result
       cacheRef.current.set(cacheKey, { data, timestamp: now });
 
       // Safely process candidate data
-      setCandidate({
-        ...data,
-        fitScore: data.fitScore !== undefined && data.fitScore !== null ? Number(data.fitScore) : null,
-        parsedData: data.parsedData || {
-          personal_info: {},
-          contact_info: {},
-          education: [],
-          experience: [],
-          skills: [],
-          job_suitable: [],
-          job_matches: [],
-        },
-      });
+      setCandidate(data);
+      setLoading(false);
+      setError(null);
 
-    } catch (err) {
-      console.log('[fetchCandidate] Error caught:', err);
-      
-      // Check if this request is still current
-      if (currentRequestIdRef.current !== requestId) {
-        console.log('[fetchCandidate] Request outdated, ignoring error');
-        return;
-      }
+      console.log('[fetchCandidate] Successfully fetched candidate:', candidateId);
 
-      // Check if component is still mounted before setting state
-      if (!isMountedRef.current) {
-        console.log('[fetchCandidate] Component unmounted, ignoring error');
-        return;
-      }
+    } catch (error: any) {
+      console.error('[fetchCandidate] Error fetching candidate:', candidateId, error);
 
-      // Check if request was aborted
-      if (err instanceof Error && err.name === 'AbortError') {
-        console.log('[fetchCandidate] AbortError detected');
-        setError('Request timed out. The server may be experiencing high load. Please try again in a moment.');
-        return;
-      }
+      if (!isMountedRef.current) return;
 
-      console.error('Error fetching candidate:', err);
-      
-      if (isMountedRef.current) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch candidate. Please check your connection and try again.');
-      }
-    } finally {
-      // Clean up timeout
-      clearTimeout(timeoutId);
-      
-      // Reset fetching flag
-      isFetchingRef.current = false;
-      
-      // Always set loading to false, regardless of success or failure
-      if (isMountedRef.current) {
-        setLoading(false);
-      }
+      setError('Failed to load candidate details');
+      setLoading(false);
     }
   }, [candidateId]);
 
-  // Fetch candidate data with optimized dependencies
+  // Fetch candidate data
   useEffect(() => {
-
-    // Prevent multiple simultaneous requests
-    if (isFetchingRef.current) {
-      console.log('[useCandidateDetail] Already fetching, skipping');
-      return;
-    }
-    
     isMountedRef.current = true;
-    isFetchingRef.current = true;
-    
-    // Clean up previous effect if it exists
-    if (effectCleanupRef.current) {
-      effectCleanupRef.current();
-    }
     
     fetchCandidate();
     
-    const cleanup = () => {
-      console.log('[useCandidateDetail] Cleanup function called for candidateId:', candidateId);
+    return () => {
       isMountedRef.current = false;
-      isFetchingRef.current = false;
-      // Abort any ongoing requests
-      if (abortControllerRef.current) {
-        try {
-          console.log('[useCandidateDetail] Aborting previous request');
-          abortControllerRef.current.abort();
-        } catch (e) {
-          console.warn('Error aborting request on cleanup:', e);
-        }
-        abortControllerRef.current = null;
-      }
     };
-    
-    effectCleanupRef.current = cleanup;
-    
-    return cleanup;
   }, [candidateId]); // Remove fetchCandidate from dependencies to prevent infinite loops
 
   // Memoized fetch functions for static data
   const fetchPositions = useCallback(async () => {
     try {
       const res = await fetch('/api/positions/all', {
-        headers: { 'Cache-Control': 'max-age=300' } // Cache for 5 minutes
+        headers: { 'Cache-Control': 'max-age=300' }, // Cache for 5 minutes
+        credentials: 'include' // Include session cookies
       });
       if (res.ok) {
         const data = await res.json();
         setAllDbPositions(data.data || []);
-      } else if (res.status === 401) {
-        console.error('Authentication required to fetch positions');
       } else {
         console.error('Error fetching positions:', res.status, res.statusText);
       }
@@ -391,14 +249,13 @@ export const useCandidateDetail = (candidateId: string) => {
   const fetchRecruiters = useCallback(async () => {
     try {
       const res = await fetch('/api/users?role=Recruiter', {
-        headers: { 'Cache-Control': 'max-age=300' } // Cache for 5 minutes
+        headers: { 'Cache-Control': 'max-age=300' }, // Cache for 5 minutes
+        credentials: 'include' // Include session cookies
       });
       if (res.ok) {
         const responseData = await res.json();
         const recruitersArray = responseData?.users || [];
         setAvailableRecruiters(recruitersArray);
-      } else if (res.status === 401) {
-        console.error('Authentication required to fetch recruiters');
       } else {
         console.error('Error fetching recruiters:', res.status, res.statusText);
       }
@@ -410,13 +267,12 @@ export const useCandidateDetail = (candidateId: string) => {
   const fetchSources = useCallback(async () => {
     try {
       const res = await fetch('/api/settings/candidate-sources', {
-        headers: { 'Cache-Control': 'max-age=300' } // Cache for 5 minutes
+        headers: { 'Cache-Control': 'max-age=300' }, // Cache for 5 minutes
+        credentials: 'include' // Include session cookies
       });
       if (res.ok) {
         const data = await res.json();
         setAvailableSources(data || []);
-      } else if (res.status === 401) {
-        console.error('Authentication required to fetch sources');
       } else {
         console.error('Error fetching sources:', res.status, res.statusText);
       }
@@ -428,13 +284,12 @@ export const useCandidateDetail = (candidateId: string) => {
   const fetchStages = useCallback(async () => {
     try {
       const res = await fetch('/api/recruitment-stages', {
-        headers: { 'Cache-Control': 'max-age=300' } // Cache for 5 minutes
+        headers: { 'Cache-Control': 'max-age=300' }, // Cache for 5 minutes
+        credentials: 'include' // Include session cookies
       });
       if (res.ok) {
         const data = await res.json();
         setAvailableStages(data || []);
-      } else if (res.status === 401) {
-        console.error('Authentication required to fetch stages');
       } else {
         console.error('Error fetching stages:', res.status, res.statusText);
       }
@@ -445,7 +300,9 @@ export const useCandidateDetail = (candidateId: string) => {
 
   const fetchTransitionHistory = useCallback(async () => {
     try {
-      const res = await fetch(`/api/transitions?candidateId=${candidateId}`);
+      const res = await fetch(`/api/transitions?candidateId=${candidateId}`, {
+        credentials: 'include' // Include session cookies
+      });
       if (res.ok) {
         const data = await res.json();
         setTransitionHistory(data || []);
@@ -489,10 +346,7 @@ export const useCandidateDetail = (candidateId: string) => {
       if (avatarForceRefreshTimeoutRef.current) {
         clearTimeout(avatarForceRefreshTimeoutRef.current);
       }
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-        abortControllerRef.current = null;
-      }
+
       // Clear cache to prevent memory leaks
       cacheRef.current.clear();
     };

@@ -8,6 +8,7 @@ import { authOptions } from '@/lib/auth';
 import { broadcastCandidateResumeUpdate } from '@/lib/candidateSse';
 import { z } from 'zod';
 
+
 export const dynamic = 'force-dynamic';
 
 
@@ -66,8 +67,6 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     });
   } catch (err) {
     console.error(`[GET /api/candidates/${id}/resumes] Error:`, err);
-    
-
     
     return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
   }

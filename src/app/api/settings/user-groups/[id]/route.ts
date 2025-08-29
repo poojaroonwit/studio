@@ -10,8 +10,6 @@ import { getPool } from '../../../../../lib/db';
 
 const platformModuleIds = PLATFORM_MODULES.map(m => m.id);
 
-console.log('Available permission IDs:', platformModuleIds);
-
 const updateGroupFormSchema = z.object({
   name: z.string().min(1, "Group name is required").max(100),
   description: z.string().optional().nullable(),

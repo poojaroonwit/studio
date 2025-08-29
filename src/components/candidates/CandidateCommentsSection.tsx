@@ -82,7 +82,9 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
   useEffect(() => {
     const loadInitialComments = async () => {
       try {
-        const response = await fetch(`/api/candidates/${candidateId}/comments?limit=${COMMENTS_PER_LOAD}&offset=0`);
+        const response = await fetch(`/api/candidates/${candidateId}/comments?limit=${COMMENTS_PER_LOAD}&offset=0`, {
+          credentials: 'include'
+        });
         if (response.ok) {
           const data = await response.json();
           const initialCommentsData = Array.isArray(data.data) ? data.data : [];
@@ -110,7 +112,9 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
   // Fetch activity logs once on candidateId change (no real-time polling)
   useEffect(() => {
     setLogsLoading(true);
-    fetch(`/api/candidates/${candidateId}/logs`)
+    fetch(`/api/candidates/${candidateId}/logs`, {
+      credentials: 'include'
+    })
       .then(res => res.json())
       .then(data => setLogs(Array.isArray(data.data) ? data.data : []))
       .catch(() => setLogs([]))
@@ -123,7 +127,9 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
     
     setLoadingMore(true);
     try {
-      const response = await fetch(`/api/candidates/${candidateId}/comments?limit=${COMMENTS_PER_LOAD}&offset=${commentsOffset}`);
+      const response = await fetch(`/api/candidates/${candidateId}/comments?limit=${COMMENTS_PER_LOAD}&offset=${commentsOffset}`, {
+        credentials: 'include'
+      });
       if (response.ok) {
         const data = await response.json();
         const newComments = Array.isArray(data.data) ? data.data : [];
@@ -286,6 +292,7 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
       const res = await fetch(`/api/candidates/${candidateId}/comments`, {
         method: 'POST',
         body: formData,
+        credentials: 'include'
       });
       
       if (!res.ok) {
@@ -320,7 +327,9 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
       }
       
       // Refresh comments list to get the latest data from server
-      const refreshResponse = await fetch(`/api/candidates/${candidateId}/comments?limit=${COMMENTS_PER_LOAD}&offset=0`);
+      const refreshResponse = await fetch(`/api/candidates/${candidateId}/comments?limit=${COMMENTS_PER_LOAD}&offset=0`, {
+        credentials: 'include'
+      });
       if (refreshResponse.ok) {
         const refreshData = await refreshResponse.json();
         const refreshedComments = Array.isArray(refreshData.data) ? refreshData.data : [];
@@ -371,12 +380,15 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
       const res = await fetch(`/api/candidates/${candidateId}/comments/${originalId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ content: editingContent }),
       });
       if (!res.ok) throw new Error('Failed to update comment');
       
       // Refresh comments list to get the latest data from server
-      const refreshResponse = await fetch(`/api/candidates/${candidateId}/comments?limit=${COMMENTS_PER_LOAD}&offset=0`);
+      const refreshResponse = await fetch(`/api/candidates/${candidateId}/comments?limit=${COMMENTS_PER_LOAD}&offset=0`, {
+        credentials: 'include'
+      });
       if (refreshResponse.ok) {
         const refreshData = await refreshResponse.json();
         const refreshedComments = Array.isArray(refreshData.data) ? refreshData.data : [];
@@ -405,11 +417,15 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
     setComments(Array.isArray(comments) ? comments.filter(c => c.id !== originalId) : []);
     try {
       const res = await fetch(`/api/candidates/${candidateId}/comments/${originalId}`, {
-        method: 'DELETE' });
+        method: 'DELETE',
+        credentials: 'include'
+      });
       if (!res.ok) throw new Error('Failed to delete comment');
       
       // Refresh comments list to get the latest data from server
-      const refreshResponse = await fetch(`/api/candidates/${candidateId}/comments?limit=${COMMENTS_PER_LOAD}&offset=0`);
+      const refreshResponse = await fetch(`/api/candidates/${candidateId}/comments?limit=${COMMENTS_PER_LOAD}&offset=0`, {
+        credentials: 'include'
+      });
       if (refreshResponse.ok) {
         const refreshData = await refreshResponse.json();
         const refreshedComments = Array.isArray(refreshData.data) ? refreshData.data : [];

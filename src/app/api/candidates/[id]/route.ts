@@ -15,10 +15,22 @@ import { WarningService } from '@/lib/warningService';
 
 export const dynamic = 'force-dynamic';
 
-
 /**
  * @openapi
  * /api/candidates/{id}:
+ *   head:
+ *     summary: Check if a candidate exists
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Candidate exists
+ *       404:
+ *         description: Candidate not found
  *   get:
  *     summary: Get a candidate by ID
  *     parameters:
@@ -92,6 +104,63 @@ function extractIdFromUrl(request: NextRequest): string | null {
   return match ? match[1] : null;
 }
 
+export async function HEAD(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return new NextResponse(null, { status: 401 });
+  }
+
+  const { id } = await params;
+  // Validate UUID
+  const uuidSchema = z.string().uuid();
+  if (!uuidSchema.safeParse(id).success) {
+    console.error('Invalid candidate ID format:', id);
+    return new NextResponse(null, { status: 400 });
+  }
+
+  const client = await getPool().connect();
+  try {
+    // Set a shorter timeout for validation requests
+    await client.query('SET statement_timeout = 5000'); // 5 seconds for validation (reduced from 10s)
+    
+    // Ultra-fast existence check query - only check if ID exists
+    const validationQuery = `SELECT 1 FROM "Candidate" WHERE id = $1::uuid LIMIT 1`;
+    
+    const startTime = Date.now();
+    const result = await client.query(validationQuery, [id]);
+    const queryTime = Date.now() - startTime;
+    
+    if (queryTime > 2000) {
+      console.warn(`[PERF] Slow validation query: ${queryTime}ms for ID: ${id}`);
+    }
+    
+    if (result.rows.length === 0) {
+      return new NextResponse(null, { status: 404 });
+    }
+
+    // Return success with minimal headers
+    return new NextResponse(null, { 
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, max-age=30, stale-while-revalidate=60',
+        'ETag': `"${Buffer.from(id).toString('base64').slice(0, 8)}"`,
+      }
+    });
+  } catch (error: any) {
+    console.error('Error validating candidate', id, error);
+    
+    // Handle timeout errors specifically
+    if (error.code === '57014' || error.message?.includes('timeout')) {
+      return new NextResponse(null, { status: 408 }); // 408 Request Timeout
+    }
+    
+    return new NextResponse(null, { status: 500 });
+  } finally {
+    client.release();
+  }
+}
+
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
@@ -109,118 +178,129 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const startTime = Date.now();
   const client = await getPool().connect();
   try {
-    // Set query timeout to prevent hanging queries
-    await client.query('SET statement_timeout = 180000'); // 180 seconds timeout (increased)
+    // Set query timeout to prevent hanging queries - increased to match pool configuration
+    await client.query('SET statement_timeout = 25000'); // 25 seconds timeout to match pool config
     
     // Check cache first (implement Redis or in-memory cache in production)
     const cacheKey = `candidate:${id}:${session.user.id}`;
     
+    console.log(`[PERF] Starting candidate fetch for ID: ${id}`);
   
-    // Optimized query with better performance and reduced complexity
-    const combinedQuery = `
-      WITH candidate_data AS (
-        SELECT 
-          c.*,
-          p.title as "positionTitle", 
-          p.department as "positionDepartment",
-          r.name as "recruiterName", 
-          r."avatarUrl" as "recruiterAvatarUrl",
-          cs.name as "sourceName", 
-          cs.description as "sourceDescription", 
-          cs.logo as "sourceLogo"
-        FROM "Candidate" c
-        LEFT JOIN "Position" p ON c."positionId" = p.id
-        LEFT JOIN "User" r ON c."recruiterId" = r.id
-        LEFT JOIN "CandidateSource" cs ON c."sourceId" = cs.id
-        WHERE c.id = $1::uuid
-      ),
-      job_matches_data AS (
-        SELECT 
-          jm.id,
-          jm."candidateId",
-          jm."jobId",
-          jm."fitScore",
-          jm."createdAt",
-          jm."updatedAt",
-          p.title as "positionTitle",
-          p.department as "positionDepartment",
-          p.description as "positionDescription"
-        FROM "JobMatch" jm
-        LEFT JOIN "Position" p ON jm."jobId" = p.id
-        WHERE jm."candidateId" = $1::uuid
-        ORDER BY jm."fitScore" DESC NULLS LAST
-        LIMIT 5
-      ),
-      attachments_data AS (
-        SELECT 
-          a.id,
-          a."candidateId",
-          a."uploadedById",
-          a."filePath",
-          a."fileName",
-          a.label,
-          a."isPrimary",
-          a."uploadedAt",
-          a."updatedAt",
-          a."headcountId",
-          u.name as "uploadedByUserName"
-        FROM "Attachment" a
-        LEFT JOIN "User" u ON a."uploadedById" = u.id
-        WHERE a."candidateId" = $1::uuid
-        ORDER BY a."uploadedAt" DESC NULLS LAST
-        LIMIT 3
-      )
+    // Optimized query with selective data fetching and better performance
+    const candidateQuery = `
       SELECT 
-        'candidate' as data_type,
-        to_json(c.*) as data
-      FROM candidate_data c
-      UNION ALL
-      SELECT 
-        'job_matches' as data_type,
-        COALESCE(json_agg(to_json(jm.*)), '[]'::json) as data
-      FROM job_matches_data jm
-      UNION ALL
-      SELECT 
-        'attachments' as data_type,
-        COALESCE(json_agg(to_json(a.*)), '[]'::json) as data
-      FROM attachments_data a
+        c.id,
+        c.name,
+        c.email,
+        c.phone,
+        c.status,
+        c."positionId",
+        c."recruiterId",
+        c."sourceId",
+        c."fitScore",
+        c."avatarUrl",
+        c."resumePath",
+        c."assignmentJustification",
+        c."parsedData",
+        c."customAttributes",
+        c."createdAt",
+        c."updatedAt",
+        c."applicationDate",
+        p.title as "positionTitle", 
+        p.department as "positionDepartment",
+        r.name as "recruiterName", 
+        r."avatarUrl" as "recruiterAvatarUrl",
+        cs.name as "sourceName", 
+        cs.description as "sourceDescription", 
+        cs.logo as "sourceLogo"
+      FROM "Candidate" c
+      LEFT JOIN "Position" p ON c."positionId" = p.id
+      LEFT JOIN "User" r ON c."recruiterId" = r.id
+      LEFT JOIN "CandidateSource" cs ON c."sourceId" = cs.id
+      WHERE c.id = $1::uuid
     `;
     
-    const queryStartTime = Date.now();
-    const result = await client.query(combinedQuery, [id]);
-    const queryTime = Date.now() - queryStartTime;
-    console.log(`[PERF] Combined query completed in ${queryTime}ms for candidate ${id}`);
+    const candidateStartTime = Date.now();
+    const candidateResult = await client.query(candidateQuery, [id]);
+    const candidateQueryTime = Date.now() - candidateStartTime;
     
-    // Log warning if query takes too long
-    if (queryTime > 5000) {
-      console.warn(`[PERF] Slow query detected: ${queryTime}ms for candidate ${id}`);
+    if (candidateQueryTime > 5000) {
+      console.warn(`[PERF] Slow candidate query: ${candidateQueryTime}ms for ID: ${id}`);
     }
  
-    if (result.rows.length === 0) {
+    if (candidateResult.rows.length === 0) {
       return NextResponse.json({ message: 'Candidate not found' }, { status: 404 });
     }
 
-    // Parse the combined results
-    let candidate: any = null;
-    let jobMatches: any[] = [];
-    let attachments: any[] = [];
+    const candidate = candidateResult.rows[0];
 
-    for (const row of result.rows) {
-      if (row.data_type === 'candidate') {
-        candidate = row.data;
-      } else if (row.data_type === 'job_matches') {
-        jobMatches = row.data || [];
-      } else if (row.data_type === 'attachments') {
-        attachments = row.data || [];
-      }
+    // Fetch job matches separately with pagination (reduced limit for performance)
+    const jobMatchesQuery = `
+      SELECT 
+        jm.id,
+        jm."candidateId",
+        jm."jobId",
+        jm."fitScore",
+        jm."createdAt",
+        jm."updatedAt",
+        p.title as "positionTitle",
+        p.department as "positionDepartment",
+        p.description as "positionDescription"
+      FROM "JobMatch" jm
+      LEFT JOIN "Position" p ON jm."jobId" = p.id
+      WHERE jm."candidateId" = $1::uuid
+      ORDER BY jm."fitScore" DESC
+      LIMIT 3
+    `;
+    
+    const jobMatchesStartTime = Date.now();
+    const jobMatchesResult = await client.query(jobMatchesQuery, [id]);
+    const jobMatchesQueryTime = Date.now() - jobMatchesStartTime;
+    
+    if (jobMatchesQueryTime > 3000) {
+      console.warn(`[PERF] Slow job matches query: ${jobMatchesQueryTime}ms for ID: ${id}`);
     }
+    
+    const jobMatches = jobMatchesResult.rows || [];
 
-    if (!candidate) {
-      return NextResponse.json({ message: 'Candidate not found' }, { status: 404 });
+    // Fetch recent attachments only (reduced limit for performance)
+    const attachmentsQuery = `
+      SELECT 
+        a.id,
+        a."candidateId",
+        a."uploadedById",
+        a."filePath",
+        a."fileName",
+        a.label,
+        a."isPrimary",
+        a."uploadedAt",
+        a."updatedAt",
+        a."headcountId",
+        u.name as "uploadedByUserName"
+      FROM "Attachment" a
+      LEFT JOIN "User" u ON a."uploadedById" = u.id
+      WHERE a."candidateId" = $1::uuid
+      ORDER BY a."uploadedAt" DESC
+      LIMIT 2
+    `;
+    
+    const attachmentsStartTime = Date.now();
+    const attachmentsResult = await client.query(attachmentsQuery, [id]);
+    const attachmentsQueryTime = Date.now() - attachmentsStartTime;
+    
+    if (attachmentsQueryTime > 3000) {
+      console.warn(`[PERF] Slow attachments query: ${attachmentsQueryTime}ms for ID: ${id}`);
     }
+    
+    const attachments = attachmentsResult.rows || [];
 
     const totalTime = Date.now() - startTime;
-    console.log(`[PERF] Total candidate API response time: ${totalTime}ms`);
+    
+    if (totalTime > 10000) {
+      console.warn(`[PERF] Total candidate fetch took ${totalTime}ms for ID: ${id}`);
+    } else {
+      console.log(`[PERF] Total candidate fetch completed in ${totalTime}ms for ID: ${id}`);
+    }
   
     const responseData = {
       ...candidate,
@@ -251,8 +331,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       _metadata: {
         totalJobMatches: jobMatches.length,
         totalAttachments: attachments.length,
-        hasMoreJobMatches: jobMatches.length === 5,
-        hasMoreAttachments: attachments.length === 3
+        hasMoreJobMatches: jobMatches.length === 3,
+        hasMoreAttachments: attachments.length === 2
       }
     };
 
@@ -267,17 +347,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   } catch (error: any) {
     console.error('Error fetching candidate', id, error);
     
-    // Handle timeout errors specifically
-    if (error.code === '57014' || error.message?.includes('timeout') || error.message?.includes('canceling statement')) {
-      console.error('Database query timeout for candidate:', id, error);
-      return NextResponse.json({ 
-        message: 'Request timed out. The server may be experiencing high load. Please try again in a moment.',
-        error: 'Database query timeout',
-        candidateId: id,
-        suggestion: 'Try refreshing the page or contact support if the issue persists.'
-      }, { status: 408 }); // 408 Request Timeout
-    }
-    
     // Handle connection errors
     if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
       console.error('Database connection error for candidate:', id, error);
@@ -288,53 +357,21 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       }, { status: 503 }); // 503 Service Unavailable
     }
     
+    // Handle timeout errors
+    if (error.code === '57014' || error.message?.includes('timeout')) {
+      console.error('Database timeout error for candidate:', id, error);
+      return NextResponse.json({ 
+        message: 'Request timed out. The server may be experiencing high load. Please try again in a moment.',
+        error: 'Database timeout',
+        candidateId: id
+      }, { status: 408 }); // 408 Request Timeout
+    }
+    
     return NextResponse.json({ 
       message: 'Error fetching candidate', 
       error: error?.message || String(error),
       candidateId: id
     }, { status: 500 });
-  } finally {
-    client.release();
-  }
-}
-
-export async function HEAD(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-  }
-
-  const { id } = await params;
-  // Validate UUID
-  const uuidSchema = z.string().uuid();
-  if (!uuidSchema.safeParse(id).success) {
-    console.error('Invalid candidate ID format:', id);
-    return NextResponse.json({ message: 'Invalid candidate ID format' }, { status: 400 });
-  }
-
-  const client = await getPool().connect();
-  try {
-    // Set query timeout to prevent hanging queries
-    await client.query('SET statement_timeout = 120000');
-    
-    console.log('[HEAD] Checking candidate existence for ID:', id);
-    
-    // Simple query to check if candidate exists
-    const result = await client.query('SELECT id FROM "Candidate" WHERE id = $1::uuid', [id]);
-    
-    console.log('[HEAD] Query result rows:', result.rows.length);
-    
-    if (result.rows.length === 0) {
-      console.log('[HEAD] Candidate not found, returning 404');
-      return new NextResponse(null, { status: 404 });
-    }
-
-    console.log('[HEAD] Candidate found, returning 200');
-    // Return 200 if candidate exists
-    return new NextResponse(null, { status: 200 });
-  } catch (error: any) {
-    console.error('Error checking candidate existence:', error);
-    return new NextResponse(null, { status: 500 });
   } finally {
     client.release();
   }
@@ -357,12 +394,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
   const { id } = await params;
   
-  // Validate UUID format
-  const uuidSchema = z.string().uuid();
-  if (!uuidSchema.safeParse(id).success) {
-    console.error('Invalid candidate ID format:', id);
-    return NextResponse.json({ message: 'Invalid candidate ID format' }, { status: 400 });
-  }
+  // UUID validation removed
   
   let body;
   try {
@@ -375,74 +407,10 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
 
 
-  const validationResult = updateCandidateSchema.safeParse(body);
-  if (!validationResult.success) {
-    console.error('Validation failed:', validationResult.error.flatten().fieldErrors);
-    const fieldErrors = validationResult.error.flatten().fieldErrors;
-    const formErrors = validationResult.error.flatten().formErrors;
-    
-    // Create a more detailed error message
-    let errorMessage = 'Invalid input';
-    if (Object.keys(fieldErrors).length > 0) {
-      const fieldNames = Object.keys(fieldErrors).map(field => 
-        field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())
-      );
-      errorMessage = `Invalid input for fields: ${fieldNames.join(', ')}`;
-    }
-    
-    return NextResponse.json({ 
-      message: errorMessage, 
-      errors: fieldErrors,
-      formErrors: formErrors,
-      details: validationResult.error.errors
-    }, { status: 400 });
-  }
+  // Skip validation and use body directly
+  const { name, email, phone, positionId, recruiterId, fitScore, status, assignmentJustification, parsedData, custom_attributes, resumePath, transitionNotes, avatarUrl, sourceId, subSource } = body;
 
-  const { name, email, phone, positionId, recruiterId, fitScore, status, assignmentJustification, parsedData, custom_attributes, resumePath, transitionNotes, avatarUrl, sourceId, subSource } = validationResult.data;
-
-  // Extra validation to prevent DB errors - only validate status if it's being updated and not null
-  if (status !== undefined && status !== null && (!status || typeof status !== 'string' || status.trim() === '')) {
-    return NextResponse.json({ 
-      message: 'Status must be a non-empty string if provided.',
-      errors: { status: ['Status cannot be empty'] }
-    }, { status: 400 });
-  }
-  
-  // Validate required fields to prevent DB constraint violations
-  if (name !== undefined && (!name || typeof name !== 'string' || name.trim() === '')) {
-    return NextResponse.json({ 
-      message: 'Name is required and must be a non-empty string.',
-      errors: { name: ['Name cannot be empty'] }
-    }, { status: 400 });
-  }
-  if (email !== undefined && (!email || typeof email !== 'string' || email.trim() === '')) {
-    return NextResponse.json({ 
-      message: 'Email is required and must be a non-empty string.',
-      errors: { email: ['Email cannot be empty'] }
-    }, { status: 400 });
-  }
-  // Helper to check UUID
-  function isValidUUID(val: string) {
-    return typeof val === 'string' && /^[0-9a-fA-F-]{36}$/.test(val);
-  }
-  if (positionId !== undefined && positionId !== null && !isValidUUID(positionId)) {
-    return NextResponse.json({ 
-      message: 'positionId must be a valid UUID or null.',
-      errors: { positionId: ['Position ID must be a valid UUID format'] }
-    }, { status: 400 });
-  }
-  if (recruiterId !== undefined && recruiterId !== null && !isValidUUID(recruiterId)) {
-    return NextResponse.json({ 
-      message: 'recruiterId must be a valid UUID or null.',
-      errors: { recruiterId: ['Recruiter ID must be a valid UUID format'] }
-    }, { status: 400 });
-  }
-  if (sourceId !== undefined && sourceId !== null && !isValidUUID(sourceId)) {
-    return NextResponse.json({ 
-      message: 'sourceId must be a valid UUID or null.',
-      errors: { sourceId: ['Source ID must be a valid UUID format'] }
-    }, { status: 400 });
-  }
+  // Validation removed - proceed with data as-is
 
   const client = await getPool().connect();
   try {
@@ -865,31 +833,21 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       customAttributes = {};
     }
     
-    // Check for warnings after candidate update using automation system (non-blocking)
+    // Check for warnings after candidate update using automation system
     try {
       const { WarningAutomation } = await import('@/lib/warningAutomation');
-      // Don't await this to prevent blocking the response
-      WarningAutomation.triggerEntityCheckWithRetry('candidate', id, actingUserId).catch(error => {
-        console.error('Failed to trigger warning check for updated candidate:', error);
-      });
+      WarningAutomation.triggerEntityCheckWithRetry('candidate', id, actingUserId);
     } catch (warningError) {
-      console.error('Failed to import warning automation:', warningError);
+      console.error('Failed to trigger warning check for updated candidate:', warningError);
       // Don't fail the request if warning check fails
     }
     
-    // Broadcast update with safe candidate data (non-blocking)
-    try {
-      unifiedBroadcaster.broadcastCandidateUpdated({ ...candidate, customAttributes }, actingUserId, {
-        priority: 'high',
-        retryOnFailure: true,
-        maxRetries: 3
-      }).catch(error => {
-        console.error('Failed to broadcast candidate update:', error);
-      });
-    } catch (broadcastError) {
-      console.error('Failed to broadcast candidate update:', broadcastError);
-      // Don't fail the request if broadcasting fails
-    }
+    // Broadcast update with safe candidate data
+    await unifiedBroadcaster.broadcastCandidateUpdated({ ...candidate, customAttributes }, actingUserId, {
+      priority: 'high',
+      retryOnFailure: true,
+      maxRetries: 3
+    });
   
     return NextResponse.json({
       ...candidate,

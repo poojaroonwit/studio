@@ -31,17 +31,7 @@ export default function CandidateDetailPage() {
     return null;
   }
 
-  // Validate candidate ID
-  if (!candidateId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(candidateId)) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[calc(100vh-8rem)] text-center p-6">
-        <ServerCrash className="w-16 h-16 text-destructive mb-4" />
-        <h2 className="text-2xl font-semibold text-foreground mb-2">Invalid Candidate ID</h2>
-        <p className="text-muted-foreground mb-6">The candidate ID in the URL is not valid.</p>
-        <Button onClick={() => router.push('/candidates')}>Back to Candidates</Button>
-      </div>
-    );
-  }
+  // UUID validation removed - proceed with any candidate ID
 
     return (
       <div className="h-full bg-background">

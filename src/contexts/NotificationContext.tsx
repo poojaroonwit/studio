@@ -5,7 +5,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { useSession } from 'next-auth/react';
 import { useToastManager } from '@/hooks/use-toast-manager';
 import { Bell } from 'lucide-react';
-import { useUnifiedRealtime } from '@/hooks/use-unified-realtime-optimized';
+import { useUnifiedRealtime } from '@/hooks/use-unified-realtime';
 
 interface Notification {
   id: string;

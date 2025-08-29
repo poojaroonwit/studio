@@ -228,11 +228,7 @@ export function TaskBoard({
   const lastDragTimeRef = useRef<number>(0);
   const dragThrottleRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Add infinite loop prevention
-  const { trackRun: trackScrollUpdate } = useInfiniteLoopPrevention('TaskBoardScrollUpdate', 100, () => {
-    console.error('🚨 Excessive scroll updates detected in TaskBoard');
-  });
-
+  // Add infinite loop prevention for drag operations only
   const { trackRun: trackDragOperation } = useInfiniteLoopPrevention('TaskBoardDragOperation', 50, () => {
     console.error('🚨 Excessive drag operations detected in TaskBoard');
   });
@@ -304,8 +300,6 @@ export function TaskBoard({
 
   // Check scroll position and update button visibility
   const updateScrollButtons = useCallback(() => {
-    if (!trackScrollUpdate()) return;
-    
     const container = scrollContainerRef.current;
     if (container) {
       const { scrollLeft, scrollWidth, clientWidth } = container;
@@ -315,10 +309,10 @@ export function TaskBoard({
       setCanScrollLeft(canScrollLeftValue);
       setCanScrollRight(canScrollRightValue);
     }
-  }, [trackScrollUpdate]);
+  }, []); // Remove trackScrollUpdate to prevent infinite loops - scroll events are naturally frequent
 
-  // Set up scroll event listener and initial check with proper cleanup
-  useSafeEffect(() => {
+  // Set up scroll event listener and initial check with proper cleanup - FIXED: Use useEffect instead of useSafeEffect
+  useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
 
@@ -326,12 +320,18 @@ export function TaskBoard({
     const timeoutIds: NodeJS.Timeout[] = [];
     
     const handleScroll = () => {
-      // Throttle scroll events to prevent excessive updates
+      // Improved throttling for scroll events to prevent excessive updates
+      const now = Date.now();
+      if (now - lastDragTimeRef.current < 50) { // Throttle to max 20fps instead of 60fps
+        return;
+      }
+      lastDragTimeRef.current = now;
+      
       if (dragThrottleRef.current) {
         clearTimeout(dragThrottleRef.current);
         dragThrottleRef.current = null;
       }
-      dragThrottleRef.current = setTimeout(updateScrollButtons, 16) as NodeJS.Timeout; // ~60fps
+      dragThrottleRef.current = setTimeout(updateScrollButtons, 50) as NodeJS.Timeout; // Reduced frequency
     };
 
     container.addEventListener('scroll', handleScroll, { passive: true });
@@ -359,10 +359,10 @@ export function TaskBoard({
         dragThrottleRef.current = null;
       }
     };
-  }, [updateScrollButtons], 'TaskBoardScrollSetup', 10);
+  }, []); // FIXED: Remove useSafeEffect and simplify dependencies
 
-  // Update scroll buttons when window resizes with proper cleanup
-  useSafeEffect(() => {
+  // Update scroll buttons when window resizes with proper cleanup - FIXED: Use useEffect instead of useSafeEffect
+  useEffect(() => {
     const handleResize = () => {
       // Clear any existing timeout to prevent resource leaks
       if (resizeTimeoutRef.current) {
@@ -381,10 +381,10 @@ export function TaskBoard({
         resizeTimeoutRef.current = null;
       }
     };
-  }, [updateScrollButtons], 'TaskBoardResizeSetup', 10);
+  }, []); // FIXED: Remove useSafeEffect and simplify dependencies
 
-  // Cleanup effect to prevent resource leaks on unmount
-  useSafeEffect(() => {
+  // Cleanup effect to prevent resource leaks on unmount - FIXED: Use useEffect instead of useSafeEffect
+  useEffect(() => {
     return () => {
       // Reset all drag state to prevent memory leaks
       setDraggedTask(null);
@@ -407,7 +407,7 @@ export function TaskBoard({
         dragThrottleRef.current = null;
       }
     };
-  }, [], 'TaskBoardUnmount', 5);
+  }, []); // FIXED: Remove useSafeEffect and simplify dependencies
 
   // Drag and drop handlers with improved resource management
   const handleDragStart = useCallback((task: Task) => {

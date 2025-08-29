@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useUnifiedRealtime } from '@/hooks/use-unified-realtime-optimized';
+import { useUnifiedRealtime } from '@/hooks/use-unified-realtime';
 import { 
   Users, 
   Bell, 

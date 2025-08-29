@@ -178,7 +178,7 @@ export async function GET(request: NextRequest) {
   const client = await getPool().connect();
   try {
     // Set a longer statement timeout for this specific request to prevent 504 errors
-    await client.query('SET statement_timeout = 60000'); // 60 seconds (increased from 15)
+          await client.query('SET statement_timeout = \'60000ms\''); // 60 seconds (increased from 15)
 
     // Main query - only fetches records for the current page using LIMIT and OFFSET
     const dataRes = await client.query(

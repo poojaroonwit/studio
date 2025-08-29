@@ -32,11 +32,8 @@ interface QueueItem {
 }
 
 interface QueueResponse {
-  items: QueueItem[];
+  data: QueueItem[];
   total: number;
-  page: number;
-  pageSize: number;
-  totalPages: number;
   summary?: {
     total: number;
     queued: number;
@@ -88,11 +85,11 @@ export default function CandidateImportUploadQueue() {
     
     try {
       const params = new URLSearchParams({
-        page: currentPage.toString(),
-        pageSize: currentPageSize.toString(),
-        ...(searchTerm && { search: searchTerm }),
+        limit: currentPageSize.toString(),
+        offset: ((currentPage - 1) * currentPageSize).toString(),
+        ...(searchTerm && { file_name: searchTerm }),
         ...(statusFilter !== 'all' && { status: statusFilter }),
-        ...(positionFilter !== 'all' && { positionId: positionFilter })
+        ...(positionFilter !== 'all' && { position_id: positionFilter })
       });
 
       // Handle dateRange separately since it's an object
@@ -391,14 +388,14 @@ export default function CandidateImportUploadQueue() {
               <Loader2 className="h-8 w-8 animate-spin" />
               <span className="ml-2">Loading queue...</span>
             </div>
-          ) : queueData?.items.length === 0 ? (
+          ) : !queueData?.data || queueData.data.length === 0 ? (
             <div className="text-center py-8">
               <Info className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-muted-foreground">No queue items found</p>
             </div>
           ) : (
             <div className="space-y-4">
-              {queueData?.items.map((item) => (
+              {queueData?.data.map((item) => (
                 <div
                   key={item.id}
                   className="border rounded-lg p-4 hover:bg-muted/50 cursor-pointer transition-colors"
@@ -450,10 +447,13 @@ export default function CandidateImportUploadQueue() {
           )}
           
           {/* Pagination */}
-          {queueData && queueData.totalPages > 1 && (
+          {queueData && (() => {
+            const totalPages = Math.ceil(queueData.total / pageSize);
+            return totalPages > 1;
+          })() && (
             <div className="flex items-center justify-between mt-6">
               <div className="text-sm text-muted-foreground">
-                Page {page} of {queueData.totalPages}
+                Page {page} of {Math.ceil(queueData.total / pageSize)}
               </div>
               <div className="flex space-x-2">
                 <Button
@@ -467,8 +467,8 @@ export default function CandidateImportUploadQueue() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setPage(Math.min(queueData.totalPages, page + 1))}
-                  disabled={page === queueData.totalPages}
+                  onClick={() => setPage(Math.min(Math.ceil(queueData.total / pageSize), page + 1))}
+                  disabled={page === Math.ceil(queueData.total / pageSize)}
                 >
                   Next
                 </Button>

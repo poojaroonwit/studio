@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
 
 import { useSession } from 'next-auth/react';
-import { useUnifiedRealtime } from '@/hooks/use-unified-realtime-optimized';
+import { useUnifiedRealtime } from '@/hooks/use-unified-realtime';
 
 interface Warning {
   id: string;

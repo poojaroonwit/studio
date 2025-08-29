@@ -289,7 +289,7 @@ export async function GET(request: NextRequest) {
     const client = await getPool().connect();
     // Use longer timeout for count queries to handle large datasets
     const timeout = isForCounts ? QUERY_TIMEOUT * 2 : QUERY_TIMEOUT;
-    await client.query(`SET statement_timeout = ${timeout}`);
+    await client.query(`SET statement_timeout = '${timeout}ms'`);
 
     // Sorting
     const allowedSortColumns = {

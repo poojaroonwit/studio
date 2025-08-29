@@ -112,24 +112,9 @@ export default function PositionsPageClient() {
         });
       }, []);
 
-      const handleDashboardUpdate = useCallback((dashboardData: any) => {
-        // Refresh the entire position list when dashboard updates
-        if (dashboardData.type === 'position_list_update') {
-          fetchPositions();
-        }
-      }, [fetchPositions]);
-
       const handleNotificationUpdate = useCallback((notification: any) => {
         // Handle position-related notifications
       }, []);
-
-      // Unified realtime hook
-      const { isConnected: realtimeConnected } = useUnifiedRealtime({
-        onPositionUpdate: handlePositionUpdate,
-        onDashboardUpdate: handleDashboardUpdate,
-        onNotificationUpdate: handleNotificationUpdate,
-        showErrorNotifications: false // Disable error toast notifications
-      });
   
   // Debounce/search refs
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -599,7 +584,21 @@ export default function PositionsPageClient() {
     }
   }, []); // Remove selectedRecruiterId dependency to prevent circular dependency
 
+  // Dashboard update handler - defined after fetchPositions to avoid temporal dead zone
+  const handleDashboardUpdate = useCallback((dashboardData: any) => {
+    // Refresh the entire position list when dashboard updates
+    if (dashboardData.type === 'position_list_update') {
+      fetchPositions();
+    }
+  }, [fetchPositions]);
 
+  // Unified realtime hook - called after fetchPositions is defined
+  const { isConnected: realtimeConnected } = useUnifiedRealtime({
+    onPositionUpdate: handlePositionUpdate,
+    onDashboardUpdate: handleDashboardUpdate,
+    onNotificationUpdate: handleNotificationUpdate,
+    showErrorNotifications: false // Disable error toast notifications
+  });
 
   // Calculate vacant headcount from open positions
   useEffect(() => {

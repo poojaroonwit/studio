@@ -1,7 +1,7 @@
 import { useCallback, useRef } from 'react';
 import { useToastManager } from '@/hooks/use-toast-manager';
 import { useSession } from 'next-auth/react';
-import { useUnifiedRealtime } from './use-unified-realtime-optimized';
+import { useUnifiedRealtime } from './use-unified-realtime';
 
 interface RealtimeCollaborationOptions {
   onCandidateUpdate?: (candidate: any) => void;

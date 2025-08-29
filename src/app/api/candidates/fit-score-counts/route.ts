@@ -473,8 +473,8 @@ export async function GET(request: NextRequest) {
     const client = await getPool().connect();
     
     try {
-      // Set query timeout
-      await client.query('SET statement_timeout = $1', [QUERY_TIMEOUT]);
+      // Set query timeout (PostgreSQL expects milliseconds as a string)
+      await client.query(`SET statement_timeout = '${QUERY_TIMEOUT}ms'`);
       
       // Build optimized queries
       const { appliedFitScoreCountsQuery, matchingFitScoreCountsQuery } = buildOptimizedQueries(whereClause, queryParams);

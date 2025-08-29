@@ -305,14 +305,12 @@ const CandidateImportUploadQueueInner: React.FC<{
   // Fetch paginated jobs
   const fetchJobs = useCallback(async () => {
     if (isFetchingRef.current) {
-      console.log('Fetch already in progress, skipping...');
       return;
     }
 
     // Prevent rapid successive requests
     const now = Date.now();
     if (now - (isFetchingRef.current as any) < 500) {
-      console.log('Fetch throttled, skipping...');
       return;
     }
     
@@ -341,7 +339,6 @@ const CandidateImportUploadQueueInner: React.FC<{
       if (dateRange.end) params.set('date_end', format(dateRange.end, 'yyyy-MM-dd'));
       if (positionIdFilter) params.set('position_id', positionIdFilter);
       
-      console.log('Fetching jobs with params:', params.toString());
       const res = await fetch(`/api/upload-queue?${params.toString()}`, {
         credentials: 'include',
         headers: {
@@ -394,7 +391,6 @@ const CandidateImportUploadQueueInner: React.FC<{
       }
       
       const { data, total, summary } = await res.json();
-      console.log('Jobs fetched successfully:', { count: data?.length, total, summary });
       
       if (isMounted) {
         // Update state directly (removed performance tracking)
@@ -537,7 +533,6 @@ const CandidateImportUploadQueueInner: React.FC<{
   useEffect(() => {
     // Only fetch if session is loaded and available
     if (sessionStatus === 'authenticated' && session) {
-      console.log('Session authenticated, fetching jobs...');
       fetchJobsRef.current?.();
     } else if (sessionStatus === 'unauthenticated') {
       setFetchError('Please sign in to view the upload queue');
@@ -554,7 +549,6 @@ const CandidateImportUploadQueueInner: React.FC<{
 
   useEffect(() => {
     function handleRefreshEvent() {
-      console.log('Refresh event received, fetching jobs...');
       fetchJobsRef.current?.();
     }
     window.addEventListener('refreshCandidateQueue', handleRefreshEvent);
@@ -566,7 +560,6 @@ const CandidateImportUploadQueueInner: React.FC<{
   // Debounced effect for filter changes
   useEffect(() => {
     if (sessionStatus === 'authenticated' && session) {
-      console.log('Filter changed, fetching jobs...');
       fetchJobsRef.current?.();
     }
   }, [debouncedFilter, statusFilter, dateRange, positionIdFilter, sessionStatus, session]);
@@ -574,7 +567,6 @@ const CandidateImportUploadQueueInner: React.FC<{
   // Effect for pagination changes
   useEffect(() => {
     if (sessionStatus === 'authenticated' && session) {
-      console.log('Pagination changed, fetching jobs...');
       fetchJobsRef.current?.();
     }
   }, [page, pageSize, sessionStatus, session]);

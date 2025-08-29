@@ -127,39 +127,86 @@ function TaskBoardContent() {
     }, []),
     showNotifications: false, // Disable notifications to prevent conflicts
     showErrorNotifications: false, // Disable error toast notifications
-    maxReconnectAttempts: 15, // More reconnection attempts
-    reconnectDelayMs: 500, // Faster initial reconnection
-    maxReconnectDelayMs: 15000, // Shorter max delay
   });
 
   // Local state for immediate UI updates
   const [searchTerm, setSearchTerm] = useState('');
   const [filterPriority, setFilterPriority] = useState('all');
   const [filterAssignee, setFilterAssignee] = useState('all');
+  
+  // Add refs to track initialization and prevent circular updates
+  const isInitializedRef = useRef(false);
+  const lastSavedPreferencesRef = useRef({
+    searchTerm: '',
+    filterPriority: 'all',
+    filterAssignee: 'all'
+  });
+  const preferenceUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Update local state when preferences are loaded
+  // Update local state when preferences are loaded - only once
   useEffect(() => {
-    if (isLoaded) {
+    if (isLoaded && !isInitializedRef.current) {
+      isInitializedRef.current = true;
       setSearchTerm(preferences.searchTerm);
       setFilterPriority(preferences.filterPriority);
       setFilterAssignee(preferences.filterAssignee);
+      
+      // Update the last saved preferences to match what we just loaded
+      lastSavedPreferencesRef.current = {
+        searchTerm: preferences.searchTerm,
+        filterPriority: preferences.filterPriority,
+        filterAssignee: preferences.filterAssignee
+      };
     }
   }, [isLoaded, preferences.searchTerm, preferences.filterPriority, preferences.filterAssignee]);
 
   // Update preferences when local state changes, but only if they differ from current preferences
+  // and only after the initial load is complete
   useEffect(() => {
-    if (isLoaded && (
-      searchTerm !== preferences.searchTerm ||
-      filterPriority !== preferences.filterPriority ||
-      filterAssignee !== preferences.filterAssignee
-    )) {
-      updateTaskBoardPreferences({
+    if (isLoaded && isInitializedRef.current) {
+      const currentPreferences = {
         searchTerm,
         filterPriority,
-        filterAssignee,
-      });
+        filterAssignee
+      };
+      const lastSaved = lastSavedPreferencesRef.current;
+      
+      // Only update if preferences actually changed
+      if (currentPreferences.searchTerm !== lastSaved.searchTerm ||
+          currentPreferences.filterPriority !== lastSaved.filterPriority ||
+          currentPreferences.filterAssignee !== lastSaved.filterAssignee) {
+        
+        // Clear any existing timeout
+        if (preferenceUpdateTimeoutRef.current) {
+          clearTimeout(preferenceUpdateTimeoutRef.current);
+        }
+        
+        // Debounce the preference update
+        preferenceUpdateTimeoutRef.current = setTimeout(() => {
+          updateTaskBoardPreferences({
+            searchTerm,
+            filterPriority,
+            filterAssignee,
+          });
+          // Update the last saved preferences
+          lastSavedPreferencesRef.current = {
+            searchTerm,
+            filterPriority,
+            filterAssignee
+          };
+        }, 300); // 300ms debounce
+      }
     }
-  }, [searchTerm, filterPriority, filterAssignee, isLoaded, updateTaskBoardPreferences, preferences.searchTerm, preferences.filterPriority, preferences.filterAssignee]);
+  }, [searchTerm, filterPriority, filterAssignee, isLoaded, updateTaskBoardPreferences]);
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (preferenceUpdateTimeoutRef.current) {
+        clearTimeout(preferenceUpdateTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Filter tasks based on search and filters
   const filteredTasks = React.useMemo(() => {

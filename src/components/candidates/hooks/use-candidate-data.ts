@@ -250,7 +250,6 @@ export function useCandidateData({
         setDatabaseFitScoreCounts(newCounts);
         
         const responseTime = Date.now() - startTime;
-        console.log(`✅ Fit score counts loaded in ${responseTime}ms`);
       } else {
         console.error('❌ Failed to fetch fit score counts:', response.status, response.statusText);
         setDatabaseFitScoreCounts(null);

@@ -102,10 +102,21 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       setCandidates(prevCandidates => {
         const existingIndex = prevCandidates.findIndex(c => c.id === updatedCandidate.id);
         if (existingIndex !== -1) {
-          const updated = [...prevCandidates];
-          updated[existingIndex] = { ...updated[existingIndex], ...updatedCandidate };
-          return updated;
+          const existingCandidate = prevCandidates[existingIndex];
+          // Only update if there are actual changes to prevent infinite loops
+          const hasChanges = Object.keys(updatedCandidate).some(key => 
+            existingCandidate[key as keyof typeof existingCandidate] !== updatedCandidate[key]
+          );
+          
+          if (hasChanges) {
+            const updated = [...prevCandidates];
+            updated[existingIndex] = { ...existingCandidate, ...updatedCandidate };
+            return updated;
+          }
+          // No changes, return same array to prevent unnecessary re-renders
+          return prevCandidates;
         } else {
+          // New candidate, add to list
           return [...prevCandidates, updatedCandidate];
         }
       });
@@ -369,7 +380,10 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
 
   // Handle task movement
   const handleMoveTask = (task: Task, newStatus: string) => {
-
+    // Prevent moving to the same status to avoid unnecessary updates
+    if (task.status === newStatus) {
+      return;
+    }
     
     // Find the original candidate
     const candidate = candidates.find(c => c.id === task.id);
@@ -392,7 +406,6 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     const updateCandidateStatus = async (): Promise<void> => {
       try {
         // Test API endpoint accessibility first
-
         const testResponse = await fetch(`/api/candidates/${candidate.id}`, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
@@ -402,8 +415,6 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
           console.error('❌ API endpoint test failed:', testResponse.status, testResponse.statusText);
           throw new Error(`API endpoint not accessible: ${testResponse.status} ${testResponse.statusText}`);
         }
-        
-        
         
         // Use retry logic for the actual update
         await retryWithBackoff(async () => {
@@ -437,27 +448,8 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
           return updateResponse;
         }, 2, 1000); // 2 retries, 1 second base delay
         
-        
-        
-        // Re-fetch the candidate to ensure UI reflects the persisted status
-        try {
-          const refreshed = await fetch(`/api/candidates/${candidate.id}`, {
-            method: 'GET',
-            headers: { 'Content-Type': 'application/json' },
-          });
-          
-          if (refreshed.ok) {
-            const refreshedCandidate = await refreshed.json();
-            setCandidates((prev) => prev.map((c) => c.id === candidate.id ? { ...c, status: refreshedCandidate.status } : c));
-
-          } else {
-            console.warn('⚠️ Could not refresh candidate data, but update was successful');
-          }
-        } catch (refreshError) {
-          console.warn('⚠️ Non-blocking refresh error:', refreshError);
-          // Keep optimistic state if refresh fails
-        }
-        
+        // Don't re-fetch the candidate - rely on optimistic update and realtime updates
+        // This prevents potential infinite loops and reduces API calls
         toast.success(`Moved ${candidate.name} to ${newStatus}`);
         
       } catch (error: any) {

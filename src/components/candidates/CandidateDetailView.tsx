@@ -24,8 +24,6 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
     setError(null);
 
     try {
-      console.log(`[CandidateDetailView] Loading data for candidate: ${candidateId}`);
-
       // Load all data in parallel with simple error handling
       const [commentsRes, attachmentsRes] = await Promise.allSettled([
         fetch(`/api/candidates/${candidateId}/comments?limit=5&offset=0`, {
@@ -40,9 +38,7 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
       if (commentsRes.status === 'fulfilled' && commentsRes.value.ok) {
         const commentsData = await commentsRes.value.json();
         setComments(Array.isArray(commentsData) ? commentsData : (commentsData.data || []));
-        console.log(`[CandidateDetailView] Loaded ${Array.isArray(commentsData) ? commentsData.length : (commentsData.data?.length || 0)} comments`);
       } else {
-        console.warn('[CandidateDetailView] Failed to load comments, continuing without them');
         setComments([]);
       }
 
@@ -50,9 +46,7 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
       if (attachmentsRes.status === 'fulfilled' && attachmentsRes.value.ok) {
         const attachmentsData = await attachmentsRes.value.json();
         setAttachments(Array.isArray(attachmentsData) ? attachmentsData : (attachmentsData.data || []));
-        console.log(`[CandidateDetailView] Loaded ${Array.isArray(attachmentsData) ? attachmentsData.length : (attachmentsData.data?.length || 0)} attachments`);
       } else {
-        console.warn('[CandidateDetailView] Failed to load attachments, continuing without them');
         setAttachments([]);
       }
 
@@ -71,14 +65,10 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
           setCandidateExists(true); // Assume exists if we can't determine
         }
       } catch (candidateError) {
-        console.warn('[CandidateDetailView] Could not verify candidate existence, assuming it exists');
         setCandidateExists(true);
       }
 
-      console.log('[CandidateDetailView] Data loading completed');
-
     } catch (error: any) {
-      console.error('[CandidateDetailView] Error loading data:', error);
       setError('Failed to load candidate data. Please try again.');
       setCandidateExists(false);
     } finally {

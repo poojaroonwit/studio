@@ -280,10 +280,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
     setFetchError(null);
     
     try {
-      console.log(`[PositionDetailDrawer] Fetching position with ID: ${positionId}`);
       const response = await fetch(`/api/positions/${positionId}`);
-      
-      console.log(`[PositionDetailDrawer] Response status: ${response.status}`);
       
       if (!response.ok) {
         let errorMessage = 'Failed to fetch position';
@@ -291,15 +288,13 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
           const errorData = await response.json();
           errorMessage = errorData.message || errorData.error || errorMessage;
         } catch (parseError) {
-          console.error('[PositionDetailDrawer] Failed to parse error response:', parseError);
+          // Silent parse error
         }
         
-        console.error(`[PositionDetailDrawer] API error: ${response.status} - ${errorMessage}`);
         throw new Error(errorMessage);
       }
       
       const data = await response.json();
-      console.log(`[PositionDetailDrawer] Successfully fetched position:`, data);
       
       setPosition(data);
       
@@ -318,7 +313,6 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       // Set drawer as ready for WYSIWYG editors
       setIsDrawerReady(true);
     } catch (error) {
-      console.error('[PositionDetailDrawer] Error fetching position:', error);
       const errorMessage = error instanceof Error ? error.message : 'Could not load position.';
       setFetchError(errorMessage);
       setPosition(null);

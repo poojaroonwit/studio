@@ -154,8 +154,6 @@ export const useCandidateDetail = (candidateId: string) => {
 
   // Memoized fetch function with caching
   const fetchCandidate = useCallback(async (forceRefresh = false) => {
-    console.log('[fetchCandidate] Starting fetch for candidateId:', candidateId, 'forceRefresh:', forceRefresh);
-    
     if (!candidateId) return;
 
     // Simple fetch without request tracking
@@ -175,8 +173,6 @@ export const useCandidateDetail = (candidateId: string) => {
     setError(null);
 
     // Simple fetch without abort controller or validation
-    console.log('[fetchCandidate] Starting fetch for candidate:', candidateId);
-
     try {
       const res = await fetch(`/api/candidates/${candidateId}`, {
         headers: {
@@ -193,7 +189,6 @@ export const useCandidateDetail = (candidateId: string) => {
 
       // Check if component is still mounted before setting state
       if (!isMountedRef.current) {
-        console.log('[fetchCandidate] Component unmounted, ignoring response');
         return;
       }
 
@@ -205,11 +200,7 @@ export const useCandidateDetail = (candidateId: string) => {
       setLoading(false);
       setError(null);
 
-      console.log('[fetchCandidate] Successfully fetched candidate:', candidateId);
-
     } catch (error: any) {
-      console.error('[fetchCandidate] Error fetching candidate:', candidateId, error);
-
       if (!isMountedRef.current) return;
 
       setError('Failed to load candidate details');

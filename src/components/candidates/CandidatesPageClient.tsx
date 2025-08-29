@@ -915,6 +915,14 @@ export function CandidatesPageClient({
     }
   }, [isLoading, tableLoading, isClearingFilters]);
 
+  // Reset clearing filters flag when fitscore counts loading completes
+  useEffect(() => {
+    if (isClearingFilters && !isFitScoreCountsLoadingState) {
+      // Reset the clearing flag when fitscore counts have finished loading
+      setIsClearingFilters(false);
+    }
+  }, [isClearingFilters, isFitScoreCountsLoadingState]);
+
   // Handle clear all filters
   const handleClearAllFilters = useCallback(() => {
     setIsClearingFilters(true);
@@ -939,7 +947,7 @@ export function CandidatesPageClient({
     const clearTimeoutId = setTimeout(() => {
       fetchTableData(defaultFilters, 1, pageSize);
       fetchFitScoreCounts(); // Update fit score counts when clearing all filters
-      setIsClearingFilters(false);
+      // Don't reset isClearingFilters here - let the useEffect handle it when fitscore counts finish loading
     }, 100);
     
     return () => {
@@ -1339,12 +1347,8 @@ export function CandidatesPageClient({
                           onClearAll={() => {
                             clearAllHorizontalFitScoreFilters();
                             setIsClearingFilters(true);
-                            // Reset the flag after a short delay
-                            // Clear any existing timeout
-                            if (clearingFiltersTimeoutRef.current) {
-                              clearTimeout(clearingFiltersTimeoutRef.current);
-                            }
-                            clearingFiltersTimeoutRef.current = setTimeout(() => setIsClearingFilters(false), 200);
+                            // Don't reset the flag immediately - let the fitscore counts loading complete first
+                            // The flag will be reset in the useEffect that handles fitscore counts loading
                           }}
                           candidateCounts={candidateScoreCounts?.applied || []}
                           className=""
@@ -1361,12 +1365,8 @@ export function CandidatesPageClient({
                           onClearAll={() => {
                             clearAllHorizontalFitScoreFilters();
                             setIsClearingFilters(true);
-                            // Reset the flag after a short delay
-                            // Clear any existing timeout
-                            if (clearingFiltersTimeoutRef.current) {
-                              clearTimeout(clearingFiltersTimeoutRef.current);
-                            }
-                            clearingFiltersTimeoutRef.current = setTimeout(() => setIsClearingFilters(false), 200);
+                            // Don't reset the flag immediately - let the fitscore counts loading complete first
+                            // The flag will be reset in the useEffect that handles fitscore counts loading
                           }}
                           candidateCounts={candidateScoreCounts?.matching || []}
                           className=""

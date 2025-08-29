@@ -388,7 +388,7 @@ export default function CandidateImportUploadQueue() {
               <Loader2 className="h-8 w-8 animate-spin" />
               <span className="ml-2">Loading queue...</span>
             </div>
-          ) : !queueData?.data || queueData.data.length === 0 ? (
+          ) : !queueData?.data || queueData.data?.length === 0 ? (
             <div className="text-center py-8">
               <Info className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-muted-foreground">No queue items found</p>

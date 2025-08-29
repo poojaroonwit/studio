@@ -867,6 +867,23 @@ export function CandidatesPageClient({
       return;
     }
     
+    // Check if this is a significant filter change (not just pagination/sorting)
+    const hasSignificantFilterChange = 
+      filters?.name !== newFilters.name ||
+      filters?.email !== newFilters.email ||
+      filters?.phone !== newFilters.phone ||
+      filters?.positionId !== newFilters.positionId ||
+      filters?.status !== newFilters.status ||
+      filters?.recruiterId !== newFilters.recruiterId ||
+      filters?.sourceId !== newFilters.sourceId ||
+      filters?.location !== newFilters.location ||
+      filters?.skills !== newFilters.skills ||
+      filters?.education !== newFilters.education ||
+      filters?.minExperienceYears !== newFilters.minExperienceYears ||
+      filters?.maxExperienceYears !== newFilters.maxExperienceYears ||
+      filters?.applicationDateStart !== newFilters.applicationDateStart ||
+      filters?.applicationDateEnd !== newFilters.applicationDateEnd;
+    
     // Reset page to 1 when filters change
     setPage(1);
     
@@ -889,8 +906,12 @@ export function CandidatesPageClient({
         delete filtersForCounts.includeNoScoreInApplied;
         delete filtersForCounts.includeNoScoreInMatching;
         
-        debouncedFetchFitScoreCounts(); // Update fit score counts when filters change (debounced)
-      }, 200); // Increased delay to prevent infinite loops
+        // Only update fit score counts for significant filter changes
+        // Skip for minor changes like pagination or sorting
+        if (hasSignificantFilterChange) {
+          debouncedFetchFitScoreCounts(); // Update fit score counts when filters change (debounced)
+        }
+      }, 300); // Increased delay to prevent infinite loops and reduce API calls
       
       // Store timeout for cleanup
       if (batchTimeoutRef.current) {

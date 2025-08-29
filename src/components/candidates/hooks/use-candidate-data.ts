@@ -239,11 +239,11 @@ export function useCandidateData({
       fitScoreCountsDebounceRef.current = null;
     }
 
-    // Debounce non-forced requests
+    // Reduced debounce time for better responsiveness
     if (!forceRefresh) {
       fitScoreCountsDebounceRef.current = setTimeout(() => {
         fetchFitScoreCounts(forceRefresh);
-      }, 300); // 300ms debounce
+      }, 150); // Reduced from 300ms to 150ms
       return;
     }
 
@@ -284,9 +284,9 @@ export function useCandidateData({
 
       const url = `/api/candidates/fit-score-counts?${params.toString()}`;
       
-      // Add timeout to fetch request
+      // Reduced timeout for faster failure detection
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // Reduced from 15s to 10s
       
       const response = await fetch(url, {
         signal: controller.signal,

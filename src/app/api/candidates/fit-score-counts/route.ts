@@ -58,7 +58,8 @@ function isCircuitBreakerOpen(): boolean {
 // Optimized query builder with parameterized queries
 function buildOptimizedQueries(whereClause: string, queryParams: any[]) {
   // Create a CTE (Common Table Expression) for better performance
-  const baseQuery = `
+  // Build the base query without interpolating the whereClause to avoid parameter conflicts
+  let baseQuery = `
     WITH filtered_candidates AS (
       SELECT 
         c.id,
@@ -79,12 +80,16 @@ function buildOptimizedQueries(whereClause: string, queryParams: any[]) {
           ), 0)
         ) as best_match_score
       FROM "Candidate" c
-      ${whereClause}
-    )
   `;
+  
+  // Append the whereClause if it exists - use string concatenation to avoid template literal issues
+  if (whereClause) {
+    baseQuery = baseQuery + '\n      ' + whereClause;
+  }
+  
+  baseQuery = baseQuery + '\n    )';
 
-  const appliedFitScoreCountsQuery = `
-    ${baseQuery}
+  const appliedFitScoreCountsQuery = baseQuery + `
     SELECT 
       CASE 
         WHEN applied_score IS NULL OR applied_score = 0 THEN 'no-score'
@@ -108,8 +113,7 @@ function buildOptimizedQueries(whereClause: string, queryParams: any[]) {
     ORDER BY grade
   `;
 
-  const matchingFitScoreCountsQuery = `
-    ${baseQuery}
+  const matchingFitScoreCountsQuery = baseQuery + `
     SELECT 
       CASE 
         WHEN best_match_score IS NULL OR best_match_score = 0 THEN 'no-score'

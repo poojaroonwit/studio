@@ -90,7 +90,8 @@
     "deploy:docker": "chmod +x scripts/docker-deploy-with-permissions.sh && ./scripts/docker-deploy-with-permissions.sh",
     "deploy:docker:ps": "powershell -ExecutionPolicy Bypass -File scripts/docker-deploy-with-permissions.ps1",
     "verify:admin-permissions": "node scripts/verify-admin-permissions.js",
-    "diagnose:export": "node scripts/diagnose-export-issues.js"
+    "diagnose:export": "node scripts/diagnose-export-issues.js",
+    "optimize:fitscore": "node scripts/apply-fit-score-optimizations.js"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

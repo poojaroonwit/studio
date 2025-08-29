@@ -1,6 +1,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
+import { useSafeEffect, useInfiniteLoopPrevention } from './use-safe-effect';
 
 
 interface UnifiedRealtimeOptions {
@@ -32,15 +33,24 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
   const isConnectingRef = useRef(false);
   const [isClient, setIsClient] = useState(false);
 
+  // Add infinite loop prevention
+  const { trackRun: trackConnectionAttempt } = useInfiniteLoopPrevention('UnifiedRealtimeConnection', 20, () => {
+    console.error('🚨 Excessive connection attempts detected in useUnifiedRealtime');
+  });
+
+  const { trackRun: trackReconnectAttempt } = useInfiniteLoopPrevention('UnifiedRealtimeReconnect', 10, () => {
+    console.error('🚨 Excessive reconnection attempts detected in useUnifiedRealtime');
+  });
+
   // Set client flag to prevent SSR issues
-  useEffect(() => {
+  useSafeEffect(() => {
     setIsClient(true);
-  }, []);
+  }, [], 'UnifiedRealtimeClientCheck', 5);
 
   // Update options ref when options change
-  useEffect(() => {
+  useSafeEffect(() => {
     optionsRef.current = options;
-  }, [options]);
+  }, [options], 'UnifiedRealtimeOptionsUpdate', 10);
 
   const cleanup = useCallback(() => {
     if (eventSourceRef.current) {
@@ -93,6 +103,8 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
   }, []);
 
   const connect = useCallback(() => {
+    if (!trackConnectionAttempt()) return;
+    
     if (!session?.user || !mountedRef.current || isConnectingRef.current || !isClient) return;
 
     // Prevent excessive reconnection attempts
@@ -129,8 +141,6 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
       eventSourceRef.current = eventSource;
       globalEventSource = eventSource;
 
-
-
       eventSource.onopen = () => {
         if (!mountedRef.current) return;
         setIsConnected(true);
@@ -160,7 +170,7 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
           reconnectAttemptsRef.current++;
           
           // Reconnect after 5 seconds, but only if under max attempts
-          if (reconnectAttemptsRef.current < maxReconnectAttempts) {
+          if (reconnectAttemptsRef.current < maxReconnectAttempts && trackReconnectAttempt()) {
             globalReconnectTimeout = setTimeout(() => {
               if (session?.user && mountedRef.current) {
                 connect();
@@ -236,9 +246,9 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
       setIsConnected(false);
       isConnectingRef.current = false;
     }
-  }, [session?.user]);
+  }, [session?.user, trackConnectionAttempt, trackReconnectAttempt]);
 
-  useEffect(() => {
+  useSafeEffect(() => {
     mountedRef.current = true;
     
     if (session?.user && isClient) {
@@ -257,10 +267,10 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
     } else {
       cleanup();
     }
-  }, [session?.user, connect, cleanup, isClient]);
+  }, [session?.user, connect, cleanup, isClient], 'UnifiedRealtimeConnection', 10);
 
   // Separate cleanup effect for unmounting
-  useEffect(() => {
+  useSafeEffect(() => {
     return () => {
       mountedRef.current = false;
       globalConnectionCount = Math.max(0, globalConnectionCount - 1);
@@ -281,7 +291,7 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
 
       cleanup();
     };
-  }, [cleanup]);
+  }, [cleanup], 'UnifiedRealtimeUnmount', 5);
 
   // Return early if not on client side to prevent SSR issues
   if (!isClient) {

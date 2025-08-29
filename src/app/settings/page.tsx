@@ -40,7 +40,7 @@ const settingsItems = [
     label: "System Settings", 
     icon: Database, 
     description: "System-wide configuration and integrations.", 
-    permissionId: 'SYSTEM_SETTINGS_MANAGE' as PlatformModuleId, 
+    permissionId: 'SYSTEM_SETTINGS_VIEW' as PlatformModuleId, 
     adminOnlyOrPermission: true
   },
   { 
@@ -48,7 +48,7 @@ const settingsItems = [
     label: "Branding & Theme", 
     icon: Palette, 
     description: "Global branding, theme, and logo settings.", 
-    permissionId: 'SYSTEM_SETTINGS_MANAGE' as PlatformModuleId, 
+    permissionId: 'SYSTEM_SETTINGS_VIEW' as PlatformModuleId, 
     adminOnlyOrPermission: true
   },
   { 
@@ -56,7 +56,7 @@ const settingsItems = [
     label: "System Prompts & Categories", 
     icon: BrainCircuit, 
     description: "Manage AI system prompts and their categories.", 
-    permissionId: 'SYSTEM_SETTINGS_MANAGE' as PlatformModuleId, 
+    permissionId: 'SYSTEM_SETTINGS_VIEW' as PlatformModuleId, 
     adminOnlyOrPermission: true
   },
 
@@ -65,7 +65,7 @@ const settingsItems = [
     label: "Data Configuration", 
     icon: Database, 
     description: "Manage custom fields, recruitment stages, and candidate sources.", 
-    permissionId: 'SYSTEM_SETTINGS_MANAGE' as PlatformModuleId, 
+    permissionId: 'SYSTEM_SETTINGS_VIEW' as PlatformModuleId, 
     adminOnlyOrPermission: true
   },
   { 
@@ -73,7 +73,7 @@ const settingsItems = [
     label: "Webhook Management", 
     icon: Webhook, 
     description: "Create and manage outgoing webhooks.", 
-    permissionId: 'WEBHOOK_MAPPING_MANAGE' as PlatformModuleId, 
+    permissionId: 'WEBHOOKS_EDIT' as PlatformModuleId, 
     adminOnlyOrPermission: true
   },
 
@@ -82,7 +82,7 @@ const settingsItems = [
     label: "User Management", 
     icon: UsersRound, 
     description: "Manage users, roles, permissions, and teams.", 
-    permissionId: 'USERS_MANAGE' as PlatformModuleId, 
+    permissionId: 'USERS_VIEW' as PlatformModuleId, 
     adminOnlyOrPermission: true
   },
   { 
@@ -131,9 +131,9 @@ export default function SettingsPage() {
 
   const canAccess = (item: { adminOnly?: boolean, permissionId?: PlatformModuleId, adminOnlyOrPermission?: boolean }) => {
     if (!isClient || sessionStatus !== 'authenticated') return false;
-    if (item.adminOnly && session?.user?.role !== 'Admin' && !session?.user?.modulePermissions?.includes('USERS_MANAGE')) return false;
+    if (item.adminOnly && session?.user?.role !== 'Admin' && !session?.user?.session?.user?.modulePermissions?.includes('USERS_VIEW') || session?.user?.modulePermissions?.includes('USERS_CREATE') || session?.user?.modulePermissions?.includes('USERS_EDIT') || session?.user?.modulePermissions?.includes('USERS_DELETE') || session?.user?.modulePermissions?.includes('USERS_PERMISSIONS_MANAGE')) return false;
     if (item.adminOnlyOrPermission) {
-      if (session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('USERS_MANAGE')) return true;
+      if (session?.user?.role === 'Admin' || session?.user?.session?.user?.modulePermissions?.includes('USERS_VIEW') || session?.user?.modulePermissions?.includes('USERS_CREATE') || session?.user?.modulePermissions?.includes('USERS_EDIT') || session?.user?.modulePermissions?.includes('USERS_DELETE') || session?.user?.modulePermissions?.includes('USERS_PERMISSIONS_MANAGE')) return true;
       if (item.permissionId && session?.user?.modulePermissions?.includes(item.permissionId)) return true;
       return false;
     }

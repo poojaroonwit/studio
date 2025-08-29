@@ -311,22 +311,6 @@ export function RolePermissionSelector({
                           <p className="text-xs text-muted-foreground mt-0.5">
                             {permission.description}
                           </p>
-                          {/* Detailed Description (collapsible) */}
-                          <details className="mt-2">
-                            <summary className="text-xs text-primary cursor-pointer hover:text-primary/80">
-                              View Details
-                            </summary>
-                            <div className="mt-2 space-y-2 text-xs">
-                              <div>
-                                <span className="font-medium text-foreground">Detailed Description:</span>
-                                <p className="text-muted-foreground mt-1">{permission.detailedDescription}</p>
-                              </div>
-                              <div>
-                                <span className="font-medium text-foreground">Impact:</span>
-                                <p className="text-muted-foreground mt-1">{permission.impact}</p>
-                              </div>
-                            </div>
-                          </details>
                           {isProtected && isSelected && (
                             <span className="block text-amber-600 dark:text-amber-400 mt-1 text-xs">
                               This permission cannot be removed for security reasons.

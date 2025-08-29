@@ -134,7 +134,7 @@ export function UnifiedUserModal({
 
   // Check permissions for different fields
   const isAdmin = session?.user?.role === 'Admin';
-  const hasUserManagePermission = session?.user?.modulePermissions?.includes('USERS_MANAGE');
+  const hasUserManagePermission = session?.user?.session?.user?.modulePermissions?.includes('USERS_VIEW') || session?.user?.modulePermissions?.includes('USERS_CREATE') || session?.user?.modulePermissions?.includes('USERS_EDIT') || session?.user?.modulePermissions?.includes('USERS_DELETE') || session?.user?.modulePermissions?.includes('USERS_PERMISSIONS_MANAGE');
   const isEditingSelf = user?.id === session?.user?.id;
   
   const canManageUsers = isAdmin || hasUserManagePermission;
@@ -779,7 +779,7 @@ export function UnifiedUserModal({
                                       </h4>
                                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                         {permissions.map((permission) => {
-                                          const isProtected = ['USERS_MANAGE', 'USER_GROUPS_MANAGE'].includes(permission.id);
+                                          const isProtected = ['USERS_VIEW', 'USERS_CREATE', 'USERS_EDIT', 'USERS_DELETE', 'USERS_PERMISSIONS_MANAGE', 'USER_GROUPS_VIEW', 'USER_GROUPS_CREATE', 'USER_GROUPS_EDIT', 'USER_GROUPS_DELETE'].includes(permission.id);
                                           const isSelected = field.value?.includes(permission.id);
                                           
                                           return (

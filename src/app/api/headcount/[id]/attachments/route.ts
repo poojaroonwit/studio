@@ -49,11 +49,11 @@ export async function POST(
     
     const session = await getServerSession(authOptions);
     if (!session?.user) {
-      console.log('[HEADCOUNT ATTACHMENT] Unauthorized - no session');
+      // Removed unauthorized logging to reduce container logs
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    console.log('[HEADCOUNT ATTACHMENT] User authenticated:', session.user.id);
+    // Removed user authentication logging to reduce container logs
 
     // Verify headcount exists
     const headcount = await prisma.headcount.findUnique({

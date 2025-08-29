@@ -63,9 +63,9 @@ export default function JobMatchModal({ isOpen, onClose, jobMatch }: JobMatchMod
   const routerTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Check permissions
-  const canViewJobMatches = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('USERS_MANAGE') || 
+  const canViewJobMatches = session?.user?.role === 'Admin' || 
     session?.user?.modulePermissions?.includes('JOB_MATCH_VIEW');
-  const canManageJobMatches = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('USERS_MANAGE') || 
+  const canManageJobMatches = session?.user?.role === 'Admin' || 
     session?.user?.modulePermissions?.includes('JOB_MATCH_MANAGE');
 
   useEffect(() => {

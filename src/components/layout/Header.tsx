@@ -122,20 +122,12 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
 
   // Custom signout function that handles cleanup and redirect
   const handleSignOut = async () => {
-    // Prevent multiple logout attempts
-    if (window.location.pathname === '/auth/signin' && window.location.search.includes('signout=true')) {
-      console.log('[HEADER] Already on signin page with signout parameter, skipping logout');
-      return;
-    }
-    
-    console.log('[HEADER] Starting signout process...');
-    console.log('[HEADER] Current URL:', window.location.href);
-    console.log('[HEADER] Session status:', status);
+    // Removed session logging to reduce container logs
     
     try {
       // Clear any cached data
       if (session?.user?.id) {
-        console.log('[HEADER] Clearing user cache for:', session.user.id);
+        // Removed user cache logging to reduce container logs
         // Clear user validation cache
         await fetch('/api/auth/clear-user-cache', {
           method: 'POST',
@@ -146,22 +138,22 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
         });
       }
       
-      console.log('[HEADER] Performing signout with redirect to /auth/signin?signout=true');
+      // Removed signout logging to reduce container logs
       // Use a more direct approach to prevent redirect loops
       const signOutResult = await signOut({ 
         callbackUrl: '/auth/signin?signout=true', 
         redirect: false 
       });
       
-      console.log('[HEADER] SignOut result:', signOutResult);
+      // Removed signout result logging to reduce container logs
       
       // Manually redirect after signOut completes
-      console.log('[HEADER] Manually redirecting to /auth/signin?signout=true');
+      // Removed redirect logging to reduce container logs
       window.location.href = '/auth/signin?signout=true';
     } catch (error) {
       console.error('[HEADER] Signout error:', error);
       // Fallback to window.location if signOut fails
-      console.log('[HEADER] Using fallback redirect to /auth/signin?signout=true');
+      // Removed fallback logging to reduce container logs
       window.location.href = '/auth/signin?signout=true';
     }
   };

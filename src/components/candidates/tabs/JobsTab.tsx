@@ -43,9 +43,9 @@ export const JobsTab: React.FC<JobsTabProps> = ({
   const { data: session } = useSession();
   
   // Check permissions
-  const canViewJobMatches = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('USERS_MANAGE') || 
+  const canViewJobMatches = session?.user?.role === 'Admin' || 
     session?.user?.modulePermissions?.includes('JOB_MATCH_VIEW');
-  const canManageJobMatches = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('USERS_MANAGE') || 
+  const canManageJobMatches = session?.user?.role === 'Admin' || 
     session?.user?.modulePermissions?.includes('JOB_MATCH_MANAGE');
 
   return (

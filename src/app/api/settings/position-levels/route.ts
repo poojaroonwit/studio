@@ -9,11 +9,11 @@ export async function GET(request: NextRequest) {
     console.log('[PositionLevels API] Starting request');
     
     const session = await getServerSession(authOptions);
-    console.log('[PositionLevels API] Session check:', !!session?.user?.id);
+    // Removed session logging to reduce container logs
     
     if (!session?.user?.id) {
-      console.log('[PositionLevels API] Unauthorized - no session or user ID');
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+      // Removed unauthorized logging to reduce container logs
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     console.log('[PositionLevels API] Getting database pool');

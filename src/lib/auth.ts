@@ -141,7 +141,7 @@ export const authOptions: NextAuthOptions = {
       maxAge: 30 * 24 * 60 * 60, // 30 days
       updateAge: 24 * 60 * 60, // 24 hours
     },
-    debug: process.env.NODE_ENV === 'development',
+    debug: false, // Disable NextAuth debug logging to reduce container logs
     callbacks: {
       async jwt({ token, user, account, profile }) {
         // Helper to check if a string is a valid UUID
@@ -211,7 +211,7 @@ export const authOptions: NextAuthOptions = {
           
           // Use permissions from token (already fetched in JWT callback)
           session.user.modulePermissions = token.modulePermissions as PlatformModuleId[] || [];
-          console.log('[SESSION CALLBACK] Set session permissions:', session.user.modulePermissions);
+          // Removed session logging to reduce container logs
           
           // Fetch user data including avatarUrl and personalColor from database
           // Only fetch if we don't have this data in the token or if it's a new session

@@ -28,8 +28,8 @@ export const AutomationUploadModal: React.FC<AutomationUploadModalProps> = ({ is
   const { data: session } = useSession();
 
   // Check permissions
-      const canAutomationUpload = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('USERS_MANAGE') || 
-        session?.user?.modulePermissions?.includes('AUTOMATION_UPLOAD');
+      const canAutomationUpload = session?.user?.role === 'Admin' || 
+        session?.user?.session?.user?.modulePermissions?.includes('BULK_UPLOAD_EXECUTE');
   
   if (!canAutomationUpload) {
     return (

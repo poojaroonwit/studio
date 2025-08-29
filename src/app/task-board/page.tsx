@@ -16,6 +16,7 @@ import { toast } from 'react-hot-toast';
 import { useUserPreferences } from '@/hooks/use-user-preferences';
 import { useUnifiedRealtime } from '@/hooks/use-unified-realtime';
 import { RealtimeIndicator } from '@/components/ui/realtime-indicator';
+import { useSafeEffect, useInfiniteLoopPrevention } from '@/hooks/use-safe-effect';
 
 // Default stages - will be populated from real data source
 const defaultStages: TaskStage[] = [];
@@ -96,6 +97,12 @@ function TaskBoardContent() {
     isLoaded 
   } = useUserPreferences();
 
+  // Add infinite loop prevention
+  const { trackRun: trackPreferenceUpdate } = useInfiniteLoopPrevention('TaskBoardPreferences', 50, () => {
+    console.error('🚨 Excessive preference updates detected in TaskBoard');
+    setHasError(true);
+  });
+
   // Unified realtime hook with optimized configuration to prevent memory leaks
   const { isConnected: realtimeConnected, isReconnecting, reconnectAttempts } = useUnifiedRealtime({
     onCandidateUpdate: useCallback((updatedCandidate: any) => {
@@ -142,9 +149,10 @@ function TaskBoardContent() {
     filterAssignee: 'all'
   });
   const preferenceUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isUpdatingPreferencesRef = useRef(false);
 
   // Update local state when preferences are loaded - only once
-  useEffect(() => {
+  useSafeEffect(() => {
     if (isLoaded && !isInitializedRef.current) {
       isInitializedRef.current = true;
       setSearchTerm(preferences.searchTerm);
@@ -158,12 +166,14 @@ function TaskBoardContent() {
         filterAssignee: preferences.filterAssignee
       };
     }
-  }, [isLoaded, preferences.searchTerm, preferences.filterPriority, preferences.filterAssignee]);
+  }, [isLoaded, preferences.searchTerm, preferences.filterPriority, preferences.filterAssignee], 'TaskBoardInitialization', 10);
 
   // Update preferences when local state changes, but only if they differ from current preferences
   // and only after the initial load is complete
-  useEffect(() => {
-    if (isLoaded && isInitializedRef.current) {
+  useSafeEffect(() => {
+    if (!trackPreferenceUpdate()) return;
+    
+    if (isLoaded && isInitializedRef.current && !isUpdatingPreferencesRef.current) {
       const currentPreferences = {
         searchTerm,
         filterPriority,
@@ -183,6 +193,7 @@ function TaskBoardContent() {
         
         // Debounce the preference update
         preferenceUpdateTimeoutRef.current = setTimeout(() => {
+          isUpdatingPreferencesRef.current = true;
           updateTaskBoardPreferences({
             searchTerm,
             filterPriority,
@@ -194,19 +205,20 @@ function TaskBoardContent() {
             filterPriority,
             filterAssignee
           };
+          isUpdatingPreferencesRef.current = false;
         }, 300); // 300ms debounce
       }
     }
-  }, [searchTerm, filterPriority, filterAssignee, isLoaded, updateTaskBoardPreferences]);
+  }, [searchTerm, filterPriority, filterAssignee, isLoaded, updateTaskBoardPreferences], 'TaskBoardPreferenceUpdate', 20);
 
   // Cleanup timeouts on unmount
-  useEffect(() => {
+  useSafeEffect(() => {
     return () => {
       if (preferenceUpdateTimeoutRef.current) {
         clearTimeout(preferenceUpdateTimeoutRef.current);
       }
     };
-  }, []);
+  }, [], 'TaskBoardCleanup', 5);
 
   // Filter tasks based on search and filters
   const filteredTasks = React.useMemo(() => {
@@ -297,14 +309,14 @@ function TaskBoardContent() {
   }, []);
 
   // Cleanup effect to prevent memory leaks
-  useEffect(() => {
+  useSafeEffect(() => {
     return () => {
       // Clean up any pending state updates
       setSelectedTask(null);
       setTasks([]);
       setHasError(false);
     };
-  }, []);
+  }, [], 'TaskBoardUnmount', 5);
 
   // If there's an error, show a fallback UI
   if (hasError) {

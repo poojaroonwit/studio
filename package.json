@@ -81,7 +81,9 @@
     "queue:fix": "node scripts/fix-stuck-queue.js",
     "monitor:connections": "node scripts/monitor-connection-pool.js",
     "monitor:position-imports": "node scripts/monitor-position-imports.js",
-    "test:position-import": "node scripts/test-position-import-performance.js"
+    "test:position-import": "node scripts/test-position-import-performance.js",
+    "fix:permissions": "node scripts/fix-permission-alignment.js",
+    "fix:permissions:code": "node scripts/fix-permission-references.js"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

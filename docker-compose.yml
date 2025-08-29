@@ -77,7 +77,7 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-    restart: restart
+    restart: always
     mem_limit: 8g
     cpus: 2
     deploy:
@@ -191,6 +191,12 @@ services:
     restart: always
     mem_limit: 8g
     cpus: 2
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "entrypoint-processor.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     networks:
       - docker_internal
 

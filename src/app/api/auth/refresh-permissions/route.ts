@@ -8,19 +8,14 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions);
     
     if (!session?.user?.id) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Not authenticated' 
-      }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Fetch fresh permissions
     const freshPermissions = await getMergedUserPermissions(session.user.id);
     
-    // Log the refresh for debugging
-    console.log(`[REFRESH PERMISSIONS] User ${session.user.email} (${session.user.id})`);
-    console.log(`[REFRESH PERMISSIONS] Current permissions:`, session.user.modulePermissions || []);
-    console.log(`[REFRESH PERMISSIONS] Fresh permissions:`, freshPermissions);
+    // Removed user logging to reduce container logs
+    // Removed permissions logging to reduce container logs
     
     return NextResponse.json({
       success: true,

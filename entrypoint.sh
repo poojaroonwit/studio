@@ -172,6 +172,15 @@ else
     # Don't exit on warning conditions failure as it might be due to existing data
 fi
 
+# Fix permission alignment
+echo "🔧 Fixing permission alignment..."
+if node scripts/fix-permission-alignment.js; then
+    echo "✅ Permission alignment fix completed"
+else
+    echo "⚠️  Permission alignment fix failed or already completed"
+    # Don't exit on permission fix failure as it might be due to existing data
+fi
+
 echo "✅ Database setup complete!"
 
 # Start the main application only (processor runs as separate service)

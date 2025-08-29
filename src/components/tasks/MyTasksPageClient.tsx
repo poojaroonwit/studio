@@ -133,9 +133,10 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     showErrorNotifications: false // Disable error toast notifications
   });
 
-  // Permission check: can view all recruiters?
-  const canViewAllRecruiters = userSession?.role === 'Admin' || 
-    userSession?.modulePermissions?.includes('USERS_VIEW');
+  // Permission check: can view all candidates?
+  const canViewAllCandidates = userSession?.role === 'Admin' || 
+    userSession?.session?.user?.modulePermissions?.includes('USERS_VIEW') || session?.user?.modulePermissions?.includes('USERS_CREATE') || session?.user?.modulePermissions?.includes('USERS_EDIT') || session?.user?.modulePermissions?.includes('USERS_DELETE') || session?.user?.modulePermissions?.includes('USERS_PERMISSIONS_MANAGE') || 
+    userSession?.modulePermissions?.includes('CANDIDATES_VIEW');
 
   // Update local state when preferences are loaded - only once
   useEffect(() => {
@@ -315,13 +316,13 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       return [];
     }
     
-    // If user can view all recruiters, show all candidates
-    if (canViewAllRecruiters) {
+    // If user can view all candidates, show all candidates
+    if (canViewAllCandidates) {
       return candidates;
     }
     // Otherwise, show only candidates assigned to the current user
     return candidates.filter(c => c && c.recruiterId === userSession?.id);
-  }, [candidates, userSession?.id, canViewAllRecruiters]);
+  }, [candidates, userSession?.id, canViewAllCandidates]);
 
   // Filtering logic (for fitScore, if not supported by API)
   const displayedCandidates = useMemo(() => {
@@ -635,7 +636,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
 
                {/* Stage filter is now handled by the TaskBoard component's built-in multi-select filter */}
 
-               {canViewAllRecruiters && (
+               {canViewAllCandidates && (
                  <Popover>
                    <PopoverTrigger asChild>
                      <Button

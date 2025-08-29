@@ -263,13 +263,13 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
   }, [currentAppName]);
 
   useEffect(() => {
-    console.log('[SIGNIN CLIENT] Auth status changed:', { status, hasSession: !!session, signoutParam: nextSearchParams.get('signout') });
+    // Removed session logging to reduce container logs
     
     if (status === "authenticated" && session) {
       // Check if this is a signout redirect - if so, don't redirect back
       const isSignoutRedirect = nextSearchParams.get('signout') === 'true';
       if (isSignoutRedirect) {
-        console.log('[SIGNIN CLIENT] Signout redirect detected, not redirecting back');
+        // Removed signout redirect logging to reduce container logs
         // Clear the signout parameter from URL
         if (typeof window !== 'undefined') {
           const url = new URL(window.location.href);
@@ -285,7 +285,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
       
       if (currentPath === '/auth/signin') {
         const redirectUrl = hasCallbackUrl || '/'; // Default to dashboard if no callback URL
-        console.log('[SIGNIN CLIENT] Authenticated user on signin page, redirecting to:', redirectUrl);
+        // Removed redirect logging to reduce container logs
         
         // Use a small delay to ensure the session is fully established
         const timer = setTimeout(() => {

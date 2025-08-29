@@ -5,6 +5,7 @@ import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button';
 import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useSafeEffect, useInfiniteLoopPrevention } from '@/hooks/use-safe-effect';
 
 import { TaskCard, Task } from './TaskCard';
 
@@ -227,6 +228,15 @@ export function TaskBoard({
   const lastDragTimeRef = useRef<number>(0);
   const dragThrottleRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Add infinite loop prevention
+  const { trackRun: trackScrollUpdate } = useInfiniteLoopPrevention('TaskBoardScrollUpdate', 100, () => {
+    console.error('🚨 Excessive scroll updates detected in TaskBoard');
+  });
+
+  const { trackRun: trackDragOperation } = useInfiniteLoopPrevention('TaskBoardDragOperation', 50, () => {
+    console.error('🚨 Excessive drag operations detected in TaskBoard');
+  });
+
   // Memoized data
   const tasksByStage = useMemo(() => {
     const grouped: Record<string, Task[]> = {};
@@ -294,6 +304,8 @@ export function TaskBoard({
 
   // Check scroll position and update button visibility
   const updateScrollButtons = useCallback(() => {
+    if (!trackScrollUpdate()) return;
+    
     const container = scrollContainerRef.current;
     if (container) {
       const { scrollLeft, scrollWidth, clientWidth } = container;
@@ -303,10 +315,10 @@ export function TaskBoard({
       setCanScrollLeft(canScrollLeftValue);
       setCanScrollRight(canScrollRightValue);
     }
-  }, []);
+  }, [trackScrollUpdate]);
 
   // Set up scroll event listener and initial check with proper cleanup
-  useEffect(() => {
+  useSafeEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
 
@@ -347,10 +359,10 @@ export function TaskBoard({
         dragThrottleRef.current = null;
       }
     };
-  }, [updateScrollButtons, visibleStagesList]);
+  }, [updateScrollButtons, visibleStagesList], 'TaskBoardScrollSetup', 10);
 
   // Update scroll buttons when window resizes with proper cleanup
-  useEffect(() => {
+  useSafeEffect(() => {
     const handleResize = () => {
       // Clear any existing timeout to prevent resource leaks
       if (resizeTimeoutRef.current) {
@@ -369,10 +381,10 @@ export function TaskBoard({
         resizeTimeoutRef.current = null;
       }
     };
-  }, [updateScrollButtons]);
+  }, [updateScrollButtons], 'TaskBoardResizeSetup', 10);
 
   // Cleanup effect to prevent resource leaks on unmount
-  useEffect(() => {
+  useSafeEffect(() => {
     return () => {
       // Reset all drag state to prevent memory leaks
       setDraggedTask(null);
@@ -394,13 +406,13 @@ export function TaskBoard({
         clearTimeout(dragThrottleRef.current);
         dragThrottleRef.current = null;
       }
-
-
     };
-  }, []);
+  }, [], 'TaskBoardUnmount', 5);
 
   // Drag and drop handlers with improved resource management
   const handleDragStart = useCallback((task: Task) => {
+    if (!trackDragOperation()) return;
+    
     // Rate limiting: prevent rapid drag operations to prevent resource leaks
     const now = Date.now();
     if (now - lastDragTimeRef.current < 100) {
@@ -411,7 +423,7 @@ export function TaskBoard({
     setDraggedTask(task);
     setIsDragging(true);
     document.body.style.cursor = 'grabbing';
-  }, []);
+  }, [trackDragOperation]);
 
   const handleDragEnd = useCallback(() => {
     // Ensure all drag state is properly reset to prevent resource leaks
@@ -452,6 +464,8 @@ export function TaskBoard({
     e.preventDefault();
     e.stopPropagation();
     
+    if (!trackDragOperation()) return;
+    
     // Rate limiting: prevent rapid drop operations to prevent resource leaks
     const now = Date.now();
     if (now - lastDragTimeRef.current < 100) {
@@ -472,7 +486,7 @@ export function TaskBoard({
     if (document.body.style.cursor === 'grabbing') {
       document.body.style.cursor = '';
     }
-  }, [draggedTask, onMoveTask]);
+  }, [draggedTask, onMoveTask, trackDragOperation]);
 
   // Empty state
   if (!stages || stages.length === 0) {

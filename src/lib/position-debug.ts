@@ -25,15 +25,8 @@ export interface PositionDebugInfo {
 }
 
 export function logPositionDebugInfo(info: PositionDebugInfo) {
-  console.group(`🔍 Position Debug: ${info.positionId}`);
-  console.log('Timestamp:', info.timestamp);
-  console.log('User Agent:', info.userAgent);
-  console.log('Session Info:', info.sessionInfo);
-  console.log('Request Info:', info.requestInfo);
-  if (info.errorDetails) {
-    console.error('Error Details:', info.errorDetails);
-  }
-  console.groupEnd();
+  // Removed debug logging to reduce container logs
+  // Debug information is still collected but not logged to console
 }
 
 export function createPositionDebugInfo(

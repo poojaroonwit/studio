@@ -181,7 +181,7 @@ export function UserGroupsTab() {
   const canCreateUserGroups = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('USER_GROUPS_CREATE') || false;
   const canEditUserGroups = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('USER_GROUPS_EDIT') || false;
   const canDeleteUserGroups = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('USER_GROUPS_DELETE') || false;
-  const canManageUsers = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('USERS_VIEW') || false;
+  const canManageUsers = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('USER_GROUPS_CREATE') || false;
 
   if (isLoading) {
     return (

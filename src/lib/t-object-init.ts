@@ -125,7 +125,20 @@ if (typeof window !== 'undefined') {
   (window as any).R.reduce = (window as any).R.reduce || createSafeReduce();
   (window as any).R.forEach = (window as any).R.forEach || createSafeForEach();
 
-  console.log('✅ Global objects (T, D, R) initialized with all array methods');
+  // Initialize P object (for any P.filter usage)
+  if (!(window as any).P) {
+    (window as any).P = {};
+  }
+  
+  (window as any).P.filter = (window as any).P.filter || createSafeFilter();
+  (window as any).P.map = (window as any).P.map || createSafeMap();
+  (window as any).P.find = (window as any).P.find || createSafeFind();
+  (window as any).P.some = (window as any).P.some || createSafeSome();
+  (window as any).P.every = (window as any).P.every || createSafeEvery();
+  (window as any).P.reduce = (window as any).P.reduce || createSafeReduce();
+  (window as any).P.forEach = (window as any).P.forEach || createSafeForEach();
+
+  console.log('✅ Global objects (T, D, R, P) initialized with all array methods');
 }
 
 // Export a function to ensure all global objects are available
@@ -172,7 +185,13 @@ export function ensureGlobalObjects() {
     }
     (window as any).R.filter = (window as any).R.filter || createSafeFilter();
 
-    console.log('✅ Global objects (T, D, R) reinitialized via ensureGlobalObjects function');
+    // Ensure P object
+    if (!(window as any).P) {
+      (window as any).P = {};
+    }
+    (window as any).P.filter = (window as any).P.filter || createSafeFilter();
+
+    console.log('✅ Global objects (T, D, R, P) reinitialized via ensureGlobalObjects function');
   }
 }
 

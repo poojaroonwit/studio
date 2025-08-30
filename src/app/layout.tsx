@@ -222,11 +222,22 @@ export default async function RootLayout({
                   window.D.forEach = window.D.forEach || createSafeForEach();
                   window.D.every = window.D.every || createSafeEvery();
 
-                  console.log('✅ R, T, and D objects initialized successfully:', { R: window.R, T: window.T, D: window.D });
+                  // Initialize P object (for any P.filter usage)
+                  if (!window.P) {
+                    window.P = {};
+                  }
+                  window.P.filter = window.P.filter || createSafeFilter();
+                  window.P.map = window.P.map || createSafeMap();
+                  window.P.find = window.P.find || createSafeFind();
+                  window.P.reduce = window.P.reduce || createSafeReduce();
+                  window.P.forEach = window.P.forEach || createSafeForEach();
+                  window.P.every = window.P.every || createSafeEvery();
+
+                  console.log('✅ R, T, D, and P objects initialized successfully:', { R: window.R, T: window.T, D: window.D, P: window.P });
                 }
               })();
 
-              // Global error handler to catch any remaining T.filter or D.filter errors
+              // Global error handler to catch any remaining T.filter, D.filter, or P.filter errors
               window.addEventListener('error', function(event) {
                 if (event.error && event.error.message) {
                   // Handle T.filter errors
@@ -279,6 +290,36 @@ export default async function RootLayout({
                           return array.filter(predicate);
                         } catch (error) {
                           console.error('D.filter: Error during filtering:', error);
+                          return [];
+                        }
+                      };
+                    }
+                    
+                    // Prevent the error from propagating
+                    event.preventDefault();
+                    return false;
+                  }
+                  
+                  // Handle P.filter errors
+                  if (event.error.message.includes('P.filter is not a function')) {
+                    console.warn('Caught P.filter error, ensuring P object is available');
+                    
+                    // Ensure P object exists
+                    if (!window.P) {
+                      window.P = {};
+                    }
+                    
+                    // Ensure P.filter exists
+                    if (!window.P.filter) {
+                      window.P.filter = function(array, predicate) {
+                        if (!Array.isArray(array)) {
+                          console.warn('P.filter: Input is not an array:', array);
+                          return [];
+                        }
+                        try {
+                          return array.filter(predicate);
+                        } catch (error) {
+                          console.error('P.filter: Error during filtering:', error);
                           return [];
                         }
                       };

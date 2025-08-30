@@ -454,7 +454,7 @@ export default function DashboardPageClient({
         const applicationDate = parseISO(candidate.applicationDate);
         // Find the last transition to 'Hired'
         const hiredTransition = candidate.transitionHistory
-          .filter(t => t.stage === 'Hired')
+          .filter(transition => transition.stage === 'Hired')
           .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
         const hireDate = hiredTransition ? parseISO(hiredTransition.date) : null;
         if (!hireDate) return total;

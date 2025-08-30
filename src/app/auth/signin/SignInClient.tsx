@@ -329,8 +329,8 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
       } catch {}
     }
 
-    const t = setTimeout(ensureRedirect, 100);
-    return () => { cancelled = true; clearTimeout(t); };
+    const timeoutId = setTimeout(ensureRedirect, 100);
+    return () => { cancelled = true; clearTimeout(timeoutId); };
   }, [status, session, router, nextSearchParams]);
 
   // Use backend-provided Azure AD config status

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { type ReactNode, useState, useEffect } from "react";
+import React, { type ReactNode, useState, useEffect, useRef } from "react";
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, useSidebar, SidebarSeparator } from "@/components/ui/sidebar";
 import { Header } from "./Header";
 import { useSession } from "next-auth/react";
@@ -58,10 +58,62 @@ const SessionContext = React.createContext<{
 // Session provider component
 const SessionProvider = ({ children }: { children: React.ReactNode }) => {
   const { data: session, status } = useSession();
+  const [stableSession, setStableSession] = useState<any>(null);
+  const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastSessionRef = useRef<any>(null);
+  
+  // Handle real-time session updates with debouncing
+  useEffect(() => {
+    if (session && session !== lastSessionRef.current) {
+      // Clear any existing timeout
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current);
+      }
+      
+      // Debounce the session update to prevent rapid re-renders during real-time updates
+      updateTimeoutRef.current = setTimeout(() => {
+        if (!session || !session.user) {
+          setStableSession(null);
+          lastSessionRef.current = null;
+          return;
+        }
+        
+        // Ensure modulePermissions is always an array
+        const safeUser = {
+          ...session.user,
+          modulePermissions: Array.isArray(session.user.modulePermissions) 
+            ? session.user.modulePermissions 
+            : []
+        };
+        
+        const safeSession = {
+          ...session,
+          user: safeUser
+        };
+        
+        setStableSession(safeSession);
+        lastSessionRef.current = session;
+      }, 50); // Short debounce for real-time updates
+    } else if (!session) {
+      setStableSession(null);
+      lastSessionRef.current = null;
+    }
+    
+    return () => {
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current);
+      }
+    };
+  }, [session]);
   
   const safeSession = React.useMemo(() => {
     if (!session || !session.user) {
       return null;
+    }
+    
+    // Use stable session if available, otherwise create safe session
+    if (stableSession) {
+      return stableSession;
     }
     
     // Ensure modulePermissions is always an array
@@ -76,7 +128,7 @@ const SessionProvider = ({ children }: { children: React.ReactNode }) => {
       ...session,
       user: safeUser
     };
-  }, [session]);
+  }, [session, stableSession]);
 
   return (
     <SessionContext.Provider value={{ session: safeSession, status }}>

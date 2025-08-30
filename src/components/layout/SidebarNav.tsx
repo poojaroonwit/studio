@@ -18,7 +18,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useSession } from "next-auth/react";
+import { useSafeSession } from "@/hooks/use-safe-session";
 
 const dashboardNavItem = { href: "/", label: "Dashboard", icon: LayoutDashboard };
 const myTaskBoardNavItem = { href: "/my-tasks", label: "My Task Board", icon: ListTodo };
@@ -179,6 +179,34 @@ const FallbackNav = () => {
   );
 };
 
+// Error boundary for SidebarNav
+class SidebarNavErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    console.error('SidebarNav Error Boundary caught error:', error);
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('SidebarNav Error Boundary error details:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return <FallbackNav />;
+    }
+
+    return this.props.children;
+  }
+}
+
 const SidebarNavComponent = () => {
   const [hasError, setHasError] = React.useState(false);
   
@@ -190,7 +218,7 @@ const SidebarNavComponent = () => {
   try {
     const pathname = usePathname();
     const router = useRouter();
-    const { data: session, status } = useSession();
+    const { session, status, isUpdating, getCachedSession } = useSafeSession();
     const { open } = useSidebar();
     const { pendingCount, isLoading } = usePendingCount();
 
@@ -202,6 +230,30 @@ const SidebarNavComponent = () => {
 
     // Filter navigation items based on permissions with comprehensive safety checks
     const filteredMainNavItems = React.useMemo(() => {
+      // If session is updating, use cached permissions to prevent flickering
+      if (isUpdating) {
+        const cachedSession = getCachedSession();
+        if (cachedSession?.user?.modulePermissions) {
+          const cachedPermissions = cachedSession.user.modulePermissions;
+          const cachedCanAccessMyTasks = cachedSession.user.role === 'Admin' || 
+            cachedPermissions.includes('TASK_BOARD_VIEW') ||
+            cachedPermissions.includes('CANDIDATES_VIEW');
+          
+          return mainNavItems.filter(item => {
+            if (!item || typeof item !== 'object') {
+              return false;
+            }
+            if (!item.href || !item.label || !item.icon) {
+              return false;
+            }
+            if (item.href === '/my-tasks') {
+              return cachedCanAccessMyTasks;
+            }
+            return true;
+          });
+        }
+      }
+      
       // Ensure mainNavItems is always an array
       if (!Array.isArray(mainNavItems)) {
         console.warn('mainNavItems is not an array, using fallback');
@@ -232,10 +284,10 @@ const SidebarNavComponent = () => {
         // Return a safe fallback
         return [dashboardNavItem, candidatesNavItem, positionsNavItem];
       }
-    }, [canAccessMyTasks]);
+    }, [canAccessMyTasks, isUpdating, getCachedSession]);
 
     // Simple loading state
-    if (status === 'loading') {
+    if (status === 'loading' || isUpdating) {
       return (
         <div className="flex items-center justify-center p-2">
           <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -393,4 +445,11 @@ const SidebarNavComponent = () => {
   }
 };
 
-export default SidebarNavComponent;
+// Export with error boundary wrapper
+export default function SidebarNavWithErrorBoundary() {
+  return (
+    <SidebarNavErrorBoundary>
+      <SidebarNavComponent />
+    </SidebarNavErrorBoundary>
+  );
+}

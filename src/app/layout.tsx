@@ -54,7 +54,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             __html: `
               (function() {
                 if (typeof window !== 'undefined') {
-                  // Safe fallback initialization for immediate availability (excluding R to avoid conflicts)
+                  // Immediate fallback initialization for safe letters (excluding R to avoid conflicts)
                   const safeArray = (arr) => Array.isArray(arr) ? arr : [];
                   const createMethods = () => ({
                     filter: (arr, fn) => { try { return safeArray(arr).filter(fn); } catch { return []; } },
@@ -66,23 +66,33 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                     forEach: (arr, fn) => { try { safeArray(arr).forEach(fn); } catch {} }
                   });
                   
-                  // Function to ensure safe global objects (excluding R)
-                  const ensureSafeGlobalObjects = () => {
+                  // Function to immediately create safe global objects
+                  const createSafeGlobalObjects = () => {
                     // Safe letters excluding R to avoid conflicts with libraries like Ramda
                     'ABCDEFGHIJKLMNOPQSTUVWXYZ'.split('').forEach(letter => {
-                      // Only create the object if it doesn't exist or if it doesn't have the required methods
-                      if (!window[letter] || typeof window[letter].filter !== 'function') {
-                        window[letter] = {};
-                        const methods = createMethods();
-                        Object.keys(methods).forEach(method => {
-                          window[letter][method] = methods[method];
-                        });
-                      }
+                      // Always create the object immediately for safe letters
+                      window[letter] = {};
+                      const methods = createMethods();
+                      Object.keys(methods).forEach(method => {
+                        window[letter][method] = methods[method];
+                      });
                     });
                   };
                   
-                  // Safe initialization - only create objects that don't exist
-                  ensureSafeGlobalObjects();
+                  // IMMEDIATE initialization - create objects right now
+                  createSafeGlobalObjects();
+                  
+                  // Function to ensure safe global objects are still available
+                  const ensureSafeGlobalObjects = () => {
+                    'ABCDEFGHIJKLMNOPQSTUVWXYZ'.split('').forEach(letter => {
+                      // Always recreate the object completely for safe letters
+                      window[letter] = {};
+                      const methods = createMethods();
+                      Object.keys(methods).forEach(method => {
+                        window[letter][method] = methods[method];
+                      });
+                    });
+                  };
                   
                   // Add comprehensive error handler for safe letters only
                   window.addEventListener('error', function(event) {
@@ -122,7 +132,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                     }
                   });
                   
-                  // Periodic check every 500ms for safe letters only
+                  // Periodic check every 100ms for safe letters only
                   setInterval(() => {
                     let needsRecreation = false;
                     'ABCDEFGHIJKLMNOPQSTUVWXYZ'.split('').forEach(letter => {
@@ -134,7 +144,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                       console.warn('Periodic check: Recreating safe global objects');
                       ensureSafeGlobalObjects();
                     }
-                  }, 500);
+                  }, 100);
                   
                   // Add focus listener for safe letters only
                   window.addEventListener('focus', () => {

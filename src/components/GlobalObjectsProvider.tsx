@@ -11,8 +11,8 @@ export function GlobalObjectsProvider({ children }: GlobalObjectsProviderProps) 
 
   useEffect(() => {
     if (typeof window !== 'undefined' && !initializedRef.current) {
-      // Safe global objects initialization (excluding R to avoid conflicts)
-      const ensureSafeGlobalObjects = () => {
+      // Immediate safe global objects initialization (excluding R to avoid conflicts)
+      const createSafeGlobalObjects = () => {
         const safeArray = (arr: any) => Array.isArray(arr) ? arr : [];
         const createMethods = () => ({
           filter: (arr: any, fn: any) => { try { return safeArray(arr).filter(fn); } catch { return []; } },
@@ -26,24 +26,22 @@ export function GlobalObjectsProvider({ children }: GlobalObjectsProviderProps) 
 
         // Ensure safe global objects (excluding R to avoid conflicts with libraries like Ramda)
         'ABCDEFGHIJKLMNOPQSTUVWXYZ'.split('').forEach(letter => {
-          // Only create the object if it doesn't exist or if it doesn't have the required methods
-          if (!(window as any)[letter] || typeof (window as any)[letter].filter !== 'function') {
-            (window as any)[letter] = {};
-            const methods = createMethods();
-            Object.keys(methods).forEach(method => {
-              (window as any)[letter][method] = methods[method as keyof typeof methods];
-            });
-          }
+          // Always create the object immediately for safe letters
+          (window as any)[letter] = {};
+          const methods = createMethods();
+          Object.keys(methods).forEach(method => {
+            (window as any)[letter][method] = methods[method as keyof typeof methods];
+          });
         });
       };
 
       // Ensure immediately
-      ensureSafeGlobalObjects();
+      createSafeGlobalObjects();
       initializedRef.current = true;
 
       // Also ensure on any React state changes
       const interval = setInterval(() => {
-        ensureSafeGlobalObjects();
+        createSafeGlobalObjects();
       }, 50); // Check every 50ms during React component lifecycle
 
       return () => {
@@ -67,13 +65,12 @@ export function GlobalObjectsProvider({ children }: GlobalObjectsProviderProps) 
 
     // Ensure safe global objects (excluding R)
     'ABCDEFGHIJKLMNOPQSTUVWXYZ'.split('').forEach(letter => {
-      if (!(window as any)[letter] || typeof (window as any)[letter].filter !== 'function') {
-        (window as any)[letter] = {};
-        const methods = createMethods();
-        Object.keys(methods).forEach(method => {
-          (window as any)[letter][method] = methods[method as keyof typeof methods];
-        });
-      }
+      // Always create the object immediately for safe letters
+      (window as any)[letter] = {};
+      const methods = createMethods();
+      Object.keys(methods).forEach(method => {
+        (window as any)[letter][method] = methods[method as keyof typeof methods];
+      });
     });
   }
 

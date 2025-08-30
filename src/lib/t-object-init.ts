@@ -1,7 +1,7 @@
 // Global Array Objects Initialization - Import this early to ensure all global objects are available
 // This file should be imported before any components that might use T.filter, D.filter, etc.
 
-// Single comprehensive initialization for all single-letter global objects
+// Immediate initialization for all safe single-letter global objects
 (function() {
   if (typeof window !== 'undefined') {
     // Create safe array utility function
@@ -86,30 +86,42 @@
       }
     });
 
-    // Function to safely ensure global objects without overwriting existing ones
-    const ensureAllGlobalObjects = () => {
+    // Function to immediately create safe global objects
+    const createSafeGlobalObjects = () => {
       // Define specific letters that are safe to use (avoiding common library conflicts)
       // R is excluded because it might be used by Ramda or other libraries
       const safeLetters = 'ABCDEFGHIJKLMNOPQSTUVWXYZ'.split(''); // Removed R to avoid conflicts
       const safeMethods = createSafeMethods();
       
       safeLetters.forEach(letter => {
-        // Only create the object if it doesn't exist or if it doesn't have the required methods
-        if (!(window as any)[letter] || typeof (window as any)[letter].filter !== 'function') {
-          (window as any)[letter] = {};
-          
-          // Add methods only if they don't already exist
-          Object.keys(safeMethods).forEach(method => {
-            if (!(window as any)[letter][method]) {
-              (window as any)[letter][method] = safeMethods[method as keyof typeof safeMethods];
-            }
-          });
-        }
+        // Always create the object immediately for safe letters
+        (window as any)[letter] = {};
+        
+        // Always add all methods to ensure they're our safe versions
+        Object.keys(safeMethods).forEach(method => {
+          (window as any)[letter][method] = safeMethods[method as keyof typeof safeMethods];
+        });
       });
     };
 
-    // Initialize safe global objects
-    ensureAllGlobalObjects();
+    // IMMEDIATE initialization - create objects right now
+    createSafeGlobalObjects();
+
+    // Function to ensure safe global objects are still available
+    const ensureSafeGlobalObjects = () => {
+      const safeLetters = 'ABCDEFGHIJKLMNOPQSTUVWXYZ'.split(''); // Removed R to avoid conflicts
+      const safeMethods = createSafeMethods();
+      
+      safeLetters.forEach(letter => {
+        // Always recreate the object completely for safe letters
+        (window as any)[letter] = {};
+        
+        // Always overwrite all methods to ensure they're our safe versions
+        Object.keys(safeMethods).forEach(method => {
+          (window as any)[letter][method] = safeMethods[method as keyof typeof safeMethods];
+        });
+      });
+    };
 
     // NUCLEAR-LEVEL SOLUTION: Override React's useMemo to ensure global objects before execution
     if (typeof window !== 'undefined' && (window as any).React) {
@@ -117,13 +129,13 @@
       if (originalUseMemo) {
         (window as any).React.useMemo = function<T>(factory: () => T, deps: any): T {
           // Ensure global objects before any useMemo execution
-          ensureAllGlobalObjects();
+          ensureSafeGlobalObjects();
           
           try {
             return originalUseMemo.call(this, factory, deps);
           } catch (error) {
             // If error occurs, ensure objects again and retry
-            ensureAllGlobalObjects();
+            ensureSafeGlobalObjects();
             return originalUseMemo.call(this, factory, deps);
           }
         };
@@ -136,7 +148,7 @@
       if (originalUseState) {
         (window as any).React.useState = function<S>(initialState: S | (() => S)): [S, any] {
           // Ensure global objects before any useState execution
-          ensureAllGlobalObjects();
+          ensureSafeGlobalObjects();
           return originalUseState.call(this, initialState);
         };
       }
@@ -148,7 +160,7 @@
       if (originalUseEffect) {
         (window as any).React.useEffect = function(effect: () => void | (() => void), deps?: any): void {
           // Ensure global objects before any useEffect execution
-          ensureAllGlobalObjects();
+          ensureSafeGlobalObjects();
           return originalUseEffect.call(this, effect, deps);
         };
       }
@@ -182,7 +194,7 @@
         // If function body contains .filter, ensure global objects before execution
         const newFn = originalFunction.apply(this, args);
         return function(this: any, ...callArgs: any[]) {
-          ensureAllGlobalObjects();
+          ensureSafeGlobalObjects();
           return newFn.apply(this, callArgs);
         };
       }
@@ -193,7 +205,7 @@
     const originalEval = window.eval;
     window.eval = function(code: string) {
       if (typeof code === 'string' && code.includes('.filter')) {
-        ensureAllGlobalObjects();
+        ensureSafeGlobalObjects();
       }
       return originalEval.call(this, code);
     };
@@ -209,7 +221,7 @@
           // Only handle safe letters, not R
           if (letter !== 'R') {
             console.warn(`CRITICAL: ${letter}.filter is missing! Recreating safe global objects...`);
-            ensureAllGlobalObjects();
+            ensureSafeGlobalObjects();
             return true; // Prevent the error from being logged
           }
         }
@@ -224,7 +236,7 @@
           // Only handle safe letters, not R
           if (letter !== 'R') {
             console.warn(`CRITICAL: ${letter}.${method} is missing! Recreating safe global objects...`);
-            ensureAllGlobalObjects();
+            ensureSafeGlobalObjects();
             return true; // Prevent the error from being logged
           }
         }
@@ -251,9 +263,9 @@
       
       if (needsRecreation) {
         console.warn('Periodic check: Recreating safe global objects due to corruption');
-        ensureAllGlobalObjects();
+        ensureSafeGlobalObjects();
       }
-    }, 100); // Check every 100ms
+    }, 50); // Check every 50ms
 
     // Add a MutationObserver to detect when global objects might be tampered with
     if (typeof MutationObserver !== 'undefined') {
@@ -270,7 +282,7 @@
         
         if (needsRecreation) {
           console.warn('MutationObserver: Recreating safe global objects after DOM mutation');
-          ensureAllGlobalObjects();
+          ensureSafeGlobalObjects();
         }
       });
       
@@ -279,7 +291,7 @@
 
     // Add a beforeunload listener to ensure safe objects are available
     window.addEventListener('beforeunload', () => {
-      ensureAllGlobalObjects();
+      ensureSafeGlobalObjects();
     });
 
     // Add a focus listener to ensure safe objects are available when window regains focus
@@ -295,7 +307,7 @@
       
       if (needsRecreation) {
         console.warn('Focus event: Recreating safe global objects');
-        ensureAllGlobalObjects();
+        ensureSafeGlobalObjects();
       }
     });
 
@@ -313,7 +325,7 @@
         
         if (needsRecreation) {
           console.warn('Visibility change: Recreating safe global objects');
-          ensureAllGlobalObjects();
+          ensureSafeGlobalObjects();
         }
       }
     });
@@ -332,7 +344,7 @@
         
         if (needsRecreation) {
           console.warn('Message event: Recreating safe global objects');
-          ensureAllGlobalObjects();
+          ensureSafeGlobalObjects();
         }
       }
     });
@@ -350,7 +362,7 @@
       
       if (needsRecreation) {
         console.warn('Storage event: Recreating safe global objects');
-        ensureAllGlobalObjects();
+        ensureSafeGlobalObjects();
       }
     });
 
@@ -367,7 +379,7 @@
       
       if (needsRecreation) {
         console.warn('Popstate event: Recreating safe global objects');
-        ensureAllGlobalObjects();
+        ensureSafeGlobalObjects();
       }
     });
 
@@ -384,7 +396,7 @@
       
       if (needsRecreation) {
         console.warn('Hashchange event: Recreating safe global objects');
-        ensureAllGlobalObjects();
+        ensureSafeGlobalObjects();
       }
     });
 
@@ -401,7 +413,7 @@
       
       if (needsRecreation) {
         console.warn('Resize event: Recreating safe global objects');
-        ensureAllGlobalObjects();
+        ensureSafeGlobalObjects();
       }
     });
 
@@ -418,7 +430,7 @@
       
       if (needsRecreation) {
         console.warn('Scroll event: Recreating safe global objects');
-        ensureAllGlobalObjects();
+        ensureSafeGlobalObjects();
       }
     });
 
@@ -457,11 +469,9 @@ export function ensureGlobalObjects() {
     const safeLetters = 'ABCDEFGHIJKLMNOPQSTUVWXYZ'.split(''); // Removed R
     
     safeLetters.forEach(letter => {
-      // Only create the object if it doesn't exist or if it doesn't have the required methods
-      if (!(window as any)[letter] || typeof (window as any)[letter].filter !== 'function') {
-        (window as any)[letter] = {};
-        (window as any)[letter].filter = createSafeFilter();
-      }
+      // Always recreate the object for safe letters
+      (window as any)[letter] = {};
+      (window as any)[letter].filter = createSafeFilter();
     });
 
     console.log('Safe single-letter global objects (A-Z, excluding R) aggressively reinitialized');

@@ -28,9 +28,71 @@ export function FormValidation({
     return null;
   }
 
-  const errorErrors = errors.filter(e => e.type !== 'warning' && e.type !== 'info');
-  const warnings = errors.filter(e => e.type === 'warning');
-  const infos = errors.filter(e => e.type === 'info');
+  const errorErrors = (() => {
+    try {
+      // Defensive check to prevent filter errors
+      if (!Array.isArray(errors)) {
+        console.warn('FormValidation: errors is not an array:', errors);
+        return [];
+      }
+      
+      return errors.filter(e => {
+        try {
+          return e && e.type !== 'warning' && e.type !== 'info';
+        } catch (error) {
+          console.warn('FormValidation: Error filtering error:', error, e);
+          return false;
+        }
+      });
+    } catch (error) {
+      console.error('FormValidation: Error filtering errors:', error);
+      return [];
+    }
+  })();
+
+  const warnings = (() => {
+    try {
+      // Defensive check to prevent filter errors
+      if (!Array.isArray(errors)) {
+        console.warn('FormValidation: errors is not an array:', errors);
+        return [];
+      }
+      
+      return errors.filter(e => {
+        try {
+          return e && e.type === 'warning';
+        } catch (error) {
+          console.warn('FormValidation: Error filtering warning:', error, e);
+          return false;
+        }
+      });
+    } catch (error) {
+      console.error('FormValidation: Error filtering warnings:', error);
+      return [];
+    }
+  })();
+
+  const infos = (() => {
+    try {
+      // Defensive check to prevent filter errors
+      if (!Array.isArray(errors)) {
+        console.warn('FormValidation: errors is not an array:', errors);
+        return [];
+      }
+      
+      return errors.filter(e => {
+        try {
+          return e && e.type === 'info';
+        } catch (error) {
+          console.warn('FormValidation: Error filtering info:', error, e);
+          return false;
+        }
+      });
+    } catch (error) {
+      console.error('FormValidation: Error filtering infos:', error);
+      return [];
+    }
+  })();
 
   return (
     <div className={cn('space-y-3', className)}>

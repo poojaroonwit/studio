@@ -26,9 +26,49 @@ export function NotificationDrawer({ isOpen, onClose, onNotificationRead }: Noti
   const [markingAsRead, setMarkingAsRead] = useState<string | null>(null);
   const [markingAllAsRead, setMarkingAllAsRead] = useState(false);
 
-  const unreadNotifications = notifications.filter(n => !n.isRead);
-  const readNotifications = notifications.filter(n => n.isRead);
+  const unreadNotifications = (() => {
+    try {
+      // Defensive check to prevent filter errors
+      if (!Array.isArray(notifications)) {
+        console.warn('NotificationDrawer: notifications is not an array:', notifications);
+        return [];
+      }
+      
+      return notifications.filter(n => {
+        try {
+          return n && !n.isRead;
+        } catch (error) {
+          console.warn('NotificationDrawer: Error filtering unread notification:', error, n);
+          return false;
+        }
+      });
+    } catch (error) {
+      console.error('NotificationDrawer: Error filtering unread notifications:', error);
+      return [];
+    }
+  })();
 
+  const readNotifications = (() => {
+    try {
+      // Defensive check to prevent filter errors
+      if (!Array.isArray(notifications)) {
+        console.warn('NotificationDrawer: notifications is not an array:', notifications);
+        return [];
+      }
+      
+      return notifications.filter(n => {
+        try {
+          return n && n.isRead;
+        } catch (error) {
+          console.warn('NotificationDrawer: Error filtering read notification:', error, n);
+          return false;
+        }
+      });
+    } catch (error) {
+      console.error('NotificationDrawer: Error filtering read notifications:', error);
+      return [];
+    }
+  })();
 
 
   const handleMarkAsRead = async (notificationId: string) => {

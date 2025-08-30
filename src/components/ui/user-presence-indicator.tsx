@@ -196,7 +196,27 @@ export function UserPresenceIndicator({ className }: UserPresenceIndicatorProps)
           }
         });
       } else if (presence.action === 'left') {
-        setOnlineUsers(prev => prev.filter(u => u.userId !== presence.userId));
+        setOnlineUsers(prev => {
+          try {
+            // Defensive check to prevent filter errors
+            if (!Array.isArray(prev)) {
+              console.warn('UserPresenceIndicator: prev onlineUsers is not an array:', prev);
+              return [];
+            }
+            
+            return prev.filter(u => {
+              try {
+                return u && u.userId !== presence.userId;
+              } catch (error) {
+                console.warn('UserPresenceIndicator: Error filtering online user:', error, u);
+                return false;
+              }
+            });
+          } catch (error) {
+            console.error('UserPresenceIndicator: Error filtering online users:', error);
+            return prev;
+          }
+        });
       }
     } catch (error) {
       console.error('Error handling presence update:', error);
@@ -293,7 +313,27 @@ export function UserPresenceIndicator({ className }: UserPresenceIndicatorProps)
     };
     
     // Combine current user with other users
-    const allUsers = [currentUser, ...onlineUsers.filter(user => user.userId !== currentUserId)];
+    const allUsers = (() => {
+      try {
+        // Defensive check to prevent filter errors
+        if (!Array.isArray(onlineUsers)) {
+          console.warn('UserPresenceIndicator: onlineUsers is not an array:', onlineUsers);
+          return [currentUser];
+        }
+        
+        return [currentUser, ...onlineUsers.filter(user => {
+          try {
+            return user && user.userId !== currentUserId;
+          } catch (error) {
+            console.warn('UserPresenceIndicator: Error filtering online user for allUsers:', error, user);
+            return false;
+          }
+        })];
+      } catch (error) {
+        console.error('UserPresenceIndicator: Error creating allUsers:', error);
+        return [currentUser];
+      }
+    })();
     
     return allUsers.sort((a, b) => {
       // Online users first

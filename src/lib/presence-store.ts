@@ -78,9 +78,21 @@ export function getUserPresence(userId: string): UserPresence | undefined {
 
 export function getAllUserPresence(): UserPresence[] {
   try {
-    return Array.from(userPresenceStore.values()).filter(presence => {
-      // Filter out any corrupted entries
-      return presence && presence.userId && presence.userName;
+    const values = Array.from(userPresenceStore.values());
+    // Defensive check to prevent filter errors
+    if (!Array.isArray(values)) {
+      console.warn('PresenceStore: values is not an array:', values);
+      return [];
+    }
+    
+    return values.filter(presence => {
+      try {
+        // Filter out any corrupted entries
+        return presence && presence.userId && presence.userName;
+      } catch (error) {
+        console.warn('PresenceStore: Error filtering presence entry:', error, presence);
+        return false;
+      }
     });
   } catch (error) {
     console.error('Error getting all user presence:', error);
@@ -141,7 +153,28 @@ export function updateUserPage(userId: string, currentPage: string) {
 export function getPresenceStoreStats() {
   try {
     const totalUsers = userPresenceStore.size;
-    const onlineUsers = Array.from(userPresenceStore.values()).filter(p => p.isOnline).length;
+    const onlineUsers = (() => {
+      try {
+        const values = Array.from(userPresenceStore.values());
+        // Defensive check to prevent filter errors
+        if (!Array.isArray(values)) {
+          console.warn('PresenceStore: values is not an array:', values);
+          return 0;
+        }
+        
+        return values.filter(p => {
+          try {
+            return p && p.isOnline;
+          } catch (error) {
+            console.warn('PresenceStore: Error filtering online presence:', error, p);
+            return false;
+          }
+        }).length;
+      } catch (error) {
+        console.error('PresenceStore: Error counting online users:', error);
+        return 0;
+      }
+    })();
     const offlineUsers = totalUsers - onlineUsers;
     
     return {

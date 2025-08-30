@@ -202,6 +202,49 @@ export const reactSafeArray = {
     }
   },
 
+  // Enhanced safe filter with error context
+  safeFilter: <T>(array: any, predicate: (value: T, index: number, array: T[]) => boolean, context?: string): T[] => {
+    try {
+      const safeArr = reactSafeArray.ensureArray<T>(array);
+      const result = safeArr.filter(predicate);
+      return Array.isArray(result) ? result : [];
+    } catch (error) {
+      const errorContext = {
+        error: error instanceof Error ? error.message : String(error),
+        context: context || 'unknown',
+        arrayType: typeof array,
+        isArray: Array.isArray(array),
+        isNull: array === null,
+        isUndefined: array === undefined,
+        timestamp: new Date().toISOString(),
+      };
+      
+      console.error('safeFilter error with context:', errorContext);
+      console.error('Original error:', error);
+      
+      // Throw a more informative error for debugging
+      throw new Error(`Filter error in ${context || 'unknown context'}: ${error instanceof Error ? error.message : String(error)}. Array type: ${typeof array}, isArray: ${Array.isArray(array)}`);
+    }
+  },
+
+  // Debug utility to identify filter error sources
+  debugFilterError: (array: any, context: string): void => {
+    const debugInfo = {
+      context,
+      arrayType: typeof array,
+      isArray: Array.isArray(array),
+      isNull: array === null,
+      isUndefined: array === undefined,
+      constructor: array?.constructor?.name,
+      length: array?.length,
+      keys: array && typeof array === 'object' ? Object.keys(array) : null,
+      sample: array && typeof array === 'object' ? JSON.stringify(array).substring(0, 200) + '...' : null,
+      timestamp: new Date().toISOString(),
+    };
+    
+    console.warn('Filter error debug info:', debugInfo);
+  },
+
   // Safe includes check - React component safe
   includes: <T>(array: any, searchElement: T, fromIndex?: number): boolean => {
     try {

@@ -54,16 +54,34 @@ export function RealtimeCollaboration({
         if (response.ok) {
           const notificationsData = await response.json();
           // Ensure notifications have required properties
-          const validNotifications = notificationsData.filter((n: any) => 
-            n && typeof n === 'object' && n.id
-          ).map((n: any) => ({
-            id: n.id,
-            title: n.title || 'Untitled Notification',
-            message: n.message || 'No message',
-            timestamp: n.timestamp || n.createdAt || Date.now(),
-            read: n.read || false,
-            ...n
-          }));
+          const validNotifications = (() => {
+            try {
+              // Defensive check to prevent filter errors
+              if (!Array.isArray(notificationsData)) {
+                console.warn('RealtimeCollaboration: notificationsData is not an array:', notificationsData);
+                return [];
+              }
+              
+              return notificationsData.filter((n: any) => {
+                try {
+                  return n && typeof n === 'object' && n.id;
+                } catch (error) {
+                  console.warn('RealtimeCollaboration: Error filtering notification data:', error, n);
+                  return false;
+                }
+              }).map((n: any) => ({
+                id: n.id,
+                title: n.title || 'Untitled Notification',
+                message: n.message || 'No message',
+                timestamp: n.timestamp || n.createdAt || Date.now(),
+                read: n.read || false,
+                ...n
+              }));
+            } catch (error) {
+              console.error('RealtimeCollaboration: Error processing notifications data:', error);
+              return [];
+            }
+          })();
           setNotifications(validNotifications);
         }
       } catch (error) {
@@ -218,12 +236,11 @@ export function RealtimeCollaboration({
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <div className="flex items-center gap-2 p-2 rounded-md hover:bg-muted/50">
-                            <Avatar size="xs" className="border border-border rounded-full">
-                              <AvatarImage src="" className="rounded-full" />
-                              <AvatarFallback className="text-xs font-medium rounded-full">
+                            <div className="border border-border rounded-full h-6 w-6 flex items-center justify-center bg-muted">
+                              <span className="text-xs font-medium">
                                 {getUserInitials(user.userName)}
-                              </AvatarFallback>
-                            </Avatar>
+                              </span>
+                            </div>
                             <div className="flex-1 min-w-0">
                               <div className="text-xs font-medium truncate">
                                 {user.userName}
@@ -306,24 +323,44 @@ export function RealtimeCollaboration({
                         return 0;
                       }
                       
-                      return notifications.filter(n => {
-                        try {
-                          return n && n.id && !n.read;
-                        } catch (error) {
-                          console.warn('RealtimeCollaboration: Error filtering notification:', error, n);
-                          return false;
-                        }
-                      }).length;
-                    } catch (error) {
-                      console.error('RealtimeCollaboration: Error counting unread notifications:', error);
-                      return 0;
-                    }
+                                              return notifications.filter(n => {
+                          try {
+                            return n && n.id && !n.read;
+                          } catch (error) {
+                            console.warn('RealtimeCollaboration: Error filtering notification:', error, n);
+                            return false;
+                          }
+                        }).length;
+                      } catch (error) {
+                        console.error('RealtimeCollaboration: Error counting unread notifications:', error);
+                        return 0;
+                      }
                   })()}
                 </Badge>
               </div>
               <ScrollArea className="h-24">
                 <div className="space-y-2">
-                  {notifications.filter(n => n && n.id).map((notification) => (
+                  {(() => {
+                    try {
+                      // Defensive check to prevent filter errors
+                      if (!Array.isArray(notifications)) {
+                        console.warn('RealtimeCollaboration: notifications is not an array:', notifications);
+                        return [];
+                      }
+                      
+                      return notifications.filter(n => {
+                        try {
+                          return n && n.id;
+                        } catch (error) {
+                          console.warn('RealtimeCollaboration: Error filtering notification for display:', error, n);
+                          return false;
+                        }
+                      });
+                    } catch (error) {
+                      console.error('RealtimeCollaboration: Error filtering notifications for display:', error);
+                      return [];
+                    }
+                  })().map((notification) => (
                     <div
                       key={notification.id}
                       className={cn(

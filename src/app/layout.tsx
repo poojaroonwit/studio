@@ -8,6 +8,7 @@ import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import { WarningProvider } from '@/contexts/WarningContext';
 import { LoadingProvider } from '@/contexts/LoadingContext';
+import { AppLayout } from '@/components/layout/AppLayout';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -252,7 +253,9 @@ export default async function RootLayout({
             <LoadingProvider>
               <NotificationProvider>
                 <WarningProvider>
-                  {children}
+                  <AppLayout>
+                    {children}
+                  </AppLayout>
                 </WarningProvider>
               </NotificationProvider>
             </LoadingProvider>

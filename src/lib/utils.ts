@@ -28,57 +28,88 @@ if (typeof window !== 'undefined') {
     }
   };
 
-  // Initialize T object immediately
+  // Initialize T object immediately with all methods
   if (!(window as any).T) {
-    (window as any).T = {};
+    (window as any).T = {
+      filter: createSafeFilter(),
+      map: (array: any, mapper: any) => {
+        const safeArr = safeArray(array);
+        try {
+          return safeArr.map(mapper);
+        } catch (error) {
+          console.warn('T.map error:', error);
+          return [];
+        }
+      },
+      find: (array: any, predicate: any) => {
+        const safeArr = safeArray(array);
+        try {
+          return safeArr.find(predicate);
+        } catch (error) {
+          console.warn('T.find error:', error);
+          return undefined;
+        }
+      },
+      some: (array: any, predicate: any) => {
+        const safeArr = safeArray(array);
+        try {
+          return safeArr.some(predicate);
+        } catch (error) {
+          console.warn('T.some error:', error);
+          return false;
+        }
+      },
+      every: (array: any, predicate: any) => {
+        const safeArr = safeArray(array);
+        try {
+          return safeArr.every(predicate);
+        } catch (error) {
+          console.warn('T.every error:', error);
+          return true;
+        }
+      }
+    };
+    console.log('✅ T object initialized immediately in utils.ts with all methods');
+  } else {
+    // Ensure all methods exist on existing T object
+    (window as any).T.filter = (window as any).T.filter || createSafeFilter();
+    (window as any).T.map = (window as any).T.map || ((array: any, mapper: any) => {
+      const safeArr = safeArray(array);
+      try {
+        return safeArr.map(mapper);
+      } catch (error) {
+        console.warn('T.map error:', error);
+        return [];
+      }
+    });
+    (window as any).T.find = (window as any).T.find || ((array: any, predicate: any) => {
+      const safeArr = safeArray(array);
+      try {
+        return safeArr.find(predicate);
+      } catch (error) {
+        console.warn('T.find error:', error);
+        return undefined;
+      }
+    });
+    (window as any).T.some = (window as any).T.some || ((array: any, predicate: any) => {
+      const safeArr = safeArray(array);
+      try {
+        return safeArr.some(predicate);
+      } catch (error) {
+        console.warn('T.some error:', error);
+        return false;
+      }
+    });
+    (window as any).T.every = (window as any).T.every || ((array: any, predicate: any) => {
+      const safeArr = safeArray(array);
+      try {
+        return safeArr.every(predicate);
+      } catch (error) {
+        console.warn('T.every error:', error);
+        return true;
+      }
+    });
   }
-  (window as any).T.filter = (window as any).T.filter || createSafeFilter();
-  (window as any).T.map = (window as any).T.map || ((array: any, mapper: any) => {
-    const safeArr = safeArray(array);
-    try {
-      return safeArr.map(mapper);
-    } catch (error) {
-      console.warn('T.map error:', error);
-      return [];
-    }
-  });
-  (window as any).T.find = (window as any).T.find || ((array: any, predicate: any) => {
-    const safeArr = safeArray(array);
-    try {
-      return safeArr.find(predicate);
-    } catch (error) {
-      console.warn('T.find error:', error);
-      return undefined;
-    }
-  });
-  (window as any).T.reduce = (window as any).T.reduce || ((array: any, reducer: any, initialValue: any) => {
-    const safeArr = safeArray(array);
-    try {
-      return safeArr.reduce(reducer, initialValue);
-    } catch (error) {
-      console.warn('T.reduce error:', error);
-      return initialValue;
-    }
-  });
-  (window as any).T.forEach = (window as any).T.forEach || ((array: any, callback: any) => {
-    const safeArr = safeArray(array);
-    try {
-      return safeArr.forEach(callback);
-    } catch (error) {
-      console.warn('T.forEach error:', error);
-    }
-  });
-  (window as any).T.every = (window as any).T.every || ((array: any, predicate: any) => {
-    const safeArr = safeArray(array);
-    try {
-      return safeArr.every(predicate);
-    } catch (error) {
-      console.warn('T.every error:', error);
-      return true;
-    }
-  });
-
-  console.log('✅ T object initialized immediately in utils.ts');
 }
 
 export function cn(...inputs: ClassValue[]) {

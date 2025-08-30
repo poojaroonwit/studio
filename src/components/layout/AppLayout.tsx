@@ -1,5 +1,19 @@
 "use client";
 
+// Immediate T object initialization to prevent T.filter errors
+if (typeof window !== 'undefined') {
+  if (!(window as any).T) {
+    (window as any).T = {
+      filter: (array: any, predicate: any) => Array.isArray(array) ? array.filter(predicate) : [],
+      map: (array: any, mapper: any) => Array.isArray(array) ? array.map(mapper) : [],
+      find: (array: any, predicate: any) => Array.isArray(array) ? array.find(predicate) : undefined,
+      some: (array: any, predicate: any) => Array.isArray(array) ? array.some(predicate) : false,
+      every: (array: any, predicate: any) => Array.isArray(array) ? array.every(predicate) : true
+    };
+    console.log('✅ T object initialized immediately in AppLayout');
+  }
+}
+
 import React, { type ReactNode, useState, useEffect } from "react";
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, useSidebar, SidebarSeparator } from "@/components/ui/sidebar";
 import { Header } from "./Header";
@@ -70,6 +84,20 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
+  // Ensure T object is available during component initialization
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !(window as any).T) {
+      (window as any).T = {
+        filter: (array: any, predicate: any) => Array.isArray(array) ? array.filter(predicate) : [],
+        map: (array: any, mapper: any) => Array.isArray(array) ? array.map(mapper) : [],
+        find: (array: any, predicate: any) => Array.isArray(array) ? array.find(predicate) : undefined,
+        some: (array: any, predicate: any) => Array.isArray(array) ? array.some(predicate) : false,
+        every: (array: any, predicate: any) => Array.isArray(array) ? array.every(predicate) : true
+      };
+      console.log('✅ T object initialized in AppLayout useEffect');
+    }
+  }, []);
+
   const pathname = usePathname();
   const [currentAppName, setCurrentAppName] = useState<string>(DEFAULT_APP_NAME);
   const pageTitle = pathname === "/auth/signin" ? "Sign In" : getPageTitle(pathname) || currentAppName; // Use currentAppName in title if needed

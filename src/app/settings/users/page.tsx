@@ -322,7 +322,7 @@ export default function ManageUsersPage() {
             <h1 className="text-2xl font-semibold text-foreground">User Management</h1>
             <p className="text-muted-foreground">Manage users, roles, permissions, and teams</p>
           </div>
-                     {(session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('USERS_MANAGE')) && activeTab === 'users' && (
+                     {(session?.user?.role === 'Admin' || (session?.user?.modulePermissions || []).includes('USERS_MANAGE')) && activeTab === 'users' && (
             <Button variant="default" onClick={() => openUserModal('create')}> 
               <PlusCircle className="mr-2 h-4 w-4" /> Add New User
             </Button>
@@ -425,7 +425,7 @@ export default function ManageUsersPage() {
                 <div className="text-center py-10">
                   <UsersRound className="mx-auto h-12 w-12 text-muted-foreground" />
                   <p className="mt-4 text-muted-foreground">No users found matching your criteria.</p>
-                                         {(session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('USERS_MANAGE')) && (
+                                         {(session?.user?.role === 'Admin' || (session?.user?.modulePermissions || []).includes('USERS_MANAGE')) && (
                       <Button variant="default" className="mt-4" onClick={() => openUserModal('create')}> 
                         <PlusCircle className="mr-2 h-4 w-4" /> Add First User
                     </Button>
@@ -470,7 +470,7 @@ export default function ManageUsersPage() {
                             }
                           </TableCell>
                                                      <TableCell className="text-right">
-                             {(session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('USERS_MANAGE') || session?.user?.modulePermissions?.includes('WARNING_CONFIGURATIONS_MANAGE')) && (
+                             {(session?.user?.role === 'Admin' || (session?.user?.modulePermissions || []).includes('USERS_MANAGE') || (session?.user?.modulePermissions || []).includes('WARNING_CONFIGURATIONS_MANAGE')) && (
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button variant="ghost" size="icon" className="h-8 w-8">

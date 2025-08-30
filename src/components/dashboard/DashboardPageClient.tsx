@@ -85,12 +85,13 @@ export default function DashboardPageClient({
 
   // Check permissions for dashboard access - based on actual permissions, not hardcoded roles
   // Allow access if user has any permissions or is authenticated (more permissive)
-  const canViewDashboard = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('DASHBOARD_VIEW') || false;
-  const canGenerateReports = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('REPORTS_GENERATE') || false;
+  const modulePermissions = session?.user?.modulePermissions || [];
+  const canViewDashboard = session?.user?.role === 'Admin' || modulePermissions.includes('DASHBOARD_VIEW') || false;
+  const canGenerateReports = session?.user?.role === 'Admin' || modulePermissions.includes('REPORTS_GENERATE') || false;
 
   // Check if user can view all candidates (for conditional rendering)
   const canViewAllCandidates = session?.user?.role === 'Admin' || 
-                               session?.user?.modulePermissions?.includes('CANDIDATES_VIEW');
+                               modulePermissions.includes('CANDIDATES_VIEW');
 
   // Function to re-fetch data on client if needed (e.g., after an action or for a refresh button)
   const fetchDataClientSide = useCallback(async () => {
@@ -110,13 +111,13 @@ export default function DashboardPageClient({
       const promises = [];
       // Check permissions to determine what data to fetch
       const canViewAllCandidates = session?.user?.role === 'Admin' || 
-                                   session?.user?.modulePermissions?.includes('CANDIDATES_VIEW');
+                                   modulePermissions.includes('CANDIDATES_VIEW');
       const canViewAllUsers = session?.user?.role === 'Admin' || 
-                              session?.user?.modulePermissions?.includes('USERS_VIEW') ||
-                              session?.user?.modulePermissions?.includes('USERS_CREATE') ||
-                              session?.user?.modulePermissions?.includes('USERS_EDIT') ||
-                              session?.user?.modulePermissions?.includes('USERS_DELETE') ||
-                              session?.user?.modulePermissions?.includes('USERS_PERMISSIONS_MANAGE');
+                              modulePermissions.includes('USERS_VIEW') ||
+                              modulePermissions.includes('USERS_CREATE') ||
+                              modulePermissions.includes('USERS_EDIT') ||
+                              modulePermissions.includes('USERS_DELETE') ||
+                              modulePermissions.includes('USERS_PERMISSIONS_MANAGE');
       
       if (canViewAllCandidates) {
         promises.push(fetch('/api/candidates', fetchOptions));
@@ -242,7 +243,7 @@ export default function DashboardPageClient({
     
     // Check if user can view all candidates or only their assigned ones
     const canViewAllCandidates = session?.user?.role === 'Admin' || 
-                                 session?.user?.modulePermissions?.includes('CANDIDATES_VIEW');
+                                 modulePermissions.includes('CANDIDATES_VIEW');
     
     if (!canViewAllCandidates) {
       // User can only see their assigned candidates
@@ -357,10 +358,10 @@ export default function DashboardPageClient({
     // Count users who can manage candidates (not just hardcoded 'Recruiter' role)
     return safeAllUsers.filter((u: UserProfile) => 
       u.role === 'Recruiter' || 
-      u.modulePermissions?.includes('CANDIDATES_VIEW') ||
-      u.modulePermissions?.includes('CANDIDATES_CREATE') ||
-      u.modulePermissions?.includes('CANDIDATES_EDIT_BASIC') ||
-      u.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE')
+      (u.modulePermissions || []).includes('CANDIDATES_VIEW') ||
+      (u.modulePermissions || []).includes('CANDIDATES_CREATE') ||
+      (u.modulePermissions || []).includes('CANDIDATES_EDIT_BASIC') ||
+      (u.modulePermissions || []).includes('CANDIDATES_EDIT_SENSITIVE')
     ).length;
   }, [allUsers]);
   const newCandidatesTodayAdminList = useMemo(() => {

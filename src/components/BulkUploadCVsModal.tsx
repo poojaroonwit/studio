@@ -48,7 +48,7 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
   // Memoize the permission check to prevent unnecessary re-renders
   const canBulkUpload = useMemo(() => {
     return session?.user?.role === 'Admin' || 
-      session?.user?.modulePermissions?.includes('BULK_UPLOAD_EXECUTE');
+      (session?.user?.modulePermissions || []).includes('BULK_UPLOAD_EXECUTE');
   }, [session?.user?.role, session?.user?.modulePermissions]);
   
   if (!canBulkUpload) {

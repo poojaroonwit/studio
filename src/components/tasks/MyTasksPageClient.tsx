@@ -145,7 +145,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
 
   // Permission check: can view all candidates?
   const canViewAllCandidates = userSession?.role === 'Admin' || 
-    userSession?.modulePermissions?.includes('CANDIDATES_VIEW');
+    (userSession?.modulePermissions || []).includes('CANDIDATES_VIEW');
 
   // Update local state when preferences are loaded - only once
   useEffect(() => {

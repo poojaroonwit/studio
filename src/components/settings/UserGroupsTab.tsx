@@ -177,11 +177,12 @@ export function UserGroupsTab() {
     }
   };
 
-  const canViewUserGroups = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('USER_GROUPS_VIEW') || false;
-  const canCreateUserGroups = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('USER_GROUPS_CREATE') || false;
-  const canEditUserGroups = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('USER_GROUPS_EDIT') || false;
-  const canDeleteUserGroups = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('USER_GROUPS_DELETE') || false;
-  const canManageUsers = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('USER_GROUPS_CREATE') || false;
+  const modulePermissions = session?.user?.modulePermissions || [];
+  const canViewUserGroups = session?.user?.role === 'Admin' || modulePermissions.includes('USER_GROUPS_VIEW') || false;
+  const canCreateUserGroups = session?.user?.role === 'Admin' || modulePermissions.includes('USER_GROUPS_CREATE') || false;
+  const canEditUserGroups = session?.user?.role === 'Admin' || modulePermissions.includes('USER_GROUPS_EDIT') || false;
+  const canDeleteUserGroups = session?.user?.role === 'Admin' || modulePermissions.includes('USER_GROUPS_DELETE') || false;
+  const canManageUsers = session?.user?.role === 'Admin' || modulePermissions.includes('USER_GROUPS_CREATE') || false;
 
   if (isLoading) {
     return (

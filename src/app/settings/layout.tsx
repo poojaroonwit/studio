@@ -64,14 +64,14 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
 
     // Check for adminOnlyOrPermission items
     if (item.adminOnlyOrPermission) {
-      if (item.permissionId && session.user.modulePermissions?.includes(item.permissionId)) {
+      if (item.permissionId && (session.user.modulePermissions || []).includes(item.permissionId)) {
         return true;
       }
       return false;
     }
 
     // Check for specific permission items
-    if (item.permissionId && !session.user.modulePermissions?.includes(item.permissionId)) {
+    if (item.permissionId && !(session.user.modulePermissions || []).includes(item.permissionId)) {
       return false;
     }
 

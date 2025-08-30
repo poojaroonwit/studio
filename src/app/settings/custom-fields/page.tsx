@@ -126,7 +126,7 @@ export default function CustomFieldsPage() {
       signIn(undefined, { callbackUrl: pathname });
     } else if (sessionStatus === 'authenticated') {
       // Check if user has Admin role or CUSTOM_FIELDS_MANAGE permission
-      if (session.user.role !== 'Admin' &&  !session.user.modulePermissions?.includes('CUSTOM_FIELDS_MANAGE')) {
+      if (session.user.role !== 'Admin' &&  !(session.user.modulePermissions || []).includes('CUSTOM_FIELDS_MANAGE')) {
         setFetchError("You do not have permission to manage custom field definitions.");
         setIsLoading(false);
       } else {

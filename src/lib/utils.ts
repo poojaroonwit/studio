@@ -1,9 +1,6 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 
-// Import the global object initialization
-
-
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
@@ -89,7 +86,7 @@ export function safeJsonParse<T>(jsonString: string | null | undefined, defaultV
 
 export { formatScoreWithGrade } from './scoreUtils';
 
-// React-specific safe array utilities that don't rely on global objects
+// React-specific safe array utilities
 export const reactSafeArray = {
   // Safely ensure a value is an array
   ensureArray: <T>(value: any): T[] => {

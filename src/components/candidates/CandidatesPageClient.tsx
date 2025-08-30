@@ -465,15 +465,16 @@ export function CandidatesPageClient({
   }, []);
 
   // Permissions
-  const canExportCandidates = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('CANDIDATES_EXPORT') || false;
-  const canCreateCandidates = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('CANDIDATES_CREATE') || false;
-  const canEditCandidates = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('CANDIDATES_EDIT_BASIC') || false;
-  const canDeleteCandidates = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('CANDIDATES_DELETE') || false;
-  const canChangeStatus = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('CANDIDATES_PIPELINE_STAGE_UPDATE') || false;
-  const canBulkChangeStatus = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('CANDIDATES_PIPELINE_STAGE_BULK_UPDATE') || false;
-  const canViewDetailed = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('CANDIDATES_VIEW_DETAILED') || false;
-  const canAssignSource = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('CANDIDATES_SOURCE_ASSIGN') || false;
-  const canAssignRecruiter = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('CANDIDATES_RECRUITER_ASSIGN') || false;
+  const modulePermissions = session?.user?.modulePermissions || [];
+  const canExportCandidates = session?.user?.role === 'Admin' || modulePermissions.includes('CANDIDATES_EXPORT') || false;
+  const canCreateCandidates = session?.user?.role === 'Admin' || modulePermissions.includes('CANDIDATES_CREATE') || false;
+  const canEditCandidates = session?.user?.role === 'Admin' || modulePermissions.includes('CANDIDATES_EDIT_BASIC') || false;
+  const canDeleteCandidates = session?.user?.role === 'Admin' || modulePermissions.includes('CANDIDATES_DELETE') || false;
+  const canChangeStatus = session?.user?.role === 'Admin' || modulePermissions.includes('CANDIDATES_PIPELINE_STAGE_UPDATE') || false;
+  const canBulkChangeStatus = session?.user?.role === 'Admin' || modulePermissions.includes('CANDIDATES_PIPELINE_STAGE_BULK_UPDATE') || false;
+  const canViewDetailed = session?.user?.role === 'Admin' || modulePermissions.includes('CANDIDATES_VIEW_DETAILED') || false;
+  const canAssignSource = session?.user?.role === 'Admin' || modulePermissions.includes('CANDIDATES_SOURCE_ASSIGN') || false;
+  const canAssignRecruiter = session?.user?.role === 'Admin' || modulePermissions.includes('CANDIDATES_RECRUITER_ASSIGN') || false;
 
   // Calculate total pages for pagination
   const totalPages = useMemo(() => {

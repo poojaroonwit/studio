@@ -95,9 +95,10 @@ const SidebarNavComponent = () => {
   const { pendingCount, isLoading } = usePendingCount();
 
   // Check if user has permission to access My Task Board
+  const modulePermissions = session?.user?.modulePermissions || [];
   const canAccessMyTasks = session?.user?.role === 'Admin' || 
-    session?.user?.modulePermissions?.includes('TASK_BOARD_VIEW') ||
-    session?.user?.modulePermissions?.includes('CANDIDATES_VIEW');
+    modulePermissions.includes('TASK_BOARD_VIEW') ||
+    modulePermissions.includes('CANDIDATES_VIEW');
 
   // Filter navigation items based on permissions
   const filteredMainNavItems = mainNavItems.filter(item => {

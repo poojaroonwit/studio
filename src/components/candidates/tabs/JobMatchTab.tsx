@@ -29,10 +29,11 @@ export const JobMatchTab: React.FC<JobMatchTabProps> = ({
   const { data: session } = useSession();
   
   // Check permissions
+  const modulePermissions = session?.user?.modulePermissions || [];
   const canViewJobMatches = session?.user?.role === 'Admin' || 
-    session?.user?.modulePermissions?.includes('JOB_MATCH_VIEW');
+    modulePermissions.includes('JOB_MATCH_VIEW');
   const canManageJobMatches = session?.user?.role === 'Admin' || 
-    session?.user?.modulePermissions?.includes('JOB_MATCH_MANAGE');
+    modulePermissions.includes('JOB_MATCH_MANAGE');
 
   // If user can't view job matches, show access denied
   if (!canViewJobMatches) {

@@ -1,17 +1,15 @@
 import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
 import './globals.css';
-import { AppLayout } from '@/components/layout/AppLayout';
-import ToastClient from '@/components/ui/ToastClient';
-import { CheckCircle, AlertTriangle, Info, Loader2, XCircle, X, Bell } from 'lucide-react';
-import { AuthProvider } from '@/components/auth/AuthProvider';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { SessionProvider } from '@/components/auth/SessionProvider';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
-import { TooltipProvider } from '@/components/ui/tooltip';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import { WarningProvider } from '@/contexts/WarningContext';
-import { getServerSession } from "next-auth/next"
-import { authOptions } from "@/lib/auth"
-import { ModalCleanupMonitor } from '@/components/ui/ModalCleanupMonitor';
-import React from 'react';
+import { LoadingProvider } from '@/contexts/LoadingContext';
+
+const inter = Inter({ subsets: ['latin'] });
 
 // Simple global R object to prevent R.filter errors
 if (typeof window !== 'undefined' && !(window as any).R) {
@@ -24,16 +22,16 @@ if (typeof window !== 'undefined' && !(window as any).R) {
   };
 }
 
-// Temporarily disabled resource tracking to fix loading issue
-// import { initializeResourceTracking } from '@/lib/resource-leak-fixes';
-
-// Initialize resource tracking
-// if (typeof window !== 'undefined') {
-//   initializeResourceTracking();
-// }
-// If you need to pass server-side session for initial render optimization:
-// import { getServerSession } from "next-auth/next"
-// import { authOptions } from "@/app/api/auth/[...nextauth]/route"
+// Simple global T object to prevent T.filter errors
+if (typeof window !== 'undefined' && !(window as any).T) {
+  (window as any).T = {
+    filter: (array: any, predicate: any) => Array.isArray(array) ? array.filter(predicate) : [],
+    map: (array: any, mapper: any) => Array.isArray(array) ? array.map(mapper) : [],
+    find: (array: any, predicate: any) => Array.isArray(array) ? array.find(predicate) : undefined,
+    some: (array: any, predicate: any) => Array.isArray(array) ? array.some(predicate) : false,
+    every: (array: any, predicate: any) => Array.isArray(array) ? array.every(predicate) : true
+  };
+}
 
 export async function generateMetadata(): Promise<Metadata> {
   // Remove build-time database calls
@@ -105,144 +103,161 @@ export default async function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              // Ensure R object is properly initialized
-              if (typeof window !== 'undefined') {
-                if (!window.R) {
-                  window.R = {};
+              // Ensure R and T objects are properly initialized immediately
+              (function() {
+                if (typeof window !== 'undefined') {
+                  // Create safe array utility function
+                  const safeArray = (array) => {
+                    if (Array.isArray(array)) return array;
+                    if (array === null || array === undefined) return [];
+                    if (typeof array === 'object' && array !== null) {
+                      try {
+                        return Array.from(array);
+                      } catch {
+                        return [];
+                      }
+                    }
+                    return [];
+                  };
+
+                  // Create robust filter function
+                  const createSafeFilter = () => (array, predicate) => {
+                    const safeArr = safeArray(array);
+                    try {
+                      return safeArr.filter(predicate);
+                    } catch (error) {
+                      console.warn('Filter error:', error);
+                      return [];
+                    }
+                  };
+
+                  // Create robust map function
+                  const createSafeMap = () => (array, mapper) => {
+                    const safeArr = safeArray(array);
+                    try {
+                      return safeArr.map(mapper);
+                    } catch (error) {
+                      console.warn('Map error:', error);
+                      return [];
+                    }
+                  };
+
+                  // Create robust find function
+                  const createSafeFind = () => (array, predicate) => {
+                    const safeArr = safeArray(array);
+                    try {
+                      return safeArr.find(predicate);
+                    } catch (error) {
+                      console.warn('Find error:', error);
+                      return undefined;
+                    }
+                  };
+
+                  // Create robust reduce function
+                  const createSafeReduce = () => (array, reducer, initialValue) => {
+                    const safeArr = safeArray(array);
+                    try {
+                      return safeArr.reduce(reducer, initialValue);
+                    } catch (error) {
+                      console.warn('Reduce error:', error);
+                      return initialValue;
+                    }
+                  };
+
+                  // Create robust forEach function
+                  const createSafeForEach = () => (array, callback) => {
+                    const safeArr = safeArray(array);
+                    try {
+                      return safeArr.forEach(callback);
+                    } catch (error) {
+                      console.warn('ForEach error:', error);
+                    }
+                  };
+
+                  // Create robust every function
+                  const createSafeEvery = () => (array, predicate) => {
+                    const safeArr = safeArray(array);
+                    try {
+                      return safeArr.every(predicate);
+                    } catch (error) {
+                      console.warn('Every error:', error);
+                      return true;
+                    }
+                  };
+
+                  // Initialize R object
+                  if (!window.R) {
+                    window.R = {};
+                  }
+                  window.R.filter = window.R.filter || createSafeFilter();
+                  window.R.map = window.R.map || createSafeMap();
+                  window.R.find = window.R.find || createSafeFind();
+                  window.R.reduce = window.R.reduce || createSafeReduce();
+                  window.R.forEach = window.R.forEach || createSafeForEach();
+                  window.R.every = window.R.every || createSafeEvery();
+
+                  // Initialize T object
+                  if (!window.T) {
+                    window.T = {};
+                  }
+                  window.T.filter = window.T.filter || createSafeFilter();
+                  window.T.map = window.T.map || createSafeMap();
+                  window.T.find = window.T.find || createSafeFind();
+                  window.T.reduce = window.T.reduce || createSafeReduce();
+                  window.T.forEach = window.T.forEach || createSafeForEach();
+                  window.T.every = window.T.every || createSafeEvery();
+
+                  console.log('✅ R and T objects initialized successfully:', { R: window.R, T: window.T });
                 }
-                
-                // Define safe array utility functions
-                const safeArray = (array) => Array.isArray(array) ? array : [];
-                
-                // Ensure all methods exist and are properly defined
-                window.R.filter = window.R.filter || ((array, predicate) => {
-                  const safeArr = safeArray(array);
-                  try {
-                    return safeArr.filter(predicate);
-                  } catch (error) {
-                    console.warn('R.filter error:', error);
-                    return [];
+              })();
+
+              // Global error handler to catch any remaining T.filter errors
+              window.addEventListener('error', function(event) {
+                if (event.error && event.error.message && event.error.message.includes('T.filter is not a function')) {
+                  console.warn('Caught T.filter error, ensuring T object is available');
+                  
+                  // Ensure T object exists
+                  if (!window.T) {
+                    window.T = {};
                   }
-                });
-                
-                window.R.map = window.R.map || ((array, mapper) => {
-                  const safeArr = safeArray(array);
-                  try {
-                    return safeArr.map(mapper);
-                  } catch (error) {
-                    console.warn('R.map error:', error);
-                    return [];
+                  
+                  // Ensure T.filter exists
+                  if (!window.T.filter) {
+                    window.T.filter = function(array, predicate) {
+                      if (!Array.isArray(array)) {
+                        console.warn('T.filter: Input is not an array:', array);
+                        return [];
+                      }
+                      try {
+                        return array.filter(predicate);
+                      } catch (error) {
+                        console.error('T.filter: Error during filtering:', error);
+                        return [];
+                      }
+                    };
                   }
-                });
-                
-                window.R.find = window.R.find || ((array, predicate) => {
-                  const safeArr = safeArray(array);
-                  try {
-                    return safeArr.find(predicate);
-                  } catch (error) {
-                    console.warn('R.find error:', error);
-                    return undefined;
-                  }
-                });
-                
-                window.R.some = window.R.some || ((array, predicate) => {
-                  const safeArr = safeArray(array);
-                  try {
-                    return safeArr.some(predicate);
-                  } catch (error) {
-                    console.warn('R.some error:', error);
-                    return false;
-                  }
-                });
-                
-                window.R.every = window.R.every || ((array, predicate) => {
-                  const safeArr = safeArray(array);
-                  try {
-                    return safeArr.every(predicate);
-                  } catch (error) {
-                    console.warn('R.every error:', error);
-                    return true;
-                  }
-                });
-                
-                // Also create a global T object to prevent t.filter errors
-                if (!window.T) {
-                  window.T = {};
+                  
+                  // Prevent the error from propagating
+                  event.preventDefault();
+                  return false;
                 }
-                
-                // Ensure T object has the same safe methods
-                window.T.filter = window.T.filter || ((array, predicate) => {
-                  const safeArr = safeArray(array);
-                  try {
-                    return safeArr.filter(predicate);
-                  } catch (error) {
-                    console.warn('T.filter error:', error);
-                    return [];
-                  }
-                });
-                
-                window.T.map = window.T.map || ((array, mapper) => {
-                  const safeArr = safeArray(array);
-                  try {
-                    return safeArr.map(mapper);
-                  } catch (error) {
-                    console.warn('T.map error:', error);
-                    return [];
-                  }
-                });
-                
-                window.T.find = window.T.find || ((array, predicate) => {
-                  const safeArr = safeArray(array);
-                  try {
-                    return safeArr.find(predicate);
-                  } catch (error) {
-                    console.warn('T.find error:', error);
-                    return undefined;
-                  }
-                });
-                
-                window.T.some = window.T.some || ((array, predicate) => {
-                  const safeArr = safeArray(array);
-                  try {
-                    return safeArr.some(predicate);
-                  } catch (error) {
-                    console.warn('T.some error:', error);
-                    return false;
-                  }
-                });
-                
-                window.T.every = window.T.every || ((array, predicate) => {
-                  const safeArr = safeArray(array);
-                  try {
-                    return safeArr.every(predicate);
-                  } catch (error) {
-                    console.warn('T.every error:', error);
-                    return true;
-                  }
-                });
-                 
-                 console.log('R and T objects initialized successfully:', { R: window.R, T: window.T });
-              }
-            `
+              });
+            `,
           }}
         />
       </head>
-      <body className="h-screen bg-background font-sans antialiased overflow-hidden">
-        <TooltipProvider>
-          <AuthProvider session={session}>
-            <NotificationProvider>
-              <WarningProvider>
-                <ErrorBoundary>
-                  <AppLayout>
-                    {children}
-                  </AppLayout>
-                  <ToastClient />
-                  <ModalCleanupMonitor />
-                </ErrorBoundary>
-              </WarningProvider>
-            </NotificationProvider>
-          </AuthProvider>
-        </TooltipProvider>
+      <body className={inter.className}>
+        <ErrorBoundary>
+          <SessionProvider session={session}>
+            <LoadingProvider>
+              <NotificationProvider>
+                <WarningProvider>
+                  {children}
+                </WarningProvider>
+              </NotificationProvider>
+            </LoadingProvider>
+          </SessionProvider>
+        </ErrorBoundary>
       </body>
     </html>
   );

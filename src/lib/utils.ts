@@ -1,6 +1,86 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 
+// Immediate initialization of T object to prevent T.filter errors
+if (typeof window !== 'undefined') {
+  // Create safe array utility function
+  const safeArray = (array: any) => {
+    if (Array.isArray(array)) return array;
+    if (array === null || array === undefined) return [];
+    if (typeof array === 'object' && array !== null) {
+      try {
+        return Array.from(array);
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  };
+
+  // Create robust filter function
+  const createSafeFilter = () => (array: any, predicate: any) => {
+    const safeArr = safeArray(array);
+    try {
+      return safeArr.filter(predicate);
+    } catch (error) {
+      console.warn('T.filter error:', error);
+      return [];
+    }
+  };
+
+  // Initialize T object immediately
+  if (!(window as any).T) {
+    (window as any).T = {};
+  }
+  (window as any).T.filter = (window as any).T.filter || createSafeFilter();
+  (window as any).T.map = (window as any).T.map || ((array: any, mapper: any) => {
+    const safeArr = safeArray(array);
+    try {
+      return safeArr.map(mapper);
+    } catch (error) {
+      console.warn('T.map error:', error);
+      return [];
+    }
+  });
+  (window as any).T.find = (window as any).T.find || ((array: any, predicate: any) => {
+    const safeArr = safeArray(array);
+    try {
+      return safeArr.find(predicate);
+    } catch (error) {
+      console.warn('T.find error:', error);
+      return undefined;
+    }
+  });
+  (window as any).T.reduce = (window as any).T.reduce || ((array: any, reducer: any, initialValue: any) => {
+    const safeArr = safeArray(array);
+    try {
+      return safeArr.reduce(reducer, initialValue);
+    } catch (error) {
+      console.warn('T.reduce error:', error);
+      return initialValue;
+    }
+  });
+  (window as any).T.forEach = (window as any).T.forEach || ((array: any, callback: any) => {
+    const safeArr = safeArray(array);
+    try {
+      return safeArr.forEach(callback);
+    } catch (error) {
+      console.warn('T.forEach error:', error);
+    }
+  });
+  (window as any).T.every = (window as any).T.every || ((array: any, predicate: any) => {
+    const safeArr = safeArray(array);
+    try {
+      return safeArr.every(predicate);
+    } catch (error) {
+      console.warn('T.every error:', error);
+      return true;
+    }
+  });
+
+  console.log('✅ T object initialized immediately in utils.ts');
+}
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }

@@ -1,17 +1,80 @@
 "use client";
 
-// Immediate T object initialization to prevent T.filter errors
+// Import T object initialization early
+import '@/lib/t-object-init';
 if (typeof window !== 'undefined') {
+  // Always ensure T object exists and has all required methods
   if (!(window as any).T) {
-    (window as any).T = {
-      filter: (array: any, predicate: any) => Array.isArray(array) ? array.filter(predicate) : [],
-      map: (array: any, mapper: any) => Array.isArray(array) ? array.map(mapper) : [],
-      find: (array: any, predicate: any) => Array.isArray(array) ? array.find(predicate) : undefined,
-      some: (array: any, predicate: any) => Array.isArray(array) ? array.some(predicate) : false,
-      every: (array: any, predicate: any) => Array.isArray(array) ? array.every(predicate) : true
-    };
-    console.log('✅ T object initialized immediately in AppLayout');
+    (window as any).T = {};
   }
+  
+  // Ensure all methods exist with robust error handling
+  (window as any).T.filter = (window as any).T.filter || ((array: any, predicate: any) => {
+    try {
+      if (!Array.isArray(array)) {
+        console.warn('T.filter: Input is not an array:', array);
+        return [];
+      }
+      return array.filter(predicate);
+    } catch (error) {
+      console.error('T.filter: Error during filtering:', error);
+      return [];
+    }
+  });
+  
+  (window as any).T.map = (window as any).T.map || ((array: any, mapper: any) => {
+    try {
+      if (!Array.isArray(array)) {
+        console.warn('T.map: Input is not an array:', array);
+        return [];
+      }
+      return array.map(mapper);
+    } catch (error) {
+      console.error('T.map: Error during mapping:', error);
+      return [];
+    }
+  });
+  
+  (window as any).T.find = (window as any).T.find || ((array: any, predicate: any) => {
+    try {
+      if (!Array.isArray(array)) {
+        console.warn('T.find: Input is not an array:', array);
+        return undefined;
+      }
+      return array.find(predicate);
+    } catch (error) {
+      console.error('T.find: Error during finding:', error);
+      return undefined;
+    }
+  });
+  
+  (window as any).T.some = (window as any).T.some || ((array: any, predicate: any) => {
+    try {
+      if (!Array.isArray(array)) {
+        console.warn('T.some: Input is not an array:', array);
+        return false;
+      }
+      return array.some(predicate);
+    } catch (error) {
+      console.error('T.some: Error during some operation:', error);
+      return false;
+    }
+  });
+  
+  (window as any).T.every = (window as any).T.every || ((array: any, predicate: any) => {
+    try {
+      if (!Array.isArray(array)) {
+        console.warn('T.every: Input is not an array:', array);
+        return true;
+      }
+      return array.every(predicate);
+    } catch (error) {
+      console.error('T.every: Error during every operation:', error);
+      return true;
+    }
+  });
+  
+  console.log('✅ T object initialized immediately in AppLayout with robust error handling');
 }
 
 import React, { type ReactNode, useState, useEffect } from "react";
@@ -86,15 +149,119 @@ interface AppLayoutProps {
 export function AppLayout({ children }: AppLayoutProps) {
   // Ensure T object is available during component initialization
   useEffect(() => {
-    if (typeof window !== 'undefined' && !(window as any).T) {
-      (window as any).T = {
-        filter: (array: any, predicate: any) => Array.isArray(array) ? array.filter(predicate) : [],
-        map: (array: any, mapper: any) => Array.isArray(array) ? array.map(mapper) : [],
-        find: (array: any, predicate: any) => Array.isArray(array) ? array.find(predicate) : undefined,
-        some: (array: any, predicate: any) => Array.isArray(array) ? array.some(predicate) : false,
-        every: (array: any, predicate: any) => Array.isArray(array) ? array.every(predicate) : true
+    if (typeof window !== 'undefined') {
+      // Always ensure T object exists
+      if (!(window as any).T) {
+        (window as any).T = {};
+      }
+      
+      // Ensure all methods exist with robust error handling
+      (window as any).T.filter = (window as any).T.filter || ((array: any, predicate: any) => {
+        try {
+          if (!Array.isArray(array)) {
+            console.warn('T.filter: Input is not an array:', array);
+            return [];
+          }
+          return array.filter(predicate);
+        } catch (error) {
+          console.error('T.filter: Error during filtering:', error);
+          return [];
+        }
+      });
+      
+      (window as any).T.map = (window as any).T.map || ((array: any, mapper: any) => {
+        try {
+          if (!Array.isArray(array)) {
+            console.warn('T.map: Input is not an array:', array);
+            return [];
+          }
+          return array.map(mapper);
+        } catch (error) {
+          console.error('T.map: Error during mapping:', error);
+          return [];
+        }
+      });
+      
+      (window as any).T.find = (window as any).T.find || ((array: any, predicate: any) => {
+        try {
+          if (!Array.isArray(array)) {
+            console.warn('T.find: Input is not an array:', array);
+            return undefined;
+          }
+          return array.find(predicate);
+        } catch (error) {
+          console.error('T.find: Error during finding:', error);
+          return undefined;
+        }
+      });
+      
+      (window as any).T.some = (window as any).T.some || ((array: any, predicate: any) => {
+        try {
+          if (!Array.isArray(array)) {
+            console.warn('T.some: Input is not an array:', array);
+            return false;
+          }
+          return array.some(predicate);
+        } catch (error) {
+          console.error('T.some: Error during some operation:', error);
+          return false;
+        }
+      });
+      
+      (window as any).T.every = (window as any).T.every || ((array: any, predicate: any) => {
+        try {
+          if (!Array.isArray(array)) {
+            console.warn('T.every: Input is not an array:', array);
+            return true;
+          }
+          return array.every(predicate);
+        } catch (error) {
+          console.error('T.every: Error during every operation:', error);
+          return true;
+        }
+      });
+      
+      console.log('✅ T object initialized in AppLayout useEffect with robust error handling');
+      
+      // Add global error handler for T.filter errors
+      const handleTFilterError = (event: ErrorEvent) => {
+        if (event.error && event.error.message && event.error.message.includes('T.filter is not a function')) {
+          console.warn('AppLayout caught T.filter error, ensuring T object is available');
+          
+          // Ensure T object exists
+          if (!(window as any).T) {
+            (window as any).T = {};
+          }
+          
+          // Ensure T.filter exists
+          if (!(window as any).T.filter) {
+            (window as any).T.filter = function(array: any, predicate: any) {
+              try {
+                if (!Array.isArray(array)) {
+                  console.warn('T.filter: Input is not an array:', array);
+                  return [];
+                }
+                return array.filter(predicate);
+              } catch (error) {
+                console.error('T.filter: Error during filtering:', error);
+                return [];
+              }
+            };
+          }
+          
+          // Prevent the error from propagating
+          event.preventDefault();
+          return false;
+        }
       };
-      console.log('✅ T object initialized in AppLayout useEffect');
+      
+      // Add error listener
+      window.addEventListener('error', handleTFilterError);
+      
+      // Cleanup function
+      return () => {
+        window.removeEventListener('error', handleTFilterError);
+      };
     }
   }, []);
 

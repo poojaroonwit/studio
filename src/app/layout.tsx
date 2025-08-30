@@ -3,6 +3,9 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+// Import T object initialization early
+import '@/lib/t-object-init';
+
 import { AuthProvider } from '@/components/auth/AuthProvider';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { NotificationProvider } from '@/contexts/NotificationContext';

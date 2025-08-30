@@ -160,206 +160,46 @@ export function safeSlice<T>(
   return safeArrayValue.slice(start, end);
 }
 
-// Comprehensive safe filter utility to prevent T.filter and f.filter errors
-export function safeFilterOperation<T>(
-  array: any, 
-  predicate: (value: T, index: number, array: T[]) => boolean,
-  context?: string
-): T[] {
-  try {
-    // Comprehensive safety checks
-    if (array === null || array === undefined) {
-      console.warn(`safeFilterOperation${context ? ` (${context})` : ''}: array is null or undefined`);
-      return [];
-    }
-    
-    if (!Array.isArray(array)) {
-      console.warn(`safeFilterOperation${context ? ` (${context})` : ''}: array is not an array:`, array, 'type:', typeof array);
-      return [];
-    }
-    
-    // Ensure predicate is a function
-    if (typeof predicate !== 'function') {
-      console.warn(`safeFilterOperation${context ? ` (${context})` : ''}: predicate is not a function:`, predicate);
-      return [];
-    }
-    
-    const result = array.filter(predicate);
-    
-    // Ensure the result is an array
-    if (!Array.isArray(result)) {
-      console.warn(`safeFilterOperation${context ? ` (${context})` : ''}: predicate returned non-array result:`, result);
-      return [];
-    }
-    
-    return result;
-  } catch (error) {
-    console.error(`safeFilterOperation${context ? ` (${context})` : ''} error:`, error);
-    return [];
-  }
-}
-
-// Safe map operation utility
-export function safeMapOperation<T, U>(
-  array: any, 
-  mapper: (value: T, index: number, array: T[]) => U,
-  context?: string
-): U[] {
-  try {
-    if (array === null || array === undefined) {
-      console.warn(`safeMapOperation${context ? ` (${context})` : ''}: array is null or undefined`);
-      return [];
-    }
-    
-    if (!Array.isArray(array)) {
-      console.warn(`safeMapOperation${context ? ` (${context})` : ''}: array is not an array:`, array, 'type:', typeof array);
-      return [];
-    }
-    
-    if (typeof mapper !== 'function') {
-      console.warn(`safeMapOperation${context ? ` (${context})` : ''}: mapper is not a function:`, mapper);
-      return [];
-    }
-    
-    const result = array.map(mapper);
-    
-    if (!Array.isArray(result)) {
-      console.warn(`safeMapOperation${context ? ` (${context})` : ''}: mapper returned non-array result:`, result);
-      return [];
-    }
-    
-    return result;
-  } catch (error) {
-    console.error(`safeMapOperation${context ? ` (${context})` : ''} error:`, error);
-    return [];
-  }
-}
-
 // Export a safe R utility that can be used throughout the application
 export const safeR = {
   filter: <T>(array: any, predicate: (value: T, index: number, array: T[]) => boolean): T[] => {
-    try {
-      // Additional safety check for the array parameter
-      if (array === null || array === undefined) {
-        console.warn('safeR.filter: array is null or undefined');
-        return [];
-      }
-      
-      // Check if array is actually an array
-      if (!Array.isArray(array)) {
-        console.warn('safeR.filter: array is not an array:', array, typeof array);
-        return [];
-      }
-      
-      if (typeof window !== 'undefined' && (window as any).R && typeof (window as any).R.filter === 'function') {
-        return (window as any).R.filter(array, predicate);
-      }
-      // Fallback to safe array utilities with explicit type parameter
-      return safeFilter<T>(array, predicate);
-    } catch (error) {
-      console.error('safeR.filter error:', error);
-      return [];
+    if (typeof window !== 'undefined' && (window as any).R && typeof (window as any).R.filter === 'function') {
+      return (window as any).R.filter(array, predicate);
     }
+    // Fallback to safe array utilities
+    return safeFilter(array, predicate);
   },
   
   map: <T, U>(array: any, mapper: (value: T, index: number, array: T[]) => U): U[] => {
-    try {
-      // Additional safety check for the array parameter
-      if (array === null || array === undefined) {
-        console.warn('safeR.map: array is null or undefined');
-        return [];
-      }
-      
-      // Check if array is actually an array
-      if (!Array.isArray(array)) {
-        console.warn('safeR.map: array is not an array:', array, typeof array);
-        return [];
-      }
-      
-      if (typeof window !== 'undefined' && (window as any).R && typeof (window as any).R.map === 'function') {
-        return (window as any).R.map(array, mapper);
-      }
-      // Fallback to safe array utilities with explicit type parameters
-      return safeMap<T, U>(array, mapper);
-    } catch (error) {
-      console.error('safeR.map error:', error);
-      return [];
+    if (typeof window !== 'undefined' && (window as any).R && typeof (window as any).R.map === 'function') {
+      return (window as any).R.map(array, mapper);
     }
+    // Fallback to safe array utilities
+    return safeMap(array, mapper);
   },
   
   find: <T>(array: any, predicate: (value: T, index: number, array: T[]) => boolean): T | undefined => {
-    try {
-      // Additional safety check for the array parameter
-      if (array === null || array === undefined) {
-        console.warn('safeR.find: array is null or undefined');
-        return undefined;
-      }
-      
-      // Check if array is actually an array
-      if (!Array.isArray(array)) {
-        console.warn('safeR.find: array is not an array:', array, typeof array);
-        return undefined;
-      }
-      
-      if (typeof window !== 'undefined' && (window as any).R && typeof (window as any).R.find === 'function') {
-        return (window as any).R.find(array, predicate);
-      }
-      // Fallback to safe array utilities with explicit type parameter
-      return safeFind<T>(array, predicate);
-    } catch (error) {
-      console.error('safeR.find error:', error);
-      return undefined;
+    if (typeof window !== 'undefined' && (window as any).R && typeof (window as any).R.find === 'function') {
+      return (window as any).R.find(array, predicate);
     }
+    // Fallback to safe array utilities
+    return safeFind(array, predicate);
   },
   
   some: <T>(array: any, predicate: (value: T, index: number, array: T[]) => boolean): boolean => {
-    try {
-      // Additional safety check for the array parameter
-      if (array === null || array === undefined) {
-        console.warn('safeR.some: array is null or undefined');
-        return false;
-      }
-      
-      // Check if array is actually an array
-      if (!Array.isArray(array)) {
-        console.warn('safeR.some: array is not an array:', array, typeof array);
-        return false;
-      }
-      
-      if (typeof window !== 'undefined' && (window as any).R && typeof (window as any).R.some === 'function') {
-        return (window as any).R.some(array, predicate);
-      }
-      // Fallback to safe array utilities with explicit type parameter
-      return safeSome<T>(array, predicate);
-    } catch (error) {
-      console.error('safeR.some error:', error);
-      return false;
+    if (typeof window !== 'undefined' && (window as any).R && typeof (window as any).R.some === 'function') {
+      return (window as any).R.some(array, predicate);
     }
+    // Fallback to safe array utilities
+    return safeSome(array, predicate);
   },
   
   every: <T>(array: any, predicate: (value: T, index: number, array: T[]) => boolean): boolean => {
-    try {
-      // Additional safety check for the array parameter
-      if (array === null || array === undefined) {
-        console.warn('safeR.every: array is null or undefined');
-        return true;
-      }
-      
-      // Check if array is actually an array
-      if (!Array.isArray(array)) {
-        console.warn('safeR.every: array is not an array:', array, typeof array);
-        return true;
-      }
-      
-      if (typeof window !== 'undefined' && (window as any).R && typeof (window as any).R.every === 'function') {
-        return (window as any).R.every(array, predicate);
-      }
-      // Fallback to safe array utilities with explicit type parameter
-      return safeEvery<T>(array, predicate);
-    } catch (error) {
-      console.error('safeR.every error:', error);
-      return true;
+    if (typeof window !== 'undefined' && (window as any).R && typeof (window as any).R.every === 'function') {
+      return (window as any).R.every(array, predicate);
     }
+    // Fallback to safe array utilities
+    return safeEvery(array, predicate);
   }
 };
 
@@ -506,6 +346,21 @@ if (typeof window !== 'undefined') {
     });
   }
 
+  // Initialize or update the global T object
+  if (!(window as any).T) {
+    (window as any).T = createRobustR();
+    console.log('T object initialized successfully');
+  } else {
+    // Ensure all methods exist on the global T object
+    const robustT = createRobustR();
+    Object.keys(robustT).forEach(key => {
+      if (!(window as any).T[key] || typeof (window as any).T[key] !== 'function') {
+        (window as any).T[key] = (robustT as any)[key];
+        console.log(`T.${key} method updated`);
+      }
+    });
+  }
+
   // Add a fallback mechanism for any missing methods
   const ensureRMethods = () => {
     if (!(window as any).R) {
@@ -524,13 +379,37 @@ if (typeof window !== 'undefined') {
     });
   };
 
-  // Ensure R methods are available after a short delay
-  setTimeout(ensureRMethods, 100);
+  const ensureTMethods = () => {
+    if (!(window as any).T) {
+      (window as any).T = createRobustR();
+      console.log('T object re-initialized due to missing object');
+    }
+    
+    const requiredMethods = ['filter', 'map', 'find', 'some', 'every', 'reduce', 'forEach'];
+    const robustT = createRobustR();
+    
+    requiredMethods.forEach(method => {
+      if (!(window as any).T[method] || typeof (window as any).T[method] !== 'function') {
+        (window as any).T[method] = (robustT as any)[method];
+        console.log(`T.${method} method restored`);
+      }
+    });
+  };
+
+  // Ensure R and T methods are available after a short delay
+  setTimeout(() => {
+    ensureRMethods();
+    ensureTMethods();
+  }, 100);
   
-  // Also ensure R methods are available when the DOM is ready
+  // Also ensure R and T methods are available when the DOM is ready
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', ensureRMethods);
+    document.addEventListener('DOMContentLoaded', () => {
+      ensureRMethods();
+      ensureTMethods();
+    });
   } else {
     ensureRMethods();
+    ensureTMethods();
   }
 }

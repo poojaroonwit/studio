@@ -165,67 +165,63 @@ export default async function RootLayout({
                   }
                 });
                 
-                window.R.forEach = window.R.forEach || ((array, callback) => {
-                  const safeArr = safeArray(array);
-                  try {
-                    return safeArr.forEach(callback);
-                  } catch (error) {
-                    console.warn('R.forEach error:', error);
-                  }
-                });
-                
-                window.R.reduce = window.R.reduce || ((array, callback, initialValue) => {
-                  const safeArr = safeArray(array);
-                  try {
-                    return safeArr.reduce(callback, initialValue);
-                  } catch (error) {
-                    console.warn('R.reduce error:', error);
-                    return initialValue;
-                  }
-                });
-                
-                // Test the R object to ensure it's working correctly
-                try {
-                  const testArray = [1, 2, 3, 4, 5];
-                  const testResult = window.R.filter(testArray, x => x > 2);
-                  console.log('R object test successful:', testResult);
-                } catch (testError) {
-                  console.error('R object test failed:', testError);
+                // Also create a global T object to prevent t.filter errors
+                if (!window.T) {
+                  window.T = {};
                 }
                 
-                                 // Add global error handler for T.filter and f.filter errors
-                 window.addEventListener('error', function(event) {
-                   if (event.error && event.error.message && (
-                     event.error.message.includes('T.filter is not a function') ||
-                     event.error.message.includes('f.filter is not a function')
-                   )) {
-                     console.error('Filter error detected:', event.error);
-                     console.error('Error stack:', event.error.stack);
-                     
-                     // Try to identify the source of the error
-                     const stack = event.error.stack || '';
-                     if (stack.includes('useMemo') || stack.includes('useCallback')) {
-                       console.warn('Filter error appears to be in a React hook. This might be due to a non-array value being passed to a filter operation.');
-                     }
-                     
-                     // Prevent the error from propagating
-                     event.preventDefault();
-                     return false;
-                   }
-                 });
-                 
-                 // Add unhandled promise rejection handler
-                 window.addEventListener('unhandledrejection', function(event) {
-                   if (event.reason && event.reason.message && (
-                     event.reason.message.includes('T.filter is not a function') ||
-                     event.reason.message.includes('f.filter is not a function')
-                   )) {
-                     console.error('Unhandled filter promise rejection:', event.reason);
-                     event.preventDefault();
-                   }
-                 });
+                // Ensure T object has the same safe methods
+                window.T.filter = window.T.filter || ((array, predicate) => {
+                  const safeArr = safeArray(array);
+                  try {
+                    return safeArr.filter(predicate);
+                  } catch (error) {
+                    console.warn('T.filter error:', error);
+                    return [];
+                  }
+                });
                 
-                console.log('R object initialized successfully:', window.R);
+                window.T.map = window.T.map || ((array, mapper) => {
+                  const safeArr = safeArray(array);
+                  try {
+                    return safeArr.map(mapper);
+                  } catch (error) {
+                    console.warn('T.map error:', error);
+                    return [];
+                  }
+                });
+                
+                window.T.find = window.T.find || ((array, predicate) => {
+                  const safeArr = safeArray(array);
+                  try {
+                    return safeArr.find(predicate);
+                  } catch (error) {
+                    console.warn('T.find error:', error);
+                    return undefined;
+                  }
+                });
+                
+                window.T.some = window.T.some || ((array, predicate) => {
+                  const safeArr = safeArray(array);
+                  try {
+                    return safeArr.some(predicate);
+                  } catch (error) {
+                    console.warn('T.some error:', error);
+                    return false;
+                  }
+                });
+                
+                window.T.every = window.T.every || ((array, predicate) => {
+                  const safeArr = safeArray(array);
+                  try {
+                    return safeArr.every(predicate);
+                  } catch (error) {
+                    console.warn('T.every error:', error);
+                    return true;
+                  }
+                });
+                 
+                 console.log('R and T objects initialized successfully:', { R: window.R, T: window.T });
               }
             `
           }}

@@ -83,6 +83,9 @@ export default function DashboardPageClient({
   // Use the new chart setup hook
   const { chartReady, isLoading: chartLoading, error: chartError } = useChartSetup();
   
+  // Ref to prevent permission refresh loops
+  const permissionRefreshRef = useRef(false);
+  
   // Placeholder for removed performance monitoring hooks
 
   // Check permissions for dashboard access - based on actual permissions, not hardcoded roles
@@ -261,24 +264,47 @@ export default function DashboardPageClient({
         signIn(undefined, { callbackUrl: window.location.pathname });
     }
     
-    // Auto-refresh permissions if they're missing for authenticated users
-    if (status === 'authenticated' && session?.user?.id && (!session.user.modulePermissions || session.user.modulePermissions.length === 0)) {
-      refreshPermissions().then(result => {
-        if (result.success) {
-          toast.success('Permissions updated');
-        } else {
-          console.error('[DASHBOARD] Failed to refresh permissions:', result.error);
-        }
-      }).catch(error => {
-        console.error('[DASHBOARD] Error refreshing permissions:', error);
-      });
-    }
-    
     // Show error as toast popup if present
     if (initialFetchError) {
       toast.error(initialFetchError);
     }
-  }, [initialCandidates, initialPositions, initialUsers, initialFetchError, serverAuthError, serverPermissionError, status, session?.user?.role, session?.user?.modulePermissions, refreshPermissions]);
+  }, [initialCandidates, initialPositions, initialUsers, initialFetchError, serverAuthError, serverPermissionError, status, session?.user?.role, session?.user?.modulePermissions]);
+
+  // Separate effect for permission refresh to prevent loops
+  useEffect(() => {
+    // Auto-refresh permissions if they're missing for authenticated users
+    if (status === 'authenticated' && session?.user?.id && (!session.user.modulePermissions || session.user.modulePermissions.length === 0)) {
+      // Prevent multiple simultaneous permission refresh calls
+      if (!permissionRefreshRef.current) {
+        permissionRefreshRef.current = true;
+        refreshPermissions().then(result => {
+          if (result.success) {
+            toast.success('Permissions updated');
+          } else {
+            console.error('[DASHBOARD] Failed to refresh permissions:', result.error);
+          }
+        }).catch(error => {
+          console.error('[DASHBOARD] Error refreshing permissions:', error);
+        }).finally(() => {
+          permissionRefreshRef.current = false;
+        });
+      }
+    }
+  }, [status, session?.user?.id, session?.user?.modulePermissions?.length, refreshPermissions]);
+
+  // Add error boundary for filter operations
+  const safeFilterCandidates = useCallback((candidates: any[], filterFn: (c: any) => boolean) => {
+    try {
+      if (!Array.isArray(candidates)) {
+        console.warn('[DASHBOARD] safeFilterCandidates: candidates is not an array:', candidates);
+        return [];
+      }
+      return candidates.filter(filterFn);
+    } catch (error) {
+      console.error('[DASHBOARD] Error filtering candidates:', error);
+      return [];
+    }
+  }, []);
 
   // Fetch data when session is authenticated and initial data is empty
   useEffect(() => {

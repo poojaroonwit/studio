@@ -12,6 +12,35 @@ import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { ModalCleanupMonitor } from '@/components/ui/ModalCleanupMonitor';
 
+// Global error handler for filter-related errors
+if (typeof window !== 'undefined') {
+  window.addEventListener('error', (event) => {
+    if (event.error && event.error.message && event.error.message.includes('filter is not a function')) {
+      console.error('[GLOBAL ERROR] Filter error detected:', {
+        message: event.error.message,
+        stack: event.error.stack,
+        filename: event.filename,
+        lineno: event.lineno,
+        colno: event.colno
+      });
+      
+      // Log additional context
+      console.error('[GLOBAL ERROR] Current window location:', window.location.href);
+      console.error('[GLOBAL ERROR] User agent:', navigator.userAgent);
+    }
+  });
+
+  // Also catch unhandled promise rejections
+  window.addEventListener('unhandledrejection', (event) => {
+    if (event.reason && event.reason.message && event.reason.message.includes('filter is not a function')) {
+      console.error('[GLOBAL ERROR] Unhandled promise rejection with filter error:', {
+        reason: event.reason,
+        promise: event.promise
+      });
+    }
+  });
+}
+
 // Temporarily disabled resource tracking to fix loading issue
 // import { initializeResourceTracking } from '@/lib/resource-leak-fixes';
 

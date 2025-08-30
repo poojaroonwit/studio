@@ -112,17 +112,17 @@ export function safeArray<T>(input: T[] | null | undefined | any): T[] {
 
 export function safeFilter<T>(
   array: T[] | null | undefined | any, 
-  predicate: (value: T, index: number, array: T[]) => boolean
+  predicate: (value: unknown, index: number, array: unknown[]) => boolean
 ): T[] {
-  const safeArrayValue = Array.isArray(array) ? array : [];
-  return safeArrayValue.filter(predicate);
+  const safeArrayValue = safeArray(array);
+  return safeArrayValue.filter(predicate) as T[];
 }
 
 export function safeMap<T, U>(
   array: T[] | null | undefined | any, 
-  mapper: (value: T, index: number, array: T[]) => U
+  mapper: (value: unknown, index: number, array: unknown[]) => U
 ): U[] {
-  const safeArrayValue = Array.isArray(array) ? array : [];
+  const safeArrayValue = safeArray(array);
   return safeArrayValue.map(mapper);
 }
 

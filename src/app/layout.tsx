@@ -253,21 +253,21 @@ export default async function RootLayout({
                   window.M.forEach = window.M.forEach || createSafeForEach();
                   window.M.every = window.M.every || createSafeEvery();
 
-                  // Universal single-letter global object protection
-                  // This covers any single-letter global object that might need array methods
-                  const singleLetterObjects = ['A', 'B', 'C', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'N', 'O', 'Q', 'S', 'U', 'V', 'W', 'X', 'Y', 'Z'];
-                  
-                  singleLetterObjects.forEach(letter => {
-                    if (!window[letter]) {
-                      window[letter] = {};
-                    }
-                    window[letter].filter = window[letter].filter || createSafeFilter();
-                    window[letter].map = window[letter].map || createSafeMap();
-                    window[letter].find = window[letter].find || createSafeFind();
-                    window[letter].reduce = window[letter].reduce || createSafeReduce();
-                    window[letter].forEach = window[letter].forEach || createSafeForEach();
-                    window[letter].every = window[letter].every || createSafeEvery();
-                  });
+                                            // Universal single-letter global object protection
+                          // This covers ALL single-letter global objects (A-Z) that might need array methods
+                          const singleLetterObjects = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
+                          
+                          singleLetterObjects.forEach(letter => {
+                            if (!window[letter]) {
+                              window[letter] = {};
+                            }
+                            window[letter].filter = window[letter].filter || createSafeFilter();
+                            window[letter].map = window[letter].map || createSafeMap();
+                            window[letter].find = window[letter].find || createSafeFind();
+                            window[letter].reduce = window[letter].reduce || createSafeReduce();
+                            window[letter].forEach = window[letter].forEach || createSafeForEach();
+                            window[letter].every = window[letter].every || createSafeEvery();
+                          });
 
                   console.log('✅ R, T, D, P, M and all single-letter objects initialized successfully');
                 }
@@ -513,7 +513,7 @@ export default async function RootLayout({
                       window[letter] = {};
                     }
                     
-                    // Ensure the filter method exists
+                    // Ensure ALL array methods exist for this letter
                     if (!window[letter].filter) {
                       window[letter].filter = function(array, predicate) {
                         if (!Array.isArray(array)) {
@@ -529,10 +529,99 @@ export default async function RootLayout({
                       };
                     }
                     
-                    // Additional debugging for D object specifically
-                    if (letter === 'D') {
-                      console.log('🔍 D object after error handler:', window.D);
-                      console.log('🔍 D.filter after error handler:', typeof window.D?.filter);
+                    if (!window[letter].map) {
+                      window[letter].map = function(array, mapper) {
+                        if (!Array.isArray(array)) {
+                          console.warn(letter + '.map: Input is not an array:', array);
+                          return [];
+                        }
+                        try {
+                          return array.map(mapper);
+                        } catch (error) {
+                          console.error(letter + '.map: Error during mapping:', error);
+                          return [];
+                        }
+                      };
+                    }
+                    
+                    if (!window[letter].find) {
+                      window[letter].find = function(array, predicate) {
+                        if (!Array.isArray(array)) {
+                          console.warn(letter + '.find: Input is not an array:', array);
+                          return undefined;
+                        }
+                        try {
+                          return array.find(predicate);
+                        } catch (error) {
+                          console.error(letter + '.find: Error during finding:', error);
+                          return undefined;
+                        }
+                      };
+                    }
+                    
+                    if (!window[letter].some) {
+                      window[letter].some = function(array, predicate) {
+                        if (!Array.isArray(array)) {
+                          console.warn(letter + '.some: Input is not an array:', array);
+                          return false;
+                        }
+                        try {
+                          return array.some(predicate);
+                        } catch (error) {
+                          console.error(letter + '.some: Error during some operation:', error);
+                          return false;
+                        }
+                      };
+                    }
+                    
+                    if (!window[letter].every) {
+                      window[letter].every = function(array, predicate) {
+                        if (!Array.isArray(array)) {
+                          console.warn(letter + '.every: Input is not an array:', array);
+                          return true;
+                        }
+                        try {
+                          return array.every(predicate);
+                        } catch (error) {
+                          console.error(letter + '.every: Error during every operation:', error);
+                          return true;
+                        }
+                      };
+                    }
+                    
+                    if (!window[letter].reduce) {
+                      window[letter].reduce = function(array, reducer, initialValue) {
+                        if (!Array.isArray(array)) {
+                          console.warn(letter + '.reduce: Input is not an array:', array);
+                          return initialValue;
+                        }
+                        try {
+                          return array.reduce(reducer, initialValue);
+                        } catch (error) {
+                          console.error(letter + '.reduce: Error during reduce operation:', error);
+                          return initialValue;
+                        }
+                      };
+                    }
+                    
+                    if (!window[letter].forEach) {
+                      window[letter].forEach = function(array, callback) {
+                        if (!Array.isArray(array)) {
+                          console.warn(letter + '.forEach: Input is not an array:', array);
+                          return;
+                        }
+                        try {
+                          return array.forEach(callback);
+                        } catch (error) {
+                          console.error(letter + '.forEach: Error during forEach operation:', error);
+                        }
+                      };
+                    }
+                    
+                    // Additional debugging for specific objects
+                    if (letter === 'D' || letter === 'P') {
+                      console.log('🔍 ' + letter + ' object after error handler:', window[letter]);
+                      console.log('🔍 ' + letter + '.filter after error handler:', typeof window[letter]?.filter);
                     }
                     
                     // Prevent the error from propagating

@@ -34,27 +34,29 @@ if (typeof window !== 'undefined') {
   
   console.log('🔍 ALL single-letter objects (A-Z) initialized in AppLayout');
   
-  // Additional verification for D object specifically
-  if ((window as any).D && (window as any).D.filter) {
-    console.log('✅ D.filter is properly initialized in AppLayout');
-  } else {
-    console.warn('⚠️ D.filter is missing in AppLayout, creating it now');
-    if (!(window as any).D) {
-      (window as any).D = {};
-    }
-    (window as any).D.filter = ((array: any, predicate: any) => {
-      try {
-        if (!Array.isArray(array)) {
-          console.warn('D.filter: Input is not an array:', array);
+  // Additional verification for problematic objects specifically
+  ['D', 'P', 'M', 'T'].forEach(letter => {
+    if ((window as any)[letter] && (window as any)[letter].filter) {
+      console.log('✅ ' + letter + '.filter is properly initialized in AppLayout');
+    } else {
+      console.warn('⚠️ ' + letter + '.filter is missing in AppLayout, creating it now');
+      if (!(window as any)[letter]) {
+        (window as any)[letter] = {};
+      }
+      (window as any)[letter].filter = ((array: any, predicate: any) => {
+        try {
+          if (!Array.isArray(array)) {
+            console.warn(letter + '.filter: Input is not an array:', array);
+            return [];
+          }
+          return array.filter(predicate);
+        } catch (error) {
+          console.error(letter + '.filter: Error during filtering:', error);
           return [];
         }
-        return array.filter(predicate);
-      } catch (error) {
-        console.error('D.filter: Error during filtering:', error);
-        return [];
-      }
-    });
-  }
+      });
+    }
+  });
   
   // Ensure all methods exist with robust error handling
   (window as any).T.filter = (window as any).T.filter || ((array: any, predicate: any) => {
@@ -229,27 +231,29 @@ export function AppLayout({ children }: AppLayoutProps) {
       
       console.log('🔍 ALL single-letter objects (A-Z) ensured in AppLayout useEffect');
       
-      // Additional verification for D object specifically
-      if ((window as any).D && (window as any).D.filter) {
-        console.log('✅ D.filter is properly ensured in AppLayout useEffect');
-      } else {
-        console.warn('⚠️ D.filter is missing in AppLayout useEffect, creating it now');
-        if (!(window as any).D) {
-          (window as any).D = {};
-        }
-        (window as any).D.filter = ((array: any, predicate: any) => {
-          try {
-            if (!Array.isArray(array)) {
-              console.warn('D.filter: Input is not an array:', array);
+      // Additional verification for problematic objects specifically
+      ['D', 'P', 'M', 'T'].forEach(letter => {
+        if ((window as any)[letter] && (window as any)[letter].filter) {
+          console.log('✅ ' + letter + '.filter is properly ensured in AppLayout useEffect');
+        } else {
+          console.warn('⚠️ ' + letter + '.filter is missing in AppLayout useEffect, creating it now');
+          if (!(window as any)[letter]) {
+            (window as any)[letter] = {};
+          }
+          (window as any)[letter].filter = ((array: any, predicate: any) => {
+            try {
+              if (!Array.isArray(array)) {
+                console.warn(letter + '.filter: Input is not an array:', array);
+                return [];
+              }
+              return array.filter(predicate);
+            } catch (error) {
+              console.error(letter + '.filter: Error during filtering:', error);
               return [];
             }
-            return array.filter(predicate);
-          } catch (error) {
-            console.error('D.filter: Error during filtering:', error);
-            return [];
-          }
-        });
-      }
+          });
+        }
+      });
       
       // Ensure all methods exist with robust error handling
       (window as any).T.filter = (window as any).T.filter || ((array: any, predicate: any) => {

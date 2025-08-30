@@ -163,23 +163,36 @@ if (typeof window !== 'undefined') {
   (window as any).M.reduce = (window as any).M.reduce || createSafeReduce();
   (window as any).M.forEach = (window as any).M.forEach || createSafeForEach();
 
-  // Universal single-letter global object protection
-  // This covers ALL single-letter global objects (A-Z) that might need array methods
-  const singleLetterObjects = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
-  
-  singleLetterObjects.forEach(letter => {
-    if (!(window as any)[letter]) {
-      (window as any)[letter] = {};
-    }
-    
-    (window as any)[letter].filter = (window as any)[letter].filter || createSafeFilter();
-    (window as any)[letter].map = (window as any)[letter].map || createSafeMap();
-    (window as any)[letter].find = (window as any)[letter].find || createSafeFind();
-    (window as any)[letter].some = (window as any)[letter].some || createSafeSome();
-    (window as any)[letter].every = (window as any)[letter].every || createSafeEvery();
-    (window as any)[letter].reduce = (window as any)[letter].reduce || createSafeReduce();
-    (window as any)[letter].forEach = (window as any)[letter].forEach || createSafeForEach();
-  });
+                // Universal single-letter global object protection
+              // This covers ALL single-letter global objects (A-Z) that might need array methods
+              const singleLetterObjects = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
+              
+              singleLetterObjects.forEach(letter => {
+                if (!(window as any)[letter]) {
+                  (window as any)[letter] = {};
+                }
+                
+                (window as any)[letter].filter = (window as any)[letter].filter || createSafeFilter();
+                (window as any)[letter].map = (window as any)[letter].map || createSafeMap();
+                (window as any)[letter].find = (window as any)[letter].find || createSafeFind();
+                (window as any)[letter].some = (window as any)[letter].some || createSafeSome();
+                (window as any)[letter].every = (window as any)[letter].every || createSafeEvery();
+                (window as any)[letter].reduce = (window as any)[letter].reduce || createSafeReduce();
+                (window as any)[letter].forEach = (window as any)[letter].forEach || createSafeForEach();
+              });
+              
+              // Additional verification for specific problematic objects
+              ['D', 'P', 'M', 'T'].forEach(letter => {
+                if ((window as any)[letter] && (window as any)[letter].filter) {
+                  console.log('✅ ' + letter + '.filter is properly initialized in t-object-init.ts');
+                } else {
+                  console.warn('⚠️ ' + letter + '.filter is missing in t-object-init.ts, creating it now');
+                  if (!(window as any)[letter]) {
+                    (window as any)[letter] = {};
+                  }
+                  (window as any)[letter].filter = createSafeFilter();
+                }
+              });
 
   console.log('✅ ALL single-letter global objects (A-Z) initialized with array methods');
 }

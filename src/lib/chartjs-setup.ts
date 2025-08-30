@@ -29,15 +29,6 @@ export function setupChartJS(): Promise<void> {
   setupStartTime = Date.now();
   
   setupPromise = Promise.all([
-    // Simple R polyfill check
-    Promise.resolve().then(() => {
-      if (typeof window !== 'undefined' && !(window as any).R) {
-        (window as any).R = {
-          filter: (predicate: any, list: any) => Array.isArray(list) ? list.filter(predicate) : [],
-          map: (fn: any, list: any) => Array.isArray(list) ? list.map(fn) : []
-        };
-      }
-    }),
     import('chart.js').catch(error => {
       console.error('setupChartJS: Failed to import chart.js:', error);
       throw new Error(`Failed to load Chart.js: ${error.message}`);
@@ -56,7 +47,7 @@ export function setupChartJS(): Promise<void> {
       console.warn('setupChartJS: Failed to import chart.js/auto, continuing without auto-registration:', error);
       return null;
     })
-  ]).then(([rPolyfill, chartJS, dateAdapter, dataLabels, chartAuto]) => {
+  ]).then(([chartJS, dateAdapter, dataLabels, chartAuto]) => {
     const { Chart: ChartJS, LinearScale, PointElement, Tooltip, Legend, TimeScale, ArcElement, CategoryScale, LogarithmicScale, BarElement, LineElement, Title, Filler } = chartJS;
     
     try {

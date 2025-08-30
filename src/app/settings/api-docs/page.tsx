@@ -17,16 +17,6 @@ export default function ApiDocsPage() {
 
   // Fetch server list and OpenAPI spec
   useEffect(() => {
-    // Simple R polyfill check
-    const ensureR = () => {
-      if (typeof window !== 'undefined' && !(window as any).R) {
-        (window as any).R = {
-          filter: (predicate: any, list: any) => Array.isArray(list) ? list.filter(predicate) : [],
-          map: (fn: any, list: any) => Array.isArray(list) ? list.map(fn) : []
-        };
-      }
-    };
-
     // Load Swagger UI CSS dynamically
     const link = document.createElement('link');
     link.rel = 'stylesheet';
@@ -38,8 +28,6 @@ export default function ApiDocsPage() {
       fetch("/api-docs").then(res => res.json())
     ])
       .then(async ([serverList, spec]) => {
-        // Ensure R is available before setting the spec
-        await ensureR();
         
         setServers(serverList);
         const defaultServer = serverList[0]?.url || spec.servers?.[0]?.url || window.location.origin;

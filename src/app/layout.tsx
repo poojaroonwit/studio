@@ -90,20 +90,6 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <head>
-        {/* Simple R polyfill for third-party libraries */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              // Simple R polyfill for third-party libraries
-              if (typeof window !== 'undefined' && !window.R) {
-                window.R = {
-                  filter: (predicate, list) => Array.isArray(list) ? list.filter(predicate) : [],
-                  map: (fn, list) => Array.isArray(list) ? list.map(fn) : []
-                };
-              }
-            `,
-          }}
-        />
       </head>
       <body className="h-screen bg-background font-sans antialiased overflow-hidden">
         <TooltipProvider>

@@ -11,16 +11,6 @@ export default function ApiDocsUIPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Simple R polyfill check
-    const ensureR = () => {
-      if (typeof window !== 'undefined' && !(window as any).R) {
-        (window as any).R = {
-          filter: (predicate: any, list: any) => Array.isArray(list) ? list.filter(predicate) : [],
-          map: (fn: any, list: any) => Array.isArray(list) ? list.map(fn) : []
-        };
-      }
-    };
-
     // Load Swagger UI CSS dynamically
     const link = document.createElement('link');
     link.rel = 'stylesheet';
@@ -29,8 +19,6 @@ export default function ApiDocsUIPage() {
 
     const fetchSwaggerSpec = async () => {
       try {
-        // Ensure R is available before fetching
-        await ensureR();
         
         const response = await fetch('/api-docs', {
           method: 'GET',

@@ -1,25 +1,14 @@
 'use client';
 
-import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
-// CSS will be loaded dynamically
-
-const SwaggerUI = dynamic(() => import('swagger-ui-react'), { ssr: false });
 
 export default function ApiDocsUIPage() {
   const [swaggerSpec, setSwaggerSpec] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Load Swagger UI CSS dynamically
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = 'https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui.css';
-    document.head.appendChild(link);
-
     const fetchSwaggerSpec = async () => {
       try {
-        
         const response = await fetch('/api-docs', {
           method: 'GET',
           headers: {
@@ -41,14 +30,6 @@ export default function ApiDocsUIPage() {
     };
 
     fetchSwaggerSpec();
-
-    // Cleanup function to remove the CSS link
-    return () => {
-      const existingLink = document.querySelector('link[href*="swagger-ui.css"]');
-      if (existingLink) {
-        existingLink.remove();
-      }
-    };
   }, []);
 
   if (error) {
@@ -74,29 +55,23 @@ export default function ApiDocsUIPage() {
     <div style={{ 
       height: '100%', 
       width: '100%',
-      overflow: 'auto'
+      overflow: 'auto',
+      padding: '20px'
     }}>
-      <style jsx global>{`
-        /* Hide server selection dropdown since we only have one server */
-        .servers, .servers-title, .servers-container {
-          display: none !important;
-        }
-      `}</style>
-      <SwaggerUI 
-        spec={swaggerSpec}
-        docExpansion="list"
-        defaultModelsExpandDepth={2}
-        defaultModelExpandDepth={2}
-        tryItOutEnabled={true}
-        requestInterceptor={(request) => {
-          // Add any request interceptors if needed
-          return request;
-        }}
-        responseInterceptor={(response) => {
-          // Add any response interceptors if needed
-          return response;
-        }}
-      />
+      <h1>API Documentation</h1>
+      <p>API specification loaded successfully. The interactive Swagger UI has been temporarily disabled.</p>
+      <details>
+        <summary>View Raw API Specification (JSON)</summary>
+        <pre style={{ 
+          background: '#f5f5f5', 
+          padding: '15px', 
+          borderRadius: '5px',
+          overflow: 'auto',
+          maxHeight: '500px'
+        }}>
+          {JSON.stringify(swaggerSpec, null, 2)}
+        </pre>
+      </details>
     </div>
   );
 } 

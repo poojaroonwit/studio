@@ -1,105 +1,70 @@
-// src/app/api-docs/page.tsx
-"use client";
-import dynamic from "next/dynamic";
-import React, { useEffect, useState } from "react";
+'use client';
 
-const SwaggerUI = dynamic(() => import("swagger-ui-react"), { ssr: false });
-// CSS will be loaded dynamically
-
-type Server = { url: string; description?: string };
+import { useEffect, useState } from 'react';
 
 export default function ApiDocsPage() {
-  const [servers, setServers] = useState<Server[]>([]);
-  const [swaggerSpec, setSwaggerSpec] = useState(null);
-  const [serverUrl, setServerUrl] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [swaggerSpec, setSwaggerSpec] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  // Fetch server list and OpenAPI spec
   useEffect(() => {
-    // Load Swagger UI CSS dynamically
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = 'https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui.css';
-    document.head.appendChild(link);
-
-    Promise.all([
-      fetch("/api-docs/servers").then(res => res.json()),
-      fetch("/api-docs").then(res => res.json())
-    ])
-      .then(async ([serverList, spec]) => {
+    const fetchSwaggerSpec = async () => {
+      try {
+        const [serversResponse, specResponse] = await Promise.all([
+          fetch("/api-docs/servers").then(res => res.json()),
+          fetch("/api-docs").then(res => res.json())
+        ]);
         
-        setServers(serverList);
-        const defaultServer = serverList[0]?.url || spec.servers?.[0]?.url || window.location.origin;
-        setServerUrl(defaultServer);
-        setSwaggerSpec(spec);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message || "Failed to load spec or servers");
-        setLoading(false);
-      });
-
-    // Cleanup function to remove the CSS link
-    return () => {
-      const existingLink = document.querySelector('link[href*="swagger-ui.css"]');
-      if (existingLink) {
-        existingLink.remove();
+        setSwaggerSpec({ servers: serversResponse, spec: specResponse });
+      } catch (err) {
+        console.error('Failed to fetch Swagger spec:', err);
+        const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
+        setError(errorMessage);
       }
     };
+
+    fetchSwaggerSpec();
   }, []);
 
-  // Update the servers array in the spec when serverUrl changes
-  const getPatchedSpec = () => {
-    if (
-      !swaggerSpec ||
-      typeof swaggerSpec !== "object" ||
-      Array.isArray(swaggerSpec)
-    ) return null;
-    return {
-      ...(swaggerSpec as Record<string, any>),
-      servers: [
-        servers.find(s => s.url === serverUrl) || { url: serverUrl, description: "Custom server" },
-        ...servers.filter(s => s.url !== serverUrl)
-      ]
-    };
-  };
+  if (error) {
+    return (
+      <div style={{ padding: '20px' }}>
+        <h2>API Documentation Error</h2>
+        <p>Failed to load API documentation: {error}</p>
+        <p>Please try refreshing the page or contact support if the issue persists.</p>
+      </div>
+    );
+  }
 
-  if (loading) return <div className="p-4">Loading API documentation...</div>;
-  if (error) return <div className="p-4 text-red-600">Error: {error}</div>;
+  if (!swaggerSpec) {
+    return (
+      <div style={{ padding: '20px' }}>
+        <h2>Loading API Documentation...</h2>
+        <p>Please wait while we load the API documentation.</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="h-full w-full bg-background p-0 overflow-auto">
-      <div className="p-4 bg-white border-b flex items-center gap-2">
-        <label htmlFor="server-url" className="font-medium mr-2">Server:</label>
-        <select
-          id="server-url"
-          value={serverUrl}
-          onChange={e => setServerUrl(e.target.value)}
-          className="border rounded px-2 py-1 w-96 max-w-full"
-        >
-          {servers.map((server) => (
-            <option key={server.url} value={server.url}>
-              {server.description || server.url}
-            </option>
-          ))}
-        </select>
-        <span className="text-xs text-gray-500 ml-2">(Select the API server to test)</span>
-      </div>
-      <SwaggerUI
-        spec={getPatchedSpec()}
-        docExpansion="list"
-        defaultModelsExpandDepth={-1}
-        tryItOutEnabled={true}
-        requestInterceptor={(request) => {
-          // Add any request interceptors if needed
-          return request;
-        }}
-        responseInterceptor={(response) => {
-          // Add any response interceptors if needed
-          return response;
-        }}
-      />
+    <div style={{ 
+      height: '100%', 
+      width: '100%',
+      overflow: 'auto',
+      padding: '20px'
+    }}>
+      <h1>API Documentation</h1>
+      <p>API specification loaded successfully. The interactive Swagger UI has been temporarily disabled.</p>
+      <details>
+        <summary>View Raw API Specification (JSON)</summary>
+        <pre style={{ 
+          background: '#f5f5f5', 
+          padding: '15px', 
+          borderRadius: '5px',
+          overflow: 'auto',
+          maxHeight: '500px'
+        }}>
+          {JSON.stringify(swaggerSpec, null, 2)}
+        </pre>
+      </details>
     </div>
   );
 }

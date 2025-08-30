@@ -112,17 +112,17 @@ export function safeArray<T>(input: T[] | null | undefined | any): T[] {
 
 export function safeFilter<T>(
   array: T[] | null | undefined | any, 
-  predicate: (value: T, index: number, array: T[]) => boolean
+  predicate: (value: unknown, index: number, array: unknown[]) => boolean
 ): T[] {
-  const safeArrayValue = Array.isArray(array) ? array : [];
-  return safeArrayValue.filter(predicate);
+  const safeArrayValue = safeArray(array);
+  return safeArrayValue.filter(predicate) as T[];
 }
 
 export function safeMap<T, U>(
   array: T[] | null | undefined | any, 
-  mapper: (value: T, index: number, array: T[]) => U
+  mapper: (value: unknown, index: number, array: unknown[]) => U
 ): U[] {
-  const safeArrayValue = Array.isArray(array) ? array : [];
+  const safeArrayValue = safeArray(array);
   return safeArrayValue.map(mapper);
 }
 
@@ -161,20 +161,4 @@ export function safeSlice<T>(
 ): T[] {
   const safeArrayValue = Array.isArray(array) ? array : [];
   return safeArrayValue.slice(start, end);
-}
-
-// Global fix to prevent R.filter errors
-if (typeof window !== 'undefined') {
-  // Ensure R is always defined to prevent errors
-  if (!(window as any).R) {
-    (window as any).R = {};
-  }
-  
-  // Override R.filter with a safe implementation
-  (window as any).R.filter = function(predicate: any, array: any): any[] {
-    if (!Array.isArray(array)) {
-      return [];
-    }
-    return array.filter(predicate);
-  };
 }

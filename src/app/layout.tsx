@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import { SessionProvider } from '@/components/auth/SessionProvider';
+import { authOptions } from '@/lib/auth';
+import { AuthProvider } from '@/components/auth/AuthProvider';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import { WarningProvider } from '@/contexts/WarningContext';
@@ -248,7 +248,7 @@ export default async function RootLayout({
       </head>
       <body className={inter.className}>
         <ErrorBoundary>
-          <SessionProvider session={session}>
+          <AuthProvider session={session}>
             <LoadingProvider>
               <NotificationProvider>
                 <WarningProvider>
@@ -256,7 +256,7 @@ export default async function RootLayout({
                 </WarningProvider>
               </NotificationProvider>
             </LoadingProvider>
-          </SessionProvider>
+          </AuthProvider>
         </ErrorBoundary>
       </body>
     </html>

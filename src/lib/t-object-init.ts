@@ -1,12 +1,7 @@
-// T Object Initialization - Import this early to ensure T object is available
-// This file should be imported before any components that might use T.filter
+// Global Array Objects Initialization - Import this early to ensure all global objects are available
+// This file should be imported before any components that might use T.filter, D.filter, etc.
 
 if (typeof window !== 'undefined') {
-  // Always ensure T object exists
-  if (!(window as any).T) {
-    (window as any).T = {};
-  }
-  
   // Create safe array utility function
   const safeArray = (array: any) => {
     if (Array.isArray(array)) return array;
@@ -20,89 +15,122 @@ if (typeof window !== 'undefined') {
     }
     return [];
   };
-  
-  // Ensure all methods exist with robust error handling
-  (window as any).T.filter = (window as any).T.filter || ((array: any, predicate: any) => {
+
+  // Create safe array methods
+  const createSafeFilter = () => (array: any, predicate: any) => {
     try {
       const safeArr = safeArray(array);
       return safeArr.filter(predicate);
     } catch (error) {
-      console.error('T.filter: Error during filtering:', error);
+      console.error('Global filter: Error during filtering:', error);
       return [];
     }
-  });
-  
-  (window as any).T.map = (window as any).T.map || ((array: any, mapper: any) => {
+  };
+
+  const createSafeMap = () => (array: any, mapper: any) => {
     try {
       const safeArr = safeArray(array);
       return safeArr.map(mapper);
     } catch (error) {
-      console.error('T.map: Error during mapping:', error);
+      console.error('Global map: Error during mapping:', error);
       return [];
     }
-  });
-  
-  (window as any).T.find = (window as any).T.find || ((array: any, predicate: any) => {
+  };
+
+  const createSafeFind = () => (array: any, predicate: any) => {
     try {
       const safeArr = safeArray(array);
       return safeArr.find(predicate);
     } catch (error) {
-      console.error('T.find: Error during finding:', error);
+      console.error('Global find: Error during finding:', error);
       return undefined;
     }
-  });
-  
-  (window as any).T.some = (window as any).T.some || ((array: any, predicate: any) => {
+  };
+
+  const createSafeSome = () => (array: any, predicate: any) => {
     try {
       const safeArr = safeArray(array);
       return safeArr.some(predicate);
     } catch (error) {
-      console.error('T.some: Error during some operation:', error);
+      console.error('Global some: Error during some operation:', error);
       return false;
     }
-  });
-  
-  (window as any).T.every = (window as any).T.every || ((array: any, predicate: any) => {
+  };
+
+  const createSafeEvery = () => (array: any, predicate: any) => {
     try {
       const safeArr = safeArray(array);
       return safeArr.every(predicate);
     } catch (error) {
-      console.error('T.every: Error during every operation:', error);
+      console.error('Global every: Error during every operation:', error);
       return true;
     }
-  });
-  
-  (window as any).T.reduce = (window as any).T.reduce || ((array: any, reducer: any, initialValue: any) => {
+  };
+
+  const createSafeReduce = () => (array: any, reducer: any, initialValue: any) => {
     try {
       const safeArr = safeArray(array);
       return safeArr.reduce(reducer, initialValue);
     } catch (error) {
-      console.error('T.reduce: Error during reduce operation:', error);
+      console.error('Global reduce: Error during reduce operation:', error);
       return initialValue;
     }
-  });
-  
-  (window as any).T.forEach = (window as any).T.forEach || ((array: any, callback: any) => {
+  };
+
+  const createSafeForEach = () => (array: any, callback: any) => {
     try {
       const safeArr = safeArray(array);
       return safeArr.forEach(callback);
     } catch (error) {
-      console.error('T.forEach: Error during forEach operation:', error);
+      console.error('Global forEach: Error during forEach operation:', error);
     }
-  });
+  };
+
+  // Initialize T object
+  if (!(window as any).T) {
+    (window as any).T = {};
+  }
   
-  console.log('✅ T object initialized in dedicated init file with all methods');
+  (window as any).T.filter = (window as any).T.filter || createSafeFilter();
+  (window as any).T.map = (window as any).T.map || createSafeMap();
+  (window as any).T.find = (window as any).T.find || createSafeFind();
+  (window as any).T.some = (window as any).T.some || createSafeSome();
+  (window as any).T.every = (window as any).T.every || createSafeEvery();
+  (window as any).T.reduce = (window as any).T.reduce || createSafeReduce();
+  (window as any).T.forEach = (window as any).T.forEach || createSafeForEach();
+
+  // Initialize D object (for any D.filter usage)
+  if (!(window as any).D) {
+    (window as any).D = {};
+  }
+  
+  (window as any).D.filter = (window as any).D.filter || createSafeFilter();
+  (window as any).D.map = (window as any).D.map || createSafeMap();
+  (window as any).D.find = (window as any).D.find || createSafeFind();
+  (window as any).D.some = (window as any).D.some || createSafeSome();
+  (window as any).D.every = (window as any).D.every || createSafeEvery();
+  (window as any).D.reduce = (window as any).D.reduce || createSafeReduce();
+  (window as any).D.forEach = (window as any).D.forEach || createSafeForEach();
+
+  // Initialize R object (for any R.filter usage)
+  if (!(window as any).R) {
+    (window as any).R = {};
+  }
+  
+  (window as any).R.filter = (window as any).R.filter || createSafeFilter();
+  (window as any).R.map = (window as any).R.map || createSafeMap();
+  (window as any).R.find = (window as any).R.find || createSafeFind();
+  (window as any).R.some = (window as any).R.some || createSafeSome();
+  (window as any).R.every = (window as any).R.every || createSafeEvery();
+  (window as any).R.reduce = (window as any).R.reduce || createSafeReduce();
+  (window as any).R.forEach = (window as any).R.forEach || createSafeForEach();
+
+  console.log('✅ Global objects (T, D, R) initialized with all array methods');
 }
 
-// Export a function to ensure T object is available
-export function ensureTObject() {
-  if (typeof window !== 'undefined' && !(window as any).T) {
-    console.warn('T object not found, reinitializing...');
-    // Re-run initialization
-    if (!(window as any).T) {
-      (window as any).T = {};
-    }
-    
+// Export a function to ensure all global objects are available
+export function ensureGlobalObjects() {
+  if (typeof window !== 'undefined') {
     const safeArray = (array: any) => {
       if (Array.isArray(array)) return array;
       if (array === null || array === undefined) return [];
@@ -115,20 +143,43 @@ export function ensureTObject() {
       }
       return [];
     };
-    
-    (window as any).T.filter = (window as any).T.filter || ((array: any, predicate: any) => {
+
+    const createSafeFilter = () => (array: any, predicate: any) => {
       try {
         const safeArr = safeArray(array);
         return safeArr.filter(predicate);
       } catch (error) {
-        console.error('T.filter: Error during filtering:', error);
+        console.error('Global filter: Error during filtering:', error);
         return [];
       }
-    });
-    
-    console.log('✅ T object reinitialized via ensureTObject function');
+    };
+
+    // Ensure T object
+    if (!(window as any).T) {
+      (window as any).T = {};
+    }
+    (window as any).T.filter = (window as any).T.filter || createSafeFilter();
+
+    // Ensure D object
+    if (!(window as any).D) {
+      (window as any).D = {};
+    }
+    (window as any).D.filter = (window as any).D.filter || createSafeFilter();
+
+    // Ensure R object
+    if (!(window as any).R) {
+      (window as any).R = {};
+    }
+    (window as any).R.filter = (window as any).R.filter || createSafeFilter();
+
+    console.log('✅ Global objects (T, D, R) reinitialized via ensureGlobalObjects function');
   }
 }
 
+// Backward compatibility
+export function ensureTObject() {
+  ensureGlobalObjects();
+}
+
 // Auto-ensure on import
-ensureTObject();
+ensureGlobalObjects();

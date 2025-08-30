@@ -211,39 +211,83 @@ export default async function RootLayout({
                   window.T.forEach = window.T.forEach || createSafeForEach();
                   window.T.every = window.T.every || createSafeEvery();
 
-                  console.log('✅ R and T objects initialized successfully:', { R: window.R, T: window.T });
+                  // Initialize D object (for any D.filter usage)
+                  if (!window.D) {
+                    window.D = {};
+                  }
+                  window.D.filter = window.D.filter || createSafeFilter();
+                  window.D.map = window.D.map || createSafeMap();
+                  window.D.find = window.D.find || createSafeFind();
+                  window.D.reduce = window.D.reduce || createSafeReduce();
+                  window.D.forEach = window.D.forEach || createSafeForEach();
+                  window.D.every = window.D.every || createSafeEvery();
+
+                  console.log('✅ R, T, and D objects initialized successfully:', { R: window.R, T: window.T, D: window.D });
                 }
               })();
 
-              // Global error handler to catch any remaining T.filter errors
+              // Global error handler to catch any remaining T.filter or D.filter errors
               window.addEventListener('error', function(event) {
-                if (event.error && event.error.message && event.error.message.includes('T.filter is not a function')) {
-                  console.warn('Caught T.filter error, ensuring T object is available');
-                  
-                  // Ensure T object exists
-                  if (!window.T) {
-                    window.T = {};
+                if (event.error && event.error.message) {
+                  // Handle T.filter errors
+                  if (event.error.message.includes('T.filter is not a function')) {
+                    console.warn('Caught T.filter error, ensuring T object is available');
+                    
+                    // Ensure T object exists
+                    if (!window.T) {
+                      window.T = {};
+                    }
+                    
+                    // Ensure T.filter exists
+                    if (!window.T.filter) {
+                      window.T.filter = function(array, predicate) {
+                        if (!Array.isArray(array)) {
+                          console.warn('T.filter: Input is not an array:', array);
+                          return [];
+                        }
+                        try {
+                          return array.filter(predicate);
+                        } catch (error) {
+                          console.error('T.filter: Error during filtering:', error);
+                          return [];
+                        }
+                      };
+                    }
+                    
+                    // Prevent the error from propagating
+                    event.preventDefault();
+                    return false;
                   }
                   
-                  // Ensure T.filter exists
-                  if (!window.T.filter) {
-                    window.T.filter = function(array, predicate) {
-                      if (!Array.isArray(array)) {
-                        console.warn('T.filter: Input is not an array:', array);
-                        return [];
-                      }
-                      try {
-                        return array.filter(predicate);
-                      } catch (error) {
-                        console.error('T.filter: Error during filtering:', error);
-                        return [];
-                      }
-                    };
+                  // Handle D.filter errors
+                  if (event.error.message.includes('D.filter is not a function')) {
+                    console.warn('Caught D.filter error, ensuring D object is available');
+                    
+                    // Ensure D object exists
+                    if (!window.D) {
+                      window.D = {};
+                    }
+                    
+                    // Ensure D.filter exists
+                    if (!window.D.filter) {
+                      window.D.filter = function(array, predicate) {
+                        if (!Array.isArray(array)) {
+                          console.warn('D.filter: Input is not an array:', array);
+                          return [];
+                        }
+                        try {
+                          return array.filter(predicate);
+                        } catch (error) {
+                          console.error('D.filter: Error during filtering:', error);
+                          return [];
+                        }
+                      };
+                    }
+                    
+                    // Prevent the error from propagating
+                    event.preventDefault();
+                    return false;
                   }
-                  
-                  // Prevent the error from propagating
-                  event.preventDefault();
-                  return false;
                 }
               });
             `,

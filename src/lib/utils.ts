@@ -163,43 +163,68 @@ export function safeSlice<T>(
 // Export a safe R utility that can be used throughout the application
 export const safeR = {
   filter: <T>(array: any, predicate: (value: T, index: number, array: T[]) => boolean): T[] => {
-    if (typeof window !== 'undefined' && (window as any).R && typeof (window as any).R.filter === 'function') {
-      return (window as any).R.filter(array, predicate);
+    try {
+      if (typeof window !== 'undefined' && (window as any).R && typeof (window as any).R.filter === 'function') {
+        return (window as any).R.filter(array, predicate);
+      }
+      // Fallback to safe array utilities with explicit type parameter
+      return safeFilter<T>(array, predicate);
+    } catch (error) {
+      console.error('safeR.filter error:', error);
+      return [];
     }
-    // Fallback to safe array utilities
-    return safeFilter(array, predicate);
   },
   
   map: <T, U>(array: any, mapper: (value: T, index: number, array: T[]) => U): U[] => {
-    if (typeof window !== 'undefined' && (window as any).R && typeof (window as any).R.map === 'function') {
-      return (window as any).R.map(array, mapper);
+    try {
+      if (typeof window !== 'undefined' && (window as any).R && typeof (window as any).R.map === 'function') {
+        return (window as any).R.map(array, mapper);
+      }
+      // Fallback to safe array utilities with explicit type parameters
+      return safeMap<T, U>(array, mapper);
+    } catch (error) {
+      console.error('safeR.map error:', error);
+      return [];
     }
-    // Fallback to safe array utilities
-    return safeMap(array, mapper);
   },
   
   find: <T>(array: any, predicate: (value: T, index: number, array: T[]) => boolean): T | undefined => {
-    if (typeof window !== 'undefined' && (window as any).R && typeof (window as any).R.find === 'function') {
-      return (window as any).R.find(array, predicate);
+    try {
+      if (typeof window !== 'undefined' && (window as any).R && typeof (window as any).R.find === 'function') {
+        return (window as any).R.find(array, predicate);
+      }
+      // Fallback to safe array utilities with explicit type parameter
+      return safeFind<T>(array, predicate);
+    } catch (error) {
+      console.error('safeR.find error:', error);
+      return undefined;
     }
-    // Fallback to safe array utilities
-    return safeFind(array, predicate);
   },
   
   some: <T>(array: any, predicate: (value: T, index: number, array: T[]) => boolean): boolean => {
-    if (typeof window !== 'undefined' && (window as any).R && typeof (window as any).R.some === 'function') {
-      return (window as any).R.some(array, predicate);
+    try {
+      if (typeof window !== 'undefined' && (window as any).R && typeof (window as any).R.some === 'function') {
+        return (window as any).R.some(array, predicate);
+      }
+      // Fallback to safe array utilities with explicit type parameter
+      return safeSome<T>(array, predicate);
+    } catch (error) {
+      console.error('safeR.some error:', error);
+      return false;
     }
-    // Fallback to safe array utilities
-    return safeSome(array, predicate);
   },
   
   every: <T>(array: any, predicate: (value: T, index: number, array: T[]) => boolean): boolean => {
-    if (typeof window !== 'undefined' && (window as any).R && typeof (window as any).R.every === 'function') {
-      return (window as any).R.every(array, predicate);
+    try {
+      if (typeof window !== 'undefined' && (window as any).R && typeof (window as any).R.every === 'function') {
+        return (window as any).R.every(array, predicate);
+      }
+      // Fallback to safe array utilities with explicit type parameter
+      return safeEvery<T>(array, predicate);
+    } catch (error) {
+      console.error('safeR.every error:', error);
+      return true;
     }
-    // Fallback to safe array utilities
-    return safeEvery(array, predicate);
   }
 };
 

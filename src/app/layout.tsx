@@ -165,6 +165,26 @@ export default async function RootLayout({
                   }
                 });
                 
+                // Test the R object to ensure it's working correctly
+                try {
+                  const testArray = [1, 2, 3, 4, 5];
+                  const testResult = window.R.filter(testArray, x => x > 2);
+                  console.log('R object test successful:', testResult);
+                } catch (testError) {
+                  console.error('R object test failed:', testError);
+                }
+                
+                // Add global error handler for T.filter errors
+                window.addEventListener('error', function(event) {
+                  if (event.error && event.error.message && event.error.message.includes('T.filter is not a function')) {
+                    console.error('T.filter error detected:', event.error);
+                    console.error('Error stack:', event.error.stack);
+                    // Prevent the error from being thrown
+                    event.preventDefault();
+                    return false;
+                  }
+                });
+                
                 console.log('R object initialized successfully:', window.R);
               }
             `

@@ -141,11 +141,11 @@ export async function GET(request: NextRequest) {
             'label', g.label,
             'slaDays', g."sla_days",
             'color', g.color
-          ) as grade`;
+          ) as grade,`;
 
       // Add headcount data if requested
       if (includeHeadcount) {
-        mainQuery += `,
+        mainQuery += `
           COALESCE(hc_stats.total_headcount, 0) as "totalHeadcount",
           COALESCE(hc_stats.vacant_headcount, 0) as "vacantHeadcount",
           COALESCE(hc_stats.filled_headcount, 0) as "filledHeadcount"`;

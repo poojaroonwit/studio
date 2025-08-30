@@ -86,33 +86,48 @@
       }
     });
 
-    // Initialize all single-letter global objects (A-Z) with aggressive overwriting
-    const singleLetterObjects = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-    const safeMethods = createSafeMethods();
-    
-    singleLetterObjects.forEach(letter => {
-      // Always create the object, even if it exists
-      (window as any)[letter] = {};
+    // Function to ensure ALL global objects are properly initialized
+    const ensureAllGlobalObjects = () => {
+      // ALL single-letter objects A-Z
+      const allLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+      const safeMethods = createSafeMethods();
       
-      // Always overwrite all methods to ensure they're our safe versions
-      Object.keys(safeMethods).forEach(method => {
-        (window as any)[letter][method] = safeMethods[method as keyof typeof safeMethods];
+      allLetters.forEach(letter => {
+        // Always recreate the object completely for ALL letters
+        (window as any)[letter] = {};
+        
+        // Always overwrite all methods to ensure they're our safe versions for ALL letters
+        Object.keys(safeMethods).forEach(method => {
+          (window as any)[letter][method] = safeMethods[method as keyof typeof safeMethods];
+        });
       });
-    });
+    };
 
-    // Add a more aggressive global error handler
+    // Initialize ALL single-letter global objects (A-Z) with aggressive overwriting
+    ensureAllGlobalObjects();
+
+    // Add a comprehensive global error handler for ALL letters
     const originalErrorHandler = window.onerror;
     window.onerror = function(message, source, lineno, colno, error) {
+      // Check for ANY single-letter object method error (A.filter, B.map, C.find, etc.)
       if (typeof message === 'string' && message.includes('.filter is not a function')) {
         const match = message.match(/([A-Z])\.filter is not a function/);
         if (match) {
           const letter = match[1];
-          // Aggressively recreate the object and methods
-          (window as any)[letter] = {};
-          Object.keys(safeMethods).forEach(method => {
-            (window as any)[letter][method] = safeMethods[method as keyof typeof safeMethods];
-          });
-          console.warn(`Aggressively fixed missing ${letter}.filter function`);
+          console.warn(`🚨 CRITICAL: ${letter}.filter is missing! Recreating ALL global objects (A-Z)...`);
+          ensureAllGlobalObjects();
+          return true; // Prevent the error from being logged
+        }
+      }
+      
+      // Also check for other method errors (map, find, some, every, reduce, forEach)
+      if (typeof message === 'string' && message.includes(' is not a function')) {
+        const methodMatch = message.match(/([A-Z])\.(filter|map|find|some|every|reduce|forEach) is not a function/);
+        if (methodMatch) {
+          const letter = methodMatch[1];
+          const method = methodMatch[2];
+          console.warn(`CRITICAL: ${letter}.${method} is missing! Recreating ALL global objects (A-Z)...`);
+          ensureAllGlobalObjects();
           return true; // Prevent the error from being logged
         }
       }
@@ -124,24 +139,92 @@
       return false;
     };
 
-    // Add a periodic check to ensure objects are still available
+    // Add a more frequent periodic check to ensure ALL objects are still available
     setInterval(() => {
-      singleLetterObjects.forEach(letter => {
+      const allLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+      let needsRecreation = false;
+      
+      allLetters.forEach(letter => {
         if (!(window as any)[letter] || typeof (window as any)[letter].filter !== 'function') {
-          console.warn(`Periodic check: Recreating ${letter} object`);
-          (window as any)[letter] = {};
-          Object.keys(safeMethods).forEach(method => {
-            (window as any)[letter][method] = safeMethods[method as keyof typeof safeMethods];
-          });
+          console.warn(`Periodic check: ${letter} object is missing or corrupted`);
+          needsRecreation = true;
         }
       });
-    }, 5000); // Check every 5 seconds
+      
+      if (needsRecreation) {
+        console.warn('Periodic check: Recreating ALL global objects (A-Z) due to corruption');
+        ensureAllGlobalObjects();
+      }
+    }, 1000); // Check every 1 second
 
-    console.log('✅ All single-letter global objects (A-Z) initialized with aggressive protection');
+    // Add a MutationObserver to detect when global objects might be tampered with
+    if (typeof MutationObserver !== 'undefined') {
+      const observer = new MutationObserver(() => {
+        // Check if ANY global objects are missing after DOM mutations
+        const allLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+        let needsRecreation = false;
+        
+        allLetters.forEach(letter => {
+          if (!(window as any)[letter] || typeof (window as any)[letter].filter !== 'function') {
+            needsRecreation = true;
+          }
+        });
+        
+        if (needsRecreation) {
+          console.warn('MutationObserver: Recreating ALL global objects (A-Z) after DOM mutation');
+          ensureAllGlobalObjects();
+        }
+      });
+      
+      observer.observe(document, { childList: true, subtree: true });
+    }
+
+    // Add a beforeunload listener to ensure ALL objects are available
+    window.addEventListener('beforeunload', () => {
+      ensureAllGlobalObjects();
+    });
+
+    // Add a focus listener to ensure ALL objects are available when window regains focus
+    window.addEventListener('focus', () => {
+      const allLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+      let needsRecreation = false;
+      
+      allLetters.forEach(letter => {
+        if (!(window as any)[letter] || typeof (window as any)[letter].filter !== 'function') {
+          needsRecreation = true;
+        }
+      });
+      
+      if (needsRecreation) {
+        console.warn('Focus event: Recreating ALL global objects (A-Z)');
+        ensureAllGlobalObjects();
+      }
+    });
+
+    // Add a visibility change listener
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        const allLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+        let needsRecreation = false;
+        
+        allLetters.forEach(letter => {
+          if (!(window as any)[letter] || typeof (window as any)[letter].filter !== 'function') {
+            needsRecreation = true;
+          }
+        });
+        
+        if (needsRecreation) {
+          console.warn('Visibility change: Recreating ALL global objects (A-Z)');
+          ensureAllGlobalObjects();
+        }
+      }
+    });
+
+    console.log('✅ ALL single-letter global objects (A-Z) initialized with ultra-aggressive protection');
   }
 })();
 
-// Export a function to ensure all global objects are available
+// Export a function to ensure ALL global objects are available
 export function ensureGlobalObjects() {
   if (typeof window !== 'undefined') {
     const safeArray = (array: any) => {
@@ -168,16 +251,16 @@ export function ensureGlobalObjects() {
       }
     };
 
-    // Ensure all single-letter objects exist with aggressive overwriting
-    const singleLetterObjects = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+    // Ensure ALL single-letter objects exist with aggressive overwriting
+    const allLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
     
-    singleLetterObjects.forEach(letter => {
-      // Always recreate the object
+    allLetters.forEach(letter => {
+      // Always recreate the object for ALL letters
       (window as any)[letter] = {};
       (window as any)[letter].filter = createSafeFilter();
     });
 
-    console.log('✅ All single-letter global objects (A-Z) aggressively reinitialized');
+    console.log('✅ ALL single-letter global objects (A-Z) aggressively reinitialized');
   }
 }
 
@@ -196,4 +279,7 @@ if (typeof window !== 'undefined') {
   } else {
     ensureGlobalObjects();
   }
+  
+  // Ensure on window load as well
+  window.addEventListener('load', ensureGlobalObjects);
 }

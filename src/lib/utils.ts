@@ -89,8 +89,8 @@ export function safeJsonParse<T>(jsonString: string | null | undefined, defaultV
 
 export { formatScoreWithGrade } from './scoreUtils';
 
-// Comprehensive safe array utilities to prevent T.filter errors
-export const safeArrayUtils = {
+// React-specific safe array utilities that don't rely on global objects
+export const reactSafeArray = {
   // Safely ensure a value is an array
   ensureArray: <T>(value: any): T[] => {
     if (Array.isArray(value)) return value;
@@ -105,80 +105,219 @@ export const safeArrayUtils = {
     return [];
   },
 
-  // Safe filter operation
+  // Safe filter operation - React component safe
   filter: <T>(array: any, predicate: (value: T, index: number, array: T[]) => boolean): T[] => {
     try {
-      const safeArr = safeArrayUtils.ensureArray<T>(array);
+      const safeArr = reactSafeArray.ensureArray<T>(array);
       const result = safeArr.filter(predicate);
       return Array.isArray(result) ? result : [];
     } catch (error) {
-      console.warn('safeArrayUtils.filter error:', error);
+      console.warn('reactSafeArray.filter error:', error);
       return [];
     }
   },
 
-  // Safe map operation
+  // Safe map operation - React component safe
   map: <T, U>(array: any, mapper: (value: T, index: number, array: T[]) => U): U[] => {
     try {
-      const safeArr = safeArrayUtils.ensureArray<T>(array);
+      const safeArr = reactSafeArray.ensureArray<T>(array);
       const result = safeArr.map(mapper);
       return Array.isArray(result) ? result : [];
     } catch (error) {
-      console.warn('safeArrayUtils.map error:', error);
+      console.warn('reactSafeArray.map error:', error);
       return [];
     }
   },
 
-  // Safe find operation
+  // Safe find operation - React component safe
   find: <T>(array: any, predicate: (value: T, index: number, array: T[]) => boolean): T | undefined => {
     try {
-      const safeArr = safeArrayUtils.ensureArray<T>(array);
+      const safeArr = reactSafeArray.ensureArray<T>(array);
       return safeArr.find(predicate);
     } catch (error) {
-      console.warn('safeArrayUtils.find error:', error);
+      console.warn('reactSafeArray.find error:', error);
       return undefined;
     }
   },
 
-  // Safe some operation
+  // Safe some operation - React component safe
   some: <T>(array: any, predicate: (value: T, index: number, array: T[]) => boolean): boolean => {
     try {
-      const safeArr = safeArrayUtils.ensureArray<T>(array);
+      const safeArr = reactSafeArray.ensureArray<T>(array);
       return safeArr.some(predicate);
     } catch (error) {
-      console.warn('safeArrayUtils.some error:', error);
+      console.warn('reactSafeArray.some error:', error);
       return false;
     }
   },
 
-  // Safe every operation
+  // Safe every operation - React component safe
   every: <T>(array: any, predicate: (value: T, index: number, array: T[]) => boolean): boolean => {
     try {
-      const safeArr = safeArrayUtils.ensureArray<T>(array);
+      const safeArr = reactSafeArray.ensureArray<T>(array);
       return safeArr.every(predicate);
     } catch (error) {
-      console.warn('safeArrayUtils.every error:', error);
+      console.warn('reactSafeArray.every error:', error);
       return true;
     }
   },
 
-  // Safe reduce operation
+  // Safe reduce operation - React component safe
   reduce: <T, U>(array: any, reducer: (accumulator: U, value: T, index: number, array: T[]) => U, initialValue: U): U => {
     try {
-      const safeArr = safeArrayUtils.ensureArray<T>(array);
+      const safeArr = reactSafeArray.ensureArray<T>(array);
       return safeArr.reduce(reducer, initialValue);
     } catch (error) {
-      console.warn('safeArrayUtils.reduce error:', error);
+      console.warn('reactSafeArray.reduce error:', error);
       return initialValue;
     }
   },
 
-  // Safe forEach operation
+  // Safe forEach operation - React component safe
   forEach: <T>(array: any, callback: (value: T, index: number, array: T[]) => void): void => {
     try {
-      const safeArr = safeArrayUtils.ensureArray<T>(array);
+      const safeArr = reactSafeArray.ensureArray<T>(array);
       safeArr.forEach(callback);
     } catch (error) {
+      console.warn('reactSafeArray.forEach error:', error);
+    }
+  },
+
+  // Safe slice operation - React component safe
+  slice: <T>(array: any, start?: number, end?: number): T[] => {
+    try {
+      const safeArr = reactSafeArray.ensureArray<T>(array);
+      return safeArr.slice(start, end);
+    } catch (error) {
+      console.warn('reactSafeArray.slice error:', error);
+      return [];
+    }
+  },
+
+  // Safe length check - React component safe
+  length: (array: any): number => {
+    try {
+      const safeArr = reactSafeArray.ensureArray(array);
+      return safeArr.length;
+    } catch (error) {
+      console.warn('reactSafeArray.length error:', error);
+      return 0;
+    }
+  },
+
+  // Safe includes check - React component safe
+  includes: <T>(array: any, searchElement: T, fromIndex?: number): boolean => {
+    try {
+      const safeArr = reactSafeArray.ensureArray<T>(array);
+      return safeArr.includes(searchElement, fromIndex);
+    } catch (error) {
+      console.warn('reactSafeArray.includes error:', error);
+      return false;
+    }
+  },
+
+  // Safe indexOf check - React component safe
+  indexOf: <T>(array: any, searchElement: T, fromIndex?: number): number => {
+    try {
+      const safeArr = reactSafeArray.ensureArray<T>(array);
+      return safeArr.indexOf(searchElement, fromIndex);
+    } catch (error) {
+      console.warn('reactSafeArray.indexOf error:', error);
+      return -1;
+    }
+  }
+};
+
+// Comprehensive safe array utilities to prevent T.filter errors
+export const safeArrayUtils = {
+  // Safely ensure a value is an array
+  ensureArray: <T>(value: any): T[] => {
+    if (Array.isArray(value)) return value;
+    if (value === null || value === undefined) return [];
+    if (typeof value === 'object' && value !== null) {
+      try {
+        return Array.from(value);
+        } catch {
+          return [];
+        }
+      }
+      return [];
+  },
+
+  // Safe filter operation
+      filter: <T>(array: any, predicate: (value: T, index: number, array: T[]) => boolean): T[] => {
+        try {
+      const safeArr = safeArrayUtils.ensureArray<T>(array);
+          const result = safeArr.filter(predicate);
+      return Array.isArray(result) ? result : [];
+        } catch (error) {
+      console.warn('safeArrayUtils.filter error:', error);
+          return [];
+        }
+      },
+      
+  // Safe map operation
+      map: <T, U>(array: any, mapper: (value: T, index: number, array: T[]) => U): U[] => {
+        try {
+      const safeArr = safeArrayUtils.ensureArray<T>(array);
+          const result = safeArr.map(mapper);
+      return Array.isArray(result) ? result : [];
+        } catch (error) {
+      console.warn('safeArrayUtils.map error:', error);
+          return [];
+        }
+      },
+      
+  // Safe find operation
+      find: <T>(array: any, predicate: (value: T, index: number, array: T[]) => boolean): T | undefined => {
+        try {
+      const safeArr = safeArrayUtils.ensureArray<T>(array);
+          return safeArr.find(predicate);
+        } catch (error) {
+      console.warn('safeArrayUtils.find error:', error);
+          return undefined;
+        }
+      },
+      
+  // Safe some operation
+      some: <T>(array: any, predicate: (value: T, index: number, array: T[]) => boolean): boolean => {
+        try {
+      const safeArr = safeArrayUtils.ensureArray<T>(array);
+          return safeArr.some(predicate);
+        } catch (error) {
+      console.warn('safeArrayUtils.some error:', error);
+          return false;
+        }
+      },
+      
+  // Safe every operation
+      every: <T>(array: any, predicate: (value: T, index: number, array: T[]) => boolean): boolean => {
+        try {
+      const safeArr = safeArrayUtils.ensureArray<T>(array);
+          return safeArr.every(predicate);
+        } catch (error) {
+      console.warn('safeArrayUtils.every error:', error);
+          return true;
+        }
+      },
+      
+  // Safe reduce operation
+      reduce: <T, U>(array: any, reducer: (accumulator: U, value: T, index: number, array: T[]) => U, initialValue: U): U => {
+        try {
+      const safeArr = safeArrayUtils.ensureArray<T>(array);
+          return safeArr.reduce(reducer, initialValue);
+        } catch (error) {
+      console.warn('safeArrayUtils.reduce error:', error);
+          return initialValue;
+        }
+      },
+      
+  // Safe forEach operation
+      forEach: <T>(array: any, callback: (value: T, index: number, array: T[]) => void): void => {
+        try {
+      const safeArr = safeArrayUtils.ensureArray<T>(array);
+          safeArr.forEach(callback);
+        } catch (error) {
       console.warn('safeArrayUtils.forEach error:', error);
     }
   },
@@ -240,3 +379,16 @@ export const safeSlice = safeArrayUtils.slice;
 export const safeLength = safeArrayUtils.length;
 export const safeIncludes = safeArrayUtils.includes;
 export const safeIndexOf = safeArrayUtils.indexOf;
+
+// React-specific exports
+export const reactSafeFilter = reactSafeArray.filter;
+export const reactSafeMap = reactSafeArray.map;
+export const reactSafeFind = reactSafeArray.find;
+export const reactSafeSome = reactSafeArray.some;
+export const reactSafeEvery = reactSafeArray.every;
+export const reactSafeReduce = reactSafeArray.reduce;
+export const reactSafeForEach = reactSafeArray.forEach;
+export const reactSafeSlice = reactSafeArray.slice;
+export const reactSafeLength = reactSafeArray.length;
+export const reactSafeIncludes = reactSafeArray.includes;
+export const reactSafeIndexOf = reactSafeArray.indexOf;

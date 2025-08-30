@@ -54,7 +54,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             __html: `
               (function() {
                 if (typeof window !== 'undefined') {
-                  // Simple fallback initialization for immediate availability
+                  // Ultra-aggressive fallback initialization for immediate availability
                   const safeArray = (arr) => Array.isArray(arr) ? arr : [];
                   const createMethods = () => ({
                     filter: (arr, fn) => { try { return safeArray(arr).filter(fn); } catch { return []; } },
@@ -66,18 +66,82 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                     forEach: (arr, fn) => { try { safeArray(arr).forEach(fn); } catch {} }
                   });
                   
-                  // Quick initialization for immediate availability
-                  'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(letter => {
-                    if (!window[letter]) {
+                  // Function to ensure all global objects
+                  const ensureAllGlobalObjects = () => {
+                    'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(letter => {
+                      // Always recreate the object completely
                       window[letter] = {};
                       const methods = createMethods();
                       Object.keys(methods).forEach(method => {
                         window[letter][method] = methods[method];
                       });
+                    });
+                  };
+                  
+                  // Ultra-aggressive initialization - always recreate all objects
+                  ensureAllGlobalObjects();
+                  
+                  // Add comprehensive error handler for ALL letters and ALL methods
+                  window.addEventListener('error', function(event) {
+                    if (event.error?.message) {
+                      const message = event.error.message;
+                      
+                      // Check for ANY single-letter object method error (A.filter, B.map, C.find, etc.)
+                      if (message.includes('.filter is not a function')) {
+                        const match = message.match(/([A-Z])\.filter is not a function/);
+                        if (match) {
+                          const letter = match[1];
+                          console.warn('🚨 CRITICAL: ' + letter + '.filter is missing! Recreating ALL global objects (A-Z)...');
+                          ensureAllGlobalObjects();
+                          event.preventDefault();
+                          return false;
+                        }
+                      }
+                      
+                      // Also check for other method errors (map, find, some, every, reduce, forEach)
+                      if (message.includes(' is not a function')) {
+                        const methodMatch = message.match(/([A-Z])\.(filter|map|find|some|every|reduce|forEach) is not a function/);
+                        if (methodMatch) {
+                          const letter = methodMatch[1];
+                          const method = methodMatch[2];
+                          console.warn('🚨 CRITICAL: ' + letter + '.' + method + ' is missing! Recreating ALL global objects (A-Z)...');
+                          ensureAllGlobalObjects();
+                          event.preventDefault();
+                          return false;
+                        }
+                      }
                     }
                   });
                   
-                  console.log('✅ Quick global objects initialization in layout.tsx');
+                  // Periodic check every 500ms for ALL letters
+                  setInterval(() => {
+                    let needsRecreation = false;
+                    'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(letter => {
+                      if (!window[letter] || typeof window[letter].filter !== 'function') {
+                        needsRecreation = true;
+                      }
+                    });
+                    if (needsRecreation) {
+                      console.warn('Periodic check: Recreating ALL global objects (A-Z)');
+                      ensureAllGlobalObjects();
+                    }
+                  }, 500);
+                  
+                  // Add focus listener for ALL letters
+                  window.addEventListener('focus', () => {
+                    let needsRecreation = false;
+                    'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(letter => {
+                      if (!window[letter] || typeof window[letter].filter !== 'function') {
+                        needsRecreation = true;
+                      }
+                    });
+                    if (needsRecreation) {
+                      console.warn('Focus event: Recreating ALL global objects (A-Z)');
+                      ensureAllGlobalObjects();
+                    }
+                  });
+                  
+                  console.log('✅ Ultra-aggressive global objects initialization for ALL letters (A-Z) in layout.tsx');
                 }
               })();
             `,

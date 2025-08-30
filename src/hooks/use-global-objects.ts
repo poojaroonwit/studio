@@ -6,8 +6,8 @@ export function useGlobalObjects() {
 
   useEffect(() => {
     if (typeof window !== 'undefined' && !initializedRef.current) {
-      // Ensure global objects are available immediately
-      const ensureAllGlobalObjects = () => {
+      // Ensure safe global objects are available immediately (excluding R to avoid conflicts)
+      const ensureSafeGlobalObjects = () => {
         const safeArray = (arr: any) => Array.isArray(arr) ? arr : [];
         const createMethods = () => ({
           filter: (arr: any, fn: any) => { try { return safeArray(arr).filter(fn); } catch { return []; } },
@@ -19,8 +19,9 @@ export function useGlobalObjects() {
           forEach: (arr: any, fn: any) => { try { safeArray(arr).forEach(fn); } catch {} }
         });
 
-        // Ensure ALL global objects A-Z
-        'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(letter => {
+        // Ensure safe global objects (excluding R to avoid conflicts with libraries like Ramda)
+        'ABCDEFGHIJKLMNOPQSTUVWXYZ'.split('').forEach(letter => {
+          // Only create the object if it doesn't exist or if it doesn't have the required methods
           if (!(window as any)[letter] || typeof (window as any)[letter].filter !== 'function') {
             (window as any)[letter] = {};
             const methods = createMethods();
@@ -32,12 +33,12 @@ export function useGlobalObjects() {
       };
 
       // Ensure immediately
-      ensureAllGlobalObjects();
+      ensureSafeGlobalObjects();
       initializedRef.current = true;
 
       // Also ensure on any React state changes
       const interval = setInterval(() => {
-        ensureAllGlobalObjects();
+        ensureSafeGlobalObjects();
       }, 100); // Check every 100ms during React component lifecycle
 
       return () => {
@@ -60,12 +61,16 @@ export function useGlobalObjects() {
         forEach: (arr: any, fn: any) => { try { safeArray(arr).forEach(fn); } catch {} }
       });
 
-      'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(letter => {
-        (window as any)[letter] = {};
-        const methods = createMethods();
-        Object.keys(methods).forEach(method => {
-          (window as any)[letter][method] = methods[method as keyof typeof methods];
-        });
+      // Ensure safe global objects (excluding R)
+      'ABCDEFGHIJKLMNOPQSTUVWXYZ'.split('').forEach(letter => {
+        // Only create the object if it doesn't exist or if it doesn't have the required methods
+        if (!(window as any)[letter] || typeof (window as any)[letter].filter !== 'function') {
+          (window as any)[letter] = {};
+          const methods = createMethods();
+          Object.keys(methods).forEach(method => {
+            (window as any)[letter][method] = methods[method as keyof typeof methods];
+          });
+        }
       });
     }
   };

@@ -58,14 +58,14 @@ export function AppLayout({ children }: AppLayoutProps) {
   // Use component protection hook for ultra-aggressive global object protection
   const { ensureObjects } = useComponentProtection();
 
-  // Ensure single-letter objects are available during component initialization
+  // Ensure safe single-letter objects are available during component initialization
   useEffect(() => {
     if (typeof window !== 'undefined') {
       // Import and call the ensure function from t-object-init
       import('@/lib/t-object-init').then(({ ensureGlobalObjects }) => {
         ensureGlobalObjects();
         ensureObjects(); // Additional protection
-        console.log('ALL single-letter objects (A-Z) ensured in AppLayout useEffect');
+        console.log('Safe single-letter objects (A-Z, excluding R) ensured in AppLayout useEffect');
       });
     }
   }, [ensureObjects]);

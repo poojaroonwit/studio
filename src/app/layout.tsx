@@ -54,7 +54,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             __html: `
               (function() {
                 if (typeof window !== 'undefined') {
-                  // Ultra-aggressive fallback initialization for immediate availability
+                  // Safe fallback initialization for immediate availability (excluding R to avoid conflicts)
                   const safeArray = (arr) => Array.isArray(arr) ? arr : [];
                   const createMethods = () => ({
                     filter: (arr, fn) => { try { return safeArray(arr).filter(fn); } catch { return []; } },
@@ -66,35 +66,41 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                     forEach: (arr, fn) => { try { safeArray(arr).forEach(fn); } catch {} }
                   });
                   
-                  // Function to ensure all global objects
-                  const ensureAllGlobalObjects = () => {
-                    'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(letter => {
-                      // Always recreate the object completely
-                      window[letter] = {};
-                      const methods = createMethods();
-                      Object.keys(methods).forEach(method => {
-                        window[letter][method] = methods[method];
-                      });
+                  // Function to ensure safe global objects (excluding R)
+                  const ensureSafeGlobalObjects = () => {
+                    // Safe letters excluding R to avoid conflicts with libraries like Ramda
+                    'ABCDEFGHIJKLMNOPQSTUVWXYZ'.split('').forEach(letter => {
+                      // Only create the object if it doesn't exist or if it doesn't have the required methods
+                      if (!window[letter] || typeof window[letter].filter !== 'function') {
+                        window[letter] = {};
+                        const methods = createMethods();
+                        Object.keys(methods).forEach(method => {
+                          window[letter][method] = methods[method];
+                        });
+                      }
                     });
                   };
                   
-                  // Ultra-aggressive initialization - always recreate all objects
-                  ensureAllGlobalObjects();
+                  // Safe initialization - only create objects that don't exist
+                  ensureSafeGlobalObjects();
                   
-                  // Add comprehensive error handler for ALL letters and ALL methods
+                  // Add comprehensive error handler for safe letters only
                   window.addEventListener('error', function(event) {
                     if (event.error?.message) {
                       const message = event.error.message;
                       
-                      // Check for ANY single-letter object method error (A.filter, B.map, C.find, etc.)
+                      // Check for safe single-letter object method error (A.filter, B.map, C.find, etc.)
                       if (message.includes('.filter is not a function')) {
                         const match = message.match(/([A-Z])\.filter is not a function/);
                         if (match) {
                           const letter = match[1];
-                          console.warn('CRITICAL: ' + letter + '.filter is missing! Recreating ALL global objects (A-Z)...');
-                          ensureAllGlobalObjects();
-                          event.preventDefault();
-                          return false;
+                          // Only handle safe letters, not R
+                          if (letter !== 'R') {
+                            console.warn('CRITICAL: ' + letter + '.filter is missing! Recreating safe global objects...');
+                            ensureSafeGlobalObjects();
+                            event.preventDefault();
+                            return false;
+                          }
                         }
                       }
                       
@@ -104,44 +110,47 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                         if (methodMatch) {
                           const letter = methodMatch[1];
                           const method = methodMatch[2];
-                          console.warn('CRITICAL: ' + letter + '.' + method + ' is missing! Recreating ALL global objects (A-Z)...');
-                          ensureAllGlobalObjects();
-                          event.preventDefault();
-                          return false;
+                          // Only handle safe letters, not R
+                          if (letter !== 'R') {
+                            console.warn('CRITICAL: ' + letter + '.' + method + ' is missing! Recreating safe global objects...');
+                            ensureSafeGlobalObjects();
+                            event.preventDefault();
+                            return false;
+                          }
                         }
                       }
                     }
                   });
                   
-                  // Periodic check every 500ms for ALL letters
+                  // Periodic check every 500ms for safe letters only
                   setInterval(() => {
                     let needsRecreation = false;
-                    'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(letter => {
+                    'ABCDEFGHIJKLMNOPQSTUVWXYZ'.split('').forEach(letter => {
                       if (!window[letter] || typeof window[letter].filter !== 'function') {
                         needsRecreation = true;
                       }
                     });
                     if (needsRecreation) {
-                      console.warn('Periodic check: Recreating ALL global objects (A-Z)');
-                      ensureAllGlobalObjects();
+                      console.warn('Periodic check: Recreating safe global objects');
+                      ensureSafeGlobalObjects();
                     }
                   }, 500);
                   
-                  // Add focus listener for ALL letters
+                  // Add focus listener for safe letters only
                   window.addEventListener('focus', () => {
                     let needsRecreation = false;
-                    'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(letter => {
+                    'ABCDEFGHIJKLMNOPQSTUVWXYZ'.split('').forEach(letter => {
                       if (!window[letter] || typeof window[letter].filter !== 'function') {
                         needsRecreation = true;
                       }
                     });
                     if (needsRecreation) {
-                      console.warn('Focus event: Recreating ALL global objects (A-Z)');
-                      ensureAllGlobalObjects();
+                      console.warn('Focus event: Recreating safe global objects');
+                      ensureSafeGlobalObjects();
                     }
                   });
                   
-                  console.log('Ultra-aggressive global objects initialization for ALL letters (A-Z) in layout.tsx');
+                  console.log('Safe global objects initialization for safe letters (A-Z, excluding R) in layout.tsx');
                 }
               })();
             `,

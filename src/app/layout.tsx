@@ -13,79 +13,15 @@ import { authOptions } from "@/lib/auth"
 import { ModalCleanupMonitor } from '@/components/ui/ModalCleanupMonitor';
 import React from 'react';
 
-// TypeScript declaration for global R object
-declare global {
-  interface Window {
-    R?: {
-      filter: (array: any[], predicate: any) => any[];
-    };
-  }
-}
-
-// Global error handler for filter-related errors
-if (typeof window !== 'undefined') {
-  window.addEventListener('error', (event) => {
-    if (event.error && event.error.message && event.error.message.includes('filter is not a function')) {
-      console.error('[GLOBAL ERROR] Filter error detected:', {
-        message: event.error.message,
-        stack: event.error.stack,
-        filename: event.filename,
-        lineno: event.lineno,
-        colno: event.colno
-      });
-      
-      // Log additional context
-      console.error('[GLOBAL ERROR] Current window location:', window.location.href);
-      console.error('[GLOBAL ERROR] User agent:', navigator.userAgent);
-    }
-  });
-
-  // Also catch unhandled promise rejections
-  window.addEventListener('unhandledrejection', (event) => {
-    if (event.reason && event.reason.message && event.reason.message.includes('filter is not a function')) {
-      console.error('[GLOBAL ERROR] Unhandled promise rejection with filter error:', {
-        reason: event.reason,
-        promise: event.promise
-      });
-    }
-  });
-
-  // Add a global R object fallback to prevent R.filter errors
-  if (!window.R) {
-    window.R = {
-      filter: (array: any[], predicate: any) => {
-        if (!Array.isArray(array)) {
-          console.warn('[R.FILTER FALLBACK] Array expected, got:', typeof array);
-          return [];
-        }
-        try {
-          return array.filter(predicate);
-        } catch (error) {
-          console.warn('[R.FILTER FALLBACK] Error in filter operation:', error);
-          return [];
-        }
-      }
-    };
-  }
-
-  // Development-only: Monitor useMemo calls to identify R.filter usage
-  if (process.env.NODE_ENV === 'development') {
-    const originalUseMemo = React.useMemo;
-    React.useMemo = function<T>(factory: () => T, deps: React.DependencyList | undefined): T {
-      try {
-        return originalUseMemo(factory, deps || []);
-      } catch (error) {
-        if (error instanceof Error && error.message.includes('R.filter')) {
-          console.warn('[DEV DEBUG] R.filter error in useMemo detected:', {
-            error: error.message,
-            stack: error.stack,
-            deps
-          });
-        }
-        throw error;
-      }
-    };
-  }
+// Simple global R object to prevent R.filter errors
+if (typeof window !== 'undefined' && !(window as any).R) {
+  (window as any).R = {
+    filter: (array: any, predicate: any) => Array.isArray(array) ? array.filter(predicate) : [],
+    map: (array: any, mapper: any) => Array.isArray(array) ? array.map(mapper) : [],
+    find: (array: any, predicate: any) => Array.isArray(array) ? array.find(predicate) : undefined,
+    some: (array: any, predicate: any) => Array.isArray(array) ? array.some(predicate) : false,
+    every: (array: any, predicate: any) => Array.isArray(array) ? array.every(predicate) : true
+  };
 }
 
 // Temporarily disabled resource tracking to fix loading issue

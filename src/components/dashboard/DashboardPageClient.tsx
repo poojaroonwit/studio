@@ -27,7 +27,6 @@ import { SLAViolationsWidget } from './SLAViolationsWidget';
 import { useDynamicHeight } from '@/hooks/use-dynamic-height';
 import { PositionDetailDrawer } from '@/components/positions/PositionDetailDrawer';
 import { useUnifiedRealtime } from '@/hooks/use-unified-realtime';
-import { usePermissionRefresh } from '@/hooks/use-permission-refresh';
 import { cn } from '@/lib/utils';
 import { useChartSetup } from '@/hooks/use-chart-setup';
 import { isDataLabelsAvailable } from '@/lib/chartjs-setup';
@@ -77,14 +76,10 @@ export default function DashboardPageClient({
   const [selectedPositionId, setSelectedPositionId] = useState<string | null>(null);
   const [isPositionDrawerOpen, setIsPositionDrawerOpen] = useState(false);
 
-  // Permission refresh hook
-  const { refreshPermissions } = usePermissionRefresh();
+  // REMOVED: Permission refresh hook - not needed for normal operation
 
   // Use the new chart setup hook
   const { chartReady, isLoading: chartLoading, error: chartError } = useChartSetup();
-  
-  // Ref to prevent permission refresh loops
-  const permissionRefreshRef = useRef(false);
   
   // Placeholder for removed performance monitoring hooks
 
@@ -270,27 +265,8 @@ export default function DashboardPageClient({
     }
   }, [initialCandidates, initialPositions, initialUsers, initialFetchError, serverAuthError, serverPermissionError, status, session?.user?.role, session?.user?.modulePermissions]);
 
-  // Separate effect for permission refresh to prevent loops
-  useEffect(() => {
-    // Auto-refresh permissions if they're missing for authenticated users
-    if (status === 'authenticated' && session?.user?.id && (!session.user.modulePermissions || session.user.modulePermissions.length === 0)) {
-      // Prevent multiple simultaneous permission refresh calls
-      if (!permissionRefreshRef.current) {
-        permissionRefreshRef.current = true;
-        refreshPermissions().then(result => {
-          if (result.success) {
-            toast.success('Permissions updated');
-          } else {
-            console.error('[DASHBOARD] Failed to refresh permissions:', result.error);
-          }
-        }).catch(error => {
-          console.error('[DASHBOARD] Error refreshing permissions:', error);
-        }).finally(() => {
-          permissionRefreshRef.current = false;
-        });
-      }
-    }
-  }, [status, session?.user?.id, session?.user?.modulePermissions?.length, refreshPermissions]);
+  // REMOVED: Automatic permission refresh - this was causing the loop
+  // Users can manually refresh permissions if needed using the button in the UI
 
   // Add error boundary for filter operations
   const safeFilterCandidates = useCallback((candidates: any[], filterFn: (c: any) => boolean) => {
@@ -305,6 +281,8 @@ export default function DashboardPageClient({
       return [];
     }
   }, []);
+
+  // REMOVED: Manual permission refresh - not needed
 
   // Fetch data when session is authenticated and initial data is empty
   useEffect(() => {
@@ -647,19 +625,11 @@ export default function DashboardPageClient({
             </ul>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button 
-                onClick={async () => {
-                  const result = await refreshPermissions();
-                  if (result.success) {
-                    toast.success('Permissions refreshed successfully');
-                    window.location.reload();
-                  } else {
-                    toast.error('Failed to refresh permissions');
-                  }
-                }} 
+                onClick={() => window.location.reload()} 
                 className="btn-hover-primary-gradient"
               >
                 <RefreshCw className="h-4 w-4 mr-2" />
-                Refresh Permissions
+                Reload Page
               </Button>
               <Button 
                 onClick={() => router.push('/my-tasks')} 
@@ -753,19 +723,11 @@ export default function DashboardPageClient({
         </p>
         <div className="flex gap-2">
           <Button 
-            onClick={async () => {
-              const result = await refreshPermissions();
-              if (result.success) {
-                toast.success('Permissions refreshed successfully');
-                window.location.reload();
-              } else {
-                toast.error('Failed to refresh permissions');
-              }
-            }} 
+            onClick={() => window.location.reload()} 
             className="btn-hover-primary-gradient"
           >
             <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh Permissions
+            Reload Page
           </Button>
           <Button onClick={() => router.push('/')} variant="outline">
             Go to Home

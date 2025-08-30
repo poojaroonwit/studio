@@ -103,62 +103,59 @@ export function safeJsonParse<T>(jsonString: string | null | undefined, defaultV
 export { formatScoreWithGrade } from './scoreUtils';
 
 // Safe array utilities to prevent "filter is not a function" errors
-export function safeArray<T>(input: T[] | null | undefined | any): T[] {
-  if (Array.isArray(input)) {
-    return input;
-  }
-  return [];
+export function safeArray<T>(input: any): T[] {
+  return Array.isArray(input) ? input : [];
 }
 
 export function safeFilter<T>(
-  array: T[] | null | undefined | any, 
-  predicate: (value: unknown, index: number, array: unknown[]) => boolean
+  array: any, 
+  predicate: (value: T, index: number, array: T[]) => boolean
 ): T[] {
-  const safeArrayValue = safeArray(array);
-  return safeArrayValue.filter(predicate) as T[];
+  const safeArrayValue = safeArray<T>(array);
+  return safeArrayValue.filter(predicate);
 }
 
 export function safeMap<T, U>(
-  array: T[] | null | undefined | any, 
-  mapper: (value: unknown, index: number, array: unknown[]) => U
+  array: any, 
+  mapper: (value: T, index: number, array: T[]) => U
 ): U[] {
-  const safeArrayValue = safeArray(array);
+  const safeArrayValue = safeArray<T>(array);
   return safeArrayValue.map(mapper);
 }
 
 export function safeFind<T>(
-  array: T[] | null | undefined | any, 
+  array: any, 
   predicate: (value: T, index: number, array: T[]) => boolean
 ): T | undefined {
-  const safeArrayValue = Array.isArray(array) ? array : [];
+  const safeArrayValue = safeArray<T>(array);
   return safeArrayValue.find(predicate);
 }
 
 export function safeSome<T>(
-  array: T[] | null | undefined | any, 
+  array: any, 
   predicate: (value: T, index: number, array: T[]) => boolean
 ): boolean {
-  const safeArrayValue = Array.isArray(array) ? array : [];
+  const safeArrayValue = safeArray<T>(array);
   return safeArrayValue.some(predicate);
 }
 
 export function safeEvery<T>(
-  array: T[] | null | undefined | any, 
+  array: any, 
   predicate: (value: T, index: number, array: T[]) => boolean
 ): boolean {
-  const safeArrayValue = Array.isArray(array) ? array : [];
+  const safeArrayValue = safeArray<T>(array);
   return safeArrayValue.every(predicate);
 }
 
-export function safeLength(array: any[] | null | undefined | any): number {
+export function safeLength(array: any): number {
   return Array.isArray(array) ? array.length : 0;
 }
 
 export function safeSlice<T>(
-  array: T[] | null | undefined | any, 
+  array: any, 
   start?: number, 
   end?: number
 ): T[] {
-  const safeArrayValue = Array.isArray(array) ? array : [];
+  const safeArrayValue = safeArray<T>(array);
   return safeArrayValue.slice(start, end);
 }

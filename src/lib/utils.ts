@@ -1,116 +1,8 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 
-// Immediate initialization of T object to prevent T.filter errors
-if (typeof window !== 'undefined') {
-  // Create safe array utility function
-  const safeArray = (array: any) => {
-    if (Array.isArray(array)) return array;
-    if (array === null || array === undefined) return [];
-    if (typeof array === 'object' && array !== null) {
-      try {
-        return Array.from(array);
-      } catch {
-        return [];
-      }
-    }
-    return [];
-  };
-
-  // Create robust filter function
-  const createSafeFilter = () => (array: any, predicate: any) => {
-    const safeArr = safeArray(array);
-    try {
-      return safeArr.filter(predicate);
-    } catch (error) {
-      console.warn('T.filter error:', error);
-      return [];
-    }
-  };
-
-  // Initialize T object immediately with all methods
-  if (!(window as any).T) {
-    (window as any).T = {
-      filter: createSafeFilter(),
-      map: (array: any, mapper: any) => {
-        const safeArr = safeArray(array);
-        try {
-          return safeArr.map(mapper);
-        } catch (error) {
-          console.warn('T.map error:', error);
-          return [];
-        }
-      },
-      find: (array: any, predicate: any) => {
-        const safeArr = safeArray(array);
-        try {
-          return safeArr.find(predicate);
-        } catch (error) {
-          console.warn('T.find error:', error);
-          return undefined;
-        }
-      },
-      some: (array: any, predicate: any) => {
-        const safeArr = safeArray(array);
-        try {
-          return safeArr.some(predicate);
-        } catch (error) {
-          console.warn('T.some error:', error);
-          return false;
-        }
-      },
-      every: (array: any, predicate: any) => {
-        const safeArr = safeArray(array);
-        try {
-          return safeArr.every(predicate);
-        } catch (error) {
-          console.warn('T.every error:', error);
-          return true;
-        }
-      }
-    };
-    console.log('✅ T object initialized immediately in utils.ts with all methods');
-  } else {
-    // Ensure all methods exist on existing T object
-    (window as any).T.filter = (window as any).T.filter || createSafeFilter();
-    (window as any).T.map = (window as any).T.map || ((array: any, mapper: any) => {
-      const safeArr = safeArray(array);
-      try {
-        return safeArr.map(mapper);
-      } catch (error) {
-        console.warn('T.map error:', error);
-        return [];
-      }
-    });
-    (window as any).T.find = (window as any).T.find || ((array: any, predicate: any) => {
-      const safeArr = safeArray(array);
-      try {
-        return safeArr.find(predicate);
-      } catch (error) {
-        console.warn('T.find error:', error);
-        return undefined;
-      }
-    });
-    (window as any).T.some = (window as any).T.some || ((array: any, predicate: any) => {
-      const safeArr = safeArray(array);
-      try {
-        return safeArr.some(predicate);
-      } catch (error) {
-        console.warn('T.some error:', error);
-        return false;
-      }
-    });
-    (window as any).T.every = (window as any).T.every || ((array: any, predicate: any) => {
-      const safeArr = safeArray(array);
-      try {
-        return safeArr.every(predicate);
-      } catch (error) {
-        console.warn('T.every error:', error);
-        return true;
-      }
-    });
-  }
-}
+// Import the global object initialization
+import './t-object-init';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -171,22 +63,6 @@ export function ensureArray<T>(value: T[] | null | undefined): T[] {
 }
 
 /**
- * Safely executes forEach on a value, ensuring it's an array first
- * This helps prevent "forEach is not a function" errors
- */
-export function safeForEach<T>(
-  value: T[] | null | undefined, 
-  callback: (item: T, index: number, array: T[]) => void
-): void {
-  const array = ensureArray(value);
-  array.forEach(callback);
-}
-
-
-
-
-
-/**
  * Safely parses JSON string or returns a default value if parsing fails
  * @param jsonString - The JSON string to parse
  * @param defaultValue - The default value to return if parsing fails
@@ -213,314 +89,154 @@ export function safeJsonParse<T>(jsonString: string | null | undefined, defaultV
 
 export { formatScoreWithGrade } from './scoreUtils';
 
-// Safe array utilities to prevent "filter is not a function" errors
-export function safeArray<T>(input: any): T[] {
-  return Array.isArray(input) ? input : [];
-}
+// Comprehensive safe array utilities to prevent T.filter errors
+export const safeArrayUtils = {
+  // Safely ensure a value is an array
+  ensureArray: <T>(value: any): T[] => {
+    if (Array.isArray(value)) return value;
+    if (value === null || value === undefined) return [];
+    if (typeof value === 'object' && value !== null) {
+      try {
+        return Array.from(value);
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  },
 
-export function safeFilter<T>(
-  array: any, 
-  predicate: (value: T, index: number, array: T[]) => boolean
-): T[] {
-  const safeArrayValue = safeArray<T>(array);
-  return safeArrayValue.filter(predicate);
-}
-
-export function safeMap<T, U>(
-  array: any, 
-  mapper: (value: T, index: number, array: T[]) => U
-): U[] {
-  const safeArrayValue = safeArray<T>(array);
-  return safeArrayValue.map(mapper);
-}
-
-export function safeFind<T>(
-  array: any, 
-  predicate: (value: T, index: number, array: T[]) => boolean
-): T | undefined {
-  const safeArrayValue = safeArray<T>(array);
-  return safeArrayValue.find(predicate);
-}
-
-export function safeSome<T>(
-  array: any, 
-  predicate: (value: T, index: number, array: T[]) => boolean
-): boolean {
-  const safeArrayValue = safeArray<T>(array);
-  return safeArrayValue.some(predicate);
-}
-
-export function safeEvery<T>(
-  array: any, 
-  predicate: (value: T, index: number, array: T[]) => boolean
-): boolean {
-  const safeArrayValue = safeArray<T>(array);
-  return safeArrayValue.every(predicate);
-}
-
-export function safeLength(array: any): number {
-  return Array.isArray(array) ? array.length : 0;
-}
-
-export function safeSlice<T>(
-  array: any, 
-  start?: number, 
-  end?: number
-): T[] {
-  const safeArrayValue = safeArray<T>(array);
-  return safeArrayValue.slice(start, end);
-}
-
-// Export a safe R utility that can be used throughout the application
-export const safeR = {
+  // Safe filter operation
   filter: <T>(array: any, predicate: (value: T, index: number, array: T[]) => boolean): T[] => {
-    if (typeof window !== 'undefined' && (window as any).R && typeof (window as any).R.filter === 'function') {
-      return (window as any).R.filter(array, predicate);
+    try {
+      const safeArr = safeArrayUtils.ensureArray<T>(array);
+      const result = safeArr.filter(predicate);
+      return Array.isArray(result) ? result : [];
+    } catch (error) {
+      console.warn('safeArrayUtils.filter error:', error);
+      return [];
     }
-    // Fallback to safe array utilities
-    return safeFilter(array, predicate);
   },
-  
+
+  // Safe map operation
   map: <T, U>(array: any, mapper: (value: T, index: number, array: T[]) => U): U[] => {
-    if (typeof window !== 'undefined' && (window as any).R && typeof (window as any).R.map === 'function') {
-      return (window as any).R.map(array, mapper);
+    try {
+      const safeArr = safeArrayUtils.ensureArray<T>(array);
+      const result = safeArr.map(mapper);
+      return Array.isArray(result) ? result : [];
+    } catch (error) {
+      console.warn('safeArrayUtils.map error:', error);
+      return [];
     }
-    // Fallback to safe array utilities
-    return safeMap(array, mapper);
   },
-  
+
+  // Safe find operation
   find: <T>(array: any, predicate: (value: T, index: number, array: T[]) => boolean): T | undefined => {
-    if (typeof window !== 'undefined' && (window as any).R && typeof (window as any).R.find === 'function') {
-      return (window as any).R.find(array, predicate);
+    try {
+      const safeArr = safeArrayUtils.ensureArray<T>(array);
+      return safeArr.find(predicate);
+    } catch (error) {
+      console.warn('safeArrayUtils.find error:', error);
+      return undefined;
     }
-    // Fallback to safe array utilities
-    return safeFind(array, predicate);
   },
-  
+
+  // Safe some operation
   some: <T>(array: any, predicate: (value: T, index: number, array: T[]) => boolean): boolean => {
-    if (typeof window !== 'undefined' && (window as any).R && typeof (window as any).R.some === 'function') {
-      return (window as any).R.some(array, predicate);
+    try {
+      const safeArr = safeArrayUtils.ensureArray<T>(array);
+      return safeArr.some(predicate);
+    } catch (error) {
+      console.warn('safeArrayUtils.some error:', error);
+      return false;
     }
-    // Fallback to safe array utilities
-    return safeSome(array, predicate);
   },
-  
+
+  // Safe every operation
   every: <T>(array: any, predicate: (value: T, index: number, array: T[]) => boolean): boolean => {
-    if (typeof window !== 'undefined' && (window as any).R && typeof (window as any).R.every === 'function') {
-      return (window as any).R.every(array, predicate);
+    try {
+      const safeArr = safeArrayUtils.ensureArray<T>(array);
+      return safeArr.every(predicate);
+    } catch (error) {
+      console.warn('safeArrayUtils.every error:', error);
+      return true;
     }
-    // Fallback to safe array utilities
-    return safeEvery(array, predicate);
+  },
+
+  // Safe reduce operation
+  reduce: <T, U>(array: any, reducer: (accumulator: U, value: T, index: number, array: T[]) => U, initialValue: U): U => {
+    try {
+      const safeArr = safeArrayUtils.ensureArray<T>(array);
+      return safeArr.reduce(reducer, initialValue);
+    } catch (error) {
+      console.warn('safeArrayUtils.reduce error:', error);
+      return initialValue;
+    }
+  },
+
+  // Safe forEach operation
+  forEach: <T>(array: any, callback: (value: T, index: number, array: T[]) => void): void => {
+    try {
+      const safeArr = safeArrayUtils.ensureArray<T>(array);
+      safeArr.forEach(callback);
+    } catch (error) {
+      console.warn('safeArrayUtils.forEach error:', error);
+    }
+  },
+
+  // Safe slice operation
+  slice: <T>(array: any, start?: number, end?: number): T[] => {
+    try {
+      const safeArr = safeArrayUtils.ensureArray<T>(array);
+      return safeArr.slice(start, end);
+    } catch (error) {
+      console.warn('safeArrayUtils.slice error:', error);
+      return [];
+    }
+  },
+
+  // Safe length check
+  length: (array: any): number => {
+    try {
+      const safeArr = safeArrayUtils.ensureArray(array);
+      return safeArr.length;
+    } catch (error) {
+      console.warn('safeArrayUtils.length error:', error);
+      return 0;
+    }
+  },
+
+  // Safe includes check
+  includes: <T>(array: any, searchElement: T, fromIndex?: number): boolean => {
+    try {
+      const safeArr = safeArrayUtils.ensureArray<T>(array);
+      return safeArr.includes(searchElement, fromIndex);
+    } catch (error) {
+      console.warn('safeArrayUtils.includes error:', error);
+      return false;
+    }
+  },
+
+  // Safe indexOf check
+  indexOf: <T>(array: any, searchElement: T, fromIndex?: number): number => {
+    try {
+      const safeArr = safeArrayUtils.ensureArray<T>(array);
+      return safeArr.indexOf(searchElement, fromIndex);
+    } catch (error) {
+      console.warn('safeArrayUtils.indexOf error:', error);
+      return -1;
+    }
   }
 };
 
-// Initialize global R object if it doesn't exist
-if (typeof window !== 'undefined') {
-  // Create a more robust R object with better error handling
-  const createRobustR = () => {
-    const safeArray = (array: any) => {
-      if (Array.isArray(array)) return array;
-      if (array === null || array === undefined) return [];
-      if (typeof array === 'object' && array !== null) {
-        // Try to convert array-like objects
-        try {
-          return Array.from(array);
-        } catch {
-          return [];
-        }
-      }
-      return [];
-    };
-
-    return {
-      filter: <T>(array: any, predicate: (value: T, index: number, array: T[]) => boolean): T[] => {
-        try {
-          const safeArr = safeArray(array);
-          if (!Array.isArray(safeArr)) {
-            console.warn('safeR.filter: Input could not be converted to array:', array);
-            return [];
-          }
-          const result = safeArr.filter(predicate);
-          if (!Array.isArray(result)) {
-            console.warn('safeR.filter: Predicate returned non-array result:', result);
-            return [];
-          }
-          return result;
-        } catch (error) {
-          console.error('safeR.filter: Error during filtering:', error);
-          return [];
-        }
-      },
-      
-      map: <T, U>(array: any, mapper: (value: T, index: number, array: T[]) => U): U[] => {
-        try {
-          const safeArr = safeArray(array);
-          if (!Array.isArray(safeArr)) {
-            console.warn('safeR.map: Input could not be converted to array:', array);
-            return [];
-          }
-          const result = safeArr.map(mapper);
-          if (!Array.isArray(result)) {
-            console.warn('safeR.map: Mapper returned non-array result:', result);
-            return [];
-          }
-          return result;
-        } catch (error) {
-          console.error('safeR.map: Error during mapping:', error);
-          return [];
-        }
-      },
-      
-      find: <T>(array: any, predicate: (value: T, index: number, array: T[]) => boolean): T | undefined => {
-        try {
-          const safeArr = safeArray(array);
-          if (!Array.isArray(safeArr)) {
-            console.warn('safeR.find: Input could not be converted to array:', array);
-            return undefined;
-          }
-          return safeArr.find(predicate);
-        } catch (error) {
-          console.error('safeR.find: Error during finding:', error);
-          return undefined;
-        }
-      },
-      
-      some: <T>(array: any, predicate: (value: T, index: number, array: T[]) => boolean): boolean => {
-        try {
-          const safeArr = safeArray(array);
-          if (!Array.isArray(safeArr)) {
-            console.warn('safeR.some: Input could not be converted to array:', array);
-            return false;
-          }
-          return safeArr.some(predicate);
-        } catch (error) {
-          console.error('safeR.some: Error during some check:', error);
-          return false;
-        }
-      },
-      
-      every: <T>(array: any, predicate: (value: T, index: number, array: T[]) => boolean): boolean => {
-        try {
-          const safeArr = safeArray(array);
-          if (!Array.isArray(safeArr)) {
-            console.warn('safeR.every: Input could not be converted to array:', array);
-            return true;
-          }
-          return safeArr.every(predicate);
-        } catch (error) {
-          console.error('safeR.every: Error during every check:', error);
-          return true;
-        }
-      },
-      
-      reduce: <T, U>(array: any, reducer: (accumulator: U, value: T, index: number, array: T[]) => U, initialValue: U): U => {
-        try {
-          const safeArr = safeArray(array);
-          if (!Array.isArray(safeArr)) {
-            console.warn('safeR.reduce: Input could not be converted to array:', array);
-            return initialValue;
-          }
-          return safeArr.reduce(reducer, initialValue);
-        } catch (error) {
-          console.error('safeR.reduce: Error during reduction:', error);
-          return initialValue;
-        }
-      },
-      
-      forEach: <T>(array: any, callback: (value: T, index: number, array: T[]) => void): void => {
-        try {
-          const safeArr = safeArray(array);
-          if (!Array.isArray(safeArr)) {
-            console.warn('safeR.forEach: Input could not be converted to array:', array);
-            return;
-          }
-          safeArr.forEach(callback);
-        } catch (error) {
-          console.error('safeR.forEach: Error during forEach:', error);
-        }
-      }
-    };
-  };
-
-  // Initialize or update the global R object
-  if (!(window as any).R) {
-    (window as any).R = createRobustR();
-    console.log('R object initialized successfully');
-  } else {
-    // Ensure all methods exist on the global R object
-    const robustR = createRobustR();
-    Object.keys(robustR).forEach(key => {
-      if (!(window as any).R[key] || typeof (window as any).R[key] !== 'function') {
-        (window as any).R[key] = (robustR as any)[key];
-        console.log(`R.${key} method updated`);
-      }
-    });
-  }
-
-  // Initialize or update the global T object
-  if (!(window as any).T) {
-    (window as any).T = createRobustR();
-    console.log('T object initialized successfully');
-  } else {
-    // Ensure all methods exist on the global T object
-    const robustT = createRobustR();
-    Object.keys(robustT).forEach(key => {
-      if (!(window as any).T[key] || typeof (window as any).T[key] !== 'function') {
-        (window as any).T[key] = (robustT as any)[key];
-        console.log(`T.${key} method updated`);
-      }
-    });
-  }
-
-  // Add a fallback mechanism for any missing methods
-  const ensureRMethods = () => {
-    if (!(window as any).R) {
-      (window as any).R = createRobustR();
-      console.log('R object re-initialized due to missing object');
-    }
-    
-    const requiredMethods = ['filter', 'map', 'find', 'some', 'every', 'reduce', 'forEach'];
-    const robustR = createRobustR();
-    
-    requiredMethods.forEach(method => {
-      if (!(window as any).R[method] || typeof (window as any).R[method] !== 'function') {
-        (window as any).R[method] = (robustR as any)[method];
-        console.log(`R.${method} method restored`);
-      }
-    });
-  };
-
-  const ensureTMethods = () => {
-    if (!(window as any).T) {
-      (window as any).T = createRobustR();
-      console.log('T object re-initialized due to missing object');
-    }
-    
-    const requiredMethods = ['filter', 'map', 'find', 'some', 'every', 'reduce', 'forEach'];
-    const robustT = createRobustR();
-    
-    requiredMethods.forEach(method => {
-      if (!(window as any).T[method] || typeof (window as any).T[method] !== 'function') {
-        (window as any).T[method] = (robustT as any)[method];
-        console.log(`T.${method} method restored`);
-      }
-    });
-  };
-
-  // Ensure R and T methods are available after a short delay
-  setTimeout(() => {
-    ensureRMethods();
-    ensureTMethods();
-  }, 100);
-  
-  // Also ensure R and T methods are available when the DOM is ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      ensureRMethods();
-      ensureTMethods();
-    });
-  } else {
-    ensureRMethods();
-    ensureTMethods();
-  }
-}
+// Export individual functions for convenience
+export const safeFilter = safeArrayUtils.filter;
+export const safeMap = safeArrayUtils.map;
+export const safeFind = safeArrayUtils.find;
+export const safeSome = safeArrayUtils.some;
+export const safeEvery = safeArrayUtils.every;
+export const safeReduce = safeArrayUtils.reduce;
+export const safeForEach = safeArrayUtils.forEach;
+export const safeSlice = safeArrayUtils.slice;
+export const safeLength = safeArrayUtils.length;
+export const safeIncludes = safeArrayUtils.includes;
+export const safeIndexOf = safeArrayUtils.indexOf;

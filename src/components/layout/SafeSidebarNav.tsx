@@ -18,23 +18,16 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useSafeSession } from "@/hooks/use-safe-session";
+import { useSession } from "next-auth/react";
 
-const dashboardNavItem = { href: "/", label: "Dashboard", icon: LayoutDashboard };
-const myTaskBoardNavItem = { href: "/my-tasks", label: "My Task Board", icon: ListTodo };
-const candidatesNavItem = { href: "/candidates", label: "Candidates", icon: Users };
-const positionsNavItem = { href: "/positions", label: "Positions", icon: Briefcase };
-const bulkUploadNavItem = { href: "/candidates/upload", label: "Process queue", icon: UploadCloud };
-const settingsNavItem = { href: "/settings", label: "Settings", icon: Settings };
-
-// Create a completely isolated and safe navigation items array
-const createSafeNavItems = () => {
-  return [
-    { ...dashboardNavItem },
-    { ...myTaskBoardNavItem },
-    { ...candidatesNavItem },
-    { ...positionsNavItem }
-  ];
+// Completely isolated navigation items - no external dependencies
+const NAV_ITEMS = {
+  dashboard: { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  myTasks: { href: "/my-tasks", label: "My Task Board", icon: ListTodo },
+  candidates: { href: "/candidates", label: "Candidates", icon: Users },
+  positions: { href: "/positions", label: "Positions", icon: Briefcase },
+  bulkUpload: { href: "/candidates/upload", label: "Process queue", icon: UploadCloud },
+  settings: { href: "/settings", label: "Settings", icon: Settings }
 };
 
 // Simple pending count hook with error handling
@@ -66,7 +59,7 @@ const usePendingCount = () => {
 
   React.useEffect(() => {
     fetchPending();
-    const interval = setInterval(fetchPending, 30000); // Refresh every 30 seconds
+    const interval = setInterval(fetchPending, 30000);
     return () => clearInterval(interval);
   }, [fetchPending]);
 
@@ -186,64 +179,52 @@ const FallbackNav = () => {
   );
 };
 
-// Error boundary for SidebarNav
-class SidebarNavErrorBoundary extends React.Component<
-  { children: React.ReactNode },
-  { hasError: boolean }
-> {
-  constructor(props: { children: React.ReactNode }) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError(error: Error) {
-    console.error('SidebarNav Error Boundary caught error:', error);
-    return { hasError: true };
-  }
-
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('SidebarNav Error Boundary error details:', error, errorInfo);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return <FallbackNav />;
-    }
-
-    return this.props.children;
-  }
-}
-
-// Safe filter function that never fails
-const safeFilter = (items: any[], predicate: (item: any) => boolean): any[] => {
+// Safe navigation items generator
+const getSafeNavigationItems = (canAccessMyTasks: boolean) => {
   try {
-    // Ensure items is an array
-    if (!Array.isArray(items)) {
-      console.warn('safeFilter: items is not an array, returning empty array');
-      return [];
+    const items = [
+      NAV_ITEMS.dashboard,
+      NAV_ITEMS.candidates,
+      NAV_ITEMS.positions
+    ];
+    
+    // Only add My Tasks if user has permission
+    if (canAccessMyTasks) {
+      items.splice(1, 0, NAV_ITEMS.myTasks);
     }
     
-    // Use a try-catch around the filter operation
-    const filtered = items.filter((item, index) => {
-      try {
-        return predicate(item);
-      } catch (error) {
-        console.warn(`safeFilter: Error filtering item at index ${index}:`, error);
-        return false;
-      }
-    });
-    
-    return filtered;
+    return items;
   } catch (error) {
-    console.error('safeFilter: Error in filter operation:', error);
-    return [];
+    console.error('Error generating navigation items:', error);
+    return [NAV_ITEMS.dashboard, NAV_ITEMS.candidates, NAV_ITEMS.positions];
   }
 };
 
-const SidebarNavComponent = () => {
+// Safe session checker
+const getSafeSessionInfo = (session: any) => {
+  try {
+    if (!session || !session.user) {
+      return { canAccessMyTasks: false, modulePermissions: [] };
+    }
+    
+    const modulePermissions = Array.isArray(session.user.modulePermissions) 
+      ? session.user.modulePermissions 
+      : [];
+    
+    const canAccessMyTasks = session.user.role === 'Admin' || 
+      modulePermissions.includes('TASK_BOARD_VIEW') ||
+      modulePermissions.includes('CANDIDATES_VIEW');
+    
+    return { canAccessMyTasks, modulePermissions };
+  } catch (error) {
+    console.error('Error getting session info:', error);
+    return { canAccessMyTasks: false, modulePermissions: [] };
+  }
+};
+
+const SafeSidebarNavComponent = () => {
   const [hasError, setHasError] = React.useState(false);
   
-  // If there was an error, show fallback
   if (hasError) {
     return <FallbackNav />;
   }
@@ -251,74 +232,20 @@ const SidebarNavComponent = () => {
   try {
     const pathname = usePathname();
     const router = useRouter();
-    const { session, status, isUpdating, getCachedSession } = useSafeSession();
+    const { data: session, status } = useSession();
     const { open } = useSidebar();
     const { pendingCount, isLoading } = usePendingCount();
 
-    // Check if user has permission to access My Task Board with safe fallbacks
-    const modulePermissions = session?.user?.modulePermissions || [];
-    const canAccessMyTasks = session?.user?.role === 'Admin' || 
-      modulePermissions.includes('TASK_BOARD_VIEW') ||
-      modulePermissions.includes('CANDIDATES_VIEW');
+    // Get safe session info
+    const { canAccessMyTasks } = getSafeSessionInfo(session);
 
-    // Create navigation items with maximum safety
-    const filteredMainNavItems = React.useMemo(() => {
-      try {
-        // Always create a fresh, safe array of navigation items
-        const safeNavItems = createSafeNavItems();
-        
-        // If session is updating, use cached permissions to prevent flickering
-        if (isUpdating) {
-          const cachedSession = getCachedSession();
-          if (cachedSession?.user?.modulePermissions) {
-            const cachedPermissions = cachedSession.user.modulePermissions;
-            const cachedCanAccessMyTasks = cachedSession.user.role === 'Admin' || 
-              cachedPermissions.includes('TASK_BOARD_VIEW') ||
-              cachedPermissions.includes('CANDIDATES_VIEW');
-            
-            return safeFilter(safeNavItems, (item) => {
-              if (!item || typeof item !== 'object') {
-                return false;
-              }
-              if (!item.href || !item.label || !item.icon) {
-                return false;
-              }
-              if (item.href === '/my-tasks') {
-                return cachedCanAccessMyTasks;
-              }
-              return true;
-            });
-          }
-        }
-        
-        // Use safe filter function
-        return safeFilter(safeNavItems, (item) => {
-          // Validate item structure
-          if (!item || typeof item !== 'object') {
-            console.warn('Invalid nav item:', item);
-            return false;
-          }
-          
-          // Ensure item has required properties
-          if (!item.href || !item.label || !item.icon) {
-            console.warn('Nav item missing required properties:', item);
-            return false;
-          }
-          
-          if (item.href === '/my-tasks') {
-            return canAccessMyTasks;
-          }
-          return true; // Show all other items
-        });
-      } catch (error) {
-        console.error('Error in filteredMainNavItems useMemo:', error);
-        // Return a safe fallback
-        return [dashboardNavItem, candidatesNavItem, positionsNavItem];
-      }
-    }, [canAccessMyTasks, isUpdating, getCachedSession]);
+    // Generate safe navigation items
+    const navigationItems = React.useMemo(() => {
+      return getSafeNavigationItems(canAccessMyTasks);
+    }, [canAccessMyTasks]);
 
     // Simple loading state
-    if (status === 'loading' || isUpdating) {
+    if (status === 'loading') {
       return (
         <div className="flex items-center justify-center p-2">
           <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -328,11 +255,9 @@ const SidebarNavComponent = () => {
 
     const handleNavigation = (href: string) => {
       try {
-        // Use Next.js router for client-side navigation
         router.push(href);
       } catch (error) {
         console.error("Navigation error:", error);
-        // Final fallback - only use window.location as last resort
         window.location.href = href;
       }
     };
@@ -342,7 +267,7 @@ const SidebarNavComponent = () => {
       return (
         <div className="flex flex-col h-full">
           <SidebarMenu className="flex-1">
-            {filteredMainNavItems.map((item) => (
+            {navigationItems.map((item) => (
               <SidebarMenuItem key={item.href}>
                 <MenuItemWithTooltip label={item.label}>
                   <Link href={item.href} className="w-full">
@@ -362,14 +287,14 @@ const SidebarNavComponent = () => {
           <div className="mt-auto">
             <SidebarMenu>
               <SidebarMenuItem>
-                <MenuItemWithTooltip label={bulkUploadNavItem.label}>
-                  <Link href={bulkUploadNavItem.href} className="w-full">
+                <MenuItemWithTooltip label={NAV_ITEMS.bulkUpload.label}>
+                  <Link href={NAV_ITEMS.bulkUpload.href} className="w-full">
                     <SidebarMenuButton
-                      isActive={pathname === bulkUploadNavItem.href}
+                      isActive={pathname === NAV_ITEMS.bulkUpload.href}
                       className="w-full justify-center relative"
                       size="default"
                     >
-                      <bulkUploadNavItem.icon className="h-5 w-5" />
+                      <NAV_ITEMS.bulkUpload.icon className="h-5 w-5" />
                       {pendingCount !== null && (
                         <Badge className="absolute -top-1 -right-1 h-5 min-w-5 px-0.5 text-xs group-data-[collapsible=icon]:-top-0.5 group-data-[collapsible=icon]:-right-0.5">
                           {isLoading ? (
@@ -384,14 +309,14 @@ const SidebarNavComponent = () => {
                 </MenuItemWithTooltip>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <MenuItemWithTooltip label={settingsNavItem.label}>
-                  <Link href={settingsNavItem.href} className="w-full">
+                <MenuItemWithTooltip label={NAV_ITEMS.settings.label}>
+                  <Link href={NAV_ITEMS.settings.href} className="w-full">
                     <SidebarMenuButton
-                      isActive={pathname.startsWith(settingsNavItem.href)}
+                      isActive={pathname.startsWith(NAV_ITEMS.settings.href)}
                       className="w-full justify-center"
                       size="default"
                     >
-                      <settingsNavItem.icon className="h-5 w-5" />
+                      <NAV_ITEMS.settings.icon className="h-5 w-5" />
                     </SidebarMenuButton>
                   </Link>
                 </MenuItemWithTooltip>
@@ -407,7 +332,7 @@ const SidebarNavComponent = () => {
       <div className="flex flex-col h-full">
         <SidebarMenu className="flex-1">
           <SidebarGroupLabel>General</SidebarGroupLabel>
-          {filteredMainNavItems.map((item) => (
+          {navigationItems.map((item) => (
             <SidebarMenuItem key={item.href}>
               <MenuItemWithTooltip label={item.label}>
                 <Link href={item.href} className="w-full">
@@ -429,15 +354,15 @@ const SidebarNavComponent = () => {
           <SidebarMenu>
             <SidebarSeparator className="my-2" />
             <SidebarMenuItem>
-              <MenuItemWithTooltip label={bulkUploadNavItem.label}>
-                <Link href={bulkUploadNavItem.href} className="w-full">
+              <MenuItemWithTooltip label={NAV_ITEMS.bulkUpload.label}>
+                <Link href={NAV_ITEMS.bulkUpload.href} className="w-full">
                   <SidebarMenuButton
-                    isActive={pathname === bulkUploadNavItem.href}
+                    isActive={pathname === NAV_ITEMS.bulkUpload.href}
                     className="w-full justify-start"
                     size="default"
                   >
-                    <bulkUploadNavItem.icon className="h-5 w-5" />
-                    <span className="truncate">{bulkUploadNavItem.label}</span>
+                    <NAV_ITEMS.bulkUpload.icon className="h-5 w-5" />
+                    <span className="truncate">{NAV_ITEMS.bulkUpload.label}</span>
                     {pendingCount !== null && (
                       <Badge className="ml-auto h-5 min-w-5 px-0.5 text-xs">
                         {isLoading ? (
@@ -452,15 +377,15 @@ const SidebarNavComponent = () => {
               </MenuItemWithTooltip>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <MenuItemWithTooltip label={settingsNavItem.label}>
-                <Link href={settingsNavItem.href} className="w-full">
+              <MenuItemWithTooltip label={NAV_ITEMS.settings.label}>
+                <Link href={NAV_ITEMS.settings.href} className="w-full">
                   <SidebarMenuButton
-                    isActive={pathname.startsWith(settingsNavItem.href)}
+                    isActive={pathname.startsWith(NAV_ITEMS.settings.href)}
                     className="w-full justify-start"
                     size="default"
                   >
-                    <settingsNavItem.icon className="h-5 w-5" />
-                    <span className="truncate">{settingsNavItem.label}</span>
+                    <NAV_ITEMS.settings.icon className="h-5 w-5" />
+                    <span className="truncate">{NAV_ITEMS.settings.label}</span>
                   </SidebarMenuButton>
                 </Link>
               </MenuItemWithTooltip>
@@ -470,30 +395,45 @@ const SidebarNavComponent = () => {
       </div>
     );
   } catch (error) {
-    console.error('Error in SidebarNav component:', error);
+    console.error('Error in SafeSidebarNav component:', error);
     setHasError(true);
     return <FallbackNav />;
   }
 };
 
+// Error boundary for SafeSidebarNav
+class SafeSidebarNavErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    console.error('SafeSidebarNav Error Boundary caught error:', error);
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('SafeSidebarNav Error Boundary error details:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return <FallbackNav />;
+    }
+
+    return this.props.children;
+  }
+}
+
 // Export with error boundary wrapper
-export default function SidebarNavWithErrorBoundary() {
-  // Add an additional wrapper to catch any remaining errors
-  const [hasOuterError, setHasOuterError] = React.useState(false);
-  
-  if (hasOuterError) {
-    return <FallbackNav />;
-  }
-  
-  try {
-    return (
-      <SidebarNavErrorBoundary>
-        <SidebarNavComponent />
-      </SidebarNavErrorBoundary>
-    );
-  } catch (error) {
-    console.error('Outer error in SidebarNavWithErrorBoundary:', error);
-    setHasOuterError(true);
-    return <FallbackNav />;
-  }
+export default function SafeSidebarNav() {
+  return (
+    <SafeSidebarNavErrorBoundary>
+      <SafeSidebarNavComponent />
+    </SafeSidebarNavErrorBoundary>
+  );
 }

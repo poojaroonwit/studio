@@ -7,7 +7,7 @@ import { useSession } from "next-auth/react";
 import { GlobalLoadingOverlay } from "./GlobalLoadingOverlay";
 import { usePageLoading } from "@/hooks/use-page-loading";
 import { useSessionValidation } from "@/hooks/use-session-validation";
-import SidebarNav from "./SidebarNav";
+import SidebarNav from "./SafeSidebarNav";
 import { FaviconUpdater } from "./FaviconUpdater";
 import { useFavicon } from "@/hooks/use-favicon";
 import { usePathname } from "next/navigation";

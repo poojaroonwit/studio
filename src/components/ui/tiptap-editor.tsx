@@ -3,15 +3,6 @@
 import React, { useEffect, useRef, useCallback } from "react";
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import Link from '@tiptap/extension-link';
-import TextAlign from '@tiptap/extension-text-align';
-import Underline from '@tiptap/extension-underline';
-import TextStyle from '@tiptap/extension-text-style';
-import Color from '@tiptap/extension-color';
-import Table from '@tiptap/extension-table';
-import TableRow from '@tiptap/extension-table-row';
-import TableCell from '@tiptap/extension-table-cell';
-import TableHeader from '@tiptap/extension-table-header';
 import { cn } from '@/lib/utils';
 import { TiptapToolbar } from './tiptap-toolbar';
 
@@ -71,27 +62,6 @@ export function TiptapEditor({
       StarterKit.configure({
         // Use default configuration for most extensions
       }),
-      Link.configure({
-        openOnClick: false,
-        HTMLAttributes: {
-          class: 'text-blue-600 underline',
-        },
-      }),
-      TextAlign.configure({
-        types: ['heading', 'paragraph'],
-      }),
-      Underline,
-      TextStyle,
-      Color,
-      Table.configure({
-        resizable: true,
-        HTMLAttributes: {
-          class: 'tiptap-table',
-        },
-      }),
-      TableRow,
-      TableHeader,
-      TableCell,
     ],
     content: convertHtmlToTiptapContent(value),
     editable: !readOnly,

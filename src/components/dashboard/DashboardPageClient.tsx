@@ -455,7 +455,7 @@ export default function DashboardPageClient({
         // Find the last transition to 'Hired'
         const hiredTransition = candidate.transitionHistory
           .filter(transition => transition.stage === 'Hired')
-          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+          .sort((itemA, itemB) => new Date(itemB.date).getTime() - new Date(itemA.date).getTime())[0];
         const hireDate = hiredTransition ? parseISO(hiredTransition.date) : null;
         if (!hireDate) return total;
         const daysDiff = Math.ceil((hireDate.getTime() - applicationDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -475,9 +475,9 @@ export default function DashboardPageClient({
       if (BACKLOG_EXCLUSION_STATUSES.includes(c.status)) return false;
       let appliedFitScore: number | undefined = undefined;
       // Check if parsedData is CandidateDetails and has job_applied
-      const parsed = c.parsedData as any;
-      if (parsed && typeof parsed === 'object' && 'job_applied' in parsed && parsed.job_applied && typeof parsed.job_applied.fitScore === 'number') {
-        const rawScore = parsed.job_applied.fitScore;
+              const parsedData = c.parsedData as any;
+      if (parsedData && typeof parsedData === 'object' && 'job_applied' in parsedData && parsedData.job_applied && typeof parsedData.job_applied.fitScore === 'number') {
+        const rawScore = parsedData.job_applied.fitScore;
         if (typeof rawScore === 'number') {
           appliedFitScore = (rawScore > 0 && rawScore <= 1) ? Math.round(rawScore * 100) : Math.round(rawScore);
         }
@@ -515,10 +515,10 @@ export default function DashboardPageClient({
       }
     });
     
-    return Object.entries(stageCounts).map(([stage, count]) => ({
-      stage,
+    return Object.entries(stageCounts).map(([stageName, count]) => ({
+      stage: stageName,
       count
-    })).sort((a, b) => b.count - a.count);
+    })).sort((itemA, itemB) => itemB.count - itemA.count);
   }, [filteredCandidates]);
 
   // New candidates assigned to me today (for recruiter) - optimized
@@ -1066,9 +1066,9 @@ export default function DashboardPageClient({
                         labels: (() => {
                           // Sort by grade order: A, B, C, D, E
                           const gradeOrder = ['A', 'B', 'C', 'D', 'E'];
-                          return [...candidateScoreRanges].sort((a, b) => {
-                            const aGrade = a.letter || a.label[0];
-                            const bGrade = b.letter || b.label[0];
+                          return [...candidateScoreRanges].sort((itemA, itemB) => {
+                            const aGrade = itemA.letter || itemA.label[0];
+                            const bGrade = itemB.letter || itemB.label[0];
                             return gradeOrder.indexOf(aGrade) - gradeOrder.indexOf(bGrade);
                           }).map(r => r.label);
                         })(),
@@ -1078,9 +1078,9 @@ export default function DashboardPageClient({
                             data: (() => {
                               // Sort by grade order: A, B, C, D, E
                               const gradeOrder = ['A', 'B', 'C', 'D', 'E'];
-                              return [...candidateScoreRanges].sort((a, b) => {
-                                const aGrade = a.letter || a.label[0];
-                                const bGrade = b.letter || b.label[0];
+                              return [...candidateScoreRanges].sort((itemA, itemB) => {
+                                const aGrade = itemA.letter || itemA.label[0];
+                                const bGrade = itemB.letter || itemB.label[0];
                                 return gradeOrder.indexOf(aGrade) - gradeOrder.indexOf(bGrade);
                               }).map(r => r.count);
                             })(),
@@ -1128,9 +1128,9 @@ export default function DashboardPageClient({
                             const index = elements[0].index;
                             // Sort by grade order: A, B, C, D, E
                             const gradeOrder = ['A', 'B', 'C', 'D', 'E'];
-                            const sortedScoreRanges = [...candidateScoreRanges].sort((a, b) => {
-                              const aGrade = a.letter || a.label[0];
-                              const bGrade = b.letter || b.label[0];
+                            const sortedScoreRanges = [...candidateScoreRanges].sort((itemA, itemB) => {
+                              const aGrade = itemA.letter || itemA.label[0];
+                              const bGrade = itemB.letter || itemB.label[0];
                               return gradeOrder.indexOf(aGrade) - gradeOrder.indexOf(bGrade);
                             });
                             const range = sortedScoreRanges[index];

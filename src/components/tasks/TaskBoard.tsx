@@ -248,7 +248,7 @@ export function TaskBoard({
   }, [tasks, stages]);
 
   const sortedStages = useMemo(() => {
-    const sorted = [...stages].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+    const sorted = [...stages].sort((itemA, itemB) => (itemA.sortOrder || 0) - (itemB.sortOrder || 0));
     return sorted;
   }, [stages]);
 

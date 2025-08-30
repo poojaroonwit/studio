@@ -1,8 +1,5 @@
 "use client";
 
-// Import T object initialization early
-import '@/lib/t-object-init';
-
 import React, { type ReactNode, useState, useEffect } from "react";
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, useSidebar, SidebarSeparator } from "@/components/ui/sidebar";
 import { Header } from "./Header";
@@ -19,8 +16,6 @@ import { setThemeAndColors } from '@/lib/themeUtils';
 import { useTheme } from '@/hooks/use-theme';
 import { SidebarHeaderContent } from "./SidebarHeaderContent";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { useComponentProtection } from "@/hooks/use-global-objects";
-import { GlobalObjectsProvider } from "@/components/GlobalObjectsProvider";
 
 const DEFAULT_APP_NAME = "FitScan";
 
@@ -55,20 +50,6 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
-  // Use component protection hook for ultra-aggressive global object protection
-  const { ensureObjects } = useComponentProtection();
-
-  // Ensure safe single-letter objects are available during component initialization
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      // Import and call the ensure function from t-object-init
-      import('@/lib/t-object-init').then(({ ensureGlobalObjects }) => {
-        ensureGlobalObjects();
-        ensureObjects(); // Additional protection
-        console.log('Safe single-letter objects (A-Z, excluding R) ensured in AppLayout useEffect');
-      });
-    }
-  }, [ensureObjects]);
 
   const pathname = usePathname();
   const [currentAppName, setCurrentAppName] = useState<string>(DEFAULT_APP_NAME);
@@ -288,38 +269,36 @@ export function AppLayout({ children }: AppLayoutProps) {
   }
 
   return (
-    <GlobalObjectsProvider>
-      <SidebarProvider defaultOpen={true}>
-        <FaviconUpdater faviconDataUrl={faviconDataUrl} />
-        <SidebarToggleButton />
-        <div className="flex h-screen bg-background overflow-hidden">
-          <Sidebar collapsible="icon" className="border-r border-border">
-            <SidebarHeader>
-              <SidebarHeaderContent 
-                currentAppName={currentAppName}
-                appLogoUrl={appLogoUrl}
-                isClient={isClient}
-                isLogoLoading={isLogoLoading}
-                showLogoOnly={showLogoOnly}
-                sidebarLogoSize={sidebarLogoSize}
-                contextualLogos={contextualLogos}
-              />
-            </SidebarHeader>
-            <SidebarSeparator className="my-0" />
-            <SidebarContent>
-              <SidebarNav />
-            </SidebarContent>
-          </Sidebar>
-          <div className="flex-1 flex flex-col min-w-0">
-            <Header pageTitle={pageTitle} showLogoOnly={showLogoOnly} />
-            <main className="flex-1 overflow-auto p-0">
-              {isLoading && <GlobalLoadingOverlay />}
-              {children}
-            </main>
-          </div>
+    <SidebarProvider defaultOpen={true}>
+      <FaviconUpdater faviconDataUrl={faviconDataUrl} />
+      <SidebarToggleButton />
+      <div className="flex h-screen bg-background overflow-hidden">
+        <Sidebar collapsible="icon" className="border-r border-border">
+          <SidebarHeader>
+            <SidebarHeaderContent 
+              currentAppName={currentAppName}
+              appLogoUrl={appLogoUrl}
+              isClient={isClient}
+              isLogoLoading={isLogoLoading}
+              showLogoOnly={showLogoOnly}
+              sidebarLogoSize={sidebarLogoSize}
+              contextualLogos={contextualLogos}
+            />
+          </SidebarHeader>
+          <SidebarSeparator className="my-0" />
+          <SidebarContent>
+            <SidebarNav />
+          </SidebarContent>
+        </Sidebar>
+        <div className="flex-1 flex flex-col min-w-0">
+          <Header pageTitle={pageTitle} showLogoOnly={showLogoOnly} />
+          <main className="flex-1 overflow-auto p-0">
+            {isLoading && <GlobalLoadingOverlay />}
+            {children}
+          </main>
         </div>
-      </SidebarProvider>
-    </GlobalObjectsProvider>
+      </div>
+    </SidebarProvider>
   );
 }
 

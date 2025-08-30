@@ -2,7 +2,7 @@ import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 
 // Import the global object initialization
-import './t-object-init';
+
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))

@@ -329,7 +329,7 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
             }
             if (max - min <= 1) {
               // Only 0 and 1 or very small range, just show unique values
-              return Array.from(new Set(scores)).map(v => v.toString());
+              return Array.from(new Set(scores)).map(value => value.toString());
             }
             // Normal bucket logic
             return [

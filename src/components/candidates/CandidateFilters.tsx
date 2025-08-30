@@ -1539,7 +1539,7 @@ export function CandidateFilters({
                         if (paste) {
                           e.preventDefault();
                           let hasChanges = false;
-                          paste.split(',').map(s => s.trim()).filter(Boolean).forEach(skill => {
+                          paste.split(',').map(skill => skill.trim()).filter(Boolean).forEach(skill => {
                             if (!skills.has(skill)) {
                               const newSkills = new Set(skills);
                               newSkills.add(skill);

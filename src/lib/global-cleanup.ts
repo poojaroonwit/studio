@@ -1,6 +1,7 @@
 
 // Global cleanup utilities
-window.addEventListener('beforeunload', () => {
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', () => {
   // Clean up all EventSource connections
   const eventSources = document.querySelectorAll('script[src*="EventSource"]');
   eventSources.forEach(script => {
@@ -21,10 +22,11 @@ window.addEventListener('beforeunload', () => {
   // Note: This is a simplified approach - in practice, you should track timeouts/intervals
   // and clear them individually rather than clearing all possible IDs
   console.log('🧹 Global cleanup: clearing timeouts and intervals');
-});
+  });
+}
 
 // Monitor for memory leaks
-if (process.env.NODE_ENV === 'development') {
+if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
   setInterval(() => {
     const memoryInfo = (performance as any).memory;
     if (memoryInfo && memoryInfo.usedJSHeapSize > 100 * 1024 * 1024) {

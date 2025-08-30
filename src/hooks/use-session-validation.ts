@@ -49,7 +49,9 @@ export function useSessionValidation(options: {
             redirect: false 
           });
           // Manually redirect after signOut completes
-          window.location.href = `${redirectTo}?signout=true`;
+          if (typeof window !== 'undefined') {
+            window.location.href = `${redirectTo}?signout=true`;
+          }
         }
       }
     } catch (error) {

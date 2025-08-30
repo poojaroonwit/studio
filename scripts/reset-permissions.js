@@ -11,8 +11,9 @@
 
 require('dotenv').config({ path: '.env.local' });
 
-const { getPool } = require('../src/lib/db');
-const { PLATFORM_MODULES } = require('../src/lib/types');
+// Use tsx to run TypeScript files directly
+const { spawn } = require('child_process');
+const path = require('path');
 
 // Colors for console output
 const colors = {
@@ -47,152 +48,30 @@ function logInfo(message) {
 }
 
 /**
- * Reset permissions to granular format
+ * Run TypeScript file with tsx
  */
-async function resetPermissions() {
-    const client = await getPool().connect();
-    
-    try {
-        logInfo('Starting permission reset process...');
+function runTypeScriptFile(filePath, args = []) {
+    return new Promise((resolve, reject) => {
+        const tsxPath = path.join(__dirname, '../node_modules/.bin/tsx');
+        const scriptPath = path.join(__dirname, filePath);
         
-        // Get all valid permission IDs from PLATFORM_MODULES
-        const validPermissionIds = PLATFORM_MODULES.map(module => module.id);
-        logInfo(`Found ${validPermissionIds.length} valid permissions in PLATFORM_MODULES`);
+        const child = spawn(tsxPath, [scriptPath, ...args], {
+            stdio: 'inherit',
+            cwd: path.join(__dirname, '..')
+        });
         
-        // Get all user groups
-        const groupsResult = await client.query(`
-            SELECT id, name, permissions, "is_system_role"
-            FROM "UserGroup"
-            ORDER BY "is_system_role" DESC, name ASC
-        `);
-        
-        const groups = groupsResult.rows;
-        logInfo(`Found ${groups.length} user groups to process`);
-        
-        let updatedGroups = 0;
-        let skippedGroups = 0;
-        
-        for (const group of groups) {
-            logInfo(`Processing group: ${group.name}`);
-            
-            // Filter out invalid permissions
-            const currentPermissions = group.permissions || [];
-            const validPermissions = currentPermissions.filter(permission => 
-                validPermissionIds.includes(permission)
-            );
-            
-            const invalidPermissions = currentPermissions.filter(permission => 
-                !validPermissionIds.includes(permission)
-            );
-            
-            if (invalidPermissions.length > 0) {
-                logWarning(`Group "${group.name}" has ${invalidPermissions.length} invalid permissions: ${invalidPermissions.join(', ')}`);
-            }
-            
-            // Update group with only valid permissions
-            if (JSON.stringify(validPermissions.sort()) !== JSON.stringify(currentPermissions.sort())) {
-                await client.query(`
-                    UPDATE "UserGroup"
-                    SET permissions = $1, "updatedAt" = NOW()
-                    WHERE id = $2
-                `, [validPermissions, group.id]);
-                
-                logSuccess(`Updated group "${group.name}" permissions: ${validPermissions.length} valid permissions`);
-                updatedGroups++;
+        child.on('close', (code) => {
+            if (code === 0) {
+                resolve();
             } else {
-                logInfo(`Group "${group.name}" permissions are already valid`);
-                skippedGroups++;
+                reject(new Error(`Process exited with code ${code}`));
             }
-        }
+        });
         
-        logSuccess(`Permission reset completed: ${updatedGroups} groups updated, ${skippedGroups} groups skipped`);
-        
-        return true;
-        
-    } catch (error) {
-        logError(`Permission reset failed: ${error.message}`);
-        console.error(error);
-        return false;
-    } finally {
-        client.release();
-    }
-}
-
-/**
- * Verify permission integrity across the system
- */
-async function verifyPermissions() {
-    const client = await getPool().connect();
-    
-    try {
-        logInfo('Starting permission verification...');
-        
-        // Get all valid permission IDs from PLATFORM_MODULES
-        const validPermissionIds = PLATFORM_MODULES.map(module => module.id);
-        
-        // Get all permissions currently in use in the database
-        const dbPermissionsResult = await client.query(`
-            SELECT DISTINCT unnest(permissions) as permission
-            FROM "UserGroup"
-            WHERE permissions IS NOT NULL AND array_length(permissions, 1) > 0
-        `);
-        
-        const dbPermissions = dbPermissionsResult.rows.map(row => row.permission);
-        logInfo(`Found ${dbPermissions.length} unique permissions in database`);
-        
-        // Check for invalid permissions in database
-        const invalidPermissions = dbPermissions.filter(permission => 
-            !validPermissionIds.includes(permission)
-        );
-        
-        if (invalidPermissions.length > 0) {
-            logError(`Found ${invalidPermissions.length} invalid permissions in database: ${invalidPermissions.join(', ')}`);
-            return false;
-        }
-        
-        // Check for missing default permissions
-        const defaultGroupsResult = await client.query(`
-            SELECT name, permissions
-            FROM "UserGroup"
-            WHERE "is_default" = true OR "is_system_role" = true
-        `);
-        
-        const defaultGroups = defaultGroupsResult.rows;
-        logInfo(`Found ${defaultGroups.length} default/system groups`);
-        
-        for (const group of defaultGroups) {
-            if (!group.permissions || group.permissions.length === 0) {
-                logWarning(`Default group "${group.name}" has no permissions assigned`);
-            }
-        }
-        
-        // Check for users without any permissions
-        const usersWithoutPermissionsResult = await client.query(`
-            SELECT u.id, u.email, COUNT(uug."userId") as group_count
-            FROM "User" u
-            LEFT JOIN "User_UserGroup" uug ON u.id = uug."userId"
-            GROUP BY u.id, u.email
-            HAVING COUNT(uug."userId") = 0
-        `);
-        
-        const usersWithoutPermissions = usersWithoutPermissionsResult.rows;
-        if (usersWithoutPermissions.length > 0) {
-            logWarning(`Found ${usersWithoutPermissions.length} users without any group assignments`);
-            for (const user of usersWithoutPermissions) {
-                logWarning(`  - ${user.email} (ID: ${user.id})`);
-            }
-        }
-        
-        logSuccess('Permission verification completed successfully');
-        return true;
-        
-    } catch (error) {
-        logError(`Permission verification failed: ${error.message}`);
-        console.error(error);
-        return false;
-    } finally {
-        client.release();
-    }
+        child.on('error', (error) => {
+            reject(error);
+        });
+    });
 }
 
 /**
@@ -203,12 +82,24 @@ async function main() {
     
     if (command === 'reset') {
         log('🔄 Resetting permissions to granular format...', 'cyan');
-        const success = await resetPermissions();
-        process.exit(success ? 0 : 1);
+        try {
+            await runTypeScriptFile('../src/scripts/reset-permissions.ts', ['reset']);
+            logSuccess('Permission reset completed successfully');
+            process.exit(0);
+        } catch (error) {
+            logError(`Permission reset failed: ${error.message}`);
+            process.exit(1);
+        }
     } else if (command === 'verify') {
         log('🔍 Verifying permission integrity...', 'cyan');
-        const isValid = await verifyPermissions();
-        process.exit(isValid ? 0 : 1);
+        try {
+            await runTypeScriptFile('../src/scripts/reset-permissions.ts', ['verify']);
+            logSuccess('Permission verification completed successfully');
+            process.exit(0);
+        } catch (error) {
+            logError(`Permission verification failed: ${error.message}`);
+            process.exit(1);
+        }
     } else {
         log('Usage:', 'cyan');
         log('  node scripts/reset-permissions.js reset   - Reset permissions to granular format', 'white');
@@ -216,12 +107,6 @@ async function main() {
         process.exit(1);
     }
 }
-
-// Export functions for use in other scripts
-module.exports = {
-    resetPermissions,
-    verifyPermissions
-};
 
 // Run if called directly
 if (require.main === module) {

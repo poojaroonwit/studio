@@ -21,7 +21,7 @@ export function setThemeAndColors({
   } else if (themePreference === 'light') {
     shouldBeDark = false;
   } else if (themePreference === 'system') {
-    shouldBeDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    shouldBeDark = typeof window !== 'undefined' ? window.matchMedia('(prefers-color-scheme: dark)').matches : false;
   }
 
   // Set theme class

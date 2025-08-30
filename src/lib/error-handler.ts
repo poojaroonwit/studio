@@ -26,6 +26,11 @@ class GlobalErrorHandler {
   }
 
   private setupGlobalErrorHandlers() {
+    // Only setup error handlers on the client side
+    if (typeof window === 'undefined') {
+      return;
+    }
+
     // Handle unhandled promise rejections
     window.addEventListener('unhandledrejection', (event) => {
       this.handleError(event.reason, 'unhandled_promise_rejection');
@@ -47,8 +52,8 @@ class GlobalErrorHandler {
       message: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,
       timestamp: new Date().toISOString(),
-      userAgent: navigator.userAgent,
-      url: window.location.href,
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'server-side',
+      url: typeof window !== 'undefined' ? window.location.href : 'server-side',
       ...additionalContext,
     };
 

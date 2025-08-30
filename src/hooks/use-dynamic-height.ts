@@ -28,7 +28,7 @@ export function useDynamicHeight(options: UseDynamicHeightOptions = {}) {
       });
 
       // Calculate available height for the table
-      const availableHeight = window.innerHeight - filterHeight - buffer;
+      const availableHeight = typeof window !== 'undefined' ? window.innerHeight - filterHeight - buffer : minHeight;
       const newHeight = Math.max(minHeight, Math.min(maxHeight, availableHeight));
       
       setHeight(newHeight);
@@ -80,7 +80,9 @@ export function useDynamicHeight(options: UseDynamicHeightOptions = {}) {
       }
       resizeTimeoutRef.current = setTimeout(updateHeight, debounceMs);
     };
-    window.addEventListener('resize', handleResize);
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', handleResize);
+    }
 
     return () => {
       clearTimeout(initialTimer);
@@ -89,7 +91,9 @@ export function useDynamicHeight(options: UseDynamicHeightOptions = {}) {
         resizeTimeoutRef.current = null;
       }
       resizeObserver.disconnect();
-      window.removeEventListener('resize', handleResize);
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('resize', handleResize);
+      }
     };
   }, [updateHeight, debounceMs]);
 

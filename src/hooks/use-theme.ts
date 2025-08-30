@@ -32,7 +32,7 @@ export function useTheme() {
       initialTheme = 'light';
     } else {
       // System preference
-      initialTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      initialTheme = typeof window !== 'undefined' ? window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light' : 'light';
     }
     
     setCurrentTheme(initialTheme);
@@ -84,10 +84,8 @@ export function useTheme() {
             } else if (userThemePreference === 'light') {
               newTheme = 'light';
             } else {
-              // Ensure we're in a browser environment
-              if (typeof window !== 'undefined') {
-                newTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-              }
+              // System preference
+              newTheme = typeof window !== 'undefined' ? window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light' : 'light';
             }
             
             setCurrentTheme(newTheme);

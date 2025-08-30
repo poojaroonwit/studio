@@ -275,7 +275,7 @@ export const useEventListener = (
  */
 export const useBodyScrollLock = (locked: boolean) => {
   useEffect(() => {
-    if (locked) {
+    if (locked && typeof window !== 'undefined') {
       const originalStyle = window.getComputedStyle(document.body).overflow;
       document.body.style.overflow = 'hidden';
       

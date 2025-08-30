@@ -96,14 +96,14 @@ model Grade {
 }
 
 model PositionLevel {
-  id          String     @id @default(uuid()) @db.Uuid
-  name        String     @unique
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique
   description String?
-  color       String     @default("#6B7280")
-  isActive    Boolean    @default(true) @map("is_active")
-  sortOrder   Int        @default(0) @map("sort_order")
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  color       String   @default("#6B7280")
+  isActive    Boolean  @default(true) @map("is_active")
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@index([isActive])
   @@index([sortOrder])
@@ -615,7 +615,7 @@ model CandidateSource {
   id             String      @id @default(uuid()) @db.Uuid
   name           String      @unique
   description    String?
-  email          String?     // Email list for the source
+  email          String?
   allowSubSource Boolean     @default(false) @map("allow_sub_source")
   sortOrder      Int         @default(0) @map("sort_order")
   isActive       Boolean     @default(true) @map("is_active")
@@ -688,9 +688,9 @@ model WarningConfiguration {
   logicalOperator       String?                     @map("logical_operator")
   crossEntityConditions Json?                       @default("[]") @map("cross_entity_conditions")
   conditionGroups       Json?                       @default("[]") @map("condition_groups")
+  warnings              Warning[]
   createdByUser         User                        @relation("UserWarningConfiguration", fields: [createdBy], references: [id], onDelete: Cascade)
   sharedWith            WarningConfigurationShare[]
-  warnings              Warning[]
 
   @@index([entityType])
   @@index([field])
@@ -713,16 +713,16 @@ model WarningConfigurationShare {
 }
 
 model Warning {
-  id               String   @id @default(uuid()) @db.Uuid
-  configuration_id String   @db.Uuid
-  entityType       String   @map("entity_type")
-  entityId         String   @map("entity_id")
+  id               String               @id @default(uuid()) @db.Uuid
+  configuration_id String               @db.Uuid
+  entityType       String               @map("entity_type")
+  entityId         String               @map("entity_id")
   field            String
-  currentValue     String?  @map("current_value")
-  expectedValue    String?  @map("expected_value")
+  currentValue     String?              @map("current_value")
+  expectedValue    String?              @map("expected_value")
   message          String
-  severity         String   @default("warning")
-  created_at       DateTime @default(now())
+  severity         String               @default("warning")
+  created_at       DateTime             @default(now())
   updated_at       DateTime
   configuration    WarningConfiguration @relation(fields: [configuration_id], references: [id], onDelete: Cascade)
 
@@ -732,12 +732,12 @@ model Warning {
 }
 
 model WarningSystemStatus {
-  id            String   @id
-  initialized   Boolean  @default(false)
+  id            String    @id
+  initialized   Boolean   @default(false)
   initializedAt DateTime?
   lastCheckAt   DateTime?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   @@index([initialized])
 }

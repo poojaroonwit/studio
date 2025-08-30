@@ -173,7 +173,7 @@ export async function GET(request: NextRequest) {
       mainQuery += `
         ${whereClause}
         ORDER BY p."createdAt" DESC
-        LIMIT $${paramIndex++} OFFSET $${paramIndex++}
+        LIMIT $${paramIndex + 1} OFFSET $${paramIndex + 2}
       `;
       
       // Add limit and offset to params

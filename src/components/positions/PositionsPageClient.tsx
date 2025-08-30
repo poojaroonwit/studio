@@ -456,6 +456,23 @@ export default function PositionsPageClient() {
     }
   }, [assigningRecruiter]);
 
+  // Global safety timeout to prevent page from getting stuck
+  useEffect(() => {
+    const globalTimeout = setTimeout(() => {
+      // If any loading state is stuck for more than 30 seconds, reset it
+      if (isLoading || isTableLoading || isSearching || isLoadingDepartments) {
+        console.warn('Positions page loading states stuck for 30+ seconds, resetting...');
+        setIsLoading(false);
+        setIsTableLoading(false);
+        setIsSearching(false);
+        setIsLoadingDepartments(false);
+        setAssigningRecruiter(null);
+      }
+    }, 30000); // 30 seconds
+
+    return () => clearTimeout(globalTimeout);
+  }, [isLoading, isTableLoading, isSearching, isLoadingDepartments]);
+
   // Use refs to store current values to avoid dependency issues
   const currentFiltersRef = useRef({ searchTerm, statusFilter, departmentFilter, selectedRecruiterId, page, pageSize });
   

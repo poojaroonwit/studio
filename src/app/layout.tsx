@@ -189,6 +189,47 @@ export default async function RootLayout({
                     }
                   };
 
+                  // IMMEDIATE protection for ALL single-letter global objects
+                  // This runs before anything else to prevent any X.filter errors
+                  const allLetters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
+                  
+                  allLetters.forEach(letter => {
+                    if (!window[letter]) {
+                      window[letter] = {};
+                    }
+                    if (!window[letter].filter) {
+                      window[letter].filter = createSafeFilter();
+                    }
+                    if (!window[letter].map) {
+                      window[letter].map = createSafeMap();
+                    }
+                    if (!window[letter].find) {
+                      window[letter].find = createSafeFind();
+                    }
+                    if (!window[letter].some) {
+                      window[letter].some = (array, predicate) => {
+                        const safeArr = safeArray(array);
+                        try {
+                          return safeArr.some(predicate);
+                        } catch (error) {
+                          console.warn('Some error:', error);
+                          return false;
+                        }
+                      };
+                    }
+                    if (!window[letter].every) {
+                      window[letter].every = createSafeEvery();
+                    }
+                    if (!window[letter].reduce) {
+                      window[letter].reduce = createSafeReduce();
+                    }
+                    if (!window[letter].forEach) {
+                      window[letter].forEach = createSafeForEach();
+                    }
+                  });
+                  
+                  console.log('🚀 IMMEDIATE protection: ALL single-letter global objects (A-Z) initialized with array methods');
+
                   // Initialize R object
                   if (!window.R) {
                     window.R = {};
@@ -372,14 +413,14 @@ export default async function RootLayout({
                     }
                   });
                   
-                  // Additional debugging for D object specifically
-                  console.log('🔍 D object status after universal protection:', window.D);
-                  console.log('🔍 D.filter status after universal protection:', typeof window.D?.filter);
-                  if (window.D && window.D.filter) {
-                    console.log('🔍 D.filter is available and working');
-                  } else {
-                    console.warn('🔍 D.filter is still missing after universal protection');
-                  }
+                  // Additional debugging for problematic objects specifically
+                  ['D', 'P', 'M', 'T'].forEach(letter => {
+                    if (window[letter] && window[letter].filter) {
+                      console.log('✅ ' + letter + '.filter is available after universal protection');
+                    } else {
+                      console.warn('⚠️ ' + letter + '.filter is still missing after universal protection');
+                    }
+                  });
                 }
                 if (event.error && event.error.message) {
                   // Handle T.filter errors

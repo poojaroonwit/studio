@@ -1920,7 +1920,27 @@ export function MultiRecruiterKanbanView({ candidates, stages, recruiters, onMov
             <ScrollArea className="flex-1 min-h-0">
               <CardContent className="p-4 space-y-4">
                 {stages.map((stage: any) => {
-                  const stageCandidates = candidates.filter((c: any) => c.status === stage && c.recruiterId === recruiter.id);
+                  const stageCandidates = (() => {
+                    try {
+                      // Defensive check to prevent filter errors
+                      if (!Array.isArray(candidates)) {
+                        console.warn('CandidateKanbanView: candidates is not an array:', candidates);
+                        return [];
+                      }
+                      
+                      return candidates.filter((c: any) => {
+                        try {
+                          return c && c.status === stage && c.recruiterId === recruiter.id;
+                        } catch (error) {
+                          console.warn('CandidateKanbanView: Error filtering stage candidate:', error, c);
+                          return false;
+                        }
+                      });
+                    } catch (error) {
+                      console.error('CandidateKanbanView: Error filtering stage candidates:', error);
+                      return [];
+                    }
+                  })();
                   return (
                     <div key={stage} className="space-y-2">
                       <div className="flex items-center justify-between">

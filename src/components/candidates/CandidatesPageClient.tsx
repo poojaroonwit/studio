@@ -1119,24 +1119,44 @@ export function CandidatesPageClient({
 
   // Fetch missing positions if any candidate has a positionId not in availablePositions
   useEffect(() => {
-    const missing = filteredCandidates
-      .filter(c => c.positionId && !availablePositions.some(p => p.id === c.positionId))
-      .map(c => c.positionId)
-      .filter((id, idx, arr): id is string => typeof id === 'string' && arr.indexOf(id) === idx);
-    setMissingPositions(missing);
-    if (missing.length > 0) {
-      // Fetch missing positions from API
-      fetch(`/api/positions/all`)
-        .then(res => res.json())
-        .then(data => {
-          if (data && Array.isArray(data.data)) {
-            setAvailablePositions(prev => {
-              // Merge new positions with existing, avoiding duplicates
-              const newPositions = data.data.filter((p: any) => !prev.some((q: any) => q.id === p.id));
-              return [...prev, ...newPositions];
-            });
+    try {
+      // Defensive check to prevent filter errors
+      if (!Array.isArray(filteredCandidates)) {
+        console.warn('CandidatesPageClient: filteredCandidates is not an array:', filteredCandidates);
+        setMissingPositions([]);
+        return;
+      }
+      
+      const missing = filteredCandidates
+        .filter(c => {
+          try {
+            return c && c.positionId && !availablePositions.some(p => p && p.id === c.positionId);
+          } catch (error) {
+            console.warn('CandidatesPageClient: Error filtering candidate for missing positions:', error, c);
+            return false;
           }
-        });
+        })
+        .map(c => c.positionId)
+        .filter((id, idx, arr): id is string => typeof id === 'string' && arr.indexOf(id) === idx);
+        
+      setMissingPositions(missing);
+      if (missing.length > 0) {
+        // Fetch missing positions from API
+        fetch(`/api/positions/all`)
+          .then(res => res.json())
+          .then(data => {
+            if (data && Array.isArray(data.data)) {
+              setAvailablePositions(prev => {
+                // Merge new positions with existing, avoiding duplicates
+                const newPositions = data.data.filter((p: any) => !prev.some((q: any) => q.id === p.id));
+                return [...prev, ...newPositions];
+              });
+            }
+          });
+      }
+    } catch (error) {
+      console.error('CandidatesPageClient: Error processing missing positions:', error);
+      setMissingPositions([]);
     }
   }, [filteredCandidates, availablePositions]);
 

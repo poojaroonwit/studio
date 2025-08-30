@@ -1,7 +1,7 @@
 // Global Array Objects Initialization - Import this early to ensure all global objects are available
 // This file should be imported before any components that might use T.filter, D.filter, etc.
 
-// Immediate initialization for all safe single-letter global objects
+// IMMEDIATE initialization for all safe single-letter global objects
 (function() {
   if (typeof window !== 'undefined') {
     // Create safe array utility function
@@ -123,6 +123,53 @@
       });
     };
 
+    // ULTRA-AGGRESSIVE: Override Object.defineProperty to prevent tampering with global objects
+    const originalDefineProperty = Object.defineProperty;
+    Object.defineProperty = function(obj: any, prop: string | symbol, descriptor: PropertyDescriptor) {
+      if (obj === window && typeof prop === 'string' && prop.length === 1 && prop >= 'A' && prop <= 'Z' && prop !== 'R') {
+        console.warn(`Attempt to redefine global object ${prop} detected, preventing...`);
+        // Ensure the object exists before preventing redefinition
+        ensureSafeGlobalObjects();
+        return obj;
+      }
+      return originalDefineProperty.call(this, obj, prop, descriptor);
+    };
+
+    // ULTRA-AGGRESSIVE: Override Object.setPrototypeOf to prevent prototype tampering
+    const originalSetPrototypeOf = Object.setPrototypeOf;
+    Object.setPrototypeOf = function(obj: any, proto: any) {
+      if (obj === window) {
+        console.warn('Attempt to set window prototype detected, preventing...');
+        return obj;
+      }
+      return originalSetPrototypeOf.call(this, obj, proto);
+    };
+
+    // ULTRA-AGGRESSIVE: Override Object.assign to prevent overwriting global objects
+    const originalAssign = Object.assign;
+    Object.assign = function(target: any, ...sources: any[]) {
+      if (target === window) {
+        console.warn('Attempt to assign to window detected, preventing...');
+        return target;
+      }
+      return originalAssign.call(this, target, ...sources);
+    };
+
+    // ULTRA-AGGRESSIVE: Override Object.create to prevent creating objects that might conflict
+    const originalCreate = Object.create;
+    Object.create = function(proto: any, propertiesObject?: any) {
+      const result = originalCreate.call(this, proto, propertiesObject);
+      // If the created object has single-letter properties, ensure our global objects still exist
+      if (propertiesObject && typeof propertiesObject === 'object') {
+        Object.keys(propertiesObject).forEach(key => {
+          if (key.length === 1 && key >= 'A' && key <= 'Z' && key !== 'R') {
+            ensureSafeGlobalObjects();
+          }
+        });
+      }
+      return result;
+    };
+
     // NUCLEAR-LEVEL SOLUTION: Override React's useMemo to ensure global objects before execution
     if (typeof window !== 'undefined' && (window as any).React) {
       const originalUseMemo = (window as any).React.useMemo;
@@ -165,26 +212,6 @@
         };
       }
     }
-
-    // Override Object.defineProperty to prevent tampering with global objects
-    const originalDefineProperty = Object.defineProperty;
-    Object.defineProperty = function(obj: any, prop: string | symbol, descriptor: PropertyDescriptor) {
-      if (obj === window && typeof prop === 'string' && prop.length === 1 && prop >= 'A' && prop <= 'Z' && prop !== 'R') {
-        console.warn(`Attempt to redefine global object ${prop} detected, preventing...`);
-        return obj;
-      }
-      return originalDefineProperty.call(this, obj, prop, descriptor);
-    };
-
-    // Override Object.setPrototypeOf to prevent prototype tampering
-    const originalSetPrototypeOf = Object.setPrototypeOf;
-    Object.setPrototypeOf = function(obj: any, proto: any) {
-      if (obj === window) {
-        console.warn('Attempt to set window prototype detected, preventing...');
-        return obj;
-      }
-      return originalSetPrototypeOf.call(this, obj, proto);
-    };
 
     // NUCLEAR-LEVEL SOLUTION: Override Function constructor to intercept any function creation
     const originalFunction = Function;
@@ -265,7 +292,7 @@
         console.warn('Periodic check: Recreating safe global objects due to corruption');
         ensureSafeGlobalObjects();
       }
-    }, 50); // Check every 50ms
+    }, 25); // Check every 25ms
 
     // Add a MutationObserver to detect when global objects might be tampered with
     if (typeof MutationObserver !== 'undefined') {
@@ -434,7 +461,7 @@
       }
     });
 
-    console.log('Safe single-letter global objects (A-Z, excluding R) initialized with nuclear-level protection');
+    console.log('Safe single-letter global objects (A-Z, excluding R) initialized with ultra-aggressive protection');
   }
 })();
 

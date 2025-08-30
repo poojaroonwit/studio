@@ -160,6 +160,81 @@ export function safeSlice<T>(
   return safeArrayValue.slice(start, end);
 }
 
+// Comprehensive safe filter utility to prevent T.filter and f.filter errors
+export function safeFilterOperation<T>(
+  array: any, 
+  predicate: (value: T, index: number, array: T[]) => boolean,
+  context?: string
+): T[] {
+  try {
+    // Comprehensive safety checks
+    if (array === null || array === undefined) {
+      console.warn(`safeFilterOperation${context ? ` (${context})` : ''}: array is null or undefined`);
+      return [];
+    }
+    
+    if (!Array.isArray(array)) {
+      console.warn(`safeFilterOperation${context ? ` (${context})` : ''}: array is not an array:`, array, 'type:', typeof array);
+      return [];
+    }
+    
+    // Ensure predicate is a function
+    if (typeof predicate !== 'function') {
+      console.warn(`safeFilterOperation${context ? ` (${context})` : ''}: predicate is not a function:`, predicate);
+      return [];
+    }
+    
+    const result = array.filter(predicate);
+    
+    // Ensure the result is an array
+    if (!Array.isArray(result)) {
+      console.warn(`safeFilterOperation${context ? ` (${context})` : ''}: predicate returned non-array result:`, result);
+      return [];
+    }
+    
+    return result;
+  } catch (error) {
+    console.error(`safeFilterOperation${context ? ` (${context})` : ''} error:`, error);
+    return [];
+  }
+}
+
+// Safe map operation utility
+export function safeMapOperation<T, U>(
+  array: any, 
+  mapper: (value: T, index: number, array: T[]) => U,
+  context?: string
+): U[] {
+  try {
+    if (array === null || array === undefined) {
+      console.warn(`safeMapOperation${context ? ` (${context})` : ''}: array is null or undefined`);
+      return [];
+    }
+    
+    if (!Array.isArray(array)) {
+      console.warn(`safeMapOperation${context ? ` (${context})` : ''}: array is not an array:`, array, 'type:', typeof array);
+      return [];
+    }
+    
+    if (typeof mapper !== 'function') {
+      console.warn(`safeMapOperation${context ? ` (${context})` : ''}: mapper is not a function:`, mapper);
+      return [];
+    }
+    
+    const result = array.map(mapper);
+    
+    if (!Array.isArray(result)) {
+      console.warn(`safeMapOperation${context ? ` (${context})` : ''}: mapper returned non-array result:`, result);
+      return [];
+    }
+    
+    return result;
+  } catch (error) {
+    console.error(`safeMapOperation${context ? ` (${context})` : ''} error:`, error);
+    return [];
+  }
+}
+
 // Export a safe R utility that can be used throughout the application
 export const safeR = {
   filter: <T>(array: any, predicate: (value: T, index: number, array: T[]) => boolean): T[] => {

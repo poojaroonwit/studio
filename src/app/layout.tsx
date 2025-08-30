@@ -165,6 +165,25 @@ export default async function RootLayout({
                   }
                 });
                 
+                window.R.forEach = window.R.forEach || ((array, callback) => {
+                  const safeArr = safeArray(array);
+                  try {
+                    return safeArr.forEach(callback);
+                  } catch (error) {
+                    console.warn('R.forEach error:', error);
+                  }
+                });
+                
+                window.R.reduce = window.R.reduce || ((array, callback, initialValue) => {
+                  const safeArr = safeArray(array);
+                  try {
+                    return safeArr.reduce(callback, initialValue);
+                  } catch (error) {
+                    console.warn('R.reduce error:', error);
+                    return initialValue;
+                  }
+                });
+                
                 // Test the R object to ensure it's working correctly
                 try {
                   const testArray = [1, 2, 3, 4, 5];
@@ -174,31 +193,37 @@ export default async function RootLayout({
                   console.error('R object test failed:', testError);
                 }
                 
-                // Add global error handler for T.filter errors
-                window.addEventListener('error', function(event) {
-                  if (event.error && event.error.message && event.error.message.includes('T.filter is not a function')) {
-                    console.error('T.filter error detected:', event.error);
-                    console.error('Error stack:', event.error.stack);
-                    
-                    // Try to identify the source of the error
-                    const stack = event.error.stack || '';
-                    if (stack.includes('useMemo') || stack.includes('useCallback')) {
-                      console.warn('T.filter error appears to be in a React hook. This might be due to a non-array value being passed to a filter operation.');
-                    }
-                    
-                    // Prevent the error from propagating
-                    event.preventDefault();
-                    return false;
-                  }
-                });
-                
-                // Add unhandled promise rejection handler
-                window.addEventListener('unhandledrejection', function(event) {
-                  if (event.reason && event.reason.message && event.reason.message.includes('T.filter is not a function')) {
-                    console.error('Unhandled T.filter promise rejection:', event.reason);
-                    event.preventDefault();
-                  }
-                });
+                                 // Add global error handler for T.filter and f.filter errors
+                 window.addEventListener('error', function(event) {
+                   if (event.error && event.error.message && (
+                     event.error.message.includes('T.filter is not a function') ||
+                     event.error.message.includes('f.filter is not a function')
+                   )) {
+                     console.error('Filter error detected:', event.error);
+                     console.error('Error stack:', event.error.stack);
+                     
+                     // Try to identify the source of the error
+                     const stack = event.error.stack || '';
+                     if (stack.includes('useMemo') || stack.includes('useCallback')) {
+                       console.warn('Filter error appears to be in a React hook. This might be due to a non-array value being passed to a filter operation.');
+                     }
+                     
+                     // Prevent the error from propagating
+                     event.preventDefault();
+                     return false;
+                   }
+                 });
+                 
+                 // Add unhandled promise rejection handler
+                 window.addEventListener('unhandledrejection', function(event) {
+                   if (event.reason && event.reason.message && (
+                     event.reason.message.includes('T.filter is not a function') ||
+                     event.reason.message.includes('f.filter is not a function')
+                   )) {
+                     console.error('Unhandled filter promise rejection:', event.reason);
+                     event.preventDefault();
+                   }
+                 });
                 
                 console.log('R object initialized successfully:', window.R);
               }

@@ -12,6 +12,25 @@ import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { ModalCleanupMonitor } from '@/components/ui/ModalCleanupMonitor';
 
+// Global safety check to prevent R.filter errors
+if (typeof window !== 'undefined') {
+  // Ensure R is defined globally to prevent errors
+  (window as any).R = (window as any).R || {};
+  
+  // Override R.filter with a safe implementation if it doesn't exist
+  if (!(window as any).R.filter) {
+    (window as any).R.filter = function<T>(
+      predicate: (value: T, index: number, array: T[]) => boolean,
+      array: T[] | null | undefined | any
+    ): T[] {
+      if (!Array.isArray(array)) {
+        return [];
+      }
+      return array.filter(predicate);
+    };
+  }
+}
+
 // Temporarily disabled resource tracking to fix loading issue
 // import { initializeResourceTracking } from '@/lib/resource-leak-fixes';
 

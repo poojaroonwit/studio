@@ -3,76 +3,6 @@
 // Import T object initialization early
 import '@/lib/t-object-init';
 
-// Helper function to create robust array methods
-const createArrayMethod = (letter: string, methodName: string, defaultValue: any) => {
-  return (array: any, ...args: any[]) => {
-    try {
-      if (!Array.isArray(array)) {
-        console.warn(`${letter}.${methodName}: Input is not an array:`, array);
-        return defaultValue;
-      }
-      return array[methodName](...args);
-    } catch (error) {
-      console.error(`${letter}.${methodName}: Error during ${methodName}:`, error);
-      return defaultValue;
-    }
-  };
-};
-
-// Initialize all single-letter objects (A-Z) with robust error handling
-if (typeof window !== 'undefined') {
-  const singleLetterObjects = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
-  
-  singleLetterObjects.forEach(letter => {
-    // Always ensure the object exists
-    if (!(window as any)[letter]) {
-      (window as any)[letter] = {};
-    }
-    
-    // Force override any existing methods to ensure they're our robust versions
-    (window as any)[letter].filter = createArrayMethod(letter, 'filter', []);
-    (window as any)[letter].map = createArrayMethod(letter, 'map', []);
-    (window as any)[letter].find = createArrayMethod(letter, 'find', undefined);
-    (window as any)[letter].some = createArrayMethod(letter, 'some', false);
-    (window as any)[letter].every = createArrayMethod(letter, 'every', true);
-  });
-  
-  console.log('✅ ALL single-letter objects (A-Z) initialized with robust error handling');
-  
-  // Add global error handler as backup for all single-letter objects
-  const handleGlobalError = (event: ErrorEvent) => {
-    if (event.error && event.error.message) {
-      const message = event.error.message;
-      
-      // Check for any single-letter object method error (A.filter, B.map, etc.)
-      const singleLetterMatch = message.match(/([A-Z])\.(filter|map|find|some|every) is not a function/);
-      
-      if (singleLetterMatch) {
-        const letter = singleLetterMatch[1];
-        const method = singleLetterMatch[2];
-        
-        console.warn(`Global error handler caught ${letter}.${method} error, ensuring ${letter} object is available`);
-        
-        if (!(window as any)[letter]) {
-          (window as any)[letter] = {};
-        }
-        
-        // Add all array methods with robust error handling for this letter
-        (window as any)[letter].filter = (window as any)[letter].filter || createArrayMethod(letter, 'filter', []);
-        (window as any)[letter].map = (window as any)[letter].map || createArrayMethod(letter, 'map', []);
-        (window as any)[letter].find = (window as any)[letter].find || createArrayMethod(letter, 'find', undefined);
-        (window as any)[letter].some = (window as any)[letter].some || createArrayMethod(letter, 'some', false);
-        (window as any)[letter].every = (window as any)[letter].every || createArrayMethod(letter, 'every', true);
-        
-        event.preventDefault();
-        return false;
-      }
-    }
-  };
-  
-  window.addEventListener('error', handleGlobalError);
-}
-
 import React, { type ReactNode, useState, useEffect } from "react";
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, useSidebar, SidebarSeparator } from "@/components/ui/sidebar";
 import { Header } from "./Header";
@@ -126,23 +56,11 @@ export function AppLayout({ children }: AppLayoutProps) {
   // Ensure single-letter objects are available during component initialization
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const singleLetterObjects = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
-      
-      singleLetterObjects.forEach(letter => {
-        // Always ensure the object exists
-        if (!(window as any)[letter]) {
-          (window as any)[letter] = {};
-        }
-        
-        // Force override any existing methods to ensure they're our robust versions
-        (window as any)[letter].filter = createArrayMethod(letter, 'filter', []);
-        (window as any)[letter].map = createArrayMethod(letter, 'map', []);
-        (window as any)[letter].find = createArrayMethod(letter, 'find', undefined);
-        (window as any)[letter].some = createArrayMethod(letter, 'some', false);
-        (window as any)[letter].every = createArrayMethod(letter, 'every', true);
+      // Import and call the ensure function from t-object-init
+      import('@/lib/t-object-init').then(({ ensureGlobalObjects }) => {
+        ensureGlobalObjects();
+        console.log('✅ ALL single-letter objects (A-Z) ensured in AppLayout useEffect');
       });
-      
-      console.log('✅ ALL single-letter objects (A-Z) ensured in AppLayout useEffect');
     }
   }, []);
 

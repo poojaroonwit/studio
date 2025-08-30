@@ -54,6 +54,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             __html: `
               (function() {
                 if (typeof window !== 'undefined') {
+                  // Simple fallback initialization for immediate availability
                   const safeArray = (arr) => Array.isArray(arr) ? arr : [];
                   const createMethods = () => ({
                     filter: (arr, fn) => { try { return safeArray(arr).filter(fn); } catch { return []; } },
@@ -65,37 +66,20 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                     forEach: (arr, fn) => { try { safeArray(arr).forEach(fn); } catch {} }
                   });
                   
-                  // Initialize all single-letter global objects (A-Z)
+                  // Quick initialization for immediate availability
                   'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(letter => {
-                    if (!window[letter]) window[letter] = {};
-                    const methods = createMethods();
-                    Object.keys(methods).forEach(method => {
-                      if (!window[letter][method]) {
+                    if (!window[letter]) {
+                      window[letter] = {};
+                      const methods = createMethods();
+                      Object.keys(methods).forEach(method => {
                         window[letter][method] = methods[method];
-                      }
-                    });
+                      });
+                    }
                   });
                   
-                  console.log('✅ Global objects initialized in layout.tsx');
+                  console.log('✅ Quick global objects initialization in layout.tsx');
                 }
               })();
-
-              // Error handler for any remaining issues
-              window.addEventListener('error', function(event) {
-                if (event.error?.message && event.error.message.includes('.filter is not a function')) {
-                  const match = event.error.message.match(/([A-Z])\.filter is not a function/);
-                  if (match) {
-                    const letter = match[1];
-                    if (!window[letter]) window[letter] = {};
-                    if (!window[letter].filter) {
-                      window[letter].filter = (arr, fn) => { try { return Array.isArray(arr) ? arr.filter(fn) : []; } catch { return []; } };
-                      console.warn(\`Fixed missing \${letter}.filter function\`);
-                    }
-                    event.preventDefault();
-                    return false;
-                  }
-                }
-              });
             `,
           }}
         />

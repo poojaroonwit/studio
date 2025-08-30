@@ -18,7 +18,7 @@
       return [];
     };
 
-    // Create safe array methods
+    // Create safe array methods with more robust error handling
     const createSafeMethods = () => ({
       filter: (array: any, predicate: any) => {
         try {
@@ -86,33 +86,33 @@
       }
     });
 
-    // Initialize all single-letter global objects (A-Z)
+    // Initialize all single-letter global objects (A-Z) with aggressive overwriting
     const singleLetterObjects = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
     const safeMethods = createSafeMethods();
     
     singleLetterObjects.forEach(letter => {
-      if (!(window as any)[letter]) {
-        (window as any)[letter] = {};
-      }
+      // Always create the object, even if it exists
+      (window as any)[letter] = {};
       
-      // Ensure all methods exist and are functions
+      // Always overwrite all methods to ensure they're our safe versions
       Object.keys(safeMethods).forEach(method => {
-        (window as any)[letter][method] = (window as any)[letter][method] || safeMethods[method as keyof typeof safeMethods];
+        (window as any)[letter][method] = safeMethods[method as keyof typeof safeMethods];
       });
     });
 
-    // Global error handler for any remaining issues
+    // Add a more aggressive global error handler
     const originalErrorHandler = window.onerror;
     window.onerror = function(message, source, lineno, colno, error) {
       if (typeof message === 'string' && message.includes('.filter is not a function')) {
         const match = message.match(/([A-Z])\.filter is not a function/);
         if (match) {
           const letter = match[1];
-          if (!(window as any)[letter]) {
-            (window as any)[letter] = {};
-          }
-          (window as any)[letter].filter = safeMethods.filter;
-          console.warn(`Fixed missing ${letter}.filter function`);
+          // Aggressively recreate the object and methods
+          (window as any)[letter] = {};
+          Object.keys(safeMethods).forEach(method => {
+            (window as any)[letter][method] = safeMethods[method as keyof typeof safeMethods];
+          });
+          console.warn(`Aggressively fixed missing ${letter}.filter function`);
           return true; // Prevent the error from being logged
         }
       }
@@ -124,7 +124,20 @@
       return false;
     };
 
-    console.log('✅ All single-letter global objects (A-Z) initialized with array methods');
+    // Add a periodic check to ensure objects are still available
+    setInterval(() => {
+      singleLetterObjects.forEach(letter => {
+        if (!(window as any)[letter] || typeof (window as any)[letter].filter !== 'function') {
+          console.warn(`Periodic check: Recreating ${letter} object`);
+          (window as any)[letter] = {};
+          Object.keys(safeMethods).forEach(method => {
+            (window as any)[letter][method] = safeMethods[method as keyof typeof safeMethods];
+          });
+        }
+      });
+    }, 5000); // Check every 5 seconds
+
+    console.log('✅ All single-letter global objects (A-Z) initialized with aggressive protection');
   }
 })();
 
@@ -155,17 +168,16 @@ export function ensureGlobalObjects() {
       }
     };
 
-    // Ensure all single-letter objects exist
+    // Ensure all single-letter objects exist with aggressive overwriting
     const singleLetterObjects = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
     
     singleLetterObjects.forEach(letter => {
-      if (!(window as any)[letter]) {
-        (window as any)[letter] = {};
-      }
-      (window as any)[letter].filter = (window as any)[letter].filter || createSafeFilter();
+      // Always recreate the object
+      (window as any)[letter] = {};
+      (window as any)[letter].filter = createSafeFilter();
     });
 
-    console.log('✅ All single-letter global objects (A-Z) reinitialized');
+    console.log('✅ All single-letter global objects (A-Z) aggressively reinitialized');
   }
 }
 
@@ -176,3 +188,12 @@ export function ensureTObject() {
 
 // Auto-ensure on import
 ensureGlobalObjects();
+
+// Also ensure on DOM ready
+if (typeof window !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', ensureGlobalObjects);
+  } else {
+    ensureGlobalObjects();
+  }
+}

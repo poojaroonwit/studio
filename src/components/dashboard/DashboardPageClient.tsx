@@ -62,12 +62,6 @@ export default function DashboardPageClient({
     maxHeight: 1200
   });
   
-  // Permission update guard to prevent infinite loops
-  const permissionUpdateRef = useRef<{ lastUpdate: number; isUpdating: boolean }>({
-    lastUpdate: 0,
-    isUpdating: false
-  });
-  
   const [filteredCandidates, setFilteredCandidates] = useState<Candidate[]>(initialCandidates || []);
   const [myAssignedCandidates, setMyAssignedCandidates] = useState<Candidate[]>(initialCandidates || []); // For Recruiter, initialCandidates *are* their assigned ones
   const [allPositions, setAllPositions] = useState<Position[]>(initialPositions || []);
@@ -171,7 +165,27 @@ export default function DashboardPageClient({
       if (myBacklogCandidatesResOrNull && !myBacklogCandidatesResOrNull.ok) { 
         const errorText = myBacklogCandidatesResOrNull.statusText || `Status: ${myBacklogCandidatesResOrNull.status}`;
         accumulatedFetchError += `Failed to fetch backlog candidates: ${errorText}. `;
-        setMyBacklogCandidates([]); // Set empty array on error
+        setMyBacklogCandidates((() => {
+          try {
+            // Defensive check to prevent filter errors
+            if (!Array.isArray(backlogData)) {
+              console.warn('DashboardPageClient: backlogData is not an array:', backlogData);
+              return [];
+            }
+            
+            return backlogData.filter(c => {
+              try {
+                return c && !BACKLOG_EXCLUSION_STATUSES.includes(c.status);
+              } catch (error) {
+                console.warn('DashboardPageClient: Error filtering backlog candidate:', error, c);
+                return false;
+              }
+            });
+          } catch (error) {
+            console.error('DashboardPageClient: Error filtering backlog candidates:', error);
+            return [];
+          }
+        })());
       }
       else if (myBacklogCandidatesResOrNull) {
         const response = await myBacklogCandidatesResOrNull.json();
@@ -184,7 +198,7 @@ export default function DashboardPageClient({
               return [];
             }
             
-            return backlogData.filter((c: Candidate) => {
+            return backlogData.filter(c => {
               try {
                 return c && !BACKLOG_EXCLUSION_STATUSES.includes(c.status);
               } catch (error) {
@@ -290,7 +304,7 @@ export default function DashboardPageClient({
     if (initialFetchError) {
       toast.error(initialFetchError);
     }
-  }, [initialCandidates, initialPositions, initialUsers, initialFetchError, serverAuthError, serverPermissionError, status, session?.user?.id, session?.user?.role]); // FIXED: Remove modulePermissions dependency to prevent infinite loops
+  }, [initialCandidates, initialPositions, initialUsers, initialFetchError, serverAuthError, serverPermissionError, status, session?.user?.role, session?.user?.modulePermissions]);
 
   // REMOVED: Automatic permission refresh - this was causing the loop
   // Users can manually refresh permissions if needed using the button in the UI

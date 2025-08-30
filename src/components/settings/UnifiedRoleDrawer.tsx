@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -137,8 +137,8 @@ export function UnifiedRoleDrawer({
   const isSystemRole = role?.is_system_role || false;
   const isAdminRole = role?.name === 'Admin';
 
-  // Get all available permissions for Admin role - memoize to prevent recreation
-  const allPermissions = useMemo(() => PLATFORM_MODULES.map(p => p.id), []);
+  // Get all available permissions for Admin role
+  const allPermissions = PLATFORM_MODULES.map(p => p.id);
 
   // Initialize permissions when role changes - FIXED: Use useEffect instead of useSafeEffect
   useEffect(() => {
@@ -152,7 +152,7 @@ export function UnifiedRoleDrawer({
         setCurrentPermissions(role.permissions || []);
       }
     }
-  }, [role?.id, role?.name, role?.permissions, allPermissions, trackRoleLoad]); // FIXED: Use specific role properties
+  }, [role, allPermissions, trackRoleLoad]); // FIXED: Include trackRoleLoad in dependencies
 
   // Reset states when drawer closes to prevent memory leaks - FIXED: Use useEffect instead of useSafeEffect
   useEffect(() => {
@@ -196,7 +196,7 @@ export function UnifiedRoleDrawer({
     return () => {
       form.reset();
     };
-  }, []); // FIXED: Empty dependency array for cleanup
+  }, [form]); // FIXED: Include form in dependencies
 
   // Load role data when drawer opens - FIXED: Use useEffect instead of useSafeEffect
   useEffect(() => {
@@ -218,21 +218,21 @@ export function UnifiedRoleDrawer({
         loadGroupMembers();
       }
     }
-  }, [isOpen, role?.id, role?.name, role?.description, role?.is_default, role?.permissions, activeTab, allPermissions]); // FIXED: Use specific role properties
+  }, [isOpen, role, form, activeTab, allPermissions]); // FIXED: Remove max run limit
 
   // Load group members when members tab is selected - FIXED: Use useEffect instead of useSafeEffect
   useEffect(() => {
     if (isOpen && role && activeTab === 'members') {
       loadGroupMembers();
     }
-  }, [isOpen, role?.id, activeTab]); // FIXED: Use specific role properties
+  }, [isOpen, role, activeTab]); // FIXED: Remove max run limit
 
   // Load available users when add user modal opens - FIXED: Use useEffect instead of useSafeEffect
   useEffect(() => {
     if (isAddUserModalOpen && role) {
       loadAvailableUsers();
     }
-  }, [isAddUserModalOpen, role?.id, searchTerm]); // FIXED: Use specific role properties
+  }, [isAddUserModalOpen, role, searchTerm]); // FIXED: Remove max run limit
 
   // Cleanup effect to prevent memory leaks and handle component unmounting - FIXED: Use useEffect instead of useSafeEffect
   useEffect(() => {
@@ -449,8 +449,8 @@ export function UnifiedRoleDrawer({
         setIsUpdatingPermissions(false);
         abortControllerRef.current = null;
       }
-    }, 1000); // FIXED: Increased debounce delay to 1000ms to prevent rapid updates
-  }, [role?.id, role?.name, role?.description, role?.is_default, role?.permissions, isAdminRole, allPermissions, trackPermissionUpdate]); // FIXED: Use specific role properties
+    }, 500); // 500ms debounce delay
+  }, [role, isAdminRole, allPermissions, trackPermissionUpdate]);
 
   const handleAddUser = async () => {
     if (!selectedUserId || !role) return;

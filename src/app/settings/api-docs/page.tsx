@@ -3,9 +3,6 @@
 import dynamic from "next/dynamic";
 import React, { useEffect, useState } from "react";
 
-// Import the R polyfill to ensure it's available for swagger-ui-react
-import '@/lib/ramda-polyfill';
-
 const SwaggerUI = dynamic(() => import("swagger-ui-react"), { ssr: false });
 // CSS will be loaded dynamically
 
@@ -20,20 +17,13 @@ export default function ApiDocsPage() {
 
   // Fetch server list and OpenAPI spec
   useEffect(() => {
-    // Ensure R is available before loading Swagger UI
-    const ensureR = async () => {
-      try {
-        // Import the polyfill again to make sure it's loaded
-        await import('@/lib/ramda-polyfill');
-        
-        // Test if R is working
-        if (typeof (window as any).R === 'undefined' || typeof (window as any).R.filter !== 'function') {
-          console.warn('R object not available, attempting to fix...');
-          // Force reload the polyfill
-          await import('@/lib/ramda-polyfill');
-        }
-      } catch (err) {
-        console.error('Failed to ensure R polyfill:', err);
+    // Simple R polyfill check
+    const ensureR = () => {
+      if (typeof window !== 'undefined' && !(window as any).R) {
+        (window as any).R = {
+          filter: (predicate: any, list: any) => Array.isArray(list) ? list.filter(predicate) : [],
+          map: (fn: any, list: any) => Array.isArray(list) ? list.map(fn) : []
+        };
       }
     };
 

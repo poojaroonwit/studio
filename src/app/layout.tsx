@@ -1,6 +1,3 @@
-// Import Ramda polyfill FIRST to prevent R.filter errors from third-party libraries
-import '@/lib/ramda-polyfill';
-
 import type { Metadata } from 'next';
 import './globals.css';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -14,14 +11,6 @@ import { WarningProvider } from '@/contexts/WarningContext';
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { ModalCleanupMonitor } from '@/components/ui/ModalCleanupMonitor';
-
-// Import error handlers to catch R.filter errors
-import { setupGlobalErrorHandlers } from '@/lib/error-handlers';
-
-// Set up global error handlers for client-side
-if (typeof window !== 'undefined') {
-  setupGlobalErrorHandlers();
-}
 
 // Temporarily disabled resource tracking to fix loading issue
 // import { initializeResourceTracking } from '@/lib/resource-leak-fixes';
@@ -101,27 +90,16 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <head>
-        {/* Ensure R polyfill is available before any other scripts */}
+        {/* Simple R polyfill for third-party libraries */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              // Ensure R is available globally before any other scripts run
-              if (typeof window !== 'undefined' && (typeof window.R === 'undefined' || typeof window.R.filter !== 'function')) {
-                // Create a basic R polyfill if it's not available
-                window.R = window.R || {};
-                if (typeof window.R.filter !== 'function') {
-                  window.R.filter = function(predicate, list) {
-                    if (!Array.isArray(list)) return [];
-                    return list.filter(predicate);
-                  };
-                }
-                if (typeof window.R.map !== 'function') {
-                  window.R.map = function(fn, list) {
-                    if (!Array.isArray(list)) return [];
-                    return list.map(fn);
-                  };
-                }
-                console.log('R polyfill initialized via inline script');
+              // Simple R polyfill for third-party libraries
+              if (typeof window !== 'undefined' && !window.R) {
+                window.R = {
+                  filter: (predicate, list) => Array.isArray(list) ? list.filter(predicate) : [],
+                  map: (fn, list) => Array.isArray(list) ? list.map(fn) : []
+                };
               }
             `,
           }}

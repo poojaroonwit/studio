@@ -1,7 +1,4 @@
 // Chart.js setup function - only call this from client components
-// Import the R polyfill to ensure it's available for any libraries that might use Ramda
-import '@/lib/ramda-polyfill';
-
 let isSetup = false;
 let setupPromise: Promise<void> | null = null;
 let setupStartTime: number | null = null;
@@ -32,10 +29,14 @@ export function setupChartJS(): Promise<void> {
   setupStartTime = Date.now();
   
   setupPromise = Promise.all([
-    // Ensure R polyfill is available before loading Chart.js
-    import('@/lib/ramda-polyfill').catch(() => {
-      console.warn('setupChartJS: Failed to import R polyfill, continuing...');
-      return null;
+    // Simple R polyfill check
+    Promise.resolve().then(() => {
+      if (typeof window !== 'undefined' && !(window as any).R) {
+        (window as any).R = {
+          filter: (predicate: any, list: any) => Array.isArray(list) ? list.filter(predicate) : [],
+          map: (fn: any, list: any) => Array.isArray(list) ? list.map(fn) : []
+        };
+      }
     }),
     import('chart.js').catch(error => {
       console.error('setupChartJS: Failed to import chart.js:', error);

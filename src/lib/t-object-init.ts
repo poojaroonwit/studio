@@ -115,6 +115,14 @@ if (typeof window !== 'undefined') {
   // Additional debugging for D object
   console.log('🔍 D object initialized in t-object-init.ts:', (window as any).D);
   console.log('🔍 D.filter type in t-object-init.ts:', typeof (window as any).D.filter);
+  console.log('🔍 D.filter function in t-object-init.ts:', (window as any).D.filter);
+  
+  // Additional verification for D object
+  if ((window as any).D && (window as any).D.filter) {
+    console.log('✅ D.filter is properly initialized in t-object-init.ts');
+  } else {
+    console.warn('⚠️ D.filter is missing in t-object-init.ts');
+  }
 
   // Initialize R object (for any R.filter usage)
   if (!(window as any).R) {

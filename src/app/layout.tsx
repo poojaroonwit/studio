@@ -225,6 +225,7 @@ export default async function RootLayout({
                   // Additional debugging for D object
                   console.log('🔍 D object initialized:', window.D);
                   console.log('🔍 D.filter type:', typeof window.D.filter);
+                  console.log('🔍 D.filter function:', window.D.filter);
 
                   // Initialize P object (for any P.filter usage)
                   if (!window.P) {
@@ -370,6 +371,15 @@ export default async function RootLayout({
                       };
                     }
                   });
+                  
+                  // Additional debugging for D object specifically
+                  console.log('🔍 D object status after universal protection:', window.D);
+                  console.log('🔍 D.filter status after universal protection:', typeof window.D?.filter);
+                  if (window.D && window.D.filter) {
+                    console.log('🔍 D.filter is available and working');
+                  } else {
+                    console.warn('🔍 D.filter is still missing after universal protection');
+                  }
                 }
                 if (event.error && event.error.message) {
                   // Handle T.filter errors
@@ -517,6 +527,12 @@ export default async function RootLayout({
                           return [];
                         }
                       };
+                    }
+                    
+                    // Additional debugging for D object specifically
+                    if (letter === 'D') {
+                      console.log('🔍 D object after error handler:', window.D);
+                      console.log('🔍 D.filter after error handler:', typeof window.D?.filter);
                     }
                     
                     // Prevent the error from propagating

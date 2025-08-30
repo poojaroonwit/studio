@@ -49,105 +49,7 @@ interface AppLayoutProps {
   children: React.ReactNode
 }
 
-// Session context to ensure safe session data
-const SessionContext = React.createContext<{
-  session: any;
-  status: string;
-} | null>(null);
-
-// Session provider component
-const SessionProvider = ({ children }: { children: React.ReactNode }) => {
-  const { data: session, status } = useSession();
-  const [stableSession, setStableSession] = useState<any>(null);
-  const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const lastSessionRef = useRef<any>(null);
-  
-  // Handle real-time session updates with debouncing
-  useEffect(() => {
-    if (session && session !== lastSessionRef.current) {
-      // Clear any existing timeout
-      if (updateTimeoutRef.current) {
-        clearTimeout(updateTimeoutRef.current);
-      }
-      
-      // Debounce the session update to prevent rapid re-renders during real-time updates
-      updateTimeoutRef.current = setTimeout(() => {
-        if (!session || !session.user) {
-          setStableSession(null);
-          lastSessionRef.current = null;
-          return;
-        }
-        
-        // Ensure modulePermissions is always an array
-        const safeUser = {
-          ...session.user,
-          modulePermissions: Array.isArray(session.user.modulePermissions) 
-            ? session.user.modulePermissions 
-            : []
-        };
-        
-        const safeSession = {
-          ...session,
-          user: safeUser
-        };
-        
-        setStableSession(safeSession);
-        lastSessionRef.current = session;
-      }, 50); // Short debounce for real-time updates
-    } else if (!session) {
-      setStableSession(null);
-      lastSessionRef.current = null;
-    }
-    
-    return () => {
-      if (updateTimeoutRef.current) {
-        clearTimeout(updateTimeoutRef.current);
-      }
-    };
-  }, [session]);
-  
-  const safeSession = React.useMemo(() => {
-    if (!session || !session.user) {
-      return null;
-    }
-    
-    // Use stable session if available, otherwise create safe session
-    if (stableSession) {
-      return stableSession;
-    }
-    
-    // Ensure modulePermissions is always an array
-    const safeUser = {
-      ...session.user,
-      modulePermissions: Array.isArray(session.user.modulePermissions) 
-        ? session.user.modulePermissions 
-        : []
-    };
-    
-    return {
-      ...session,
-      user: safeUser
-    };
-  }, [session, stableSession]);
-
-  return (
-    <SessionContext.Provider value={{ session: safeSession, status }}>
-      {children}
-    </SessionContext.Provider>
-  );
-};
-
-// Hook to use safe session
-const useSafeSession = () => {
-  const context = React.useContext(SessionContext);
-  if (!context) {
-    throw new Error('useSafeSession must be used within SessionProvider');
-  }
-  return context;
-};
-
 export function AppLayout({ children }: AppLayoutProps) {
-
   const pathname = usePathname();
   const [currentAppName, setCurrentAppName] = useState<string>(DEFAULT_APP_NAME);
   const pageTitle = pathname === "/auth/signin" ? "Sign In" : getPageTitle(pathname) || currentAppName;
@@ -175,26 +77,6 @@ export function AppLayout({ children }: AppLayoutProps) {
     autoSignOut: true,
     redirectTo: '/auth/signin'
   });
-
-  // Ensure session data is properly structured
-  const safeSession = React.useMemo(() => {
-    if (!session || !session.user) {
-      return null;
-    }
-    
-    // Ensure modulePermissions is always an array
-    const safeUser = {
-      ...session.user,
-      modulePermissions: Array.isArray(session.user.modulePermissions) 
-        ? session.user.modulePermissions 
-        : []
-    };
-    
-    return {
-      ...session,
-      user: safeUser
-    };
-  }, [session]);
 
   useEffect(() => {
     setIsClient(true);
@@ -381,43 +263,41 @@ export function AppLayout({ children }: AppLayoutProps) {
     return <GlobalLoadingOverlay />;
   }
 
-  if (!safeSession?.user) {
+  if (!session) {
     return <>{children}</>;
   }
 
   return (
-    <SessionProvider>
-      <SidebarProvider defaultOpen={true}>
-        <FaviconUpdater faviconDataUrl={faviconDataUrl} />
-        <SidebarToggleButton />
-        <div className="flex h-screen bg-background overflow-hidden">
-          <Sidebar collapsible="icon" className="border-r border-border">
-            <SidebarHeader>
-              <SidebarHeaderContent 
-                currentAppName={currentAppName}
-                appLogoUrl={appLogoUrl}
-                isClient={isClient}
-                isLogoLoading={isLogoLoading}
-                showLogoOnly={showLogoOnly}
-                sidebarLogoSize={sidebarLogoSize}
-                contextualLogos={contextualLogos}
-              />
-            </SidebarHeader>
-            <SidebarSeparator className="my-0" />
-            <SidebarContent>
-              <SidebarNav />
-            </SidebarContent>
-          </Sidebar>
-          <div className="flex-1 flex flex-col min-w-0">
-            <Header pageTitle={pageTitle} showLogoOnly={showLogoOnly} />
-            <main className="flex-1 overflow-auto p-0">
-              {isLoading && <GlobalLoadingOverlay />}
-              {children}
-            </main>
-          </div>
+    <SidebarProvider defaultOpen={true}>
+      <FaviconUpdater faviconDataUrl={faviconDataUrl} />
+      <SidebarToggleButton />
+      <div className="flex h-screen bg-background overflow-hidden">
+        <Sidebar collapsible="icon" className="border-r border-border">
+          <SidebarHeader>
+            <SidebarHeaderContent 
+              currentAppName={currentAppName}
+              appLogoUrl={appLogoUrl}
+              isClient={isClient}
+              isLogoLoading={isLogoLoading}
+              showLogoOnly={showLogoOnly}
+              sidebarLogoSize={sidebarLogoSize}
+              contextualLogos={contextualLogos}
+            />
+          </SidebarHeader>
+          <SidebarSeparator className="my-0" />
+          <SidebarContent>
+            <SidebarNav />
+          </SidebarContent>
+        </Sidebar>
+        <div className="flex-1 flex flex-col min-w-0">
+          <Header pageTitle={pageTitle} showLogoOnly={showLogoOnly} />
+          <main className="flex-1 overflow-auto p-0">
+            {isLoading && <GlobalLoadingOverlay />}
+            {children}
+          </main>
         </div>
-      </SidebarProvider>
-    </SessionProvider>
+      </div>
+    </SidebarProvider>
   );
 }
 

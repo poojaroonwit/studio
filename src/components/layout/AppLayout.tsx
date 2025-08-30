@@ -20,6 +20,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { SidebarHeaderContent } from "./SidebarHeaderContent";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useComponentProtection } from "@/hooks/use-global-objects";
+import { GlobalObjectsProvider } from "@/components/GlobalObjectsProvider";
 
 const DEFAULT_APP_NAME = "FitScan";
 
@@ -287,36 +288,38 @@ export function AppLayout({ children }: AppLayoutProps) {
   }
 
   return (
-    <SidebarProvider defaultOpen={true}>
-      <FaviconUpdater faviconDataUrl={faviconDataUrl} />
-      <SidebarToggleButton />
-      <div className="flex h-screen bg-background overflow-hidden">
-        <Sidebar collapsible="icon" className="border-r border-border">
-          <SidebarHeader>
-            <SidebarHeaderContent 
-              currentAppName={currentAppName}
-              appLogoUrl={appLogoUrl}
-              isClient={isClient}
-              isLogoLoading={isLogoLoading}
-              showLogoOnly={showLogoOnly}
-              sidebarLogoSize={sidebarLogoSize}
-              contextualLogos={contextualLogos}
-            />
-          </SidebarHeader>
-          <SidebarSeparator className="my-0" />
-          <SidebarContent>
-            <SidebarNav />
-          </SidebarContent>
-        </Sidebar>
-        <div className="flex-1 flex flex-col min-w-0">
-          <Header pageTitle={pageTitle} showLogoOnly={showLogoOnly} />
-          <main className="flex-1 overflow-auto p-0">
-            {isLoading && <GlobalLoadingOverlay />}
-            {children}
-          </main>
+    <GlobalObjectsProvider>
+      <SidebarProvider defaultOpen={true}>
+        <FaviconUpdater faviconDataUrl={faviconDataUrl} />
+        <SidebarToggleButton />
+        <div className="flex h-screen bg-background overflow-hidden">
+          <Sidebar collapsible="icon" className="border-r border-border">
+            <SidebarHeader>
+              <SidebarHeaderContent 
+                currentAppName={currentAppName}
+                appLogoUrl={appLogoUrl}
+                isClient={isClient}
+                isLogoLoading={isLogoLoading}
+                showLogoOnly={showLogoOnly}
+                sidebarLogoSize={sidebarLogoSize}
+                contextualLogos={contextualLogos}
+              />
+            </SidebarHeader>
+            <SidebarSeparator className="my-0" />
+            <SidebarContent>
+              <SidebarNav />
+            </SidebarContent>
+          </Sidebar>
+          <div className="flex-1 flex flex-col min-w-0">
+            <Header pageTitle={pageTitle} showLogoOnly={showLogoOnly} />
+            <main className="flex-1 overflow-auto p-0">
+              {isLoading && <GlobalLoadingOverlay />}
+              {children}
+            </main>
+          </div>
         </div>
-      </div>
-    </SidebarProvider>
+      </SidebarProvider>
+    </GlobalObjectsProvider>
   );
 }
 

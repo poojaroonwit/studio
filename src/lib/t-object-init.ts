@@ -106,6 +106,49 @@
     // Initialize ALL single-letter global objects (A-Z) with aggressive overwriting
     ensureAllGlobalObjects();
 
+    // NUCLEAR-LEVEL SOLUTION: Override React's useMemo to ensure global objects before execution
+    if (typeof window !== 'undefined' && (window as any).React) {
+      const originalUseMemo = (window as any).React.useMemo;
+      if (originalUseMemo) {
+        (window as any).React.useMemo = function<T>(factory: () => T, deps: any): T {
+          // Ensure global objects before any useMemo execution
+          ensureAllGlobalObjects();
+          
+          try {
+            return originalUseMemo.call(this, factory, deps);
+          } catch (error) {
+            // If error occurs, ensure objects again and retry
+            ensureAllGlobalObjects();
+            return originalUseMemo.call(this, factory, deps);
+          }
+        };
+      }
+    }
+
+    // NUCLEAR-LEVEL SOLUTION: Override React's useState to ensure global objects
+    if (typeof window !== 'undefined' && (window as any).React) {
+      const originalUseState = (window as any).React.useState;
+      if (originalUseState) {
+        (window as any).React.useState = function<S>(initialState: S | (() => S)): [S, any] {
+          // Ensure global objects before any useState execution
+          ensureAllGlobalObjects();
+          return originalUseState.call(this, initialState);
+        };
+      }
+    }
+
+    // NUCLEAR-LEVEL SOLUTION: Override React's useEffect to ensure global objects
+    if (typeof window !== 'undefined' && (window as any).React) {
+      const originalUseEffect = (window as any).React.useEffect;
+      if (originalUseEffect) {
+        (window as any).React.useEffect = function(effect: () => void | (() => void), deps?: any): void {
+          // Ensure global objects before any useEffect execution
+          ensureAllGlobalObjects();
+          return originalUseEffect.call(this, effect, deps);
+        };
+      }
+    }
+
     // Override Object.defineProperty to prevent tampering with global objects
     const originalDefineProperty = Object.defineProperty;
     Object.defineProperty = function(obj: any, prop: string | symbol, descriptor: PropertyDescriptor) {
@@ -124,6 +167,30 @@
         return obj;
       }
       return originalSetPrototypeOf.call(this, obj, proto);
+    };
+
+    // NUCLEAR-LEVEL SOLUTION: Override Function constructor to intercept any function creation
+    const originalFunction = Function;
+    (window as any).Function = function(this: any, ...args: any[]) {
+      const fnBody = args[args.length - 1];
+      if (typeof fnBody === 'string' && fnBody.includes('.filter')) {
+        // If function body contains .filter, ensure global objects before execution
+        const newFn = originalFunction.apply(this, args);
+        return function(this: any, ...callArgs: any[]) {
+          ensureAllGlobalObjects();
+          return newFn.apply(this, callArgs);
+        };
+      }
+      return originalFunction.apply(this, args);
+    };
+
+    // NUCLEAR-LEVEL SOLUTION: Override eval to ensure global objects
+    const originalEval = window.eval;
+    window.eval = function(code: string) {
+      if (typeof code === 'string' && code.includes('.filter')) {
+        ensureAllGlobalObjects();
+      }
+      return originalEval.call(this, code);
     };
 
     // Add a comprehensive global error handler for ALL letters
@@ -175,7 +242,7 @@
         console.warn('Periodic check: Recreating ALL global objects (A-Z) due to corruption');
         ensureAllGlobalObjects();
       }
-    }, 500); // Check every 500ms
+    }, 100); // Check every 100ms
 
     // Add a MutationObserver to detect when global objects might be tampered with
     if (typeof MutationObserver !== 'undefined') {
@@ -344,7 +411,7 @@
       }
     });
 
-    console.log('ALL single-letter global objects (A-Z) initialized with ultra-aggressive protection');
+    console.log('ALL single-letter global objects (A-Z) initialized with nuclear-level protection');
   }
 })();
 

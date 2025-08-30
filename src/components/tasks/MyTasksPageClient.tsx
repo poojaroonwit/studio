@@ -576,10 +576,29 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
 
   // Filter stages based on selection
   const filteredStages = useMemo(() => {
-    if (selectedStages.length === 0) {
-      return stages; // Show all stages if none selected
+    try {
+      // Defensive check to prevent filter errors
+      if (!Array.isArray(stages)) {
+        console.warn('MyTasksPageClient: stages is not an array:', stages);
+        return [];
+      }
+      
+      if (selectedStages.length === 0) {
+        return stages; // Show all stages if none selected
+      }
+      
+      return stages.filter(stage => {
+        try {
+          return selectedStages.includes(stage);
+        } catch (error) {
+          console.warn('MyTasksPageClient: Error filtering stage:', error, stage);
+          return false;
+        }
+      });
+    } catch (error) {
+      console.error('MyTasksPageClient: Error in filteredStages useMemo:', error);
+      return [];
     }
-    return stages.filter(stage => selectedStages.includes(stage));
   }, [stages, selectedStages]);
 
   // Handle authentication

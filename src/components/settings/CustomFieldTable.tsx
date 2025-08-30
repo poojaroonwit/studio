@@ -204,7 +204,27 @@ export default function CustomFieldTable({
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {fields.filter(f => f.model_name === 'Candidate').length}
+              {(() => {
+                try {
+                  // Defensive check to prevent filter errors
+                  if (!Array.isArray(fields)) {
+                    console.warn('CustomFieldTable: fields is not an array:', fields);
+                    return 0;
+                  }
+                  
+                  return fields.filter(f => {
+                    try {
+                      return f && f.model_name === 'Candidate';
+                    } catch (error) {
+                      console.warn('CustomFieldTable: Error filtering candidate field:', error, f);
+                      return false;
+                    }
+                  }).length;
+                } catch (error) {
+                  console.error('CustomFieldTable: Error counting candidate fields:', error);
+                  return 0;
+                }
+              })()}
             </div>
           </CardContent>
         </Card>
@@ -215,7 +235,27 @@ export default function CustomFieldTable({
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {fields.filter(f => f.model_name === 'Position').length}
+              {(() => {
+                try {
+                  // Defensive check to prevent filter errors
+                  if (!Array.isArray(fields)) {
+                    console.warn('CustomFieldTable: fields is not an array:', fields);
+                    return 0;
+                  }
+                  
+                  return fields.filter(f => {
+                    try {
+                      return f && f.model_name === 'Position';
+                    } catch (error) {
+                      console.warn('CustomFieldTable: Error filtering position field:', error, f);
+                      return false;
+                    }
+                  }).length;
+                } catch (error) {
+                  console.error('CustomFieldTable: Error counting position fields:', error);
+                  return 0;
+                }
+              })()}
             </div>
           </CardContent>
         </Card>
@@ -226,7 +266,27 @@ export default function CustomFieldTable({
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {fields.filter(f => f.model_name === 'User').length}
+              {(() => {
+                try {
+                  // Defensive check to prevent filter errors
+                  if (!Array.isArray(fields)) {
+                    console.warn('CustomFieldTable: fields is not an array:', fields);
+                    return 0;
+                  }
+                  
+                  return fields.filter(f => {
+                    try {
+                      return f && f.model_name === 'User';
+                    } catch (error) {
+                      console.warn('CustomFieldTable: Error filtering user field:', error, f);
+                      return false;
+                    }
+                  }).length;
+                } catch (error) {
+                  console.error('CustomFieldTable: Error counting user fields:', error);
+                  return 0;
+                }
+              })()}
             </div>
           </CardContent>
         </Card>

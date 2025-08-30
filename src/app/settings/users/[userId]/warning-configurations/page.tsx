@@ -480,7 +480,27 @@ export default function UserWarningConfigurationsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">
-                {configurations.filter(c => c.isActive).length}
+                {(() => {
+                  try {
+                    // Defensive check to prevent filter errors
+                    if (!Array.isArray(configurations)) {
+                      console.warn('WarningConfigurationsPage: configurations is not an array:', configurations);
+                      return 0;
+                    }
+                    
+                    return configurations.filter(c => {
+                      try {
+                        return c && c.isActive;
+                      } catch (error) {
+                        console.warn('WarningConfigurationsPage: Error filtering active configuration:', error, c);
+                        return false;
+                      }
+                    }).length;
+                  } catch (error) {
+                    console.error('WarningConfigurationsPage: Error counting active configurations:', error);
+                    return 0;
+                  }
+                })()}
               </div>
             </CardContent>
           </Card>
@@ -491,7 +511,27 @@ export default function UserWarningConfigurationsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-orange-600">
-                {configurations.filter(c => !c.isActive).length}
+                {(() => {
+                  try {
+                    // Defensive check to prevent filter errors
+                    if (!Array.isArray(configurations)) {
+                      console.warn('WarningConfigurationsPage: configurations is not an array:', configurations);
+                      return 0;
+                    }
+                    
+                    return configurations.filter(c => {
+                      try {
+                        return c && !c.isActive;
+                      } catch (error) {
+                        console.warn('WarningConfigurationsPage: Error filtering inactive configuration:', error, c);
+                        return false;
+                      }
+                    }).length;
+                  } catch (error) {
+                    console.error('WarningConfigurationsPage: Error counting inactive configurations:', error);
+                    return 0;
+                  }
+                })()}
               </div>
             </CardContent>
           </Card>
@@ -502,7 +542,27 @@ export default function UserWarningConfigurationsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-blue-600">
-                {configurations.filter(c => c.isPublic).length}
+                {(() => {
+                  try {
+                    // Defensive check to prevent filter errors
+                    if (!Array.isArray(configurations)) {
+                      console.warn('WarningConfigurationsPage: configurations is not an array:', configurations);
+                      return 0;
+                    }
+                    
+                    return configurations.filter(c => {
+                      try {
+                        return c && c.isPublic;
+                      } catch (error) {
+                        console.warn('WarningConfigurationsPage: Error filtering public configuration:', error, c);
+                        return false;
+                      }
+                    }).length;
+                  } catch (error) {
+                    console.error('WarningConfigurationsPage: Error counting public configurations:', error);
+                    return 0;
+                  }
+                })()}
               </div>
             </CardContent>
           </Card>

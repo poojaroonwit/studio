@@ -151,7 +151,27 @@ const DragDropUpload: React.FC<DragDropUploadProps> = ({
         clearTimeout(clearUploadsTimeoutRef.current);
       }
       clearUploadsTimeoutRef.current = setTimeout(() => {
-        setUploadFiles(prev => prev.filter(f => f.status !== 'completed'));
+        setUploadFiles(prev => {
+          try {
+            // Defensive check to prevent filter errors
+            if (!Array.isArray(prev)) {
+              console.warn('DragDropUpload: prev is not an array:', prev);
+              return [];
+            }
+            
+            return prev.filter(f => {
+              try {
+                return f && f.status !== 'completed';
+              } catch (error) {
+                console.warn('DragDropUpload: Error filtering upload file:', error, f);
+                return false;
+              }
+            });
+          } catch (error) {
+            console.error('DragDropUpload: Error filtering upload files:', error);
+            return [];
+          }
+        });
       }, 3000);
     } catch (error) {
       console.error('Upload error:', error);
@@ -261,7 +281,27 @@ const DragDropUpload: React.FC<DragDropUploadProps> = ({
         <div className="space-y-3">
           <h4 className="text-sm font-medium flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin" />
-            Upload Progress ({uploadFiles.filter(f => f.status === 'uploading').length} uploading)
+            Upload Progress ({(() => {
+              try {
+                // Defensive check to prevent filter errors
+                if (!Array.isArray(uploadFiles)) {
+                  console.warn('DragDropUpload: uploadFiles is not an array:', uploadFiles);
+                  return 0;
+                }
+                
+                return uploadFiles.filter(f => {
+                  try {
+                    return f && f.status === 'uploading';
+                  } catch (error) {
+                    console.warn('DragDropUpload: Error filtering uploading file:', error, f);
+                    return false;
+                  }
+                }).length;
+              } catch (error) {
+                console.error('DragDropUpload: Error counting uploading files:', error);
+                return 0;
+              }
+            })()} uploading)
           </h4>
           <div className="space-y-2">
             {uploadFiles.map((uploadFile) => (

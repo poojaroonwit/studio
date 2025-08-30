@@ -312,9 +312,31 @@ export function ManageTransitionsModal({
     }
   }, [onOpenChange, cleanup]);
 
-  const filteredStages = statusSearchQuery
-    ? stages.filter(stage => stage.name.toLowerCase().includes(statusSearchQuery.toLowerCase()))
-    : stages;
+  const filteredStages = (() => {
+    try {
+      // Defensive check to prevent filter errors
+      if (!Array.isArray(stages)) {
+        console.warn('ManageTransitionsModal: stages is not an array:', stages);
+        return [];
+      }
+      
+      if (!statusSearchQuery) {
+        return stages;
+      }
+      
+      return stages.filter(stage => {
+        try {
+          return stage && stage.name && stage.name.toLowerCase().includes(statusSearchQuery.toLowerCase());
+        } catch (error) {
+          console.warn('ManageTransitionsModal: Error filtering stage:', error, stage);
+          return false;
+        }
+      });
+    } catch (error) {
+      console.error('ManageTransitionsModal: Error filtering stages:', error);
+      return [];
+    }
+  })();
 
   return (
     <>

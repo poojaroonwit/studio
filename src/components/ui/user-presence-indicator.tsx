@@ -305,10 +305,27 @@ export function UserPresenceIndicator({ className }: UserPresenceIndicatorProps)
     });
   }, [onlineUsers, pathname]);
 
-  const onlineCount = useMemo(() => 
-    filteredUsers.filter(user => user.isOnline).length, 
-    [filteredUsers]
-  );
+  const onlineCount = useMemo(() => {
+    try {
+      // Defensive check to prevent filter errors
+      if (!Array.isArray(filteredUsers)) {
+        console.warn('UserPresenceIndicator: filteredUsers is not an array:', filteredUsers);
+        return 0;
+      }
+      
+      return filteredUsers.filter(user => {
+        try {
+          return user && user.isOnline;
+        } catch (error) {
+          console.warn('UserPresenceIndicator: Error filtering online user:', error, user);
+          return false;
+        }
+      }).length;
+    } catch (error) {
+      console.error('UserPresenceIndicator: Error counting online users:', error);
+      return 0;
+    }
+  }, [filteredUsers]);
   
   const totalCount = useMemo(() => 
     filteredUsers.length, 

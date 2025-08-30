@@ -55,7 +55,27 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       if (response.ok) {
         const data = await response.json();
         setNotifications(data);
-        setUnreadCount(Array.isArray(data) ? data.filter((n: Notification) => !n.isRead).length : 0);
+        setUnreadCount((() => {
+          try {
+            // Defensive check to prevent filter errors
+            if (!Array.isArray(data)) {
+              console.warn('NotificationContext: data is not an array:', data);
+              return 0;
+            }
+            
+            return data.filter((n: Notification) => {
+              try {
+                return n && !n.isRead;
+              } catch (error) {
+                console.warn('NotificationContext: Error filtering notification:', error, n);
+                return false;
+              }
+            }).length;
+          } catch (error) {
+            console.error('NotificationContext: Error counting unread notifications:', error);
+            return 0;
+          }
+        })());
       }
     } catch (error) {
       console.error('Error fetching notifications:', error);

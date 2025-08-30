@@ -167,9 +167,51 @@ export function RoleSelector({
                                          <div className="flex items-center space-x-1">
                        <span className="text-xs text-muted-foreground">
                          {multiple 
-                           ? `${selectedRoleIds.filter(id => roles.some(role => role.id === id)).length}/${roles.length}`
-                           : selectedRoleIds.filter(id => roles.some(role => role.id === id)).length > 0 ? '1 selected' : '0 selected'
-                         }
+                           ? `${(() => {
+                              try {
+                                // Defensive check to prevent filter errors
+                                if (!Array.isArray(selectedRoleIds) || !Array.isArray(roles)) {
+                                  console.warn('RoleSelector: selectedRoleIds or roles is not an array:', { selectedRoleIds, roles });
+                                  return 0;
+                                }
+                                
+                                return selectedRoleIds.filter(id => {
+                                  try {
+                                    return roles.some(role => role && role.id === id);
+                                  } catch (error) {
+                                    console.warn('RoleSelector: Error filtering selected role ID:', error, id);
+                                    return false;
+                                  }
+                                }).length;
+                              } catch (error) {
+                                console.error('RoleSelector: Error counting selected roles:', error);
+                                return 0;
+                              }
+                            })()}/${Array.isArray(roles) ? roles.length : 0}`
+                          : (() => {
+                              try {
+                                // Defensive check to prevent filter errors
+                                if (!Array.isArray(selectedRoleIds) || !Array.isArray(roles)) {
+                                  console.warn('RoleSelector: selectedRoleIds or roles is not an array:', { selectedRoleIds, roles });
+                                  return '0 selected';
+                                }
+                                
+                                const selectedCount = selectedRoleIds.filter(id => {
+                                  try {
+                                    return roles.some(role => role && role.id === id);
+                                  } catch (error) {
+                                    console.warn('RoleSelector: Error filtering selected role ID:', error, id);
+                                    return false;
+                                  }
+                                }).length;
+                                
+                                return selectedCount > 0 ? '1 selected' : '0 selected';
+                              } catch (error) {
+                                console.error('RoleSelector: Error counting selected roles:', error);
+                                return '0 selected';
+                              }
+                            })()
+                        }
                        </span>
                      </div>
                   </div>

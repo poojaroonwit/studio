@@ -356,7 +356,29 @@ export function PositionMultiSelectDropdown({
                         variant="outline"
                         className="ml-auto text-xs"
                       >
-                        {filteredPositions.filter(pos => selectedIds.has(pos.id)).length}/{filteredPositions.length}
+                        {(() => {
+                          try {
+                            // Defensive check to prevent filter errors
+                            if (!Array.isArray(filteredPositions)) {
+                              console.warn('PositionMultiSelectDropdown: filteredPositions is not an array:', filteredPositions);
+                              return '0/0';
+                            }
+                            
+                            const selectedCount = filteredPositions.filter(pos => {
+                              try {
+                                return pos && selectedIds.has(pos.id);
+                              } catch (error) {
+                                console.warn('PositionMultiSelectDropdown: Error filtering selected position:', error, pos);
+                                return false;
+                              }
+                            }).length;
+                            
+                            return `${selectedCount}/${filteredPositions.length}`;
+                          } catch (error) {
+                            console.error('PositionMultiSelectDropdown: Error counting selected positions:', error);
+                            return '0/0';
+                          }
+                        })()}
                       </Badge>
                     </div>
                   </button>

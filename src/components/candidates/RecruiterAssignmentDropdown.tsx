@@ -29,12 +29,31 @@ const RecruiterAssignmentDropdown: React.FC<RecruiterAssignmentDropdownProps> = 
   const [filteredRecruiters, setFilteredRecruiters] = useState(recruiters);
 
   useEffect(() => {
-    if (recruiterSearchTerm.trim() === '') {
-      setFilteredRecruiters(recruiters);
-    } else {
-      setFilteredRecruiters(
-        recruiters.filter(r => r.name.toLowerCase().includes(recruiterSearchTerm.toLowerCase()))
-      );
+    try {
+      // Defensive check to prevent filter errors
+      if (!Array.isArray(recruiters)) {
+        console.warn('RecruiterAssignmentDropdown: recruiters is not an array:', recruiters);
+        setFilteredRecruiters([]);
+        return;
+      }
+      
+      if (recruiterSearchTerm.trim() === '') {
+        setFilteredRecruiters(recruiters);
+      } else {
+        setFilteredRecruiters(
+          recruiters.filter(r => {
+            try {
+              return r && r.name && r.name.toLowerCase().includes(recruiterSearchTerm.toLowerCase());
+            } catch (error) {
+              console.warn('RecruiterAssignmentDropdown: Error filtering recruiter:', error, r);
+              return false;
+            }
+          })
+        );
+      }
+    } catch (error) {
+      console.error('RecruiterAssignmentDropdown: Error filtering recruiters:', error);
+      setFilteredRecruiters([]);
     }
   }, [recruiterSearchTerm, recruiters]);
 

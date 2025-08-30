@@ -299,7 +299,27 @@ export function WarningConfigurationsDrawer({
                   {configurations.length} Configuration{configurations.length !== 1 ? 's' : ''}
                 </Badge>
                 <Badge variant="outline" className="text-sm">
-                  {Array.isArray(configurations) ? configurations.filter(c => c.isActive).length : 0} Active
+                  {(() => {
+                    try {
+                      // Defensive check to prevent filter errors
+                      if (!Array.isArray(configurations)) {
+                        console.warn('WarningConfigurationsDrawer: configurations is not an array:', configurations);
+                        return 0;
+                      }
+                      
+                      return configurations.filter(c => {
+                        try {
+                          return c && c.isActive;
+                        } catch (error) {
+                          console.warn('WarningConfigurationsDrawer: Error filtering configuration:', error, c);
+                          return false;
+                        }
+                      }).length;
+                    } catch (error) {
+                      console.error('WarningConfigurationsDrawer: Error counting active configurations:', error);
+                      return 0;
+                    }
+                  })()} Active
                 </Badge>
               </div>
               <Button onClick={handleCreateConfiguration} size="sm">

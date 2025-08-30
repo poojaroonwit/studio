@@ -247,7 +247,29 @@ export function RolePermissionSelector({
                   </div>
                   <div className="flex items-center space-x-1">
                     <span className="text-xs text-muted-foreground">
-                      {selectedPermissions.filter(p => permissions.some(perm => perm.id === p)).length}/{permissions.length}
+                      {(() => {
+                        try {
+                          // Defensive check to prevent filter errors
+                          if (!Array.isArray(selectedPermissions) || !Array.isArray(permissions)) {
+                            console.warn('RolePermissionSelector: selectedPermissions or permissions is not an array:', { selectedPermissions, permissions });
+                            return '0/0';
+                          }
+                          
+                          const selectedCount = selectedPermissions.filter(p => {
+                            try {
+                              return permissions.some(perm => perm && perm.id === p);
+                            } catch (error) {
+                              console.warn('RolePermissionSelector: Error filtering selected permission:', error, p);
+                              return false;
+                            }
+                          }).length;
+                          
+                          return `${selectedCount}/${permissions.length}`;
+                        } catch (error) {
+                          console.error('RolePermissionSelector: Error counting selected permissions:', error);
+                          return '0/0';
+                        }
+                      })()}
                     </span>
                     <Button
                       type="button"

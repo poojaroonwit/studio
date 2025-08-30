@@ -165,12 +165,52 @@ export default function DashboardPageClient({
       if (myBacklogCandidatesResOrNull && !myBacklogCandidatesResOrNull.ok) { 
         const errorText = myBacklogCandidatesResOrNull.statusText || `Status: ${myBacklogCandidatesResOrNull.status}`;
         accumulatedFetchError += `Failed to fetch backlog candidates: ${errorText}. `;
-        setMyBacklogCandidates([]); 
+        setMyBacklogCandidates((() => {
+          try {
+            // Defensive check to prevent filter errors
+            if (!Array.isArray(backlogData)) {
+              console.warn('DashboardPageClient: backlogData is not an array:', backlogData);
+              return [];
+            }
+            
+            return backlogData.filter(c => {
+              try {
+                return c && !BACKLOG_EXCLUSION_STATUSES.includes(c.status);
+              } catch (error) {
+                console.warn('DashboardPageClient: Error filtering backlog candidate:', error, c);
+                return false;
+              }
+            });
+          } catch (error) {
+            console.error('DashboardPageClient: Error filtering backlog candidates:', error);
+            return [];
+          }
+        })());
       }
       else if (myBacklogCandidatesResOrNull) {
         const response = await myBacklogCandidatesResOrNull.json();
         const backlogData: Candidate[] = Array.isArray(response.data) ? response.data : (Array.isArray(response) ? response : []);
-        setMyBacklogCandidates(backlogData.filter(c => !BACKLOG_EXCLUSION_STATUSES.includes(c.status)));
+        setMyBacklogCandidates((() => {
+          try {
+            // Defensive check to prevent filter errors
+            if (!Array.isArray(backlogData)) {
+              console.warn('DashboardPageClient: backlogData is not an array:', backlogData);
+              return [];
+            }
+            
+            return backlogData.filter(c => {
+              try {
+                return c && !BACKLOG_EXCLUSION_STATUSES.includes(c.status);
+              } catch (error) {
+                console.warn('DashboardPageClient: Error filtering backlog candidate:', error, c);
+                return false;
+              }
+            });
+          } catch (error) {
+            console.error('DashboardPageClient: Error filtering backlog candidates:', error);
+            return [];
+          }
+        })());
       }
 
       if (!positionsRes || !positionsRes.ok) { 

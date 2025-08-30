@@ -298,7 +298,27 @@ export function RealtimeCollaboration({
                 <Bell className="w-4 h-4" />
                 <span className="text-sm font-medium">Notifications</span>
                 <Badge variant="secondary" className="text-xs">
-                  {notifications.filter(n => n && n.id && !n.read).length}
+                  {(() => {
+                    try {
+                      // Defensive check to prevent filter errors
+                      if (!Array.isArray(notifications)) {
+                        console.warn('RealtimeCollaboration: notifications is not an array:', notifications);
+                        return 0;
+                      }
+                      
+                      return notifications.filter(n => {
+                        try {
+                          return n && n.id && !n.read;
+                        } catch (error) {
+                          console.warn('RealtimeCollaboration: Error filtering notification:', error, n);
+                          return false;
+                        }
+                      }).length;
+                    } catch (error) {
+                      console.error('RealtimeCollaboration: Error counting unread notifications:', error);
+                      return 0;
+                    }
+                  })()}
                 </Badge>
               </div>
               <ScrollArea className="h-24">

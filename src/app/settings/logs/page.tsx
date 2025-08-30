@@ -173,7 +173,27 @@ export default function ApplicationLogsPage() {
     fetchLogs(1, { level: "ALL", search: "", userId: "ALL", start: undefined, end: undefined });
   };
   
-  const filteredUsersForDropdown = allUsers.filter(user => user.name.toLowerCase().includes(userSearch.toLowerCase()));
+  const filteredUsersForDropdown = (() => {
+    try {
+      // Defensive check to prevent filter errors
+      if (!Array.isArray(allUsers)) {
+        console.warn('Settings logs page: allUsers is not an array:', allUsers);
+        return [];
+      }
+      
+      return allUsers.filter(user => {
+        try {
+          return user && user.name && user.name.toLowerCase().includes(userSearch.toLowerCase());
+        } catch (error) {
+          console.warn('Settings logs page: Error filtering user:', error, user);
+          return false;
+        }
+      });
+    } catch (error) {
+      console.error('Settings logs page: Error filtering users:', error);
+      return [];
+    }
+  })();
 
   const handleModalOpen = (log: LogEntry | null = null) => {
     setEditingLog(log);

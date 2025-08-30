@@ -91,7 +91,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                         const match = message.match(/([A-Z])\.filter is not a function/);
                         if (match) {
                           const letter = match[1];
-                          console.warn('🚨 CRITICAL: ' + letter + '.filter is missing! Recreating ALL global objects (A-Z)...');
+                          console.warn('CRITICAL: ' + letter + '.filter is missing! Recreating ALL global objects (A-Z)...');
                           ensureAllGlobalObjects();
                           event.preventDefault();
                           return false;
@@ -104,7 +104,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                         if (methodMatch) {
                           const letter = methodMatch[1];
                           const method = methodMatch[2];
-                          console.warn('🚨 CRITICAL: ' + letter + '.' + method + ' is missing! Recreating ALL global objects (A-Z)...');
+                          console.warn('CRITICAL: ' + letter + '.' + method + ' is missing! Recreating ALL global objects (A-Z)...');
                           ensureAllGlobalObjects();
                           event.preventDefault();
                           return false;
@@ -141,7 +141,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                     }
                   });
                   
-                  console.log('✅ Ultra-aggressive global objects initialization for ALL letters (A-Z) in layout.tsx');
+                  console.log('Ultra-aggressive global objects initialization for ALL letters (A-Z) in layout.tsx');
                 }
               })();
             `,

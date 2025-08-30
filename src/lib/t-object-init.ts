@@ -106,6 +106,26 @@
     // Initialize ALL single-letter global objects (A-Z) with aggressive overwriting
     ensureAllGlobalObjects();
 
+    // Override Object.defineProperty to prevent tampering with global objects
+    const originalDefineProperty = Object.defineProperty;
+    Object.defineProperty = function(obj: any, prop: string | symbol, descriptor: PropertyDescriptor) {
+      if (obj === window && typeof prop === 'string' && prop.length === 1 && prop >= 'A' && prop <= 'Z') {
+        console.warn(`Attempt to redefine global object ${prop} detected, preventing...`);
+        return obj;
+      }
+      return originalDefineProperty.call(this, obj, prop, descriptor);
+    };
+
+    // Override Object.setPrototypeOf to prevent prototype tampering
+    const originalSetPrototypeOf = Object.setPrototypeOf;
+    Object.setPrototypeOf = function(obj: any, proto: any) {
+      if (obj === window) {
+        console.warn('Attempt to set window prototype detected, preventing...');
+        return obj;
+      }
+      return originalSetPrototypeOf.call(this, obj, proto);
+    };
+
     // Add a comprehensive global error handler for ALL letters
     const originalErrorHandler = window.onerror;
     window.onerror = function(message, source, lineno, colno, error) {
@@ -114,7 +134,7 @@
         const match = message.match(/([A-Z])\.filter is not a function/);
         if (match) {
           const letter = match[1];
-          console.warn(`🚨 CRITICAL: ${letter}.filter is missing! Recreating ALL global objects (A-Z)...`);
+          console.warn(`CRITICAL: ${letter}.filter is missing! Recreating ALL global objects (A-Z)...`);
           ensureAllGlobalObjects();
           return true; // Prevent the error from being logged
         }
@@ -155,7 +175,7 @@
         console.warn('Periodic check: Recreating ALL global objects (A-Z) due to corruption');
         ensureAllGlobalObjects();
       }
-    }, 1000); // Check every 1 second
+    }, 500); // Check every 500ms
 
     // Add a MutationObserver to detect when global objects might be tampered with
     if (typeof MutationObserver !== 'undefined') {
@@ -220,7 +240,111 @@
       }
     });
 
-    console.log('✅ ALL single-letter global objects (A-Z) initialized with ultra-aggressive protection');
+    // Add a message listener for cross-frame communication
+    window.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'GLOBAL_OBJECT_CHECK') {
+        const allLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+        let needsRecreation = false;
+        
+        allLetters.forEach(letter => {
+          if (!(window as any)[letter] || typeof (window as any)[letter].filter !== 'function') {
+            needsRecreation = true;
+          }
+        });
+        
+        if (needsRecreation) {
+          console.warn('Message event: Recreating ALL global objects (A-Z)');
+          ensureAllGlobalObjects();
+        }
+      }
+    });
+
+    // Add a storage event listener
+    window.addEventListener('storage', () => {
+      const allLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+      let needsRecreation = false;
+      
+      allLetters.forEach(letter => {
+        if (!(window as any)[letter] || typeof (window as any)[letter].filter !== 'function') {
+          needsRecreation = true;
+        }
+      });
+      
+      if (needsRecreation) {
+        console.warn('Storage event: Recreating ALL global objects (A-Z)');
+        ensureAllGlobalObjects();
+      }
+    });
+
+    // Add a popstate listener
+    window.addEventListener('popstate', () => {
+      const allLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+      let needsRecreation = false;
+      
+      allLetters.forEach(letter => {
+        if (!(window as any)[letter] || typeof (window as any)[letter].filter !== 'function') {
+          needsRecreation = true;
+        }
+      });
+      
+      if (needsRecreation) {
+        console.warn('Popstate event: Recreating ALL global objects (A-Z)');
+        ensureAllGlobalObjects();
+      }
+    });
+
+    // Add a hashchange listener
+    window.addEventListener('hashchange', () => {
+      const allLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+      let needsRecreation = false;
+      
+      allLetters.forEach(letter => {
+        if (!(window as any)[letter] || typeof (window as any)[letter].filter !== 'function') {
+          needsRecreation = true;
+        }
+      });
+      
+      if (needsRecreation) {
+        console.warn('Hashchange event: Recreating ALL global objects (A-Z)');
+        ensureAllGlobalObjects();
+      }
+    });
+
+    // Add a resize listener
+    window.addEventListener('resize', () => {
+      const allLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+      let needsRecreation = false;
+      
+      allLetters.forEach(letter => {
+        if (!(window as any)[letter] || typeof (window as any)[letter].filter !== 'function') {
+          needsRecreation = true;
+        }
+      });
+      
+      if (needsRecreation) {
+        console.warn('Resize event: Recreating ALL global objects (A-Z)');
+        ensureAllGlobalObjects();
+      }
+    });
+
+    // Add a scroll listener
+    window.addEventListener('scroll', () => {
+      const allLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+      let needsRecreation = false;
+      
+      allLetters.forEach(letter => {
+        if (!(window as any)[letter] || typeof (window as any)[letter].filter !== 'function') {
+          needsRecreation = true;
+        }
+      });
+      
+      if (needsRecreation) {
+        console.warn('Scroll event: Recreating ALL global objects (A-Z)');
+        ensureAllGlobalObjects();
+      }
+    });
+
+    console.log('ALL single-letter global objects (A-Z) initialized with ultra-aggressive protection');
   }
 })();
 
@@ -260,7 +384,7 @@ export function ensureGlobalObjects() {
       (window as any)[letter].filter = createSafeFilter();
     });
 
-    console.log('✅ ALL single-letter global objects (A-Z) aggressively reinitialized');
+    console.log('ALL single-letter global objects (A-Z) aggressively reinitialized');
   }
 }
 

@@ -19,6 +19,7 @@ import { setThemeAndColors } from '@/lib/themeUtils';
 import { useTheme } from '@/hooks/use-theme';
 import { SidebarHeaderContent } from "./SidebarHeaderContent";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useComponentProtection } from "@/hooks/use-global-objects";
 
 const DEFAULT_APP_NAME = "FitScan";
 
@@ -53,16 +54,20 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
+  // Use component protection hook for ultra-aggressive global object protection
+  const { ensureObjects } = useComponentProtection();
+
   // Ensure single-letter objects are available during component initialization
   useEffect(() => {
     if (typeof window !== 'undefined') {
       // Import and call the ensure function from t-object-init
       import('@/lib/t-object-init').then(({ ensureGlobalObjects }) => {
         ensureGlobalObjects();
-        console.log('✅ ALL single-letter objects (A-Z) ensured in AppLayout useEffect');
+        ensureObjects(); // Additional protection
+        console.log('ALL single-letter objects (A-Z) ensured in AppLayout useEffect');
       });
     }
-  }, []);
+  }, [ensureObjects]);
 
   const pathname = usePathname();
   const [currentAppName, setCurrentAppName] = useState<string>(DEFAULT_APP_NAME);

@@ -22,19 +22,18 @@ fi
 # Set PROCESSOR_URL if not provided (default to app service)
 if [ -z "$PROCESSOR_URL" ]; then
     export PROCESSOR_URL="http://app:8021"
-    echo "ℹ️  PROCESSOR_URL not set, using default: $PROCESSOR_URL"
 fi
 
-echo "📊 Configuration:"
-echo "  DATABASE_URL: $(echo "$DATABASE_URL" | cut -c1-30)..."
+echo "📊 Configuration loaded"
+echo "  DATABASE_URL: [configured]"
 echo "  PROCESSOR_URL: $PROCESSOR_URL"
-echo "  PROCESSOR_API_KEY: ${PROCESSOR_API_KEY:0:10}..."
+echo "  PROCESSOR_API_KEY: [configured]"
 echo "  PROCESSOR_INTERVAL_MS: ${PROCESSOR_INTERVAL_MS:-5000}"
 echo "  LOG_INTERVAL_MS: ${LOG_INTERVAL_MS:-30000}"
 
 # Generate Prisma client
 echo "🔧 Generating Prisma client..."
-if ! npx prisma generate --schema=prisma/schema.prisma; then
+if ! npx prisma generate --schema=prisma/schema.prisma > /dev/null 2>&1; then
     echo "❌ ERROR: Failed to generate Prisma client"
     exit 1
 fi

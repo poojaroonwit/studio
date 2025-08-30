@@ -178,6 +178,7 @@ services:
       UPLOAD_QUEUE_PROCESS_URL: ${UPLOAD_QUEUE_PROCESS_URL:-http://app:8021/api/upload-queue/process}
       PROCESSOR_INTERVAL_MS: ${PROCESSOR_INTERVAL_MS:-5000}
       LOG_INTERVAL_MS: ${LOG_INTERVAL_MS:-30000}
+      PROCESSOR_QUIET_MODE: ${PROCESSOR_QUIET_MODE:-true}
       NODE_ENV: ${NODE_ENV}
       DOCKER_ENV: true
     depends_on:

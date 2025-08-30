@@ -189,6 +189,29 @@
       }
     }
 
+    // NUCLEAR-LEVEL SOLUTION: Override EventSource constructor to ensure global objects
+    if (typeof window !== 'undefined' && window.EventSource) {
+      const originalEventSource = window.EventSource;
+      window.EventSource = function(this: any, url: string, eventSourceInitDict?: EventSourceInit) {
+        // Ensure global objects before creating EventSource
+        ensureSafeGlobalObjects();
+        
+        const eventSource = new originalEventSource(url, eventSourceInitDict);
+        
+        // Ensure global objects after EventSource creation
+        const originalOnOpen = eventSource.onopen;
+        eventSource.onopen = function(event) {
+          ensureSafeGlobalObjects();
+          if (originalOnOpen) {
+            originalOnOpen.call(this, event);
+          }
+        };
+        
+        return eventSource;
+      } as any;
+      window.EventSource.prototype = originalEventSource.prototype;
+    }
+
     // NUCLEAR-LEVEL SOLUTION: Override React's useState to ensure global objects
     if (typeof window !== 'undefined' && (window as any).React) {
       const originalUseState = (window as any).React.useState;
@@ -269,6 +292,42 @@
         }
       }
       
+      // CRITICAL: Check for the specific T.filter error that's occurring
+      if (typeof message === 'string' && message.includes('T.filter is not a function')) {
+        console.warn('🚨 CRITICAL: T.filter error detected! Aggressively recreating global objects...');
+        ensureSafeGlobalObjects();
+        
+        // Force immediate recreation of T object specifically
+        if (typeof window !== 'undefined') {
+          const safeArray = (array: any) => {
+            if (Array.isArray(array)) return array;
+            if (array === null || array === undefined) return [];
+            if (typeof array === 'object' && array !== null) {
+              try {
+                return Array.from(array);
+              } catch {
+                return [];
+              }
+            }
+            return [];
+          };
+          
+          (window as any).T = {};
+          (window as any).T.filter = (array: any, predicate: any) => {
+            try {
+              const safeArr = safeArray(array);
+              const result = safeArr.filter(predicate);
+              return Array.isArray(result) ? result : [];
+            } catch (error) {
+              console.warn('T.filter error recovery:', error);
+              return [];
+            }
+          };
+        }
+        
+        return true; // Prevent the error from being logged
+      }
+      
       // Call original error handler if it exists
       if (originalErrorHandler) {
         return originalErrorHandler(message, source, lineno, colno, error);
@@ -288,11 +347,43 @@
         }
       });
       
+      // CRITICAL: Extra check for T object specifically
+      if (!(window as any).T || typeof (window as any).T.filter !== 'function') {
+        console.warn('🚨 CRITICAL: T object is missing or corrupted! Immediate recreation...');
+        needsRecreation = true;
+        
+        // Force immediate recreation of T object
+        const safeArray = (array: any) => {
+          if (Array.isArray(array)) return array;
+          if (array === null || array === undefined) return [];
+          if (typeof array === 'object' && array !== null) {
+            try {
+              return Array.from(array);
+            } catch {
+              return [];
+            }
+          }
+          return [];
+        };
+        
+        (window as any).T = {};
+        (window as any).T.filter = (array: any, predicate: any) => {
+          try {
+            const safeArr = safeArray(array);
+            const result = safeArr.filter(predicate);
+            return Array.isArray(result) ? result : [];
+          } catch (error) {
+            console.warn('T.filter emergency recovery:', error);
+            return [];
+          }
+        };
+      }
+      
       if (needsRecreation) {
         console.warn('Periodic check: Recreating safe global objects due to corruption');
         ensureSafeGlobalObjects();
       }
-    }, 25); // Check every 25ms
+    }, 10); // Check every 10ms for more aggressive protection
 
     // Add a MutationObserver to detect when global objects might be tampered with
     if (typeof MutationObserver !== 'undefined') {

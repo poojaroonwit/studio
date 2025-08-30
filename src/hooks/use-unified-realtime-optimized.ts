@@ -75,6 +75,17 @@ class UnifiedRealtimeManager {
     this.connectionAttempts.set(sessionId, attempts + 1);
 
     try {
+      // CRITICAL: Ensure global objects are protected before creating EventSource
+      if (typeof window !== 'undefined') {
+        // Import and ensure global objects are safe
+        try {
+          const { ensureGlobalObjects } = await import('@/lib/t-object-init');
+          ensureGlobalObjects();
+        } catch (error) {
+          console.warn('Failed to ensure global objects before real-time connection:', error);
+        }
+      }
+
       // Clear existing connection timeout
       if (this.connectionTimeout) {
         clearTimeout(this.connectionTimeout);
@@ -94,6 +105,17 @@ class UnifiedRealtimeManager {
       return new Promise((resolve) => {
         eventSource.onopen = () => {
           console.log('✅ Real-time connection established');
+          
+          // CRITICAL: Ensure global objects are safe after connection is established
+          if (typeof window !== 'undefined') {
+            try {
+              const { ensureGlobalObjects } = require('@/lib/t-object-init');
+              ensureGlobalObjects();
+            } catch (error) {
+              console.warn('Failed to ensure global objects after connection:', error);
+            }
+          }
+          
           this.connectedSessions.add(sessionId);
           this.connectionCount++;
           this.isConnecting = false;
@@ -132,6 +154,16 @@ class UnifiedRealtimeManager {
 
   // Setup event listeners
   private setupEventListeners(eventSource: EventSource) {
+    // CRITICAL: Ensure global objects are safe before setting up event listeners
+    if (typeof window !== 'undefined') {
+      try {
+        const { ensureGlobalObjects } = require('@/lib/t-object-init');
+        ensureGlobalObjects();
+      } catch (error) {
+        console.warn('Failed to ensure global objects before event listener setup:', error);
+      }
+    }
+
     const eventTypes = [
       'candidate_update',
       'position_update', 
@@ -165,6 +197,17 @@ class UnifiedRealtimeManager {
   private handleEvent(eventType: string, event: MessageEvent) {
     this.messageCount++;
     this.lastMessageTime = Date.now();
+
+    // CRITICAL: Ensure global objects are safe before processing events
+    if (typeof window !== 'undefined') {
+      try {
+        // Ensure global objects are protected before processing any real-time events
+        const { ensureGlobalObjects } = require('@/lib/t-object-init');
+        ensureGlobalObjects();
+      } catch (error) {
+        console.warn('Failed to ensure global objects in event handler:', error);
+      }
+    }
 
     try {
       const data = eventType === 'session_expired' ? null : JSON.parse(event.data);

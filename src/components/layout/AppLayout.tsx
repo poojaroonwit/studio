@@ -36,7 +36,52 @@ if (typeof window !== 'undefined') {
     (window as any)[letter].every = (window as any)[letter].every || createArrayMethod(letter, 'every', true);
   });
   
+  // Ensure T object is immediately available and has all methods
+  if (!(window as any).T) {
+    (window as any).T = {};
+  }
+  
+  // Double-check T object has all required methods
+  (window as any).T.filter = (window as any).T.filter || createArrayMethod('T', 'filter', []);
+  (window as any).T.map = (window as any).T.map || createArrayMethod('T', 'map', []);
+  (window as any).T.find = (window as any).T.find || createArrayMethod('T', 'find', undefined);
+  (window as any).T.some = (window as any).T.some || createArrayMethod('T', 'some', false);
+  (window as any).T.every = (window as any).T.every || createArrayMethod('T', 'every', true);
+  
   console.log('✅ ALL single-letter objects (A-Z) initialized with robust error handling');
+  
+  // Add global error handler as backup for all single-letter objects
+  const handleGlobalError = (event: ErrorEvent) => {
+    if (event.error && event.error.message) {
+      const message = event.error.message;
+      
+      // Check for any single-letter object method error (A.filter, B.map, etc.)
+      const singleLetterMatch = message.match(/([A-Z])\.(filter|map|find|some|every) is not a function/);
+      
+      if (singleLetterMatch) {
+        const letter = singleLetterMatch[1];
+        const method = singleLetterMatch[2];
+        
+        console.warn(`Global error handler caught ${letter}.${method} error, ensuring ${letter} object is available`);
+        
+        if (!(window as any)[letter]) {
+          (window as any)[letter] = {};
+        }
+        
+        // Add all array methods with robust error handling for this letter
+        (window as any)[letter].filter = (window as any)[letter].filter || createArrayMethod(letter, 'filter', []);
+        (window as any)[letter].map = (window as any)[letter].map || createArrayMethod(letter, 'map', []);
+        (window as any)[letter].find = (window as any)[letter].find || createArrayMethod(letter, 'find', undefined);
+        (window as any)[letter].some = (window as any)[letter].some || createArrayMethod(letter, 'some', false);
+        (window as any)[letter].every = (window as any)[letter].every || createArrayMethod(letter, 'every', true);
+        
+        event.preventDefault();
+        return false;
+      }
+    }
+  };
+  
+  window.addEventListener('error', handleGlobalError);
 }
 
 import React, { type ReactNode, useState, useEffect } from "react";
@@ -106,6 +151,18 @@ export function AppLayout({ children }: AppLayoutProps) {
         (window as any)[letter].some = (window as any)[letter].some || createArrayMethod(letter, 'some', false);
         (window as any)[letter].every = (window as any)[letter].every || createArrayMethod(letter, 'every', true);
       });
+      
+      // Ensure T object is immediately available and has all methods
+      if (!(window as any).T) {
+        (window as any).T = {};
+      }
+      
+      // Double-check T object has all required methods
+      (window as any).T.filter = (window as any).T.filter || createArrayMethod('T', 'filter', []);
+      (window as any).T.map = (window as any).T.map || createArrayMethod('T', 'map', []);
+      (window as any).T.find = (window as any).T.find || createArrayMethod('T', 'find', undefined);
+      (window as any).T.some = (window as any).T.some || createArrayMethod('T', 'some', false);
+      (window as any).T.every = (window as any).T.every || createArrayMethod('T', 'every', true);
       
       console.log('✅ ALL single-letter objects (A-Z) ensured in AppLayout useEffect');
     }

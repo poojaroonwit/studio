@@ -151,31 +151,59 @@ export function useInfiniteLoopPrevention(
   const tracker = useRef({
     runs: 0,
     lastRun: Date.now(),
-    maxRuns
+    maxRuns,
+    isBlocked: false
   });
   
   const trackRun = useCallback(() => {
+    // If already blocked, return false immediately
+    if (tracker.current.isBlocked) {
+      console.warn(`🚫 Operation blocked due to previous infinite loop detection: ${effectKey}`);
+      return false;
+    }
+    
     tracker.current.runs++;
     
     if (tracker.current.runs > maxRuns) {
       console.warn(`🚨 Infinite loop detected in "${effectKey}": ${tracker.current.runs} runs (max: ${maxRuns})`);
+      tracker.current.isBlocked = true;
       onExcessiveRuns?.();
       return false;
     }
     
     const now = Date.now();
     const timeSinceLastRun = now - tracker.current.lastRun;
+    
+    // Check for rapid successive runs (potential infinite loop)
     if (timeSinceLastRun < 100 && tracker.current.runs > 10) {
-      console.warn(`🚨 Potential infinite loop in "${effectKey}": running too frequently`);
+      console.warn(`🚨 Potential infinite loop in "${effectKey}": running too frequently (${timeSinceLastRun}ms between runs)`);
+      tracker.current.isBlocked = true;
       onExcessiveRuns?.();
       return false;
+    }
+    
+    // Reset block after a reasonable time period
+    if (timeSinceLastRun > 5000) { // 5 seconds
+      tracker.current.isBlocked = false;
     }
     
     tracker.current.lastRun = now;
     return true;
   }, [effectKey, maxRuns, onExcessiveRuns]);
   
-  return { trackRun, runs: tracker.current.runs };
+  // Reset function to manually clear the block
+  const reset = useCallback(() => {
+    tracker.current.runs = 0;
+    tracker.current.isBlocked = false;
+    tracker.current.lastRun = Date.now();
+  }, []);
+  
+  return { 
+    trackRun, 
+    runs: tracker.current.runs,
+    isBlocked: tracker.current.isBlocked,
+    reset 
+  };
 }
 
 /**

@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { reactSafeArray } from '@/lib/utils';
+import { safeFilter as ramdaSafeFilter } from '@/lib/ramda-polyfill';
 
 interface FilterErrorContext {
   context: string;
@@ -44,9 +45,8 @@ export function useSafeFilter() {
         debugFilterError(array, context);
       }
       
-      const safeArr = reactSafeArray.ensureArray<T>(array);
-      const result = safeArr.filter(predicate);
-      return Array.isArray(result) ? result : [];
+      // Use the new safe filter utility from ramda-polyfill
+      return ramdaSafeFilter(predicate, array);
     } catch (error) {
       const errorContext = debugFilterError(array, context);
       

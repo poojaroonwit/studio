@@ -111,6 +111,10 @@ if (typeof window !== 'undefined') {
   (window as any).D.every = (window as any).D.every || createSafeEvery();
   (window as any).D.reduce = (window as any).D.reduce || createSafeReduce();
   (window as any).D.forEach = (window as any).D.forEach || createSafeForEach();
+  
+  // Additional debugging for D object
+  console.log('🔍 D object initialized in t-object-init.ts:', (window as any).D);
+  console.log('🔍 D.filter type in t-object-init.ts:', typeof (window as any).D.filter);
 
   // Initialize R object (for any R.filter usage)
   if (!(window as any).R) {

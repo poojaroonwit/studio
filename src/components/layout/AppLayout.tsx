@@ -8,6 +8,27 @@ if (typeof window !== 'undefined') {
     (window as any).T = {};
   }
   
+  // Always ensure D object exists and has all required methods
+  if (!(window as any).D) {
+    (window as any).D = {};
+  }
+  
+  // Ensure D.filter exists with robust error handling
+  (window as any).D.filter = (window as any).D.filter || ((array: any, predicate: any) => {
+    try {
+      if (!Array.isArray(array)) {
+        console.warn('D.filter: Input is not an array:', array);
+        return [];
+      }
+      return array.filter(predicate);
+    } catch (error) {
+      console.error('D.filter: Error during filtering:', error);
+      return [];
+    }
+  });
+  
+  console.log('🔍 D object initialized in AppLayout:', (window as any).D);
+  
   // Ensure all methods exist with robust error handling
   (window as any).T.filter = (window as any).T.filter || ((array: any, predicate: any) => {
     try {
@@ -147,13 +168,34 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
-  // Ensure T object is available during component initialization
+  // Ensure T and D objects are available during component initialization
   useEffect(() => {
     if (typeof window !== 'undefined') {
       // Always ensure T object exists
       if (!(window as any).T) {
         (window as any).T = {};
       }
+      
+      // Always ensure D object exists
+      if (!(window as any).D) {
+        (window as any).D = {};
+      }
+      
+      // Ensure D.filter exists with robust error handling
+      (window as any).D.filter = (window as any).D.filter || ((array: any, predicate: any) => {
+        try {
+          if (!Array.isArray(array)) {
+            console.warn('D.filter: Input is not an array:', array);
+            return [];
+          }
+          return array.filter(predicate);
+        } catch (error) {
+          console.error('D.filter: Error during filtering:', error);
+          return [];
+        }
+      });
+      
+      console.log('🔍 D object ensured in AppLayout useEffect:', (window as any).D);
       
       // Ensure all methods exist with robust error handling
       (window as any).T.filter = (window as any).T.filter || ((array: any, predicate: any) => {

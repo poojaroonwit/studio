@@ -221,6 +221,10 @@ export default async function RootLayout({
                   window.D.reduce = window.D.reduce || createSafeReduce();
                   window.D.forEach = window.D.forEach || createSafeForEach();
                   window.D.every = window.D.every || createSafeEvery();
+                  
+                  // Additional debugging for D object
+                  console.log('🔍 D object initialized:', window.D);
+                  console.log('🔍 D.filter type:', typeof window.D.filter);
 
                   // Initialize P object (for any P.filter usage)
                   if (!window.P) {
@@ -266,6 +270,25 @@ export default async function RootLayout({
 
               // Universal global error handler to catch any single-letter global object filter errors
               window.addEventListener('error', function(event) {
+                console.log('🔍 Global error caught:', event.error?.message);
+                
+                // Immediate D object protection - create it if it doesn't exist
+                if (typeof window !== 'undefined' && !window.D) {
+                  console.warn('🔍 D object missing, creating immediately');
+                  window.D = {};
+                  window.D.filter = function(array, predicate) {
+                    if (!Array.isArray(array)) {
+                      console.warn('D.filter: Input is not an array:', array);
+                      return [];
+                    }
+                    try {
+                      return array.filter(predicate);
+                    } catch (error) {
+                      console.error('D.filter: Error during filtering:', error);
+                      return [];
+                    }
+                  };
+                }
                 if (event.error && event.error.message) {
                   // Handle T.filter errors
                   if (event.error.message.includes('T.filter is not a function')) {

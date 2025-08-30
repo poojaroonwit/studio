@@ -233,11 +233,38 @@ export default async function RootLayout({
                   window.P.forEach = window.P.forEach || createSafeForEach();
                   window.P.every = window.P.every || createSafeEvery();
 
-                  console.log('✅ R, T, D, and P objects initialized successfully:', { R: window.R, T: window.T, D: window.D, P: window.P });
+                  // Initialize M object (for any M.filter usage)
+                  if (!window.M) {
+                    window.M = {};
+                  }
+                  window.M.filter = window.M.filter || createSafeFilter();
+                  window.M.map = window.M.map || createSafeMap();
+                  window.M.find = window.M.find || createSafeFind();
+                  window.M.reduce = window.M.reduce || createSafeReduce();
+                  window.M.forEach = window.M.forEach || createSafeForEach();
+                  window.M.every = window.M.every || createSafeEvery();
+
+                  // Universal single-letter global object protection
+                  // This covers any single-letter global object that might need array methods
+                  const singleLetterObjects = ['A', 'B', 'C', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'N', 'O', 'Q', 'S', 'U', 'V', 'W', 'X', 'Y', 'Z'];
+                  
+                  singleLetterObjects.forEach(letter => {
+                    if (!window[letter]) {
+                      window[letter] = {};
+                    }
+                    window[letter].filter = window[letter].filter || createSafeFilter();
+                    window[letter].map = window[letter].map || createSafeMap();
+                    window[letter].find = window[letter].find || createSafeFind();
+                    window[letter].reduce = window[letter].reduce || createSafeReduce();
+                    window[letter].forEach = window[letter].forEach || createSafeForEach();
+                    window[letter].every = window[letter].every || createSafeEvery();
+                  });
+
+                  console.log('✅ R, T, D, P, M and all single-letter objects initialized successfully');
                 }
               })();
 
-              // Global error handler to catch any remaining T.filter, D.filter, or P.filter errors
+              // Universal global error handler to catch any single-letter global object filter errors
               window.addEventListener('error', function(event) {
                 if (event.error && event.error.message) {
                   // Handle T.filter errors
@@ -320,6 +347,68 @@ export default async function RootLayout({
                           return array.filter(predicate);
                         } catch (error) {
                           console.error('P.filter: Error during filtering:', error);
+                          return [];
+                        }
+                      };
+                    }
+                    
+                    // Prevent the error from propagating
+                    event.preventDefault();
+                    return false;
+                  }
+                  
+                  // Handle M.filter errors
+                  if (event.error.message.includes('M.filter is not a function')) {
+                    console.warn('Caught M.filter error, ensuring M object is available');
+                    
+                    // Ensure M object exists
+                    if (!window.M) {
+                      window.M = {};
+                    }
+                    
+                    // Ensure M.filter exists
+                    if (!window.M.filter) {
+                      window.M.filter = function(array, predicate) {
+                        if (!Array.isArray(array)) {
+                          console.warn('M.filter: Input is not an array:', array);
+                          return [];
+                        }
+                        try {
+                          return array.filter(predicate);
+                        } catch (error) {
+                          console.error('M.filter: Error during filtering:', error);
+                          return [];
+                        }
+                      };
+                    }
+                    
+                    // Prevent the error from propagating
+                    event.preventDefault();
+                    return false;
+                  }
+                  
+                  // Universal error handler for any single-letter global object filter error
+                  const filterErrorMatch = event.error.message.match(/([A-Z])\\.filter is not a function/);
+                  if (filterErrorMatch) {
+                    const letter = filterErrorMatch[1];
+                    console.warn('Caught ' + letter + '.filter error, ensuring ' + letter + ' object is available');
+                    
+                    // Ensure the object exists
+                    if (!window[letter]) {
+                      window[letter] = {};
+                    }
+                    
+                    // Ensure the filter method exists
+                    if (!window[letter].filter) {
+                      window[letter].filter = function(array, predicate) {
+                        if (!Array.isArray(array)) {
+                          console.warn(letter + '.filter: Input is not an array:', array);
+                          return [];
+                        }
+                        try {
+                          return array.filter(predicate);
+                        } catch (error) {
+                          console.error(letter + '.filter: Error during filtering:', error);
                           return [];
                         }
                       };

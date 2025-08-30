@@ -188,11 +188,22 @@ export function UserPresenceIndicator({ className }: UserPresenceIndicatorProps)
       // Handle presence updates
       if (presence.action === 'joined') {
         setOnlineUsers(prev => {
-          const existing = prev.find(u => u.userId === presence.userId);
-          if (existing) {
-            return prev.map(u => u.userId === presence.userId ? { ...u, ...presence.userData } : u);
-          } else {
-            return [...prev, presence.userData];
+          try {
+            // Defensive check to prevent find errors
+            if (!Array.isArray(prev)) {
+              console.warn('UserPresenceIndicator: prev onlineUsers is not an array in joined action:', prev);
+              return [presence.userData];
+            }
+            
+            const existing = prev.find(u => u.userId === presence.userId);
+            if (existing) {
+              return prev.map(u => u.userId === presence.userId ? { ...u, ...presence.userData } : u);
+            } else {
+              return [...prev, presence.userData];
+            }
+          } catch (error) {
+            console.error('UserPresenceIndicator: Error handling joined action:', error);
+            return prev;
           }
         });
       } else if (presence.action === 'left') {
@@ -223,13 +234,23 @@ export function UserPresenceIndicator({ className }: UserPresenceIndicatorProps)
     }
   }, []);
 
-  const handleUserListUpdate = useCallback((users: UserPresence[]) => {
+  const handleUserListUpdate = useCallback((data: any) => {
     if (!mountedRef.current) return;
     
     try {
-      setOnlineUsers(users);
+      // Handle both array format and { users: array } format
+      const users = Array.isArray(data) ? data : (data?.users || []);
+      
+      // Ensure we have an array of UserPresence objects
+      if (Array.isArray(users)) {
+        setOnlineUsers(users);
+      } else {
+        console.warn('UserPresenceIndicator: Received invalid user list format:', data);
+        setOnlineUsers([]);
+      }
     } catch (error) {
       console.error('Error handling user list update:', error);
+      setOnlineUsers([]);
     }
   }, []);
 
@@ -315,13 +336,22 @@ export function UserPresenceIndicator({ className }: UserPresenceIndicatorProps)
     // Combine current user with other users
     const allUsers = (() => {
       try {
-        // Defensive check to prevent filter errors
-        if (!Array.isArray(onlineUsers)) {
+        // Ensure onlineUsers is an array - handle both direct array and { users: array } format
+        let usersArray: UserPresence[] = [];
+        
+        if (Array.isArray(onlineUsers)) {
+          usersArray = onlineUsers;
+        } else if (onlineUsers && typeof onlineUsers === 'object' && Array.isArray((onlineUsers as any).users)) {
+          usersArray = (onlineUsers as any).users;
+        } else if (onlineUsers && typeof onlineUsers === 'object' && (onlineUsers as any).users) {
+          console.warn('UserPresenceIndicator: onlineUsers.users is not an array:', onlineUsers);
+          usersArray = [];
+        } else {
           console.warn('UserPresenceIndicator: onlineUsers is not an array:', onlineUsers);
-          return [currentUser];
+          usersArray = [];
         }
         
-        return [currentUser, ...onlineUsers.filter(user => {
+        return [currentUser, ...usersArray.filter(user => {
           try {
             return user && user.userId !== currentUserId;
           } catch (error) {

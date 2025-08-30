@@ -400,8 +400,20 @@ export default function DashboardPageClient({
     });
   }, [myActiveCandidatesList]);
   const myActionItemsList = useMemo(() => {
-    const safeMyBacklogCandidates = Array.isArray(myBacklogCandidates) ? myBacklogCandidates : [];
-    return safeMyBacklogCandidates.filter((c: Candidate) => c.recruiterId === session?.user?.id);
+    try {
+      const safeMyBacklogCandidates = Array.isArray(myBacklogCandidates) ? myBacklogCandidates : [];
+      return safeMyBacklogCandidates.filter((c: Candidate) => {
+        try {
+          return c && c.recruiterId === session?.user?.id;
+        } catch (error) {
+          console.warn('DashboardPageClient: Error filtering my action items:', error, c);
+          return false;
+        }
+      });
+    } catch (error) {
+      console.error('DashboardPageClient: Error in myActionItemsList useMemo:', error);
+      return [];
+    }
   }, [myBacklogCandidates, session?.user?.id]);
 
   // Derived statistics from processed data

@@ -336,24 +336,53 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   const filteredCandidates = useMemo(() => {
     // Defensive check to prevent temporal dead zone issues
     if (!Array.isArray(candidates)) {
+      console.warn('MyTasksPageClient: candidates is not an array:', candidates);
       return [];
     }
     
-    // If user can view all candidates, show all candidates
-    if (canViewAllCandidates) {
-      return candidates;
+    try {
+      // If user can view all candidates, show all candidates
+      if (canViewAllCandidates) {
+        return candidates;
+      }
+      // Otherwise, show only candidates assigned to the current user
+      return candidates.filter(c => {
+        try {
+          return c && c.recruiterId === userSession?.id;
+        } catch (error) {
+          console.warn('MyTasksPageClient: Error filtering candidate:', error, c);
+          return false;
+        }
+      });
+    } catch (error) {
+      console.error('MyTasksPageClient: Error in filteredCandidates useMemo:', error);
+      return [];
     }
-    // Otherwise, show only candidates assigned to the current user
-    return candidates.filter(c => c && c.recruiterId === userSession?.id);
   }, [candidates, userSession?.id, canViewAllCandidates]);
 
   // Filtering logic (for fitScore, if not supported by API)
   const displayedCandidates = useMemo(() => {
-    return filteredCandidates.filter((c) => {
-      if (filters.minFitScore !== undefined && c.fitScore < filters.minFitScore) return false;
-      if (filters.maxFitScore !== undefined && c.fitScore > filters.maxFitScore) return false;
-      return true;
-    });
+    try {
+      // Defensive check to prevent filter errors
+      if (!Array.isArray(filteredCandidates)) {
+        console.warn('MyTasksPageClient: filteredCandidates is not an array:', filteredCandidates);
+        return [];
+      }
+      
+      return filteredCandidates.filter((c) => {
+        try {
+          if (filters.minFitScore !== undefined && c.fitScore < filters.minFitScore) return false;
+          if (filters.maxFitScore !== undefined && c.fitScore > filters.maxFitScore) return false;
+          return true;
+        } catch (error) {
+          console.warn('MyTasksPageClient: Error filtering candidate by fitScore:', error, c);
+          return false;
+        }
+      });
+    } catch (error) {
+      console.error('MyTasksPageClient: Error in displayedCandidates useMemo:', error);
+      return [];
+    }
   }, [filteredCandidates, filters]);
 
   // Convert candidates to tasks for the task board

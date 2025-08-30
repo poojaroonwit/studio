@@ -73,10 +73,29 @@ interface UnifiedUserModalProps {
   onAddUser?: (data: UnifiedUserFormValues) => Promise<void>;
 }
 
-const groupedPermissions = Object.values(PLATFORM_MODULE_CATEGORIES).map(category => ({
-  category,
-  permissions: PLATFORM_MODULES.filter(p => p.category === category)
-}));
+const groupedPermissions = Object.values(PLATFORM_MODULE_CATEGORIES).map(category => {
+  try {
+    // Defensive check to prevent filter errors
+    if (!Array.isArray(PLATFORM_MODULES)) {
+      console.warn('UnifiedUserModal: PLATFORM_MODULES is not an array:', PLATFORM_MODULES);
+      return { category, permissions: [] };
+    }
+    
+    const permissions = PLATFORM_MODULES.filter(p => {
+      try {
+        return p && p.category === category;
+      } catch (error) {
+        console.warn('UnifiedUserModal: Error filtering platform module:', error, p);
+        return false;
+      }
+    });
+    
+    return { category, permissions };
+  } catch (error) {
+    console.error('UnifiedUserModal: Error creating grouped permissions:', error);
+    return { category, permissions: [] };
+  }
+});
 
 export function UnifiedUserModal({ 
   isOpen, 

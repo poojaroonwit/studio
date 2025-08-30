@@ -154,7 +154,27 @@ export default function SettingsPage() {
     return true;
   };
 
-  const accessibleItems = isClient ? settingsItems.filter(item => canAccess(item)) : [];
+  const accessibleItems = isClient ? (() => {
+    try {
+      // Defensive check to prevent filter errors
+      if (!Array.isArray(settingsItems)) {
+        console.warn('Settings page: settingsItems is not an array:', settingsItems);
+        return [];
+      }
+      
+      return settingsItems.filter(item => {
+        try {
+          return canAccess(item);
+        } catch (error) {
+          console.warn('Settings page: Error filtering settings item:', error, item);
+          return false;
+        }
+      });
+    } catch (error) {
+      console.error('Settings page: Error filtering settings items:', error);
+      return [];
+    }
+  })() : [];
 
   if (sessionStatus === 'loading' || !isClient) {
     return (

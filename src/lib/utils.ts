@@ -159,3 +159,218 @@ export function safeSlice<T>(
   const safeArrayValue = safeArray<T>(array);
   return safeArrayValue.slice(start, end);
 }
+
+// Export a safe R utility that can be used throughout the application
+export const safeR = {
+  filter: <T>(array: any, predicate: (value: T, index: number, array: T[]) => boolean): T[] => {
+    if (typeof window !== 'undefined' && (window as any).R && typeof (window as any).R.filter === 'function') {
+      return (window as any).R.filter(array, predicate);
+    }
+    // Fallback to safe array utilities
+    return safeFilter(array, predicate);
+  },
+  
+  map: <T, U>(array: any, mapper: (value: T, index: number, array: T[]) => U): U[] => {
+    if (typeof window !== 'undefined' && (window as any).R && typeof (window as any).R.map === 'function') {
+      return (window as any).R.map(array, mapper);
+    }
+    // Fallback to safe array utilities
+    return safeMap(array, mapper);
+  },
+  
+  find: <T>(array: any, predicate: (value: T, index: number, array: T[]) => boolean): T | undefined => {
+    if (typeof window !== 'undefined' && (window as any).R && typeof (window as any).R.find === 'function') {
+      return (window as any).R.find(array, predicate);
+    }
+    // Fallback to safe array utilities
+    return safeFind(array, predicate);
+  },
+  
+  some: <T>(array: any, predicate: (value: T, index: number, array: T[]) => boolean): boolean => {
+    if (typeof window !== 'undefined' && (window as any).R && typeof (window as any).R.some === 'function') {
+      return (window as any).R.some(array, predicate);
+    }
+    // Fallback to safe array utilities
+    return safeSome(array, predicate);
+  },
+  
+  every: <T>(array: any, predicate: (value: T, index: number, array: T[]) => boolean): boolean => {
+    if (typeof window !== 'undefined' && (window as any).R && typeof (window as any).R.every === 'function') {
+      return (window as any).R.every(array, predicate);
+    }
+    // Fallback to safe array utilities
+    return safeEvery(array, predicate);
+  }
+};
+
+// Initialize global R object if it doesn't exist
+if (typeof window !== 'undefined') {
+  // Create a more robust R object with better error handling
+  const createRobustR = () => {
+    const safeArray = (array: any) => {
+      if (Array.isArray(array)) return array;
+      if (array === null || array === undefined) return [];
+      if (typeof array === 'object' && array !== null) {
+        // Try to convert array-like objects
+        try {
+          return Array.from(array);
+        } catch {
+          return [];
+        }
+      }
+      return [];
+    };
+
+    return {
+      filter: <T>(array: any, predicate: (value: T, index: number, array: T[]) => boolean): T[] => {
+        try {
+          const safeArr = safeArray(array);
+          if (!Array.isArray(safeArr)) {
+            console.warn('safeR.filter: Input could not be converted to array:', array);
+            return [];
+          }
+          const result = safeArr.filter(predicate);
+          if (!Array.isArray(result)) {
+            console.warn('safeR.filter: Predicate returned non-array result:', result);
+            return [];
+          }
+          return result;
+        } catch (error) {
+          console.error('safeR.filter: Error during filtering:', error);
+          return [];
+        }
+      },
+      
+      map: <T, U>(array: any, mapper: (value: T, index: number, array: T[]) => U): U[] => {
+        try {
+          const safeArr = safeArray(array);
+          if (!Array.isArray(safeArr)) {
+            console.warn('safeR.map: Input could not be converted to array:', array);
+            return [];
+          }
+          const result = safeArr.map(mapper);
+          if (!Array.isArray(result)) {
+            console.warn('safeR.map: Mapper returned non-array result:', result);
+            return [];
+          }
+          return result;
+        } catch (error) {
+          console.error('safeR.map: Error during mapping:', error);
+          return [];
+        }
+      },
+      
+      find: <T>(array: any, predicate: (value: T, index: number, array: T[]) => boolean): T | undefined => {
+        try {
+          const safeArr = safeArray(array);
+          if (!Array.isArray(safeArr)) {
+            console.warn('safeR.find: Input could not be converted to array:', array);
+            return undefined;
+          }
+          return safeArr.find(predicate);
+        } catch (error) {
+          console.error('safeR.find: Error during finding:', error);
+          return undefined;
+        }
+      },
+      
+      some: <T>(array: any, predicate: (value: T, index: number, array: T[]) => boolean): boolean => {
+        try {
+          const safeArr = safeArray(array);
+          if (!Array.isArray(safeArr)) {
+            console.warn('safeR.some: Input could not be converted to array:', array);
+            return false;
+          }
+          return safeArr.some(predicate);
+        } catch (error) {
+          console.error('safeR.some: Error during some check:', error);
+          return false;
+        }
+      },
+      
+      every: <T>(array: any, predicate: (value: T, index: number, array: T[]) => boolean): boolean => {
+        try {
+          const safeArr = safeArray(array);
+          if (!Array.isArray(safeArr)) {
+            console.warn('safeR.every: Input could not be converted to array:', array);
+            return true;
+          }
+          return safeArr.every(predicate);
+        } catch (error) {
+          console.error('safeR.every: Error during every check:', error);
+          return true;
+        }
+      },
+      
+      reduce: <T, U>(array: any, reducer: (accumulator: U, value: T, index: number, array: T[]) => U, initialValue: U): U => {
+        try {
+          const safeArr = safeArray(array);
+          if (!Array.isArray(safeArr)) {
+            console.warn('safeR.reduce: Input could not be converted to array:', array);
+            return initialValue;
+          }
+          return safeArr.reduce(reducer, initialValue);
+        } catch (error) {
+          console.error('safeR.reduce: Error during reduction:', error);
+          return initialValue;
+        }
+      },
+      
+      forEach: <T>(array: any, callback: (value: T, index: number, array: T[]) => void): void => {
+        try {
+          const safeArr = safeArray(array);
+          if (!Array.isArray(safeArr)) {
+            console.warn('safeR.forEach: Input could not be converted to array:', array);
+            return;
+          }
+          safeArr.forEach(callback);
+        } catch (error) {
+          console.error('safeR.forEach: Error during forEach:', error);
+        }
+      }
+    };
+  };
+
+  // Initialize or update the global R object
+  if (!(window as any).R) {
+    (window as any).R = createRobustR();
+    console.log('R object initialized successfully');
+  } else {
+    // Ensure all methods exist on the global R object
+    const robustR = createRobustR();
+    Object.keys(robustR).forEach(key => {
+      if (!(window as any).R[key] || typeof (window as any).R[key] !== 'function') {
+        (window as any).R[key] = (robustR as any)[key];
+        console.log(`R.${key} method updated`);
+      }
+    });
+  }
+
+  // Add a fallback mechanism for any missing methods
+  const ensureRMethods = () => {
+    if (!(window as any).R) {
+      (window as any).R = createRobustR();
+      console.log('R object re-initialized due to missing object');
+    }
+    
+    const requiredMethods = ['filter', 'map', 'find', 'some', 'every', 'reduce', 'forEach'];
+    const robustR = createRobustR();
+    
+    requiredMethods.forEach(method => {
+      if (!(window as any).R[method] || typeof (window as any).R[method] !== 'function') {
+        (window as any).R[method] = (robustR as any)[method];
+        console.log(`R.${method} method restored`);
+      }
+    });
+  };
+
+  // Ensure R methods are available after a short delay
+  setTimeout(ensureRMethods, 100);
+  
+  // Also ensure R methods are available when the DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', ensureRMethods);
+  } else {
+    ensureRMethods();
+  }
+}

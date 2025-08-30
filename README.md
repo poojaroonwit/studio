@@ -63,7 +63,7 @@ A comprehensive, enterprise-grade Applicant Tracking System (ATS) built with Nex
 - **Application Preferences**: Server-side app name, logo, and theme settings
 
 ### 🔧 **Technical Features**
-- **Real-time Updates**: WebSocket-based live collaboration
+- **Real-time Updates**: SSE-based live collaboration
 - **File Storage**: MinIO integration for secure file management
 - **Caching**: Built-in performance optimization
 - **Audit Logging**: Complete system activity tracking with search/filter

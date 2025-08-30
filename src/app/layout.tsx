@@ -102,6 +102,74 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              // Ensure R object is properly initialized
+              if (typeof window !== 'undefined') {
+                if (!window.R) {
+                  window.R = {};
+                }
+                
+                // Define safe array utility functions
+                const safeArray = (array) => Array.isArray(array) ? array : [];
+                
+                // Ensure all methods exist and are properly defined
+                window.R.filter = window.R.filter || ((array, predicate) => {
+                  const safeArr = safeArray(array);
+                  try {
+                    return safeArr.filter(predicate);
+                  } catch (error) {
+                    console.warn('R.filter error:', error);
+                    return [];
+                  }
+                });
+                
+                window.R.map = window.R.map || ((array, mapper) => {
+                  const safeArr = safeArray(array);
+                  try {
+                    return safeArr.map(mapper);
+                  } catch (error) {
+                    console.warn('R.map error:', error);
+                    return [];
+                  }
+                });
+                
+                window.R.find = window.R.find || ((array, predicate) => {
+                  const safeArr = safeArray(array);
+                  try {
+                    return safeArr.find(predicate);
+                  } catch (error) {
+                    console.warn('R.find error:', error);
+                    return undefined;
+                  }
+                });
+                
+                window.R.some = window.R.some || ((array, predicate) => {
+                  const safeArr = safeArray(array);
+                  try {
+                    return safeArr.some(predicate);
+                  } catch (error) {
+                    console.warn('R.some error:', error);
+                    return false;
+                  }
+                });
+                
+                window.R.every = window.R.every || ((array, predicate) => {
+                  const safeArr = safeArray(array);
+                  try {
+                    return safeArr.every(predicate);
+                  } catch (error) {
+                    console.warn('R.every error:', error);
+                    return true;
+                  }
+                });
+                
+                console.log('R object initialized successfully:', window.R);
+              }
+            `
+          }}
+        />
       </head>
       <body className="h-screen bg-background font-sans antialiased overflow-hidden">
         <TooltipProvider>

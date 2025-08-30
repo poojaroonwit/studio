@@ -235,4 +235,4 @@ This API works alongside the automatic notification system. When candidates are 
 
 ## Real-time Notifications
 
-Notifications sent via this API are also broadcast in real-time to connected clients through the WebSocket/SSE system, so users will see them immediately if they have the application open.
+Notifications sent via this API are also broadcast in real-time to connected clients through the SSE system, so users will see them immediately if they have the application open.

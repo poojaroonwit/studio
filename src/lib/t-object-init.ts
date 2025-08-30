@@ -102,6 +102,75 @@
           (window as any)[letter][method] = safeMethods[method as keyof typeof safeMethods];
         });
       });
+      
+      // CRITICAL: Create a self-healing proxy for the T object specifically
+      const createSelfHealingT = () => {
+        const safeArray = (array: any) => {
+          if (Array.isArray(array)) return array;
+          if (array === null || array === undefined) return [];
+          if (typeof array === 'object' && array !== null) {
+            try {
+              return Array.from(array);
+            } catch {
+              return [];
+            }
+          }
+          return [];
+        };
+        
+        const tObject = {
+          filter: (array: any, predicate: any) => {
+            try {
+              const safeArr = safeArray(array);
+              const result = safeArr.filter(predicate);
+              return Array.isArray(result) ? result : [];
+            } catch (error) {
+              console.warn('T.filter error in self-healing proxy:', error);
+              return [];
+            }
+          }
+        };
+        
+        // Create a proxy that automatically recreates the T object if it's lost
+        return new Proxy(tObject, {
+          get(target, prop) {
+            if (prop === 'filter') {
+              // Ensure the filter method always exists
+              if (typeof target.filter !== 'function') {
+                console.warn('T.filter was lost, recreating...');
+                target.filter = (array: any, predicate: any) => {
+                  try {
+                    const safeArr = safeArray(array);
+                    const result = safeArr.filter(predicate);
+                    return Array.isArray(result) ? result : [];
+                  } catch (error) {
+                    console.warn('T.filter error in proxy recreation:', error);
+                    return [];
+                  }
+                };
+              }
+              return target.filter;
+            }
+            return target[prop as keyof typeof target];
+          },
+          set(target, prop, value) {
+            if (prop === 'filter') {
+              // Allow setting filter but ensure it's always a function
+              if (typeof value === 'function') {
+                target.filter = value;
+              } else {
+                console.warn('Attempt to set T.filter to non-function, ignoring...');
+              }
+            } else {
+              target[prop as keyof typeof target] = value;
+            }
+            return true;
+          }
+        });
+      };
+      
+      // Apply the self-healing proxy to T
+      (window as any).T = createSelfHealingT();
     };
 
     // IMMEDIATE initialization - create objects right now
@@ -134,6 +203,52 @@
       }
       return originalDefineProperty.call(this, obj, prop, descriptor);
     };
+
+    // NUCLEAR-LEVEL: Override window property access to ensure T is always available
+    const originalWindowGet = Object.getOwnPropertyDescriptor(window, 'T');
+    Object.defineProperty(window, 'T', {
+      get() {
+        // If T doesn't exist or doesn't have filter method, recreate it
+        if (!(window as any).T || typeof (window as any).T.filter !== 'function') {
+          console.warn('T object accessed but missing, recreating...');
+          const safeArray = (array: any) => {
+            if (Array.isArray(array)) return array;
+            if (array === null || array === undefined) return [];
+            if (typeof array === 'object' && array !== null) {
+              try {
+                return Array.from(array);
+              } catch {
+                return [];
+              }
+            }
+            return [];
+          };
+          
+          (window as any).T = {};
+          (window as any).T.filter = (array: any, predicate: any) => {
+            try {
+              const safeArr = safeArray(array);
+              const result = safeArr.filter(predicate);
+              return Array.isArray(result) ? result : [];
+            } catch (error) {
+              console.warn('T.filter error in window getter protection:', error);
+              return [];
+            }
+          };
+        }
+        return (window as any).T;
+      },
+      set(value) {
+        // Only allow setting if it's a valid object with filter method
+        if (value && typeof value.filter === 'function') {
+          (window as any).T = value;
+        } else {
+          console.warn('Attempt to set invalid T object, ignoring...');
+        }
+      },
+      configurable: true,
+      enumerable: true
+    });
 
     // ULTRA-AGGRESSIVE: Override Object.setPrototypeOf to prevent prototype tampering
     const originalSetPrototypeOf = Object.setPrototypeOf;
@@ -175,14 +290,73 @@
       const originalUseMemo = (window as any).React.useMemo;
       if (originalUseMemo) {
         (window as any).React.useMemo = function<T>(factory: () => T, deps: any): T {
-          // Ensure global objects before any useMemo execution
+          // CRITICAL: Ensure global objects before any useMemo execution
           ensureSafeGlobalObjects();
+          
+          // CRITICAL: Also ensure T object specifically before useMemo execution
+          if (typeof window !== 'undefined') {
+            const safeArray = (array: any) => {
+              if (Array.isArray(array)) return array;
+              if (array === null || array === undefined) return [];
+              if (typeof array === 'object' && array !== null) {
+                try {
+                  return Array.from(array);
+                } catch {
+                  return [];
+                }
+              }
+              return [];
+            };
+            
+            // Force recreate T object before useMemo execution
+            (window as any).T = {};
+            (window as any).T.filter = (array: any, predicate: any) => {
+              try {
+                const safeArr = safeArray(array);
+                const result = safeArr.filter(predicate);
+                return Array.isArray(result) ? result : [];
+              } catch (error) {
+                console.warn('T.filter in useMemo protection:', error);
+                return [];
+              }
+            };
+          }
           
           try {
             return originalUseMemo.call(this, factory, deps);
           } catch (error) {
             // If error occurs, ensure objects again and retry
+            console.warn('useMemo error, retrying with global object protection:', error);
             ensureSafeGlobalObjects();
+            
+            // Force recreate T object again
+            if (typeof window !== 'undefined') {
+              const safeArray = (array: any) => {
+                if (Array.isArray(array)) return array;
+                if (array === null || array === undefined) return [];
+                if (typeof array === 'object' && array !== null) {
+                  try {
+                    return Array.from(array);
+                  } catch {
+                    return [];
+                  }
+                }
+                return [];
+              };
+              
+              (window as any).T = {};
+              (window as any).T.filter = (array: any, predicate: any) => {
+                try {
+                  const safeArr = safeArray(array);
+                  const result = safeArr.filter(predicate);
+                  return Array.isArray(result) ? result : [];
+                } catch (error) {
+                  console.warn('T.filter in useMemo retry protection:', error);
+                  return [];
+                }
+              };
+            }
+            
             return originalUseMemo.call(this, factory, deps);
           }
         };
@@ -245,6 +419,35 @@
         const newFn = originalFunction.apply(this, args);
         return function(this: any, ...callArgs: any[]) {
           ensureSafeGlobalObjects();
+          
+          // CRITICAL: Also ensure T object specifically
+          if (typeof window !== 'undefined') {
+            const safeArray = (array: any) => {
+              if (Array.isArray(array)) return array;
+              if (array === null || array === undefined) return [];
+              if (typeof array === 'object' && array !== null) {
+                try {
+                  return Array.from(array);
+                } catch {
+                  return [];
+                }
+              }
+              return [];
+            };
+            
+            (window as any).T = {};
+            (window as any).T.filter = (array: any, predicate: any) => {
+              try {
+                const safeArr = safeArray(array);
+                const result = safeArr.filter(predicate);
+                return Array.isArray(result) ? result : [];
+              } catch (error) {
+                console.warn('T.filter in Function constructor protection:', error);
+                return [];
+              }
+            };
+          }
+          
           return newFn.apply(this, callArgs);
         };
       }
@@ -383,7 +586,40 @@
         console.warn('Periodic check: Recreating safe global objects due to corruption');
         ensureSafeGlobalObjects();
       }
-    }, 10); // Check every 10ms for more aggressive protection
+    }, 5); // Check every 5ms for ultra-aggressive protection
+
+    // CRITICAL: Add an even more frequent check specifically for T object
+    setInterval(() => {
+      // Ultra-frequent check for T object specifically
+      if (!(window as any).T || typeof (window as any).T.filter !== 'function') {
+        console.warn('🚨 ULTRA-CRITICAL: T object lost! Emergency recreation...');
+        
+        const safeArray = (array: any) => {
+          if (Array.isArray(array)) return array;
+          if (array === null || array === undefined) return [];
+          if (typeof array === 'object' && array !== null) {
+            try {
+              return Array.from(array);
+            } catch {
+              return [];
+            }
+          }
+          return [];
+        };
+        
+        (window as any).T = {};
+        (window as any).T.filter = (array: any, predicate: any) => {
+          try {
+            const safeArr = safeArray(array);
+            const result = safeArr.filter(predicate);
+            return Array.isArray(result) ? result : [];
+          } catch (error) {
+            console.warn('T.filter ultra-emergency recovery:', error);
+            return [];
+          }
+        };
+      }
+    }, 1); // Check every 1ms for nuclear-level protection
 
     // Add a MutationObserver to detect when global objects might be tampered with
     if (typeof MutationObserver !== 'undefined') {

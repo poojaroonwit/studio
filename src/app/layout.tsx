@@ -179,9 +179,24 @@ export default async function RootLayout({
                   if (event.error && event.error.message && event.error.message.includes('T.filter is not a function')) {
                     console.error('T.filter error detected:', event.error);
                     console.error('Error stack:', event.error.stack);
-                    // Prevent the error from being thrown
+                    
+                    // Try to identify the source of the error
+                    const stack = event.error.stack || '';
+                    if (stack.includes('useMemo') || stack.includes('useCallback')) {
+                      console.warn('T.filter error appears to be in a React hook. This might be due to a non-array value being passed to a filter operation.');
+                    }
+                    
+                    // Prevent the error from propagating
                     event.preventDefault();
                     return false;
+                  }
+                });
+                
+                // Add unhandled promise rejection handler
+                window.addEventListener('unhandledrejection', function(event) {
+                  if (event.reason && event.reason.message && event.reason.message.includes('T.filter is not a function')) {
+                    console.error('Unhandled T.filter promise rejection:', event.reason);
+                    event.preventDefault();
                   }
                 });
                 

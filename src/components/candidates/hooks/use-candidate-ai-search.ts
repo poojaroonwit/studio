@@ -29,7 +29,14 @@ export function useCandidateAiSearch({
   const abortTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Memoize the filteredCandidates to ensure stable reference
-  const memoizedFilteredCandidates = useMemo(() => filteredCandidates, [filteredCandidates]);
+  const memoizedFilteredCandidates = useMemo(() => {
+    // Ensure filteredCandidates is always an array to prevent T.filter errors
+    if (!Array.isArray(filteredCandidates)) {
+      console.warn('useCandidateAiSearch: filteredCandidates is not an array:', filteredCandidates);
+      return [];
+    }
+    return filteredCandidates;
+  }, [filteredCandidates]);
 
   // Cleanup function to prevent memory leaks and state updates after unmount
   useEffect(() => {

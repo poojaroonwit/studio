@@ -164,6 +164,18 @@ export function safeSlice<T>(
 export const safeR = {
   filter: <T>(array: any, predicate: (value: T, index: number, array: T[]) => boolean): T[] => {
     try {
+      // Additional safety check for the array parameter
+      if (array === null || array === undefined) {
+        console.warn('safeR.filter: array is null or undefined');
+        return [];
+      }
+      
+      // Check if array is actually an array
+      if (!Array.isArray(array)) {
+        console.warn('safeR.filter: array is not an array:', array, typeof array);
+        return [];
+      }
+      
       if (typeof window !== 'undefined' && (window as any).R && typeof (window as any).R.filter === 'function') {
         return (window as any).R.filter(array, predicate);
       }
@@ -177,6 +189,18 @@ export const safeR = {
   
   map: <T, U>(array: any, mapper: (value: T, index: number, array: T[]) => U): U[] => {
     try {
+      // Additional safety check for the array parameter
+      if (array === null || array === undefined) {
+        console.warn('safeR.map: array is null or undefined');
+        return [];
+      }
+      
+      // Check if array is actually an array
+      if (!Array.isArray(array)) {
+        console.warn('safeR.map: array is not an array:', array, typeof array);
+        return [];
+      }
+      
       if (typeof window !== 'undefined' && (window as any).R && typeof (window as any).R.map === 'function') {
         return (window as any).R.map(array, mapper);
       }
@@ -190,6 +214,18 @@ export const safeR = {
   
   find: <T>(array: any, predicate: (value: T, index: number, array: T[]) => boolean): T | undefined => {
     try {
+      // Additional safety check for the array parameter
+      if (array === null || array === undefined) {
+        console.warn('safeR.find: array is null or undefined');
+        return undefined;
+      }
+      
+      // Check if array is actually an array
+      if (!Array.isArray(array)) {
+        console.warn('safeR.find: array is not an array:', array, typeof array);
+        return undefined;
+      }
+      
       if (typeof window !== 'undefined' && (window as any).R && typeof (window as any).R.find === 'function') {
         return (window as any).R.find(array, predicate);
       }
@@ -203,6 +239,18 @@ export const safeR = {
   
   some: <T>(array: any, predicate: (value: T, index: number, array: T[]) => boolean): boolean => {
     try {
+      // Additional safety check for the array parameter
+      if (array === null || array === undefined) {
+        console.warn('safeR.some: array is null or undefined');
+        return false;
+      }
+      
+      // Check if array is actually an array
+      if (!Array.isArray(array)) {
+        console.warn('safeR.some: array is not an array:', array, typeof array);
+        return false;
+      }
+      
       if (typeof window !== 'undefined' && (window as any).R && typeof (window as any).R.some === 'function') {
         return (window as any).R.some(array, predicate);
       }
@@ -216,6 +264,18 @@ export const safeR = {
   
   every: <T>(array: any, predicate: (value: T, index: number, array: T[]) => boolean): boolean => {
     try {
+      // Additional safety check for the array parameter
+      if (array === null || array === undefined) {
+        console.warn('safeR.every: array is null or undefined');
+        return true;
+      }
+      
+      // Check if array is actually an array
+      if (!Array.isArray(array)) {
+        console.warn('safeR.every: array is not an array:', array, typeof array);
+        return true;
+      }
+      
       if (typeof window !== 'undefined' && (window as any).R && typeof (window as any).R.every === 'function') {
         return (window as any).R.every(array, predicate);
       }

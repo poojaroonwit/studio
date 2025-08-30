@@ -11,6 +11,16 @@ import { WarningProvider } from '@/contexts/WarningContext';
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { ModalCleanupMonitor } from '@/components/ui/ModalCleanupMonitor';
+import React from 'react';
+
+// TypeScript declaration for global R object
+declare global {
+  interface Window {
+    R?: {
+      filter: (array: any[], predicate: any) => any[];
+    };
+  }
+}
 
 // Global error handler for filter-related errors
 if (typeof window !== 'undefined') {
@@ -39,6 +49,43 @@ if (typeof window !== 'undefined') {
       });
     }
   });
+
+  // Add a global R object fallback to prevent R.filter errors
+  if (!window.R) {
+    window.R = {
+      filter: (array: any[], predicate: any) => {
+        if (!Array.isArray(array)) {
+          console.warn('[R.FILTER FALLBACK] Array expected, got:', typeof array);
+          return [];
+        }
+        try {
+          return array.filter(predicate);
+        } catch (error) {
+          console.warn('[R.FILTER FALLBACK] Error in filter operation:', error);
+          return [];
+        }
+      }
+    };
+  }
+
+  // Development-only: Monitor useMemo calls to identify R.filter usage
+  if (process.env.NODE_ENV === 'development') {
+    const originalUseMemo = React.useMemo;
+    React.useMemo = function<T>(factory: () => T, deps: React.DependencyList | undefined): T {
+      try {
+        return originalUseMemo(factory, deps || []);
+      } catch (error) {
+        if (error instanceof Error && error.message.includes('R.filter')) {
+          console.warn('[DEV DEBUG] R.filter error in useMemo detected:', {
+            error: error.message,
+            stack: error.stack,
+            deps
+          });
+        }
+        throw error;
+      }
+    };
+  }
 }
 
 // Temporarily disabled resource tracking to fix loading issue

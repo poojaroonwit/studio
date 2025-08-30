@@ -8,26 +8,31 @@ if (typeof window !== 'undefined') {
     (window as any).T = {};
   }
   
-  // Always ensure D object exists and has all required methods
-  if (!(window as any).D) {
-    (window as any).D = {};
-  }
+  // Universal single-letter global object protection
+  // This ensures ALL single-letter global objects (A-Z) are available
+  const singleLetterObjects = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
   
-  // Ensure D.filter exists with robust error handling
-  (window as any).D.filter = (window as any).D.filter || ((array: any, predicate: any) => {
-    try {
-      if (!Array.isArray(array)) {
-        console.warn('D.filter: Input is not an array:', array);
+  singleLetterObjects.forEach(letter => {
+    if (!(window as any)[letter]) {
+      (window as any)[letter] = {};
+    }
+    
+    // Ensure filter method exists with robust error handling
+    (window as any)[letter].filter = (window as any)[letter].filter || ((array: any, predicate: any) => {
+      try {
+        if (!Array.isArray(array)) {
+          console.warn(letter + '.filter: Input is not an array:', array);
+          return [];
+        }
+        return array.filter(predicate);
+      } catch (error) {
+        console.error(letter + '.filter: Error during filtering:', error);
         return [];
       }
-      return array.filter(predicate);
-    } catch (error) {
-      console.error('D.filter: Error during filtering:', error);
-      return [];
-    }
+    });
   });
   
-  console.log('🔍 D object initialized in AppLayout:', (window as any).D);
+  console.log('🔍 ALL single-letter objects (A-Z) initialized in AppLayout');
   
   // Ensure all methods exist with robust error handling
   (window as any).T.filter = (window as any).T.filter || ((array: any, predicate: any) => {
@@ -176,26 +181,31 @@ export function AppLayout({ children }: AppLayoutProps) {
         (window as any).T = {};
       }
       
-      // Always ensure D object exists
-      if (!(window as any).D) {
-        (window as any).D = {};
-      }
+      // Universal single-letter global object protection
+      // This ensures ALL single-letter global objects (A-Z) are available
+      const singleLetterObjects = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
       
-      // Ensure D.filter exists with robust error handling
-      (window as any).D.filter = (window as any).D.filter || ((array: any, predicate: any) => {
-        try {
-          if (!Array.isArray(array)) {
-            console.warn('D.filter: Input is not an array:', array);
+      singleLetterObjects.forEach(letter => {
+        if (!(window as any)[letter]) {
+          (window as any)[letter] = {};
+        }
+        
+        // Ensure filter method exists with robust error handling
+        (window as any)[letter].filter = (window as any)[letter].filter || ((array: any, predicate: any) => {
+          try {
+            if (!Array.isArray(array)) {
+              console.warn(letter + '.filter: Input is not an array:', array);
+              return [];
+            }
+            return array.filter(predicate);
+          } catch (error) {
+            console.error(letter + '.filter: Error during filtering:', error);
             return [];
           }
-          return array.filter(predicate);
-        } catch (error) {
-          console.error('D.filter: Error during filtering:', error);
-          return [];
-        }
+        });
       });
       
-      console.log('🔍 D object ensured in AppLayout useEffect:', (window as any).D);
+      console.log('🔍 ALL single-letter objects (A-Z) ensured in AppLayout useEffect');
       
       // Ensure all methods exist with robust error handling
       (window as any).T.filter = (window as any).T.filter || ((array: any, predicate: any) => {

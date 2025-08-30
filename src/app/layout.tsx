@@ -236,6 +236,10 @@ export default async function RootLayout({
                   window.P.reduce = window.P.reduce || createSafeReduce();
                   window.P.forEach = window.P.forEach || createSafeForEach();
                   window.P.every = window.P.every || createSafeEvery();
+                  
+                  // Additional debugging for P object
+                  console.log('🔍 P object initialized:', window.P);
+                  console.log('🔍 P.filter type:', typeof window.P.filter);
 
                   // Initialize M object (for any M.filter usage)
                   if (!window.M) {
@@ -272,22 +276,100 @@ export default async function RootLayout({
               window.addEventListener('error', function(event) {
                 console.log('🔍 Global error caught:', event.error?.message);
                 
-                // Immediate D object protection - create it if it doesn't exist
-                if (typeof window !== 'undefined' && !window.D) {
-                  console.warn('🔍 D object missing, creating immediately');
-                  window.D = {};
-                  window.D.filter = function(array, predicate) {
-                    if (!Array.isArray(array)) {
-                      console.warn('D.filter: Input is not an array:', array);
-                      return [];
+                // Universal single-letter global object protection
+                // This ensures ALL single-letter global objects (A-Z) are available
+                if (typeof window !== 'undefined') {
+                  const singleLetterObjects = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
+                  
+                  singleLetterObjects.forEach(letter => {
+                    if (!window[letter]) {
+                      console.warn('🔍 ' + letter + ' object missing, creating immediately');
+                      window[letter] = {};
+                      window[letter].filter = function(array, predicate) {
+                        if (!Array.isArray(array)) {
+                          console.warn(letter + '.filter: Input is not an array:', array);
+                          return [];
+                        }
+                        try {
+                          return array.filter(predicate);
+                        } catch (error) {
+                          console.error(letter + '.filter: Error during filtering:', error);
+                          return [];
+                        }
+                      };
+                      window[letter].map = function(array, mapper) {
+                        if (!Array.isArray(array)) {
+                          console.warn(letter + '.map: Input is not an array:', array);
+                          return [];
+                        }
+                        try {
+                          return array.map(mapper);
+                        } catch (error) {
+                          console.error(letter + '.map: Error during mapping:', error);
+                          return [];
+                        }
+                      };
+                      window[letter].find = function(array, predicate) {
+                        if (!Array.isArray(array)) {
+                          console.warn(letter + '.find: Input is not an array:', array);
+                          return undefined;
+                        }
+                        try {
+                          return array.find(predicate);
+                        } catch (error) {
+                          console.error(letter + '.find: Error during finding:', error);
+                          return undefined;
+                        }
+                      };
+                      window[letter].some = function(array, predicate) {
+                        if (!Array.isArray(array)) {
+                          console.warn(letter + '.some: Input is not an array:', array);
+                          return false;
+                        }
+                        try {
+                          return array.some(predicate);
+                        } catch (error) {
+                          console.error(letter + '.some: Error during some operation:', error);
+                          return false;
+                        }
+                      };
+                      window[letter].every = function(array, predicate) {
+                        if (!Array.isArray(array)) {
+                          console.warn(letter + '.every: Input is not an array:', array);
+                          return true;
+                        }
+                        try {
+                          return array.every(predicate);
+                        } catch (error) {
+                          console.error(letter + '.every: Error during every operation:', error);
+                          return true;
+                        }
+                      };
+                      window[letter].reduce = function(array, reducer, initialValue) {
+                        if (!Array.isArray(array)) {
+                          console.warn(letter + '.reduce: Input is not an array:', array);
+                          return initialValue;
+                        }
+                        try {
+                          return array.reduce(reducer, initialValue);
+                        } catch (error) {
+                          console.error(letter + '.reduce: Error during reduce operation:', error);
+                          return initialValue;
+                        }
+                      };
+                      window[letter].forEach = function(array, callback) {
+                        if (!Array.isArray(array)) {
+                          console.warn(letter + '.forEach: Input is not an array:', array);
+                          return;
+                        }
+                        try {
+                          return array.forEach(callback);
+                        } catch (error) {
+                          console.error(letter + '.forEach: Error during forEach operation:', error);
+                        }
+                      };
                     }
-                    try {
-                      return array.filter(predicate);
-                    } catch (error) {
-                      console.error('D.filter: Error during filtering:', error);
-                      return [];
-                    }
-                  };
+                  });
                 }
                 if (event.error && event.error.message) {
                   // Handle T.filter errors

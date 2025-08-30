@@ -156,8 +156,8 @@ if (typeof window !== 'undefined') {
   (window as any).M.forEach = (window as any).M.forEach || createSafeForEach();
 
   // Universal single-letter global object protection
-  // This covers any single-letter global object that might need array methods
-  const singleLetterObjects = ['A', 'B', 'C', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'N', 'O', 'Q', 'S', 'U', 'V', 'W', 'X', 'Y', 'Z'];
+  // This covers ALL single-letter global objects (A-Z) that might need array methods
+  const singleLetterObjects = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
   
   singleLetterObjects.forEach(letter => {
     if (!(window as any)[letter]) {
@@ -173,7 +173,7 @@ if (typeof window !== 'undefined') {
     (window as any)[letter].forEach = (window as any)[letter].forEach || createSafeForEach();
   });
 
-  console.log('✅ Global objects (T, D, R, P, M) and all single-letter objects initialized with array methods');
+  console.log('✅ ALL single-letter global objects (A-Z) initialized with array methods');
 }
 
 // Export a function to ensure all global objects are available
@@ -233,7 +233,7 @@ export function ensureGlobalObjects() {
     (window as any).M.filter = (window as any).M.filter || createSafeFilter();
 
     // Universal single-letter global object protection
-    const singleLetterObjects = ['A', 'B', 'C', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'N', 'O', 'Q', 'S', 'U', 'V', 'W', 'X', 'Y', 'Z'];
+    const singleLetterObjects = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
     
     singleLetterObjects.forEach(letter => {
       if (!(window as any)[letter]) {
@@ -242,7 +242,7 @@ export function ensureGlobalObjects() {
       (window as any)[letter].filter = (window as any)[letter].filter || createSafeFilter();
     });
 
-    console.log('✅ Global objects (T, D, R, P, M) and all single-letter objects reinitialized via ensureGlobalObjects function');
+    console.log('✅ ALL single-letter global objects (A-Z) reinitialized via ensureGlobalObjects function');
   }
 }
 

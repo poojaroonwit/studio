@@ -100,9 +100,9 @@ export default async function RootLayout({
                   <AppLayout>
                     {children}
                   </AppLayout>
+                  <ToastClient />
+                  <ModalCleanupMonitor />
                 </ErrorBoundary>
-                <ToastClient />
-                <ModalCleanupMonitor />
               </WarningProvider>
             </NotificationProvider>
           </AuthProvider>

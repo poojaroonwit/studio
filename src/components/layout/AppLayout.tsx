@@ -21,6 +21,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { useInfiniteLoopPrevention, useRenderMonitor } from '@/hooks/use-infinite-loop-prevention';
 import { OptimizedContainer, LayoutContainer } from '@/components/ui/optimized-container';
 import { useAppLayoutState } from '@/hooks/use-app-layout-state';
+import { initializeFrozenStatePrevention, trackActivity } from '@/lib/frozen-state-prevention';
 
 const DEFAULT_APP_NAME = "FitScan";
 
@@ -254,6 +255,9 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
     
     initializeClient();
     fetchGlobalSettings();
+    
+    // Initialize frozen state prevention
+    initializeFrozenStatePrevention();
     
     window.addEventListener('appConfigChanged', handleAppConfigChange);
     

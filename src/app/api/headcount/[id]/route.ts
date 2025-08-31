@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -18,8 +18,9 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { id } = await params;
     const headcount = await prisma.headcount.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         position: {
           select: {
@@ -61,7 +62,7 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -69,12 +70,13 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { id } = await params;
     const body: UpdateHeadcountRequest = await request.json();
     const { type, status, candidateId, notes, memoId } = body;
 
     // Check if headcount exists
     const existingHeadcount = await prisma.headcount.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!existingHeadcount) {
@@ -98,7 +100,7 @@ export async function PUT(
     }
 
     const headcount = await prisma.headcount.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         ...(type && { type }),
         ...(status && { status }),
@@ -160,7 +162,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -168,9 +170,11 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { id } = await params;
+
     // Check if headcount exists
     const existingHeadcount = await prisma.headcount.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!existingHeadcount) {
@@ -181,7 +185,7 @@ export async function DELETE(
     const positionId = existingHeadcount.positionId;
 
     await prisma.headcount.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     // Check if all headcounts are now filled and auto-close position if needed
@@ -209,7 +213,7 @@ export async function DELETE(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -217,17 +221,18 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { id } = await params;
     const body = await request.json();
     const { action } = body;
 
     if (action === 'check_unassign_warning') {
-      const warning = await checkHeadcountUnassignWarning(params.id);
+      const warning = await checkHeadcountUnassignWarning(id);
       return NextResponse.json(warning);
     }
 
     if (action === 'unassign_candidate') {
       const result = await unassignCandidateFromHeadcount(
-        params.id,
+        id,
         session.user.id,
         session.user.name || session.user.email || 'System'
       );

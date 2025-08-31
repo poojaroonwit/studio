@@ -6,7 +6,7 @@ export const MINIO_PUBLIC_BASE_URL = process.env.MINIO_PUBLIC_BASE_URL || 'http:
 
 export const minioClient = new Minio({
   endPoint: process.env.MINIO_ENDPOINT || 'localhost',
-  port: parseInt(process.env.MINIO_CONSOLE_PORT || process.env.MINIO_PORT || '9001', 10), // Use console port
+  port: parseInt(process.env.MINIO_PORT || '9000', 10), // Use API port for S3 requests
   useSSL: process.env.MINIO_USE_SSL === 'true',
   accessKey: process.env.MINIO_ACCESS_KEY || 'minioadmin',
   secretKey: process.env.MINIO_SECRET_KEY || 'minioadmin',

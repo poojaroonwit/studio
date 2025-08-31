@@ -52,12 +52,12 @@ import { broadcastUploadQueueUpdate } from '../sse/broadcastUploadQueueUpdate';
  *         description: Not found
  */
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-  const id = params.id;
+  const { id } = await params;
   const data = await request.json();
   const fields = [];
   const values = [];
@@ -92,12 +92,12 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-  const id = params.id;
+  const { id } = await params;
   const client = await getPool().connect();
   try {
     const res = await client.query(
@@ -119,7 +119,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
   }
 }
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -129,7 +129,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   if (!canProcess) {
     return NextResponse.json({ error: 'Forbidden: Insufficient permissions' }, { status: 403 });
   }
-  const id = params.id;
+  const { id } = await params;
   const client = await getPool().connect();
   try {
     // Fetch the job by ID

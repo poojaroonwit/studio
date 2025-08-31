@@ -35,9 +35,10 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  console.log('🔍 API: Mark read request received for notification ID:', params.id);
+  const { id: notificationId } = await params;
+  console.log('🔍 API: Mark read request received for notification ID:', notificationId);
   
   const session = await getServerSession(authOptions);
 
@@ -47,8 +48,7 @@ export async function POST(
   }
 
   const actingUserId = session.user.id;
-  const actingUserName = session.user.name || session.user.email || 'System';   
-  const notificationId = params.id;
+  const actingUserName = session.user.name || session.user.email || 'System';
 
   console.log('🔍 API: Acting user ID:', actingUserId);
   console.log('🔍 API: Acting user name:', actingUserName);

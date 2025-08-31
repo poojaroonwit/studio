@@ -33,7 +33,7 @@ const pathLabels: Record<string, string> = {
   '/candidates': 'Candidates',
   '/positions': 'Positions',
   '/my-tasks': 'My Task Board',
-  '/candidates/upload': 'Process queue',
+  '/process-queue': 'Process queue',
   '/settings': 'Settings',
   '/settings/users': 'Users',
   '/settings/webhooks': 'Webhooks',
@@ -121,7 +121,7 @@ export function useRecentUrls() {
 // Helper function to generate labels for paths not in the map
 function getPathLabel(path: string): string {
   // Handle dynamic routes
-  if (path.startsWith('/candidates/') && path !== '/candidates/upload') {
+      if (path.startsWith('/candidates/') && path !== '/process-queue') {
     return 'Candidate Details';
   }
   if (path.startsWith('/positions/')) {

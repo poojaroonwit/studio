@@ -1,7 +1,9 @@
 // src/lib/db.ts
 import { Pool } from 'pg';
+import { addProcessHandler } from './process-manager';
 
 let pool: Pool | null = null;
+let shutdownHandlerAdded = false;
 
 export function getPool() {
   const databaseUrl = process.env.DATABASE_URL;
@@ -39,14 +41,21 @@ export function getPool() {
       }, 60000); // Log every minute
     }
     
-    // Graceful shutdown handling
-    process.on('SIGINT', async () => {
-      console.log('[DB POOL] Shutting down connection pool...');
-      if (pool) {
-        await pool.end();
-      }
-      process.exit(0);
-    });
+    // Graceful shutdown handling - only add once using process manager
+    if (!shutdownHandlerAdded) {
+      shutdownHandlerAdded = true;
+      
+      const shutdownHandler = async (signal: string) => {
+        console.log(`[DB POOL] Received ${signal}, shutting down connection pool...`);
+        if (pool) {
+          await pool.end();
+        }
+        // Don't call process.exit() here as other handlers might need to run
+      };
+      
+      addProcessHandler('SIGINT', () => shutdownHandler('SIGINT'), 'db-pool-shutdown');
+      addProcessHandler('SIGTERM', () => shutdownHandler('SIGTERM'), 'db-pool-shutdown');
+    }
   }
   return pool;
 }

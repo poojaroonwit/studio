@@ -48,41 +48,6 @@ export const ContactTab: React.FC<ContactTabProps> = ({
   if (isEditing) {
     return (
       <div className="space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Contact Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="parsedData.contact_info.email">Email *</Label>
-                <Input 
-                  id="parsedData.contact_info.email" 
-                  {...register('parsedData.contact_info.email')} 
-                  type="email"
-                  placeholder="Enter email address"
-                  className="mt-1" 
-                />
-                {errors?.parsedData?.contact_info?.email && (
-                  <p className="text-sm text-destructive mt-1">
-                    {errors.parsedData.contact_info.email.message}
-                  </p>
-                )}
-              </div>
-              <div>
-                <Label htmlFor="parsedData.contact_info.phone">Phone</Label>
-                <Input 
-                  id="parsedData.contact_info.phone" 
-                  {...register('parsedData.contact_info.phone')} 
-                  type="tel"
-                  placeholder="Enter phone number"
-                  className="mt-1" 
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Skills Section */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
@@ -157,28 +122,16 @@ export const ContactTab: React.FC<ContactTabProps> = ({
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label className="text-sm font-medium text-muted-foreground">Email</Label>
-              <p className="text-sm">
-                <a 
-                  href={`mailto:${contactInfo?.email || candidate.email}`}
-                  className="text-primary hover:underline"
-                >
-                  {contactInfo?.email || candidate.email}
-                </a>
-              </p>
-            </div>
-            {(contactInfo?.phone || candidate.phone) && (
+            {contactInfo?.email && (
               <div>
-                <Label className="text-sm font-medium text-muted-foreground">Phone</Label>
-                <p className="text-sm">
-                  <a 
-                    href={`tel:${contactInfo?.phone || candidate.phone}`}
-                    className="text-primary hover:underline"
-                  >
-                    {contactInfo?.phone || candidate.phone}
-                  </a>
-                </p>
+                <span className="text-sm font-medium text-muted-foreground">Email</span>
+                <p className="text-sm">{contactInfo.email}</p>
+              </div>
+            )}
+            {contactInfo?.phone && (
+              <div>
+                <span className="text-sm font-medium text-muted-foreground">Phone</span>
+                <p className="text-sm">{contactInfo.phone}</p>
               </div>
             )}
           </div>
@@ -186,50 +139,33 @@ export const ContactTab: React.FC<ContactTabProps> = ({
       </Card>
 
       {/* Skills Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Skills</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {skills.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <p>No skills information available.</p>
-            </div>
-          ) : (
-            skills.map((skill: any, index: number) => (
-              <div key={index} className="border rounded-lg p-4 space-y-3">
-                {skill.segment_skill && (
-                  <div>
-                    <Label className="text-xs font-medium text-muted-foreground">Category</Label>
-                    <p className="text-sm font-medium">{skill.segment_skill}</p>
-                  </div>
-                )}
-                {(skill.skill && skill.skill.length > 0) && (
-                  <div>
-                    <Label className="text-xs font-medium text-muted-foreground">Skills</Label>
-                    <div className="flex flex-wrap gap-2 mt-1">
-                      {skill.skill.map((s: string, skillIndex: number) => (
-                        <span 
-                          key={skillIndex} 
-                          className="inline-block bg-primary/10 text-primary text-xs px-2 py-1 rounded"
-                        >
-                          {s}
-                        </span>
-                      ))}
+      {skills.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Skills</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {skills.map((skill: any, index: number) => (
+              <div key={index} className="border rounded-lg p-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {skill.segment_skill && (
+                    <div>
+                      <span className="text-sm font-medium text-muted-foreground">Category</span>
+                      <p className="text-sm">{skill.segment_skill}</p>
                     </div>
-                  </div>
-                )}
-                {skill.skill_string && !skill.skill && (
-                  <div>
-                    <Label className="text-xs font-medium text-muted-foreground">Skills</Label>
-                    <p className="text-sm">{skill.skill_string}</p>
-                  </div>
-                )}
+                  )}
+                  {skill.skill_string && (
+                    <div>
+                      <span className="text-sm font-medium text-muted-foreground">Skills</span>
+                      <p className="text-sm">{skill.skill_string}</p>
+                    </div>
+                  )}
+                </div>
               </div>
-            ))
-          )}
-        </CardContent>
-      </Card>
+            ))}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };

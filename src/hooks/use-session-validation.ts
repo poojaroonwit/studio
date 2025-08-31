@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useState } from 'react';
+import { useEffect, useCallback, useState, useRef } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
@@ -17,6 +17,8 @@ export function useSessionValidation(options: {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [isValidating, setIsValidating] = useState(false);
+  const lastValidationTime = useRef<number>(0);
+  const validationInProgress = useRef<boolean>(false);
   
   const {
     validateInterval = 5 * 60 * 1000, // 5 minutes
@@ -29,8 +31,22 @@ export function useSessionValidation(options: {
       return;
     }
 
+    // Prevent concurrent validation calls
+    if (validationInProgress.current) {
+      return;
+    }
+
+    // Prevent excessive validation calls
+    const now = Date.now();
+    if (now - lastValidationTime.current < 10000) { // Minimum 10 seconds between validations
+      return;
+    }
+
     try {
+      validationInProgress.current = true;
       setIsValidating(true);
+      lastValidationTime.current = now;
+
       const response = await fetch('/api/auth/validate-session', {
         method: 'GET',
         credentials: 'include', // Include cookies
@@ -60,6 +76,7 @@ export function useSessionValidation(options: {
       // This prevents users from being logged out due to temporary network issues
     } finally {
       setIsValidating(false);
+      validationInProgress.current = false;
     }
   }, [session, status, autoSignOut, redirectTo]);
 

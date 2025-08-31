@@ -10,12 +10,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
-import { Clock, Loader2, CheckCircle, XCircle, Search, Filter, RefreshCw, AlertCircle, Info, Upload, FileText, Users, Calendar } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Checkbox } from '@/components/ui/checkbox';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { Clock, Loader2, CheckCircle, XCircle, Search, Filter, AlertCircle, Info, Upload, FileText, Users, Calendar as CalendarIcon, MoreHorizontal, Play, X, Trash2, Eye, RotateCcw, CheckSquare, Square, ChevronLeft, ChevronRight, ChevronUp, ChevronDown } from 'lucide-react';
+import { FileViewerModal } from '@/components/ui/file-viewer-modal';
+
 import { useUnifiedRealtime } from '@/hooks/use-unified-realtime';
+import { toast } from 'react-hot-toast';
+import { format } from 'date-fns';
+import { DateRange } from 'react-day-picker';
+import { cn } from '@/lib/utils';
 
 interface QueueItem {
   id: string;
   file_name: string;
+  file_size: number;
   status: 'queued' | 'inprocess' | 'success' | 'error' | 'fail';
   upload_date: string;
   process_date?: string;
@@ -29,6 +41,8 @@ interface QueueItem {
   user_email?: string;
   position_title?: string;
   position_id?: string;
+  webhook_payload?: any;
+  source?: string;
 }
 
 interface QueueResponse {
@@ -52,11 +66,26 @@ export default function CandidateImportUploadQueue() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [positionFilter, setPositionFilter] = useState<string>('all');
-  const [dateRange, setDateRange] = useState<{ start?: Date; end?: Date }>({});
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [positions, setPositions] = useState<Array<{ id: string; title: string }>>([]);
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const [bulkAction, setBulkAction] = useState<string>('');
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const [selectionMode, setSelectionMode] = useState<'none' | 'partial' | 'all'>('none');
+  const [selectedFile, setSelectedFile] = useState<{
+    fileName: string;
+    url: string;
+    label?: string;
+    updatedAt?: string;
+    fileSize?: number | string;
+  } | null>(null);
+  const [isFileViewerOpen, setIsFileViewerOpen] = useState(false);
+  const [sortField, setSortField] = useState<string>('upload_date');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [positionSearchTerm, setPositionSearchTerm] = useState<string>('');
 
   // Centralized realtime hook
   const { isConnected: isRealtimeActive, lastUpdate: realtimeLastUpdate } = useUnifiedRealtime({
@@ -69,10 +98,10 @@ export default function CandidateImportUploadQueue() {
 
   const fetchPositions = useCallback(async () => {
     try {
-      const response = await fetch('/api/positions');
+      const response = await fetch('/api/positions?limit=1000');
       if (response.ok) {
         const data = await response.json();
-        setPositions(data.positions || []);
+        setPositions(data.data || []);
       }
     } catch (error) {
       console.error('Failed to fetch positions:', error);
@@ -89,15 +118,17 @@ export default function CandidateImportUploadQueue() {
         offset: ((currentPage - 1) * currentPageSize).toString(),
         ...(searchTerm && { file_name: searchTerm }),
         ...(statusFilter !== 'all' && { status: statusFilter }),
-        ...(positionFilter !== 'all' && { position_id: positionFilter })
+        ...(positionFilter !== 'all' && { position_id: positionFilter }),
+        sort_field: sortField,
+        sort_direction: sortDirection
       });
 
       // Handle dateRange separately since it's an object
-      if (dateRange.start) {
-        params.append('dateRangeStart', dateRange.start.toISOString());
+      if (dateRange?.from) {
+        params.append('date_start', dateRange.from.toISOString());
       }
-      if (dateRange.end) {
-        params.append('dateRangeEnd', dateRange.end.toISOString());
+      if (dateRange?.to) {
+        params.append('date_end', dateRange.to.toISOString());
       }
 
       const response = await fetch(`/api/upload-queue?${params}`);
@@ -123,7 +154,26 @@ export default function CandidateImportUploadQueue() {
 
   useEffect(() => {
     fetchQueue(page, pageSize);
-  }, [fetchQueue, page, pageSize]);
+  }, [fetchQueue, page, pageSize, sortField, sortDirection]);
+
+  // Update selection mode based on selected items
+  useEffect(() => {
+    if (!queueData?.data) {
+      setSelectionMode('none');
+      return;
+    }
+
+    const totalItems = queueData.data.length;
+    const selectedCount = selectedItems.size;
+
+    if (selectedCount === 0) {
+      setSelectionMode('none');
+    } else if (selectedCount === totalItems) {
+      setSelectionMode('all');
+    } else {
+      setSelectionMode('partial');
+    }
+  }, [selectedItems, queueData?.data]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -151,6 +201,32 @@ export default function CandidateImportUploadQueue() {
     return new Date(dateString).toLocaleString();
   };
 
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const calculateDuration = (processDate?: string, completedDate?: string) => {
+    if (!processDate) return '-';
+    const start = new Date(processDate);
+    const end = completedDate ? new Date(completedDate) : new Date();
+    const diffMs = end.getTime() - start.getTime();
+    const diffSeconds = Math.floor(diffMs / 1000);
+    const diffMinutes = Math.floor(diffSeconds / 60);
+    const diffHours = Math.floor(diffMinutes / 60);
+    
+    if (diffHours > 0) {
+      return `${diffHours}h ${diffMinutes % 60}m`;
+    } else if (diffMinutes > 0) {
+      return `${diffMinutes}m ${diffSeconds % 60}s`;
+    } else {
+      return `${diffSeconds}s`;
+    }
+  };
+
   const handleItemClick = (item: QueueItem) => {
     setSelectedItem(item);
     setShowDetails(true);
@@ -169,103 +245,444 @@ export default function CandidateImportUploadQueue() {
 
   const handlePositionFilterChange = (value: string) => {
     setPositionFilter(value);
+    setPositionSearchTerm(''); // Clear search when position is selected
     setPage(1);
     fetchQueue(1, pageSize);
   };
 
-  const handleRefresh = () => {
-    fetchQueue(page, pageSize);
+  const handleDateRangeChange = (range: DateRange | undefined) => {
+    setDateRange(range);
+    setPage(1);
+    fetchQueue(1, pageSize);
+  };
+
+  const clearDateRange = () => {
+    setDateRange(undefined);
+    setPage(1);
+    fetchQueue(1, pageSize);
+  };
+
+  const clearAllFilters = () => {
+    setSearchTerm('');
+    setStatusFilter('all');
+    setPositionFilter('all');
+    setPositionSearchTerm('');
+    setDateRange(undefined);
+    setPage(1);
+    fetchQueue(1, pageSize);
+  };
+
+  const setDatePreset = (preset: 'today' | 'yesterday' | 'last7days' | 'last30days' | 'thisMonth' | 'lastMonth') => {
+    const now = new Date();
+    let from: Date;
+    let to: Date;
+
+    switch (preset) {
+      case 'today':
+        from = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        to = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+        break;
+      case 'yesterday':
+        from = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+        to = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59);
+        break;
+      case 'last7days':
+        from = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
+        to = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+        break;
+      case 'last30days':
+        from = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29);
+        to = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+        break;
+      case 'thisMonth':
+        from = new Date(now.getFullYear(), now.getMonth(), 1);
+        to = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+        break;
+      case 'lastMonth':
+        from = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        to = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+        break;
+    }
+
+    setDateRange({ from, to });
+    setPage(1);
+    fetchQueue(1, pageSize);
+  };
+
+  // Queue item actions
+  const handleProcess = async (item: QueueItem) => {
+    try {
+      const response = await fetch(`/api/upload-queue/${item.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      if (response.ok) {
+        toast.success('Job queued for processing');
+        fetchQueue(page, pageSize);
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Failed to process job');
+      }
+    } catch (error) {
+      toast.error('Failed to process job');
+    }
+  };
+
+  const handleRetry = async (item: QueueItem) => {
+    try {
+      const response = await fetch(`/api/upload-queue/${item.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      if (response.ok) {
+        toast.success('Job queued for retry');
+        fetchQueue(page, pageSize);
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Failed to retry job');
+      }
+    } catch (error) {
+      toast.error('Failed to retry job');
+    }
+  };
+
+  const handleCancel = async (item: QueueItem) => {
+    try {
+      const response = await fetch(`/api/upload-queue/${item.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'cancelled' })
+      });
+      
+      if (response.ok) {
+        toast.success('Job cancelled');
+        fetchQueue(page, pageSize);
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Failed to cancel job');
+      }
+    } catch (error) {
+      toast.error('Failed to cancel job');
+    }
+  };
+
+  const handleDelete = async (item: QueueItem) => {
+    if (!confirm('Are you sure you want to delete this job?')) return;
+    
+    try {
+      const response = await fetch(`/api/upload-queue/${item.id}`, {
+        method: 'DELETE'
+      });
+      
+      if (response.ok) {
+        toast.success('Job deleted');
+        fetchQueue(page, pageSize);
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Failed to delete job');
+      }
+    } catch (error) {
+      toast.error('Failed to delete job');
+    }
+  };
+
+  // Enhanced selection handlers
+  const handleSelectAll = () => {
+    if (!queueData?.data) return;
+    
+    if (selectionMode === 'all') {
+      setSelectedItems(new Set());
+    } else {
+      setSelectedItems(new Set(queueData.data.map(item => item.id)));
+    }
+  };
+
+  const handleSelectItem = (itemId: string) => {
+    const newSelected = new Set(selectedItems);
+    if (newSelected.has(itemId)) {
+      newSelected.delete(itemId);
+    } else {
+      newSelected.add(itemId);
+    }
+    setSelectedItems(newSelected);
+  };
+
+  const handleSelectByStatus = (status: string) => {
+    if (!queueData?.data) return;
+    
+    const itemsWithStatus = queueData.data
+      .filter(item => item.status === status)
+      .map(item => item.id);
+    
+    setSelectedItems(new Set(itemsWithStatus));
+  };
+
+  const clearSelection = () => {
+    setSelectedItems(new Set());
+  };
+
+  const performBulkAction = async () => {
+    if (!bulkAction || selectedItems.size === 0) return;
+    
+    try {
+      setBulkLoading(true);
+      const itemIds = Array.from(selectedItems);
+      
+      const response = await fetch('/api/upload-queue/bulk-action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: bulkAction, itemIds })
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        toast.success(result.message);
+        setSelectedItems(new Set());
+        setBulkAction('');
+        fetchQueue(page, pageSize);
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Failed to perform bulk action');
+      }
+    } catch (error) {
+      toast.error('Failed to perform bulk action');
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
+  const canRetry = (item: QueueItem) => ['error', 'fail'].includes(item.status);
+  const canCancel = (item: QueueItem) => ['queued', 'inprocess'].includes(item.status);
+  const canDelete = (item: QueueItem) => ['success', 'error', 'fail', 'cancelled'].includes(item.status);
+  const canProcess = (item: QueueItem) => ['queued'].includes(item.status);
+
+  const getSelectionIcon = () => {
+    switch (selectionMode) {
+      case 'all':
+        return <CheckSquare className="h-4 w-4" />;
+      case 'partial':
+        return <Square className="h-4 w-4" />;
+      default:
+        return <Square className="h-4 w-4" />;
+    }
+  };
+
+  const getStatusBadgeVariant = (status: string) => {
+    switch (status) {
+      case 'queued': return 'secondary';
+      case 'inprocess': return 'outline';
+      case 'success': return 'success';
+      case 'error':
+      case 'fail': return 'destructive';
+      default: return 'secondary';
+    }
+  };
+
+  const SortableHeader = ({ field, children }: { field: string; children: React.ReactNode }) => {
+    const isActive = sortField === field;
+    return (
+      <TableHead 
+        className="font-medium cursor-pointer hover:bg-muted/50 transition-colors select-none"
+        onClick={() => handleSort(field)}
+      >
+        <div className="flex items-center gap-1">
+          {children}
+          <div className="flex flex-col">
+            <ChevronUp className={`h-3 w-3 ${isActive && sortDirection === 'asc' ? 'text-primary' : 'text-muted-foreground'}`} />
+            <ChevronDown className={`h-3 w-3 ${isActive && sortDirection === 'desc' ? 'text-primary' : 'text-muted-foreground'}`} />
+          </div>
+        </div>
+      </TableHead>
+    );
+  };
+
+  const handleRetryItem = async (itemId: string) => {
+    try {
+      const response = await fetch(`/api/upload-queue/${itemId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (response.ok) {
+        toast.success('Job queued for retry');
+        fetchQueue(page, pageSize);
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Failed to retry job');
+      }
+    } catch (error) {
+      toast.error('Failed to retry job');
+    }
+  };
+
+  const handleDeleteItem = async (itemId: string) => {
+    if (!confirm('Are you sure you want to delete this job?')) return;
+    try {
+      const response = await fetch(`/api/upload-queue/${itemId}`, {
+        method: 'DELETE'
+      });
+      if (response.ok) {
+        toast.success('Job deleted');
+        fetchQueue(page, pageSize);
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Failed to delete job');
+      }
+    } catch (error) {
+      toast.error('Failed to delete job');
+    }
+  };
+
+  const handleFilePreview = (item: QueueItem) => {
+    // Construct the file URL - you may need to adjust this based on your file storage setup
+    const fileUrl = `/api/upload-queue/${item.id}/file`;
+    
+    setSelectedFile({
+      fileName: item.file_name,
+      url: fileUrl,
+      label: 'Upload Queue File',
+      updatedAt: item.upload_date,
+      fileSize: item.file_size
+    });
+    setIsFileViewerOpen(true);
+  };
+
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+    setPage(1);
+    fetchQueue(1, pageSize);
+  };
+
+  const handleBulkDelete = async (itemIds: string[]) => {
+    if (!confirm('Are you sure you want to delete these jobs?')) return;
+    try {
+      const response = await fetch('/api/upload-queue/bulk-action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete', itemIds })
+      });
+      if (response.ok) {
+        toast.success('Jobs deleted');
+        setSelectedItems(new Set());
+        fetchQueue(page, pageSize);
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Failed to delete jobs');
+      }
+    } catch (error) {
+      toast.error('Failed to delete jobs');
+    }
+  };
+
+  const handleBulkRetry = async (itemIds: string[]) => {
+    try {
+      const response = await fetch('/api/upload-queue/bulk-action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'retry', itemIds })
+      });
+      if (response.ok) {
+        toast.success('Jobs queued for retry');
+        setSelectedItems(new Set());
+        fetchQueue(page, pageSize);
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Failed to retry jobs');
+      }
+    } catch (error) {
+      toast.error('Failed to retry jobs');
+    }
   };
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Candidate Import Queue</h2>
-          <p className="text-muted-foreground">
-            Monitor the status of your candidate imports in real-time
-          </p>
-        </div>
-        <div className="flex items-center space-x-2">
-          <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-            <div className={`w-2 h-2 rounded-full ${isRealtimeActive ? 'bg-green-500' : 'bg-red-500'}`} />
-            <span>{isRealtimeActive ? 'Live' : 'Offline'}</span>
-          </div>
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loading}>
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          </Button>
-        </div>
-      </div>
+    <div className="h-full flex flex-col">
+    
 
+      {/* Main Content */}
+      <div className="flex-1 overflow-hidden">
+        <div className="h-full flex flex-col">
+
+
+          <div className="flex-1 overflow-y-auto space-y-4">
       {/* Summary Cards */}
       {queueData?.summary && (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <Card>
-            <CardContent className="p-4">
+          <Card className="group relative overflow-hidden border-2 border-gray-200 hover:border-opacity-80 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm shadow-lg">
+            <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-gray-100 opacity-100 transition-opacity duration-300"></div>
+            <CardContent className="relative p-6">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total</p>
-                  <p className="text-2xl font-bold">{queueData.summary.total}</p>
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Total</p>
+                  <p className="text-3xl font-bold text-gray-800">{queueData.summary.total}</p>
                 </div>
-                <div className="h-8 w-8 rounded-full bg-gray-500 flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">T</span>
+                <div className="p-3 rounded-xl bg-gray-500 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
+                  <span className="text-white text-sm font-bold">T</span>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-4">
+          <Card className="group relative overflow-hidden border-2 border-blue-200 hover:border-opacity-80 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm shadow-lg">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-blue-100 opacity-100 transition-opacity duration-300"></div>
+            <CardContent className="relative p-6">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Queued</p>
-                  <p className="text-2xl font-bold text-blue-600">{queueData.summary.queued}</p>
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold text-blue-600 uppercase tracking-wide">Queued</p>
+                  <p className="text-3xl font-bold text-blue-800">{queueData.summary.queued}</p>
                 </div>
-                <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center">
-                  <Clock className="h-4 w-4 text-white" />
+                <div className="p-3 rounded-xl bg-blue-500 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
+                  <Clock className="h-5 w-5 text-white" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-4">
+          <Card className="group relative overflow-hidden border-2 border-yellow-200 hover:border-opacity-80 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm shadow-lg">
+            <div className="absolute inset-0 bg-gradient-to-br from-yellow-50 to-yellow-100 opacity-100 transition-opacity duration-300"></div>
+            <CardContent className="relative p-6">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Processing</p>
-                  <p className="text-2xl font-bold text-yellow-600">{queueData.summary.inprocess}</p>
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold text-yellow-600 uppercase tracking-wide">Processing</p>
+                  <p className="text-3xl font-bold text-yellow-800">{queueData.summary.inprocess}</p>
                 </div>
-                <div className="h-8 w-8 rounded-full bg-yellow-500 flex items-center justify-center">
-                  <Loader2 className="h-4 w-4 text-white animate-spin" />
+                <div className="p-3 rounded-xl bg-yellow-500 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
+                  <Loader2 className="h-5 w-5 text-white animate-spin" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-4">
+          <Card className="group relative overflow-hidden border-2 border-green-200 hover:border-opacity-80 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm shadow-lg">
+            <div className="absolute inset-0 bg-gradient-to-br from-green-50 to-green-100 opacity-100 transition-opacity duration-300"></div>
+            <CardContent className="relative p-6">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Success</p>
-                  <p className="text-2xl font-bold text-green-600">{queueData.summary.success}</p>
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold text-green-600 uppercase tracking-wide">Success</p>
+                  <p className="text-3xl font-bold text-green-800">{queueData.summary.success}</p>
                 </div>
-                <div className="h-8 w-8 rounded-full bg-green-500 flex items-center justify-center">
-                  <CheckCircle className="h-4 w-4 text-white" />
+                <div className="p-3 rounded-xl bg-green-500 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
+                  <CheckCircle className="h-5 w-5 text-white" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-4">
+          <Card className="group relative overflow-hidden border-2 border-red-200 hover:border-opacity-80 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm shadow-lg">
+            <div className="absolute inset-0 bg-gradient-to-br from-red-50 to-red-100 opacity-100 transition-opacity duration-300"></div>
+            <CardContent className="relative p-6">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Error</p>
-                  <p className="text-2xl font-bold text-red-600">{queueData.summary.error}</p>
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold text-red-600 uppercase tracking-wide">Error</p>
+                  <p className="text-3xl font-bold text-red-800">{queueData.summary.error}</p>
                 </div>
-                <div className="h-8 w-8 rounded-full bg-red-500 flex items-center justify-center">
-                  <XCircle className="h-4 w-4 text-white" />
+                <div className="p-3 rounded-xl bg-red-500 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
+                  <XCircle className="h-5 w-5 text-white" />
                 </div>
               </div>
             </CardContent>
@@ -273,37 +690,45 @@ export default function CandidateImportUploadQueue() {
         </div>
       )}
 
+
       {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Filter className="h-5 w-5" />
-            <span>Filters</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="search">Search Files</Label>
-              <div className="flex space-x-2">
+      <div className="p-3 border-b border-border/50">
+        <div className="flex items-center justify-end mb-3">
+                      {(searchTerm || statusFilter !== 'all' || positionFilter !== 'all' || positionSearchTerm || dateRange) && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearAllFilters}
+              className="text-gray-600 hover:text-gray-800 h-6 px-2 text-xs"
+            >
+              <X className="h-3 w-3 mr-1" />
+              Clear
+            </Button>
+          )}
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
+            <div className="space-y-1">
+              <Label htmlFor="search" className="text-xs text-muted-foreground">Search</Label>
+              <div className="flex space-x-1">
                 <Input
                   id="search"
-                  placeholder="Search by filename..."
+                  placeholder="Filename..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                  className="h-7 text-xs"
                 />
-                <Button onClick={handleSearch}>
-                  <Search className="h-4 w-4" />
+                <Button onClick={handleSearch} size="sm" className="h-7 px-2">
+                  <Search className="h-3 w-3" />
                 </Button>
               </div>
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="status">Status Filter</Label>
+            <div className="space-y-1">
+              <Label htmlFor="status" className="text-xs text-muted-foreground">Status</Label>
               <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
+                <SelectTrigger className="h-7 text-xs">
+                  <SelectValue placeholder="All" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Statuses</SelectItem>
@@ -316,27 +741,92 @@ export default function CandidateImportUploadQueue() {
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="position">Position Filter</Label>
+            <div className="space-y-1">
+              <Label htmlFor="position" className="text-xs text-muted-foreground">Position</Label>
               <Select value={positionFilter} onValueChange={handlePositionFilterChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select position" />
+                <SelectTrigger className="h-7 text-xs">
+                  <SelectValue placeholder="All" />
                 </SelectTrigger>
                 <SelectContent>
+                  <div className="p-2">
+                    <Input
+                      placeholder="Search positions..."
+                      value={positionSearchTerm}
+                      onChange={(e) => setPositionSearchTerm(e.target.value)}
+                      className="h-7 text-xs mb-2"
+                    />
+                  </div>
                   <SelectItem value="all">All Positions</SelectItem>
-                  {positions.map((position) => (
-                    <SelectItem key={position.id} value={position.id}>
-                      {position.title}
-                    </SelectItem>
-                  ))}
+                  {positions
+                    .filter((position) => 
+                      position.title.toLowerCase().includes(positionSearchTerm.toLowerCase())
+                    )
+                    .map((position) => (
+                      <SelectItem key={position.id} value={position.id}>
+                        {position.title}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="pageSize">Items per Page</Label>
-              <Select value={pageSize.toString()} onValueChange={(value) => setPageSize(Number(value))}>
-                <SelectTrigger>
+
+            <div className="space-y-1">
+              <Label htmlFor="dateRange" className="text-xs text-muted-foreground">Date</Label>
+              <div className="flex space-x-1">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "flex-1 justify-start text-left font-normal h-7 text-xs",
+                        !dateRange && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-1 h-3 w-3" />
+                      {dateRange?.from ? (
+                        dateRange.to ? (
+                          <>
+                            {format(dateRange.from, "MMM dd")} - {format(dateRange.to, "MMM dd")}
+                          </>
+                        ) : (
+                          format(dateRange.from, "MMM dd")
+                        )
+                      ) : (
+                        <span>Date</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      initialFocus
+                      mode="range"
+                      defaultMonth={dateRange?.from}
+                      selected={dateRange}
+                      onSelect={handleDateRangeChange}
+                      numberOfMonths={2}
+                      disabled={(date) =>
+                        date > new Date() || date < new Date("1900-01-01")
+                      }
+                    />
+                  </PopoverContent>
+                </Popover>
+                {dateRange && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={clearDateRange}
+                    className="px-1 h-7"
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="pageSize" className="text-xs text-muted-foreground">Per Page</Label>
+              <Select value={pageSize.toString()} onValueChange={(value: string) => setPageSize(Number(value))}>
+                <SelectTrigger className="h-7 text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -347,9 +837,38 @@ export default function CandidateImportUploadQueue() {
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Quick Dates</Label>
+              <div className="flex flex-wrap gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setDatePreset('today')}
+                  className="text-xs h-6 px-1"
+                >
+                  Today
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setDatePreset('last7days')}
+                  className="text-xs h-6 px-1"
+                >
+                  7d
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setDatePreset('last30days')}
+                  className="text-xs h-6 px-1"
+                >
+                  30d
+                </Button>
+              </div>
+            </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
 
       {/* Error Alert */}
       {errorMessage && (
@@ -359,128 +878,281 @@ export default function CandidateImportUploadQueue() {
         </Alert>
       )}
 
-      {/* Queue Items */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Queue Items</CardTitle>
-              <CardDescription>
-                {queueData ? `${queueData.total} total items` : 'Loading...'}
-                {lastUpdate && (
-                  <span className="ml-2 text-xs text-muted-foreground">
-                    Last updated: {formatDate(lastUpdate.toISOString())}
-                  </span>
-                )}
-              </CardDescription>
+      {/* Queue Table */}
+      <div className="border rounded-lg shadow-lg overflow-hidden relative bg-card/50 backdrop-blur-sm">
+        {/* Table Loading Overlay */}
+        {loading && (
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-10">
+            <div className="flex items-center gap-2">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              <span className="text-sm text-muted-foreground">Loading queue...</span>
             </div>
-            {isRealtimeActive && (
-              <Badge variant="secondary" className="flex items-center space-x-1">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                <span>Live Updates</span>
-              </Badge>
-            )}
           </div>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin" />
-              <span className="ml-2">Loading queue...</span>
-            </div>
-          ) : !queueData?.data || queueData.data?.length === 0 ? (
-            <div className="text-center py-8">
-              <Info className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">No queue items found</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {queueData?.data.map((item) => (
-                <div
-                  key={item.id}
-                  className="border rounded-lg p-4 hover:bg-muted/50 cursor-pointer transition-colors"
-                  onClick={() => handleItemClick(item)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      {getStatusIcon(item.status)}
-                      <div>
-                        <h3 className="font-medium">{item.file_name}</h3>
-                        <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                          <span>Uploaded: {formatDate(item.upload_date)}</span>
-                          {item.position_title && (
-                            <span className="flex items-center space-x-1">
-                              <FileText className="h-3 w-3" />
-                              <span>{item.position_title}</span>
-                            </span>
-                          )}
-                        </div>
-                      </div>
+        )}
+
+        {/* Bulk Action Bar */}
+        {selectedItems.size > 0 && (
+          <div className="flex items-center gap-3 p-2 bg-muted/30 border-b border-border">
+            <span className="text-sm text-muted-foreground">{selectedItems.size} selected</span>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => handleBulkRetry(Array.from(selectedItems))} 
+              className="h-7 px-2 text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+            >
+              <RotateCcw className="h-3 w-3 mr-1" /> Retry
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => handleBulkDelete(Array.from(selectedItems))} 
+              className="h-7 px-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
+            >
+              <Trash2 className="h-3 w-3 mr-1" /> Delete
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setSelectedItems(new Set())} 
+              className="h-7 px-2 text-muted-foreground hover:text-foreground"
+            >
+              Clear
+            </Button>
+          </div>
+        )}
+
+        {/* Scrollable Table Container */}
+        <div className="overflow-x-auto">
+          <Table className="min-w-full">
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-12">
+                  <Checkbox
+                    checked={selectionMode === 'all'}
+                    ref={null} // Indeterminate state is not directly supported by Checkbox component
+                    onCheckedChange={handleSelectAll}
+                    className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                  />
+                </TableHead>
+                <SortableHeader field="id">ID</SortableHeader>
+                <SortableHeader field="file_name">File Name</SortableHeader>
+                <SortableHeader field="position_title">Position</SortableHeader>
+                <SortableHeader field="file_size">File Size</SortableHeader>
+                <SortableHeader field="status">Status</SortableHeader>
+                <SortableHeader field="upload_date">Create Date</SortableHeader>
+                <SortableHeader field="process_date">Process Date</SortableHeader>
+                <SortableHeader field="completed_date">Complete Date</SortableHeader>
+                <SortableHeader field="duration">Duration</SortableHeader>
+                <TableHead className="w-12 text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {!queueData?.data || queueData.data.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={10} className="text-center py-8">
+                    <div className="flex flex-col items-center gap-2">
+                      <Info className="h-8 w-8 text-muted-foreground" />
+                      <p className="text-muted-foreground">No queue items found</p>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <Badge className={getStatusColor(item.status)}>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                queueData.data.map((item) => (
+                  <TableRow 
+                    key={item.id}
+                    className={cn(
+                      "transition-colors hover:bg-muted/50",
+                      selectedItems.has(item.id) && "bg-muted/30"
+                    )}
+                  >
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedItems.has(item.id)}
+                        onCheckedChange={() => handleSelectItem(item.id)}
+                        className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                      />
+                    </TableCell>
+                    <TableCell className="font-mono text-xs">{item.id.slice(0, 8)}...</TableCell>
+                    <TableCell className="font-medium">{item.file_name}</TableCell>
+                    <TableCell>{item.position_title || '-'}</TableCell>
+                    <TableCell>{formatFileSize(item.file_size)}</TableCell>
+                    <TableCell>
+                      <Badge 
+                        variant={getStatusBadgeVariant(item.status)}
+                        className={cn(
+                          "font-medium",
+                          item.status === 'queued' && "bg-blue-100 text-blue-800 border-blue-200",
+                          item.status === 'inprocess' && "bg-yellow-100 text-yellow-800 border-yellow-200",
+                          item.status === 'success' && "bg-green-100 text-green-800 border-green-200",
+                          (item.status === 'error' || item.status === 'fail') && "bg-red-100 text-red-800 border-red-200"
+                        )}
+                      >
                         {item.status}
                       </Badge>
-                      {item.progress !== undefined && (
-                        <span className="text-sm text-muted-foreground">
-                          {item.progress}%
-                        </span>
-                      )}
-                    </div>
-                  </div>
+                    </TableCell>
+                    <TableCell>{formatDate(item.upload_date)}</TableCell>
+                    <TableCell>{item.process_date ? formatDate(item.process_date) : '-'}</TableCell>
+                    <TableCell>{item.completed_date ? formatDate(item.completed_date) : '-'}</TableCell>
+                    <TableCell>{calculateDuration(item.process_date, item.completed_date)}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleFilePreview(item)}
+                          className="h-7 w-7 p-0 hover:bg-blue-50 hover:text-blue-600 transition-colors duration-200"
+                          title="Preview File"
+                        >
+                          <FileText className="h-3.5 w-3.5" />
+                        </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-7 w-7 p-0 hover:bg-muted/50 transition-colors duration-200"
+                          >
+                            <MoreHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
+                            <span className="sr-only">Actions</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuItem 
+                            onSelect={() => { setSelectedItem(item); setShowDetails(true); }}
+                            className="text-sm py-2"
+                          >
+                            <Eye className="mr-2 h-4 w-4" /> 
+                            View Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onSelect={() => handleFilePreview(item)}
+                            className="text-sm py-2"
+                          >
+                            <FileText className="mr-2 h-4 w-4" /> 
+                            Preview File
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onSelect={() => handleRetryItem(item.id)}
+                            className="text-sm py-2"
+                          >
+                            <RotateCcw className="mr-2 h-4 w-4" /> 
+                            Retry
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onSelect={() => handleDeleteItem(item.id)}
+                            className="text-destructive hover:!bg-destructive/10 focus:!bg-destructive/10 focus:!text-destructive text-sm py-2"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" /> 
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+
+      {/* Pagination */}
+      {queueData && (
+        <div className="p-4 border-t">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="text-sm text-gray-600">
+                {(() => {
+                  const currentTotal = queueData.total;
+                  const currentPageSize = pageSize;
+                  const startItem = ((page - 1) * currentPageSize) + 1;
+                  const endItem = Math.min(page * currentPageSize, currentTotal);
                   
-                  {item.error && (
-                    <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-700">
-                      <strong>Error:</strong> {item.error}
-                    </div>
-                  )}
+                  if (currentTotal === 0) {
+                    return 'No queue items found';
+                  }
                   
-                  {item.processed_candidates !== undefined && item.total_candidates !== undefined && (
-                    <div className="mt-2 text-sm text-muted-foreground flex items-center space-x-1">
-                      <Users className="h-3 w-3" />
-                      <span>Processed: {item.processed_candidates} / {item.total_candidates} candidates</span>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-          
-          {/* Pagination */}
-          {queueData && (() => {
-            const totalPages = Math.ceil(queueData.total / pageSize);
-            return totalPages > 1;
-          })() && (
-            <div className="flex items-center justify-between mt-6">
-              <div className="text-sm text-muted-foreground">
-                Page {page} of {Math.ceil(queueData.total / pageSize)}
+                  return `Showing ${startItem} to ${endItem} of ${currentTotal} queue items`;
+                })()}
               </div>
-              <div className="flex space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage(Math.max(1, page - 1))}
-                  disabled={page === 1}
+              
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">Items per page:</span>
+                <Select 
+                  value={pageSize.toString()} 
+                  onValueChange={(value: string) => {
+                    const newPageSize = parseInt(value);
+                    setPageSize(newPageSize);
+                    setPage(1); // Reset to first page when changing page size
+                    fetchQueue(1, newPageSize);
+                  }}
                 >
-                  Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage(Math.min(Math.ceil(queueData.total / pageSize), page + 1))}
-                  disabled={page === Math.ceil(queueData.total / pageSize)}
-                >
-                  Next
-                </Button>
+                  <SelectTrigger className="w-20 h-8">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="20">20</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                    <SelectItem value="100">100</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-          )}
-        </CardContent>
-      </Card>
+            
+            <div className="flex items-center space-x-3">
+              <Button
+                onClick={() => {
+                  setPage(Math.max(1, page - 1));
+                  fetchQueue(Math.max(1, page - 1), pageSize);
+                }}
+                disabled={page <= 1 || queueData.total === 0}
+                variant="ghost"
+                size="sm"
+                className="h-8 px-3 hover:bg-muted/50 transition-colors duration-200"
+              >
+                <ChevronLeft className="h-3.5 w-3.5 text-muted-foreground mr-2" />
+                Previous
+              </Button>
+              
+              <span className="text-sm text-muted-foreground min-w-[80px] text-center">
+                {(() => {
+                  const totalPages = Math.ceil(queueData.total / pageSize);
+                  if (queueData.total === 0) {
+                    return 'No pages';
+                  }
+                  return `Page ${page} of ${totalPages}`;
+                })()}
+              </span>
+              
+              <Button
+                onClick={() => {
+                  const totalPages = Math.ceil(queueData.total / pageSize);
+                  setPage(Math.min(totalPages, page + 1));
+                  fetchQueue(Math.min(totalPages, page + 1), pageSize);
+                }}
+                disabled={(() => {
+                  const totalPages = Math.ceil(queueData.total / pageSize);
+                  return page >= totalPages || queueData.total === 0;
+                })()}
+                variant="ghost"
+                size="sm"
+                className="h-8 px-3 hover:bg-muted/50 transition-colors duration-200"
+              >
+                Next
+                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground ml-2" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+
 
       {/* Details Dialog */}
       <Dialog open={showDetails} onOpenChange={setShowDetails}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Queue Item Details</DialogTitle>
             <DialogDescription>
@@ -489,11 +1161,16 @@ export default function CandidateImportUploadQueue() {
           </DialogHeader>
           
           {selectedItem && (
-            <div className="space-y-4">
+            <div className="space-y-6">
+              {/* Basic Information */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="text-sm font-medium">File Name</Label>
                   <p className="text-sm">{selectedItem.file_name}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">File Size</Label>
+                  <p className="text-sm">{formatFileSize(selectedItem.file_size)}</p>
                 </div>
                 <div>
                   <Label className="text-sm font-medium">Status</Label>
@@ -503,6 +1180,10 @@ export default function CandidateImportUploadQueue() {
                       {selectedItem.status}
                     </Badge>
                   </div>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Position</Label>
+                  <p className="text-sm">{selectedItem.position_title || 'Not assigned'}</p>
                 </div>
                 <div>
                   <Label className="text-sm font-medium">Upload Date</Label>
@@ -520,20 +1201,27 @@ export default function CandidateImportUploadQueue() {
                     <p className="text-sm">{formatDate(selectedItem.completed_date)}</p>
                   </div>
                 )}
-                {selectedItem.position_title && (
-                  <div>
-                    <Label className="text-sm font-medium">Position</Label>
-                    <p className="text-sm">{selectedItem.position_title}</p>
-                  </div>
-                )}
+                <div>
+                  <Label className="text-sm font-medium">Duration</Label>
+                  <p className="text-sm">{calculateDuration(selectedItem.process_date, selectedItem.completed_date)}</p>
+                </div>
                 {selectedItem.user_email && (
                   <div>
                     <Label className="text-sm font-medium">Uploaded By</Label>
                     <p className="text-sm">{selectedItem.user_email}</p>
                   </div>
                 )}
+                {selectedItem.source && (
+                  <div>
+                    <Label className="text-sm font-medium">Source</Label>
+                    <p className="text-sm">{selectedItem.source}</p>
+                  </div>
+                )}
               </div>
+
+              <Separator />
               
+              {/* Progress Information */}
               {selectedItem.progress !== undefined && (
                 <div>
                   <Label className="text-sm font-medium">Progress</Label>
@@ -557,7 +1245,20 @@ export default function CandidateImportUploadQueue() {
                   </p>
                 </div>
               )}
+
+              <Separator />
               
+              {/* Webhook Payload */}
+              {selectedItem.webhook_payload && (
+                <div>
+                  <Label className="text-sm font-medium">Webhook Payload</Label>
+                  <pre className="text-xs bg-gray-50 p-3 rounded mt-1 overflow-auto max-h-40">
+                    {JSON.stringify(selectedItem.webhook_payload, null, 2)}
+                  </pre>
+                </div>
+              )}
+              
+              {/* Error Information */}
               {selectedItem.error && (
                 <div>
                   <Label className="text-sm font-medium text-red-700">Error</Label>
@@ -565,7 +1266,7 @@ export default function CandidateImportUploadQueue() {
                   {selectedItem.error_details && (
                     <details className="mt-2">
                       <summary className="text-sm text-red-600 cursor-pointer">View Error Details</summary>
-                      <pre className="text-xs text-red-700 mt-2 p-2 bg-red-50 rounded overflow-auto">
+                      <pre className="text-xs text-red-700 mt-2 p-2 bg-red-50 rounded overflow-auto max-h-40">
                         {selectedItem.error_details}
                       </pre>
                     </details>
@@ -576,6 +1277,16 @@ export default function CandidateImportUploadQueue() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* File Viewer Modal */}
+      <FileViewerModal
+        isOpen={isFileViewerOpen}
+        onOpenChange={setIsFileViewerOpen}
+        file={selectedFile}
+      />
+          </div>
+        </div>
+      </div>
     </div>
   );
 } 

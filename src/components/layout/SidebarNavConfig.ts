@@ -77,8 +77,8 @@ export const sidebarConfigData = [
       { 
         label: "Process queue", 
         icon: "UploadCloud", 
-        href: "/candidates/upload",
-        description: "Import candidates in bulk"
+        href: "/process-queue",
+        description: "Monitor and manage candidate import queue"
       },
     ],
   },

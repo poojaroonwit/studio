@@ -86,6 +86,46 @@ export function safeJsonParse<T>(jsonString: string | null | undefined, defaultV
 
 export { formatScoreWithGrade } from './scoreUtils';
 
+// Date and time utilities
+export function formatDate(date: string | Date | null): string {
+  if (!date) return '-';
+  try {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    return dateObj.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  } catch (error) {
+    return '-';
+  }
+}
+
+export function calculateDuration(startDate: string | Date | null, endDate: string | Date | null): string {
+  if (!startDate || !endDate) return '-';
+  
+  try {
+    const start = typeof startDate === 'string' ? new Date(startDate) : startDate;
+    const end = typeof endDate === 'string' ? new Date(endDate) : endDate;
+    
+    const diffMs = end.getTime() - start.getTime();
+    const diffMinutes = Math.floor(diffMs / (1000 * 60));
+    
+    if (diffMinutes < 1) return '< 1m';
+    if (diffMinutes < 60) return `${diffMinutes}m`;
+    
+    const hours = Math.floor(diffMinutes / 60);
+    const minutes = diffMinutes % 60;
+    
+    if (minutes === 0) return `${hours}h`;
+    return `${hours}h ${minutes}m`;
+  } catch (error) {
+    return '-';
+  }
+}
+
 import { safeFilter as ramdaSafeFilter, safeMap as ramdaSafeMap, safeFind as ramdaSafeFind, ensureArray as ramdaEnsureArray } from './ramda-polyfill';
 
 // React-specific safe array utilities

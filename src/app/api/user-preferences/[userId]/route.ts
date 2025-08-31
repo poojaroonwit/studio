@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 // GET /api/user-preferences/[userId] - Get user preferences for a specific user (admin only)
 export async function GET(
   request: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -23,7 +23,7 @@ export async function GET(
       return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
     }
 
-    const userId = params.userId;
+    const { userId } = await params;
 
     // Get all user preferences from database
     const preferences = await prisma.userUIDisplayPreference.findMany({
@@ -142,7 +142,7 @@ export async function GET(
 // POST /api/user-preferences/[userId] - Update user preferences for a specific user (admin only)
 export async function POST(
   request: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -156,7 +156,7 @@ export async function POST(
       return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
     }
 
-    const userId = params.userId;
+    const { userId } = await params;
     const body = await request.json();
     const { taskBoard, positions, appearance } = body;
 

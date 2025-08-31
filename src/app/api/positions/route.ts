@@ -89,8 +89,8 @@ export async function GET(request: NextRequest) {
       }
 
       if (departmentFilter) {
-        conditions.push(`p.department = $${paramIndex++}`);
-        queryParams.push(departmentFilter);
+        conditions.push(`p.department = ANY($${paramIndex++}::text[])`);
+        queryParams.push(departmentFilter.split(','));
       }
 
       if (isOpenFilter === 'true') {
@@ -173,7 +173,7 @@ export async function GET(request: NextRequest) {
       mainQuery += `
         ${whereClause}
         ORDER BY p."createdAt" DESC
-        LIMIT $${paramIndex + 1} OFFSET $${paramIndex + 2}
+        LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}
       `;
       
       // Add limit and offset to params
@@ -185,7 +185,7 @@ export async function GET(request: NextRequest) {
       
       // Execute queries with parameters
       const result = await pool.query(mainQuery, queryParams);
-      const countResult = await pool.query(countQuery, queryParams.slice(0, -2)); // Remove limit and offset for count
+      const countResult = await pool.query(countQuery, queryParams.length >= 2 ? queryParams.slice(0, -2) : []); // Remove limit and offset for count
       const total = parseInt(countResult.rows[0].count, 10);
       
       let positions = result.rows.map(row => {
@@ -284,7 +284,7 @@ export async function GET(request: NextRequest) {
         let statsResult;
         try {
           // Use the same filter parameters but exclude limit and offset
-          const statsParams = queryParams.slice(0, -2);
+          const statsParams = queryParams.length >= 2 ? queryParams.slice(0, -2) : [];
           statsResult = await getPool().query(statsQuery, statsParams);
           const stats = statsResult.rows[0];
           
@@ -305,12 +305,12 @@ export async function GET(request: NextRequest) {
       }
       
       return NextResponse.json(response, { status: 200, headers: handleCors(request) });
-         } catch (dbError) {
-       return NextResponse.json({ 
-         message: "Database error", 
-         error: (dbError as Error).message 
-       }, { status: 500, headers: handleCors(request) });
-     }
+    } catch (dbError) {
+      return NextResponse.json({ 
+        message: "Database error", 
+        error: (dbError as Error).message 
+      }, { status: 500, headers: handleCors(request) });
+    }
   } catch (error) {
     await logAudit('ERROR', `Failed to fetch positions. Error: ${(error as Error).message}`, 'API:Positions:GetAll', session?.user?.id);
     return NextResponse.json({ message: "Error fetching positions", error: (error as Error).message }, { status: 500, headers: handleCors(request) });

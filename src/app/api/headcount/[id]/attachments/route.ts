@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 // GET: Fetch attachments for a headcount
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -18,8 +18,9 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { id } = await params;
     const attachments = await prisma.attachment.findMany({
-      where: { headcountId: params.id },
+      where: { headcountId: id },
       include: {
         uploadedBy: {
           select: {
@@ -42,10 +43,11 @@ export async function GET(
 // POST: Upload attachment for a headcount
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    console.log('[HEADCOUNT ATTACHMENT] Starting upload for headcount:', params.id);
+    const { id } = await params;
+    console.log('[HEADCOUNT ATTACHMENT] Starting upload for headcount:', id);
     
     const session = await getServerSession(authOptions);
     if (!session?.user) {
@@ -57,11 +59,11 @@ export async function POST(
 
     // Verify headcount exists
     const headcount = await prisma.headcount.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!headcount) {
-      console.log('[HEADCOUNT ATTACHMENT] Headcount not found:', params.id);
+      console.log('[HEADCOUNT ATTACHMENT] Headcount not found:', id);
       return NextResponse.json({ error: 'Headcount not found' }, { status: 404 });
     }
 
@@ -88,9 +90,39 @@ export async function POST(
       );
     }
 
+    // Check MinIO configuration
+    console.log('[HEADCOUNT ATTACHMENT] MinIO config - Bucket:', MINIO_BUCKET, 'Base URL:', MINIO_PUBLIC_BASE_URL);
+    console.log('[HEADCOUNT ATTACHMENT] MinIO client config:', {
+      endPoint: process.env.MINIO_ENDPOINT || 'localhost',
+      port: process.env.MINIO_PORT || '9000',
+      useSSL: process.env.MINIO_USE_SSL === 'true',
+      accessKey: process.env.MINIO_ACCESS_KEY || 'minioadmin'
+    });
+
+    // Ensure MinIO bucket exists before upload
+    try {
+      const bucketExists = await minioClient.bucketExists(MINIO_BUCKET);
+      if (!bucketExists) {
+        console.log('[HEADCOUNT ATTACHMENT] Creating MinIO bucket:', MINIO_BUCKET);
+        await minioClient.makeBucket(MINIO_BUCKET);
+      }
+      console.log('[HEADCOUNT ATTACHMENT] MinIO bucket is ready:', MINIO_BUCKET);
+    } catch (bucketError) {
+      console.error('[HEADCOUNT ATTACHMENT] MinIO bucket check/creation failed:', bucketError);
+      console.error('[HEADCOUNT ATTACHMENT] Bucket error details:', {
+        message: bucketError instanceof Error ? bucketError.message : 'Unknown error',
+        stack: bucketError instanceof Error ? bucketError.stack : undefined,
+        bucket: MINIO_BUCKET
+      });
+      return NextResponse.json({ 
+        error: 'Storage service is not available',
+        details: bucketError instanceof Error ? bucketError.message : 'Unknown bucket error'
+      }, { status: 503 });
+    }
+
     // Generate unique filename
     const extension = file.name.split('.').pop() || 'bin';
-    const objectName = `headcount-attachments/${params.id}/${uuidv4()}.${extension}`;
+    const objectName = `headcount-attachments/${id}/${uuidv4()}.${extension}`;
 
     console.log('[HEADCOUNT ATTACHMENT] Generated object name:', objectName);
 
@@ -109,21 +141,30 @@ export async function POST(
           'x-amz-meta-originalname': file.name,
           'x-amz-meta-uploaded-by': session.user.id,
           'x-amz-meta-upload-date': new Date().toISOString(),
-          'x-amz-meta-headcount-id': params.id,
+          'x-amz-meta-headcount-id': id,
         }
       );
       
       console.log('[HEADCOUNT ATTACHMENT] File uploaded to MinIO successfully');
     } catch (minioError) {
       console.error('[HEADCOUNT ATTACHMENT] MinIO upload failed:', minioError);
-      return NextResponse.json({ error: 'Failed to upload file to storage' }, { status: 500 });
+      console.error('[HEADCOUNT ATTACHMENT] MinIO error details:', {
+        message: minioError instanceof Error ? minioError.message : 'Unknown error',
+        stack: minioError instanceof Error ? minioError.stack : undefined,
+        bucket: MINIO_BUCKET,
+        objectName
+      });
+      return NextResponse.json({ 
+        error: 'Failed to upload file to storage',
+        details: minioError instanceof Error ? minioError.message : 'Unknown MinIO error'
+      }, { status: 500 });
     }
 
     // Create attachment record in database
     try {
       const attachment = await prisma.attachment.create({
         data: {
-          headcountId: params.id,
+          headcountId: id,
           uploadedById: session.user.id,
           filePath: objectName,
           fileName: file.name,
@@ -149,6 +190,10 @@ export async function POST(
       }, { status: 201 });
     } catch (dbError) {
       console.error('[HEADCOUNT ATTACHMENT] Database creation failed:', dbError);
+      console.error('[HEADCOUNT ATTACHMENT] Database error details:', {
+        message: dbError instanceof Error ? dbError.message : 'Unknown error',
+        stack: dbError instanceof Error ? dbError.stack : undefined
+      });
       
       // Try to clean up the MinIO file if database creation fails
       try {
@@ -158,18 +203,28 @@ export async function POST(
         console.error('[HEADCOUNT ATTACHMENT] Failed to cleanup MinIO file:', cleanupError);
       }
       
-      return NextResponse.json({ error: 'Failed to save attachment record' }, { status: 500 });
+      return NextResponse.json({ 
+        error: 'Failed to save attachment record',
+        details: dbError instanceof Error ? dbError.message : 'Unknown database error'
+      }, { status: 500 });
     }
   } catch (error) {
     console.error('[HEADCOUNT ATTACHMENT] Unexpected error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('[HEADCOUNT ATTACHMENT] Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    });
+    return NextResponse.json({ 
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }
 
 // DELETE: Delete an attachment
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -177,6 +232,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { id } = await params;
     const { searchParams } = new URL(request.url);
     const attachmentId = searchParams.get('attachmentId');
 
@@ -188,7 +244,7 @@ export async function DELETE(
     const attachment = await prisma.attachment.findFirst({
       where: {
         id: attachmentId,
-        headcountId: params.id,
+        headcountId: id,
       },
     });
 

@@ -13,7 +13,7 @@ export function useLivePageDetection() {
       '/my-tasks', // My Task Board - uses useRealtimeCollaboration
       '/positions', // Positions - uses useRealtimeCollaboration
       '/candidates', // Candidates - has real-time collaboration
-      '/candidates/upload', // Process queue - uses EventSource for upload queue
+      '/process-queue', // Process queue - uses EventSource for upload queue
     ];
     
     // Check if current pathname matches any live page

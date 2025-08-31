@@ -14,7 +14,7 @@ import {
   createInternalServerError 
 } from '@/lib/apiErrorHandler';
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: candidateId } = await params;
   
   const authHeader = req.headers.get('authorization');
@@ -125,7 +125,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   }
 }
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: candidateId } = await params;
   
   const authHeader = req.headers.get('authorization');

@@ -92,11 +92,12 @@ const userTeamUpdateSchema = z.object({
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return new NextResponse('Unauthorized', { status: 401 });
 
+  const { id } = await params;
   const client = await getPool().connect();
   try {
     const result = await client.query(`
@@ -113,7 +114,7 @@ export async function GET(
       LEFT JOIN "User_UserTeam" uut ON ut.id = uut."teamId"
       WHERE ut.id = $1
       GROUP BY ut.id, ut.name, ut.description, ut.color, ut."is_active", ut."createdAt", ut."updatedAt"
-    `, [params.id]);
+    `, [id]);
 
     if (result.rows.length === 0) {
       return new NextResponse('Team not found', { status: 404 });
@@ -130,7 +131,7 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
   const actingUserId = session?.user?.id;
@@ -141,6 +142,7 @@ export async function PUT(
     return new NextResponse('Forbidden: Insufficient permissions', { status: 403 });
   }
 
+  const { id } = await params;
   let body;
   try {
     body = await request.json();
@@ -158,21 +160,21 @@ export async function PUT(
   
   try {
     // Check if team exists
-    const existingTeam = await client.query('SELECT name FROM "UserTeam" WHERE id = $1', [params.id]);
+    const existingTeam = await client.query('SELECT name FROM "UserTeam" WHERE id = $1', [id]);
     if (existingTeam.rows.length === 0) {
       return new NextResponse('Team not found', { status: 404 });
     }
 
     const result = await client.query(
       'UPDATE "UserTeam" SET name = $1, description = $2, color = $3, "is_active" = $4, "updatedAt" = NOW() WHERE id = $5 RETURNING *',
-      [name, description, color, isActive, params.id]
+      [name, description, color, isActive, id]
     );
 
-    await logAudit('AUDIT', `User team '${name}' updated.`, 'API:UserTeams:Update', actingUserId, { teamId: params.id });
+    await logAudit('AUDIT', `User team '${name}' updated.`, 'API:UserTeams:Update', actingUserId, { teamId: id });
     return NextResponse.json(result.rows[0]);
   } catch (error: any) {
     console.error("Failed to update user team:", error);
-    await logAudit('ERROR', `Failed to update team '${name}'. Error: ${error.message}`, 'API:UserTeams:Update', actingUserId, { teamId: params.id, input: body });
+    await logAudit('ERROR', `Failed to update team '${name}'. Error: ${error.message}`, 'API:UserTeams:Update', actingUserId, { teamId: id, input: body });
     return NextResponse.json({ message: "Error updating user team", error: error.message }, { status: 500 });
   } finally {
     client.release();
@@ -181,7 +183,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
   const actingUserId = session?.user?.id;
@@ -192,10 +194,11 @@ export async function DELETE(
     return new NextResponse('Forbidden: Insufficient permissions', { status: 403 });
   }
 
+  const { id } = await params;
   const client = await getPool().connect();
   try {
     // Check if team exists and get its name
-    const existingTeam = await client.query('SELECT name FROM "UserTeam" WHERE id = $1', [params.id]);
+    const existingTeam = await client.query('SELECT name FROM "UserTeam" WHERE id = $1', [id]);
     if (existingTeam.rows.length === 0) {
       return new NextResponse('Team not found', { status: 404 });
     }
@@ -203,13 +206,13 @@ export async function DELETE(
     const teamName = existingTeam.rows[0].name;
 
     // Delete team (cascade will handle User_UserTeam relationships)
-    await client.query('DELETE FROM "UserTeam" WHERE id = $1', [params.id]);
+    await client.query('DELETE FROM "UserTeam" WHERE id = $1', [id]);
 
-    await logAudit('AUDIT', `User team '${teamName}' deleted.`, 'API:UserTeams:Delete', actingUserId, { teamId: params.id });
+    await logAudit('AUDIT', `User team '${teamName}' deleted.`, 'API:UserTeams:Delete', actingUserId, { teamId: id });
     return new NextResponse('Team deleted successfully', { status: 200 });
   } catch (error: any) {
     console.error("Failed to delete user team:", error);
-    await logAudit('ERROR', `Failed to delete team. Error: ${error.message}`, 'API:UserTeams:Delete', actingUserId, { teamId: params.id });
+    await logAudit('ERROR', `Failed to delete team. Error: ${error.message}`, 'API:UserTeams:Delete', actingUserId, { teamId: id });
     return NextResponse.json({ message: "Error deleting user team", error: error.message }, { status: 500 });
   } finally {
     client.release();

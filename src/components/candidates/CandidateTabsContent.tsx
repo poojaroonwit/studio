@@ -136,6 +136,7 @@ export const CandidateTabsContent: React.FC<CandidateTabsContentProps> = ({
           errors={errors}
           watch={watch}
           setValue={setValue}
+          control={control}
         />
         <ContactTab
           candidate={candidate}

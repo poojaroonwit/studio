@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'react-hot-toast';
 import { differenceInMonths } from 'date-fns';
 import * as z from 'zod';
@@ -10,7 +9,6 @@ import { useSafeEffect, useInfiniteLoopPrevention } from '@/hooks/use-safe-effec
 
 // Form schemas - validation removed
 const editCandidateDetailSchema = z.object({
-  name: z.any().optional(),
   email: z.any().optional(),
   phone: z.any().optional(),
   positionId: z.any().optional(),
@@ -18,7 +16,25 @@ const editCandidateDetailSchema = z.object({
   fitScore: z.any().optional(),
   status: z.any().optional(),
   assignmentJustification: z.any().optional(),
-  parsedData: z.any().optional(),
+  parsedData: z.object({
+    personal_info: z.object({
+      title_honorific: z.string().optional(),
+      firstname: z.string().optional(),
+      lastname: z.string().optional(),
+      nickname: z.string().optional(),
+      location: z.string().optional(),
+      introduction_aboutme: z.string().optional(),
+    }).optional(),
+    contact_info: z.object({
+      email: z.string().optional(),
+      phone: z.string().optional(),
+    }).optional(),
+    education: z.array(z.any()).optional(),
+    experience: z.array(z.any()).optional(),
+    skills: z.array(z.any()).optional(),
+    job_suitable: z.array(z.any()).optional(),
+    job_matches: z.array(z.any()).optional(),
+  }).optional(),
 });
 
 type EditCandidateFormValues = z.infer<typeof editCandidateDetailSchema>;
@@ -43,6 +59,7 @@ export const useCandidateDetail = (candidateId: string) => {
   const [copiedJobApplied, setCopiedJobApplied] = useState(false);
   const [copiedJobMatchIndex, setCopiedJobMatchIndex] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [formPopulated, setFormPopulated] = useState(false);
 
   // Add refs for caching and cleanup
   const cacheRef = useRef<Map<string, { data: any; timestamp: number }>>(new Map());
@@ -64,7 +81,6 @@ export const useCandidateDetail = (candidateId: string) => {
 
   // Safe default values to prevent temporal dead zone issues
   const getDefaultFormValues = (): EditCandidateFormValues => ({
-    name: '',
     email: '',
     phone: '',
     positionId: null,
@@ -73,8 +89,18 @@ export const useCandidateDetail = (candidateId: string) => {
     status: '',
     assignmentJustification: [],
     parsedData: {
-      personal_info: {},
-      contact_info: {},
+      personal_info: {
+        title_honorific: '',
+        firstname: '',
+        lastname: '',
+        nickname: '',
+        location: '',
+        introduction_aboutme: '',
+      },
+      contact_info: {
+        email: '',
+        phone: '',
+      },
       education: [],
       experience: [],
       skills: [],
@@ -94,13 +120,23 @@ export const useCandidateDetail = (candidateId: string) => {
     setValue,
   } = useForm<EditCandidateFormValues>({
     defaultValues: getDefaultFormValues(),
-    mode: 'onSubmit', // Changed from 'onChange' to reduce validation
+    mode: 'onChange', // Use onChange mode for better form reactivity
+    shouldUnregister: false, // Keep fields registered even when not rendered
   });
+
+  // Watch form values for debugging
+  const watchedValues = watch();
+  useEffect(() => {
+    if (isEditing) {
+      console.log('🎯 Current Form Values:', watchedValues);
+    }
+  }, [watchedValues, isEditing]);
 
   const {
     fields: educationFields,
     append: appendEducation,
     remove: removeEducation,
+    replace: replaceEducation,
   } = useFieldArray({
     control,
     name: 'parsedData.education',
@@ -111,6 +147,7 @@ export const useCandidateDetail = (candidateId: string) => {
     fields: experienceFields,
     append: appendExperience,
     remove: removeExperience,
+    replace: replaceExperience,
   } = useFieldArray({
     control,
     name: 'parsedData.experience',
@@ -121,6 +158,7 @@ export const useCandidateDetail = (candidateId: string) => {
     fields: skillsFields,
     append: appendSkill,
     remove: removeSkill,
+    replace: replaceSkills,
   } = useFieldArray({
     control,
     name: 'parsedData.skills',
@@ -131,6 +169,7 @@ export const useCandidateDetail = (candidateId: string) => {
     fields: jobSuitableFields,
     append: appendJobSuitable,
     remove: removeJobSuitable,
+    replace: replaceJobSuitable,
   } = useFieldArray({
     control,
     name: 'parsedData.job_suitable',
@@ -141,6 +180,7 @@ export const useCandidateDetail = (candidateId: string) => {
     fields: jobMatchesFields,
     append: appendJobMatch,
     remove: removeJobMatch,
+    replace: replaceJobMatches,
   } = useFieldArray({
     control,
     name: 'parsedData.job_matches',
@@ -377,11 +417,15 @@ export const useCandidateDetail = (candidateId: string) => {
     };
   }, []); // FIXED: Empty dependency array for cleanup
 
-  // Populate form with candidate data when entering edit mode
-  useSafeEffect(() => {
-    if (isEditing && candidate) {
-      console.log('Populating form with candidate data:', candidate);
-      
+    // Populate form with candidate data when entering edit mode
+  useEffect(() => {
+    if (isEditing && candidate && !formPopulated) {
+      console.log('🎯 Form Population Debug:', {
+        isEditing,
+        candidateId: candidate?.id,
+        candidateName: candidate?.name,
+        parsedDataType: typeof candidate?.parsedData,
+      });
       // Normalize fitScore to ensure it's within 0-1 range
       let normalizedFitScore = candidate.fitScore;
       if (typeof candidate.fitScore === 'number') {
@@ -394,7 +438,6 @@ export const useCandidateDetail = (candidateId: string) => {
       }
       
       const formValues: EditCandidateFormValues = {
-        name: candidate.name || '',
         email: candidate.email || '',
         phone: candidate.phone || '',
         positionId: candidate.positionId || null,
@@ -408,31 +451,103 @@ export const useCandidateDetail = (candidateId: string) => {
             ? candidate.assignmentJustification.split(/[\n\r]+/).filter((item: string) => item.trim() !== '')
             : [])
           : [],
-        parsedData: {
-          personal_info: (candidate.parsedData as any)?.personal_info || {},
-          contact_info: (candidate.parsedData as any)?.contact_info || {},
-          education: (candidate.parsedData as any)?.education || [],
-          experience: (candidate.parsedData as any)?.experience || [],
-          skills: (candidate.parsedData as any)?.skills || [],
-          job_suitable: (candidate.parsedData as any)?.job_suitable || [],
-          job_matches: (candidate.parsedData as any)?.job_matches || [],
-        },
+                 parsedData: (() => {
+           // Handle parsedData - it might be a string that needs parsing
+           let parsedDataObj: any = {};
+           
+           if (candidate.parsedData) {
+             if (typeof candidate.parsedData === 'string') {
+               try {
+                 parsedDataObj = JSON.parse(candidate.parsedData);
+               } catch (e) {
+                 console.warn('Failed to parse parsedData string:', e);
+                 parsedDataObj = {};
+               }
+             } else {
+               parsedDataObj = candidate.parsedData;
+             }
+           }
+           
+           return {
+             personal_info: parsedDataObj?.personal_info || {},
+             contact_info: parsedDataObj?.contact_info || {},
+             education: parsedDataObj?.education || [],
+             experience: parsedDataObj?.experience || [],
+             skills: parsedDataObj?.skills || [],
+             job_suitable: parsedDataObj?.job_suitable || [],
+             job_matches: parsedDataObj?.job_matches || [],
+           };
+         })(),
       };
       
-      console.log('Form values to reset:', formValues);
+      // Reset form with all values at once
+      reset(formValues, { 
+        keepDefaultValues: false,
+        keepDirty: false,
+        keepErrors: false,
+        keepIsSubmitted: false,
+        keepTouched: false
+      });
       
-      // Use setTimeout to ensure the form is ready before resetting
+      // Add a small delay to ensure form reset is complete before setting individual fields
       setTimeout(() => {
-        reset(formValues);
-        console.log('Form reset completed');
-      }, 0);
+        // Also try setting individual fields to ensure they're populated
+        if (formValues.parsedData?.personal_info) {
+          setValue('parsedData.personal_info.title_honorific', formValues.parsedData.personal_info.title_honorific || '');
+          setValue('parsedData.personal_info.firstname', formValues.parsedData.personal_info.firstname || '');
+          setValue('parsedData.personal_info.lastname', formValues.parsedData.personal_info.lastname || '');
+          setValue('parsedData.personal_info.nickname', formValues.parsedData.personal_info.nickname || '');
+          setValue('parsedData.personal_info.location', formValues.parsedData.personal_info.location || '');
+          setValue('parsedData.personal_info.introduction_aboutme', formValues.parsedData.personal_info.introduction_aboutme || '');
+        }
+        
+                 // Set main candidate fields explicitly
+         setValue('email', formValues.email || '');
+         setValue('phone', formValues.phone || '');
+         
+         console.log('🎯 Form Fields Set:', {
+           email: formValues.email,
+           phone: formValues.phone,
+           personalInfo: formValues.parsedData?.personal_info
+         });
+      }, 100);
+      
+      // Populate field arrays
+      if (formValues.parsedData?.education && formValues.parsedData.education.length > 0) {
+        replaceEducation(formValues.parsedData.education);
+      }
+      if (formValues.parsedData?.experience && formValues.parsedData.experience.length > 0) {
+        replaceExperience(formValues.parsedData.experience);
+      }
+      if (formValues.parsedData?.skills && formValues.parsedData.skills.length > 0) {
+        replaceSkills(formValues.parsedData.skills);
+      }
+      if (formValues.parsedData?.job_suitable && formValues.parsedData.job_suitable.length > 0) {
+        replaceJobSuitable(formValues.parsedData.job_suitable);
+      }
+      if (formValues.parsedData?.job_matches && formValues.parsedData.job_matches.length > 0) {
+        replaceJobMatches(formValues.parsedData.job_matches);
+      }
+      
+      // Set form as populated
+      setFormPopulated(true);
     }
-  }, [isEditing, candidate, reset], 'populateForm', 20);
+  }, [isEditing, candidate, formPopulated, reset, setValue, replaceEducation, replaceExperience, replaceSkills, replaceJobSuitable, replaceJobMatches]);
+
+  // Reset form populated state when exiting edit mode
+  useEffect(() => {
+    if (!isEditing) {
+      setFormPopulated(false);
+    }
+  }, [isEditing]);
+
+
 
   // Handle entering edit mode
   const handleEnterEditMode = useCallback(() => {
     if (candidate) {
       setIsEditing(true);
+      setFormPopulated(false);
     }
   }, [candidate]);
 
@@ -663,6 +778,7 @@ export const useCandidateDetail = (candidateId: string) => {
     copiedJobMatchIndex,
     isSaving,
     realtimeConnected,
+    formPopulated,
     
     // Form
     control,

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { setThemeAndColors } from '@/lib/themeUtils';
 
@@ -9,6 +9,80 @@ export function useTheme() {
   const [mounted, setMounted] = useState(false);
   const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>('light');
   const [themePreference, setThemePreference] = useState<ThemePreference>('system');
+  const lastThemeChange = useRef<number>(0);
+
+  // Memoize the apply theme function to prevent recreation
+  const applyTheme = useCallback((theme: 'light' | 'dark') => {
+    // Prevent excessive theme changes
+    const now = Date.now();
+    if (now - lastThemeChange.current < 100) { // Minimum 100ms between theme changes
+      return;
+    }
+    lastThemeChange.current = now;
+
+    // Ensure we're in a browser environment
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    const root = document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+    
+    // Re-apply sidebar colors for the new theme
+    requestAnimationFrame(() => {
+      import('@/lib/themeUtils').then(({ reapplyCurrentSidebarColors }) => {
+        reapplyCurrentSidebarColors();
+      });
+    });
+  }, []);
+
+  // Memoize the set theme function
+  const setTheme = useCallback(async (preference: ThemePreference) => {
+    setThemePreference(preference);
+    localStorage.setItem('theme', preference);
+    
+    let newTheme: 'light' | 'dark' = 'light';
+    if (preference === 'dark') {
+      newTheme = 'dark';
+    } else if (preference === 'light') {
+      newTheme = 'light';
+    } else {
+      newTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    
+    setCurrentTheme(newTheme);
+    applyTheme(newTheme);
+
+    // Save to user preferences if authenticated
+    if (session?.user?.id) {
+      try {
+        await fetch('/api/user-preferences?modelType=appearance', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            updates: {
+              themePreference: preference,
+            },
+          }),
+        });
+      } catch (error) {
+        console.warn('Failed to save theme preference:', error);
+      }
+    }
+  }, [session?.user?.id, applyTheme]);
+
+  // Memoize the toggle theme function
+  const toggleTheme = useCallback(() => {
+    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+    const newPreference = newTheme as ThemePreference;
+    setTheme(newPreference);
+  }, [currentTheme, setTheme]);
 
   // Initialize theme on mount
   useEffect(() => {
@@ -37,7 +111,7 @@ export function useTheme() {
     
     setCurrentTheme(initialTheme);
     applyTheme(initialTheme);
-  }, []);
+  }, [applyTheme]);
 
   // Listen for system theme changes when using system preference
   useEffect(() => {
@@ -57,7 +131,7 @@ export function useTheme() {
 
     mediaQuery.addEventListener('change', handleChange);
     return () => mediaQuery.removeEventListener('change', handleChange);
-  }, [themePreference]);
+  }, [themePreference, applyTheme]);
 
   // Load theme preference from user preferences when authenticated
   useEffect(() => {
@@ -98,70 +172,14 @@ export function useTheme() {
     };
 
     loadUserThemePreference();
-  }, [session?.user?.id, themePreference]);
+  }, [session?.user?.id, themePreference, applyTheme]);
 
-  const applyTheme = useCallback((theme: 'light' | 'dark') => {
-    // Ensure we're in a browser environment
-    if (typeof document === 'undefined') {
-      return;
-    }
-
-    const root = document.documentElement;
-    if (theme === 'dark') {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
-    }
-    
-    // Re-apply sidebar colors for the new theme
-    requestAnimationFrame(() => {
-      import('@/lib/themeUtils').then(({ reapplyCurrentSidebarColors }) => {
-        reapplyCurrentSidebarColors();
-      });
-    });
+  // Add a cleanup effect to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      // Cleanup any pending operations
+    };
   }, []);
-
-  const setTheme = useCallback(async (preference: ThemePreference) => {
-    setThemePreference(preference);
-    localStorage.setItem('theme', preference);
-    
-    let newTheme: 'light' | 'dark' = 'light';
-    if (preference === 'dark') {
-      newTheme = 'dark';
-    } else if (preference === 'light') {
-      newTheme = 'light';
-    } else {
-      newTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    }
-    
-    setCurrentTheme(newTheme);
-    applyTheme(newTheme);
-
-    // Save to user preferences if authenticated
-    if (session?.user?.id) {
-      try {
-        await fetch('/api/user-preferences?modelType=appearance', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            updates: {
-              themePreference: preference,
-            },
-          }),
-        });
-      } catch (error) {
-        console.warn('Failed to save theme preference:', error);
-      }
-    }
-  }, [session?.user?.id, applyTheme]);
-
-  const toggleTheme = useCallback(() => {
-    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-    const newPreference = newTheme as ThemePreference;
-    setTheme(newPreference);
-  }, [currentTheme, setTheme]);
 
   return {
     mounted,

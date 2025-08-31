@@ -103,6 +103,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
     copiedJobMatchIndex,
     isSaving,
     realtimeConnected,
+    formPopulated,
     control,
     handleSubmit,
     reset,
@@ -298,10 +299,24 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
     setIsSaving(true);
 
     try {
+      // Compose full name from title + first name + last name
+      const personalInfo = data.parsedData?.personal_info || {};
+      const title = personalInfo.title_honorific || '';
+      const firstName = personalInfo.firstname || '';
+      const lastName = personalInfo.lastname || '';
+      
+      const fullName = [title, firstName, lastName].filter(Boolean).join(' ').trim();
+      
+      // Add the composed name to the data being sent
+      const dataWithName = {
+        ...data,
+        name: fullName || candidate.name // Fallback to existing name if composition is empty
+      };
+
       const res = await fetch(`/api/candidates/${candidate.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(dataWithName),
         credentials: 'include',
       });
 
@@ -530,6 +545,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
              
             <div className="p-8 flex-1 overflow-y-auto bg-background h-full pointer-events-auto">
               <CandidateTabsContent
+                key={`${isEditing}-${candidate?.id}`}
                 activeTab={activeTab}
                 candidate={candidate}
                 allDbPositions={allDbPositions}

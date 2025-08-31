@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Controller } from 'react-hook-form';
 import type { Candidate } from '@/lib/types';
 import { formatCandidateNameWithLang } from '@/lib/candidateUtils';
 
@@ -13,65 +14,204 @@ interface CandidateInfoTabProps {
   errors?: any;
   watch?: any;
   setValue?: any;
+  control?: any;
 }
 
-export const CandidateInfoTab: React.FC<CandidateInfoTabProps> = ({ 
+export const CandidateInfoTab: React.FC<CandidateInfoTabProps> = ({
   candidate, 
   isEditing, 
   register, 
   errors, 
   watch, 
-  setValue
+  setValue,
+  control
 }) => {
   const nameInfo = formatCandidateNameWithLang(candidate);
-  const personalInfo = (candidate.parsedData && 'personal_info' in (candidate.parsedData as any))
-    ? (candidate.parsedData as any).personal_info
-    : undefined;
-
-  // Debug logging
-  React.useEffect(() => {
-    if (isEditing) {
-      console.log('CandidateInfoTab - isEditing:', isEditing);
-      console.log('CandidateInfoTab - candidate:', candidate);
-      console.log('CandidateInfoTab - personalInfo:', personalInfo);
-      console.log('CandidateInfoTab - register function:', !!register);
-      
-      // Watch form values to see what's in the form
-      if (watch) {
-        const watchedValues = watch();
-        console.log('CandidateInfoTab - watched form values:', watchedValues);
+  const personalInfo = (() => {
+    // Handle parsedData - it might be a string that needs parsing
+    let parsedDataObj: any = {};
+    
+    if (candidate.parsedData) {
+      if (typeof candidate.parsedData === 'string') {
+        try {
+          parsedDataObj = JSON.parse(candidate.parsedData);
+        } catch (e) {
+          console.warn('Failed to parse parsedData string:', e);
+          parsedDataObj = {};
+        }
+      } else {
+        parsedDataObj = candidate.parsedData;
       }
     }
-  }, [isEditing, candidate, personalInfo, register, watch]);
+    
+    return parsedDataObj?.personal_info || undefined;
+  })();
+
+  // Debug the personalInfo extraction
+  console.log('🎯 PersonalInfo Extraction Debug:', {
+    hasParsedData: !!candidate.parsedData,
+    parsedDataType: typeof candidate.parsedData,
+    personalInfo,
+    candidateParsedData: candidate.parsedData
+  });
+
+  // Debug logging (only when editing to reduce noise)
+  if (isEditing) {
+    console.log('🎯 CandidateInfoTab Debug:', {
+      isEditing,
+      candidateId: candidate?.id,
+      candidateName: candidate?.name,
+      parsedDataType: typeof candidate?.parsedData,
+      personalInfo,
+      hasControl: !!control,
+      hasWatch: !!watch
+    });
+  }
+
+  // Function to compose full name from title, first name, and last name
+  const composeFullName = (title: string, firstName: string, lastName: string) => {
+    const parts = [title, firstName, lastName].filter(Boolean);
+    return parts.join(' ').trim();
+  };
 
   if (isEditing) {
     return (
       <div className="space-y-4">
+        {/* Basic Information Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Basic Information</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="email">Email *</Label>
+                {control ? (
+                  <Controller
+                    name="email"
+                    control={control}
+                    render={({ field }) => (
+                      <Input 
+                        {...field}
+                        type="email"
+                        placeholder="Enter email address"
+                        className="mt-1" 
+                      />
+                    )}
+                  />
+                ) : (
+                  <Input 
+                    {...register('email')} 
+                    type="email"
+                    placeholder="Enter email address"
+                    className="mt-1" 
+                  />
+                )}
+                {errors?.email && (
+                  <p className="text-sm text-destructive mt-1">
+                    {errors.email.message}
+                  </p>
+                )}
+              </div>
+              <div>
+                <Label htmlFor="phone">Phone</Label>
+                {control ? (
+                  <Controller
+                    name="phone"
+                    control={control}
+                    render={({ field }) => (
+                      <Input 
+                        {...field}
+                        type="tel"
+                        placeholder="Enter phone number"
+                        className="mt-1" 
+                      />
+                    )}
+                  />
+                ) : (
+                  <Input 
+                    {...register('phone')} 
+                    type="tel"
+                    placeholder="Enter phone number"
+                    className="mt-1" 
+                  />
+                )}
+                {errors?.phone && (
+                  <p className="text-sm text-destructive mt-1">
+                    {errors.phone.message}
+                  </p>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Personal Information Card */}
         <Card>
           <CardHeader>
             <CardTitle>Personal Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Display-only Full Name */}
+            <div>
+              <Label>Full Name (Auto-generated)</Label>
+              <div className="mt-1 p-3 bg-muted rounded-md border">
+                <span className="text-sm font-medium">
+                  {composeFullName(
+                    watch?.('parsedData.personal_info.title_honorific') || '',
+                    watch?.('parsedData.personal_info.firstname') || '',
+                    watch?.('parsedData.personal_info.lastname') || ''
+                  ) || 'Enter title, first name, and last name to see full name'}
+                </span>
+              </div>
+            </div>
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="parsedData.personal_info.title_honorific">Title</Label>
-                <Input 
-                  id="parsedData.personal_info.title_honorific" 
-                  {...register('parsedData.personal_info.title_honorific')} 
-                  placeholder="e.g., Mr., Ms., Dr."
-                  className="mt-1" 
-                  defaultValue={personalInfo?.title_honorific || ''}
-                />
+                {control ? (
+                  <Controller
+                    name="parsedData.personal_info.title_honorific"
+                    control={control}
+                    render={({ field }) => (
+                      <Input 
+                        {...field}
+                        placeholder="e.g., Mr., Ms., Dr."
+                        className="mt-1" 
+                      />
+                    )}
+                  />
+                ) : (
+                  <Input 
+                    {...register('parsedData.personal_info.title_honorific')} 
+                    placeholder="e.g., Mr., Ms., Dr."
+                    className="mt-1" 
+                  />
+                )}
+
               </div>
               <div>
                 <Label htmlFor="parsedData.personal_info.firstname">First Name *</Label>
-                <Input 
-                  id="parsedData.personal_info.firstname" 
-                  {...register('parsedData.personal_info.firstname')} 
-                  placeholder="Enter first name"
-                  className="mt-1" 
-                  defaultValue={personalInfo?.firstname || ''}
-                />
+                {control ? (
+                  <Controller
+                    name="parsedData.personal_info.firstname"
+                    control={control}
+                    render={({ field }) => (
+                      <Input 
+                        {...field}
+                        placeholder="Enter first name"
+                        className="mt-1" 
+                      />
+                    )}
+                  />
+                ) : (
+                  <Input 
+                    {...register('parsedData.personal_info.firstname')} 
+                    placeholder="Enter first name"
+                    className="mt-1" 
+                  />
+                )}
+
                 {errors?.parsedData?.personal_info?.firstname && (
                   <p className="text-sm text-destructive mt-1">
                     {errors.parsedData.personal_info.firstname.message}
@@ -80,13 +220,26 @@ export const CandidateInfoTab: React.FC<CandidateInfoTabProps> = ({
               </div>
               <div>
                 <Label htmlFor="parsedData.personal_info.lastname">Last Name *</Label>
-                <Input 
-                  id="parsedData.personal_info.lastname" 
-                  {...register('parsedData.personal_info.lastname')} 
-                  placeholder="Enter last name"
-                  className="mt-1" 
-                  defaultValue={personalInfo?.lastname || ''}
-                />
+                {control ? (
+                  <Controller
+                    name="parsedData.personal_info.lastname"
+                    control={control}
+                    render={({ field }) => (
+                      <Input 
+                        {...field}
+                        placeholder="Enter last name"
+                        className="mt-1" 
+                      />
+                    )}
+                  />
+                ) : (
+                  <Input 
+                    {...register('parsedData.personal_info.lastname')} 
+                    placeholder="Enter last name"
+                    className="mt-1" 
+                  />
+                )}
+
                 {errors?.parsedData?.personal_info?.lastname && (
                   <p className="text-sm text-destructive mt-1">
                     {errors.parsedData.personal_info.lastname.message}
@@ -95,34 +248,71 @@ export const CandidateInfoTab: React.FC<CandidateInfoTabProps> = ({
               </div>
               <div>
                 <Label htmlFor="parsedData.personal_info.nickname">Nickname</Label>
-                <Input 
-                  id="parsedData.personal_info.nickname" 
-                  {...register('parsedData.personal_info.nickname')} 
-                  placeholder="Enter nickname"
-                  className="mt-1" 
-                  defaultValue={personalInfo?.nickname || ''}
-                />
+                {control ? (
+                  <Controller
+                    name="parsedData.personal_info.nickname"
+                    control={control}
+                    render={({ field }) => (
+                      <Input 
+                        {...field}
+                        placeholder="Enter nickname"
+                        className="mt-1" 
+                      />
+                    )}
+                  />
+                ) : (
+                  <Input 
+                    {...register('parsedData.personal_info.nickname')} 
+                    placeholder="Enter nickname"
+                    className="mt-1" 
+                  />
+                )}
+
               </div>
             </div>
             <div>
               <Label htmlFor="parsedData.personal_info.location">Location</Label>
-              <Input 
-                id="parsedData.personal_info.location" 
-                {...register('parsedData.personal_info.location')} 
-                placeholder="e.g., Bangkok, Thailand"
-                className="mt-1" 
-                defaultValue={personalInfo?.location || ''}
-              />
+              {control ? (
+                <Controller
+                  name="parsedData.personal_info.location"
+                  control={control}
+                  render={({ field }) => (
+                    <Input 
+                      {...field}
+                      placeholder="e.g., Bangkok, Thailand"
+                      className="mt-1" 
+                    />
+                  )}
+                />
+              ) : (
+                <Input 
+                  {...register('parsedData.personal_info.location')} 
+                  placeholder="e.g., Bangkok, Thailand"
+                  className="mt-1" 
+                />
+              )}
             </div>
             <div>
               <Label htmlFor="parsedData.personal_info.introduction_aboutme">About Me</Label>
-              <Textarea 
-                id="parsedData.personal_info.introduction_aboutme" 
-                {...register('parsedData.personal_info.introduction_aboutme')} 
-                placeholder="Tell us about yourself..."
-                className="mt-1 min-h-[100px]" 
-                defaultValue={personalInfo?.introduction_aboutme || ''}
-              />
+              {control ? (
+                <Controller
+                  name="parsedData.personal_info.introduction_aboutme"
+                  control={control}
+                  render={({ field }) => (
+                    <Textarea 
+                      {...field}
+                      placeholder="Tell us about yourself..."
+                      className="mt-1 min-h-[100px]" 
+                    />
+                  )}
+                />
+              ) : (
+                <Textarea 
+                  {...register('parsedData.personal_info.introduction_aboutme')} 
+                  placeholder="Tell us about yourself..."
+                  className="mt-1 min-h-[100px]" 
+                />
+              )}
             </div>
           </CardContent>
         </Card>
@@ -140,12 +330,12 @@ export const CandidateInfoTab: React.FC<CandidateInfoTabProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {personalInfo?.title_honorific && (
               <div>
-                <Label className="text-sm font-medium text-muted-foreground">Title</Label>
+                <span className="text-sm font-medium text-muted-foreground">Title</span>
                 <p className="text-sm">{personalInfo.title_honorific}</p>
               </div>
             )}
             <div>
-              <Label className="text-sm font-medium text-muted-foreground">Full Name</Label>
+              <span className="text-sm font-medium text-muted-foreground">Name</span>
               <p 
                 className={`text-sm ${nameInfo.fontClass}`}
                 lang={nameInfo.lang}
@@ -155,21 +345,21 @@ export const CandidateInfoTab: React.FC<CandidateInfoTabProps> = ({
             </div>
             {personalInfo?.nickname && (
               <div>
-                <Label className="text-sm font-medium text-muted-foreground">Nickname</Label>
+                <span className="text-sm font-medium text-muted-foreground">Nickname</span>
                 <p className="text-sm">{personalInfo.nickname}</p>
               </div>
             )}
             {personalInfo?.location && (
               <div>
-                <Label className="text-sm font-medium text-muted-foreground">Location</Label>
+                <span className="text-sm font-medium text-muted-foreground">Location</span>
                 <p className="text-sm">{personalInfo.location}</p>
               </div>
             )}
           </div>
           {personalInfo?.introduction_aboutme && (
             <div>
-              <Label className="text-sm font-medium text-muted-foreground">About Me</Label>
-              <p className="text-sm whitespace-pre-wrap">{personalInfo.introduction_aboutme}</p>
+              <span className="text-sm font-medium text-muted-foreground">About Me</span>
+              <p className="text-sm mt-1">{personalInfo.introduction_aboutme}</p>
             </div>
           )}
         </CardContent>

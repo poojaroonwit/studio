@@ -26,16 +26,23 @@ const NAV_ITEMS = {
   myTasks: { href: "/my-tasks", label: "My Task Board", icon: ListTodo },
   candidates: { href: "/candidates", label: "Candidates", icon: Users },
   positions: { href: "/positions", label: "Positions", icon: Briefcase },
-  bulkUpload: { href: "/candidates/upload", label: "Process queue", icon: UploadCloud },
+  bulkUpload: { href: "/process-queue", label: "Process queue", icon: UploadCloud },
   settings: { href: "/settings", label: "Settings", icon: Settings }
 };
 
-// Simple pending count hook with error handling
+// Simple pending count hook with error handling and caching
 const usePendingCount = () => {
   const [pendingCount, setPendingCount] = React.useState<number | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
+  const lastFetchTime = React.useRef<number>(0);
 
   const fetchPending = React.useCallback(async () => {
+    // Prevent excessive API calls - only fetch once per 30 seconds
+    const now = Date.now();
+    if (now - lastFetchTime.current < 30000) {
+      return;
+    }
+
     try {
       setIsLoading(true);
       const res = await fetch("/api/upload-queue/count", {
@@ -47,6 +54,7 @@ const usePendingCount = () => {
       if (res.ok) {
         const data = await res.json();
         setPendingCount(data.pending || 0);
+        lastFetchTime.current = now;
       } else {
         console.warn("Failed to fetch pending count:", res.status);
       }
@@ -67,7 +75,7 @@ const usePendingCount = () => {
 };
 
 // Simple tooltip component
-const MenuItemWithTooltip = ({ children, label }: { children: React.ReactNode; label: string }) => {
+const MenuItemWithTooltip = React.memo(({ children, label }: { children: React.ReactNode; label: string }) => {
   const { open } = useSidebar();
   
   if (open) {
@@ -86,10 +94,12 @@ const MenuItemWithTooltip = ({ children, label }: { children: React.ReactNode; l
       </Tooltip>
     </TooltipProvider>
   );
-};
+});
+
+MenuItemWithTooltip.displayName = 'MenuItemWithTooltip';
 
 // Fallback navigation component
-const FallbackNav = () => {
+const FallbackNav = React.memo(() => {
   const { open } = useSidebar();
   
   if (!open) {
@@ -177,7 +187,9 @@ const FallbackNav = () => {
       </div>
     </div>
   );
-};
+});
+
+FallbackNav.displayName = 'FallbackNav';
 
 // Safe navigation items generator
 const getSafeNavigationItems = (canAccessMyTasks: boolean) => {
@@ -222,7 +234,7 @@ const getSafeSessionInfo = (session: any) => {
   }
 };
 
-const SafeSidebarNavComponent = () => {
+const SafeSidebarNavComponent = React.memo(() => {
   const [hasError, setHasError] = React.useState(false);
   
   if (hasError) {
@@ -253,14 +265,14 @@ const SafeSidebarNavComponent = () => {
       );
     }
 
-    const handleNavigation = (href: string) => {
+    const handleNavigation = React.useCallback((href: string) => {
       try {
         router.push(href);
       } catch (error) {
         console.error("Navigation error:", error);
         window.location.href = href;
       }
-    };
+    }, [router]);
 
     // Collapsed mode
     if (!open) {
@@ -399,7 +411,9 @@ const SafeSidebarNavComponent = () => {
     setHasError(true);
     return <FallbackNav />;
   }
-};
+});
+
+SafeSidebarNavComponent.displayName = 'SafeSidebarNavComponent';
 
 // Error boundary for SafeSidebarNav
 class SafeSidebarNavErrorBoundary extends React.Component<

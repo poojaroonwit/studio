@@ -105,7 +105,7 @@ const updateCandidateSourceSchema = z.object({
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
@@ -113,6 +113,7 @@ export async function GET(
   }
 
   try {
+    const { id } = await params;
     const result = await getPool().query(`
       SELECT 
         id, name, description, email, logo, allow_sub_source as "allowSubSource", 
@@ -120,7 +121,7 @@ export async function GET(
         "createdAt", "updatedAt"
       FROM "CandidateSource"
       WHERE id = $1
-    `, [params.id]);
+    `, [id]);
 
     if (result.rows.length === 0) {
       return NextResponse.json({ message: "Candidate source not found" }, { status: 404 });
@@ -136,7 +137,7 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
@@ -149,13 +150,14 @@ export async function PUT(
   }
 
   try {
+    const { id } = await params;
     const body = await request.json();
     const validatedData = updateCandidateSourceSchema.parse(body);
 
     // Check if source exists
     const existingResult = await getPool().query(
       'SELECT id, name FROM "CandidateSource" WHERE id = $1',
-      [params.id]
+      [id]
     );
 
     if (existingResult.rows.length === 0) {
@@ -166,7 +168,7 @@ export async function PUT(
     if (validatedData.name && validatedData.name !== existingResult.rows[0].name) {
       const duplicateResult = await getPool().query(
         'SELECT id FROM "CandidateSource" WHERE name = $1 AND id != $2',
-        [validatedData.name, params.id]
+        [validatedData.name, id]
       );
 
       if (duplicateResult.rows.length > 0) {
@@ -213,7 +215,7 @@ export async function PUT(
     }
 
     updateFields.push(`"updatedAt" = NOW()`);
-    updateValues.push(params.id);
+    updateValues.push(id);
 
     const result = await getPool().query(`
       UPDATE "CandidateSource"
@@ -241,7 +243,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
@@ -254,10 +256,11 @@ export async function DELETE(
   }
 
   try {
+    const { id } = await params;
     // Check if source exists and get its name for audit log
     const existingResult = await getPool().query(
       'SELECT id, name FROM "CandidateSource" WHERE id = $1',
-      [params.id]
+      [id]
     );
 
     if (existingResult.rows.length === 0) {
@@ -269,7 +272,7 @@ export async function DELETE(
     // Check if any candidates are using this source
     const candidatesResult = await getPool().query(
       'SELECT COUNT(*) as count FROM "Candidate" WHERE "sourceId" = $1',
-      [params.id]
+      [id]
     );
 
     if (parseInt(candidatesResult.rows[0].count) > 0) {
@@ -281,7 +284,7 @@ export async function DELETE(
     // Delete the source
     await getPool().query(
       'DELETE FROM "CandidateSource" WHERE id = $1',
-      [params.id]
+      [id]
     );
 
     await logAudit('INFO', `Deleted candidate source: ${sourceName}`, 'API:CandidateSources:Delete', session.user.id);

@@ -1,32 +1,38 @@
 import { NextResponse } from 'next/server';
 import { getPool } from '@/lib/db';
 
-// Force dynamic rendering to prevent static generation timeout
-export const dynamic = 'force-dynamic';
-
 export async function GET() {
   try {
+    console.log('Simple positions API called');
+    console.log('DATABASE_URL:', process.env.DATABASE_URL);
+    
+    // Check if DATABASE_URL is configured
+    if (!process.env.DATABASE_URL) {
+      return NextResponse.json({ 
+        message: "Database configuration error", 
+        error: "DATABASE_URL environment variable is not set" 
+      }, { status: 500 });
+    }
+
     const pool = getPool();
+    console.log('Database pool created');
     
-    const result = await pool.query('SELECT id, title, department FROM "Position" LIMIT 5');
-    
-    const positions = result.rows.map(row => ({
-      id: row.id,
-      title: row.title,
-      department: row.department
-    }));
+    // Simple query to test database connection
+    const result = await pool.query('SELECT COUNT(*) as count FROM "Position"');
+    console.log('Database query successful');
     
     return NextResponse.json({ 
-      data: positions,
-      count: positions.length,
-      message: 'Simple positions query successful'
-    }, { status: 200 });
+      message: "Simple positions API working",
+      positionCount: result.rows[0].count,
+      databaseUrl: process.env.DATABASE_URL ? "Set" : "Not set"
+    });
     
   } catch (error) {
-    
+    console.error('Simple positions API error:', error);
     return NextResponse.json({ 
-      message: 'Simple positions query failed',
-      error: error instanceof Error ? error.message : 'Unknown error'
+      message: "Simple positions API error", 
+      error: (error as Error).message,
+      stack: (error as Error).stack
     }, { status: 500 });
   }
 } 

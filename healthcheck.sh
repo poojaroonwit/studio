@@ -9,26 +9,32 @@ set -e
 HEALTH_URL="http://localhost:8021/api/health"
 TIMEOUT=10
 MAX_RETRIES=3
+LOG_FILE="/tmp/healthcheck.log"
 
-echo "🔍 Performing health check..."
+# Function to log messages with timestamp
+log_message() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" | tee -a "$LOG_FILE"
+}
 
 # Function to check if the application is responding
 check_health() {
     local retries=0
     local success=false
     
+    log_message "🔍 Starting health check for $HEALTH_URL"
+    
     while [ $retries -lt $MAX_RETRIES ] && [ "$success" = false ]; do
-        echo "  Attempt $((retries + 1))/$MAX_RETRIES..."
+        log_message "  Attempt $((retries + 1))/$MAX_RETRIES..."
         
         # Use wget with timeout and proper exit codes
         if wget --no-verbose --tries=1 --timeout=$TIMEOUT --spider "$HEALTH_URL" > /dev/null 2>&1; then
             success=true
-            echo "  ✅ Health check passed"
+            log_message "  ✅ Health check passed"
         else
-            echo "  ❌ Health check failed (attempt $((retries + 1)))"
+            log_message "  ❌ Health check failed (attempt $((retries + 1)))"
             retries=$((retries + 1))
             if [ $retries -lt $MAX_RETRIES ]; then
-                echo "  ⏳ Retrying in 2 seconds..."
+                log_message "  ⏳ Retrying in 2 seconds..."
                 sleep 2
             fi
         fi
@@ -41,11 +47,66 @@ check_health() {
     fi
 }
 
-# Perform the health check
+# Check if process is running
+check_process() {
+    if pgrep -f "node.*server.js\|next.*start" > /dev/null; then
+        log_message "✅ Application process is running"
+        return 0
+    else
+        log_message "❌ Application process is not running"
+        return 1
+    fi
+}
+
+# Check disk space
+check_disk_space() {
+    local disk_usage=$(df /app | tail -1 | awk '{print $5}' | sed 's/%//')
+    if [ "$disk_usage" -lt 90 ]; then
+        log_message "✅ Disk space OK: ${disk_usage}% used"
+        return 0
+    else
+        log_message "❌ Disk space critical: ${disk_usage}% used"
+        return 1
+    fi
+}
+
+# Check memory usage
+check_memory() {
+    local mem_usage=$(free | grep Mem | awk '{printf "%.0f", $3/$2 * 100.0}')
+    if [ "$mem_usage" -lt 95 ]; then
+        log_message "✅ Memory usage OK: ${mem_usage}% used"
+        return 0
+    else
+        log_message "❌ Memory usage critical: ${mem_usage}% used"
+        return 1
+    fi
+}
+
+# Perform comprehensive health checks
+log_message "🚀 Starting comprehensive health check..."
+
+# Check basic system resources
+if ! check_disk_space; then
+    log_message "❌ Health check failed: Disk space critical"
+    exit 1
+fi
+
+if ! check_memory; then
+    log_message "❌ Health check failed: Memory usage critical"
+    exit 1
+fi
+
+# Check if application process is running
+if ! check_process; then
+    log_message "❌ Health check failed: Application process not running"
+    exit 1
+fi
+
+# Perform the HTTP health check
 if check_health; then
-    echo "✅ Application is healthy"
+    log_message "✅ All health checks passed - Application is healthy"
     exit 0
 else
-    echo "❌ Application is unhealthy"
+    log_message "❌ Health check failed: Application is unhealthy - Container will restart"
     exit 1
 fi

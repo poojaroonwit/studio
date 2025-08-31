@@ -54,7 +54,7 @@ import { authOptions } from '@/lib/auth';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return new NextResponse('Unauthorized', { status: 401 });
@@ -64,13 +64,14 @@ export async function GET(
     return new NextResponse('Forbidden: Insufficient permissions', { status: 403 });
   }
 
+  const { id } = await params;
   const { searchParams } = new URL(request.url);
   const search = searchParams.get('search');
 
   const client = await getPool().connect();
   try {
     // Check if team exists
-    const teamExists = await client.query('SELECT id FROM "UserTeam" WHERE id = $1', [params.id]);
+    const teamExists = await client.query('SELECT id FROM "UserTeam" WHERE id = $1', [id]);
     if (teamExists.rows.length === 0) {
       return new NextResponse('Team not found', { status: 404 });
     }
@@ -89,7 +90,7 @@ export async function GET(
         WHERE uut."teamId" = $1
       )
     `;
-    let queryParams = [params.id];
+    let queryParams = [id];
 
     if (search) {
       query += ` AND (u.name ILIKE $2 OR u.email ILIKE $2)`;

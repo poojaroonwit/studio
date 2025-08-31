@@ -52,7 +52,7 @@ async function downloadFileFromUrl(url: string): Promise<{ buffer: Buffer; fileN
 }
 
 // GET: List attachments for a candidate
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   // Check if this request is actually meant for attachments
   if (req.nextUrl.pathname.includes('/job-matches')) {
     return new Response(JSON.stringify({ error: 'Route mismatch - this should be handled by job-matches route' }), { 
@@ -90,7 +90,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 }
 
 // POST: Upload an attachment (multipart/form-data)
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   // Check if this request is actually meant for attachments
   if (req.nextUrl.pathname.includes('/job-matches')) {
     return new Response(JSON.stringify({ error: 'Route mismatch - this should be handled by job-matches route' }), { 
@@ -224,7 +224,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 }
 
 // PATCH: Upload an attachment from URL
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   
   const { id } = await params;
   
@@ -334,7 +334,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 }
 
 // PUT: Set an attachment as primary
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   
   const authHeader = req.headers.get('authorization');
@@ -376,7 +376,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 }
 
 // DELETE: Remove an attachment
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   
   const authHeader = req.headers.get('authorization');

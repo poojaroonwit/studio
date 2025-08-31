@@ -35,7 +35,7 @@ const webhookSchema = z.object({
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -44,7 +44,7 @@ export async function GET(
     }
     
     const webhook = await prisma.webhook.findUnique({ 
-      where: { id: params.id },
+      where: { id: id },
       include: {
         body_configs: {
           where: { is_active: true },
@@ -101,7 +101,7 @@ export async function GET(
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -123,7 +123,7 @@ export async function PUT(
     }
     const data = validation.data;
     const webhook = await prisma.webhook.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         ...data,
         updatedAt: new Date(),
@@ -138,7 +138,7 @@ export async function PUT(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -146,9 +146,9 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     // Delete associated logs and body configs first
-    await prisma.webhookLog.deleteMany({ where: { webhook_id: params.id } });
-    await prisma.webhookBodyConfig.deleteMany({ where: { webhook_id: params.id } });
-    await prisma.webhook.delete({ where: { id: params.id } });
+    await prisma.webhookLog.deleteMany({ where: { webhook_id: id } });
+    await prisma.webhookBodyConfig.deleteMany({ where: { webhook_id: id } });
+    await prisma.webhook.delete({ where: { id: id } });
     return NextResponse.json({ message: 'Webhook deleted' });
   } catch (error) {
     console.error('Error deleting webhook:', error);

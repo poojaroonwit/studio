@@ -210,6 +210,20 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
     setIsAttachmentModalOpen(true);
   };
 
+  const handleAttachmentUpdate = async () => {
+    // Refresh the headcounts list
+    await fetchHeadcounts();
+    
+    // Update the selectedHeadcount with the latest data
+    if (selectedHeadcount) {
+      const updatedHeadcounts = await fetch(`/api/headcount?positionId=${positionId}`).then(res => res.json());
+      const updatedHeadcount = updatedHeadcounts.find((h: Headcount) => h.id === selectedHeadcount.id);
+      if (updatedHeadcount) {
+        setSelectedHeadcount(updatedHeadcount);
+      }
+    }
+  };
+
   const handleModalClose = () => {
     setIsModalOpen(false);
     setEditingHeadcount(null);
@@ -521,7 +535,7 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
           setIsAttachmentModalOpen(false);
           setSelectedHeadcount(null);
         }}
-        onUpdate={fetchHeadcounts}
+        onUpdate={handleAttachmentUpdate}
       />
 
       {/* Unassign Warning Dialog */}

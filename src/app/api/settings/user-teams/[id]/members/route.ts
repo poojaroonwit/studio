@@ -106,7 +106,7 @@ const addMemberSchema = z.object({
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return new NextResponse('Unauthorized', { status: 401 });
@@ -116,10 +116,11 @@ export async function GET(
     return new NextResponse('Forbidden: Insufficient permissions', { status: 403 });
   }
 
+  const { id } = await params;
   const client = await getPool().connect();
   try {
     // Check if team exists
-    const teamExists = await client.query('SELECT id FROM "UserTeam" WHERE id = $1', [params.id]);
+    const teamExists = await client.query('SELECT id FROM "UserTeam" WHERE id = $1', [id]);
     if (teamExists.rows.length === 0) {
       return new NextResponse('Team not found', { status: 404 });
     }
@@ -135,7 +136,7 @@ export async function GET(
       INNER JOIN "User_UserTeam" uut ON u.id = uut."userId"
       WHERE uut."teamId" = $1
       ORDER BY u.name ASC
-    `, [params.id]);
+    `, [id]);
 
     return NextResponse.json({ users: result.rows });
   } catch (error: any) {
@@ -148,7 +149,7 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
   const actingUserId = session?.user?.id;
@@ -159,6 +160,7 @@ export async function POST(
     return new NextResponse('Forbidden: Insufficient permissions', { status: 403 });
   }
 
+  const { id } = await params;
   let body;
   try {
     body = await request.json();
@@ -176,7 +178,7 @@ export async function POST(
 
   try {
     // Check if team exists
-    const teamExists = await client.query('SELECT name FROM "UserTeam" WHERE id = $1', [params.id]);
+    const teamExists = await client.query('SELECT name FROM "UserTeam" WHERE id = $1', [id]);
     if (teamExists.rows.length === 0) {
       return new NextResponse('Team not found', { status: 404 });
     }
@@ -190,7 +192,7 @@ export async function POST(
     // Check if user is already in the team
     const existingMembership = await client.query(
       'SELECT 1 FROM "User_UserTeam" WHERE "userId" = $1 AND "teamId" = $2',
-      [userId, params.id]
+      [userId, id]
     );
     if (existingMembership.rows.length > 0) {
       return new NextResponse('User is already a member of this team', { status: 409 });
@@ -199,17 +201,17 @@ export async function POST(
     // Add user to team
     await client.query(
       'INSERT INTO "User_UserTeam" ("userId", "teamId") VALUES ($1, $2)',
-      [userId, params.id]
+      [userId, id]
     );
 
     const teamName = teamExists.rows[0].name;
     const userName = userExists.rows[0].name;
-    await logAudit('AUDIT', `User '${userName}' added to team '${teamName}'.`, 'API:UserTeams:AddMember', actingUserId, { teamId: params.id, userId });
+    await logAudit('AUDIT', `User '${userName}' added to team '${teamName}'.`, 'API:UserTeams:AddMember', actingUserId, { teamId: id, userId });
     
     return NextResponse.json({ message: 'User added to team successfully' });
   } catch (error: any) {
     console.error("Failed to add user to team:", error);
-    await logAudit('ERROR', `Failed to add user to team. Error: ${error.message}`, 'API:UserTeams:AddMember', actingUserId, { teamId: params.id, userId });
+    await logAudit('ERROR', `Failed to add user to team. Error: ${error.message}`, 'API:UserTeams:AddMember', actingUserId, { teamId: id, userId });
     return NextResponse.json({ message: "Error adding user to team", error: error.message }, { status: 500 });
   } finally {
     client.release();
@@ -218,7 +220,7 @@ export async function POST(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
   const actingUserId = session?.user?.id;
@@ -229,6 +231,7 @@ export async function DELETE(
     return new NextResponse('Forbidden: Insufficient permissions', { status: 403 });
   }
 
+  const { id } = await params;
   const { searchParams } = new URL(request.url);
   const userId = searchParams.get('userId');
 
@@ -239,7 +242,7 @@ export async function DELETE(
   const client = await getPool().connect();
   try {
     // Check if team exists
-    const teamExists = await client.query('SELECT name FROM "UserTeam" WHERE id = $1', [params.id]);
+    const teamExists = await client.query('SELECT name FROM "UserTeam" WHERE id = $1', [id]);
     if (teamExists.rows.length === 0) {
       return new NextResponse('Team not found', { status: 404 });
     }
@@ -253,7 +256,7 @@ export async function DELETE(
     // Check if user is in the team
     const existingMembership = await client.query(
       'SELECT 1 FROM "User_UserTeam" WHERE "userId" = $1 AND "teamId" = $2',
-      [userId, params.id]
+      [userId, id]
     );
     if (existingMembership.rows.length === 0) {
       return new NextResponse('User is not a member of this team', { status: 404 });
@@ -262,17 +265,17 @@ export async function DELETE(
     // Remove user from team
     await client.query(
       'DELETE FROM "User_UserTeam" WHERE "userId" = $1 AND "teamId" = $2',
-      [userId, params.id]
+      [userId, id]
     );
 
     const teamName = teamExists.rows[0].name;
     const userName = userExists.rows[0].name;
-    await logAudit('AUDIT', `User '${userName}' removed from team '${teamName}'.`, 'API:UserTeams:RemoveMember', actingUserId, { teamId: params.id, userId });
+    await logAudit('AUDIT', `User '${userName}' removed from team '${teamName}'.`, 'API:UserTeams:RemoveMember', actingUserId, { teamId: id, userId });
     
     return NextResponse.json({ message: 'User removed from team successfully' });
   } catch (error: any) {
     console.error("Failed to remove user from team:", error);
-    await logAudit('ERROR', `Failed to remove user from team. Error: ${error.message}`, 'API:UserTeams:RemoveMember', actingUserId, { teamId: params.id, userId });
+    await logAudit('ERROR', `Failed to remove user from team. Error: ${error.message}`, 'API:UserTeams:RemoveMember', actingUserId, { teamId: id, userId });
     return NextResponse.json({ message: "Error removing user from team", error: error.message }, { status: 500 });
   } finally {
     client.release();

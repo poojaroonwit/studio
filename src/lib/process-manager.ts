@@ -1,0 +1,110 @@
+// src/lib/process-manager.ts
+// Utility for managing process event listeners safely
+
+interface ProcessHandler {
+  signal: string;
+  handler: (...args: any[]) => void;
+  id: string;
+}
+
+class ProcessManager {
+  private static instance: ProcessManager;
+  private handlers: Map<string, ProcessHandler> = new Map();
+  private maxListeners = 20; // Increase default limit
+
+  private constructor() {
+    // Set higher max listeners to prevent warnings
+    process.setMaxListeners(this.maxListeners);
+  }
+
+  static getInstance(): ProcessManager {
+    if (!ProcessManager.instance) {
+      ProcessManager.instance = new ProcessManager();
+    }
+    return ProcessManager.instance;
+  }
+
+  /**
+   * Safely add a process event listener, preventing duplicates
+   */
+  addHandler(signal: string, handler: (...args: any[]) => void, id: string): void {
+    const key = `${signal}:${id}`;
+    
+    // Remove existing handler if it exists
+    this.removeHandler(signal, id);
+    
+    // Add new handler
+    const processHandler: ProcessHandler = { signal, handler, id };
+    this.handlers.set(key, processHandler);
+    process.on(signal, handler);
+    
+    console.log(`[ProcessManager] Added ${signal} handler: ${id}`);
+  }
+
+  /**
+   * Remove a specific process event listener
+   */
+  removeHandler(signal: string, id: string): void {
+    const key = `${signal}:${id}`;
+    const existingHandler = this.handlers.get(key);
+    
+    if (existingHandler) {
+      process.removeListener(signal, existingHandler.handler);
+      this.handlers.delete(key);
+      console.log(`[ProcessManager] Removed ${signal} handler: ${id}`);
+    }
+  }
+
+  /**
+   * Remove all handlers for a specific signal
+   */
+  removeAllHandlers(signal: string): void {
+    for (const [key, handler] of this.handlers.entries()) {
+      if (handler.signal === signal) {
+        process.removeListener(signal, handler.handler);
+        this.handlers.delete(key);
+        console.log(`[ProcessManager] Removed ${signal} handler: ${handler.id}`);
+      }
+    }
+  }
+
+  /**
+   * Get current listener count for a signal
+   */
+  getListenerCount(signal: string): number {
+    return process.listenerCount(signal);
+  }
+
+  /**
+   * Get all registered handlers
+   */
+  getAllHandlers(): ProcessHandler[] {
+    return Array.from(this.handlers.values());
+  }
+
+  /**
+   * Clean up all handlers (useful for testing or cleanup)
+   */
+  cleanup(): void {
+    for (const [key, handler] of this.handlers.entries()) {
+      process.removeListener(handler.signal, handler.handler);
+      this.handlers.delete(key);
+    }
+    console.log('[ProcessManager] Cleaned up all handlers');
+  }
+}
+
+export const processManager = ProcessManager.getInstance();
+
+// Convenience functions
+export const addProcessHandler = (signal: string, handler: (...args: any[]) => void, id: string) => {
+  processManager.addHandler(signal, handler, id);
+};
+
+export const removeProcessHandler = (signal: string, id: string) => {
+  processManager.removeHandler(signal, id);
+};
+
+export const getProcessListenerCount = (signal: string) => {
+  return processManager.getListenerCount(signal);
+};

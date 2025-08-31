@@ -6,7 +6,7 @@ import { normalizeFitScore } from '@/lib/scoreUtils';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -14,7 +14,7 @@ export async function GET(
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const positionId = params.id;
+    const { id: positionId } = await params;
     if (!positionId) {
       return NextResponse.json({ error: 'Position ID is required' }, { status: 400 });
     }
@@ -215,7 +215,7 @@ export async function GET(
     console.error('Error fetching position job matches:', error);
     
     // Log additional details for debugging
-    console.error('Position ID:', params.id);
+    console.error('Position ID:', id);
     console.error('Search params:', Object.fromEntries(new URL(request.url).searchParams));
     console.error('Error stack:', error.stack);
     
@@ -223,7 +223,7 @@ export async function GET(
       message: 'Error fetching position job matches', 
       error: error.message,
       details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-      positionId: params.id,
+      positionId: id,
       searchParams: Object.fromEntries(new URL(request.url).searchParams)
     }, { status: 500 });
   }

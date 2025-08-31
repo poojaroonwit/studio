@@ -37,11 +37,13 @@ function getBreadcrumbItems(pathname: string, showLogoOnly: boolean = false) {
     // Always show Candidates breadcrumb to allow realtime indicator to appear
     items.push({ label: "Candidates", href: "/candidates" });
     
-    if (pathname === "/candidates/upload") {
-      items.push({ label: "Process queue", href: "/candidates/upload" });
-    } else if (pathname.split('/').length === 3 && pathname.split('/')[2] !== '' && !pathname.includes('create-via-automation')) {
+    if (pathname.split('/').length === 3 && pathname.split('/')[2] !== '' && !pathname.includes('create-via-automation')) {
       items.push({ label: "Candidate Details", href: pathname });
     }
+  }
+  
+  if (pathname === "/process-queue") {
+    items.push({ label: "Process Queue", href: "/process-queue" });
   }
   
   if (pathname.startsWith("/positions")) {

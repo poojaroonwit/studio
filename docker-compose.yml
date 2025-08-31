@@ -77,7 +77,6 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-    restart: always
     mem_limit: 8g
     cpus: 2
     deploy:
@@ -88,6 +87,11 @@ services:
         reservations:
           memory: 4g
           cpus: '2'
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
     healthcheck:
       test: ["CMD", "/app/healthcheck.sh"]
       interval: 30s
@@ -110,7 +114,6 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - /var/dockers/8021/postgres:/var/lib/postgresql/data
-    restart: always
     # Resource limits
     mem_limit: 8g
     cpus: 2
@@ -152,7 +155,6 @@ services:
     command: server /data --console-address ":9001" --address ":9000"
     volumes:
       - /var/dockers/8021/minio:/data
-    restart: always
     # Resource limits
     mem_limit: 8g
     cpus: 2
@@ -162,6 +164,12 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
     networks:
       - docker_internal
 
@@ -184,7 +192,6 @@ services:
     depends_on:
       - postgres
       - app
-    restart: always
     mem_limit: 8g
     cpus: 2
     healthcheck:
@@ -193,6 +200,12 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
     networks:
       - docker_internal
 

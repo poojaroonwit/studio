@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { usePathname } from 'next/navigation';
 
 export function usePageLoading() {
@@ -16,9 +16,16 @@ export function usePageLoading() {
     setIsLoading(false);
   }, []);
 
+  // Memoize the pathname change detection
+  const hasPathnameChanged = useMemo(() => {
+    const hasChanged = previousPathnameRef.current && previousPathnameRef.current !== pathname;
+    previousPathnameRef.current = pathname;
+    return hasChanged;
+  }, [pathname]);
+
   useEffect(() => {
     // Only show loading for actual page changes, not for the same page
-    if (previousPathnameRef.current && previousPathnameRef.current !== pathname) {
+    if (hasPathnameChanged) {
       startLoading();
       
       // Reduced timeout for faster response
@@ -28,9 +35,7 @@ export function usePageLoading() {
       
       return () => clearTimeout(timer);
     }
-    
-    previousPathnameRef.current = pathname;
-  }, [pathname, startLoading, stopLoading]);
+  }, [hasPathnameChanged, startLoading, stopLoading]);
 
   return { isLoading, startLoading, stopLoading };
 } 

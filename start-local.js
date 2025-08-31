@@ -37,6 +37,9 @@ if (!fs.existsSync(envLocalPath)) {
   }
 }
 
+// Track child processes for cleanup
+const childProcesses = [];
+
 // Function to start the main application
 function startMainApp() {
   console.log('🚀 Starting main application with increased memory...');
@@ -59,9 +62,15 @@ function startMainApp() {
   
   child.on('exit', (code) => {
     console.log(`📱 Main application exited with code ${code}`);
+    // Remove from tracking array
+    const index = childProcesses.indexOf(child);
+    if (index > -1) {
+      childProcesses.splice(index, 1);
+    }
     process.exit(code);
   });
   
+  childProcesses.push(child);
   return child;
 }
 
@@ -83,9 +92,54 @@ function startProcessor() {
   
   child.on('exit', (code) => {
     console.log(`⚙️  Processor exited with code ${code}`);
+    // Remove from tracking array
+    const index = childProcesses.indexOf(child);
+    if (index > -1) {
+      childProcesses.splice(index, 1);
+    }
   });
   
+  childProcesses.push(child);
   return child;
+}
+
+// Graceful shutdown function
+function gracefulShutdown(signal) {
+  console.log(`\n🛑 Received ${signal}, shutting down gracefully...`);
+  
+  // Kill all child processes
+  childProcesses.forEach((child, index) => {
+    try {
+      console.log(`🛑 Terminating child process ${index + 1}...`);
+      child.kill(signal);
+    } catch (error) {
+      console.error(`❌ Error terminating child process ${index + 1}:`, error.message);
+    }
+  });
+  
+  // Wait a bit for processes to terminate, then exit
+  setTimeout(() => {
+    console.log('✅ Graceful shutdown complete');
+    process.exit(0);
+  }, 3000);
+}
+
+// Set up signal handlers only once
+let signalHandlersAdded = false;
+
+function setupSignalHandlers() {
+  if (signalHandlersAdded) return;
+  signalHandlersAdded = true;
+  
+  // Remove any existing listeners to prevent duplicates
+  process.removeAllListeners('SIGINT');
+  process.removeAllListeners('SIGTERM');
+  
+  // Add new listeners
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  
+  console.log('🔧 Signal handlers configured');
 }
 
 // Main execution
@@ -96,37 +150,18 @@ console.log('============================');
 const args = process.argv.slice(2);
 const startBoth = args.includes('--with-processor') || args.includes('-p');
 
+// Set up signal handlers
+setupSignalHandlers();
+
 if (startBoth) {
   console.log('📋 Starting both main application and processor...');
   
   const mainApp = startMainApp();
   const processor = startProcessor();
   
-  // Handle graceful shutdown
-  process.on('SIGINT', () => {
-    console.log('\n🛑 Shutting down gracefully...');
-    mainApp.kill('SIGINT');
-    processor.kill('SIGINT');
-  });
-  
-  process.on('SIGTERM', () => {
-    console.log('\n🛑 Shutting down gracefully...');
-    mainApp.kill('SIGTERM');
-    processor.kill('SIGTERM');
-  });
 } else {
   console.log('📋 Starting main application only...');
   console.log('💡 Use --with-processor flag to start both app and processor');
   
   const mainApp = startMainApp();
-  
-  process.on('SIGINT', () => {
-    console.log('\n🛑 Shutting down gracefully...');
-    mainApp.kill('SIGINT');
-  });
-  
-  process.on('SIGTERM', () => {
-    console.log('\n🛑 Shutting down gracefully...');
-    mainApp.kill('SIGTERM');
-  });
 }

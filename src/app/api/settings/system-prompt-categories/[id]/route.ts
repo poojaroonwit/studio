@@ -13,7 +13,7 @@ const categoryUpdateSchema = z.object({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
   
@@ -28,7 +28,7 @@ export async function GET(
 
   try {
     const category = await prisma.systemPromptCategory.findUnique({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     if (!category) {
@@ -44,7 +44,7 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
   
@@ -77,7 +77,7 @@ export async function PUT(
   try {
     // Check if category exists
     const existingCategory = await prisma.systemPromptCategory.findUnique({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     if (!existingCategory) {
@@ -88,7 +88,7 @@ export async function PUT(
     const nameConflict = await prisma.systemPromptCategory.findFirst({
       where: {
         name,
-        id: { not: params.id },
+        id: { not: id },
       },
     });
 
@@ -97,7 +97,7 @@ export async function PUT(
     }
 
     const updatedCategory = await prisma.systemPromptCategory.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         name,
         description,
@@ -115,7 +115,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
   
@@ -131,7 +131,7 @@ export async function DELETE(
   try {
     // Check if category exists
     const existingCategory = await prisma.systemPromptCategory.findUnique({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     if (!existingCategory) {
@@ -140,7 +140,7 @@ export async function DELETE(
 
     // Check if category is being used by any system prompts
     const usageCount = await prisma.systemPrompt.count({
-      where: { categoryId: params.id },
+      where: { categoryId: id },
     });
 
     if (usageCount > 0) {
@@ -150,7 +150,7 @@ export async function DELETE(
     }
 
     await prisma.systemPromptCategory.delete({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     return NextResponse.json({ message: 'Category deleted successfully' });

@@ -40,7 +40,8 @@
     "seed:upload-queue": "node scripts/seed-upload-queue.js",
     "start:docker": "docker-compose up -d",
     "stop:docker": "docker-compose down",
-    "logs:docker": "docker-compose logs -f"
+    "logs:docker": "docker-compose logs -f",
+    "debug:listeners": "node scripts/debug-listeners.js"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -101,6 +102,7 @@
     "react-dom": "^19.1.1",
     "react-hook-form": "^7.54.2",
     "react-hot-toast": "^2.5.2",
+    "recharts": "^3.1.2",
     "tailwind-merge": "^3.0.1",
     "tailwindcss-animate": "^1.0.7",
     "tsx": "^4.19.2",

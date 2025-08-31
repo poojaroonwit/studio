@@ -312,6 +312,45 @@ export function ManageTransitionsModal({
     }
   }, [onOpenChange, cleanup]);
 
+  const handleCancelClick = useCallback(() => {
+    // Reset form to initial state
+    if (candidate) {
+      form.reset({
+        newStatus: preselectedStage || candidate.status,
+        notes: '',
+      });
+    }
+    setEditingTransitionId(null);
+    setStatusSearchQuery('');
+    cleanup();
+    onOpenChange(false);
+  }, [candidate, preselectedStage, form, cleanup, onOpenChange]);
+
+  const handleSaveClick = useCallback(async () => {
+    try {
+      const formValues = form.getValues();
+      
+      // Manually trigger validation
+      const isValid = await form.trigger();
+      
+      if (isValid) {
+        await handleAddTransitionSubmit(formValues);
+      } else {
+        console.error('Form validation failed:', form.formState.errors);
+        // Show specific validation errors
+        const errorMessages = Object.values(form.formState.errors).map(error => error?.message).filter(Boolean);
+        if (errorMessages.length > 0) {
+          toast.error(`Please fix the following errors: ${errorMessages.join(', ')}`);
+        } else {
+          toast.error('Please fix the form errors before submitting');
+        }
+      }
+    } catch (error) {
+      console.error('Error in handleSaveClick:', error);
+      toast.error('An unexpected error occurred. Please try again.');
+    }
+  }, [form, handleAddTransitionSubmit]);
+
   const filteredStages = (() => {
     try {
       // Defensive check to prevent filter errors
@@ -357,7 +396,7 @@ export function ManageTransitionsModal({
               <p className="text-xs text-muted-foreground mb-3">
                 Select a new stage and add notes. This will update the candidate&#39;s current status and record the change.
               </p>
-              <form id="transition-form" className="space-y-4">
+              <form id="transition-form" className="space-y-4" onSubmit={(e) => e.preventDefault()}>
                 <div>
                   <StageSelect
                     value={form.watch('newStatus')}
@@ -381,28 +420,19 @@ export function ManageTransitionsModal({
           </div>
 
           <DialogFooter className="border-t pt-4 flex flex-row gap-2 justify-end">
-            <DialogClose asChild>
-              <Button type="button" variant="outline">
-                Cancel
-              </Button>
-            </DialogClose>
+            <Button 
+              type="button" 
+              variant="outline"
+              onClick={handleCancelClick}
+              disabled={isSaving}
+            >
+              Cancel
+            </Button>
             <Button 
               type="button" 
               variant="default" 
               disabled={isSaving}
-              onClick={async () => {
-                const formValues = form.getValues();
-                
-                // Manually trigger validation
-                const isValid = await form.trigger();
-                
-                if (isValid) {
-                  await handleAddTransitionSubmit(formValues);
-                } else {
-                  console.error('Form validation failed:', form.formState.errors);
-                  toast.error('Please fix the form errors before submitting');
-                }
-              }}
+              onClick={handleSaveClick}
             >
               {isSaving ? <Save className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
               {isSaving ? 'Saving...' : 'Save Transition'}

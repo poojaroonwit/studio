@@ -1,7 +1,6 @@
 "use client";
 
-import * as React from "react";
-import { useState, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import {
   Table,
   TableBody,

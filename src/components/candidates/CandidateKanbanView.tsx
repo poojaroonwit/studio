@@ -1,8 +1,7 @@
 // src/components/candidates/CandidateKanbanView.tsx
 "use client";
 
-import * as React from 'react';
-import { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import type { Candidate, CandidateStatus, UserProfile } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';

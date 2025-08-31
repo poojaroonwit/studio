@@ -1,8 +1,6 @@
 "use client";
 
-import * as React from "react"
-
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { CandidateFilters, type CandidateFilterValues } from '@/components/candidates/CandidateFilters';
 import { CandidateTable } from '@/components/candidates/CandidateTable';
 import type { Candidate, Position, RecruitmentStage } from '@/lib/types';

@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { useEffect, useState, useMemo, useCallback, memo, useRef } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, memo, useRef } from 'react';
 import { Sidebar, SidebarContent, SidebarHeader, SidebarProvider, SidebarSeparator } from '@/components/ui/sidebar';
 import { useSidebar } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';

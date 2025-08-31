@@ -208,22 +208,6 @@ fi
 
 echo "✅ Comprehensive permission setup completed"
 
-# Apply fit score performance optimizations
-echo "⚡ Applying fit score performance optimizations..."
-echo "  📋 Step 1: Applying database indexes for fit score queries..."
-
-# Apply fit score indexes via the optimization script
-echo "    📄 Applying fit score indexes via optimization script..."
-echo "    ✅ Fit score indexes will be applied via optimization script"
-
-echo "  📋 Step 2: Running performance optimization script..."
-if node scripts/optimize-fit-score-performance.js; then
-    echo "    ✅ Performance optimization completed"
-else
-    echo "    ⚠️  Performance optimization failed or already completed"
-fi
-
-
 echo "✅ Database and permission setup complete!"
 
 # Start the main application only (processor runs as separate service)

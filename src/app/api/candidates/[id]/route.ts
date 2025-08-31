@@ -183,8 +183,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     
     // Check cache first (implement Redis or in-memory cache in production)
     const cacheKey = `candidate:${id}:${session.user.id}`;
-    
-    console.log(`[PERF] Starting candidate fetch for ID: ${id}`);
   
     // Optimized query with selective data fetching and better performance
     const candidateQuery = `
@@ -295,12 +293,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const attachments = attachmentsResult.rows || [];
 
     const totalTime = Date.now() - startTime;
-    
-    if (totalTime > 10000) {
-      console.warn(`[PERF] Total candidate fetch took ${totalTime}ms for ID: ${id}`);
-    } else {
-      console.log(`[PERF] Total candidate fetch completed in ${totalTime}ms for ID: ${id}`);
-    }
   
     const responseData = {
       ...candidate,

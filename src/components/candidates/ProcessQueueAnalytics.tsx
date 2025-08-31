@@ -8,11 +8,12 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Loader2, Clock, FileText, AlertTriangle, TrendingUp, Database, CalendarIcon, Filter, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { formatFileSize, formatDate, calculateDuration } from '@/lib/utils';
-import { Line } from 'react-chartjs-2';
+import { Line, Scatter } from 'react-chartjs-2';
 import { useChartSetup } from '@/hooks/use-chart-setup';
 import { DateRange } from 'react-day-picker';
 
@@ -36,6 +37,15 @@ interface AnalyticsData {
     y: number; // duration (minutes)
     status: string;
     fileName: string;
+    fileSize: number;
+    uploadDate: string;
+    processDate: string | null;
+    completedDate: string | null;
+    error: string | null;
+    errorDetails: string | null;
+    positionTitle: string | null;
+    source: string | null;
+    id: string;
   }>;
   stats: {
     totalJobs: number;
@@ -52,6 +62,8 @@ export default function ProcessQueueAnalytics() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [selectedJob, setSelectedJob] = useState<AnalyticsData['scatterData'][0] | null>(null);
+  const [isJobDetailsOpen, setIsJobDetailsOpen] = useState(false);
   const { chartReady, isLoading: chartLoading, error: chartError } = useChartSetup();
 
   useEffect(() => {
@@ -143,7 +155,16 @@ export default function ProcessQueueAnalytics() {
           x: new Date(processTime).toLocaleDateString(),
           y: duration,
           status: item.status,
-          fileName: item.file_name
+          fileName: item.file_name,
+          fileSize: item.file_size,
+          uploadDate: item.upload_date,
+          processDate: item.process_date,
+          completedDate: item.completed_date,
+          error: item.error,
+          errorDetails: item.error_details,
+          positionTitle: item.position_title,
+          source: item.source,
+          id: item.id
         });
 
         // Calculate file size range
@@ -224,11 +245,21 @@ export default function ProcessQueueAnalytics() {
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'completed': return 'text-green-600';
-      case 'failed': return 'text-red-600';
-      case 'processing': return 'text-yellow-600';
+      case 'success': return 'text-green-600';
+      case 'fail': return 'text-red-600';
+      case 'error': return 'text-red-600';
+      case 'inprocess': return 'text-yellow-600';
       case 'queued': return 'text-blue-600';
       default: return 'text-gray-600';
+    }
+  };
+
+  const handlePointClick = (event: any, elements: any[]) => {
+    if (elements.length > 0) {
+      const dataIndex = elements[0].dataIndex;
+      const clickedJob = data!.scatterData[dataIndex];
+      setSelectedJob(clickedJob);
+      setIsJobDetailsOpen(true);
     }
   };
 
@@ -470,27 +501,31 @@ export default function ProcessQueueAnalytics() {
                 </div>
               ) : (
                                 <div className="h-96">
-                  <Line
+                  <Scatter
                     data={{
-                      labels: data!.scatterData.map(item => item.x),
                       datasets: [
                         {
                           label: 'Duration (minutes)',
-                          data: data!.scatterData.map(item => item.y),
+                          data: data!.scatterData.map(item => ({
+                            x: new Date(item.x).getTime(),
+                            y: item.y
+                          })),
                           backgroundColor: data!.scatterData.map(item => {
                             switch (item.status.toLowerCase()) {
-                              case 'completed': return 'rgba(34, 197, 94, 0.6)';
-                              case 'failed': return 'rgba(239, 68, 68, 0.6)';
-                              case 'processing': return 'rgba(234, 179, 8, 0.6)';
-                              case 'queued': return 'rgba(59, 130, 246, 0.6)';
-                              default: return 'rgba(107, 114, 128, 0.6)';
+                              case 'success': return 'rgba(34, 197, 94, 0.8)';
+                              case 'fail': return 'rgba(239, 68, 68, 0.8)';
+                              case 'error': return 'rgba(239, 68, 68, 0.8)';
+                              case 'inprocess': return 'rgba(234, 179, 8, 0.8)';
+                              case 'queued': return 'rgba(59, 130, 246, 0.8)';
+                              default: return 'rgba(107, 114, 128, 0.8)';
                             }
                           }),
                           borderColor: data!.scatterData.map(item => {
                             switch (item.status.toLowerCase()) {
-                              case 'completed': return 'rgba(34, 197, 94, 1)';
-                              case 'failed': return 'rgba(239, 68, 68, 1)';
-                              case 'processing': return 'rgba(234, 179, 8, 1)';
+                              case 'success': return 'rgba(34, 197, 94, 1)';
+                              case 'fail': return 'rgba(239, 68, 68, 1)';
+                              case 'error': return 'rgba(239, 68, 68, 1)';
+                              case 'inprocess': return 'rgba(234, 179, 8, 1)';
                               case 'queued': return 'rgba(59, 130, 246, 1)';
                               default: return 'rgba(107, 114, 128, 1)';
                             }
@@ -498,38 +533,29 @@ export default function ProcessQueueAnalytics() {
                           borderWidth: 2,
                           pointRadius: 6,
                           pointHoverRadius: 8,
-                          pointBackgroundColor: data!.scatterData.map(item => {
-                            switch (item.status.toLowerCase()) {
-                              case 'completed': return 'rgba(34, 197, 94, 1)';
-                              case 'failed': return 'rgba(239, 68, 68, 1)';
-                              case 'processing': return 'rgba(234, 179, 8, 1)';
-                              case 'queued': return 'rgba(59, 130, 246, 1)';
-                              default: return 'rgba(107, 114, 128, 1)';
-                            }
-                          }),
-                          fill: false,
-                          tension: 0,
-                          showLine: false,
                         }
                       ]
                     }}
                     options={{
                       responsive: true,
                       maintainAspectRatio: false,
+                      onClick: handlePointClick,
                       plugins: {
                         legend: {
                           display: false,
                         },
                         tooltip: {
                           callbacks: {
-                            title: function(context) {
-                              return `Date: ${context[0].label}`;
+                            title: function(context: any) {
+                              const dataIndex = context[0].dataIndex;
+                              const item = data!.scatterData[dataIndex];
+                              return `Date: ${new Date(item.x).toLocaleDateString()}`;
                             },
-                            label: function(context) {
-                              const dataIndex = context.dataIndex;
+                            label: function(context: any) {
+                              const dataIndex = context[0].dataIndex;
                               const item = data!.scatterData[dataIndex];
                               return [
-                                `Duration: ${context.parsed.y.toFixed(1)} minutes`,
+                                `Duration: ${context[0].parsed.y.toFixed(2)} minutes`,
                                 `Status: ${item.status}`,
                                 `File: ${item.fileName}`
                               ];
@@ -559,7 +585,10 @@ export default function ProcessQueueAnalytics() {
                           grid: { color: 'rgba(100,116,139,0.1)' },
                           ticks: { 
                             color: 'rgb(100, 116, 139)', 
-                            font: { size: 12 }
+                            font: { size: 12 },
+                            callback: function(value) {
+                              return Number(value).toFixed(2);
+                            }
                           },
                         },
                       },
@@ -570,15 +599,15 @@ export default function ProcessQueueAnalytics() {
                   <div className="mt-4 flex flex-wrap gap-4 justify-center">
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                      <span className="text-sm">Completed</span>
+                      <span className="text-sm">Success</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                      <span className="text-sm">Failed</span>
+                      <span className="text-sm">Failed/Error</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                      <span className="text-sm">Processing</span>
+                      <span className="text-sm">In Process</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded-full bg-blue-500"></div>
@@ -694,6 +723,117 @@ export default function ProcessQueueAnalytics() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Job Details Dialog */}
+      <Dialog open={isJobDetailsOpen} onOpenChange={setIsJobDetailsOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Job Details</DialogTitle>
+            <DialogDescription>
+              Detailed information about the selected process job
+            </DialogDescription>
+          </DialogHeader>
+          {selectedJob && (
+            <div className="space-y-6">
+              {/* Basic Information */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Job ID</Label>
+                  <p className="text-sm">{selectedJob.id}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Status</Label>
+                  <Badge className={getStatusColor(selectedJob.status)}>
+                    {selectedJob.status}
+                  </Badge>
+                </div>
+              </div>
+
+              {/* File Information */}
+              <div className="space-y-3">
+                <Label className="text-sm font-medium text-muted-foreground">File Information</Label>
+                <div className="grid grid-cols-2 gap-4 p-3 border rounded-lg">
+                  <div>
+                    <p className="text-sm font-medium">File Name</p>
+                    <p className="text-sm text-muted-foreground">{selectedJob.fileName}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">File Size</p>
+                    <p className="text-sm text-muted-foreground">{formatFileSize(selectedJob.fileSize)}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Timing Information */}
+              <div className="space-y-3">
+                <Label className="text-sm font-medium text-muted-foreground">Timing Information</Label>
+                <div className="grid grid-cols-2 gap-4 p-3 border rounded-lg">
+                  <div>
+                    <p className="text-sm font-medium">Upload Date</p>
+                    <p className="text-sm text-muted-foreground">{new Date(selectedJob.uploadDate).toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Process Date</p>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedJob.processDate ? new Date(selectedJob.processDate).toLocaleString() : 'Not started'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Completed Date</p>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedJob.completedDate ? new Date(selectedJob.completedDate).toLocaleString() : 'Not completed'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Duration</p>
+                    <p className="text-sm text-muted-foreground">{selectedJob.y.toFixed(2)} minutes</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Additional Information */}
+              {(selectedJob.positionTitle || selectedJob.source) && (
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium text-muted-foreground">Additional Information</Label>
+                  <div className="grid grid-cols-2 gap-4 p-3 border rounded-lg">
+                    {selectedJob.positionTitle && (
+                      <div>
+                        <p className="text-sm font-medium">Position Title</p>
+                        <p className="text-sm text-muted-foreground">{selectedJob.positionTitle}</p>
+                      </div>
+                    )}
+                    {selectedJob.source && (
+                      <div>
+                        <p className="text-sm font-medium">Source</p>
+                        <p className="text-sm text-muted-foreground">{selectedJob.source}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Error Information */}
+              {selectedJob.error && (
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium text-muted-foreground">Error Information</Label>
+                  <div className="p-3 border border-red-200 rounded-lg bg-red-50">
+                    <div>
+                      <p className="text-sm font-medium text-red-800">Error</p>
+                      <p className="text-sm text-red-700">{selectedJob.error}</p>
+                    </div>
+                    {selectedJob.errorDetails && (
+                      <div className="mt-2">
+                        <p className="text-sm font-medium text-red-800">Error Details</p>
+                        <p className="text-sm text-red-700">{selectedJob.errorDetails}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -14,6 +14,11 @@ import os from 'os';
 
 export const dynamic = 'force-dynamic';
 
+// NEW: Infinite loop prevention constants
+const MAX_PROCESSING_TIME_MS = 30 * 60 * 1000; // 30 minutes
+const MAX_RETRY_ATTEMPTS = 3;
+const STUCK_JOB_TIMEOUT_HOURS = 1; // Reduced from 4 to 1 hour
+const RECENT_PROCESSING_TIMEOUT_MINUTES = 5; // Prevent reprocessing recent jobs
 
 /**
  * @openapi
@@ -85,18 +90,34 @@ export async function POST(request: NextRequest) {
   
       return NextResponse.json({ message: `Max concurrent jobs running (${currentInProgress}/${maxConcurrent})` }, { status: 200 });
     }
-    // Atomically pick and mark the oldest queued job as 'inprocess'
-    // Use a more robust locking mechanism to prevent duplicate processing
-    // Also check for duplicate file processing to prevent multiple candidates
-    // Reset jobs that have been stuck in 'inprocess' for more than 1 hour (reduced from 4)
-    const stuckTimeoutHours = 1;
+    
+    // NEW: Enhanced stuck job reset with better logic
     await client.query(
       `UPDATE upload_queue 
        SET status = 'queued', process_date = NULL, updated_at = now(), error = 'Reset due to timeout'
        WHERE status = 'inprocess' 
-       AND process_date < NOW() - INTERVAL '${stuckTimeoutHours} hours'`
+       AND process_date < NOW() - INTERVAL '${STUCK_JOB_TIMEOUT_HOURS} hours'`
     );
     
+    // NEW: Reset jobs that have been in 'inprocess' for too long (prevent infinite processing)
+    await client.query(
+      `UPDATE upload_queue 
+       SET status = 'queued', process_date = NULL, updated_at = now(), error = 'Reset due to long processing time'
+       WHERE status = 'inprocess' 
+       AND process_date < NOW() - INTERVAL '30 minutes'
+       AND process_date > NOW() - INTERVAL '${STUCK_JOB_TIMEOUT_HOURS} hours'`
+    );
+    
+    // NEW: Prevent processing jobs that were recently completed to avoid infinite loops
+    await client.query(
+      `UPDATE upload_queue 
+       SET status = 'queued', process_date = NULL, updated_at = now(), error = 'Reset due to recent processing'
+       WHERE status = 'inprocess' 
+       AND completed_date IS NOT NULL
+       AND completed_date > NOW() - INTERVAL '${RECENT_PROCESSING_TIMEOUT_MINUTES} minutes'`
+    );
+    
+    // NEW: Enhanced job selection with better duplicate prevention and retry limits
     const res = await client.query(
       `UPDATE upload_queue
        SET status = 'inprocess', process_date = now(), updated_at = now()
@@ -115,6 +136,16 @@ export async function POST(request: NextRequest) {
              WHERE status IN ('success', 'fail', 'error')
              AND file_path IS NOT NULL
            )
+         )
+         -- NEW: Prevent infinite retries
+         AND (
+           webhook_payload->>'retry_count' IS NULL 
+           OR (webhook_payload->>'retry_count')::int < ${MAX_RETRY_ATTEMPTS}
+         )
+         -- NEW: Prevent processing recently completed jobs
+         AND (
+           completed_date IS NULL
+           OR completed_date < NOW() - INTERVAL '${RECENT_PROCESSING_TIMEOUT_MINUTES} minutes'
          )
          ORDER BY upload_date ASC LIMIT 1
          FOR UPDATE SKIP LOCKED
@@ -144,6 +175,17 @@ export async function POST(request: NextRequest) {
         error: 'Invalid file_path' 
       });
       return NextResponse.json({ error: 'Invalid file_path for job', job }, { status: 500 });
+    }
+
+    // NEW: Check processing time limit
+    const processingTime = Date.now() - startTime;
+    if (processingTime > MAX_PROCESSING_TIME_MS) {
+      console.error(`Job ${job.id} processing time exceeded limit: ${processingTime}ms`);
+      await client.query(
+        `UPDATE upload_queue SET status = 'error', error = $1, error_details = $2, completed_date = now(), updated_at = now() WHERE id = $3`,
+        ['Processing time exceeded limit', `Processing time: ${processingTime}ms, max allowed: ${MAX_PROCESSING_TIME_MS}ms`, job.id]
+      );
+      return NextResponse.json({ error: 'Processing time exceeded limit', job }, { status: 408 });
     }
 
     // Optimized file download with streaming and memory management
@@ -285,6 +327,17 @@ export async function POST(request: NextRequest) {
       error_details = 'Skipped - already processed by external webhook';
     } else {
       try {
+        // NEW: Increment retry count for tracking
+        const currentRetryCount = (job.webhook_payload?.retry_count || 0) + 1;
+        await client.query(
+          `UPDATE upload_queue SET webhook_payload = jsonb_set(
+            COALESCE(webhook_payload, '{}'::jsonb), 
+            '{retry_count}', 
+            '${currentRetryCount}'::jsonb
+          ) WHERE id = $1`,
+          [job.id]
+        );
+        
         // Use the same logic as processSingleUploadQueueJob for resume processing webhook
         const result = await processSingleUploadQueueJob(job, client);
         status = result.job?.status || 'success';

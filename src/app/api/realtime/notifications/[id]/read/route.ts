@@ -38,7 +38,6 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id: notificationId } = await params;
-  console.log('🔍 API: Mark read request received for notification ID:', notificationId);
   
   const session = await getServerSession(authOptions);
 
@@ -49,10 +48,6 @@ export async function POST(
 
   const actingUserId = session.user.id;
   const actingUserName = session.user.name || session.user.email || 'System';
-
-  console.log('🔍 API: Acting user ID:', actingUserId);
-  console.log('🔍 API: Acting user name:', actingUserName);
-  console.log('🔍 API: Notification ID:', notificationId);
 
   // Check if user ID is empty (invalid session)
   if (!actingUserId) {
@@ -83,8 +78,6 @@ export async function POST(
   }
 
   try {
-    console.log('🔍 API: Attempting to update notification in database');
-    
     // Update the notification to mark it as read
     const updatedNotification = await prisma.notification.update({
       where: {

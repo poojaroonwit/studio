@@ -2,34 +2,62 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useSafeEffect } from './use-safe-effect';
+import { createOptimizedSSE, connectionPoolManager } from '@/lib/connection-pool-manager';
 
 // Singleton class for managing global real-time connection
 class UnifiedRealtimeManager {
   private static instance: UnifiedRealtimeManager;
   private eventSource: EventSource | null = null;
-  private connectionCount = 0;
-  private reconnectTimeout: NodeJS.Timeout | null = null;
+  private isConnecting = false;
   private connectionTimeout: NodeJS.Timeout | null = null;
-  private cleanupFunctions = new Map<EventSource, () => void>();
+  private reconnectAttempts = 0;
+  private maxReconnectAttempts = 5;
+  private reconnectDelay = 1000;
+  private listeners = new Map<string, Set<(data: any) => void>>();
   private connectedSessions = new Set<string>();
   private connectionAttempts = new Map<string, number>();
   private maxAttempts = 3;
-  private isConnecting = false;
-  private reconnectAttempts = 0;
-  private maxReconnectAttempts = 5;
-  private listeners = new Map<string, Set<(data: any) => void>>();
-  private healthCheckInterval: NodeJS.Timeout | null = null;
-  private lastMessageTime = Date.now();
-  private messageCount = 0;
-  private errorCount = 0;
+  private connectionCount = 0;
+  private cleanupInterval: NodeJS.Timeout | null = null;
 
-  private constructor() {}
+  // Add connection health monitoring
+  private lastHeartbeat = Date.now();
+  private heartbeatTimeout: NodeJS.Timeout | null = null;
+  private isHealthy = true;
+
+  private constructor() {
+    // Start cleanup interval
+    this.cleanupInterval = setInterval(() => {
+      this.cleanupStaleConnections();
+    }, 30000); // Clean up every 30 seconds
+  }
 
   static getInstance(): UnifiedRealtimeManager {
     if (!UnifiedRealtimeManager.instance) {
       UnifiedRealtimeManager.instance = new UnifiedRealtimeManager();
     }
     return UnifiedRealtimeManager.instance;
+  }
+
+  // Enhanced cleanup method
+  private cleanupStaleConnections() {
+    // Clear old connection attempts
+    const now = Date.now();
+    for (const [sessionId, lastAttempt] of this.connectionAttempts.entries()) {
+      if (now - lastAttempt > 60000) { // Clear attempts older than 1 minute
+        this.connectionAttempts.delete(sessionId);
+      }
+    }
+
+    // Check connection health
+    if (this.eventSource && this.isHealthy) {
+      const timeSinceHeartbeat = Date.now() - this.lastHeartbeat;
+      if (timeSinceHeartbeat > 30000) { // No heartbeat for 30 seconds
+        console.warn('🚨 SSE connection appears stale, reconnecting...');
+        this.cleanup();
+        this.isHealthy = false;
+      }
+    }
   }
 
   // Add event listener
@@ -51,7 +79,7 @@ class UnifiedRealtimeManager {
     };
   }
 
-  // Connect to real-time service
+  // Connect to real-time service with enhanced error handling
   async connect(sessionId: string): Promise<boolean> {
     // Prevent multiple connection attempts
     if (this.isConnecting) {
@@ -64,7 +92,7 @@ class UnifiedRealtimeManager {
       return true;
     }
 
-    // Check connection attempts
+    // Check connection attempts with exponential backoff
     const attempts = this.connectionAttempts.get(sessionId) || 0;
     if (attempts >= this.maxAttempts) {
       console.warn(`🚨 Maximum connection attempts reached for session ${sessionId}`);
@@ -75,60 +103,90 @@ class UnifiedRealtimeManager {
     this.connectionAttempts.set(sessionId, attempts + 1);
 
     try {
-
       // Clear existing connection timeout
       if (this.connectionTimeout) {
         clearTimeout(this.connectionTimeout);
       }
 
-      // Set connection timeout
+      // Set connection timeout with exponential backoff
+      const timeoutDuration = Math.min(30000 * Math.pow(2, attempts), 120000); // Max 2 minutes
       this.connectionTimeout = setTimeout(() => {
-        console.error('🚨 Connection timeout');
+        console.error(`🚨 Connection timeout after ${timeoutDuration}ms`);
         this.cleanup();
         this.isConnecting = false;
-      }, 30000);
+      }, timeoutDuration);
 
-      // Create new EventSource
-      const eventSource = new EventSource('/api/realtime/unified');
+      // Create new EventSource with connection pool management
+      const eventSource = await createOptimizedSSE('/api/realtime/unified', {
+        timeout: timeoutDuration,
+        retryAttempts: this.maxReconnectAttempts,
+        priority: 'high'
+      });
       this.eventSource = eventSource;
 
-      return new Promise((resolve) => {
-        eventSource.onopen = () => {
-          console.log('✅ Real-time connection established');
-          
+      // Enhanced event handling
+      eventSource.onopen = () => {
+        console.log('✅ SSE connection established');
+        this.isConnecting = false;
+        this.connectedSessions.add(sessionId);
+        this.connectionCount++;
+        this.isHealthy = true;
+        this.lastHeartbeat = Date.now();
+        
+        if (this.connectionTimeout) {
+          clearTimeout(this.connectionTimeout);
+          this.connectionTimeout = null;
+        }
+      };
 
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
           
-          this.connectedSessions.add(sessionId);
-          this.connectionCount++;
-          this.isConnecting = false;
-          this.reconnectAttempts = 0;
-          this.lastMessageTime = Date.now();
-          this.messageCount = 0;
-          this.errorCount = 0;
-
-          // Clear connection timeout
-          if (this.connectionTimeout) {
-            clearTimeout(this.connectionTimeout);
-            this.connectionTimeout = null;
+          // Update heartbeat on any message
+          this.lastHeartbeat = Date.now();
+          
+          // Handle different message types
+          if (data.type === 'keepalive' || data.type === 'heartbeat') {
+            // Just update heartbeat, don't broadcast
+            return;
           }
+          
+          // Broadcast to listeners
+          const eventListeners = this.listeners.get(data.type || 'message');
+          if (eventListeners) {
+            eventListeners.forEach(callback => {
+              try {
+                callback(data);
+              } catch (error) {
+                console.error('Error in SSE listener callback:', error);
+              }
+            });
+          }
+        } catch (error) {
+          console.error('Error parsing SSE message:', error);
+        }
+      };
 
-          // Start health check
-          this.startHealthCheck();
+      eventSource.onerror = (error) => {
+        console.error('🚨 SSE connection error:', error);
+        this.isHealthy = false;
+        
+        // Don't immediately reconnect on 401 errors (auth issues)
+        if (eventSource.readyState === EventSource.CONNECTING) {
+          console.log('SSE connection is reconnecting...');
+        } else if (eventSource.readyState === EventSource.CLOSED) {
+          console.log('SSE connection closed');
+          this.cleanup();
+        }
+        
+        this.isConnecting = false;
+      };
 
-          // Setup event listeners
-          this.setupEventListeners(eventSource);
-
-          resolve(true);
-        };
-
-        eventSource.onerror = () => {
-          console.error('❌ Real-time connection error');
-          this.handleConnectionError(sessionId);
-          resolve(false);
-        };
-      });
+      return true;
     } catch (error) {
-      console.error('Failed to create EventSource:', error);
+      console.error('�� Failed to create SSE connection:', error);
+      this.cleanup();
       this.isConnecting = false;
       return false;
     }
@@ -136,8 +194,6 @@ class UnifiedRealtimeManager {
 
   // Setup event listeners
   private setupEventListeners(eventSource: EventSource) {
-
-
     const eventTypes = [
       'candidate_update',
       'position_update', 
@@ -157,22 +213,11 @@ class UnifiedRealtimeManager {
         this.handleEvent(eventType, event);
       });
     });
-
-    // Store cleanup function
-    const cleanup = () => {
-      eventTypes.forEach(eventType => {
-        eventSource.removeEventListener(eventType, () => {});
-      });
-    };
-    this.cleanupFunctions.set(eventSource, cleanup);
   }
 
   // Handle incoming events
   private handleEvent(eventType: string, event: MessageEvent) {
-    this.messageCount++;
-    this.lastMessageTime = Date.now();
-
-
+    this.lastHeartbeat = Date.now();
 
     try {
       const data = eventType === 'session_expired' ? null : JSON.parse(event.data);
@@ -197,7 +242,6 @@ class UnifiedRealtimeManager {
   private handleConnectionError(sessionId: string) {
     this.connectedSessions.delete(sessionId);
     this.connectionCount = Math.max(0, this.connectionCount - 1);
-    this.errorCount++;
 
     // Cleanup current connection
     this.cleanup();
@@ -207,11 +251,7 @@ class UnifiedRealtimeManager {
       this.reconnectAttempts++;
       console.log(`🔄 Attempting reconnection (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
       
-      if (this.reconnectTimeout) {
-        clearTimeout(this.reconnectTimeout);
-      }
-      
-      this.reconnectTimeout = setTimeout(() => {
+      setTimeout(() => {
         this.isConnecting = false;
         // Reconnection will be handled by components that are still mounted
       }, 5000);
@@ -220,67 +260,41 @@ class UnifiedRealtimeManager {
     }
   }
 
-  // Start health check
-  private startHealthCheck() {
-    if (this.healthCheckInterval) {
-      clearInterval(this.healthCheckInterval);
-    }
-
-    this.healthCheckInterval = setInterval(() => {
-      const timeSinceLastMessage = Date.now() - this.lastMessageTime;
-      
-      // If no messages for 30 seconds, consider connection unhealthy
-      if (timeSinceLastMessage > 30000) {
-        console.warn('⚠️ No real-time messages received for 30 seconds');
-      }
-    }, 3000);
-  }
-
-  // Disconnect a component
-  disconnect(sessionId: string) {
-    this.connectedSessions.delete(sessionId);
-    this.connectionCount = Math.max(0, this.connectionCount - 1);
-
-    // If no more components are connected, cleanup
-    if (this.connectionCount === 0) {
-      this.cleanup();
-    }
-  }
-
-  // Cleanup all connections
-  private cleanup() {
-    // Clear timeouts
-    if (this.reconnectTimeout) {
-      clearTimeout(this.reconnectTimeout);
-      this.reconnectTimeout = null;
-    }
-    if (this.connectionTimeout) {
-      clearTimeout(this.connectionTimeout);
-      this.connectionTimeout = null;
-    }
-    if (this.healthCheckInterval) {
-      clearInterval(this.healthCheckInterval);
-      this.healthCheckInterval = null;
-    }
-
-    // Close EventSource
+  // Enhanced cleanup method
+  cleanup() {
     if (this.eventSource) {
-      const cleanupFn = this.cleanupFunctions.get(this.eventSource);
-      if (cleanupFn) {
-        cleanupFn();
-        this.cleanupFunctions.delete(this.eventSource);
-      }
-      
-      if (this.eventSource.readyState !== EventSource.CLOSED) {
+      try {
         this.eventSource.close();
+      } catch (error) {
+        console.error('Error closing SSE connection:', error);
       }
       this.eventSource = null;
     }
 
-    // Reset state
+    if (this.connectionTimeout) {
+      clearTimeout(this.connectionTimeout);
+      this.connectionTimeout = null;
+    }
+
+    if (this.heartbeatTimeout) {
+      clearTimeout(this.heartbeatTimeout);
+      this.heartbeatTimeout = null;
+    }
+
     this.isConnecting = false;
+    this.isHealthy = false;
     this.connectedSessions.clear();
-    this.connectionAttempts.clear();
+    this.connectionCount = 0;
+  }
+
+  // Enhanced disconnect method
+  disconnect(sessionId: string) {
+    this.connectedSessions.delete(sessionId);
+    this.connectionCount = Math.max(0, this.connectionCount - 1);
+    
+    if (this.connectionCount === 0) {
+      this.cleanup();
+    }
   }
 
   // Get connection status
@@ -288,11 +302,11 @@ class UnifiedRealtimeManager {
     return {
       isConnected: this.eventSource?.readyState === EventSource.OPEN,
       isConnecting: this.isConnecting,
+      isHealthy: this.isHealthy,
       connectionCount: this.connectionCount,
-      reconnectAttempts: this.reconnectAttempts,
-      lastMessageTime: this.lastMessageTime,
-      messageCount: this.messageCount,
-      errorCount: this.errorCount
+      lastHeartbeat: this.lastHeartbeat,
+      timeSinceHeartbeat: Date.now() - this.lastHeartbeat,
+      reconnectAttempts: this.reconnectAttempts
     };
   }
 }
@@ -455,13 +469,13 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
       setReconnectAttempts(status.reconnectAttempts);
       setTotalConnections(status.connectionCount);
 
-      // Update connection health based on message frequency
-      const timeSinceLastMessage = Date.now() - status.lastMessageTime;
-      if (timeSinceLastMessage < 1000) {
+      // Update connection health based on heartbeat frequency
+      const timeSinceHeartbeat = status.timeSinceHeartbeat;
+      if (timeSinceHeartbeat < 1000) {
         setConnectionHealth('excellent');
-      } else if (timeSinceLastMessage < 5000) {
+      } else if (timeSinceHeartbeat < 5000) {
         setConnectionHealth('good');
-      } else if (timeSinceLastMessage < 30000) {
+      } else if (timeSinceHeartbeat < 30000) {
         setConnectionHealth('poor');
       } else {
         setConnectionHealth('disconnected');

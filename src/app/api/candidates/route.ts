@@ -954,21 +954,7 @@ export async function GET(request: NextRequest) {
       LIMIT $${paramIndex++} OFFSET $${paramIndex++}
     `;
 
-    // Debug logging for fit score filtering
-    if (filters.minAppliedJobFitScore !== undefined || filters.maxAppliedJobFitScore !== undefined) {
-      console.log('🔍 API: Fit score filters detected:', {
-        minAppliedJobFitScore: filters.minAppliedJobFitScore,
-        maxAppliedJobFitScore: filters.maxAppliedJobFitScore
-      });
-      console.log('🔍 API: Count query:', countQuery);
-      console.log('🔍 API: Data query:', dataQuery);
-      console.log('🔍 API: Query params:', queryParams);
-      console.log('🔍 API: Where clause:', whereClause);
-    }
-    
-    // Debug logging for all requests
-    console.log('🔍 API: Request received with filters:', filters);
-    console.log('🔍 API: Search params:', Object.fromEntries(searchParams.entries()));
+
 
     // Execute queries in parallel for better performance
     const [countResult, dataResult] = await Promise.all([
@@ -977,15 +963,6 @@ export async function GET(request: NextRequest) {
     ]);
 
     const total = parseInt(countResult.rows[0].total);
-    
-    // Debug logging for query results
-    if (filters.minAppliedJobFitScore !== undefined || filters.maxAppliedJobFitScore !== undefined) {
-      console.log('🔍 API: Query results - Total count:', total);
-      console.log('🔍 API: Query results - Data rows:', dataResult.rows.length);
-      if (dataResult.rows.length > 0) {
-        console.log('🔍 API: First candidate fit score:', dataResult.rows[0].fitScore);
-      }
-    }
     
     // Optimize data transformation
     const candidates = dataResult.rows.map(row => ({

@@ -207,11 +207,14 @@ export function RecruitmentPipelineCard({
               justifyContent: localStages.length <= 5 ? 'space-between' : 'space-between'
             }}>
               {localStages.map((stage, index) => {
-                const records = currentStageToRecords[stage.name] || [];
+                const records = currentStageToRecords[stage.name];
                 const isCompleted = index <= currentStageIndex;
                 const isCurrent = localCurrentStatus === stage.name;
                 const isFuture = index > currentStageIndex;
                 const latestRecord = records.length > 0 ? records[records.length - 1] : null;
+                
+                // Determine if stage was skipped (appears before current stage but has no transition records)
+                const isSkipped = isCompleted && !isCurrent && records.length === 0;
 
                 return (
                   <div key={stage.id} className="flex items-center">
@@ -219,11 +222,12 @@ export function RecruitmentPipelineCard({
                                          <div 
                        className="relative flex flex-col items-center cursor-pointer hover:bg-muted/30 rounded-lg p-1 transition-colors"
                        onClick={() => handleStageClick(stage.name)}
-                       title={`${stage.name} - ${isCompleted ? 'Completed' : isCurrent ? 'Current' : 'Future'} stage${records.length > 0 ? ` (${records.length} update${records.length > 1 ? 's' : ''})` : ''}`}
+                       title={`${stage.name} - ${isSkipped ? 'Skipped' : isCompleted ? 'Completed' : isCurrent ? 'Current' : 'Future'} stage${records.length > 0 ? ` (${records.length} update${records.length > 1 ? 's' : ''})` : ''}`}
                      >
                        <div className={`
                          w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold z-10 transition-all duration-300
-                         ${isCompleted && !isCurrent ? 'bg-green-500 text-white' : ''}
+                         ${isSkipped ? 'bg-gray-400 text-white' : ''}
+                         ${isCompleted && !isCurrent && !isSkipped ? 'bg-green-500 text-white' : ''}
                          ${isFuture ? 'bg-muted text-muted-foreground' : ''}
                          ${isCurrent && isTransitioning ? 'animate-pulse' : ''}
                        `}
@@ -233,7 +237,7 @@ export function RecruitmentPipelineCard({
                                backgroundColor: `${stage.color_complete || '#22c55e'}80`, 
                                color: '#fff' 
                              }
-                           : isCompleted && !isCurrent && !stage.name.toLowerCase().includes('reject')
+                           : isCompleted && !isCurrent && !isSkipped && !stage.name.toLowerCase().includes('reject')
                            ? { backgroundColor: stage.color_complete || '#22c55e', color: '#fff' }
                            : undefined
                        }>
@@ -245,8 +249,12 @@ export function RecruitmentPipelineCard({
                                <div className="w-2 h-2 bg-current rounded-full" />
                              )}
                            </div>
-                         ) : isCompleted ? (
+                         ) : isCompleted && !isSkipped ? (
                            <CheckCircle className="w-4 h-4" />
+                         ) : isSkipped ? (
+                           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                           </svg>
                          ) : (
                            index + 1
                          )}
@@ -255,7 +263,7 @@ export function RecruitmentPipelineCard({
                       {/* Stage Name */}
                       <div className="mt-2 text-center">
                         <div className="flex items-center gap-1 justify-center">
-                          <h4 className={`text-xs font-medium ${isCurrent ? 'text-primary' : ''} truncate`}>
+                          <h4 className={`text-xs font-medium ${isCurrent ? 'text-primary' : isSkipped ? 'text-gray-500' : ''} truncate`}>
                             {stage.name}
                           </h4>
                           {/* Show loading indicator for current stage during transition */}
@@ -281,7 +289,7 @@ export function RecruitmentPipelineCard({
                                <div className="mb-3">
                                  <div className="font-semibold text-sm mb-1">{stage.name}</div>
                                  <div className="text-xs text-muted-foreground">
-                                   {isCompleted ? 'Completed Stage' : isCurrent ? 'Current Stage' : 'Future Stage'}
+                                   {isSkipped ? 'Skipped Stage' : isCompleted ? 'Completed Stage' : isCurrent ? 'Current Stage' : 'Future Stage'}
                                  </div>
                                </div>
                                
@@ -339,11 +347,18 @@ export function RecruitmentPipelineCard({
                                  </div>
                                ) : (
                                  <div className="text-sm text-muted-foreground py-2">
-                                   <div className="flex items-center gap-2 mb-1">
-                                     <Info className="h-4 w-4" />
-                                     <span>No updates recorded for this stage</span>
-                                   </div>
-                                   {isCompleted && (
+                                   {isSkipped ? (
+                                     <div className="flex items-center gap-2 mb-1">
+                                       <Info className="h-4 w-4" />
+                                       <span>This stage was skipped</span>
+                                     </div>
+                                   ) : (
+                                     <div className="flex items-center gap-2 mb-1">
+                                       <Info className="h-4 w-4" />
+                                       <span>No updates recorded for this stage</span>
+                                     </div>
+                                   )}
+                                   {isCompleted && !isSkipped && (
                                      <div className="text-xs text-muted-foreground">
                                        This stage was completed but no notes were added.
                                      </div>
@@ -361,8 +376,8 @@ export function RecruitmentPipelineCard({
                                  <div className="text-xs text-muted-foreground mb-1">Duration:</div>
                                  <div className="text-sm">
                                    {(() => {
-                                     // Only show duration for passed stages and current stage
-                                     if (isCompleted || isCurrent) {
+                                     // Only show duration for passed stages and current stage (not skipped stages)
+                                     if ((isCompleted || isCurrent) && !isSkipped) {
                                        // If there's a transition record for this stage, calculate actual duration
                                        if (latestRecord && latestRecord.date) {
                                          const stageDate = new Date(latestRecord.date);
@@ -406,7 +421,7 @@ export function RecruitmentPipelineCard({
                                        }
                                      }
                                      
-                                     // Don't show any duration for future stages
+                                     // Don't show any duration for future stages or skipped stages
                                      return '';
                                    })()}
                                  </div>
@@ -417,8 +432,8 @@ export function RecruitmentPipelineCard({
                         {/* Duration information under stage name */}
                         <div className="text-xs text-muted-foreground mt-1 min-h-[1rem]">
                           {(() => {
-                            // Only show duration for passed stages and current stage
-                            if (isCompleted || isCurrent) {
+                            // Only show duration for passed stages and current stage (not skipped stages)
+                            if ((isCompleted || isCurrent) && !isSkipped) {
                               // If there's a transition record for this stage, calculate actual duration
                               if (latestRecord && latestRecord.date) {
                                 const stageDate = new Date(latestRecord.date);
@@ -462,7 +477,7 @@ export function RecruitmentPipelineCard({
                               }
                             }
                             
-                            // Don't show any duration for future stages
+                            // Don't show any duration for future stages or skipped stages
                             return '';
                           })()}
                         </div>
@@ -483,14 +498,16 @@ export function RecruitmentPipelineCard({
                     ${localStages.map((stage, index) => {
                       const isCompleted = index < currentStageIndex;
                       const isCurrent = index === currentStageIndex;
+                      const records = currentStageToRecords[stage.name] || [];
+                      const isSkipped = isCompleted && records.length === 0;
                       
-                      // Use stage color for completed stages, gray for current and future
+                      // Use stage color for completed stages, gray for current, future, and skipped stages
                       let color;
-                      if (isCompleted) {
+                      if (isCompleted && !isSkipped) {
                         // Use the stage's color_complete setting, fallback to green
                         color = stage.color_complete || '#22c55e';
                       } else {
-                        color = '#d1d5db'; // Gray for current and future stages
+                        color = '#d1d5db'; // Gray for current, future, and skipped stages
                       }
                       
                       const startPercent = (index / (localStages.length - 1)) * 100;

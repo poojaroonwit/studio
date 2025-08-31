@@ -41,7 +41,11 @@
     "debug:listeners": "node scripts/debug-listeners.js",
     "debug:seed": "node scripts/debug-seed.js",
     "debug:performance": "node scripts/debug-performance-issues.js",
-    "debug:frozen": "node scripts/debug-frozen-app.js"
+    "debug:frozen": "node scripts/debug-frozen-app.js",
+    "fix:frozen": "node scripts/fix-frozen-app.js",
+    "test:connections": "node scripts/test-connection-optimization.js",
+    "test:enhanced-connections": "node scripts/test-enhanced-connections.js",
+    "test:ultra-high-connections": "node scripts/test-ultra-high-connections.js"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"

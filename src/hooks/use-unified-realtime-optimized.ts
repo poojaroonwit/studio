@@ -152,7 +152,7 @@ class UnifiedRealtimeManager {
         timeout: timeoutDuration,
         retryAttempts: this.maxReconnectAttempts,
         priority: 'high',
-        inactivityTimeout: 60000 // Use 60 seconds for SSE connections to prevent premature cleanup
+        inactivityTimeout: 120000 // Use 120 seconds for high-volume SSE connections
       });
       this.eventSource = eventSource;
 

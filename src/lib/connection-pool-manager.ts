@@ -38,17 +38,17 @@ interface ConnectionInfo {
 class ConnectionPoolManager {
   private static instance: ConnectionPoolManager;
   private activeConnections = 0;
-  private maxConcurrentConnections = 20; // Reduced to prevent overwhelming the system
+  private maxConcurrentConnections = 1000; // Increased for high-performance usage
   private requestQueue: QueuedRequest[] = [];
   private processingQueue = false;
-  private connectionTimeout = 10000; // Reduced to 10 seconds to prevent long-hanging requests
-  private retryAttempts = 1; // Reduced to prevent cascading failures
+  private connectionTimeout = 25000; // Increased to 25 seconds for high-volume connections
+  private retryAttempts = 2; // Increased for high-volume reliability
   private retryDelay = 1000; // 1 second
 
   // Connection tracking and cleanup
   private connectionInfo = new Map<string, ConnectionInfo>();
   private cleanupInterval: NodeJS.Timeout | null = null;
-  private inactivityTimeout = 30000; // Increased back to 30 seconds for better SSE stability
+  private inactivityTimeout = 60000; // Increased to 60 seconds for high-volume stability
   private maxConnectionLifetime = 300000; // 5 minutes max lifetime
 
   // Connection cleanup callbacks
@@ -67,11 +67,12 @@ class ConnectionPoolManager {
 
   // SSE connection management
   private sseConnections = new Map<string, EventSource>();
-  private maxSseConnections = 5; // Reduced to prevent overwhelming the system
+  private maxSseConnections = 100; // Increased to 100 for high-volume SSE usage
 
   private constructor() {
     this.startHealthMonitoring();
     this.startConnectionCleanup();
+    this.startMemoryMonitoring();
   }
 
   static getInstance(): ConnectionPoolManager {
@@ -123,11 +124,13 @@ class ConnectionPoolManager {
     return new Promise((resolve, reject) => {
       // Check if we can create a new SSE connection
       if (this.sseConnections.size >= this.maxSseConnections) {
-        // Close oldest connection if at limit
-        const oldestConnection = Array.from(this.sseConnections.entries())[0];
-        if (oldestConnection) {
-          this.closeSSEConnection(oldestConnection[0]);
-        }
+        // Close oldest connections if at limit (close multiple for high volume)
+        const connectionsToClose = Math.min(10, Math.floor(this.sseConnections.size * 0.1)); // Close 10% or 10 connections
+        const connections = Array.from(this.sseConnections.entries()).slice(0, connectionsToClose);
+        connections.forEach(([url, connection]) => {
+          this.closeSSEConnection(url);
+        });
+        console.log(`🧹 Closed ${connectionsToClose} old SSE connections to make room for new ones`);
       }
 
       try {
@@ -219,9 +222,32 @@ class ConnectionPoolManager {
    * Close all SSE connections
    */
   closeAllSSEConnections(): void {
+    const connectionCount = this.sseConnections.size;
     for (const [url] of this.sseConnections) {
       this.closeSSEConnection(url);
     }
+    console.log(`🧹 Closed all ${connectionCount} SSE connections`);
+  }
+
+  /**
+   * Get SSE connection statistics
+   */
+  getSSEStats(): {
+    totalConnections: number;
+    maxConnections: number;
+    activeConnections: number;
+    connectionUrls: string[];
+  } {
+    const activeConnections = Array.from(this.sseConnections.values()).filter(conn => 
+      conn.readyState === EventSource.OPEN
+    );
+
+    return {
+      totalConnections: this.sseConnections.size,
+      maxConnections: this.maxSseConnections,
+      activeConnections: activeConnections.length,
+      connectionUrls: Array.from(this.sseConnections.keys())
+    };
   }
 
   /**
@@ -522,6 +548,15 @@ class ConnectionPoolManager {
   }
 
   /**
+   * Start memory monitoring for high-volume connections
+   */
+  private startMemoryMonitoring(): void {
+    setInterval(() => {
+      this.monitorMemoryUsage();
+    }, 15000); // Check every 15 seconds for high-volume monitoring
+  }
+
+  /**
    * Monitor connection health and take action if needed
    */
   private monitorConnectionHealth(): void {
@@ -531,14 +566,67 @@ class ConnectionPoolManager {
       // If too many errors recently, reduce connection limit temporarily
       if (health.errorCount > 10 && (now - health.lastError) < 60000) {
         console.warn(`High error rate detected for ${hostname}, reducing connection limit`);
-        this.maxConcurrentConnections = Math.max(50, this.maxConcurrentConnections - 10);
+        this.maxConcurrentConnections = Math.max(100, this.maxConcurrentConnections - 50);
       }
 
       // If good performance, gradually increase connection limit
       if (health.successCount > 20 && health.errorCount < 2 && (now - health.lastSuccess) < 300000) {
-        this.maxConcurrentConnections = Math.min(200, this.maxConcurrentConnections + 10);
+        this.maxConcurrentConnections = Math.min(1000, this.maxConcurrentConnections + 50);
       }
     }
+  }
+
+  /**
+   * Monitor memory usage for high-volume connections
+   */
+  private monitorMemoryUsage(): void {
+    if (typeof window !== 'undefined' && 'memory' in performance) {
+      const memory = (performance as any).memory;
+      const usedMB = Math.round(memory.usedJSHeapSize / 1024 / 1024);
+      const totalMB = Math.round(memory.totalJSHeapSize / 1024 / 1024);
+      const percentage = Math.round((usedMB / totalMB) * 100);
+      
+      // Log memory usage every 30 seconds
+      if (usedMB % 500 === 0) { // Log every 500MB
+        const sseStats = this.getSSEStats();
+        console.log(`💾 Memory: ${usedMB}MB / ${totalMB}MB (${percentage}%) - HTTP: ${this.activeConnections}/${this.maxConcurrentConnections} - SSE: ${sseStats.activeConnections}/${sseStats.totalConnections}`);
+      }
+      
+      // Warning thresholds for high-volume usage (adjusted for 100 SSE connections)
+      if (usedMB > 5000) { // 5GB (increased for high SSE volume)
+        console.error('🚨 CRITICAL: Memory usage too high! Auto-reducing connections...');
+        this.autoReduceConnections();
+      } else if (usedMB > 4000) { // 4GB
+        console.warn('⚠️ WARNING: High memory usage, consider reducing connections');
+      } else if (usedMB > 3000) { // 3GB
+        console.info('ℹ️ INFO: Elevated memory usage, monitoring closely');
+      }
+    }
+  }
+
+  /**
+   * Auto-reduce connections when memory usage is high
+   */
+  private autoReduceConnections(): void {
+    const currentLimit = this.maxConcurrentConnections;
+    const newLimit = Math.max(100, Math.floor(currentLimit * 0.7)); // Reduce by 30%
+    
+    console.log(`🔄 Auto-reducing HTTP connections: ${currentLimit} → ${newLimit}`);
+    this.maxConcurrentConnections = newLimit;
+    
+    // Also reduce SSE connections if too many
+    const sseStats = this.getSSEStats();
+    if (sseStats.totalConnections > 50) {
+      const connectionsToClose = Math.floor(sseStats.totalConnections * 0.3); // Close 30%
+      const connections = Array.from(this.sseConnections.entries()).slice(0, connectionsToClose);
+      connections.forEach(([url, connection]) => {
+        this.closeSSEConnection(url);
+      });
+      console.log(`🔄 Auto-reducing SSE connections: ${sseStats.totalConnections} → ${sseStats.totalConnections - connectionsToClose}`);
+    }
+    
+    // Force cleanup of old connections
+    this.performConnectionCleanup();
   }
 
   /**
@@ -550,15 +638,28 @@ class ConnectionPoolManager {
       now - info.lastActivity < this.inactivityTimeout
     );
 
+    // Get memory usage if available
+    let memoryUsage = null;
+    if (typeof window !== 'undefined' && 'memory' in performance) {
+      const memory = (performance as any).memory;
+      memoryUsage = {
+        usedMB: Math.round(memory.usedJSHeapSize / 1024 / 1024),
+        totalMB: Math.round(memory.totalJSHeapSize / 1024 / 1024),
+        percentage: Math.round((memory.usedJSHeapSize / memory.totalJSHeapSize) * 100)
+      };
+    }
+
     return {
       activeConnections: this.activeConnections,
       maxConcurrentConnections: this.maxConcurrentConnections,
       queuedRequests: this.requestQueue.length,
       sseConnections: this.sseConnections.size,
       maxSseConnections: this.maxSseConnections,
+      sseStats: this.getSSEStats(),
       trackedConnections: this.connectionInfo.size,
       activeTrackedConnections: activeConnections.length,
       connectionHealth: Object.fromEntries(this.connectionHealth),
+      memoryUsage,
       cleanupStats: {
         inactivityTimeout: this.inactivityTimeout,
         maxConnectionLifetime: this.maxConnectionLifetime

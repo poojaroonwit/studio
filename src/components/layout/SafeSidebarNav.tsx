@@ -2,7 +2,7 @@
 import * as React from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
-import { LayoutDashboard, Users, Briefcase, Settings, ListTodo, UploadCloud } from "lucide-react";
+import { LayoutDashboard, Users, Briefcase, Settings, ListTodo, UploadCloud, Kanban } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   SidebarMenu,
@@ -24,6 +24,7 @@ import { useSession } from "next-auth/react";
 const NAV_ITEMS = {
   dashboard: { href: "/", label: "Dashboard", icon: LayoutDashboard },
   myTasks: { href: "/my-tasks", label: "My Task Board", icon: ListTodo },
+  taskBoard: { href: "/task-board", label: "Task Board", icon: Kanban },
   candidates: { href: "/candidates", label: "Candidates", icon: Users },
   positions: { href: "/positions", label: "Positions", icon: Briefcase },
   bulkUpload: { href: "/process-queue", label: "Process queue", icon: UploadCloud },
@@ -130,6 +131,13 @@ const FallbackNav = React.memo(() => {
             </Link>
           </SidebarMenuItem>
           <SidebarMenuItem>
+            <Link href="/task-board" className="w-full">
+              <SidebarMenuButton className="w-full justify-center" size="default">
+                <Kanban className="h-5 w-5" />
+              </SidebarMenuButton>
+            </Link>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
             <Link href="/positions" className="w-full">
               <SidebarMenuButton className="w-full justify-center" size="default">
                 <Briefcase className="h-5 w-5" />
@@ -173,6 +181,14 @@ const FallbackNav = React.memo(() => {
           </Link>
         </SidebarMenuItem>
         <SidebarMenuItem>
+          <Link href="/task-board" className="w-full">
+            <SidebarMenuButton className="w-full justify-start" size="default">
+              <Kanban className="h-5 w-5" />
+              <span className="truncate">Task Board</span>
+            </SidebarMenuButton>
+          </Link>
+        </SidebarMenuItem>
+        <SidebarMenuItem>
           <Link href="/positions" className="w-full">
             <SidebarMenuButton className="w-full justify-start" size="default">
               <Briefcase className="h-5 w-5" />
@@ -200,7 +216,7 @@ const FallbackNav = React.memo(() => {
 FallbackNav.displayName = 'FallbackNav';
 
 // Safe navigation items generator
-const getSafeNavigationItems = (canAccessMyTasks: boolean) => {
+const getSafeNavigationItems = (canAccessMyTasks: boolean, canAccessTaskBoard: boolean) => {
   try {
     const items = [
       NAV_ITEMS.dashboard,
@@ -211,6 +227,11 @@ const getSafeNavigationItems = (canAccessMyTasks: boolean) => {
     // Only add My Tasks if user has permission
     if (canAccessMyTasks) {
       items.splice(1, 0, NAV_ITEMS.myTasks);
+    }
+    
+    // Only add Task Board if user has permission
+    if (canAccessTaskBoard) {
+      items.splice(2, 0, NAV_ITEMS.taskBoard);
     }
     
     return items;
@@ -224,18 +245,21 @@ const getSafeNavigationItems = (canAccessMyTasks: boolean) => {
 const getSafeSessionInfo = (session: any) => {
   try {
     if (!session?.user) {
-      return { canAccessMyTasks: false, modulePermissions: [] };
+      return { canAccessMyTasks: false, canAccessTaskBoard: false, modulePermissions: [] };
     }
 
     const modulePermissions = session.user.modulePermissions || [];
-    const canAccessMyTasks = modulePermissions.includes('my-tasks') || 
+    const canAccessMyTasks = modulePermissions.includes('TASK_BOARD_MANAGE_OWN') || 
                             session.user.role === 'admin' || 
                             session.user.role === 'super_admin';
+    const canAccessTaskBoard = modulePermissions.includes('TASK_BOARD_VIEW') || 
+                              session.user.role === 'admin' || 
+                              session.user.role === 'super_admin';
 
-    return { canAccessMyTasks, modulePermissions };
+    return { canAccessMyTasks, canAccessTaskBoard, modulePermissions };
   } catch (error) {
     console.error('Error getting session info:', error);
-    return { canAccessMyTasks: false, modulePermissions: [] };
+    return { canAccessMyTasks: false, canAccessTaskBoard: false, modulePermissions: [] };
   }
 };
 
@@ -331,12 +355,12 @@ const SafeSidebarNavComponent = React.memo(() => {
     const { pendingCount, isLoading } = usePendingCount();
 
     // Get safe session info
-    const { canAccessMyTasks } = getSafeSessionInfo(session);
+    const { canAccessMyTasks, canAccessTaskBoard } = getSafeSessionInfo(session);
 
     // Generate safe navigation items
     const navigationItems = React.useMemo(() => {
-      return getSafeNavigationItems(canAccessMyTasks);
-    }, [canAccessMyTasks]);
+      return getSafeNavigationItems(canAccessMyTasks, canAccessTaskBoard);
+    }, [canAccessMyTasks, canAccessTaskBoard]);
 
     // Simple loading state
     if (status === 'loading') {

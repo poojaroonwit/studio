@@ -220,9 +220,6 @@ export function initializeFrozenStatePrevention() {
   // Periodic API health check
   const apiHealthCheckInterval = setInterval(checkApiHealth, API_HEALTH_CHECK_INTERVAL);
   
-  // Periodic API health check
-  const apiHealthCheckInterval = setInterval(checkApiHealth, API_HEALTH_CHECK_INTERVAL);
-  
   // Periodic activity check
   const activityCheckInterval = setInterval(() => {
     if (checkFrozenState()) {

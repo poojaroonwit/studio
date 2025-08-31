@@ -22,6 +22,7 @@ import { useInfiniteLoopPrevention, useRenderMonitor } from '@/hooks/use-infinit
 import { OptimizedContainer, LayoutContainer } from '@/components/ui/optimized-container';
 import { useAppLayoutState } from '@/hooks/use-app-layout-state';
 import { initializeFrozenStatePrevention, trackActivity } from '@/lib/frozen-state-prevention';
+import { initializeDynamicPerformanceOptimizer } from '@/lib/dynamic-performance-optimizer';
 
 const DEFAULT_APP_NAME = "FitScan";
 
@@ -258,6 +259,9 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
     
     // Initialize frozen state prevention
     initializeFrozenStatePrevention();
+    
+    // Initialize dynamic performance optimizer
+    initializeDynamicPerformanceOptimizer();
     
     window.addEventListener('appConfigChanged', handleAppConfigChange);
     

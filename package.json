@@ -17,6 +17,7 @@
     "start:local:with-processor": "node start-local.js --with-processor",
     "lint": "next lint",
     "processor": "powershell -ExecutionPolicy Bypass -Command \"$env:NODE_ENV='development'; node scripts/process-upload-queue.cjs\"",
+    "processor:dynamic": "powershell -ExecutionPolicy Bypass -Command \"$env:NODE_ENV='development'; node scripts/process-upload-queue-dynamic.cjs\"",
     "processor:pm2": "pm2 start ecosystem.config.js",
     "processor:pm2:stop": "pm2 stop upload-queue-processor",
     "processor:pm2:restart": "pm2 restart upload-queue-processor",

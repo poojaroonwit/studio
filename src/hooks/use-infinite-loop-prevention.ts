@@ -1,4 +1,5 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
+import { useDynamicPerformance } from './use-dynamic-performance';
 
 interface LoopPreventionConfig {
   maxRuns?: number;
@@ -17,14 +18,17 @@ interface LoopTracker {
 }
 
 /**
- * Enhanced infinite loop prevention hook
+ * Enhanced infinite loop prevention hook with dynamic performance optimization
  * Provides comprehensive protection against infinite loops and excessive re-renders
+ * Automatically adjusts thresholds based on system resources
  */
 export function useInfiniteLoopPrevention(config: LoopPreventionConfig = {}) {
+  const { getOptimizedThreshold } = useDynamicPerformance();
+  
   const {
-    maxRuns = 100, // Increased from 50 to 100
-    timeWindow = 10000, // Increased from 5000 to 10000ms
-    warningThreshold = 200, // Increased from 100 to 200ms
+    maxRuns = 100, // Will be overridden by dynamic settings
+    timeWindow = 10000, // Will be overridden by dynamic settings
+    warningThreshold = 200,
     effectName = 'unnamed-effect',
     onExcessiveRuns,
     onBlocked
@@ -38,6 +42,10 @@ export function useInfiniteLoopPrevention(config: LoopPreventionConfig = {}) {
   });
 
   const [isBlocked, setIsBlocked] = useState(false);
+
+  // Get dynamic thresholds based on system performance
+  const dynamicMaxRuns = getOptimizedThreshold(maxRuns, 'loop');
+  const dynamicTimeWindow = getOptimizedThreshold(timeWindow, 'loop');
 
   const trackRun = useCallback(() => {
     const now = Date.now();
@@ -55,12 +63,12 @@ export function useInfiniteLoopPrevention(config: LoopPreventionConfig = {}) {
 
     // Remove old calls outside the time window
     currentTracker.callTimes = currentTracker.callTimes.filter(
-      time => now - time < timeWindow
+      time => now - time < dynamicTimeWindow
     );
 
     // Check for excessive runs in time window
-    if (currentTracker.callTimes.length > maxRuns) {
-      console.error(`🚨 Infinite loop detected in "${effectName}": ${currentTracker.callTimes.length} calls in ${timeWindow}ms`);
+    if (currentTracker.callTimes.length > dynamicMaxRuns) {
+      console.error(`🚨 Infinite loop detected in "${effectName}": ${currentTracker.callTimes.length} calls in ${dynamicTimeWindow}ms`);
       currentTracker.blocked = true;
       setIsBlocked(true);
       onExcessiveRuns?.();
@@ -76,7 +84,7 @@ export function useInfiniteLoopPrevention(config: LoopPreventionConfig = {}) {
     }
 
     // Check total runs - increased threshold
-    if (currentTracker.runs > maxRuns * 20) { // Increased from 10 to 20
+    if (currentTracker.runs > dynamicMaxRuns * 20) { // Increased from 10 to 20
       console.error(`🚨 Excessive total runs in "${effectName}": ${currentTracker.runs} total calls`);
       currentTracker.blocked = true;
       setIsBlocked(true);
@@ -85,7 +93,7 @@ export function useInfiniteLoopPrevention(config: LoopPreventionConfig = {}) {
     }
 
     return true;
-  }, [effectName, maxRuns, timeWindow, warningThreshold, onExcessiveRuns, onBlocked]);
+  }, [effectName, dynamicMaxRuns, dynamicTimeWindow, warningThreshold, onExcessiveRuns, onBlocked]);
 
   const reset = useCallback(() => {
     tracker.current = {
@@ -123,7 +131,10 @@ export function useInfiniteLoopPrevention(config: LoopPreventionConfig = {}) {
     unblock,
     isBlocked,
     runs: tracker.current.runs,
-    callTimes: tracker.current.callTimes.length
+    callTimes: tracker.current.callTimes.length,
+    // Add dynamic settings info for debugging
+    dynamicMaxRuns,
+    dynamicTimeWindow
   };
 }
 

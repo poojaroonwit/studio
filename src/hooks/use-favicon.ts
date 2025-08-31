@@ -22,8 +22,8 @@ export function useFavicon() {
     lastUpdateTimeRef.current = now;
 
     try {
-      const faviconSetting = settings?.find((s: any) => s.key === 'faviconDataUrl');
-      const newFaviconDataUrl = faviconSetting?.value || null;
+      // Access the favicon URL directly from settings object
+      const newFaviconDataUrl = settings?.appFaviconDataUrl || null;
 
       // Only update if the favicon has actually changed
       if (newFaviconDataUrl !== lastFaviconRef.current) {

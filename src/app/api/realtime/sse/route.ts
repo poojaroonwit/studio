@@ -86,6 +86,7 @@ export async function GET(request: NextRequest) {
 
       // Send initial connection event
       try {
+        // Set retry interval for reconnection attempts
         controller.enqueue(encoder.encode(`retry: 5000\n\n`));
         const data = JSON.stringify({ 
           type: 'connected', 
@@ -118,7 +119,11 @@ export async function GET(request: NextRequest) {
       // Send heartbeat every 5 seconds
       heartbeatInterval = setInterval(() => {
         try {
-          controller.enqueue(encoder.encode(`: heartbeat\n\n`));
+          const heartbeatData = JSON.stringify({ 
+            type: 'heartbeat', 
+            timestamp: new Date().toISOString() 
+          });
+          controller.enqueue(encoder.encode(`event: heartbeat\ndata: ${heartbeatData}\n\n`));
         } catch (error) {
           console.error('[SSE] Heartbeat failed:', error);
           if (heartbeatInterval) {

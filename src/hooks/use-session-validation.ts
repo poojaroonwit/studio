@@ -1,6 +1,7 @@
 import { useEffect, useCallback, useState, useRef, useMemo } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { useDynamicPerformance } from './use-dynamic-performance';
 
 /**
  * Custom hook to validate user sessions and handle invalid sessions
@@ -14,6 +15,7 @@ export function useSessionValidation(options: {
   autoSignOut?: boolean;
   redirectTo?: string;
 } = {}) {
+  const { getOptimizedInterval, getOptimizedTimeout } = useDynamicPerformance();
   const { data: session, status } = useSession();
   const router = useRouter();
   const [isValidating, setIsValidating] = useState(false);
@@ -23,12 +25,16 @@ export function useSessionValidation(options: {
   const hasInitializedRef = useRef<boolean>(false);
   const lastSessionIdRef = useRef<string | undefined>(undefined);
   
+  // Get dynamic intervals and timeouts based on system performance
+  const dynamicValidateInterval = getOptimizedInterval(15 * 60 * 1000, 'session');
+  const dynamicRequestTimeout = getOptimizedTimeout(10000, 'request');
+  
   // Memoize options to prevent unnecessary re-renders
   const memoizedOptions = useMemo(() => ({
-    validateInterval: options.validateInterval || 15 * 60 * 1000, // 15 minutes (increased from 5 minutes)
+    validateInterval: options.validateInterval || dynamicValidateInterval,
     autoSignOut: options.autoSignOut !== false, // default true
     redirectTo: options.redirectTo || '/auth/signin'
-  }), [options.validateInterval, options.autoSignOut, options.redirectTo]);
+  }), [options.validateInterval, options.autoSignOut, options.redirectTo, dynamicValidateInterval]);
 
   // Memoize session ID to prevent unnecessary re-renders
   const sessionId = useMemo(() => session?.user?.id, [session?.user?.id]);
@@ -51,7 +57,7 @@ export function useSessionValidation(options: {
         headers: {
           'Content-Type': 'application/json',
         },
-        signal: AbortSignal.timeout(10000), // 10 second timeout
+        signal: AbortSignal.timeout(dynamicRequestTimeout),
       });
 
       if (!response.ok) {
@@ -73,7 +79,7 @@ export function useSessionValidation(options: {
       setIsValidating(false);
       validationInProgress.current = false;
     }
-  }, [memoizedOptions, router]);
+  }, [memoizedOptions, router, dynamicRequestTimeout]);
 
   // Memoize the effect dependencies to prevent unnecessary re-renders
   const effectDependencies = useMemo(() => ({
@@ -103,7 +109,7 @@ export function useSessionValidation(options: {
     // Validate immediately
     validateSession();
 
-    // Set up periodic validation - increased interval
+    // Set up periodic validation - use dynamic interval
     intervalRef.current = setInterval(validateSession, effectDependencies.validateInterval);
 
     return () => {

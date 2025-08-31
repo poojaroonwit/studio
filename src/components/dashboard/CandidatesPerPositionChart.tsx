@@ -197,6 +197,9 @@ export function CandidatesPerPositionChart({ candidates, positions }: Candidates
                     displayColors: false,
                 callbacks: {
                       title: function(context) {
+                        if (!context || !context[0] || typeof context[0].dataIndex === 'undefined') {
+                          return '';
+                        }
                         const dataIndex = context[0].dataIndex;
                         return data[dataIndex]?.fullPositionTitle || context[0].label;
                       },

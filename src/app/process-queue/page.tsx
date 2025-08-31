@@ -10,6 +10,7 @@ import ProcessQueueAnalytics from '@/components/candidates/ProcessQueueAnalytics
 import BulkUploadCVsModal from '@/components/BulkUploadCVsModal';
 import { Button } from '@/components/ui/button';
 import { Upload } from 'lucide-react';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
 
 export default function ProcessQueuePage() {
   const [activeTab, setActiveTab] = React.useState<'queue' | 'analytics'>('queue');
@@ -64,7 +65,11 @@ export default function ProcessQueuePage() {
           
           <div className="mt-2">
             {activeTab === 'queue' && <CandidateImportUploadQueue />}
-            {activeTab === 'analytics' && <ProcessQueueAnalytics />}
+            {activeTab === 'analytics' && (
+              <ErrorBoundary>
+                <ProcessQueueAnalytics />
+              </ErrorBoundary>
+            )}
           </div>
         </div>
       </div>

@@ -51,13 +51,14 @@ export function useAppLayoutState() {
   const pendingUpdatesRef = useRef<Partial<AppLayoutState>>({});
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const updateQueueRef = useRef<Partial<AppLayoutState>[]>([]);
+  const batchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Batch state updates to prevent excessive re-renders
+  // Enhanced batch state updates to prevent excessive re-renders
   const updateState = useCallback((updates: Partial<AppLayoutState>) => {
     const now = Date.now();
     
-    // Prevent updates more frequently than 150ms (increased from 100ms)
-    if (now - lastUpdateTimeRef.current < 150) {
+    // Prevent updates more frequently than 200ms (increased from 150ms)
+    if (now - lastUpdateTimeRef.current < 200) {
       // Add to update queue instead of merging immediately
       updateQueueRef.current.push(updates);
       
@@ -81,7 +82,7 @@ export function useAppLayoutState() {
           updateQueueRef.current = [];
           lastUpdateTimeRef.current = Date.now();
         }
-      }, 100); // Increased from 50ms
+      }, 150); // Increased from 100ms
       
       return;
     }
@@ -117,7 +118,7 @@ export function useAppLayoutState() {
         }));
         updateQueueRef.current = [];
       }
-    }, 50); // Increased from 20ms
+    }, 100); // Increased from 50ms
   }, []); // Empty dependency array to ensure this function is stable
 
   // Initialize client state
@@ -125,12 +126,20 @@ export function useAppLayoutState() {
     updateState({ isClient: true });
   }, [updateState]);
 
-  // Update logo loading state
+  // Update logo loading state with debouncing
   const setLogoLoading = useCallback((loading: boolean) => {
-    updateState({ isLogoLoading: loading });
+    // Clear any existing batch timeout
+    if (batchTimeoutRef.current) {
+      clearTimeout(batchTimeoutRef.current);
+    }
+    
+    // Batch logo loading updates
+    batchTimeoutRef.current = setTimeout(() => {
+      updateState({ isLogoLoading: loading });
+    }, 50);
   }, [updateState]);
 
-  // Update app configuration
+  // Update app configuration with enhanced batching
   const updateAppConfig = useCallback((config: {
     appLogoUrl?: string | null;
     currentAppName?: string;
@@ -138,28 +147,52 @@ export function useAppLayoutState() {
     sidebarLogoSize?: number;
     contextualLogos?: AppLayoutState['contextualLogos'];
   }) => {
-    updateState(config);
+    // Clear any existing batch timeout
+    if (batchTimeoutRef.current) {
+      clearTimeout(batchTimeoutRef.current);
+    }
+    
+    // Batch app config updates
+    batchTimeoutRef.current = setTimeout(() => {
+      updateState(config);
+    }, 100);
   }, [updateState]);
 
-  // Update theme and colors
+  // Update theme and colors with enhanced batching
   const updateThemeAndColors = useCallback((themeAndColors: AppLayoutState['themeAndColors']) => {
-    updateState({ themeAndColors });
+    // Clear any existing batch timeout
+    if (batchTimeoutRef.current) {
+      clearTimeout(batchTimeoutRef.current);
+    }
+    
+    // Batch theme updates
+    batchTimeoutRef.current = setTimeout(() => {
+      updateState({ themeAndColors });
+    }, 100);
   }, [updateState]);
 
   // Reset to defaults
   const resetToDefaults = useCallback(() => {
-    updateState({
-      appLogoUrl: null,
-      currentAppName: DEFAULT_APP_NAME,
-      showLogoOnly: false,
-      sidebarLogoSize: 48,
-      contextualLogos: {
-        sidebarLogoCollapsedLightMode: null,
-        sidebarLogoExpandedLightMode: null,
-        sidebarLogoCollapsedDarkMode: null,
-        sidebarLogoExpandedDarkMode: null,
-      },
-    });
+    // Clear any existing batch timeout
+    if (batchTimeoutRef.current) {
+      clearTimeout(batchTimeoutRef.current);
+    }
+    
+    // Batch reset updates
+    batchTimeoutRef.current = setTimeout(() => {
+      updateState({
+        appLogoUrl: null,
+        currentAppName: DEFAULT_APP_NAME,
+        showLogoOnly: false,
+        sidebarLogoSize: 48,
+        contextualLogos: {
+          sidebarLogoCollapsedLightMode: null,
+          sidebarLogoExpandedLightMode: null,
+          sidebarLogoCollapsedDarkMode: null,
+          sidebarLogoExpandedDarkMode: null,
+        },
+      });
+    }, 100);
   }, [updateState]);
 
   // Memoize the return value to prevent unnecessary re-renders
@@ -187,6 +220,9 @@ export function useAppLayoutState() {
       isUpdatingRef.current = false;
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
+      }
+      if (batchTimeoutRef.current) {
+        clearTimeout(batchTimeoutRef.current);
       }
       updateQueueRef.current = [];
     };

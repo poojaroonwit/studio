@@ -8,7 +8,8 @@ RUN apk add --no-cache \
     g++ \
     git \
     curl \
-    wget
+    wget \
+    dos2unix
 
 WORKDIR /app
 
@@ -22,6 +23,9 @@ RUN npm cache clean --force && \
 
 # Copy source code
 COPY . .
+
+# Fix line endings for shell scripts (important for Windows development)
+RUN dos2unix ./healthcheck.sh ./entrypoint.sh ./entrypoint-processor.sh 2>/dev/null || true
 
 # Debug: check if src/lib/db.ts exists
 RUN ls -l src/lib/db.ts || (echo 'src/lib/db.ts not found!' && exit 1)

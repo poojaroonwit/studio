@@ -13,6 +13,7 @@ export function useTheme() {
   const hasInitializedRef = useRef<boolean>(false);
   const userIdRef = useRef<string | undefined>(undefined);
   const isUpdatingRef = useRef<boolean>(false);
+  const lastUpdateTimeRef = useRef(0);
 
   // Update userId ref when session changes
   useEffect(() => {
@@ -21,9 +22,9 @@ export function useTheme() {
 
   // Memoize the apply theme function to prevent recreation
   const applyTheme = useCallback((theme: 'light' | 'dark') => {
-    // Prevent excessive theme changes
+    // Prevent excessive theme changes - increased threshold
     const now = Date.now();
-    if (now - lastThemeChange.current < 200) { // Increased from 100ms to 200ms
+    if (now - lastThemeChange.current < 300) { // Increased from 200ms to 300ms
       return;
     }
     lastThemeChange.current = now;
@@ -40,24 +41,34 @@ export function useTheme() {
       root.classList.remove('dark');
     }
     
-    // Re-apply sidebar colors for the new theme with debouncing
+    // Re-apply sidebar colors for the new theme with enhanced debouncing
     if (!isUpdatingRef.current) {
       isUpdatingRef.current = true;
       requestAnimationFrame(() => {
         import('@/lib/themeUtils').then(({ reapplyCurrentSidebarColors }) => {
           reapplyCurrentSidebarColors();
-          isUpdatingRef.current = false;
+          setTimeout(() => {
+            isUpdatingRef.current = false;
+          }, 100); // Add delay to prevent rapid updates
         }).catch(() => {
-          isUpdatingRef.current = false;
+          setTimeout(() => {
+            isUpdatingRef.current = false;
+          }, 100);
         });
       });
     }
   }, []);
 
-  // Memoize the set theme function
+  // Memoize the set theme function with enhanced debouncing
   const setTheme = useCallback(async (preference: ThemePreference) => {
+    const now = Date.now();
     // Prevent rapid theme changes
-    if (isUpdatingRef.current) return;
+    if (isUpdatingRef.current || now - lastUpdateTimeRef.current < 300) {
+      return;
+    }
+    
+    isUpdatingRef.current = true;
+    lastUpdateTimeRef.current = now;
     
     setThemePreference(preference);
     localStorage.setItem('theme', preference);
@@ -92,6 +103,11 @@ export function useTheme() {
         console.warn('Failed to save theme preference:', error);
       }
     }
+    
+    // Reset update flag after a delay
+    setTimeout(() => {
+      isUpdatingRef.current = false;
+    }, 200);
   }, [applyTheme]);
 
   // Memoize the toggle theme function
@@ -101,98 +117,46 @@ export function useTheme() {
     setTheme(newPreference);
   }, [currentTheme, setTheme]);
 
-  // Initialize theme on mount - only run once
+  // Initialize theme on mount
   useEffect(() => {
     if (hasInitializedRef.current) return;
     hasInitializedRef.current = true;
+
+    // Get theme from localStorage or system preference
+    const savedTheme = localStorage.getItem('theme') as ThemePreference;
+    const preference = savedTheme || 'system';
     
-    setMounted(true);
-    
-    // Ensure we're in a browser environment
-    if (typeof window === 'undefined' || typeof document === 'undefined') {
-      return;
-    }
-    
-    // Get initial theme from localStorage or system preference
-    const savedTheme = localStorage.getItem('theme') as ThemePreference | null;
-    const initialPreference = savedTheme || 'system';
-    setThemePreference(initialPreference);
-    
-    // Determine current theme
-    let initialTheme: 'light' | 'dark' = 'light';
-    if (initialPreference === 'dark') {
-      initialTheme = 'dark';
-    } else if (initialPreference === 'light') {
-      initialTheme = 'light';
+    let theme: 'light' | 'dark' = 'light';
+    if (preference === 'dark') {
+      theme = 'dark';
+    } else if (preference === 'light') {
+      theme = 'light';
     } else {
-      // System preference
-      initialTheme = typeof window !== 'undefined' ? window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light' : 'light';
+      theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     }
     
-    setCurrentTheme(initialTheme);
-    applyTheme(initialTheme);
+    setThemePreference(preference);
+    setCurrentTheme(theme);
+    applyTheme(theme);
+    setMounted(true);
   }, [applyTheme]);
 
-  // Listen for system theme changes when using system preference
+  // Listen for system theme changes
   useEffect(() => {
-    if (themePreference !== 'system') return;
-
-    // Ensure we're in a browser environment
-    if (typeof window === 'undefined') {
-      return;
-    }
+    if (!mounted) return;
 
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleChange = (e: MediaQueryListEvent) => {
-      const newTheme = e.matches ? 'dark' : 'light';
-      setCurrentTheme(newTheme);
-      applyTheme(newTheme);
+    const handleChange = () => {
+      if (themePreference === 'system') {
+        const newTheme = mediaQuery.matches ? 'dark' : 'light';
+        setCurrentTheme(newTheme);
+        applyTheme(newTheme);
+      }
     };
 
     mediaQuery.addEventListener('change', handleChange);
     return () => mediaQuery.removeEventListener('change', handleChange);
-  }, [themePreference, applyTheme]);
-
-  // Load theme preference from user preferences when authenticated - only run when userId changes
-  useEffect(() => {
-    if (!userIdRef.current) return;
-
-    const loadUserThemePreference = async () => {
-      try {
-        const response = await fetch('/api/user-preferences');
-        if (response.ok) {
-          const data = await response.json();
-          const userThemePreference = data.appearance?.themePreference as ThemePreference;
-          if (userThemePreference && userThemePreference !== themePreference) {
-            setThemePreference(userThemePreference);
-            
-            // Ensure we're in a browser environment
-            if (typeof window !== 'undefined') {
-              localStorage.setItem('theme', userThemePreference);
-            }
-            
-            // Apply the new theme
-            let newTheme: 'light' | 'dark' = 'light';
-            if (userThemePreference === 'dark') {
-              newTheme = 'dark';
-            } else if (userThemePreference === 'light') {
-              newTheme = 'light';
-            } else {
-              // System preference
-              newTheme = typeof window !== 'undefined' ? window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light' : 'light';
-            }
-            
-            setCurrentTheme(newTheme);
-            applyTheme(newTheme);
-          }
-        }
-      } catch (error) {
-        console.warn('Failed to load user theme preference:', error);
-      }
-    };
-
-    loadUserThemePreference();
-  }, [userIdRef.current, themePreference, applyTheme]);
+  }, [mounted, themePreference, applyTheme]);
 
   // Memoize the return value to prevent unnecessary re-renders
   const memoizedValue = useMemo(() => ({

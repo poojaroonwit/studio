@@ -9,23 +9,40 @@ export function usePageLoading() {
   const previousPathnameRef = useRef<string | null>(null);
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isUpdatingRef = useRef(false);
+  const lastUpdateTimeRef = useRef(0);
 
   const startLoading = useCallback(() => {
+    const now = Date.now();
+    // Prevent updates more frequently than 200ms
+    if (now - lastUpdateTimeRef.current < 200) {
+      return;
+    }
+    
     if (isUpdatingRef.current) return;
     isUpdatingRef.current = true;
+    lastUpdateTimeRef.current = now;
+    
     setIsLoading(true);
     setTimeout(() => {
       isUpdatingRef.current = false;
-    }, 50);
+    }, 100); // Increased from 50ms
   }, []);
 
   const stopLoading = useCallback(() => {
+    const now = Date.now();
+    // Prevent updates more frequently than 200ms
+    if (now - lastUpdateTimeRef.current < 200) {
+      return;
+    }
+    
     if (isUpdatingRef.current) return;
     isUpdatingRef.current = true;
+    lastUpdateTimeRef.current = now;
+    
     setIsLoading(false);
     setTimeout(() => {
       isUpdatingRef.current = false;
-    }, 50);
+    }, 100); // Increased from 50ms
   }, []);
 
   // Memoize the pathname change detection
@@ -45,10 +62,10 @@ export function usePageLoading() {
       
       startLoading();
       
-      // Reduced timeout for faster response
+      // Increased timeout for better performance
       loadingTimeoutRef.current = setTimeout(() => {
         stopLoading();
-      }, 150); // Increased from 100ms to 150ms for better performance
+      }, 200); // Increased from 150ms to 200ms for better performance
     }
     
     return () => {

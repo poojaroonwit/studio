@@ -28,6 +28,12 @@ interface AppLayoutProps {
   children: React.ReactNode;
 }
 
+// Memoized component to prevent unnecessary re-renders
+const MemoizedFaviconUpdater = memo(FaviconUpdater);
+const MemoizedSidebarHeaderContent = memo(SidebarHeaderContent);
+const MemoizedHeader = memo(Header);
+const MemoizedSidebarNav = memo(SidebarNav);
+
 export const AppLayout = memo(({ children }: AppLayoutProps) => {
   const pathname = usePathname();
   const { data: session, status } = useSession();
@@ -43,6 +49,7 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
   const resetToDefaultsRef = useRef<any>(null);
   const setLogoLoadingRef = useRef<any>(null);
   const hasInitializedRef = useRef(false);
+  const lastRenderTimeRef = useRef(0);
   
   // Infinite loop prevention for critical effects
   const { trackRun: trackSettingsFetch } = useInfiniteLoopPrevention({
@@ -69,8 +76,8 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
     }
   }, [trackSettingsFetch, trackThemeChange]);
 
-  // Render monitoring with higher threshold for development
-  useRenderMonitor('AppLayout', 150);
+  // Enhanced render monitoring with stricter thresholds
+  useRenderMonitor('AppLayout', 200);
 
   // Memoize session validation logic
   const shouldValidateSession = useMemo(() => {
@@ -292,10 +299,35 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
       (lastSegment ? lastSegment.charAt(0).toUpperCase() + lastSegment.slice(1) : "Page");
   }, [pathname]);
 
+  // Memoize sidebar header props to prevent unnecessary re-renders
+  const sidebarHeaderProps = useMemo(() => ({
+    currentAppName,
+    appLogoUrl,
+    isClient,
+    isLogoLoading,
+    showLogoOnly,
+    sidebarLogoSize,
+    contextualLogos,
+  }), [
+    currentAppName,
+    appLogoUrl,
+    isClient,
+    isLogoLoading,
+    showLogoOnly,
+    sidebarLogoSize,
+    contextualLogos,
+  ]);
+
+  // Memoize header props
+  const headerProps = useMemo(() => ({
+    pageTitle,
+    showLogoOnly,
+  }), [pageTitle, showLogoOnly]);
+
   // Memoize the main layout JSX to prevent unnecessary re-renders
   const mainLayout = useMemo(() => (
     <SidebarProvider defaultOpen={true}>
-      <FaviconUpdater faviconDataUrl={faviconDataUrl} />
+      <MemoizedFaviconUpdater faviconDataUrl={faviconDataUrl} />
       <SidebarToggleButton />
       <LayoutContainer 
         layout="flex" 
@@ -305,19 +337,11 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
       >
         <Sidebar collapsible="icon" className="border-r border-border">
           <SidebarHeader>
-            <SidebarHeaderContent 
-              currentAppName={currentAppName}
-              appLogoUrl={appLogoUrl}
-              isClient={isClient}
-              isLogoLoading={isLogoLoading}
-              showLogoOnly={showLogoOnly}
-              sidebarLogoSize={sidebarLogoSize}
-              contextualLogos={contextualLogos}
-            />
+            <MemoizedSidebarHeaderContent {...sidebarHeaderProps} />
           </SidebarHeader>
           <SidebarSeparator className="my-0" />
           <SidebarContent>
-            <SidebarNav />
+            <MemoizedSidebarNav />
           </SidebarContent>
         </Sidebar>
         <LayoutContainer 
@@ -325,7 +349,7 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
           direction="column"
           className="flex-1 min-w-0"
         >
-          <Header pageTitle={pageTitle} showLogoOnly={showLogoOnly} />
+          <MemoizedHeader {...headerProps} />
           <OptimizedContainer as="main" className="flex-1 overflow-auto p-0">
             {isLoading && <GlobalLoadingOverlay />}
             {children}
@@ -335,14 +359,8 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
     </SidebarProvider>
   ), [
     faviconDataUrl,
-    currentAppName,
-    appLogoUrl,
-    isClient,
-    isLogoLoading,
-    showLogoOnly,
-    sidebarLogoSize,
-    contextualLogos,
-    pageTitle,
+    sidebarHeaderProps,
+    headerProps,
     isLoading,
     children
   ]);

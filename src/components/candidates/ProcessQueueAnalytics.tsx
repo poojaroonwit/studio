@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 import { formatFileSize, formatDate, calculateDuration } from '@/lib/utils';
 import { Line, Scatter } from 'react-chartjs-2';
 import { useChartSetup } from '@/hooks/use-chart-setup';
+import { isDataLabelsAvailable } from '@/lib/chartjs-setup';
 import { DateRange } from 'react-day-picker';
 
 interface QueueItem {
@@ -263,11 +264,13 @@ export default function ProcessQueueAnalytics() {
   };
 
   const handlePointClick = (event: any, elements: any[]) => {
-    if (elements.length > 0) {
+    if (elements.length > 0 && elements[0] && typeof elements[0].dataIndex !== 'undefined') {
       const dataIndex = elements[0].dataIndex;
-      const clickedJob = data!.scatterData[dataIndex];
-      setSelectedJob(clickedJob);
-      setIsJobDetailsOpen(true);
+      const clickedJob = (data?.scatterData || [])[dataIndex];
+      if (clickedJob) {
+        setSelectedJob(clickedJob);
+        setIsJobDetailsOpen(true);
+      }
     }
   };
 
@@ -777,7 +780,7 @@ export default function ProcessQueueAnalytics() {
                     <p className="text-muted-foreground">Initializing chart...</p>
                   </div>
                 </div>
-              ) : data!.scatterData.length === 0 ? (
+              ) : !data || data.scatterData.length === 0 ? (
                 <div className="flex items-center justify-center h-96">
                   <div className="text-center space-y-3">
                     <Database className="h-12 w-12 text-muted-foreground mx-auto" />
@@ -785,17 +788,17 @@ export default function ProcessQueueAnalytics() {
                   </div>
                 </div>
               ) : (
-                                <div className="h-96">
+                <div className="h-96">
                   <Scatter
                     data={{
                       datasets: [
                         {
                           label: 'Duration (minutes)',
-                          data: data!.scatterData.map(item => ({
+                          data: (data?.scatterData || []).map(item => ({
                             x: new Date(item.x),
                             y: item.y
                           })),
-                          backgroundColor: data!.scatterData.map(item => {
+                          backgroundColor: (data?.scatterData || []).map(item => {
                             switch (item.status.toLowerCase()) {
                               case 'success': return 'rgba(34, 197, 94, 0.8)';
                               case 'fail': return 'rgba(239, 68, 68, 0.8)';
@@ -805,7 +808,7 @@ export default function ProcessQueueAnalytics() {
                               default: return 'rgba(107, 114, 128, 0.8)';
                             }
                           }),
-                          borderColor: data!.scatterData.map(item => {
+                          borderColor: (data?.scatterData || []).map(item => {
                             switch (item.status.toLowerCase()) {
                               case 'success': return 'rgba(34, 197, 94, 1)';
                               case 'fail': return 'rgba(239, 68, 68, 1)';
@@ -832,14 +835,22 @@ export default function ProcessQueueAnalytics() {
                         tooltip: {
                           callbacks: {
                             title: function(context: any) {
+                              if (!context || !context[0] || typeof context[0].dataIndex === 'undefined') {
+                                return '';
+                              }
                               const dataIndex = context[0].dataIndex;
-                              const item = data!.scatterData[dataIndex];
+                              const item = (data?.scatterData || [])[dataIndex];
+                              if (!item) return '';
                               const date = new Date(item.x);
                               return `Date & Time: ${date.toLocaleString()}`;
                             },
                             label: function(context: any) {
+                              if (!context || !context[0] || typeof context[0].dataIndex === 'undefined') {
+                                return '';
+                              }
                               const dataIndex = context[0].dataIndex;
-                              const item = data!.scatterData[dataIndex];
+                              const item = (data?.scatterData || [])[dataIndex];
+                              if (!item) return '';
                               return [
                                 `Duration: ${context[0].parsed.y.toFixed(2)} minutes`,
                                 `Status: ${item.status}`,
@@ -847,7 +858,30 @@ export default function ProcessQueueAnalytics() {
                               ];
                             }
                           }
-                        }
+                        },
+                        ...(isDataLabelsAvailable() ? {
+                          datalabels: {
+                            display: true,
+                            color: '#374151',
+                            font: {
+                              weight: 'bold',
+                              size: 10
+                            },
+                            formatter: function(value: any, context: any) {
+                              if (!context || typeof context.dataIndex === 'undefined') {
+                                return '';
+                              }
+                              const dataIndex = context.dataIndex;
+                              const item = (data?.scatterData || [])[dataIndex];
+                              if (!item) return '';
+                              return `${item.y.toFixed(1)}m`;
+                            },
+                            anchor: 'end',
+                            align: 'top',
+                            offset: 4,
+                            rotation: -45
+                          }
+                        } : {})
                       },
                       scales: {
                         x: {

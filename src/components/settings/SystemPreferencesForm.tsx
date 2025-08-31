@@ -18,6 +18,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'react-hot-toast';
+import { useClickProtection } from '@/hooks/use-click-protection';
 
 const DEFAULT_APP_NAME = "FitScan";
 const DEFAULT_THEME: ThemePreference = "system";
@@ -41,6 +42,12 @@ export function SystemPreferencesForm({ onSave, onCancel }: SystemPreferencesFor
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  
+  const { isActioning, handleProtectedAsyncClick } = useClickProtection({
+    actionName: 'save settings',
+    debounceMs: 200,
+    timeoutMs: 500
+  });
   const [currentAppName, setCurrentAppName] = useState(DEFAULT_APP_NAME);
   const [appLogoUrl, setAppLogoUrl] = useState<string | null>(null);
   const [appFaviconUrl, setAppFaviconUrl] = useState<string | null>(null);
@@ -335,8 +342,8 @@ export function SystemPreferencesForm({ onSave, onCancel }: SystemPreferencesFor
           <X className="h-4 w-4 mr-2" />
           Cancel
         </Button>
-        <Button onClick={handleSave} disabled={isSaving}>
-          {isSaving ? (
+        <Button onClick={() => handleProtectedAsyncClick(handleSave)} disabled={isSaving || isActioning}>
+          {(isSaving || isActioning) ? (
             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
           ) : (
             <Save className="h-4 w-4 mr-2" />

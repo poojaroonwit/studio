@@ -23,6 +23,7 @@ import { Badge } from '@/components/ui/badge';
 import { Upload, X, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import type { CandidateSource } from '@/lib/types';
+import { useClickProtection } from '@/hooks/use-click-protection';
 
 const candidateSourceFormSchema = z.object({
   name: z.string().min(1, "Source name is required"),
@@ -51,6 +52,12 @@ export default function CandidateSourceModal({
 }: CandidateSourceModalProps) {
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  
+  const { isActioning, handleProtectedAsyncClick } = useClickProtection({
+    actionName: 'candidate source',
+    debounceMs: 200,
+    timeoutMs: 500
+  });
 
   const form = useForm<CandidateSourceFormValues>({
     resolver: zodResolver(candidateSourceFormSchema),
@@ -106,15 +113,17 @@ export default function CandidateSourceModal({
   };
 
   const handleSubmit = async (data: CandidateSourceFormValues) => {
-    try {
-      setIsUploading(true);
-      await onSubmit(data);
-      onClose();
-    } catch (error) {
-      console.error('Failed to submit:', error);
-    } finally {
-      setIsUploading(false);
-    }
+    await handleProtectedAsyncClick(async () => {
+      try {
+        setIsUploading(true);
+        await onSubmit(data);
+        onClose();
+      } catch (error) {
+        console.error('Failed to submit:', error);
+      } finally {
+        setIsUploading(false);
+      }
+    });
   };
 
   return (
@@ -257,8 +266,8 @@ export default function CandidateSourceModal({
               Cancel
             </Button>
           </DialogClose>
-          <Button type="submit" disabled={form.formState.isSubmitting || isUploading} onClick={form.handleSubmit(handleSubmit)}>
-            {(form.formState.isSubmitting || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          <Button type="submit" disabled={form.formState.isSubmitting || isUploading || isActioning} onClick={form.handleSubmit(handleSubmit)}>
+            {(form.formState.isSubmitting || isUploading || isActioning) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {source ? 'Update' : 'Create'}
           </Button>
         </DialogFooter>

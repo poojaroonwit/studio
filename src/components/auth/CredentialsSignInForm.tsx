@@ -13,6 +13,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, KeyRound } from "lucide-react";
+import { useClickProtection } from '@/hooks/use-click-protection';
 
 const credentialsSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
@@ -26,6 +27,12 @@ export function CredentialsSignInForm({ activeFontColor, activeBgStart, activeBg
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  
+  const { isActioning, handleProtectedAsyncClick } = useClickProtection({
+    actionName: 'sign in',
+    debounceMs: 200,
+    timeoutMs: 500
+  });
 
   // Clear error if user starts typing again
   const form = useForm<CredentialsFormValues>({
@@ -52,36 +59,38 @@ export function CredentialsSignInForm({ activeFontColor, activeBgStart, activeBg
   }, [searchParams]);
 
   const onSubmit = async (data: CredentialsFormValues) => {
-    setIsLoading(true);
-    setError(null); // Clear previous errors
+    await handleProtectedAsyncClick(async () => {
+      setIsLoading(true);
+      setError(null); // Clear previous errors
 
-    try {
-      const result = await signIn('credentials', {
-        redirect: false, // Handle redirect manually to show errors
-        email: data.email,
-        password: data.password,
-        callbackUrl: searchParams?.get('callbackUrl') || '/', // Redirect to intended page or dashboard
-      });
+      try {
+        const result = await signIn('credentials', {
+          redirect: false, // Handle redirect manually to show errors
+          email: data.email,
+          password: data.password,
+          callbackUrl: searchParams?.get('callbackUrl') || '/', // Redirect to intended page or dashboard
+        });
 
-      if (result?.error) {
-        // Error messages from NextAuth can be a bit generic or internal
-        // Map common errors to user-friendly messages
-        if (result.error === "CredentialsSignin" || result.error.toLowerCase().includes("invalid") || result.error.toLowerCase().includes("password")) {
-          setError("Invalid email or password. Please try again.");
-        } else {
-          setError(result.error); // Or a generic message: "Login failed. Please try again."
+        if (result?.error) {
+          // Error messages from NextAuth can be a bit generic or internal
+          // Map common errors to user-friendly messages
+          if (result.error === "CredentialsSignin" || result.error.toLowerCase().includes("invalid") || result.error.toLowerCase().includes("password")) {
+            setError("Invalid email or password. Please try again.");
+          } else {
+            setError(result.error); // Or a generic message: "Login failed. Please try again."
+          }
+        } else if (result?.ok && result?.url) {
+          router.push(result.url); // Navigate to callbackUrl on success
+        } else if (result?.ok && !result?.url) {
+           router.push('/'); // Fallback if URL is not provided but login is ok
         }
-      } else if (result?.ok && result?.url) {
-        router.push(result.url); // Navigate to callbackUrl on success
-      } else if (result?.ok && !result?.url) {
-         router.push('/'); // Fallback if URL is not provided but login is ok
+      } catch (e) {
+        console.error("Sign in error:", e);
+        setError("An unexpected error occurred. Please try again.");
+      } finally {
+        setIsLoading(false);
       }
-    } catch (e) {
-      console.error("Sign in error:", e);
-      setError("An unexpected error occurred. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
+    });
   };
 
   return (
@@ -130,9 +139,9 @@ export function CredentialsSignInForm({ activeFontColor, activeBgStart, activeBg
             border: 'none',
             boxShadow: activeBgStart ? `0 8px 32px 0 hsla(${activeBgStart}, 0.35), 0 4px 16px 0 hsla(${activeBgStart}, 0.25)` : undefined,
           }}
-          disabled={isLoading}
+          disabled={isLoading || isActioning}
         >
-          {isLoading ? (
+          {(isLoading || isActioning) ? (
             <div className="animate-spin rounded-md h-5 w-5 border-b-2 border-primary-foreground"></div>
           ) : (
             <>

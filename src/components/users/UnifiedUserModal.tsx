@@ -38,6 +38,7 @@ import { toast } from 'react-hot-toast';
 import { RoleSelector } from '@/components/settings/RoleSelector';
 import { UserAvatarUpload } from '@/components/ui/user-avatar-upload';
 import { PersonalColorPicker } from '@/components/settings/PersonalColorPicker';
+import { useClickProtection } from '@/hooks/use-click-protection';
 
 const userRoleOptions: UserProfile['role'][] = ['Admin', 'Recruiter', 'Hiring Manager'];
 const platformModuleIds = PLATFORM_MODULES.map(m => m.id);
@@ -111,6 +112,12 @@ export function UnifiedUserModal({
   const [userTeams, setUserTeams] = useState<Array<{ id: string; name: string; color?: string }>>([]);
   const [isLoading, setIsLoading] = useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  const { isActioning, handleProtectedAsyncClick } = useClickProtection({
+    actionName: 'save user',
+    debounceMs: 200,
+    timeoutMs: 500
+  });
 
   const form = useForm<UnifiedUserFormValues>({
     resolver: zodResolver(unifiedUserFormSchema),
@@ -218,29 +225,31 @@ export function UnifiedUserModal({
   }, [isOpen, user, mode, form, canManageTeams]);
 
   const onSubmit = async (data: UnifiedUserFormValues) => {
-    setIsLoading(true);
-    try {
-      if (mode === 'create' && onAddUser) {
-        await onAddUser(data);
-      } else if (mode === 'edit' && onEditUser && user) {
-        await onEditUser(user.id, data);
-      } else if (mode === 'profile' && onSave) {
-        await onSave(data);
-      }
-      
-      // Force a small delay to ensure the update is processed
-      await new Promise(resolve => {
-        if (saveTimeoutRef.current) {
-          clearTimeout(saveTimeoutRef.current);
+    await handleProtectedAsyncClick(async () => {
+      setIsLoading(true);
+      try {
+        if (mode === 'create' && onAddUser) {
+          await onAddUser(data);
+        } else if (mode === 'edit' && onEditUser && user) {
+          await onEditUser(user.id, data);
+        } else if (mode === 'profile' && onSave) {
+          await onSave(data);
         }
-        saveTimeoutRef.current = setTimeout(resolve, 100);
-      });
-      
-    } catch (error) {
-      toast.error('Failed to save user data');
-    } finally {
-      setIsLoading(false);
-    }
+        
+        // Force a small delay to ensure the update is processed
+        await new Promise(resolve => {
+          if (saveTimeoutRef.current) {
+            clearTimeout(saveTimeoutRef.current);
+          }
+          saveTimeoutRef.current = setTimeout(resolve, 100);
+        });
+        
+      } catch (error) {
+        toast.error('Failed to save user data');
+      } finally {
+        setIsLoading(false);
+      }
+    });
   };
 
   // Determine modal title and description based on mode
@@ -297,11 +306,11 @@ export function UnifiedUserModal({
             <div className="flex gap-2">
               <Button 
                 onClick={form.handleSubmit(onSubmit)} 
-                disabled={isSubmitting || isLoading}
+                disabled={isSubmitting || isLoading || isActioning}
                 variant="default"
                 className="flex items-center gap-2"
               >
-                {isSubmitting || isLoading ? (
+                {(isSubmitting || isLoading || isActioning) ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
                     Saving...

@@ -1238,8 +1238,24 @@ export function CandidatesPageClient({
     
     // Check if we have an advanced query from URL that's being processed
     const advancedQueryFromUrl = searchParams.get('query');
-    if (advancedQueryFromUrl && !filters.name && !filters.email && !filters.phone && !filters.selectedPositionIds?.length && !filters.selectedStatuses?.length && !filters.minAppliedJobFitScore && !filters.maxAppliedJobFitScore) {
+    if (advancedQueryFromUrl) {
+      console.log('🔍 CandidatesPageClient: Advanced query detected:', advancedQueryFromUrl);
+      console.log('🔍 CandidatesPageClient: Current filters:', filters);
+      console.log('🔍 CandidatesPageClient: Filter checks:', {
+        hasName: !!filters.name,
+        hasEmail: !!filters.email,
+        hasPhone: !!filters.phone,
+        hasPositionIds: !!filters.selectedPositionIds?.length,
+        hasStatuses: !!filters.selectedStatuses?.length,
+        hasMinAppliedJobFitScore: !!filters.minAppliedJobFitScore,
+        hasMaxAppliedJobFitScore: !!filters.maxAppliedJobFitScore,
+        hasMinMatchingJobFitScore: !!filters.minMatchingJobFitScore,
+        hasMaxMatchingJobFitScore: !!filters.maxMatchingJobFitScore
+      });
+    }
+    if (advancedQueryFromUrl && !filters.name && !filters.email && !filters.phone && !filters.selectedPositionIds?.length && !filters.selectedStatuses?.length && !filters.minAppliedJobFitScore && !filters.maxAppliedJobFitScore && !filters.minMatchingJobFitScore && !filters.maxMatchingJobFitScore) {
       // Advanced query is being processed, don't fetch yet
+      console.log('🔍 CandidatesPageClient: Skipping fetch - advanced query being processed');
       return;
     }
     
@@ -1267,6 +1283,7 @@ export function CandidatesPageClient({
       if (currentRequestRefFromHook?.current !== undefined) {
         currentRequestRefFromHook.current = requestId;
       }
+      console.log('🔍 CandidatesPageClient: Fetching table data with filters:', filters);
       fetchTableData(filters, page, pageSize);
     }, 300); // Increased delay to prevent resource leaks
     

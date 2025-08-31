@@ -954,6 +954,18 @@ export async function GET(request: NextRequest) {
       LIMIT $${paramIndex++} OFFSET $${paramIndex++}
     `;
 
+    // Debug logging for fit score filtering
+    if (filters.minAppliedJobFitScore !== undefined || filters.maxAppliedJobFitScore !== undefined) {
+      console.log('🔍 API: Fit score filters detected:', {
+        minAppliedJobFitScore: filters.minAppliedJobFitScore,
+        maxAppliedJobFitScore: filters.maxAppliedJobFitScore
+      });
+      console.log('🔍 API: Count query:', countQuery);
+      console.log('🔍 API: Data query:', dataQuery);
+      console.log('🔍 API: Query params:', queryParams);
+      console.log('🔍 API: Where clause:', whereClause);
+    }
+
     // Execute queries in parallel for better performance
     const [countResult, dataResult] = await Promise.all([
       client.query(countQuery, queryParams),

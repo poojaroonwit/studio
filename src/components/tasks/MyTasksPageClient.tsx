@@ -85,6 +85,26 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   const [metadataLoaded, setMetadataLoaded] = useState(false);
   const [totalCandidates, setTotalCandidates] = useState(0);
   
+  // Track optimistic updates to prevent real-time updates from overriding them
+  const optimisticUpdatesRef = useRef<Set<string>>(new Set());
+  
+  // Get status color for YouTrack-style badges
+  const getStatusColor = (status: string) => {
+    const statusColors: Record<string, string> = {
+      'Applied': 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800',
+      'Screening': 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-800',
+      'Shortlisted': 'bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-900/20 dark:text-indigo-300 dark:border-indigo-800',
+      'Interview Scheduled': 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800',
+      'Interviewing': 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/20 dark:text-orange-300 dark:border-orange-800',
+      'Offer Sent': 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800',
+      'Offer Accepted': 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800',
+      'Hired': 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800',
+      'Rejected': 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800',
+      'Withdrawn': 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-800',
+    };
+    return statusColors[status] || 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-800';
+  };
+  
   // Admin users can access my-tasks page - no automatic redirect
   
   // Add debouncing for search
@@ -97,27 +117,76 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     selectedStages: [] 
   });
 
-  // FIXED: Stabilize callback functions to prevent infinite loops
-  const handleCandidateUpdate = useCallback((updatedCandidate: any) => {
+  // FIXED: Stabilize callback functions to prevent infinite loops and preserve optimistic updates
+  const handleCandidateUpdate = useCallback((updateData: any) => {
+    // Extract candidate data from the unified broadcaster structure
+    const updatedCandidate = updateData?.candidate || updateData;
+    const action = updateData?.action;
+    
+    // Handle candidate deletion
+    if (action === 'deleted' && updateData?.candidateId) {
+      console.log('🗑️ Removing deleted candidate:', updateData.candidateId);
+      setCandidates(prevCandidates => 
+        prevCandidates.filter(c => c.id !== updateData.candidateId)
+      );
+      return;
+    }
+    
+    if (!updatedCandidate || !updatedCandidate.id) {
+      console.warn('🔄 Invalid candidate update data received:', updateData);
+      return;
+    }
+    
     setCandidates(prevCandidates => {
       const existingIndex = prevCandidates.findIndex(c => c.id === updatedCandidate.id);
       if (existingIndex !== -1) {
         const existingCandidate = prevCandidates[existingIndex];
-        // Only update if there are actual changes to prevent infinite loops
-        const hasChanges = Object.keys(updatedCandidate).some(key => 
-          existingCandidate[key as keyof typeof existingCandidate] !== updatedCandidate[key]
-        );
         
-        if (hasChanges) {
+        // Check if this candidate is currently being optimistically updated
+        const isBeingOptimisticallyUpdated = optimisticUpdatesRef.current.has(updatedCandidate.id);
+        
+        // Debug logging for real-time updates
+        console.log('🔄 Real-time update received:', {
+          candidateId: updatedCandidate.id,
+          currentStatus: existingCandidate.status,
+          newStatus: updatedCandidate.status,
+          isBeingOptimisticallyUpdated,
+          action: updateData?.action,
+          updateData
+        });
+        
+        // If this is a real-time update for a candidate we're optimistically updating,
+        // and the status matches our optimistic state, ignore this update
+        if (isBeingOptimisticallyUpdated && existingCandidate.status === updatedCandidate.status) {
+          console.log('🔄 Ignoring real-time update for optimistically updated candidate:', updatedCandidate.id);
+          return prevCandidates;
+        }
+        
+        // Only update if there are meaningful changes
+        const hasMeaningfulChanges = 
+          existingCandidate.status !== updatedCandidate.status ||
+          existingCandidate.recruiterId !== updatedCandidate.recruiterId ||
+          existingCandidate.positionId !== updatedCandidate.positionId ||
+          existingCandidate.fitScore !== updatedCandidate.fitScore ||
+          existingCandidate.name !== updatedCandidate.name ||
+          existingCandidate.email !== updatedCandidate.email;
+        
+        if (hasMeaningfulChanges) {
           const updated = [...prevCandidates];
           updated[existingIndex] = { ...existingCandidate, ...updatedCandidate };
           return updated;
         }
-        // No changes, return same array to prevent unnecessary re-renders
+        // No meaningful changes, return same array to prevent unnecessary re-renders
         return prevCandidates;
       } else {
-        // New candidate, add to list
-        return [...prevCandidates, updatedCandidate];
+        // New candidate, add to list (only for 'created' action or if we don't have action info)
+        if (action === 'created' || !action) {
+          console.log('➕ Adding new candidate:', updatedCandidate.id);
+          return [...prevCandidates, updatedCandidate];
+        }
+        // For other actions, don't add if we don't have the candidate
+        console.log('⚠️ Received update for unknown candidate:', updatedCandidate.id, 'action:', action);
+        return prevCandidates;
       }
     });
   }, []);
@@ -203,7 +272,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     }
   }, [viewMode, selectedStages, isLoaded, updateTaskBoardPreferences]);
 
-  // Cleanup timeouts on unmount
+  // Cleanup timeouts and optimistic updates on unmount
   useEffect(() => {
     return () => {
       if (searchTimeoutRef.current) {
@@ -212,6 +281,8 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       if (preferenceUpdateTimeoutRef.current) {
         clearTimeout(preferenceUpdateTimeoutRef.current);
       }
+      // Clear any remaining optimistic updates
+      optimisticUpdatesRef.current.clear();
     };
   }, []);
 
@@ -446,6 +517,16 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       return;
     }
 
+    // Track this optimistic update
+    optimisticUpdatesRef.current.add(candidate.id);
+    console.log('🚀 Starting optimistic update for candidate:', candidate.id, 'to status:', newStatus);
+    
+    // Set a timeout to clear optimistic update after 30 seconds (fallback)
+    setTimeout(() => {
+      optimisticUpdatesRef.current.delete(candidate.id);
+      console.log('⏰ Cleared optimistic update timeout for candidate:', candidate.id);
+    }, 30000);
+    
     // Optimistic update
     setCandidates((prev) =>
       prev.map((c) =>
@@ -455,58 +536,62 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       )
     );
 
-    // Enhanced error handling with retry logic using network utilities
+    // Simplified update function without complex retry logic
     const updateCandidateStatus = async (): Promise<void> => {
       try {
-        // Test API endpoint accessibility first
-        const testResponse = await fetch(`/api/candidates/${candidate.id}`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
-        });
+        // Add timeout to prevent hanging requests
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
         
-        if (!testResponse.ok) {
-          console.error('❌ API endpoint test failed:', testResponse.status, testResponse.statusText);
-          throw new Error(`API endpoint not accessible: ${testResponse.status} ${testResponse.statusText}`);
-        }
-        
-        // Use retry logic for the actual update
-        await retryWithBackoff(async () => {
+        try {
           const updateResponse = await fetch(`/api/candidates/${candidate.id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ status: newStatus }),
+            signal: controller.signal,
           });
           
-          if (!updateResponse.ok) {
-            // Get detailed error information
-            let errorData = null;
-            
-            try {
-              errorData = await updateResponse.json();
-              console.error('📋 API Error Response:', errorData);
-            } catch (parseError) {
-              console.error('❌ Could not parse error response:', parseError);
-            }
-            
-            console.error('❌ API Error:', updateResponse.status, 'for candidate:', candidate.id);
-            
-            // Create error object with status for proper handling
-            const error = new Error(errorData?.message || `HTTP ${updateResponse.status}`);
-            (error as any).status = updateResponse.status;
-            (error as any).data = errorData;
-            
-            throw error;
+          clearTimeout(timeoutId);
+        
+        if (!updateResponse.ok) {
+          // Get detailed error information
+          let errorData = null;
+          
+          try {
+            errorData = await updateResponse.json();
+            console.error('📋 API Error Response:', errorData);
+          } catch (parseError) {
+            console.error('❌ Could not parse error response:', parseError);
           }
           
-          return updateResponse;
-        }, 2, 1000); // 2 retries, 1 second base delay
+          console.error('❌ API Error:', updateResponse.status, 'for candidate:', candidate.id);
+          
+          // Create error object with status for proper handling
+          const error = new Error(errorData?.message || `HTTP ${updateResponse.status}`);
+          (error as any).status = updateResponse.status;
+          (error as any).data = errorData;
+          
+          throw error;
+        }
         
-        // Don't re-fetch the candidate - rely on optimistic update and realtime updates
-        // This prevents potential infinite loops and reduces API calls
+        // Success - don't re-fetch, rely on optimistic update and realtime updates
         toast.success(`Moved ${candidate.name} to ${newStatus}`);
+        
+        // Remove from optimistic updates tracking
+        optimisticUpdatesRef.current.delete(candidate.id);
+        console.log('✅ Optimistic update completed successfully for candidate:', candidate.id);
+        
+        } catch (fetchError: any) {
+          clearTimeout(timeoutId);
+          throw fetchError;
+        }
         
       } catch (error: any) {
         console.error('❌ Error updating candidate status:', error, 'for candidate:', candidate.id);
+        
+        // Remove from optimistic updates tracking
+        optimisticUpdatesRef.current.delete(candidate.id);
+        console.log('❌ Optimistic update failed for candidate:', candidate.id, 'reverting to:', candidate.status);
         
         // Revert optimistic update on error
         setCandidates((prev) =>
@@ -525,8 +610,6 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
         if (isRetryableError(error)) {
           setHasNetworkError(true);
         }
-        
-        throw error; // Re-throw to prevent further processing
       }
     };
     
@@ -535,25 +618,6 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       console.error('❌ Final error in handleMoveTask:', error);
     });
   };
-
-  // Get status color for YouTrack-style badges
-  const getStatusColor = (status: string) => {
-    const statusColors: Record<string, string> = {
-      'Applied': 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800',
-      'Screening': 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-800',
-      'Shortlisted': 'bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-900/20 dark:text-indigo-300 dark:border-indigo-800',
-      'Interview Scheduled': 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800',
-      'Interviewing': 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/20 dark:text-orange-300 dark:border-orange-800',
-      'Offer Sent': 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800',
-      'Offer Accepted': 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800',
-      'Hired': 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800',
-      'Rejected': 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800',
-      'Withdrawn': 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-800',
-    };
-    return statusColors[status] || 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-800';
-  };
-
-
 
   // Stage filter functions
   const handleSelectAllStages = () => {

@@ -41,12 +41,6 @@ export async function GET() {
           description: "Personal task management"
         },
         { 
-          label: "Task Board", 
-          icon: "Kanban", 
-          href: "/task-board",
-          description: "General task management with drag & drop"
-        },
-        { 
           label: "SLA Monitoring", 
           icon: "AlertTriangle", 
           href: "/sla-monitoring",

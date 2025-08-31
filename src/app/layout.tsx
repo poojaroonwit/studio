@@ -13,6 +13,7 @@ import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { FontLoader } from '@/components/ui/FontLoader';
 import { FontPreloader } from '@/components/ui/FontPreloader';
+import ToastClient from '@/components/ui/ToastClient';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -86,6 +87,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                     <GlobalSettingsProvider>
                       <RamdaPolyfillInitializer />
                       <AppLayout>{children}</AppLayout>
+                      <ToastClient />
                     </GlobalSettingsProvider>
                   </WarningProvider>
                 </NotificationProvider>

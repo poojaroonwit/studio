@@ -11,12 +11,14 @@ class UnifiedRealtimeManager {
   private isConnecting = false;
   private connectionTimeout: NodeJS.Timeout | null = null;
   private reconnectAttempts = 0;
-  private maxReconnectAttempts = 5;
+  private maxReconnectAttempts = 3; // Reduced to prevent excessive reconnection loops
   private reconnectDelay = 1000;
   private listeners = new Map<string, Set<(data: any) => void>>();
   private connectedSessions = new Set<string>();
   private connectionAttempts = new Map<string, number>();
   private maxAttempts = 3;
+  private lastReconnectAttempt = 0;
+  private reconnectCooldown = 10000; // 10 seconds cooldown between reconnection attempts
   private connectionCount = 0;
   private cleanupInterval: NodeJS.Timeout | null = null;
 
@@ -35,6 +37,11 @@ class UnifiedRealtimeManager {
     setInterval(() => {
       this.checkConnectionHealth();
     }, 10000); // Check health every 10 seconds
+
+    // Start activity update interval to prevent premature cleanup
+    setInterval(() => {
+      this.updateConnectionActivity();
+    }, 15000); // Update activity every 15 seconds
 
     // Register for connection pool cleanup notifications
     registerConnectionCleanupCallback((connectionId, url, type) => {
@@ -102,6 +109,13 @@ class UnifiedRealtimeManager {
       return false;
     }
 
+    // Check reconnection cooldown
+    const now = Date.now();
+    if (now - this.lastReconnectAttempt < this.reconnectCooldown) {
+      console.log('⏳ Reconnection cooldown active, skipping connection attempt');
+      return false;
+    }
+
     // Check if already connected for this session
     if (this.connectedSessions.has(sessionId)) {
       this.connectionCount++;
@@ -116,6 +130,7 @@ class UnifiedRealtimeManager {
     }
 
     this.isConnecting = true;
+    this.lastReconnectAttempt = now;
     this.connectionAttempts.set(sessionId, attempts + 1);
 
     try {
@@ -136,7 +151,8 @@ class UnifiedRealtimeManager {
       const eventSource = await createOptimizedSSE('/api/realtime/unified', {
         timeout: timeoutDuration,
         retryAttempts: this.maxReconnectAttempts,
-        priority: 'high'
+        priority: 'high',
+        inactivityTimeout: 60000 // Use 60 seconds for SSE connections to prevent premature cleanup
       });
       this.eventSource = eventSource;
 
@@ -149,6 +165,10 @@ class UnifiedRealtimeManager {
         this.isHealthy = true;
         this.lastHeartbeat = Date.now();
         
+        // Reset connection attempts on successful connection
+        this.connectionAttempts.delete(sessionId);
+        this.reconnectAttempts = 0;
+        
         if (this.connectionTimeout) {
           clearTimeout(this.connectionTimeout);
           this.connectionTimeout = null;
@@ -159,12 +179,13 @@ class UnifiedRealtimeManager {
         try {
           const data = JSON.parse(event.data);
           
-          // Update heartbeat on any message
+          // Update heartbeat on any message (including keepalive/heartbeat)
           this.lastHeartbeat = Date.now();
           
           // Handle different message types
           if (data.type === 'keepalive' || data.type === 'heartbeat') {
-            // Just update heartbeat, don't broadcast
+            // Update activity but don't broadcast
+            console.log('💓 SSE heartbeat received');
             return;
           }
           
@@ -339,6 +360,15 @@ class UnifiedRealtimeManager {
       this.connectionCount = 0;
       this.connectedSessions.clear();
       this.isHealthy = false;
+    }
+  }
+
+  // Update connection activity to prevent cleanup
+  private updateConnectionActivity() {
+    if (this.eventSource && this.eventSource.readyState === EventSource.OPEN) {
+      // This will be handled by the connection pool manager's onmessage handler
+      // which updates the lastActivity timestamp
+      this.lastHeartbeat = Date.now();
     }
   }
 

@@ -38,17 +38,17 @@ interface ConnectionInfo {
 class ConnectionPoolManager {
   private static instance: ConnectionPoolManager;
   private activeConnections = 0;
-  private maxConcurrentConnections = 150; // Increased from 8 to 150
+  private maxConcurrentConnections = 20; // Reduced to prevent overwhelming the system
   private requestQueue: QueuedRequest[] = [];
   private processingQueue = false;
-  private connectionTimeout = 30000; // 30 seconds
-  private retryAttempts = 3;
+  private connectionTimeout = 10000; // Reduced to 10 seconds to prevent long-hanging requests
+  private retryAttempts = 1; // Reduced to prevent cascading failures
   private retryDelay = 1000; // 1 second
 
   // Connection tracking and cleanup
   private connectionInfo = new Map<string, ConnectionInfo>();
   private cleanupInterval: NodeJS.Timeout | null = null;
-  private inactivityTimeout = 3000; // Reduced from 60000 to 3000 (3 seconds)
+  private inactivityTimeout = 30000; // Increased back to 30 seconds for better SSE stability
   private maxConnectionLifetime = 300000; // 5 minutes max lifetime
 
   // Connection cleanup callbacks
@@ -61,11 +61,13 @@ class ConnectionPoolManager {
     errorCount: number;
     successCount: number;
     averageResponseTime: number;
+    isCircuitOpen: boolean;
+    circuitOpenTime: number;
   }>();
 
   // SSE connection management
   private sseConnections = new Map<string, EventSource>();
-  private maxSseConnections = 50; // Increased from 4 to 50
+  private maxSseConnections = 5; // Reduced to prevent overwhelming the system
 
   private constructor() {
     this.startHealthMonitoring();
@@ -276,7 +278,7 @@ class ConnectionPoolManager {
   private startConnectionCleanup(): void {
     this.cleanupInterval = setInterval(() => {
       this.performConnectionCleanup();
-    }, 3000); // Check every 3 seconds (reduced from 30 seconds)
+    }, 30000); // Check every 30 seconds to reduce overhead
   }
 
   /**
@@ -358,6 +360,23 @@ class ConnectionPoolManager {
     const startTime = Date.now();
     const connectionId = this.generateRequestId();
 
+    // Check circuit breaker
+    const hostname = new URL(request.url).hostname;
+    const health = this.connectionHealth.get(hostname);
+    if (health?.isCircuitOpen) {
+      const circuitOpenTime = Date.now() - health.circuitOpenTime;
+      if (circuitOpenTime < 60000) { // Keep circuit open for 1 minute
+        console.warn(`🚨 Circuit breaker is open for ${hostname}, rejecting request`);
+        request.reject(new Error(`Circuit breaker is open for ${hostname}`));
+        return;
+      } else {
+        // Reset circuit after timeout
+        health.isCircuitOpen = false;
+        health.errorCount = 0;
+        console.log(`✅ Circuit breaker reset for ${hostname}`);
+      }
+    }
+
     // Track connection info
     const connectionInfo: ConnectionInfo = {
       id: connectionId,
@@ -376,7 +395,7 @@ class ConnectionPoolManager {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => {
         controller.abort();
-      }, 30000);
+      }, this.connectionTimeout);
 
       const response = await fetch(request.url, {
         ...request.options,
@@ -402,20 +421,20 @@ class ConnectionPoolManager {
       this.recordConnectionError(request.url, error);
 
       // Retry logic
-      if (request.retryCount < 3 && this.shouldRetry(error)) {
+      if (request.retryCount < this.retryAttempts && this.shouldRetry(error)) {
         request.retryCount++;
-        console.log(`Retrying request ${request.id} (attempt ${request.retryCount}/3)`);
+        console.log(`Retrying request ${request.id} (attempt ${request.retryCount}/${this.retryAttempts})`);
         
         // Add back to queue with delay
         setTimeout(() => {
           this.queueRequest(request, {
-            maxConcurrent: 150,
-            timeoutMs: 30000,
-            retryAttempts: 3,
-            retryDelayMs: 1000,
+            maxConcurrent: this.maxConcurrentConnections,
+            timeoutMs: this.connectionTimeout,
+            retryAttempts: this.retryAttempts,
+            retryDelayMs: this.retryDelay,
             priority: request.priority
           });
-        }, 1000 * request.retryCount); // Exponential backoff
+        }, this.retryDelay * request.retryCount); // Exponential backoff
       } else {
         request.reject(error);
       }
@@ -452,12 +471,15 @@ class ConnectionPoolManager {
       lastError: 0,
       errorCount: 0,
       successCount: 0,
-      averageResponseTime: 0
+      averageResponseTime: 0,
+      isCircuitOpen: false,
+      circuitOpenTime: 0
     };
 
     health.lastSuccess = Date.now();
     health.successCount++;
     health.averageResponseTime = (health.averageResponseTime + responseTime) / 2;
+    health.isCircuitOpen = false; // Close circuit on success
 
     this.connectionHealth.set(hostname, health);
   }
@@ -472,11 +494,20 @@ class ConnectionPoolManager {
       lastError: 0,
       errorCount: 0,
       successCount: 0,
-      averageResponseTime: 0
+      averageResponseTime: 0,
+      isCircuitOpen: false,
+      circuitOpenTime: 0
     };
 
     health.lastError = Date.now();
     health.errorCount++;
+
+    // Open circuit if too many errors
+    if (health.errorCount >= 5 && !health.isCircuitOpen) {
+      health.isCircuitOpen = true;
+      health.circuitOpenTime = Date.now();
+      console.warn(`🚨 Circuit breaker opened for ${hostname} due to ${health.errorCount} consecutive errors`);
+    }
 
     this.connectionHealth.set(hostname, health);
   }
@@ -487,7 +518,7 @@ class ConnectionPoolManager {
   private startHealthMonitoring(): void {
     setInterval(() => {
       this.monitorConnectionHealth();
-    }, 3000); // Check every 3 seconds (reduced from 30 seconds)
+    }, 30000); // Check every 30 seconds to reduce overhead
   }
 
   /**
@@ -592,6 +623,20 @@ class ConnectionPoolManager {
     console.log('🧹 Force cleaning up all connections...');
     this.performConnectionCleanup();
     this.closeAllSSEConnections();
+    
+    // Clear all connection info
+    this.connectionInfo.clear();
+    this.activeConnections = 0;
+    this.processingQueue = false;
+    this.requestQueue = [];
+    
+    // Reset circuit breakers
+    for (const [hostname, health] of this.connectionHealth.entries()) {
+      health.isCircuitOpen = false;
+      health.errorCount = 0;
+    }
+    
+    console.log('✅ All connections and circuit breakers reset');
   }
 }
 

@@ -48,17 +48,40 @@ export function useAppLayoutState() {
   const [state, setState] = useState<AppLayoutState>(initialState);
   const isUpdatingRef = useRef(false);
   const lastUpdateTimeRef = useRef(0);
+  const pendingUpdatesRef = useRef<Partial<AppLayoutState>>({});
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Batch state updates to prevent excessive re-renders
   const updateState = useCallback((updates: Partial<AppLayoutState>) => {
     const now = Date.now();
     
-    // Prevent updates more frequently than 50ms
-    if (now - lastUpdateTimeRef.current < 50) {
+    // Prevent updates more frequently than 100ms (increased from 50ms)
+    if (now - lastUpdateTimeRef.current < 100) {
+      // Merge with pending updates instead of dropping
+      pendingUpdatesRef.current = { ...pendingUpdatesRef.current, ...updates };
+      
+      // Clear existing timeout and set a new one
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      
+      timeoutRef.current = setTimeout(() => {
+        if (Object.keys(pendingUpdatesRef.current).length > 0) {
+          setState(prevState => ({
+            ...prevState,
+            ...pendingUpdatesRef.current,
+          }));
+          pendingUpdatesRef.current = {};
+          lastUpdateTimeRef.current = Date.now();
+        }
+      }, 50);
+      
       return;
     }
     
     if (isUpdatingRef.current) {
+      // Merge with pending updates
+      pendingUpdatesRef.current = { ...pendingUpdatesRef.current, ...updates };
       return;
     }
 
@@ -73,7 +96,7 @@ export function useAppLayoutState() {
     // Reset the flag after a short delay
     setTimeout(() => {
       isUpdatingRef.current = false;
-    }, 10);
+    }, 20);
   }, []); // Empty dependency array to ensure this function is stable
 
   // Initialize client state
@@ -122,6 +145,9 @@ export function useAppLayoutState() {
   useEffect(() => {
     return () => {
       isUpdatingRef.current = false;
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
     };
   }, []);
 

@@ -19,6 +19,8 @@ export function useSessionValidation(options: {
   const [isValidating, setIsValidating] = useState(false);
   const lastValidationTime = useRef<number>(0);
   const validationInProgress = useRef<boolean>(false);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const hasInitializedRef = useRef<boolean>(false);
   
   const {
     validateInterval = 5 * 60 * 1000, // 5 minutes
@@ -36,9 +38,9 @@ export function useSessionValidation(options: {
       return;
     }
 
-    // Prevent excessive validation calls
+    // Prevent excessive validation calls - increased minimum interval to 30 seconds
     const now = Date.now();
-    if (now - lastValidationTime.current < 10000) { // Minimum 10 seconds between validations
+    if (now - lastValidationTime.current < 30000) { // Minimum 30 seconds between validations
       return;
     }
 
@@ -82,19 +84,39 @@ export function useSessionValidation(options: {
 
   useEffect(() => {
     if (status !== 'authenticated') {
+      // Clear any existing interval when not authenticated
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
       return;
     }
+
+    // Only initialize once per session
+    if (hasInitializedRef.current) {
+      return;
+    }
+    hasInitializedRef.current = true;
 
     // Validate immediately
     validateSession();
 
     // Set up periodic validation
-    const interval = setInterval(validateSession, validateInterval);
+    intervalRef.current = setInterval(validateSession, validateInterval);
 
     return () => {
-      clearInterval(interval);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      hasInitializedRef.current = false;
     };
   }, [validateSession, status, validateInterval]);
+
+  // Reset initialization flag when session changes
+  useEffect(() => {
+    hasInitializedRef.current = false;
+  }, [session?.user?.id]);
 
   return {
     isValidating,

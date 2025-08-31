@@ -7,9 +7,13 @@ import { cn } from "@/lib/utils";
 import CandidateImportUploadQueue from '@/components/candidates/CandidateImportUploadQueue';
 // @ts-expect-error: ProcessQueueAnalytics may not exist yet
 import ProcessQueueAnalytics from '@/components/candidates/ProcessQueueAnalytics';
+import BulkUploadCVsModal from '@/components/BulkUploadCVsModal';
+import { Button } from '@/components/ui/button';
+import { Upload } from 'lucide-react';
 
 export default function ProcessQueuePage() {
   const [activeTab, setActiveTab] = React.useState<'queue' | 'analytics'>('queue');
+  const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false);
 
   return (
     <div className="h-full flex flex-col">
@@ -43,6 +47,19 @@ export default function ProcessQueuePage() {
               <BarChart3 className="h-4 w-4" />
               Analytics
             </div>
+            
+            {/* Upload CV Button - only show on queue tab */}
+            {activeTab === 'queue' && (
+              <div className="ml-auto flex items-center">
+                <Button
+                  onClick={() => setIsBulkUploadModalOpen(true)}
+                  className="h-8 px-3 text-sm"
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload CVs
+                </Button>
+              </div>
+            )}
           </div>
           
           <div className="mt-2">
@@ -51,6 +68,16 @@ export default function ProcessQueuePage() {
           </div>
         </div>
       </div>
+
+      {/* Bulk Upload CVs Modal */}
+      <BulkUploadCVsModal
+        isOpen={isBulkUploadModalOpen}
+        onOpenChange={setIsBulkUploadModalOpen}
+        onUploadSuccess={() => {
+          // Refresh the queue data after successful upload
+          // The CandidateImportUploadQueue component will handle the refresh
+        }}
+      />
     </div>
   );
 }

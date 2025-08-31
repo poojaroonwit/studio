@@ -1283,8 +1283,7 @@ export default function SystemPreferencesPage() {
           value: value === undefined ? null : value === null ? null : String(value)
         }));
       
-      console.log('Settings to save:', settingsToSave);
-      console.log('Settings count:', settingsToSave.length);
+
       
       const res = await fetch('/api/settings/system-settings', {
         method: 'POST',

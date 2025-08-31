@@ -194,11 +194,9 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
     }
   }, []);
 
-  // Simple upload function - upload all files to MinIO and create DB records
+    // Simple upload function - upload all files to MinIO and create DB records
   async function uploadFilesToMinIOAndQueue(files: File[], batchId: string) {
     try {
-  
-      
       // Create FormData with all files
       const formData = new FormData();
       
@@ -212,32 +210,56 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
       formData.append('batch_id', batchId);
       formData.append('source', 'bulk');
 
-      // Upload all files in one request
-      const uploadRes = await fetch('/api/upload-queue/upload-file', {
-        method: 'POST',
-        body: formData
-      });
-      
-      if (!uploadRes.ok) {
-        let errorMsg = 'Failed to upload files';
-        try {
-          const errorData = await uploadRes.json();
-          errorMsg = errorData.error || errorMsg;
-        } catch (parseErr) {
-          console.error('Upload error (non-JSON):', uploadRes);
+      // Create AbortController for timeout handling
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+      }, 300000); // 5 minutes timeout
+
+      try {
+        // Upload all files in one request
+        const uploadRes = await fetch('/api/upload-queue/upload-file', {
+          method: 'POST',
+          body: formData,
+          signal: controller.signal
+        });
+        
+        // Clear timeout on successful response
+        clearTimeout(timeoutId);
+        
+        if (!uploadRes.ok) {
+          let errorMsg = 'Failed to upload files';
+          try {
+            const errorData = await uploadRes.json();
+            errorMsg = errorData.error || errorData.message || errorMsg;
+          } catch (parseErr) {
+            console.error('Upload error (non-JSON):', uploadRes);
+          }
+          throw new Error(errorMsg);
         }
-        throw new Error(errorMsg);
+        
+        const result = await uploadRes.json();
+        
+        return { 
+          success: true,
+          data: result,
+          successful: result.summary?.success || 0,
+          failed: result.summary?.failed || 0,
+          errors: result.results?.filter((r: any) => r.status === 'failed')?.map((r: any) => `${r.file_name}: ${r.error}`) || []
+        };
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        
+        if (fetchError.name === 'AbortError') {
+          throw new Error('Upload timed out. Please try again with fewer files or smaller files.');
+        }
+        
+        if (fetchError.name === 'TypeError' && fetchError.message.includes('fetch')) {
+          throw new Error('Network error. Please check your connection and try again.');
+        }
+        
+        throw fetchError;
       }
-      
-      const result = await uploadRes.json();
-      
-      return { 
-        success: true,
-        data: result,
-        successful: result.summary?.success || 0,
-        failed: result.summary?.failed || 0,
-        errors: result.results?.filter((r: any) => r.status === 'failed')?.map((r: any) => `${r.file_name}: ${r.error}`) || []
-      };
     } catch (err) {
       console.error('Upload error:', err);
       throw err;
@@ -252,31 +274,43 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
   const handleModalClose = useCallback((open: boolean) => {
     onOpenChange(open);
     if (!open) {
+      // Reset all state
       setSelectedFiles([]);
       setSelectedPositionId("");
       setSelectedPositionIds(new Set());
       setSelectedFileIndex(0);
+      setUploadProgress(null);
+      setUploading(false);
       
       // Force cleanup of any remaining modal elements
       setTimeout(() => {
-        const { cleanupAllModals } = require('@/lib/modal-cleanup');
-        cleanupAllModals();
+        try {
+          const { cleanupAllModals } = require('@/lib/modal-cleanup');
+          cleanupAllModals();
+        } catch (error) {
+          console.error('Error during modal cleanup:', error);
+        }
       }, 100);
     }
   }, [onOpenChange]);
 
   const handleConfirmUpload = useCallback(async (e?: React.MouseEvent) => {
-
     // Prevent any default form submission behavior
     if (e) {
       e.preventDefault();
       e.stopPropagation();
     }
     
+    // Validate files before starting upload
+    if (selectedFiles.length === 0) {
+      errorWithDescription('No files selected', 'Please select at least one PDF file to upload.');
+      return;
+    }
+    
     setUploading(true);
+    setUploadProgress({ current: 0, total: selectedFiles.length });
+    
     try {
-      if (selectedFiles.length === 0) return;
-      
       // Simple upload - all files in one request
       const batchId = uuidv4();
       const { success, successful, failed, errors } = await uploadFilesToMinIOAndQueue(selectedFiles, batchId);
@@ -291,7 +325,7 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
         } else {
           successWithDescription(
             `⚠️ Upload Complete: ${successful} files uploaded, ${failed} files failed`, 
-            "Some files were uploaded successfully. Check the queue for details."
+            errors.length > 0 ? `Failed files: ${errors.join(', ')}` : "Some files were uploaded successfully. Check the queue for details."
           );
         }
         
@@ -299,6 +333,8 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
         setSelectedFiles([]);
         setSelectedPositionId("");
         setSelectedPositionIds(new Set());
+        setSelectedFileIndex(0);
+        setUploadProgress(null);
         onOpenChange(false);
         
         // Refresh queue display
@@ -307,10 +343,36 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
       }
     } catch (error) {
       console.error('Upload error:', error);
-      errorWithDescription(
-        'Upload failed', 
-        error instanceof Error ? error.message : 'Please try again'
-      );
+      
+      // Determine the type of error and show appropriate message
+      let errorMessage = 'Upload failed';
+      let errorDescription = 'Please try again';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('timeout')) {
+          errorMessage = 'Upload timed out';
+          errorDescription = 'The upload took too long. Please try with fewer files or smaller files.';
+        } else if (error.message.includes('Network error')) {
+          errorMessage = 'Network error';
+          errorDescription = 'Please check your internet connection and try again.';
+        } else if (error.message.includes('Storage service unavailable')) {
+          errorMessage = 'Storage service unavailable';
+          errorDescription = 'The file storage service is currently unavailable. Please try again later.';
+        } else if (error.message.includes('Forbidden')) {
+          errorMessage = 'Permission denied';
+          errorDescription = 'You do not have permission to upload files. Please contact your administrator.';
+        } else if (error.message.includes('Unauthorized')) {
+          errorMessage = 'Session expired';
+          errorDescription = 'Your session has expired. Please refresh the page and try again.';
+        } else {
+          errorDescription = error.message;
+        }
+      }
+      
+      errorWithDescription(errorMessage, errorDescription);
+      
+      // Reset upload state but keep files selected so user can retry
+      setUploadProgress(null);
     } finally {
       setUploading(false);
     }
@@ -403,23 +465,52 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
         {/* Upload Progress Indicator */}
         {uploading && (
           <div className="px-4 py-3 bg-muted/20 rounded-lg border">
-            <div className="flex items-center justify-center">
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              <span className="text-sm font-medium">Uploading {totalFiles} files...</span>
+            <div className="flex items-center justify-center space-x-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="text-sm font-medium">
+                Uploading {totalFiles} files...
+                {uploadProgress && (
+                  <span className="text-xs text-muted-foreground ml-2">
+                    ({uploadProgress.current}/{uploadProgress.total})
+                  </span>
+                )}
+              </span>
             </div>
+            {uploadProgress && (
+              <div className="mt-2 w-full bg-background rounded-full h-2">
+                <div 
+                  className="bg-primary h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${(uploadProgress.current / uploadProgress.total) * 100}%` }}
+                />
+              </div>
+            )}
           </div>
         )}
         
         <DialogFooter>
-          <DialogClose asChild>
+          {uploading ? (
             <Button 
               type="button" 
               variant="outline" 
-              disabled={uploading}
+              onClick={() => {
+                setUploading(false);
+                setUploadProgress(null);
+                // Note: The actual abort will be handled by the AbortController in the upload function
+              }}
             >
-              Cancel
+              Cancel Upload
             </Button>
-          </DialogClose>
+          ) : (
+            <DialogClose asChild>
+              <Button 
+                type="button" 
+                variant="outline" 
+                disabled={uploading}
+              >
+                Cancel
+              </Button>
+            </DialogClose>
+          )}
           <Button 
             type="button" 
             onClick={(e) => {

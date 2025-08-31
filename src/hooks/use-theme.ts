@@ -10,6 +10,13 @@ export function useTheme() {
   const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>('light');
   const [themePreference, setThemePreference] = useState<ThemePreference>('system');
   const lastThemeChange = useRef<number>(0);
+  const hasInitializedRef = useRef<boolean>(false);
+  const userIdRef = useRef<string | undefined>(undefined);
+
+  // Update userId ref when session changes
+  useEffect(() => {
+    userIdRef.current = session?.user?.id;
+  }, [session?.user?.id]);
 
   // Memoize the apply theme function to prevent recreation
   const applyTheme = useCallback((theme: 'light' | 'dark') => {
@@ -58,7 +65,7 @@ export function useTheme() {
     applyTheme(newTheme);
 
     // Save to user preferences if authenticated
-    if (session?.user?.id) {
+    if (userIdRef.current) {
       try {
         await fetch('/api/user-preferences?modelType=appearance', {
           method: 'POST',
@@ -75,7 +82,7 @@ export function useTheme() {
         console.warn('Failed to save theme preference:', error);
       }
     }
-  }, [session?.user?.id, applyTheme]);
+  }, [applyTheme]);
 
   // Memoize the toggle theme function
   const toggleTheme = useCallback(() => {
@@ -84,8 +91,11 @@ export function useTheme() {
     setTheme(newPreference);
   }, [currentTheme, setTheme]);
 
-  // Initialize theme on mount
+  // Initialize theme on mount - only run once
   useEffect(() => {
+    if (hasInitializedRef.current) return;
+    hasInitializedRef.current = true;
+    
     setMounted(true);
     
     // Ensure we're in a browser environment
@@ -133,9 +143,9 @@ export function useTheme() {
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, [themePreference, applyTheme]);
 
-  // Load theme preference from user preferences when authenticated
+  // Load theme preference from user preferences when authenticated - only run when userId changes
   useEffect(() => {
-    if (!session?.user?.id) return;
+    if (!userIdRef.current) return;
 
     const loadUserThemePreference = async () => {
       try {
@@ -172,14 +182,7 @@ export function useTheme() {
     };
 
     loadUserThemePreference();
-  }, [session?.user?.id, themePreference, applyTheme]);
-
-  // Add a cleanup effect to prevent memory leaks
-  useEffect(() => {
-    return () => {
-      // Cleanup any pending operations
-    };
-  }, []);
+  }, [userIdRef.current, themePreference, applyTheme]);
 
   return {
     mounted,

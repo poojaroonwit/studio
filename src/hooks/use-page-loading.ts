@@ -7,6 +7,7 @@ export function usePageLoading() {
   const [isLoading, setIsLoading] = useState(false);
   const pathname = usePathname();
   const previousPathnameRef = useRef<string | null>(null);
+  const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const startLoading = useCallback(() => {
     setIsLoading(true);
@@ -26,16 +27,34 @@ export function usePageLoading() {
   useEffect(() => {
     // Only show loading for actual page changes, not for the same page
     if (hasPathnameChanged) {
+      // Clear any existing timeout
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+      }
+      
       startLoading();
       
       // Reduced timeout for faster response
-      const timer = setTimeout(() => {
+      loadingTimeoutRef.current = setTimeout(() => {
         stopLoading();
       }, 100); // Reduced from 200ms to 100ms for faster response
-      
-      return () => clearTimeout(timer);
     }
+    
+    return () => {
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+      }
+    };
   }, [hasPathnameChanged, startLoading, stopLoading]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return { isLoading, startLoading, stopLoading };
 } 

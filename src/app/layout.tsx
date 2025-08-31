@@ -3,45 +3,61 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-
 import { AuthProvider } from '@/components/auth/AuthProvider';
-import { ErrorBoundary } from '@/components/ui/error-boundary';
+import { LoadingProvider } from '@/contexts/LoadingContext';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import { WarningProvider } from '@/contexts/WarningContext';
-import { LoadingProvider } from '@/contexts/LoadingContext';
-import { AppLayout } from '@/components/layout/AppLayout';
+import { GlobalSettingsProvider } from '@/contexts/GlobalSettingsContext';
 import { RamdaPolyfillInitializer } from '@/components/ui/RamdaPolyfillInitializer';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
+import { AppLayout } from '@/components/layout/AppLayout';
 
 const inter = Inter({ subsets: ['latin'] });
 
-export async function generateMetadata(): Promise<Metadata> {
-  const defaultTitle = "FitScan - Recruitment Management System";
-  const defaultDescription = "Comprehensive recruitment management system for tracking candidates, positions, and hiring processes.";
-  
-  return {
-    title: { default: defaultTitle, template: '%s | FitScan' },
-    description: defaultDescription,
-    keywords: ['recruitment', 'hiring', 'candidates', 'positions', 'HR'],
-    authors: [{ name: 'FitScan Team' }],
-    creator: 'FitScan',
-    publisher: 'FitScan',
-    formatDetection: { email: false, address: false, telephone: false },
-    metadataBase: new URL(process.env.NEXTAUTH_URL || 'http://localhost:8021'),
-    alternates: { canonical: '/' },
-    openGraph: {
-      type: 'website', locale: 'en_US', url: '/', title: defaultTitle,
-      description: defaultDescription, siteName: 'FitScan',
+export const metadata: Metadata = {
+  title: 'FitScan - AI-Powered Recruitment Platform',
+  description: 'Advanced AI-powered recruitment and candidate management platform',
+  keywords: 'recruitment, AI, candidate management, HR, hiring',
+  authors: [{ name: 'FitScan Team' }],
+  creator: 'FitScan',
+  publisher: 'FitScan',
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  metadataBase: new URL(process.env.NEXTAUTH_URL || 'http://localhost:3000'),
+  openGraph: {
+    title: 'FitScan - AI-Powered Recruitment Platform',
+    description: 'Advanced AI-powered recruitment and candidate management platform',
+    url: '/',
+    siteName: 'FitScan',
+    locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'FitScan - AI-Powered Recruitment Platform',
+    description: 'Advanced AI-powered recruitment and candidate management platform',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
     },
-    twitter: { card: 'summary_large_image', title: defaultTitle, description: defaultDescription },
-    robots: {
-      index: true, follow: true,
-      googleBot: { index: true, follow: true, 'max-video-preview': -1, 'max-image-preview': 'large', 'max-snippet': -1 },
-    },
-    other: {
-      'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'DENY', 'X-XSS-Protection': '1; mode=block',
-    },
-  };
-}
+  },
+  verification: {
+    google: process.env.GOOGLE_SITE_VERIFICATION,
+  },
+  other: {
+    'X-Frame-Options': 'DENY', 'X-XSS-Protection': '1; mode=block',
+  },
+};
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions);
@@ -57,8 +73,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <LoadingProvider>
               <NotificationProvider>
                 <WarningProvider>
-                  <RamdaPolyfillInitializer />
-                  <AppLayout>{children}</AppLayout>
+                  <GlobalSettingsProvider>
+                    <RamdaPolyfillInitializer />
+                    <AppLayout>{children}</AppLayout>
+                  </GlobalSettingsProvider>
                 </WarningProvider>
               </NotificationProvider>
             </LoadingProvider>

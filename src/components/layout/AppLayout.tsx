@@ -123,7 +123,7 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
       updateAppConfigRef.current?.({
         appLogoUrl: prefs.appLogoDataUrl || null,
         currentAppName: prefs.appName || DEFAULT_APP_NAME,
-        showLogoOnly: prefs.showLogoOnly === 'true' || prefs.showLogoOnly === true,
+        showLogoOnly: prefs.showLogoOnly === true || prefs.showLogoOnly === 'true',
         sidebarLogoSize: prefs.sidebarLogoSize ? parseInt(prefs.sidebarLogoSize) : 48,
         contextualLogos: {
           sidebarLogoCollapsedLightMode: prefs.sidebarLogoCollapsedLightMode || null,

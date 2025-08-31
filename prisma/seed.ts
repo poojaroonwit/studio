@@ -76,8 +76,8 @@ console.log(`Password: ${adminPassword}`);
           // Other permissions
           'UPLOAD_QUEUE_VIEW','UPLOAD_QUEUE_MANAGE','BULK_UPLOAD_EXECUTE','DASHBOARD_VIEW','REPORTS_GENERATE','WEBHOOK_ANALYTICS_VIEW','LOGS_VIEW','LOGS_EXPORT','APP_PERFORMANCE_VIEW','TASK_BOARD_VIEW','TASK_BOARD_MANAGE_OWN','TASK_BOARD_MANAGE_ALL','JOB_MATCH_VIEW','JOB_MATCH_MANAGE','WARNING_CONFIGURATIONS_VIEW','WARNING_CONFIGURATIONS_MANAGE','USER_PREFERENCES_MANAGE_OWN','USER_PREFERENCES_MANAGE_ALL'
         ],
-        is_default: true,
-        is_system_role: true,
+        isDefault: true,
+        isSystemRole: true,
       },
     });
 
@@ -96,8 +96,8 @@ console.log(`Password: ${adminPassword}`);
           // Other permissions
           'TASK_BOARD_VIEW','TASK_BOARD_MANAGE_OWN','RECRUITMENT_STAGES_VIEW','USER_PREFERENCES_MANAGE_OWN','BULK_UPLOAD_EXECUTE','DASHBOARD_VIEW','REPORTS_GENERATE'
         ],
-        is_default: true,
-        is_system_role: false,
+        isDefault: true,
+        isSystemRole: false,
       },
     });
 
@@ -111,8 +111,8 @@ console.log(`Password: ${adminPassword}`);
         permissions: [
           'CANDIDATES_VIEW','CANDIDATES_VIEW_DETAILED','CANDIDATES_COMMENTS_VIEW','POSITIONS_VIEW','TASK_BOARD_VIEW','DASHBOARD_VIEW','USER_PREFERENCES_MANAGE_OWN'
         ],
-        is_default: true,
-        is_system_role: false,
+        isDefault: true,
+        isSystemRole: false,
       },
     });
 

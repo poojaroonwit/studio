@@ -284,12 +284,12 @@ const SidebarTrigger = React.forwardRef<
   const toggleTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
   const lastToggleTimeRef = React.useRef<number>(0);
 
-  const handleToggle = React.useCallback((event: React.MouseEvent) => {
+  const handleToggle = React.useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
     const now = Date.now();
     const timeSinceLastToggle = now - lastToggleTimeRef.current;
     
-    // Prevent rapid toggling (less than 300ms apart)
-    if (timeSinceLastToggle < 300) {
+    // Reduced protection: prevent rapid toggling (less than 150ms apart - reduced from 300ms)
+    if (timeSinceLastToggle < 150) {
       console.log('Sidebar trigger toggle blocked: too rapid clicking');
       return;
     }
@@ -356,8 +356,8 @@ const SidebarRail = React.forwardRef<
     const now = Date.now();
     const timeSinceLastToggle = now - lastToggleTimeRef.current;
     
-    // Prevent rapid toggling (less than 300ms apart)
-    if (timeSinceLastToggle < 300) {
+    // Reduced protection: prevent rapid toggling (less than 150ms apart - reduced from 300ms)
+    if (timeSinceLastToggle < 150) {
       console.log('Sidebar rail toggle blocked: too rapid clicking');
       return;
     }

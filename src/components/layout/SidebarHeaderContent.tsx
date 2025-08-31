@@ -87,8 +87,8 @@ export function SidebarHeaderContent({
     const now = Date.now();
     const timeSinceLastToggle = now - lastToggleTimeRef.current;
     
-    // Prevent rapid toggling (less than 300ms apart)
-    if (timeSinceLastToggle < 300) {
+    // Reduced protection: prevent rapid toggling (less than 150ms apart - reduced from 300ms)
+    if (timeSinceLastToggle < 150) {
       console.log('Sidebar header toggle blocked: too rapid clicking');
       return;
     }

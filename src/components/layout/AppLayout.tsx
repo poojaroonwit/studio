@@ -393,8 +393,8 @@ const SidebarToggleButton = memo(() => {
     const now = Date.now();
     const timeSinceLastToggle = now - lastToggleTimeRef.current;
     
-    // Prevent rapid toggling (less than 300ms apart)
-    if (timeSinceLastToggle < 300) {
+    // Reduced protection: prevent rapid toggling (less than 150ms apart - reduced from 300ms)
+    if (timeSinceLastToggle < 150) {
       console.log('Sidebar toggle blocked: too rapid clicking');
       return;
     }
@@ -413,10 +413,10 @@ const SidebarToggleButton = memo(() => {
       clearTimeout(toggleTimeoutRef.current);
     }
     
-    // Set a timeout to reset toggle state
+    // Reduced timeout to reset toggle state (300ms - reduced from 500ms)
     toggleTimeoutRef.current = setTimeout(() => {
       setIsToggling(false);
-    }, 500);
+    }, 300);
     
     toggleSidebar();
   }, [toggleSidebar, isToggling]);

@@ -30,7 +30,7 @@ const NAV_ITEMS = {
   settings: { href: "/settings", label: "Settings", icon: Settings }
 };
 
-// Simple pending count hook with error handling and caching
+// Optimized pending count hook with reduced frequency
 const usePendingCount = () => {
   const [pendingCount, setPendingCount] = React.useState<number | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -64,14 +64,14 @@ const usePendingCount = () => {
       }
     };
 
-    // Only fetch if we haven't fetched recently (within 30 seconds)
+    // Only fetch if we haven't fetched recently (within 60 seconds - increased from 30)
     const now = Date.now();
-    if (now - lastFetchTime.current > 30000) {
+    if (now - lastFetchTime.current > 60000) {
       fetchPendingCount();
     }
 
-    // Set up periodic refresh every 30 seconds
-    fetchTimeoutRef.current = setTimeout(fetchPendingCount, 30000);
+    // Set up periodic refresh every 60 seconds (increased from 30)
+    fetchTimeoutRef.current = setTimeout(fetchPendingCount, 60000);
 
     return () => {
       if (fetchTimeoutRef.current) {
@@ -239,8 +239,8 @@ const getSafeSessionInfo = (session: any) => {
   }
 };
 
-// Custom Link component with click protection
-const ProtectedLink = React.memo(({ href, children, ...props }: { href: string; children: React.ReactNode; [key: string]: any }) => {
+// Optimized Link component with minimal click protection
+const OptimizedLink = React.memo(({ href, children, ...props }: { href: string; children: React.ReactNode; [key: string]: any }) => {
   const router = useRouter();
   const [isNavigating, setIsNavigating] = React.useState(false);
   const navigationTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
@@ -268,8 +268,8 @@ const ProtectedLink = React.memo(({ href, children, ...props }: { href: string; 
     const now = Date.now();
     const timeSinceLastClick = now - lastClickTimeRef.current;
     
-    // Prevent rapid clicks (less than 500ms apart)
-    if (timeSinceLastClick < 500) {
+    // Reduced protection: only prevent rapid clicks (less than 200ms apart - reduced from 500ms)
+    if (timeSinceLastClick < 200) {
       console.log('Navigation blocked: too rapid clicking');
       return;
     }
@@ -288,12 +288,12 @@ const ProtectedLink = React.memo(({ href, children, ...props }: { href: string; 
       clearTimeout(navigationTimeoutRef.current);
     }
     
-    // Set a timeout to reset navigation state
+    // Reduced timeout to reset navigation state (500ms - reduced from 1000ms)
     navigationTimeoutRef.current = setTimeout(() => {
       if (isMountedRef.current) {
         setIsNavigating(false);
       }
-    }, 1000);
+    }, 500);
     
     try {
       router.push(href);
@@ -314,7 +314,7 @@ const ProtectedLink = React.memo(({ href, children, ...props }: { href: string; 
   );
 });
 
-ProtectedLink.displayName = 'ProtectedLink';
+OptimizedLink.displayName = 'OptimizedLink';
 
 const SafeSidebarNavComponent = React.memo(() => {
   const [hasError, setHasError] = React.useState(false);
@@ -355,7 +355,7 @@ const SafeSidebarNavComponent = React.memo(() => {
             {navigationItems.map((item) => (
               <SidebarMenuItem key={item.href}>
                 <MenuItemWithTooltip label={item.label}>
-                  <ProtectedLink href={item.href} className="w-full">
+                  <OptimizedLink href={item.href} className="w-full">
                     <SidebarMenuButton
                       isActive={pathname === item.href}
                       className="w-full justify-center"
@@ -363,7 +363,7 @@ const SafeSidebarNavComponent = React.memo(() => {
                     >
                       <item.icon className="h-5 w-5" />
                     </SidebarMenuButton>
-                  </ProtectedLink>
+                  </OptimizedLink>
                 </MenuItemWithTooltip>
               </SidebarMenuItem>
             ))}
@@ -373,7 +373,7 @@ const SafeSidebarNavComponent = React.memo(() => {
             <SidebarMenu>
               <SidebarMenuItem>
                 <MenuItemWithTooltip label={NAV_ITEMS.bulkUpload.label}>
-                  <ProtectedLink href={NAV_ITEMS.bulkUpload.href} className="w-full">
+                  <OptimizedLink href={NAV_ITEMS.bulkUpload.href} className="w-full">
                     <SidebarMenuButton
                       isActive={pathname === NAV_ITEMS.bulkUpload.href}
                       className="w-full justify-center relative"
@@ -390,12 +390,12 @@ const SafeSidebarNavComponent = React.memo(() => {
                         </Badge>
                       )}
                     </SidebarMenuButton>
-                  </ProtectedLink>
+                  </OptimizedLink>
                 </MenuItemWithTooltip>
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <MenuItemWithTooltip label={NAV_ITEMS.settings.label}>
-                  <ProtectedLink href={NAV_ITEMS.settings.href} className="w-full">
+                  <OptimizedLink href={NAV_ITEMS.settings.href} className="w-full">
                     <SidebarMenuButton
                       isActive={pathname.startsWith(NAV_ITEMS.settings.href)}
                       className="w-full justify-center"
@@ -403,7 +403,7 @@ const SafeSidebarNavComponent = React.memo(() => {
                     >
                       <NAV_ITEMS.settings.icon className="h-5 w-5" />
                     </SidebarMenuButton>
-                  </ProtectedLink>
+                  </OptimizedLink>
                 </MenuItemWithTooltip>
               </SidebarMenuItem>
             </SidebarMenu>
@@ -420,7 +420,7 @@ const SafeSidebarNavComponent = React.memo(() => {
           {navigationItems.map((item) => (
             <SidebarMenuItem key={item.href}>
               <MenuItemWithTooltip label={item.label}>
-                <ProtectedLink href={item.href} className="w-full">
+                <OptimizedLink href={item.href} className="w-full">
                   <SidebarMenuButton
                     isActive={pathname === item.href}
                     className="w-full justify-start"
@@ -429,7 +429,7 @@ const SafeSidebarNavComponent = React.memo(() => {
                     <item.icon className="h-5 w-5" />
                     <span className="truncate">{item.label}</span>
                   </SidebarMenuButton>
-                </ProtectedLink>
+                </OptimizedLink>
               </MenuItemWithTooltip>
             </SidebarMenuItem>
           ))}
@@ -440,7 +440,7 @@ const SafeSidebarNavComponent = React.memo(() => {
             <SidebarGroupLabel>System</SidebarGroupLabel>
             <SidebarMenuItem>
               <MenuItemWithTooltip label={NAV_ITEMS.bulkUpload.label}>
-                <ProtectedLink href={NAV_ITEMS.bulkUpload.href} className="w-full">
+                <OptimizedLink href={NAV_ITEMS.bulkUpload.href} className="w-full">
                   <SidebarMenuButton
                     isActive={pathname === NAV_ITEMS.bulkUpload.href}
                     className="w-full justify-start relative"
@@ -458,12 +458,12 @@ const SafeSidebarNavComponent = React.memo(() => {
                       </Badge>
                     )}
                   </SidebarMenuButton>
-                </ProtectedLink>
+                </OptimizedLink>
               </MenuItemWithTooltip>
             </SidebarMenuItem>
             <SidebarMenuItem>
               <MenuItemWithTooltip label={NAV_ITEMS.settings.label}>
-                <ProtectedLink href={NAV_ITEMS.settings.href} className="w-full">
+                <OptimizedLink href={NAV_ITEMS.settings.href} className="w-full">
                   <SidebarMenuButton
                     isActive={pathname.startsWith(NAV_ITEMS.settings.href)}
                     className="w-full justify-start"
@@ -472,7 +472,7 @@ const SafeSidebarNavComponent = React.memo(() => {
                     <NAV_ITEMS.settings.icon className="h-5 w-5" />
                     <span className="truncate">{NAV_ITEMS.settings.label}</span>
                   </SidebarMenuButton>
-                </ProtectedLink>
+                </OptimizedLink>
               </MenuItemWithTooltip>
             </SidebarMenuItem>
           </SidebarMenu>

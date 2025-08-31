@@ -41,10 +41,11 @@
     "start:docker": "docker-compose up -d",
     "stop:docker": "docker-compose down",
     "logs:docker": "docker-compose logs -f",
-    "debug:listeners": "node scripts/debug-listeners.js"
+    "debug:listeners": "node scripts/debug-listeners.js",
+    "debug:seed": "node scripts/debug-seed.js"
   },
   "prisma": {
-    "seed": "tsx prisma/seed.ts"
+    "seed": "npx tsx prisma/seed.ts"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",

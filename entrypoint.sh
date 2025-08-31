@@ -155,12 +155,23 @@ else
 fi
 
 # Seed the database
-echo "🌱 Seeding database..."
-if npx prisma db seed; then
-    echo "✅ Database seeding completed"
+if [ "$SKIP_SEED" = "true" ]; then
+    echo "⏭️  Skipping database seeding (SKIP_SEED=true)"
 else
-    echo "⚠️  Database seeding failed or already completed"
-    # Don't exit on seeding failure as it might be due to existing data
+    echo "🌱 Seeding database..."
+    echo "📋 Running: npx prisma db seed"
+    if npx prisma db seed 2>&1; then
+        echo "✅ Database seeding completed successfully"
+    else
+        echo "❌ Database seeding failed with error code: $?"
+        echo "🔍 Attempting to run seed manually with detailed output..."
+        if npx tsx prisma/seed.ts 2>&1; then
+            echo "✅ Manual seeding completed successfully"
+        else
+            echo "❌ Manual seeding also failed"
+            echo "⚠️  Continuing without seed data - check logs for details"
+        fi
+    fi
 fi
 
 # Initialize warning conditions for all users

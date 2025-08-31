@@ -62,6 +62,7 @@ services:
       DATABASE_SSL: ${DATABASE_SSL:-false}
       # RUN_MIGRATIONS: ${RUN_MIGRATIONS:-false}
       # REMOVE_MIGRATION_FILES: ${REMOVE_MIGRATION_FILES:-false}
+      SKIP_SEED: ${SKIP_SEED:-false}
       # N8N Database variables (for database creation)
       POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
       POSTGRES_PORT: ${POSTGRES_PORT:-5432}

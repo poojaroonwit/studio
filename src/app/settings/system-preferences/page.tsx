@@ -261,6 +261,10 @@ interface SidebarColors {
   sidebarIconSizeD: string; sidebarIconColorD: string; sidebarIconColorHoverD: string; sidebarIconColorActiveD: string;
   sidebarIconMarginRightD: string; sidebarIconTransitionD: string;
   
+  // Group label settings
+  sidebarGroupLabelColorL: string; sidebarGroupLabelFontSizeL: string; sidebarGroupLabelFontWeightL: string; sidebarGroupLabelTextTransformL: string; sidebarGroupLabelLetterSpacingL: string; sidebarGroupLabelPaddingL: string; sidebarGroupLabelMarginL: string;
+  sidebarGroupLabelColorD: string; sidebarGroupLabelFontSizeD: string; sidebarGroupLabelFontWeightD: string; sidebarGroupLabelTextTransformD: string; sidebarGroupLabelLetterSpacingD: string; sidebarGroupLabelPaddingD: string; sidebarGroupLabelMarginD: string;
+  
   [key: string]: string;
 }
 
@@ -1196,6 +1200,10 @@ export default function SystemPreferencesPage() {
     setErrorMsg(null);
     setSuccessMsg(false);
     
+    console.log('Starting save preferences...');
+    console.log('canEdit:', canEdit);
+    console.log('isMountedRef.current:', isMountedRef.current);
+    
     // Create abort controller for save request
     const saveController = new AbortController();
     
@@ -1275,6 +1283,9 @@ export default function SystemPreferencesPage() {
           value: value === undefined ? null : value === null ? null : String(value)
         }));
       
+      console.log('Settings to save:', settingsToSave);
+      console.log('Settings count:', settingsToSave.length);
+      
       const res = await fetch('/api/settings/system-settings', {
         method: 'POST',
         headers: {
@@ -1286,8 +1297,12 @@ export default function SystemPreferencesPage() {
       
       if (!res.ok) {
         const errorData = await res.json();
+        console.error('Save failed with status:', res.status);
+        console.error('Error data:', errorData);
         throw new Error(errorData.message || 'Failed to save preferences');
       }
+      
+      console.log('Save successful!');
       
 
 
@@ -1336,6 +1351,7 @@ export default function SystemPreferencesPage() {
       }));
       
     } catch (e: any) {
+      console.error('Exception in save preferences:', e);
       if (isMountedRef.current && e.name !== 'AbortError') {
         setErrorMsg(e.message);
         console.error('Failed to save preferences:', e);

@@ -725,6 +725,84 @@ Do not include any markdown formatting, code blocks, or additional text. Only re
     }
     console.log('✅ Candidate sources created/updated');
 
+    // Create default position levels
+    console.log('Creating default position levels...');
+    const positionLevels = [
+      {
+        id: '550e8400-e29b-41d4-a716-446655440070',
+        name: 'Entry Level',
+        description: 'Entry level positions for recent graduates or junior professionals',
+        color: '#3B82F6',
+        isActive: true,
+        sortOrder: 1
+      },
+      {
+        id: '550e8400-e29b-41d4-a716-446655440071',
+        name: 'Junior',
+        description: 'Junior positions with 1-3 years of experience',
+        color: '#10B981',
+        isActive: true,
+        sortOrder: 2
+      },
+      {
+        id: '550e8400-e29b-41d4-a716-446655440072',
+        name: 'Mid Level',
+        description: 'Mid-level positions with 3-7 years of experience',
+        color: '#F59E0B',
+        isActive: true,
+        sortOrder: 3
+      },
+      {
+        id: '550e8400-e29b-41d4-a716-446655440073',
+        name: 'Senior',
+        description: 'Senior positions with 7-12 years of experience',
+        color: '#EF4444',
+        isActive: true,
+        sortOrder: 4
+      },
+      {
+        id: '550e8400-e29b-41d4-a716-446655440074',
+        name: 'Lead',
+        description: 'Lead positions with team leadership responsibilities',
+        color: '#8B5CF6',
+        isActive: true,
+        sortOrder: 5
+      },
+      {
+        id: '550e8400-e29b-41d4-a716-446655440075',
+        name: 'Manager',
+        description: 'Managerial positions with department oversight',
+        color: '#EC4899',
+        isActive: true,
+        sortOrder: 6
+      },
+      {
+        id: '550e8400-e29b-41d4-a716-446655440076',
+        name: 'Director',
+        description: 'Director level positions with strategic responsibilities',
+        color: '#DC2626',
+        isActive: true,
+        sortOrder: 7
+      },
+      {
+        id: '550e8400-e29b-41d4-a716-446655440077',
+        name: 'Executive',
+        description: 'Executive level positions (C-level, VP, etc.)',
+        color: '#7C2D12',
+        isActive: true,
+        sortOrder: 8
+      }
+    ];
+
+    for (const level of positionLevels) {
+      await prisma.positionLevel.upsert({
+        where: { id: level.id },
+        update: {},
+        create: level
+      });
+    }
+    console.log('✅ Default position levels created/updated');
+
     // Get admin user for creating warning configurations
     const adminUserForWarnings = await prisma.user.findUnique({
       where: { email: adminEmail }

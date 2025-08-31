@@ -221,8 +221,12 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  console.log('System settings POST request received');
   const session = await getServerSession(authOptions);
+  console.log('Session user:', session?.user?.email, 'Role:', session?.user?.role, 'Permissions:', session?.user?.modulePermissions);
+  
   if (session?.user?.role !== 'Admin' && !session?.user?.modulePermissions?.includes('SYSTEM_SETTINGS_EDIT')) {
+    console.log('Access denied - insufficient permissions');
     await logAudit('WARN', `Forbidden attempt to update system settings by user ${session?.user?.email || 'Unknown'}.`, 'API:SystemSettings:Update', session?.user?.id);
     return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
   }
@@ -287,6 +291,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "Error parsing request body", error: (error as Error).message }, { status: 400 });
   }
 
+  console.log('Settings to save:', settingsToSave);
+  console.log('Settings count:', settingsToSave.length);
+  
   const validationResult = saveSystemSettingsSchema.safeParse(settingsToSave);
   if (!validationResult.success) {
     console.error('System settings validation failed:', validationResult.error.flatten().fieldErrors);
@@ -300,6 +307,8 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     );
   }
+  
+  console.log('Validation successful');
 
   const validatedSettings = validationResult.data;
   const client = await getPool().connect();
@@ -322,6 +331,7 @@ export async function POST(request: NextRequest) {
     }
 
     await client.query('COMMIT');
+    console.log('Database transaction committed successfully');
     await logAudit('AUDIT', `System settings updated by ${session.user.name}. Keys: ${validatedSettings.map((s: any)=>s.key).join(', ')}`, 'API:SystemSettings:Update', session.user.id, { updatedKeys: validatedSettings.map((s: any)=>s.key) });
     
     // Return all current settings after update as an object (key-value pairs)

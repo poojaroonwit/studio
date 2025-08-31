@@ -95,12 +95,6 @@ services:
         max_attempts: 5
         window: 120s
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "/app/healthcheck.sh"]
-      interval: 30s
-      timeout: 15s
-      retries: 3
-      start_period: 120s
     # The command to run the application is defined in the Dockerfile's CMD instruction
     # which uses wait-for-db.sh for optimized startup
     networks:
@@ -121,12 +115,6 @@ services:
     # Resource limits
     mem_limit: 8g
     cpus: 2
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-postgres}"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
     deploy:
       restart_policy:
         condition: on-failure
@@ -163,12 +151,6 @@ services:
     # Resource limits
     mem_limit: 8g
     cpus: 2
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
     deploy:
       restart_policy:
         condition: on-failure
@@ -202,12 +184,6 @@ services:
       - app
     mem_limit: 8g
     cpus: 2
-    healthcheck:
-      test: ["CMD", "pgrep", "-f", "process-upload-queue.cjs"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
     deploy:
       restart_policy:
         condition: on-failure

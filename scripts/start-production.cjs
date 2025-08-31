@@ -65,7 +65,6 @@ async function main() {
   
   // Check if services are already running
   const processorRunning = await checkServiceRunning('process-upload-queue.cjs');
-  const healthCheckRunning = await checkServiceRunning('health-check.cjs');
   const nextAppRunning = await checkServiceRunning('next');
   
   // Start Next.js application if not running
@@ -91,17 +90,10 @@ async function main() {
     log('Queue processor is already running', 'INFO');
   }
   
-  if (!healthCheckRunning) {
-    await startService('scripts/health-check.cjs', 'Health Check');
-  } else {
-    log('Health check service is already running', 'INFO');
-  }
-  
   log('Production startup complete!', 'INFO');
   log('Services running:', 'INFO');
   log('- Next.js Application: Main web application (port 8021)', 'INFO');
   log('- Queue Processor: Processes upload queue jobs', 'INFO');
-  log('- Health Check: Monitors and restarts services if needed', 'INFO');
   log('', 'INFO');
   log('To monitor services:', 'INFO');
   log('- Check queue status: npm run check-queue-status', 'INFO');

@@ -30,7 +30,7 @@ import { Input } from '@/components/ui/input';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { StageSelect } from './StageSelect';
-import { HealthCheck } from '@/components/ui/health-check';
+
 import { Badge } from '@/components/ui/badge';
 import { UserX } from 'lucide-react';
 import { FitScoreFilterBadges } from './FitScoreFilterBadges';

@@ -25,7 +25,7 @@ RUN npm cache clean --force && \
 COPY . .
 
 # Fix line endings for shell scripts (important for Windows development)
-RUN dos2unix ./healthcheck.sh ./entrypoint.sh ./entrypoint-processor.sh 2>/dev/null || true
+RUN dos2unix ./entrypoint.sh ./entrypoint-processor.sh 2>/dev/null || true
 
 # Debug: check if src/lib/db.ts exists
 RUN ls -l src/lib/db.ts || (echo 'src/lib/db.ts not found!' && exit 1)
@@ -41,7 +41,6 @@ RUN npm run build
 # Make entrypoint scripts executable
 RUN chmod +x ./entrypoint.sh
 RUN chmod +x ./entrypoint-processor.sh
-RUN chmod +x ./healthcheck.sh
 
 # Set environment variables
 ENV NODE_ENV=production

@@ -36,7 +36,6 @@ const config = {
   circuitBreakerThreshold: parseInt(process.env.CIRCUIT_BREAKER_THRESHOLD) || 50,
   circuitBreakerTimeoutMs: parseInt(process.env.CIRCUIT_BREAKER_TIMEOUT_MS) || 300000, // 5 minutes
   maxTotalIterations: parseInt(process.env.MAX_TOTAL_ITERATIONS) || 10000,
-  healthCheckIntervalMs: parseInt(process.env.HEALTH_CHECK_INTERVAL_MS) || 60000, // 1 minute
   // ENHANCED: Additional infinite loop prevention
   maxConsecutiveEmptyBatches: parseInt(process.env.MAX_CONSECUTIVE_EMPTY_BATCHES) || 50,
   maxTotalProcessingTimeMs: parseInt(process.env.MAX_TOTAL_PROCESSING_TIME_MS) || 24 * 60 * 60 * 1000, // 24 hours
@@ -68,7 +67,6 @@ let totalIterations = 0;
 let circuitBreakerFailures = 0;
 let circuitBreakerOpen = false;
 let circuitBreakerOpenTime = 0;
-let lastHealthCheck = Date.now();
 let lastSuccessfulProcessing = Date.now();
 // ENHANCED: Additional infinite loop prevention state
 let consecutiveEmptyBatches = 0;
@@ -149,24 +147,7 @@ async function testConnectivity() {
 }
 
 // NEW: Health check function
-async function performHealthCheck() {
-  try {
-    const response = await makeRequest(`${config.baseUrl}/api/health`, {
-      method: 'GET'
-    });
-    
-    if (response.status === 200) {
-      log('INFO', 'Health check passed');
-      return true;
-    } else {
-      log('WARN', `Health check failed with status ${response.status}`);
-      return false;
-    }
-  } catch (error) {
-    log('ERROR', `Health check failed: ${error.message}`);
-    return false;
-  }
-}
+
 
 // ENHANCED: Check for stuck jobs
 async function checkStuckJobs() {
@@ -431,20 +412,7 @@ async function processLoop() {
         break;
       }
       
-      // NEW: Periodic health check
-      if (Date.now() - lastHealthCheck > config.healthCheckIntervalMs) {
-        const healthOk = await performHealthCheck();
-        lastHealthCheck = Date.now();
-        
-        if (!healthOk) {
-          log('WARN', 'Health check failed, backing off');
-          await new Promise(resolve => setTimeout(resolve, config.retryDelayMs * 2));
-          continue;
-        }
-        
-        // ENHANCED: Check for stuck jobs during health check
-        await checkStuckJobs();
-      }
+
       
       const count = await processBatch();
       
@@ -512,7 +480,6 @@ log('INFO', 'Upload queue processor starting', {
     circuitBreakerThreshold: config.circuitBreakerThreshold,
     circuitBreakerTimeoutMs: config.circuitBreakerTimeoutMs,
     maxTotalIterations: config.maxTotalIterations,
-    healthCheckIntervalMs: config.healthCheckIntervalMs,
     // ENHANCED: Additional infinite loop prevention settings
     maxConsecutiveEmptyBatches: config.maxConsecutiveEmptyBatches,
     maxTotalProcessingTimeMs: config.maxTotalProcessingTimeMs,

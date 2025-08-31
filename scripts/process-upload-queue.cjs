@@ -7,7 +7,7 @@
  * at regular intervals. It runs continuously and handles graceful shutdown.
  * 
  * SIMPLIFIED: Cleaner logging and reduced verbosity for better container output.
- * ENHANCED: Added infinite loop prevention with circuit breakers and iteration limits.
+ * SIMPLIFIED: Removed complex health checks and infinite loop prevention for stability.
  */
 
 // Load environment variables from .env.local
@@ -31,15 +31,7 @@ const config = {
   maxBackoffMs: 300000,
   connectionTimeoutMs: parseInt(process.env.PROCESSOR_CONNECTION_TIMEOUT_MS) || 30000,
   requestTimeoutMs: parseInt(process.env.PROCESSOR_REQUEST_TIMEOUT_MS) || 120000, // Configurable timeout
-  // NEW: Infinite loop prevention settings
-  maxIterationsWithoutProgress: parseInt(process.env.MAX_ITERATIONS_WITHOUT_PROGRESS) || 100,
-  circuitBreakerThreshold: parseInt(process.env.CIRCUIT_BREAKER_THRESHOLD) || 50,
-  circuitBreakerTimeoutMs: parseInt(process.env.CIRCUIT_BREAKER_TIMEOUT_MS) || 300000, // 5 minutes
-  maxTotalIterations: parseInt(process.env.MAX_TOTAL_ITERATIONS) || 10000,
-  // ENHANCED: Additional infinite loop prevention
-  maxConsecutiveEmptyBatches: parseInt(process.env.MAX_CONSECUTIVE_EMPTY_BATCHES) || 50,
-  maxTotalProcessingTimeMs: parseInt(process.env.MAX_TOTAL_PROCESSING_TIME_MS) || 24 * 60 * 60 * 1000, // 24 hours
-  maxStuckJobsThreshold: parseInt(process.env.MAX_STUCK_JOBS_THRESHOLD) || 20
+
 };
 
 // Override baseUrl for local development if it's set to Docker service name
@@ -61,17 +53,8 @@ let consecutiveErrors = 0;
 let currentBackoffMs = config.retryDelayMs;
 const startTime = Date.now();
 
-// NEW: Infinite loop prevention state
-let iterationsWithoutProgress = 0;
-let totalIterations = 0;
-let circuitBreakerFailures = 0;
-let circuitBreakerOpen = false;
-let circuitBreakerOpenTime = 0;
+// Simple state tracking
 let lastSuccessfulProcessing = Date.now();
-// ENHANCED: Additional infinite loop prevention state
-let consecutiveEmptyBatches = 0;
-let totalProcessingStartTime = Date.now();
-let stuckJobsCount = 0;
 
 // Simplified logging utility
 function log(level, message, data = {}) {
@@ -94,83 +77,12 @@ function log(level, message, data = {}) {
   
   // Periodic status logging
   if (level === 'INFO' && Date.now() - lastLogTime > config.logIntervalMs) {
-    console.log(`[STATUS] Processor running - Processed: ${processedCount}, Errors: ${errorCount}, Uptime: ${Math.floor((Date.now() - startTime) / 1000)}s, Iterations: ${totalIterations}, Circuit Breaker: ${circuitBreakerOpen ? 'OPEN' : 'CLOSED'}`);
+    console.log(`[STATUS] Processor running - Processed: ${processedCount}, Errors: ${errorCount}, Uptime: ${Math.floor((Date.now() - startTime) / 1000)}s`);
     lastLogTime = Date.now();
   }
 }
 
-// NEW: Circuit breaker functions
-function isCircuitBreakerOpen() {
-  if (!circuitBreakerOpen) {
-    return false;
-  }
-  
-  // Check if circuit breaker timeout has passed
-  if (Date.now() - circuitBreakerOpenTime > config.circuitBreakerTimeoutMs) {
-    log('INFO', 'Circuit breaker timeout expired, attempting to close');
-    circuitBreakerOpen = false;
-    circuitBreakerFailures = 0;
-    return false;
-  }
-  
-  return true;
-}
 
-function recordCircuitBreakerFailure() {
-  circuitBreakerFailures++;
-  if (circuitBreakerFailures >= config.circuitBreakerThreshold) {
-    circuitBreakerOpen = true;
-    circuitBreakerOpenTime = Date.now();
-    log('WARN', `Circuit breaker opened after ${circuitBreakerFailures} consecutive failures`);
-  }
-}
-
-function recordCircuitBreakerSuccess() {
-  if (circuitBreakerFailures > 0) {
-    circuitBreakerFailures = Math.max(0, circuitBreakerFailures - 1);
-  }
-}
-
-// NEW: Simple connectivity test
-async function testConnectivity() {
-  try {
-    console.log(`[DEBUG] Testing connectivity to ${config.baseUrl}/api/health`);
-    const response = await makeRequest(`${config.baseUrl}/api/health`, {
-      method: 'GET'
-    });
-    console.log(`[DEBUG] Health check response: ${response.status}`);
-    return response.status === 200;
-  } catch (error) {
-    console.log(`[DEBUG] Health check failed: ${error.message}`);
-    return false;
-  }
-}
-
-// NEW: Health check function
-
-
-// ENHANCED: Check for stuck jobs
-async function checkStuckJobs() {
-  try {
-    const response = await makeRequest(`${config.baseUrl}/api/upload-queue/stats`, {
-      method: 'GET'
-    });
-    
-    if (response.status === 200 && response.data) {
-      stuckJobsCount = response.data.stuck_jobs || 0;
-      
-      if (stuckJobsCount > 0) {
-        log('WARN', `Detected ${stuckJobsCount} stuck jobs`);
-      }
-      
-      return response.data;
-    }
-  } catch (error) {
-    log('ERROR', `Failed to check stuck jobs: ${error.message}`);
-  }
-  
-  return null;
-}
 
 // HTTP request utility
 function makeRequest(url, options) {
@@ -256,17 +168,11 @@ async function processBatch() {
         log('INFO', `Processed ${processedCount} jobs`);
         consecutiveErrors = 0;
         currentBackoffMs = config.retryDelayMs;
-        iterationsWithoutProgress = 0;
-        consecutiveEmptyBatches = 0; // Reset empty batch counter
         lastSuccessfulProcessing = Date.now();
-        recordCircuitBreakerSuccess();
       } else if (msgs.some(m => (m || '').includes('No queued jobs'))) {
         // Don't log empty batches to reduce noise
         consecutiveErrors = 0;
         currentBackoffMs = config.retryDelayMs;
-        iterationsWithoutProgress++;
-        consecutiveEmptyBatches++; // Track empty batches
-        recordCircuitBreakerSuccess();
       }
       
       return processedCount;
@@ -281,8 +187,6 @@ async function processBatch() {
   } catch (error) {
     errorCount++;
     consecutiveErrors++;
-    iterationsWithoutProgress++;
-    recordCircuitBreakerFailure();
     log('ERROR', `Failed to process batch: ${error.message}`);
     
     // Implement exponential backoff
@@ -311,20 +215,14 @@ async function processJob() {
           processedCount++;
           consecutiveErrors = 0;
           currentBackoffMs = config.retryDelayMs;
-          iterationsWithoutProgress = 0;
           lastSuccessfulProcessing = Date.now();
-          recordCircuitBreakerSuccess();
         } else {
           errorCount++;
           consecutiveErrors++;
-          iterationsWithoutProgress++;
-          recordCircuitBreakerFailure();
         }
       } else if (response.data.message === 'No queued jobs') {
         consecutiveErrors = 0;
         currentBackoffMs = config.retryDelayMs;
-        iterationsWithoutProgress++;
-        recordCircuitBreakerSuccess();
       }
     } else {
       throw new Error(`HTTP ${response.status}: ${JSON.stringify(response.data)}`);
@@ -332,8 +230,6 @@ async function processJob() {
   } catch (error) {
     errorCount++;
     consecutiveErrors++;
-    iterationsWithoutProgress++;
-    recordCircuitBreakerFailure();
     log('ERROR', `Failed to process job: ${error.message}`);
     
     if (consecutiveErrors >= config.maxConsecutiveErrors) {
@@ -342,78 +238,12 @@ async function processJob() {
   }
 }
 
-// NEW: Infinite loop detection and prevention
-function checkForInfiniteLoop() {
-  // Check if we've exceeded maximum iterations without progress
-  if (iterationsWithoutProgress >= config.maxIterationsWithoutProgress) {
-    log('ERROR', `Infinite loop detected: ${iterationsWithoutProgress} iterations without progress`);
-    return true;
-  }
-  
-  // Check if we've exceeded maximum total iterations
-  if (totalIterations >= config.maxTotalIterations) {
-    log('ERROR', `Maximum total iterations reached: ${totalIterations}`);
-    return true;
-  }
-  
-  // Check if circuit breaker is open
-  if (isCircuitBreakerOpen()) {
-    log('WARN', 'Circuit breaker is open, skipping processing');
-    return true;
-  }
-  
-  // Check if we haven't had successful processing for too long
-  const timeSinceLastSuccess = Date.now() - lastSuccessfulProcessing;
-  if (timeSinceLastSuccess > config.circuitBreakerTimeoutMs * 2) {
-    log('ERROR', `No successful processing for ${Math.floor(timeSinceLastSuccess / 1000)}s, possible infinite loop`);
-    return true;
-  }
-  
-  // ENHANCED: Check for too many consecutive empty batches
-  if (consecutiveEmptyBatches >= config.maxConsecutiveEmptyBatches) {
-    log('ERROR', `Too many consecutive empty batches: ${consecutiveEmptyBatches}, possible infinite loop`);
-    return true;
-  }
-  
-  // ENHANCED: Check total processing time
-  const totalProcessingTime = Date.now() - totalProcessingStartTime;
-  if (totalProcessingTime > config.maxTotalProcessingTimeMs) {
-    log('ERROR', `Total processing time exceeded limit: ${Math.floor(totalProcessingTime / 1000)}s, stopping to prevent infinite loop`);
-    return true;
-  }
-  
-  // ENHANCED: Check for too many stuck jobs
-  if (stuckJobsCount >= config.maxStuckJobsThreshold) {
-    log('ERROR', `Too many stuck jobs detected: ${stuckJobsCount}, possible infinite loop`);
-    return true;
-  }
-  
-  return false;
-}
+
 
 // Main processing loop
 async function processLoop() {
-  // NEW: Initial connectivity test
-  console.log('[DEBUG] Performing initial connectivity test...');
-  const connectivityOk = await testConnectivity();
-  if (!connectivityOk) {
-    log('ERROR', 'Initial connectivity test failed, exiting');
-    return;
-  }
-  console.log('[DEBUG] Initial connectivity test passed');
-  
   while (isRunning) {
     try {
-      totalIterations++;
-      
-      // NEW: Check for infinite loop conditions
-      if (checkForInfiniteLoop()) {
-        log('ERROR', 'Infinite loop detected, exiting process loop');
-        break;
-      }
-      
-
-      
       const count = await processBatch();
       
       // Use dynamic backoff based on error state
@@ -425,8 +255,6 @@ async function processLoop() {
       log('ERROR', `Unexpected error in process loop: ${error.message}`);
       
       consecutiveErrors++;
-      iterationsWithoutProgress++;
-      recordCircuitBreakerFailure();
       
       if (consecutiveErrors >= config.maxConsecutiveErrors) {
         currentBackoffMs = Math.min(currentBackoffMs * config.backoffMultiplier, config.maxBackoffMs);
@@ -443,7 +271,7 @@ function shutdown(signal) {
   isRunning = false;
   
   setTimeout(() => {
-    log('INFO', `Processor shutdown complete - Total processed: ${processedCount}, Total errors: ${errorCount}, Total iterations: ${totalIterations}`);
+    log('INFO', `Processor shutdown complete - Total processed: ${processedCount}, Total errors: ${errorCount}`);
     process.exit(0);
   }, 2000);
 }
@@ -474,16 +302,7 @@ log('INFO', 'Upload queue processor starting', {
     maxConsecutiveErrors: config.maxConsecutiveErrors,
     maxBackoffMs: config.maxBackoffMs,
     connectionTimeoutMs: config.connectionTimeoutMs,
-    requestTimeoutMs: config.requestTimeoutMs,
-    // NEW: Infinite loop prevention settings
-    maxIterationsWithoutProgress: config.maxIterationsWithoutProgress,
-    circuitBreakerThreshold: config.circuitBreakerThreshold,
-    circuitBreakerTimeoutMs: config.circuitBreakerTimeoutMs,
-    maxTotalIterations: config.maxTotalIterations,
-    // ENHANCED: Additional infinite loop prevention settings
-    maxConsecutiveEmptyBatches: config.maxConsecutiveEmptyBatches,
-    maxTotalProcessingTimeMs: config.maxTotalProcessingTimeMs,
-    maxStuckJobsThreshold: config.maxStuckJobsThreshold
+    requestTimeoutMs: config.requestTimeoutMs
   }
 });
 

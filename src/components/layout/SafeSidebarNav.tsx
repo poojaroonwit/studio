@@ -381,7 +381,7 @@ const SafeSidebarNavComponent = React.memo(() => {
                     >
                       <NAV_ITEMS.bulkUpload.icon className="h-5 w-5" />
                       {pendingCount !== null && (
-                        <Badge className="absolute -top-1 -right-1 h-5 min-w-5 px-0.5 text-xs group-data-[collapsible=icon]:-top-0.5 group-data-[collapsible=icon]:-right-0.5">
+                        <Badge className="absolute -top-1 -right-1 h-5 min-w-5 px-1 text-xs flex items-center justify-center group-data-[collapsible=icon]:-top-0.5 group-data-[collapsible=icon]:-right-0.5">
                           {isLoading ? (
                             <div className="h-3 w-3 animate-spin rounded-full border border-current border-t-transparent" />
                           ) : (
@@ -449,7 +449,7 @@ const SafeSidebarNavComponent = React.memo(() => {
                     <NAV_ITEMS.bulkUpload.icon className="h-5 w-5" />
                     <span className="truncate">{NAV_ITEMS.bulkUpload.label}</span>
                     {pendingCount !== null && (
-                      <Badge className="absolute -top-1 -right-1 h-5 min-w-5 px-0.5 text-xs">
+                      <Badge className="absolute -top-1 -right-1 h-5 min-w-5 px-1 text-xs flex items-center justify-center">
                         {isLoading ? (
                           <div className="h-3 w-3 animate-spin rounded-full border border-current border-t-transparent" />
                         ) : (

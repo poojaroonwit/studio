@@ -102,6 +102,7 @@
     "react-hook-form": "^7.54.2",
     "react-hot-toast": "^2.5.2",
     "recharts": "^3.1.2",
+    "swagger-ui-react": "^5.28.0",
     "tailwind-merge": "^3.0.1",
     "tailwindcss-animate": "^1.0.7",
     "tsx": "^4.19.2",

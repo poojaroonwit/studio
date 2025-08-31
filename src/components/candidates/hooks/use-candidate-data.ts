@@ -3,7 +3,7 @@ import { Candidate, CandidateStatus, Position, RecruitmentStage, UserProfile, Ca
 import { CandidateFilterValues } from '@/components/candidates/CandidateFilters';
 import { toast } from 'react-hot-toast';
 import { normalizeFitScore } from '@/lib/scoreUtils';
-import { useSafeEffect } from '@/hooks/use-safe-effect';
+// Removed useSafeEffect import - no longer needed
 
 
 interface UseCandidateDataProps {
@@ -104,8 +104,8 @@ export function useCandidateData({
     setPermissionError(error);
   }, []);
 
-  // Safe initial data setup
-  useSafeEffect(() => {
+  // Safe initial data setup - FIXED: Use regular useEffect and remove stable setter functions from dependencies
+  useEffect(() => {
     const safeInitialCandidates = Array.isArray(initialCandidates) ? initialCandidates : [];
     const safeInitialAvailablePositions = Array.isArray(initialAvailablePositions) ? initialAvailablePositions : [];
     const safeInitialAvailableStages = Array.isArray(initialAvailableStages) ? initialAvailableStages : [];
@@ -124,7 +124,7 @@ export function useCandidateData({
     if (safeInitialAvailableStages.length > 0) {
       stableSetAvailableStages(safeInitialAvailableStages);
     }
-  }, [initialCandidates, initialAvailablePositions, initialAvailableStages, stableSetFilteredCandidates, stableSetAllCandidatesForCounts, stableSetAvailablePositions, stableSetAvailableStages, stableSetHasInitialFetch], 'initialDataSetup', 5);
+  }, [initialCandidates, initialAvailablePositions, initialAvailableStages]);
 
   // Simplified helper function to normalize fit scores
   const normalizeFitScoreForCounts = useCallback((score: number | null | undefined): string => {
@@ -373,8 +373,8 @@ export function useCandidateData({
     fetchFitScoreCounts(true); // Force refresh without debouncing
   }, [fetchFitScoreCounts]);
 
-  // Fetch positions and stages if not provided initially
-  useSafeEffect(() => {
+  // Fetch positions and stages if not provided initially - FIXED: Use regular useEffect
+  useEffect(() => {
     const safeInitialAvailablePositions = Array.isArray(initialAvailablePositions) ? initialAvailablePositions : [];
     if (sessionStatus === 'authenticated' && safeInitialAvailablePositions.length === 0) {
       const fetchPositionsAndStages = async () => {
@@ -400,10 +400,10 @@ export function useCandidateData({
 
       fetchPositionsAndStages();
     }
-  }, [sessionStatus, initialAvailablePositions.length], 'fetchPositionsAndStages', 10);
+  }, [sessionStatus, initialAvailablePositions.length]);
 
-  // Fetch stages independently if not provided initially
-  useSafeEffect(() => {
+  // Fetch stages independently if not provided initially - FIXED: Use regular useEffect
+  useEffect(() => {
     const safeInitialAvailableStages = Array.isArray(initialAvailableStages) ? initialAvailableStages : [];
     if (sessionStatus === 'authenticated' && safeInitialAvailableStages.length === 0) {
       const fetchStages = async () => {
@@ -422,10 +422,10 @@ export function useCandidateData({
       };
       fetchStages();
     }
-  }, [sessionStatus, initialAvailableStages.length], 'fetchStages', 10);
+  }, [sessionStatus, initialAvailableStages.length]);
 
-  // Fetch full candidates on mount and when session changes
-  useSafeEffect(() => {
+  // Fetch full candidates on mount and when session changes - FIXED: Use regular useEffect
+  useEffect(() => {
     const safeInitialCandidates = Array.isArray(initialCandidates) ? initialCandidates : [];
     if (sessionStatus === 'authenticated' && safeInitialCandidates.length === 0) {
       // Use a delay to ensure the component is fully mounted
@@ -435,18 +435,19 @@ export function useCandidateData({
       
       return () => clearTimeout(timeoutId);
     }
-  }, [sessionStatus, initialCandidates.length], 'fetchFullCandidates', 10);
+  }, [sessionStatus, initialCandidates.length, fetchAllCandidatesForCounts]);
 
-  // Fetch sources and recruiters on mount
-  useSafeEffect(() => {
+  // Fetch sources and recruiters on mount - FIXED: Use regular useEffect
+  useEffect(() => {
     if (sessionStatus === 'authenticated') {
       fetchSources();
       fetchRecruiters();
     }
-  }, [sessionStatus], 'fetchSourcesAndRecruiters', 10);
+  }, [sessionStatus, fetchSources, fetchRecruiters]);
 
   // Fetch fit score counts on mount
-  useSafeEffect(() => {
+  // Fetch fit score counts on mount - FIXED: Use regular useEffect instead of useSafeEffect
+  useEffect(() => {
     if (sessionStatus === 'authenticated') {
       // Use a delay to ensure the component is fully mounted
       const timeoutId = setTimeout(() => {
@@ -455,7 +456,7 @@ export function useCandidateData({
       
       return () => clearTimeout(timeoutId);
     }
-  }, [sessionStatus], 'fetchFitScoreCounts', 10);
+  }, [sessionStatus, fetchFitScoreCounts]);
 
   // Simplified helper function to normalize fit scores
   const getBestMatchingFitScore = (candidate: Candidate): number => {

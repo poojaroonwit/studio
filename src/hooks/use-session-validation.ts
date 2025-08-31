@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useState, useRef } from 'react';
+import { useEffect, useCallback, useState, useRef, useMemo } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
@@ -21,12 +21,17 @@ export function useSessionValidation(options: {
   const validationInProgress = useRef<boolean>(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const hasInitializedRef = useRef<boolean>(false);
+  const lastSessionIdRef = useRef<string | undefined>(undefined);
   
-  const {
-    validateInterval = 5 * 60 * 1000, // 5 minutes
-    autoSignOut = true,
-    redirectTo = '/auth/signin'
-  } = options;
+  // Memoize options to prevent unnecessary re-renders
+  const memoizedOptions = useMemo(() => ({
+    validateInterval: options.validateInterval || 5 * 60 * 1000, // 5 minutes
+    autoSignOut: options.autoSignOut !== false, // default true
+    redirectTo: options.redirectTo || '/auth/signin'
+  }), [options.validateInterval, options.autoSignOut, options.redirectTo]);
+
+  // Memoize session ID to prevent unnecessary re-renders
+  const sessionId = useMemo(() => session?.user?.id, [session?.user?.id]);
 
   const validateSession = useCallback(async () => {
     if (status !== 'authenticated' || !session) {
@@ -38,9 +43,9 @@ export function useSessionValidation(options: {
       return;
     }
 
-    // Prevent excessive validation calls - increased minimum interval to 30 seconds
+    // Prevent excessive validation calls - increased minimum interval to 60 seconds
     const now = Date.now();
-    if (now - lastValidationTime.current < 30000) { // Minimum 30 seconds between validations
+    if (now - lastValidationTime.current < 60000) { // Minimum 60 seconds between validations
       return;
     }
 
@@ -61,14 +66,14 @@ export function useSessionValidation(options: {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
         console.warn('Session validation failed:', errorData.error);
         
-        if (autoSignOut) {
+        if (memoizedOptions.autoSignOut) {
           await signOut({ 
-            callbackUrl: `${redirectTo}?signout=true`,
+            callbackUrl: `${memoizedOptions.redirectTo}?signout=true`,
             redirect: false 
           });
           // Manually redirect after signOut completes
           if (typeof window !== 'undefined') {
-            window.location.href = `${redirectTo}?signout=true`;
+            window.location.href = `${memoizedOptions.redirectTo}?signout=true`;
           }
         }
       }
@@ -80,10 +85,17 @@ export function useSessionValidation(options: {
       setIsValidating(false);
       validationInProgress.current = false;
     }
-  }, [session, status, autoSignOut, redirectTo]);
+  }, [session, status, memoizedOptions.autoSignOut, memoizedOptions.redirectTo]);
+
+  // Memoize the effect dependencies to prevent unnecessary re-renders
+  const effectDependencies = useMemo(() => ({
+    status,
+    sessionId,
+    validateInterval: memoizedOptions.validateInterval
+  }), [status, sessionId, memoizedOptions.validateInterval]);
 
   useEffect(() => {
-    if (status !== 'authenticated') {
+    if (effectDependencies.status !== 'authenticated') {
       // Clear any existing interval when not authenticated
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
@@ -93,35 +105,34 @@ export function useSessionValidation(options: {
     }
 
     // Only initialize once per session
-    if (hasInitializedRef.current) {
+    if (hasInitializedRef.current && lastSessionIdRef.current === effectDependencies.sessionId) {
       return;
     }
+    
     hasInitializedRef.current = true;
+    lastSessionIdRef.current = effectDependencies.sessionId;
 
     // Validate immediately
     validateSession();
 
     // Set up periodic validation
-    intervalRef.current = setInterval(validateSession, validateInterval);
+    intervalRef.current = setInterval(validateSession, effectDependencies.validateInterval);
 
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
-      hasInitializedRef.current = false;
     };
-  }, [validateSession, status, validateInterval]);
+  }, [effectDependencies, validateSession]);
 
-  // Reset initialization flag when session changes
-  useEffect(() => {
-    hasInitializedRef.current = false;
-  }, [session?.user?.id]);
-
-  return {
+  // Memoize the return value to prevent unnecessary re-renders
+  const memoizedValue = useMemo(() => ({
     isValidating,
     isAuthenticated: status === 'authenticated',
     session,
     validateSession
-  };
+  }), [isValidating, status, session, validateSession]);
+
+  return memoizedValue;
 } 

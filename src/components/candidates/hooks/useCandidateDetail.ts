@@ -5,7 +5,7 @@ import { differenceInMonths } from 'date-fns';
 import * as z from 'zod';
 import type { Candidate, Position, UserProfile, RecruitmentStage, TransitionRecord, CandidateSource } from '@/lib/types';
 import { useUnifiedRealtime } from '@/hooks/use-unified-realtime';
-import { useSafeEffect, useInfiniteLoopPrevention } from '@/hooks/use-safe-effect';
+import { useInfiniteLoopPrevention } from '@/hooks/use-safe-effect';
 
 // Form schemas - validation removed
 const editCandidateDetailSchema = z.object({
@@ -358,8 +358,8 @@ export const useCandidateDetail = (candidateId: string) => {
     showErrorNotifications: false // Disable error toast notifications
   });
 
-  // Fetch candidate data with safe effect
-  useSafeEffect(() => {
+  // Fetch candidate data - FIXED: Use regular useEffect instead of useSafeEffect
+  useEffect(() => {
     isMountedRef.current = true;
     
     fetchCandidate();
@@ -371,7 +371,7 @@ export const useCandidateDetail = (candidateId: string) => {
         abortControllerRef.current.abort();
       }
     };
-  }, [candidateId], 'fetchCandidate', 10);
+  }, [candidateId, fetchCandidate]);
 
   // Fetch static data only once on mount with parallel execution - FIXED: Use useEffect instead of useSafeEffect
   useEffect(() => {

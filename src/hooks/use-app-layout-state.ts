@@ -57,8 +57,8 @@ export function useAppLayoutState() {
   const updateState = useCallback((updates: Partial<AppLayoutState>) => {
     const now = Date.now();
     
-    // Prevent updates more frequently than 200ms (increased from 150ms)
-    if (now - lastUpdateTimeRef.current < 200) {
+    // Prevent updates more frequently than 400ms (increased from 200ms)
+    if (now - lastUpdateTimeRef.current < 400) {
       // Add to update queue instead of merging immediately
       updateQueueRef.current.push(updates);
       
@@ -82,7 +82,7 @@ export function useAppLayoutState() {
           updateQueueRef.current = [];
           lastUpdateTimeRef.current = Date.now();
         }
-      }, 150); // Increased from 100ms
+      }, 200); // Increased from 150ms
       
       return;
     }
@@ -118,7 +118,7 @@ export function useAppLayoutState() {
         }));
         updateQueueRef.current = [];
       }
-    }, 100); // Increased from 50ms
+    }, 200); // Increased from 100ms
   }, []); // Empty dependency array to ensure this function is stable
 
   // Initialize client state
@@ -136,7 +136,7 @@ export function useAppLayoutState() {
     // Batch logo loading updates
     batchTimeoutRef.current = setTimeout(() => {
       updateState({ isLogoLoading: loading });
-    }, 50);
+    }, 100); // Increased from 50ms
   }, [updateState]);
 
   // Update app configuration with enhanced batching
@@ -155,7 +155,7 @@ export function useAppLayoutState() {
     // Batch app config updates
     batchTimeoutRef.current = setTimeout(() => {
       updateState(config);
-    }, 100);
+    }, 200); // Increased from 100ms
   }, [updateState]);
 
   // Update theme and colors with enhanced batching
@@ -168,7 +168,7 @@ export function useAppLayoutState() {
     // Batch theme updates
     batchTimeoutRef.current = setTimeout(() => {
       updateState({ themeAndColors });
-    }, 100);
+    }, 200); // Increased from 100ms
   }, [updateState]);
 
   // Reset to defaults
@@ -192,7 +192,7 @@ export function useAppLayoutState() {
           sidebarLogoExpandedDarkMode: null,
         },
       });
-    }, 100);
+    }, 200); // Increased from 100ms
   }, [updateState]);
 
   // Memoize the return value to prevent unnecessary re-renders

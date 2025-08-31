@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import SwaggerUI from 'swagger-ui-react';
+import 'swagger-ui-react/swagger-ui.css';
 
 export default function ApiDocsUIPage() {
   const [swaggerSpec, setSwaggerSpec] = useState<any>(null);
@@ -55,23 +57,36 @@ export default function ApiDocsUIPage() {
     <div style={{ 
       height: '100%', 
       width: '100%',
-      overflow: 'auto',
-      padding: '20px'
+      overflow: 'auto'
     }}>
-      <h1>API Documentation</h1>
-      <p>API specification loaded successfully. The interactive Swagger UI has been temporarily disabled.</p>
-      <details>
-        <summary>View Raw API Specification (JSON)</summary>
-        <pre style={{ 
-          background: '#f5f5f5', 
-          padding: '15px', 
-          borderRadius: '5px',
-          overflow: 'auto',
-          maxHeight: '500px'
-        }}>
-          {JSON.stringify(swaggerSpec, null, 2)}
-        </pre>
-      </details>
+      <div style={{ padding: '20px', borderBottom: '1px solid #e5e7eb' }}>
+        <h1 style={{ margin: '0 0 10px 0', fontSize: '24px', fontWeight: '600' }}>API Documentation</h1>
+        <p style={{ margin: '0', color: '#6b7280' }}>
+          Interactive API documentation for the Studio recruitment management system
+        </p>
+      </div>
+      <div style={{ height: 'calc(100vh - 120px)' }}>
+        <SwaggerUI 
+          spec={swaggerSpec}
+          docExpansion="list"
+          defaultModelsExpandDepth={1}
+          defaultModelExpandDepth={1}
+          displayOperationId={false}
+          displayRequestDuration={true}
+          filter={true}
+          showExtensions={true}
+          showCommonExtensions={true}
+          tryItOutEnabled={true}
+          requestInterceptor={(request: any) => {
+            // Add any request interceptors here if needed
+            return request;
+          }}
+          responseInterceptor={(response: any) => {
+            // Add any response interceptors here if needed
+            return response;
+          }}
+        />
+      </div>
     </div>
   );
 } 

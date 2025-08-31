@@ -49,7 +49,7 @@ import { useCandidateActions } from './hooks/use-candidate-actions';
 import { useCandidateAiSearch } from './hooks/use-candidate-ai-search';
 
 // Import safe effect hooks
-import { useEmergencySafeEffect, useEmergencyRenderMonitor } from '@/hooks/use-safe-effect';
+import { useEmergencyRenderMonitor } from '@/hooks/use-safe-effect';
 
 
 interface CandidatesPageClientProps {
@@ -157,10 +157,10 @@ export function CandidatesPageClient({
   // Add ref to track current filters
   const currentFiltersRef = useRef(filters);
   
-  // Update ref when filters change
-  useEmergencySafeEffect(() => {
+  // Update ref when filters change - FIXED: Use regular useEffect instead of useEmergencySafeEffect
+  useEffect(() => {
     currentFiltersRef.current = filters;
-  }, [filters], 'currentFiltersRef');
+  }, [filters]);
 
   // Add emergency render monitoring
   useEmergencyRenderMonitor();
@@ -1284,8 +1284,8 @@ export function CandidatesPageClient({
   const filtersRef = useRef(filters);
   filtersRef.current = filters;
 
-  // Fetch fit score counts on mount and when session changes
-  useEmergencySafeEffect(() => {
+  // Fetch fit score counts on mount and when session changes - FIXED: Use regular useEffect with proper conditions
+  useEffect(() => {
     if (sessionStatus === 'authenticated' && hasInitialDataFetch && initialCandidates.length > 0 && filtersRef.current) {
       // Create a copy of filters without fit score filters to prevent circular dependency
       const filtersForCounts = { ...filtersRef.current };
@@ -1300,48 +1300,10 @@ export function CandidatesPageClient({
       
       forceRefreshFitScoreCounts();
     }
-  }, [sessionStatus, hasInitialDataFetch, initialCandidates.length], 'fetchFitScoreCounts');
+  }, [sessionStatus, hasInitialDataFetch, initialCandidates.length]);
 
-  // DISABLED: This useEffect was causing resource leaks due to conflicts with onFilterChange
-  // The fetchFitScoreCounts is now properly handled in the onFilterChange callback
-  /*
-  // Refresh fit score counts when filters change (debounced to prevent resource leaks)
+  // Cleanup timeout on component unmount - FIXED: Use regular useEffect instead of useEmergencySafeEffect
   useEffect(() => {
-    if (sessionStatus === 'authenticated' && !isClearingFilters) {
-      // Clear any existing timeout to prevent multiple API calls
-      if (filterChangeTimeoutRef.current) {
-        clearTimeout(filterChangeTimeoutRef.current);
-      }
-      
-      // Debounce the fit score counts fetch to prevent resource leaks
-      filterChangeTimeoutRef.current = setTimeout(() => {
-        // Create a copy of filters without fit score filters to prevent circular dependency
-        const filtersForCounts = { ...filters };
-        
-        // Remove fit score filters to prevent circular dependency
-        delete filtersForCounts.minAppliedJobFitScore;
-        delete filtersForCounts.maxAppliedJobFitScore;
-        delete filtersForCounts.minMatchingJobFitScore;
-        delete filtersForCounts.maxMatchingJobFitScore;
-        delete filtersForCounts.includeNoScoreInApplied;
-        delete filtersForCounts.includeNoScoreInMatching;
-        
-        fetchFitScoreCounts();
-      }, 100);
-    }
-    
-    // Cleanup timeout on unmount or when dependencies change
-    return () => {
-      if (filterChangeTimeoutRef.current) {
-        clearTimeout(filterChangeTimeoutRef.current);
-        filterChangeTimeoutRef.current = null;
-      }
-    };
-  }, [sessionStatus, filters, isClearingFilters, fetchFitScoreCounts]);
-  */
-
-  // Cleanup timeout on component unmount
-  useEmergencySafeEffect(() => {
     return () => {
       if (clearingFiltersTimeoutRef?.current) {
         clearTimeout(clearingFiltersTimeoutRef.current);
@@ -1354,7 +1316,7 @@ export function CandidatesPageClient({
         clearTimeout(batchTimeoutRef.current);
       }
     };
-  }, [], 'cleanupTimeouts');
+  }, []);
 
   // Handle authentication
   if (sessionStatus === 'loading') {

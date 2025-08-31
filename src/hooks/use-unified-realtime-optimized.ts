@@ -233,7 +233,7 @@ class UnifiedRealtimeManager {
       if (timeSinceLastMessage > 30000) {
         console.warn('⚠️ No real-time messages received for 30 seconds');
       }
-    }, 10000);
+    }, 3000);
   }
 
   // Disconnect a component
@@ -466,7 +466,7 @@ export function useUnifiedRealtime(options: UnifiedRealtimeOptions = {}) {
       } else {
         setConnectionHealth('disconnected');
       }
-    }, 1000);
+    }, 3000);
 
     return () => {
       mountedRef.current = false;

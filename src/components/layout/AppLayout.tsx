@@ -77,18 +77,28 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
   }, [trackSettingsFetch, trackThemeChange]);
 
   // Enhanced render monitoring with stricter thresholds
-  useRenderMonitor('AppLayout', 200);
+  useRenderMonitor('AppLayout', 300); // Increased from 200 to 300ms
 
   // Memoize session validation logic
   const shouldValidateSession = useMemo(() => {
     return pathname !== "/auth/signin" && status === "authenticated";
   }, [pathname, status]);
 
-  const { isValidating: isSessionValidating } = useSessionValidation({
+  // Memoize session validation options to prevent unnecessary re-renders
+  const sessionValidationOptions = useMemo(() => ({
     validateInterval: 5 * 60 * 1000,
     autoSignOut: true,
     redirectTo: '/auth/signin'
-  });
+  }), []);
+
+  const { isValidating: isSessionValidating } = useSessionValidation(sessionValidationOptions);
+
+  // Memoize session state to prevent unnecessary re-renders
+  const sessionState = useMemo(() => ({
+    isAuthenticated: status === "authenticated",
+    isLoading: status === "loading",
+    isValidating: isSessionValidating,
+  }), [status, isSessionValidating]);
 
   // Optimized state management
   const {

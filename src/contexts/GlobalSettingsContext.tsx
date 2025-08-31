@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 
 interface GlobalSettings {
@@ -126,13 +126,14 @@ export function GlobalSettingsProvider({ children }: { children: React.ReactNode
     };
   }, [fetchSettings]);
 
-  const value: GlobalSettingsContextType = {
+  // Memoize the context value to prevent unnecessary re-renders
+  const value: GlobalSettingsContextType = useMemo(() => ({
     settings,
     isLoading,
     error,
     refetch,
     updateSettings,
-  };
+  }), [settings, isLoading, error, refetch, updateSettings]);
 
   return (
     <GlobalSettingsContext.Provider value={value}>

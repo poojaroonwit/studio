@@ -14,17 +14,24 @@ export function useTheme() {
   const userIdRef = useRef<string | undefined>(undefined);
   const isUpdatingRef = useRef<boolean>(false);
   const lastUpdateTimeRef = useRef(0);
+  const lastSessionIdRef = useRef<string | undefined>(undefined);
 
-  // Update userId ref when session changes
+  // Memoize session ID to prevent unnecessary re-renders
+  const sessionId = useMemo(() => session?.user?.id, [session?.user?.id]);
+
+  // Update userId ref when session changes - with debouncing
   useEffect(() => {
-    userIdRef.current = session?.user?.id;
-  }, [session?.user?.id]);
+    if (sessionId !== lastSessionIdRef.current) {
+      lastSessionIdRef.current = sessionId;
+      userIdRef.current = sessionId;
+    }
+  }, [sessionId]);
 
   // Memoize the apply theme function to prevent recreation
   const applyTheme = useCallback((theme: 'light' | 'dark') => {
     // Prevent excessive theme changes - increased threshold
     const now = Date.now();
-    if (now - lastThemeChange.current < 300) { // Increased from 200ms to 300ms
+    if (now - lastThemeChange.current < 500) { // Increased from 300ms to 500ms
       return;
     }
     lastThemeChange.current = now;
@@ -49,11 +56,11 @@ export function useTheme() {
           reapplyCurrentSidebarColors();
           setTimeout(() => {
             isUpdatingRef.current = false;
-          }, 100); // Add delay to prevent rapid updates
+          }, 200); // Increased from 100ms to 200ms
         }).catch(() => {
           setTimeout(() => {
             isUpdatingRef.current = false;
-          }, 100);
+          }, 200);
         });
       });
     }
@@ -63,7 +70,7 @@ export function useTheme() {
   const setTheme = useCallback(async (preference: ThemePreference) => {
     const now = Date.now();
     // Prevent rapid theme changes
-    if (isUpdatingRef.current || now - lastUpdateTimeRef.current < 300) {
+    if (isUpdatingRef.current || now - lastUpdateTimeRef.current < 500) { // Increased from 300ms to 500ms
       return;
     }
     
@@ -107,7 +114,7 @@ export function useTheme() {
     // Reset update flag after a delay
     setTimeout(() => {
       isUpdatingRef.current = false;
-    }, 200);
+    }, 300); // Increased from 200ms to 300ms
   }, [applyTheme]);
 
   // Memoize the toggle theme function
@@ -117,9 +124,15 @@ export function useTheme() {
     setTheme(newPreference);
   }, [currentTheme, setTheme]);
 
+  // Memoize initialization dependencies
+  const initDependencies = useMemo(() => ({
+    hasInitialized: hasInitializedRef.current,
+    applyTheme
+  }), [applyTheme]);
+
   // Initialize theme on mount
   useEffect(() => {
-    if (hasInitializedRef.current) return;
+    if (initDependencies.hasInitialized) return;
     hasInitializedRef.current = true;
 
     // Get theme from localStorage or system preference
@@ -137,26 +150,33 @@ export function useTheme() {
     
     setThemePreference(preference);
     setCurrentTheme(theme);
-    applyTheme(theme);
+    initDependencies.applyTheme(theme);
     setMounted(true);
-  }, [applyTheme]);
+  }, [initDependencies]);
+
+  // Memoize media query effect dependencies
+  const mediaQueryDependencies = useMemo(() => ({
+    mounted,
+    themePreference,
+    applyTheme
+  }), [mounted, themePreference, applyTheme]);
 
   // Listen for system theme changes
   useEffect(() => {
-    if (!mounted) return;
+    if (!mediaQueryDependencies.mounted) return;
 
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const handleChange = () => {
-      if (themePreference === 'system') {
+      if (mediaQueryDependencies.themePreference === 'system') {
         const newTheme = mediaQuery.matches ? 'dark' : 'light';
         setCurrentTheme(newTheme);
-        applyTheme(newTheme);
+        mediaQueryDependencies.applyTheme(newTheme);
       }
     };
 
     mediaQuery.addEventListener('change', handleChange);
     return () => mediaQuery.removeEventListener('change', handleChange);
-  }, [mounted, themePreference, applyTheme]);
+  }, [mediaQueryDependencies]);
 
   // Memoize the return value to prevent unnecessary re-renders
   const memoizedValue = useMemo(() => ({

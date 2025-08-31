@@ -554,8 +554,15 @@ export function CandidateFilters({
 
   // Parse advanced query string into filter values
   const parseAdvancedQuery = (query: string): Partial<CandidateFilterValues> => {
+    console.log('🔍 parseAdvancedQuery called with:', query);
     const filters: Partial<CandidateFilterValues> = {};
-    const parts = query.split(' ').filter(part => part.includes(':'));
+    
+    // First, decode the entire query to handle URL encoding
+    const decodedQuery = decodeURIComponent(query);
+    console.log('🔍 decodedQuery:', decodedQuery);
+    
+    const parts = decodedQuery.split(' ').filter(part => part.includes(':'));
+    console.log('🔍 parts after split:', parts);
     
     parts.forEach(part => {
       const colonIndex = part.indexOf(':');
@@ -564,6 +571,8 @@ export function CandidateFilters({
       const key = part.substring(0, colonIndex);
       const value = part.substring(colonIndex + 1);
       if (!key || !value) return;
+      
+      console.log('🔍 Processing part:', part, 'key:', key, 'value:', value);
       
       switch (key.toLowerCase()) {
         case 'name':
@@ -597,7 +606,13 @@ export function CandidateFilters({
           filters.selectedPositionIds = value.split(',');
           break;
         case 'status':
-          filters.selectedStatuses = value.split(',');
+          console.log('🔍 Processing status with value:', value);
+          // Handle status values that might contain spaces by splitting on commas
+          // and then handling each status individually
+          const statusValues = value.split(',').map(s => s.trim());
+          console.log('🔍 statusValues after split:', statusValues);
+          filters.selectedStatuses = statusValues;
+          console.log('🔍 selectedStatuses set to:', filters.selectedStatuses);
           break;
         case 'recruiterid':
           filters.selectedRecruiterIds = value.split(',');
@@ -675,6 +690,7 @@ export function CandidateFilters({
       }
     });
     
+    console.log('🔍 Final parsed filters:', filters);
     return filters;
   };
 

@@ -963,7 +963,7 @@ export default function DashboardPageClient({
               description: "On process candidates",
               button: {
                 label: "View All",
-                onClick: () => router.push('/candidates?query=' + encodeURIComponent('status:Applied,Screening,Shortlisted,Interview Scheduled,Interviewing,Offer Extended,On Hold'))
+                onClick: () => router.push('/candidates?query=' + encodeURIComponent('status:Applied,Screening,Shortlisted,Interviewing,On%20Hold'))
               }
             },
             { 

@@ -193,7 +193,7 @@ console.log(`Password: ${adminPassword}`);
     
     for (const category of systemPromptCategories) {
       await prisma.systemPromptCategory.upsert({
-        where: { id: category.id },
+        where: { name: category.name },
         update: {},
         create: category
       });

@@ -48,7 +48,7 @@ async function initializeWarningConditions() {
     const existingConditionsResult = await client.query(`
       SELECT COUNT(*) as count
       FROM "WarningConfiguration"
-      WHERE "isInitialized" = true
+      WHERE "is_active" = true
     `);
     
     const existingCount = existingConditionsResult.rows[0].count;
@@ -61,7 +61,6 @@ async function initializeWarningConditions() {
     const usersResult = await client.query(`
       SELECT id, email, role
       FROM "User"
-      WHERE "isActive" = true
     `);
     
     const users = usersResult.rows;
@@ -69,9 +68,9 @@ async function initializeWarningConditions() {
     
     // Get default warning configurations
     const defaultConfigsResult = await client.query(`
-      SELECT id, name, description, "warningLevel", "isActive"
+      SELECT id, name, description, severity, "is_active"
       FROM "WarningConfiguration"
-      WHERE "isDefault" = true
+      WHERE "is_public" = true
     `);
     
     const defaultConfigs = defaultConfigsResult.rows;
@@ -87,7 +86,7 @@ async function initializeWarningConditions() {
       const existingUserConditionsResult = await client.query(`
         SELECT COUNT(*) as count
         FROM "WarningConfiguration"
-        WHERE "userId" = $1
+        WHERE "createdBy" = $1
       `, [user.id]);
       
       const existingUserConditions = existingUserConditionsResult.rows[0].count;
@@ -103,16 +102,16 @@ async function initializeWarningConditions() {
         try {
           await client.query(`
             INSERT INTO "WarningConfiguration" (
-              id, name, description, "warningLevel", "isActive", 
-              "userId", "isDefault", "isInitialized", "createdAt", "updatedAt"
+              id, name, description, severity, "is_active", 
+              "created_by", "is_public", "created_at", "updated_at"
             ) VALUES (
-              gen_random_uuid(), $1, $2, $3, $4, $5, false, true, NOW(), NOW()
+              gen_random_uuid(), $1, $2, $3, $4, $5, false, NOW(), NOW()
             )
           `, [
             config.name,
             config.description,
-            config.warningLevel,
-            config.isActive,
+            config.severity,
+            config.is_active,
             user.id
           ]);
         } catch (error: any) {
@@ -154,9 +153,8 @@ async function verifyWarningSystem() {
     const usersWithoutConditionsResult = await client.query(`
       SELECT u.id, u.email
       FROM "User" u
-      LEFT JOIN "WarningConfiguration" wc ON u.id = wc."userId"
-      WHERE u."isActive" = true
-      AND wc.id IS NULL
+      LEFT JOIN "WarningConfiguration" wc ON u.id = wc."created_by"
+      WHERE wc.id IS NULL
     `);
     
     const usersWithoutConditions = usersWithoutConditionsResult.rows;
@@ -173,7 +171,7 @@ async function verifyWarningSystem() {
     const inactiveConfigsResult = await client.query(`
       SELECT COUNT(*) as count
       FROM "WarningConfiguration"
-      WHERE "isActive" = false
+      WHERE "is_active" = false
     `);
     
     const inactiveCount = inactiveConfigsResult.rows[0].count;
@@ -181,10 +179,10 @@ async function verifyWarningSystem() {
     
     // Check for warning configurations without conditions
     const configsWithoutConditionsResult = await client.query(`
-      SELECT wc.id, wc.name, wc."userId"
+      SELECT wc.id, wc.name, wc."created_by"
       FROM "WarningConfiguration" wc
-      LEFT JOIN "WarningCondition" wcond ON wc.id = wcond."warningConfigurationId"
-      WHERE wcond.id IS NULL
+      LEFT JOIN "Warning" w ON wc.id = w."configuration_id"
+      WHERE w.id IS NULL
     `);
     
     const configsWithoutConditions = configsWithoutConditionsResult.rows;

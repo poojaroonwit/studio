@@ -183,7 +183,7 @@ export function useRenderMonitor(componentName: string, maxRenders: number = 100
 
     if (lastRenderTime.current > 0) {
       const timeSinceLastRender = now - lastRenderTime.current;
-      if (timeSinceLastRender < 50 && renderCount.current > 10) {
+      if (timeSinceLastRender < 100 && renderCount.current > 10) { // Increased from 50ms to 100ms
         console.warn(`⚠️ Frequent renders in "${componentName}": ${timeSinceLastRender}ms between renders`);
       }
     }

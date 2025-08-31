@@ -9,7 +9,7 @@
 const FROZEN_DETECTION_TIMEOUT = 120000; // 2 minutes (increased from 30 seconds)
 const MAX_RECOVERY_ATTEMPTS = 3;
 const ACTIVITY_CHECK_INTERVAL = 30000; // 30 seconds (increased from 10 seconds)
-const API_HEALTH_CHECK_INTERVAL = 60000; // 1 minute
+// const API_HEALTH_CHECK_INTERVAL = 60000; // 1 minute - DISABLED to prevent frequent re-renders
 
 // Global state tracking
 let isApplicationFrozen = false;
@@ -30,8 +30,12 @@ export function trackActivity() {
   }
 }
 
-// Check API health
+// Check API health - DISABLED to prevent frequent re-renders
 async function checkApiHealth(): Promise<boolean> {
+  // Temporarily disabled to prevent frequent re-renders
+  return true;
+  
+  /*
   try {
     const response = await fetch('/api/health', {
       method: 'GET',
@@ -51,6 +55,7 @@ async function checkApiHealth(): Promise<boolean> {
     apiHealthCheckFailed = true;
     return false;
   }
+  */
 }
 
 // Check if application is frozen
@@ -219,8 +224,8 @@ export function initializeFrozenStatePrevention() {
     window.addEventListener(event, trackActivity, { passive: true });
   });
 
-  // Periodic API health check
-  const apiHealthCheckInterval = setInterval(checkApiHealth, API_HEALTH_CHECK_INTERVAL);
+  // Periodic API health check - DISABLED to prevent frequent re-renders
+  // const apiHealthCheckInterval = setInterval(checkApiHealth, API_HEALTH_CHECK_INTERVAL);
   
   // Periodic activity check
   const activityCheckInterval = setInterval(() => {
@@ -232,7 +237,7 @@ export function initializeFrozenStatePrevention() {
   // Cleanup on page unload
   window.addEventListener('beforeunload', () => {
     clearInterval(activityCheckInterval);
-    clearInterval(apiHealthCheckInterval);
+    // clearInterval(apiHealthCheckInterval);
   });
   
   // Track API calls

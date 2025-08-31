@@ -88,6 +88,9 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   // Track optimistic updates to prevent real-time updates from overriding them
   const optimisticUpdatesRef = useRef<Set<string>>(new Set());
   
+  // Track the timing of optimistic updates to prevent race conditions
+  const optimisticUpdateTimestampsRef = useRef<Map<string, number>>(new Map());
+  
   // Get status color for YouTrack-style badges
   const getStatusColor = (status: string) => {
     const statusColors: Record<string, string> = {
@@ -123,6 +126,14 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     const updatedCandidate = updateData?.candidate || updateData;
     const action = updateData?.action;
     
+    // Debug: Log all incoming real-time updates
+    console.log('🔄 MyTasksPageClient received real-time update:', {
+      candidateId: updatedCandidate?.id,
+      action,
+      updateData,
+      optimisticUpdates: Array.from(optimisticUpdatesRef.current)
+    });
+    
     // Handle candidate deletion
     if (action === 'deleted' && updateData?.candidateId) {
       console.log('🗑️ Removing deleted candidate:', updateData.candidateId);
@@ -155,11 +166,32 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
           updateData
         });
         
-        // If this is a real-time update for a candidate we're optimistically updating,
-        // and the status matches our optimistic state, ignore this update
-        if (isBeingOptimisticallyUpdated && existingCandidate.status === updatedCandidate.status) {
-          console.log('🔄 Ignoring real-time update for optimistically updated candidate:', updatedCandidate.id);
-          return prevCandidates;
+        // Handle optimistic updates logic
+        if (isBeingOptimisticallyUpdated) {
+          // Check if this real-time update came too quickly after our optimistic update (race condition)
+          const optimisticTimestamp = optimisticUpdateTimestampsRef.current.get(updatedCandidate.id);
+          const timeSinceOptimisticUpdate = optimisticTimestamp ? Date.now() - optimisticTimestamp : 0;
+          
+          // If it's from the same user or came too quickly (within 2 seconds), ignore it
+          if (updateData?.actingUserId === userSession?.id || timeSinceOptimisticUpdate < 2000) {
+            console.log('🔄 Ignoring real-time update for optimistically updated candidate:', updatedCandidate.id, {
+              reason: updateData?.actingUserId === userSession?.id ? 'same user' : 'too quick',
+              timeSinceOptimisticUpdate
+            });
+            return prevCandidates;
+          }
+          
+          // If the status matches our optimistic state, it's a confirmation - clear tracking
+          if (existingCandidate.status === updatedCandidate.status) {
+            console.log('🔄 Confirmation received for optimistically updated candidate:', updatedCandidate.id, 'clearing optimistic tracking');
+            optimisticUpdatesRef.current.delete(updatedCandidate.id);
+            return prevCandidates; // Keep the current state since it matches
+          }
+          
+          // If the status is different, it means the server update succeeded
+          // Clear the optimistic update tracking and apply the server update
+          console.log('🔄 Server update received for optimistically updated candidate:', updatedCandidate.id, 'clearing optimistic tracking');
+          optimisticUpdatesRef.current.delete(updatedCandidate.id);
         }
         
         // Only update if there are meaningful changes
@@ -283,6 +315,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       }
       // Clear any remaining optimistic updates
       optimisticUpdatesRef.current.clear();
+      optimisticUpdateTimestampsRef.current.clear();
     };
   }, []);
 
@@ -519,13 +552,17 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
 
     // Track this optimistic update
     optimisticUpdatesRef.current.add(candidate.id);
+    optimisticUpdateTimestampsRef.current.set(candidate.id, Date.now());
     console.log('🚀 Starting optimistic update for candidate:', candidate.id, 'to status:', newStatus);
     
-    // Set a timeout to clear optimistic update after 30 seconds (fallback)
+    // Set a timeout to clear optimistic update after 60 seconds (fallback)
     setTimeout(() => {
-      optimisticUpdatesRef.current.delete(candidate.id);
-      console.log('⏰ Cleared optimistic update timeout for candidate:', candidate.id);
-    }, 30000);
+      if (optimisticUpdatesRef.current.has(candidate.id)) {
+        optimisticUpdatesRef.current.delete(candidate.id);
+        optimisticUpdateTimestampsRef.current.delete(candidate.id);
+        console.log('⏰ Cleared optimistic update timeout for candidate:', candidate.id);
+      }
+    }, 60000);
     
     // Optimistic update
     setCandidates((prev) =>
@@ -579,7 +616,16 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
         
         // Remove from optimistic updates tracking
         optimisticUpdatesRef.current.delete(candidate.id);
+        optimisticUpdateTimestampsRef.current.delete(candidate.id);
         console.log('✅ Optimistic update completed successfully for candidate:', candidate.id);
+        
+        // Add a small delay to ensure the real-time update doesn't interfere
+        setTimeout(() => {
+          if (optimisticUpdatesRef.current.has(candidate.id)) {
+            console.log('⚠️ Optimistic update still tracked after success, clearing:', candidate.id);
+            optimisticUpdatesRef.current.delete(candidate.id);
+          }
+        }, 1000);
         
         } catch (fetchError: any) {
           clearTimeout(timeoutId);
@@ -591,6 +637,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
         
         // Remove from optimistic updates tracking
         optimisticUpdatesRef.current.delete(candidate.id);
+        optimisticUpdateTimestampsRef.current.delete(candidate.id);
         console.log('❌ Optimistic update failed for candidate:', candidate.id, 'reverting to:', candidate.status);
         
         // Revert optimistic update on error

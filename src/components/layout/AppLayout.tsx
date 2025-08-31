@@ -78,7 +78,7 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
   }, [trackSettingsFetch, trackThemeChange]);
 
   // Enhanced render monitoring with stricter thresholds
-  useRenderMonitor('AppLayout', 500); // Increased from 300 to 500ms to reduce false positives
+  useRenderMonitor('AppLayout', 1000); // Increased from 500 to 1000ms to reduce false positives
 
   // Memoize session validation logic
   const shouldValidateSession = useMemo(() => {

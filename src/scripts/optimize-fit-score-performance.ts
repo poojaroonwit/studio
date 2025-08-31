@@ -220,19 +220,19 @@ async function optimizeFitScoreCalculations() {
         logSuccess('Updated table statistics for better query planning');
         
         // Check for candidates with outdated fit scores
+        // Note: Since there's no fitScoreUpdatedAt column, we'll check if fit scores exist
         const outdatedResult = await client.query(`
             SELECT COUNT(*) as count
             FROM "Candidate" c
             WHERE c."fitScore" IS NOT NULL
-            AND c."updatedAt" > c."fitScoreUpdatedAt"
         `);
         
-        const outdatedCount = outdatedResult.rows[0].count;
-        if (outdatedCount > 0) {
-            logWarning(`Found ${outdatedCount} candidates with potentially outdated fit scores`);
-            logInfo('Consider running fit score recalculation for these candidates');
+        const fitScoreCount = outdatedResult.rows[0].count;
+        if (fitScoreCount > 0) {
+            logInfo(`Found ${fitScoreCount} candidates with fit scores`);
+            logInfo('Note: Cannot determine if fit scores are outdated without fitScoreUpdatedAt column');
         } else {
-            logSuccess('All fit scores appear to be up to date');
+            logInfo('No candidates with fit scores found');
         }
         
         return true;

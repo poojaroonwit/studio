@@ -85,9 +85,16 @@ const SidebarProvider = React.forwardRef<
 
     const [_open, _setOpen] = React.useState(getInitialState)
     const open = openProp ?? _open
+    const openRef = React.useRef(open)
+    
+    // Update ref when open changes
+    React.useEffect(() => {
+      openRef.current = open
+    }, [open])
+    
     const setOpen = React.useCallback(
       (value: boolean | ((value: boolean) => boolean)) => {
-        const openState = typeof value === "function" ? value(open) : value
+        const openState = typeof value === "function" ? value(openRef.current) : value
         if (setOpenProp) {
           setOpenProp(openState)
         } else {
@@ -97,7 +104,7 @@ const SidebarProvider = React.forwardRef<
         // This sets the cookie to keep the sidebar state.
         document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
       },
-      [setOpenProp, open]
+      [setOpenProp, _setOpen]
     )
 
     // Helper to toggle the sidebar.
@@ -273,6 +280,50 @@ const SidebarTrigger = React.forwardRef<
   React.ComponentProps<typeof Button>
 >(({ className, onClick, ...props }, ref) => {
   const { toggleSidebar, isMobile } = useSidebar()
+  const [isToggling, setIsToggling] = React.useState(false);
+  const toggleTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  const lastToggleTimeRef = React.useRef<number>(0);
+
+  const handleToggle = React.useCallback((event: React.MouseEvent) => {
+    const now = Date.now();
+    const timeSinceLastToggle = now - lastToggleTimeRef.current;
+    
+    // Prevent rapid toggling (less than 300ms apart)
+    if (timeSinceLastToggle < 300) {
+      console.log('Sidebar trigger toggle blocked: too rapid clicking');
+      return;
+    }
+    
+    // Prevent toggle if already toggling
+    if (isToggling) {
+      console.log('Sidebar trigger toggle blocked: already toggling');
+      return;
+    }
+    
+    lastToggleTimeRef.current = now;
+    setIsToggling(true);
+    
+    // Clear any existing timeout
+    if (toggleTimeoutRef.current) {
+      clearTimeout(toggleTimeoutRef.current);
+    }
+    
+    // Set a timeout to reset toggle state
+    toggleTimeoutRef.current = setTimeout(() => {
+      setIsToggling(false);
+    }, 500);
+    
+    onClick?.(event)
+    toggleSidebar()
+  }, [toggleSidebar, onClick, isToggling]);
+
+  React.useEffect(() => {
+    return () => {
+      if (toggleTimeoutRef.current) {
+        clearTimeout(toggleTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <Button
@@ -281,10 +332,8 @@ const SidebarTrigger = React.forwardRef<
       variant="ghost"
       size="icon"
       className={cn("h-8 w-8", className)}
-      onClick={(event) => {
-        onClick?.(event)
-        toggleSidebar()
-      }}
+      onClick={handleToggle}
+      disabled={isToggling}
       {...props}
     >
       <PanelLeft className="h-5 w-5" />
@@ -299,6 +348,49 @@ const SidebarRail = React.forwardRef<
   React.ComponentProps<"button">
 >(({ className, ...props }, ref) => {
   const { toggleSidebar } = useSidebar()
+  const [isToggling, setIsToggling] = React.useState(false);
+  const toggleTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  const lastToggleTimeRef = React.useRef<number>(0);
+
+  const handleToggle = React.useCallback(() => {
+    const now = Date.now();
+    const timeSinceLastToggle = now - lastToggleTimeRef.current;
+    
+    // Prevent rapid toggling (less than 300ms apart)
+    if (timeSinceLastToggle < 300) {
+      console.log('Sidebar rail toggle blocked: too rapid clicking');
+      return;
+    }
+    
+    // Prevent toggle if already toggling
+    if (isToggling) {
+      console.log('Sidebar rail toggle blocked: already toggling');
+      return;
+    }
+    
+    lastToggleTimeRef.current = now;
+    setIsToggling(true);
+    
+    // Clear any existing timeout
+    if (toggleTimeoutRef.current) {
+      clearTimeout(toggleTimeoutRef.current);
+    }
+    
+    // Set a timeout to reset toggle state
+    toggleTimeoutRef.current = setTimeout(() => {
+      setIsToggling(false);
+    }, 500);
+    
+    toggleSidebar()
+  }, [toggleSidebar, isToggling]);
+
+  React.useEffect(() => {
+    return () => {
+      if (toggleTimeoutRef.current) {
+        clearTimeout(toggleTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <button
@@ -306,7 +398,8 @@ const SidebarRail = React.forwardRef<
       data-sidebar="rail"
       aria-label="Toggle Sidebar"
       tabIndex={-1}
-      onClick={toggleSidebar}
+      onClick={handleToggle}
+      disabled={isToggling}
       title="Toggle Sidebar"
       className={cn(
         "absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-all ease-linear after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] hover:after:bg-sidebar-border group-data-[side=left]:-right-4 group-data-[side=right]:left-0 sm:flex",

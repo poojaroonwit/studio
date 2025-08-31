@@ -232,7 +232,14 @@ echo "📋 Services that will be started:"
 echo "  - Main Next.js application (port 8021)"
 echo "  - Upload queue processor (separate service)"
 echo "  - Health check service (separate service)"
+echo "  - Health monitoring service (automatic restart)"
 echo ""
+
+# Start health monitoring service in background
+echo "🔍 Starting health monitoring service..."
+nohup /bin/sh /app/scripts/monitor-health.sh > /var/log/health-monitor.log 2>&1 &
+HEALTH_MONITOR_PID=$!
+echo "✅ Health monitoring service started (PID: $HEALTH_MONITOR_PID)"
 
 # Start only the main application
 exec npm run start 

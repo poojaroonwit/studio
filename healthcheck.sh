@@ -10,10 +10,53 @@ HEALTH_URL="http://localhost:8021/api/health"
 TIMEOUT=10
 MAX_RETRIES=3
 LOG_FILE="/tmp/healthcheck.log"
+UNHEALTHY_COUNT_FILE="/tmp/unhealthy_count.txt"
 
 # Function to log messages with timestamp
 log_message() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" | tee -a "$LOG_FILE"
+}
+
+# Function to get unhealthy count
+get_unhealthy_count() {
+    if [ -f "$UNHEALTHY_COUNT_FILE" ]; then
+        cat "$UNHEALTHY_COUNT_FILE" 2>/dev/null || echo "0"
+    else
+        echo "0"
+    fi
+}
+
+# Function to increment unhealthy count
+increment_unhealthy_count() {
+    local current_count=$(get_unhealthy_count)
+    local new_count=$((current_count + 1))
+    echo "$new_count" > "$UNHEALTHY_COUNT_FILE"
+    echo "$new_count"
+}
+
+# Function to reset unhealthy count
+reset_unhealthy_count() {
+    echo "0" > "$UNHEALTHY_COUNT_FILE"
+}
+
+# Function to restart application
+restart_application() {
+    log_message "🔄 Application is unhealthy multiple times, attempting restart..."
+    
+    # Kill the current Node.js process
+    pkill -f "node.*server.js\|next.*start" || true
+    
+    # Wait a moment
+    sleep 5
+    
+    # Start the application in background
+    cd /app
+    nohup npm run start > /var/log/app-restart.log 2>&1 &
+    
+    log_message "✅ Application restart initiated"
+    
+    # Reset unhealthy count
+    reset_unhealthy_count
 }
 
 # Function to check if the application is responding
@@ -88,14 +131,34 @@ log_message "🚀 Starting comprehensive health check..."
 # Check if application process is running (CRITICAL - must pass)
 if ! check_process; then
     log_message "❌ Health check failed: Application process not running"
+    local unhealthy_count=$(increment_unhealthy_count)
+    log_message "📊 Unhealthy count: $unhealthy_count"
+    
+    # Restart if unhealthy multiple times
+    if [ "$unhealthy_count" -ge 3 ]; then
+        restart_application
+    fi
+    
     exit 1
 fi
 
 # Perform the HTTP health check (CRITICAL - must pass)
 if ! check_health; then
     log_message "❌ Health check failed: Application HTTP endpoint not responding"
+    local unhealthy_count=$(increment_unhealthy_count)
+    log_message "📊 Unhealthy count: $unhealthy_count"
+    
+    # Restart if unhealthy multiple times
+    if [ "$unhealthy_count" -ge 3 ]; then
+        restart_application
+    fi
+    
     exit 1
 fi
+
+# If we get here, health check passed
+reset_unhealthy_count
+log_message "✅ Critical health checks passed - Application is healthy"
 
 # Check basic system resources (WARNING - log but don't fail)
 if ! check_disk_space; then

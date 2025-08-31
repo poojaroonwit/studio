@@ -152,8 +152,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unsupported file type. Please upload Excel (.xlsx, .xls) or CSV files.' }, { status: 400 });
     }
 
+    // Check for empty or template data
+    const validCandidates = candidates.filter(candidate => {
+      // Skip rows that are essentially empty (no meaningful data)
+      return candidate.name && candidate.name.trim() !== '' && 
+             candidate.email && candidate.email.trim() !== '';
+    });
+
+    if (validCandidates.length === 0) {
+      return NextResponse.json({ 
+        error: 'No valid candidates found in file. Please ensure the file contains candidate data with at least Name and Email fields filled.' 
+      }, { status: 400 });
+    }
+
     // Validate candidates
-    const validationResults = candidates.map((candidate, index) => {
+    const validationResults = validCandidates.map((candidate, index) => {
       const result = candidateImportSchema.safeParse(candidate);
       return { index, candidate, valid: result.success, errors: result.success ? null : result.error.flatten().fieldErrors };
     });
@@ -182,7 +195,7 @@ export async function POST(request: NextRequest) {
         errors: [] as string[]
       };
 
-      for (const candidate of candidates) {
+      for (const candidate of validCandidates) {
         try {
           // Parse and validate data
           const fitScore = parseFitScore(candidate.fitScore);
@@ -276,7 +289,8 @@ export async function POST(request: NextRequest) {
         created: results.created,
         updated: results.updated,
         errors: results.errors.length,
-        totalProcessed: candidates.length
+        totalProcessed: validCandidates.length,
+        totalRows: candidates.length
       });
 
       return NextResponse.json({
@@ -317,26 +331,26 @@ export async function GET(request: NextRequest) {
     const templateData = [
       {
         'ID': '', // Leave blank for new candidates, or provide existing ID for updates
-        'Name*': 'John Doe',
-        'Email*': 'john.doe@example.com',
-        'Phone': '+1234567890',
-        'Position ID': '', // UUID of position (optional)
-        'Position Name': 'Software Engineer', // For display purposes
-        'Recruiter ID': '', // UUID of recruiter (optional)
-        'Recruiter Name': 'Jane Smith', // For display purposes
-        'Fit Score (0-100)': '85',
-        'Status*': 'Applied',
-        'Application Date': '2024-01-15',
-        'Applied Job': 'Software Engineer',
-        'Applied Job Justification': 'Strong technical background',
-        'Job Matches': 'Job: Senior Developer | Score: 90% | Reasons: Technical skills, Experience',
-        'Location': 'New York, NY',
-        'Introduction/About Me': 'Experienced software engineer with 5+ years in web development',
-        'Education (JSON)': '[{"degree":"BS Computer Science","school":"MIT","year":2020}]',
-        'Experience (JSON)': '[{"title":"Software Engineer","company":"Tech Corp","duration":"2020-2024"}]',
-        'Skills (JSON)': '["JavaScript","React","Node.js","Python"]',
-        'Job Suitable (JSON)': '[{"jobTitle":"Senior Developer","fitScore":0.9}]',
-        'Custom Attributes (JSON)': '{"source":"LinkedIn","priority":"High"}'
+        'Name*': '', // Required: Full name of the candidate
+        'Email*': '', // Required: Valid email address (must be unique)
+        'Phone': '', // Optional: Phone number
+        'Position ID': '', // Optional: UUID of position
+        'Position Name': '', // Optional: Display name of position (for reference)
+        'Recruiter ID': '', // Optional: UUID of recruiter
+        'Recruiter Name': '', // Optional: Display name of recruiter (for reference)
+        'Fit Score (0-100)': '', // Optional: Fit score as percentage (0-100)
+        'Status*': 'Applied', // Required: Candidate status (Applied, Interviewing, Hired, etc.)
+        'Application Date': '', // Optional: Date in YYYY-MM-DD format
+        'Applied Job': '', // Optional: Title of the applied job
+        'Applied Job Justification': '', // Optional: Justification for job application
+        'Job Matches': '', // Optional: Additional job matches with scores and reasons
+        'Location': '', // Optional: Candidate location
+        'Introduction/About Me': '', // Optional: Candidate introduction or about section
+        'Education (JSON)': '', // Optional: Education history as JSON array
+        'Experience (JSON)': '', // Optional: Work experience as JSON array
+        'Skills (JSON)': '', // Optional: Skills as JSON array
+        'Job Suitable (JSON)': '', // Optional: Suitable jobs as JSON array
+        'Custom Attributes (JSON)': '' // Optional: Custom attributes as JSON object
       }
     ];
 

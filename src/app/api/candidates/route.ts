@@ -312,8 +312,12 @@ export async function GET(request: NextRequest) {
       sortDirection = 'ASC';
     } else if (sortDirectionParam && sortDirectionParam.toLowerCase() === 'desc') {
       sortDirection = 'DESC';
+    } else if (sortDirectionParam === '') {
+      // Empty string means clear sort - use default sort (lastUpdate desc)
+      sortColumn = 'c."updatedAt"';
+      sortDirection = 'DESC';
     } else {
-      // sortDirectionParam is null, empty, or invalid - use default sort (lastUpdate desc)
+      // sortDirectionParam is null or invalid - use default sort (lastUpdate desc)
       sortColumn = 'c."updatedAt"';
       sortDirection = 'DESC';
     }

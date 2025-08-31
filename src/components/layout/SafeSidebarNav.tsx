@@ -35,41 +35,50 @@ const usePendingCount = () => {
   const [pendingCount, setPendingCount] = React.useState<number | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
   const lastFetchTime = React.useRef<number>(0);
-
-  const fetchPending = React.useCallback(async () => {
-    // Prevent excessive API calls - only fetch once per 30 seconds
-    const now = Date.now();
-    if (now - lastFetchTime.current < 30000) {
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      const res = await fetch("/api/upload-queue/count", {
-        method: 'GET',
-        headers: {
-          'Cache-Control': 'no-cache'
-        }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setPendingCount(data.pending || 0);
-        lastFetchTime.current = now;
-      } else {
-        console.warn("Failed to fetch pending count:", res.status);
-      }
-    } catch (error) {
-      console.warn("Error fetching pending count:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const fetchTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
   React.useEffect(() => {
-    fetchPending();
-    const interval = setInterval(fetchPending, 30000);
-    return () => clearInterval(interval);
-  }, [fetchPending]);
+    const fetchPendingCount = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch('/api/process-queue/pending-count', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setPendingCount(data.count || 0);
+          lastFetchTime.current = Date.now();
+        } else {
+          console.warn('Failed to fetch pending count:', response.status);
+          setPendingCount(null);
+        }
+      } catch (error) {
+        console.error('Error fetching pending count:', error);
+        setPendingCount(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    // Only fetch if we haven't fetched recently (within 30 seconds)
+    const now = Date.now();
+    if (now - lastFetchTime.current > 30000) {
+      fetchPendingCount();
+    }
+
+    // Set up periodic refresh every 30 seconds
+    fetchTimeoutRef.current = setTimeout(fetchPendingCount, 30000);
+
+    return () => {
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return { pendingCount, isLoading };
 };
@@ -174,7 +183,6 @@ const FallbackNav = React.memo(() => {
       </SidebarMenu>
       <div className="mt-auto">
         <SidebarMenu>
-          <SidebarSeparator className="my-2" />
           <SidebarMenuItem>
             <Link href="/settings" className="w-full">
               <SidebarMenuButton className="w-full justify-start" size="default">
@@ -215,24 +223,98 @@ const getSafeNavigationItems = (canAccessMyTasks: boolean) => {
 // Safe session checker
 const getSafeSessionInfo = (session: any) => {
   try {
-    if (!session || !session.user) {
+    if (!session?.user) {
       return { canAccessMyTasks: false, modulePermissions: [] };
     }
-    
-    const modulePermissions = Array.isArray(session.user.modulePermissions) 
-      ? session.user.modulePermissions 
-      : [];
-    
-    const canAccessMyTasks = session.user.role === 'Admin' || 
-      modulePermissions.includes('TASK_BOARD_VIEW') ||
-      modulePermissions.includes('CANDIDATES_VIEW');
-    
+
+    const modulePermissions = session.user.modulePermissions || [];
+    const canAccessMyTasks = modulePermissions.includes('my-tasks') || 
+                            session.user.role === 'admin' || 
+                            session.user.role === 'super_admin';
+
     return { canAccessMyTasks, modulePermissions };
   } catch (error) {
     console.error('Error getting session info:', error);
     return { canAccessMyTasks: false, modulePermissions: [] };
   }
 };
+
+// Custom Link component with click protection
+const ProtectedLink = React.memo(({ href, children, ...props }: { href: string; children: React.ReactNode; [key: string]: any }) => {
+  const router = useRouter();
+  const [isNavigating, setIsNavigating] = React.useState(false);
+  const navigationTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  const lastClickTimeRef = React.useRef<number>(0);
+  const isMountedRef = React.useRef(true);
+
+  React.useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      if (navigationTimeoutRef.current) {
+        clearTimeout(navigationTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleClick = React.useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    
+    // Check if component is still mounted
+    if (!isMountedRef.current) {
+      return;
+    }
+    
+    const now = Date.now();
+    const timeSinceLastClick = now - lastClickTimeRef.current;
+    
+    // Prevent rapid clicks (less than 500ms apart)
+    if (timeSinceLastClick < 500) {
+      console.log('Navigation blocked: too rapid clicking');
+      return;
+    }
+    
+    // Prevent navigation if already navigating
+    if (isNavigating) {
+      console.log('Navigation blocked: already navigating');
+      return;
+    }
+    
+    lastClickTimeRef.current = now;
+    setIsNavigating(true);
+    
+    // Clear any existing timeout
+    if (navigationTimeoutRef.current) {
+      clearTimeout(navigationTimeoutRef.current);
+    }
+    
+    // Set a timeout to reset navigation state
+    navigationTimeoutRef.current = setTimeout(() => {
+      if (isMountedRef.current) {
+        setIsNavigating(false);
+      }
+    }, 1000);
+    
+    try {
+      router.push(href);
+    } catch (error) {
+      console.error("Navigation error:", error);
+      if (isMountedRef.current) {
+        setIsNavigating(false);
+      }
+      // Fallback to window.location
+      window.location.href = href;
+    }
+  }, [href, router, isNavigating]);
+
+  return (
+    <a href={href} onClick={handleClick} {...props}>
+      {children}
+    </a>
+  );
+});
+
+ProtectedLink.displayName = 'ProtectedLink';
 
 const SafeSidebarNavComponent = React.memo(() => {
   const [hasError, setHasError] = React.useState(false);
@@ -265,15 +347,6 @@ const SafeSidebarNavComponent = React.memo(() => {
       );
     }
 
-    const handleNavigation = React.useCallback((href: string) => {
-      try {
-        router.push(href);
-      } catch (error) {
-        console.error("Navigation error:", error);
-        window.location.href = href;
-      }
-    }, [router]);
-
     // Collapsed mode
     if (!open) {
       return (
@@ -282,7 +355,7 @@ const SafeSidebarNavComponent = React.memo(() => {
             {navigationItems.map((item) => (
               <SidebarMenuItem key={item.href}>
                 <MenuItemWithTooltip label={item.label}>
-                  <Link href={item.href} className="w-full">
+                  <ProtectedLink href={item.href} className="w-full">
                     <SidebarMenuButton
                       isActive={pathname === item.href}
                       className="w-full justify-center"
@@ -290,7 +363,7 @@ const SafeSidebarNavComponent = React.memo(() => {
                     >
                       <item.icon className="h-5 w-5" />
                     </SidebarMenuButton>
-                  </Link>
+                  </ProtectedLink>
                 </MenuItemWithTooltip>
               </SidebarMenuItem>
             ))}
@@ -300,7 +373,7 @@ const SafeSidebarNavComponent = React.memo(() => {
             <SidebarMenu>
               <SidebarMenuItem>
                 <MenuItemWithTooltip label={NAV_ITEMS.bulkUpload.label}>
-                  <Link href={NAV_ITEMS.bulkUpload.href} className="w-full">
+                  <ProtectedLink href={NAV_ITEMS.bulkUpload.href} className="w-full">
                     <SidebarMenuButton
                       isActive={pathname === NAV_ITEMS.bulkUpload.href}
                       className="w-full justify-center relative"
@@ -317,12 +390,12 @@ const SafeSidebarNavComponent = React.memo(() => {
                         </Badge>
                       )}
                     </SidebarMenuButton>
-                  </Link>
+                  </ProtectedLink>
                 </MenuItemWithTooltip>
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <MenuItemWithTooltip label={NAV_ITEMS.settings.label}>
-                  <Link href={NAV_ITEMS.settings.href} className="w-full">
+                  <ProtectedLink href={NAV_ITEMS.settings.href} className="w-full">
                     <SidebarMenuButton
                       isActive={pathname.startsWith(NAV_ITEMS.settings.href)}
                       className="w-full justify-center"
@@ -330,7 +403,7 @@ const SafeSidebarNavComponent = React.memo(() => {
                     >
                       <NAV_ITEMS.settings.icon className="h-5 w-5" />
                     </SidebarMenuButton>
-                  </Link>
+                  </ProtectedLink>
                 </MenuItemWithTooltip>
               </SidebarMenuItem>
             </SidebarMenu>
@@ -347,7 +420,7 @@ const SafeSidebarNavComponent = React.memo(() => {
           {navigationItems.map((item) => (
             <SidebarMenuItem key={item.href}>
               <MenuItemWithTooltip label={item.label}>
-                <Link href={item.href} className="w-full">
+                <ProtectedLink href={item.href} className="w-full">
                   <SidebarMenuButton
                     isActive={pathname === item.href}
                     className="w-full justify-start"
@@ -356,7 +429,7 @@ const SafeSidebarNavComponent = React.memo(() => {
                     <item.icon className="h-5 w-5" />
                     <span className="truncate">{item.label}</span>
                   </SidebarMenuButton>
-                </Link>
+                </ProtectedLink>
               </MenuItemWithTooltip>
             </SidebarMenuItem>
           ))}
@@ -364,19 +437,19 @@ const SafeSidebarNavComponent = React.memo(() => {
         
         <div className="mt-auto">
           <SidebarMenu>
-            <SidebarSeparator className="my-2" />
+            <SidebarGroupLabel>System</SidebarGroupLabel>
             <SidebarMenuItem>
               <MenuItemWithTooltip label={NAV_ITEMS.bulkUpload.label}>
-                <Link href={NAV_ITEMS.bulkUpload.href} className="w-full">
+                <ProtectedLink href={NAV_ITEMS.bulkUpload.href} className="w-full">
                   <SidebarMenuButton
                     isActive={pathname === NAV_ITEMS.bulkUpload.href}
-                    className="w-full justify-start"
+                    className="w-full justify-start relative"
                     size="default"
                   >
                     <NAV_ITEMS.bulkUpload.icon className="h-5 w-5" />
                     <span className="truncate">{NAV_ITEMS.bulkUpload.label}</span>
                     {pendingCount !== null && (
-                      <Badge className="ml-auto h-5 min-w-5 px-0.5 text-xs">
+                      <Badge className="absolute -top-1 -right-1 h-5 min-w-5 px-0.5 text-xs">
                         {isLoading ? (
                           <div className="h-3 w-3 animate-spin rounded-full border border-current border-t-transparent" />
                         ) : (
@@ -385,12 +458,12 @@ const SafeSidebarNavComponent = React.memo(() => {
                       </Badge>
                     )}
                   </SidebarMenuButton>
-                </Link>
+                </ProtectedLink>
               </MenuItemWithTooltip>
             </SidebarMenuItem>
             <SidebarMenuItem>
               <MenuItemWithTooltip label={NAV_ITEMS.settings.label}>
-                <Link href={NAV_ITEMS.settings.href} className="w-full">
+                <ProtectedLink href={NAV_ITEMS.settings.href} className="w-full">
                   <SidebarMenuButton
                     isActive={pathname.startsWith(NAV_ITEMS.settings.href)}
                     className="w-full justify-start"
@@ -399,7 +472,7 @@ const SafeSidebarNavComponent = React.memo(() => {
                     <NAV_ITEMS.settings.icon className="h-5 w-5" />
                     <span className="truncate">{NAV_ITEMS.settings.label}</span>
                   </SidebarMenuButton>
-                </Link>
+                </ProtectedLink>
               </MenuItemWithTooltip>
             </SidebarMenuItem>
           </SidebarMenu>
@@ -407,7 +480,7 @@ const SafeSidebarNavComponent = React.memo(() => {
       </div>
     );
   } catch (error) {
-    console.error('Error in SafeSidebarNav component:', error);
+    console.error('Error in SafeSidebarNavComponent:', error);
     setHasError(true);
     return <FallbackNav />;
   }
@@ -415,39 +488,4 @@ const SafeSidebarNavComponent = React.memo(() => {
 
 SafeSidebarNavComponent.displayName = 'SafeSidebarNavComponent';
 
-// Error boundary for SafeSidebarNav
-class SafeSidebarNavErrorBoundary extends React.Component<
-  { children: React.ReactNode },
-  { hasError: boolean }
-> {
-  constructor(props: { children: React.ReactNode }) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError(error: Error) {
-    console.error('SafeSidebarNav Error Boundary caught error:', error);
-    return { hasError: true };
-  }
-
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('SafeSidebarNav Error Boundary error details:', error, errorInfo);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return <FallbackNav />;
-    }
-
-    return this.props.children;
-  }
-}
-
-// Export with error boundary wrapper
-export default function SafeSidebarNav() {
-  return (
-    <SafeSidebarNavErrorBoundary>
-      <SafeSidebarNavComponent />
-    </SafeSidebarNavErrorBoundary>
-  );
-}
+export default SafeSidebarNavComponent;

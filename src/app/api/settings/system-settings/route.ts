@@ -136,7 +136,7 @@ export async function GET(request: NextRequest) {
       { key: 'resumeProcessingWebhookToken', envVar: 'RESUME_PROCESSING_WEBHOOK_TOKEN' },
       { key: 'resumeProcessingWebhookResponseMode', envVar: 'RESUME_PROCESSING_WEBHOOK_RESPONSE_MODE', defaultValue: 'blocking' },
       { key: 'resumeProcessingWebhookTimeout', envVar: 'RESUME_PROCESSING_WEBHOOK_TIMEOUT', defaultValue: '1800' },
-      { key: 'webhookConnectionTimeout', envVar: 'WEBHOOK_CONNECTION_TIMEOUT', defaultValue: '300' },
+      { key: 'webhookConnectionTimeout', envVar: 'WEBHOOK_CONNECTION_TIMEOUT', defaultValue: '900' },
       { key: 'maxConcurrentProcessors', envVar: 'MAX_CONCURRENT_PROCESSORS', defaultValue: '5' }
     ];
 

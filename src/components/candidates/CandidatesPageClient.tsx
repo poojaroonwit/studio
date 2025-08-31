@@ -1254,7 +1254,7 @@ export function CandidatesPageClient({
     );
     
     // Only skip fetch if we have initial candidates, no active filters, page is 1, and sort is default
-    if (initialCandidates.length > 0 && !hasActiveFilters && page === 1 && sortColumn === 'lastUpdate' && (sortDirection === 'desc' || sortDirection === null)) {
+    if (initialCandidates.length > 0 && !hasActiveFilters && page === 1 && sortColumn === 'lastUpdate' && sortDirection === 'desc') {
       return;
     }
     

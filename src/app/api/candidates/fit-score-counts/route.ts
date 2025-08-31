@@ -496,9 +496,6 @@ export async function GET(request: NextRequest) {
             client.query(matchingFitScoreCountsQuery, queryParams)
           ]);
 
-          const queryTime = Date.now() - queryStartTime;
-          console.log(`⚡ Fit score count queries completed in ${queryTime}ms`);
-          
           // Reset circuit breaker on success
           consecutiveFailures = 0;
           lastFailureTime = 0;

@@ -10,7 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Clock, FileText, AlertTriangle, TrendingUp, Database, CalendarIcon, Filter, X } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Loader2, Clock, FileText, AlertTriangle, TrendingUp, Database, CalendarIcon, Filter, X, Download, FileSpreadsheet } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { formatFileSize, formatDate, calculateDuration } from '@/lib/utils';
@@ -159,7 +160,7 @@ export default function ProcessQueueAnalytics() {
         const duration = (completedTime - processTime) / (1000 * 60); // minutes
         
         scatterData.push({
-          x: new Date(processTime).toLocaleDateString(),
+          x: new Date(processTime).toISOString(),
           y: duration,
           status: item.status,
           fileName: item.file_name,
@@ -270,6 +271,259 @@ export default function ProcessQueueAnalytics() {
     }
   };
 
+  const handleExportErrors = async () => {
+    if (!data) return;
+
+    try {
+      // Build query parameters from current filters
+      const params = new URLSearchParams();
+      
+      if (dateRange?.from) {
+        params.append('date_start', dateRange.from.toISOString());
+      }
+      if (dateRange?.to) {
+        params.append('date_end', dateRange.to.toISOString());
+      }
+      if (statusFilter && statusFilter !== 'all') {
+        params.append('status', statusFilter);
+      }
+      
+      // Add format parameter (CSV by default)
+      params.append('format', 'csv');
+      
+      const response = await fetch(`/api/upload-queue/error-analysis/export?${params.toString()}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Export failed with status: ${response.status}`);
+      }
+      
+      const blob = await response.blob();
+      
+      if (blob.size === 0) {
+        throw new Error('Export returned empty file');
+      }
+      
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `error-analysis-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error exporting error analysis:', error);
+      
+             // Fallback to client-side export
+       try {
+         const exportData: Array<{
+           'No.': number | string;
+           'Error Reason': string;
+           'Error Category': string;
+           'Count': number;
+           'Percentage': string;
+           'Severity': 'high' | 'medium' | 'low';
+           'Total Jobs': number;
+           'Export Date': string;
+         }> = data.stats.errorsByReason.map((item, index) => ({
+           'No.': index + 1,
+           'Error Reason': item.reason,
+           'Error Category': getErrorCategory(item.reason),
+           'Count': item.count,
+           'Percentage': `${((item.count / data.stats.totalJobs) * 100).toFixed(1)}%`,
+           'Severity': getErrorSeverity(item.count, data.stats.totalJobs),
+           'Total Jobs': data.stats.totalJobs,
+           'Export Date': new Date().toISOString().split('T')[0]
+         }));
+
+        const totalErrors = data.stats.errorsByReason.reduce((sum, item) => sum + item.count, 0);
+        const errorRate = ((totalErrors / data.stats.totalJobs) * 100).toFixed(1);
+        
+                 exportData.push({
+           'No.': '',
+           'Error Reason': 'SUMMARY',
+           'Error Category': '',
+           'Count': totalErrors,
+           'Percentage': `${errorRate}%`,
+           'Severity': totalErrors > 0 ? 'high' : 'low',
+           'Total Jobs': data.stats.totalJobs,
+           'Export Date': new Date().toISOString().split('T')[0]
+         });
+
+        const headers = Object.keys(exportData[0]);
+        const csvContent = [
+          headers.join(','),
+          ...exportData.map(row => 
+            headers.map(header => {
+              const value = row[header as keyof typeof row];
+              const escapedValue = String(value).replace(/"/g, '""');
+              return `"${escapedValue}"`;
+            }).join(',')
+          )
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `error-analysis-${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (fallbackError) {
+        console.error('Fallback export also failed:', fallbackError);
+        // Final fallback to JSON
+        const errors = data.stats.errorsByReason.map(item => ({
+          'Error Reason': item.reason,
+          'Count': item.count,
+          'Percentage': `${((item.count / data.stats.totalJobs) * 100).toFixed(1)}%`
+        }));
+
+        const blob = new Blob([JSON.stringify(errors, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `error-analysis-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+    }
+  };
+
+  const handleViewErrorDetails = (reason: string) => {
+    const errorItem = data?.stats.errorsByReason.find(item => item.reason === reason);
+    if (errorItem) {
+      setSelectedJob({
+        x: '', // No process date for errors
+        y: 0, // No duration for errors
+        status: 'Error',
+        fileName: '', // No file name for errors
+        fileSize: 0,
+        uploadDate: '', // No upload date for errors
+        processDate: null,
+        completedDate: null,
+        error: errorItem.reason,
+        errorDetails: '', // No specific error details for errors
+        positionTitle: null,
+        source: null,
+        id: '' // No job ID for errors
+      });
+      setIsJobDetailsOpen(true);
+    }
+  };
+
+  const handleExportSingleError = async (reason: string) => {
+    if (!data) return;
+
+    try {
+      // Build query parameters from current filters
+      const params = new URLSearchParams();
+      
+      if (dateRange?.from) {
+        params.append('date_start', dateRange.from.toISOString());
+      }
+      if (dateRange?.to) {
+        params.append('date_end', dateRange.to.toISOString());
+      }
+      if (statusFilter && statusFilter !== 'all') {
+        params.append('status', statusFilter);
+      }
+      
+      // Add error filter
+      params.append('error_reason', encodeURIComponent(reason));
+      params.append('format', 'csv');
+      
+      const response = await fetch(`/api/upload-queue/error-analysis/export?${params.toString()}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Export failed with status: ${response.status}`);
+      }
+      
+      const blob = await response.blob();
+      
+      if (blob.size === 0) {
+        throw new Error('Export returned empty file');
+      }
+      
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `error-${reason.substring(0, 30).replace(/[^a-zA-Z0-9]/g, '-')}-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error exporting single error:', error);
+      
+      // Fallback to client-side export for this specific error
+      const errorItem = data.stats.errorsByReason.find(item => item.reason === reason);
+      if (errorItem) {
+        const exportData = [{
+          'Error Reason': errorItem.reason,
+          'Error Category': getErrorCategory(errorItem.reason),
+          'Count': errorItem.count,
+          'Percentage': `${((errorItem.count / data.stats.totalJobs) * 100).toFixed(1)}%`,
+          'Severity': getErrorSeverity(errorItem.count, data.stats.totalJobs),
+          'Total Jobs': data.stats.totalJobs,
+          'Export Date': new Date().toISOString().split('T')[0]
+        }];
+
+        const headers = Object.keys(exportData[0]);
+        const csvContent = [
+          headers.join(','),
+          ...exportData.map(row => 
+            headers.map(header => {
+              const value = row[header as keyof typeof row];
+              const escapedValue = String(value).replace(/"/g, '""');
+              return `"${escapedValue}"`;
+            }).join(',')
+          )
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `error-${reason.substring(0, 30).replace(/[^a-zA-Z0-9]/g, '-')}-${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+    }
+  };
+
+  const getErrorSeverity = (count: number, totalJobs: number): 'high' | 'medium' | 'low' => {
+    const errorRate = (count / totalJobs) * 100;
+    if (errorRate > 10) return 'high';
+    if (errorRate > 2) return 'medium';
+    return 'low';
+  };
+
+  const getErrorCategory = (reason: string) => {
+    if (reason.includes('timeout')) return 'Timeout Error';
+    if (reason.includes('connection')) return 'Network Error';
+    if (reason.includes('invalid')) return 'Invalid Data Error';
+    if (reason.includes('parsing')) return 'Parsing Error';
+    if (reason.includes('file')) return 'File Processing Error';
+    if (reason.includes('api')) return 'API Error';
+    if (reason.includes('database')) return 'Database Error';
+    return 'Unknown Error';
+  };
 
 
   if (loading) {
@@ -498,7 +752,7 @@ export default function ProcessQueueAnalytics() {
             <CardHeader>
               <CardTitle>Process Time vs Duration</CardTitle>
               <CardDescription>
-                Scatter plot showing the relationship between process date and duration
+                Scatter plot showing the relationship between process date/time and processing duration. Each point represents a job, with x-axis showing when processing started and y-axis showing how long it took to complete.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -538,7 +792,7 @@ export default function ProcessQueueAnalytics() {
                         {
                           label: 'Duration (minutes)',
                           data: data!.scatterData.map(item => ({
-                            x: new Date(item.x).getTime(),
+                            x: new Date(item.x),
                             y: item.y
                           })),
                           backgroundColor: data!.scatterData.map(item => {
@@ -580,7 +834,8 @@ export default function ProcessQueueAnalytics() {
                             title: function(context: any) {
                               const dataIndex = context[0].dataIndex;
                               const item = data!.scatterData[dataIndex];
-                              return `Date: ${new Date(item.x).toLocaleDateString()}`;
+                              const date = new Date(item.x);
+                              return `Date & Time: ${date.toLocaleString()}`;
                             },
                             label: function(context: any) {
                               const dataIndex = context[0].dataIndex;
@@ -596,9 +851,24 @@ export default function ProcessQueueAnalytics() {
                       },
                       scales: {
                         x: {
+                          type: 'time',
+                          time: {
+                            displayFormats: {
+                              millisecond: 'HH:mm:ss.SSS',
+                              second: 'HH:mm:ss',
+                              minute: 'MMM dd, HH:mm',
+                              hour: 'MMM dd, HH:mm',
+                              day: 'MMM dd, yyyy',
+                              week: 'MMM dd, yyyy',
+                              month: 'MMM yyyy',
+                              quarter: 'MMM yyyy',
+                              year: 'yyyy'
+                            },
+                            tooltipFormat: 'MMM dd, yyyy HH:mm'
+                          },
                           title: {
                             display: true,
-                            text: 'Process Date'
+                            text: 'Process Date & Time'
                           },
                           grid: { color: 'rgba(100,116,139,0.1)' },
                           ticks: { 
@@ -699,20 +969,140 @@ export default function ProcessQueueAnalytics() {
         <TabsContent value="errors" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle>Error Analysis</CardTitle>
-              <CardDescription>Breakdown of errors by reason</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Error Analysis</CardTitle>
+                  <CardDescription>Breakdown of errors by reason with detailed information</CardDescription>
+                </div>
+                {data!.stats.errorsByReason.length > 0 && (
+                  <Button 
+                    onClick={handleExportErrors} 
+                    variant="outline" 
+                    size="sm"
+                    className="flex items-center gap-2"
+                  >
+                    <Download className="h-4 w-4" />
+                    Export
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               {data!.stats.errorsByReason.length > 0 ? (
                 <div className="space-y-4">
-                  {data!.stats.errorsByReason.map((item) => (
-                    <div key={item.reason} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex-1">
-                        <p className="font-medium">{item.reason}</p>
+                  {/* Summary Stats */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div className="bg-red-50 dark:bg-red-950/20 p-4 rounded-lg border border-red-200 dark:border-red-800">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className="h-5 w-5 text-red-600" />
+                        <span className="font-semibold text-red-700 dark:text-red-300">Total Errors</span>
                       </div>
-                      <Badge variant="destructive">{item.count}</Badge>
+                      <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+                        {data!.stats.errorsByReason.reduce((sum, item) => sum + item.count, 0)}
+                      </p>
                     </div>
-                  ))}
+                    <div className="bg-orange-50 dark:bg-orange-950/20 p-4 rounded-lg border border-orange-200 dark:border-orange-800">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-5 w-5 text-orange-600" />
+                        <span className="font-semibold text-orange-700 dark:text-orange-300">Error Types</span>
+                      </div>
+                      <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                        {data!.stats.errorsByReason.length}
+                      </p>
+                    </div>
+                    <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <div className="flex items-center gap-2">
+                        <TrendingUp className="h-5 w-5 text-blue-600" />
+                        <span className="font-semibold text-blue-700 dark:text-blue-300">Error Rate</span>
+                      </div>
+                      <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                        {((data!.stats.errorsByReason.reduce((sum, item) => sum + item.count, 0) / data!.stats.totalJobs) * 100).toFixed(1)}%
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Error Details Table */}
+                  <div className="border rounded-lg overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[50px]">#</TableHead>
+                          <TableHead>Error Reason</TableHead>
+                          <TableHead className="text-center">Count</TableHead>
+                          <TableHead className="text-center">Percentage</TableHead>
+                          <TableHead className="text-center">Severity</TableHead>
+                          <TableHead className="text-center">Category</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {data!.stats.errorsByReason.map((item, index) => {
+                          const percentage = ((item.count / data!.stats.totalJobs) * 100).toFixed(1);
+                          const severity = getErrorSeverity(item.count, data!.stats.totalJobs);
+                          const category = getErrorCategory(item.reason);
+                          
+                          return (
+                            <TableRow key={item.reason} className="hover:bg-muted/50">
+                              <TableCell className="font-medium">{index + 1}</TableCell>
+                              <TableCell>
+                                <div className="max-w-md">
+                                  <p className="font-medium truncate" title={item.reason}>
+                                    {item.reason}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {item.reason.length > 80 ? `${item.reason.substring(0, 80)}...` : item.reason}
+                                  </p>
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <Badge variant="destructive" className="text-sm">
+                                  {item.count}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <span className="text-sm font-medium">{percentage}%</span>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <Badge 
+                                  variant={severity === 'high' ? 'destructive' : severity === 'medium' ? 'secondary' : 'outline'}
+                                  className="text-xs"
+                                >
+                                  {severity}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <Badge variant="outline" className="text-xs">
+                                  {category}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex items-center justify-end gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleViewErrorDetails(item.reason)}
+                                    className="h-8 w-8 p-0"
+                                    title="View Details"
+                                  >
+                                    <FileText className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleExportSingleError(item.reason)}
+                                    className="h-8 w-8 p-0"
+                                    title="Export This Error"
+                                  >
+                                    <Download className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </div>
               ) : (
                 <div className="text-center py-12">

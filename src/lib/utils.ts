@@ -38,7 +38,7 @@ export function containsThaiText(text: string): boolean {
 // Get appropriate font class based on text content
 export function getFontClass(text: string, defaultClass: string = 'font-sans'): string {
   if (containsThaiText(text)) {
-    return 'font-anuphan';
+    return 'font-ibm-plex-sans-thai';
   }
   return 'font-inter';
 }
@@ -46,9 +46,9 @@ export function getFontClass(text: string, defaultClass: string = 'font-sans'): 
 // Get appropriate font family CSS value based on text content
 export function getFontFamily(text: string): string {
   if (containsThaiText(text)) {
-    return 'var(--font-anuphan), var(--font-inter), Arial, Helvetica, sans-serif';
+    return 'var(--font-family-primary)';
   }
-  return 'var(--font-inter), Arial, Helvetica, sans-serif';
+  return 'var(--font-family-secondary)';
 }
 
 /**

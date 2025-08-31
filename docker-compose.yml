@@ -271,6 +271,26 @@ services:
   #   networks:
   #     - docker_internal
 
+  # Health Monitoring Service
+  health-monitor:
+    container_name: 8021_fitscan_health_monitor
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["/bin/sh", "/app/scripts/monitor-health.sh"]
+    environment:
+      CONTAINER_NAME: "8021_fitscan_app"
+      HEALTH_CHECK_INTERVAL: "60"
+      MAX_UNHEALTHY_ATTEMPTS: "3"
+      LOG_FILE: "/var/log/container-health.log"
+    depends_on:
+      - app
+    restart: unless-stopped
+    mem_limit: 256m
+    cpus: 0.1
+    networks:
+      - docker_internal
+
 
 networks:
   default:

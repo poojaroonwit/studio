@@ -363,9 +363,52 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
 const SidebarToggleButton = memo(() => {
   const { open, toggleSidebar } = useSidebar();
   const [mounted, setMounted] = useState(false);
+  const [isToggling, setIsToggling] = useState(false);
+  const toggleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastToggleTimeRef = useRef<number>(0);
 
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  const handleToggle = useCallback(() => {
+    const now = Date.now();
+    const timeSinceLastToggle = now - lastToggleTimeRef.current;
+    
+    // Prevent rapid toggling (less than 300ms apart)
+    if (timeSinceLastToggle < 300) {
+      console.log('Sidebar toggle blocked: too rapid clicking');
+      return;
+    }
+    
+    // Prevent toggle if already toggling
+    if (isToggling) {
+      console.log('Sidebar toggle blocked: already toggling');
+      return;
+    }
+    
+    lastToggleTimeRef.current = now;
+    setIsToggling(true);
+    
+    // Clear any existing timeout
+    if (toggleTimeoutRef.current) {
+      clearTimeout(toggleTimeoutRef.current);
+    }
+    
+    // Set a timeout to reset toggle state
+    toggleTimeoutRef.current = setTimeout(() => {
+      setIsToggling(false);
+    }, 500);
+    
+    toggleSidebar();
+  }, [toggleSidebar, isToggling]);
+
+  useEffect(() => {
+    return () => {
+      if (toggleTimeoutRef.current) {
+        clearTimeout(toggleTimeoutRef.current);
+      }
+    };
   }, []);
 
   if (!mounted || open) {
@@ -383,7 +426,8 @@ const SidebarToggleButton = memo(() => {
               variant="outline"
               size="icon"
               className="h-8 w-8 rounded-full border-2 bg-background/80 backdrop-blur-sm"
-              onClick={toggleSidebar}
+              onClick={handleToggle}
+              disabled={isToggling}
             >
               <ChevronRight className="h-4 w-4" />
             </Button>

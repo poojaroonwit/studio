@@ -79,11 +79,51 @@ export function SidebarHeaderContent({
     return appLogoUrl; // Fallback to default logo
   }, [contextualLogos, appLogoUrl, isDarkMode]);
 
+  const [isToggling, setIsToggling] = useState(false);
+  const toggleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastToggleTimeRef = useRef<number>(0);
+
   const handleToggle = useCallback(() => {
+    const now = Date.now();
+    const timeSinceLastToggle = now - lastToggleTimeRef.current;
+    
+    // Prevent rapid toggling (less than 300ms apart)
+    if (timeSinceLastToggle < 300) {
+      console.log('Sidebar header toggle blocked: too rapid clicking');
+      return;
+    }
+    
+    // Prevent toggle if already toggling
+    if (isToggling) {
+      console.log('Sidebar header toggle blocked: already toggling');
+      return;
+    }
+    
+    lastToggleTimeRef.current = now;
+    setIsToggling(true);
+    
+    // Clear any existing timeout
+    if (toggleTimeoutRef.current) {
+      clearTimeout(toggleTimeoutRef.current);
+    }
+    
+    // Set a timeout to reset toggle state
+    toggleTimeoutRef.current = setTimeout(() => {
+      setIsToggling(false);
+    }, 500);
+    
     if (sidebarContext?.toggleSidebar) {
       sidebarContext.toggleSidebar();
     }
-  }, [sidebarContext?.toggleSidebar]);
+  }, [sidebarContext?.toggleSidebar, isToggling]);
+
+  useEffect(() => {
+    return () => {
+      if (toggleTimeoutRef.current) {
+        clearTimeout(toggleTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const renderLogo = useCallback((isCollapsed: boolean) => {
     if (isLogoLoading) {
@@ -152,6 +192,7 @@ export function SidebarHeaderContent({
         variant="ghost"
         size="icon"
         onClick={handleToggle}
+        disabled={isToggling}
         aria-label="Collapse sidebar"
         className="rounded-full bg-transparent hover:bg-transparent shadow-lg h-8 w-8 flex-shrink-0"
       >

@@ -192,8 +192,8 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       
       
       try {
-        // Get connection timeout setting (default 5 minutes) - shorter than full processing timeout
-        let connectionTimeoutMs = 300000; // 5 minutes default
+        // Get connection timeout setting (default 15 minutes) - shorter than full processing timeout
+        let connectionTimeoutMs = 900000; // 15 minutes default
         const connectionTimeoutSetting = await getSystemSetting('webhookConnectionTimeout');
         if (connectionTimeoutSetting) {
           const parsedConnectionTimeout = parseInt(connectionTimeoutSetting, 10);
@@ -256,8 +256,6 @@ Response: ${truncatedResponse || 'No response body'}`;
         }
         
       } catch (fetchError) {
-        console.error(`[Webhook] Fetch error:`, fetchError);
-        
         status = 'fail';
         
         if (fetchError instanceof WebhookFetchError) {

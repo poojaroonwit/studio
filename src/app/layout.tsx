@@ -67,7 +67,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <head>
         {/* Ramda polyfill is now handled by RamdaPolyfillInitializer component */}
       </head>
-      <body className={inter.className}>
+      <body>
         <ErrorBoundary>
           <AuthProvider session={session}>
             <LoadingProvider>

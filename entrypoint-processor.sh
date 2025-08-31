@@ -21,7 +21,7 @@ fi
 
 # Set PROCESSOR_URL if not provided (default to app service)
 if [ -z "$PROCESSOR_URL" ]; then
-    export PROCESSOR_URL="http://app:8021"
+    export PROCESSOR_URL="http://8021_fitscan_app:8021"
 fi
 
 echo "📊 Configuration loaded"

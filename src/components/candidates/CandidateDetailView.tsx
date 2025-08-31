@@ -4,7 +4,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Loader2, ServerCrash, UserX } from 'lucide-react';
 import FullCandidateDetail from './FullCandidateDetail';
-import { useSafeEffect, useInfiniteLoopPrevention } from '@/hooks/use-safe-effect';
+import { useInfiniteLoopPrevention } from '@/hooks/use-safe-effect';
 
 interface CandidateDetailViewProps {
   candidateId: string;
@@ -27,15 +27,29 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
   // Add abort controller for cleanup
   const abortControllerRef = useRef<AbortController | null>(null);
   const mountedRef = useRef(true);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Simple data loading function with infinite loop prevention - FIXED: Remove trackLoadData from dependencies
+  // Simple data loading function with infinite loop prevention and timeout protection
   const loadData = useCallback(async () => {
     if (!trackLoadData()) return;
-    if (!candidateId) return;
+    if (!candidateId) {
+      setIsLoading(false);
+      setError('Invalid candidate ID');
+      return;
+    }
+
+
+
+    console.log('🔄 Starting to load candidate data for ID:', candidateId);
 
     // Abort any existing request
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
+    }
+
+    // Clear any existing timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
     }
 
     // Create new abort controller
@@ -44,9 +58,23 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
     setIsLoading(true);
     setError(null);
 
+    // Set a timeout to prevent infinite loading
+    timeoutRef.current = setTimeout(() => {
+      if (mountedRef.current && isLoading) {
+        console.warn('⏰ Loading timeout reached for candidate details:', candidateId);
+        setIsLoading(false);
+        setError('Loading timeout - please try again');
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+        }
+      }
+    }, 30000); // 30 second timeout
+
     try {
-      // Load all data in parallel with simple error handling
-      const [commentsRes, attachmentsRes] = await Promise.allSettled([
+      console.log('📡 Making API requests for candidate:', candidateId);
+      
+      // Load all data in parallel with better error handling
+      const [commentsRes, attachmentsRes, candidateRes] = await Promise.allSettled([
         fetch(`/api/candidates/${candidateId}/comments?limit=5&offset=0`, {
           credentials: 'include',
           signal: abortControllerRef.current.signal
@@ -54,56 +82,98 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
         fetch(`/api/candidates/${candidateId}/resumes?limit=20&offset=0`, {
           credentials: 'include',
           signal: abortControllerRef.current.signal
+        }),
+        fetch(`/api/candidates/${candidateId}`, {
+          credentials: 'include',
+          signal: abortControllerRef.current.signal
         })
       ]);
 
+      console.log('📡 API responses received for candidate:', candidateId, {
+        comments: commentsRes.status,
+        attachments: attachmentsRes.status,
+        candidate: candidateRes.status
+      });
+
+      // Clear timeout since we got a response
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+
       // Handle comments
       if (commentsRes.status === 'fulfilled' && commentsRes.value.ok) {
-        const commentsData = await commentsRes.value.json();
-        setComments(Array.isArray(commentsData) ? commentsData : (commentsData.data || []));
+        try {
+          const commentsData = await commentsRes.value.json();
+          setComments(Array.isArray(commentsData) ? commentsData : (commentsData.data || []));
+          console.log('✅ Comments loaded successfully');
+        } catch (parseError) {
+          console.warn('⚠️ Failed to parse comments response:', parseError);
+          setComments([]);
+        }
       } else {
+        console.warn('⚠️ Comments request failed:', commentsRes.status === 'rejected' ? commentsRes.reason : commentsRes.value.status);
         setComments([]);
       }
 
       // Handle attachments
       if (attachmentsRes.status === 'fulfilled' && attachmentsRes.value.ok) {
-        const attachmentsData = await attachmentsRes.value.json();
-        setAttachments(Array.isArray(attachmentsData) ? attachmentsData : (attachmentsData.data || []));
+        try {
+          const attachmentsData = await attachmentsRes.value.json();
+          setAttachments(Array.isArray(attachmentsData) ? attachmentsData : (attachmentsData.data || []));
+          console.log('✅ Attachments loaded successfully');
+        } catch (parseError) {
+          console.warn('⚠️ Failed to parse attachments response:', parseError);
+          setAttachments([]);
+        }
       } else {
+        console.warn('⚠️ Attachments request failed:', attachmentsRes.status === 'rejected' ? attachmentsRes.reason : attachmentsRes.value.status);
         setAttachments([]);
       }
 
-      // Check if candidate exists by trying to load basic candidate data
-      try {
-        const candidateRes = await fetch(`/api/candidates/${candidateId}`, {
-          credentials: 'include',
-          signal: abortControllerRef.current.signal
-        });
-        
-        if (candidateRes.ok) {
+      // Handle candidate existence check
+      if (candidateRes.status === 'fulfilled') {
+        if (candidateRes.value.ok) {
           setCandidateExists(true);
-        } else if (candidateRes.status === 404) {
+          console.log('✅ Candidate exists and is accessible');
+        } else if (candidateRes.value.status === 404) {
           setCandidateExists(false);
           setError('Candidate not found');
+          console.warn('❌ Candidate not found (404)');
         } else {
+          console.warn('⚠️ Candidate request failed with status:', candidateRes.value.status);
           setCandidateExists(true); // Assume exists if we can't determine
         }
-      } catch (candidateError) {
-        setCandidateExists(true);
+      } else {
+        console.warn('⚠️ Candidate request rejected:', candidateRes.reason);
+        setCandidateExists(true); // Assume exists if request failed
       }
 
+      console.log('✅ All candidate data loading completed for:', candidateId);
+
     } catch (error: any) {
+      // Clear timeout since we got an error
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+
       // Don't set error for aborted requests
       if (error.name === 'AbortError') {
+        console.log('🛑 Request aborted for candidate:', candidateId);
         return;
       }
       
+      console.error('❌ Error loading candidate data:', error);
       setError('Failed to load candidate data. Please try again.');
       setCandidateExists(false);
     } finally {
-      setIsLoading(false);
+      if (mountedRef.current) {
+        setIsLoading(false);
+        console.log('🏁 Loading state set to false for candidate:', candidateId);
+      }
     }
-  }, [candidateId]); // FIXED: Remove trackLoadData from dependencies
+  }, [candidateId, trackLoadData, isLoading]);
 
   // Load data when component mounts or candidateId changes - FIXED: Use useEffect instead of useSafeEffect
   useEffect(() => {
@@ -115,6 +185,11 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
       // Abort any ongoing requests on cleanup
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
+      }
+      // Clear any pending timeout
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
       }
     };
   }, [loadData]);

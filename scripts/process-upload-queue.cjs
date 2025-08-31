@@ -35,7 +35,7 @@ const config = {
 };
 
 // Override baseUrl for local development if it's set to Docker service name
-if (config.baseUrl.includes('app:8021') || config.baseUrl.includes('172.21.0.2:8021')) {
+if (config.baseUrl.includes('8021_fitscan_app:8021') || config.baseUrl.includes('172.21.0.2:8021')) {
   if (process.env.DOCKER_ENV || process.env.NODE_ENV === 'production') {
     console.log(`[INFO] Running in Docker/production environment, using: ${config.baseUrl}`);
   } else {

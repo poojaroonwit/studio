@@ -209,6 +209,13 @@ export const useCandidateDetail = (candidateId: string) => {
     setLoading(true);
     setError(null);
 
+    // Add timeout protection
+    const timeoutId = setTimeout(() => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    }, 25000); // 25 second timeout
+
     try {
       const res = await fetch(`/api/candidates/${candidateId}`, {
         headers: {
@@ -217,6 +224,9 @@ export const useCandidateDetail = (candidateId: string) => {
         credentials: 'include',
         signal: abortControllerRef.current.signal,
       });
+
+      // Clear timeout since we got a response
+      clearTimeout(timeoutId);
 
       if (!res.ok) {
         throw new Error(`Failed to fetch candidate: ${res.status} ${res.statusText}`);
@@ -238,6 +248,9 @@ export const useCandidateDetail = (candidateId: string) => {
       setError(null);
 
     } catch (error: any) {
+      // Clear timeout since we got an error
+      clearTimeout(timeoutId);
+      
       if (!isMountedRef.current) return;
       
       // Don't set error for aborted requests
@@ -245,6 +258,7 @@ export const useCandidateDetail = (candidateId: string) => {
         return;
       }
 
+      console.error('Error fetching candidate:', error);
       setError('Failed to load candidate details');
       setLoading(false);
     }
@@ -358,7 +372,7 @@ export const useCandidateDetail = (candidateId: string) => {
     showErrorNotifications: false // Disable error toast notifications
   });
 
-  // Fetch candidate data - FIXED: Use regular useEffect instead of useSafeEffect
+  // Fetch candidate data - FIXED: Remove fetchCandidate from dependencies to prevent infinite loops
   useEffect(() => {
     isMountedRef.current = true;
     
@@ -371,7 +385,7 @@ export const useCandidateDetail = (candidateId: string) => {
         abortControllerRef.current.abort();
       }
     };
-  }, [candidateId, fetchCandidate]);
+  }, [candidateId]); // FIXED: Only depend on candidateId, not fetchCandidate
 
   // Fetch static data only once on mount with parallel execution - FIXED: Use useEffect instead of useSafeEffect
   useEffect(() => {

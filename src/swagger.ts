@@ -2,7 +2,7 @@
 
 export function getSwaggerSpec() {
   // Use production server URL for Swagger API testing
-  const serverUrl = process.env.PRODUCTION_HOST || process.env.API_BASE_URL || 'http://app:8021';
+  const serverUrl = process.env.PRODUCTION_HOST || process.env.API_BASE_URL || 'http://8021_fitscan_app:8021';
   return {
     openapi: '3.0.0',
     info: {

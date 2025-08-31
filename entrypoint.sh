@@ -189,21 +189,7 @@ else
 fi
 
 echo "  📋 Step 3: Verifying permission integrity..."
-if node -e "
-const { verifyPermissions } = require('./scripts/reset-permissions.js');
-verifyPermissions().then(isValid => {
-    if (isValid) {
-        console.log('    ✅ All permissions verified successfully');
-        process.exit(0);
-    } else {
-        console.log('    ⚠️  Some permission issues detected');
-        process.exit(0); // Don't fail deployment for warnings
-    }
-}).catch(error => {
-    console.log('    ⚠️  Permission verification failed:', error.message);
-    process.exit(0); // Don't fail deployment for verification issues
-});
-"; then
+if node scripts/reset-permissions.js verify; then
     echo "    ✅ Permission verification completed"
 else
     echo "    ⚠️  Permission verification failed"

@@ -110,14 +110,13 @@ export async function GET(request: NextRequest) {
 
     const groups: UserGroup[] = result.rows;
     
-    // Log all permissions found in the database
+    // Collect all permissions found in the database
     const allDbPermissions = new Set<string>();
     groups.forEach(group => {
       if (group.permissions) {
         group.permissions.forEach(permission => allDbPermissions.add(permission));
       }
     });
-    console.log('All permissions found in database:', Array.from(allDbPermissions));
     
     // Check for any permissions in DB that are not in PLATFORM_MODULES
     const platformModuleIds = PLATFORM_MODULES.map(m => m.id);

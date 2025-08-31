@@ -222,7 +222,6 @@ async function main() {
     const verifySuccess = await verifyWarningSystem();
     
     if (initSuccess && verifySuccess) {
-      logSuccess('Warning conditions initialization completed successfully');
       process.exit(0);
     } else {
       logWarning('Some warning initialization steps failed, but continuing...');

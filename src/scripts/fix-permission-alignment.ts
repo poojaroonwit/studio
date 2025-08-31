@@ -108,8 +108,8 @@ async function fixPermissionAlignment() {
                 issuesFound++;
                 
                 // Fix the issues
-                let fixedPermissions = [...new Set(currentPermissions)].filter((permission: string) => 
-                    validPermissionIds.includes(permission)
+                let fixedPermissions = [...new Set(currentPermissions)].filter((permission: unknown) => 
+                    validPermissionIds.includes(permission as string)
                 );
                 
                 // For system roles, ensure they have comprehensive permissions
@@ -226,7 +226,6 @@ async function main() {
         const alignmentSuccess = await fixPermissionAlignment();
         
         if (alignmentSuccess) {
-            logSuccess('Permission alignment fix completed successfully');
             process.exit(0);
         } else {
             logWarning('Some alignment fixes failed, but continuing...');

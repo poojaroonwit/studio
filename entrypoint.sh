@@ -194,7 +194,7 @@ fi
 
 echo "  📋 Step 2: Resetting permissions to granular format..."
 if node scripts/reset-permissions.js; then
-    echo "    ✅ Permission reset completed successfully"
+    echo "    ✅ Permission reset completed"
 else
     echo "    ⚠️  Permission reset failed or already completed"
 fi
@@ -222,8 +222,6 @@ if node scripts/optimize-fit-score-performance.js; then
 else
     echo "    ⚠️  Performance optimization failed or already completed"
 fi
-
-echo "✅ Fit score performance optimization completed"
 
 
 echo "✅ Database and permission setup complete!"

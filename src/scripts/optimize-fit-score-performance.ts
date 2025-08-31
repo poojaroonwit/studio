@@ -266,7 +266,6 @@ async function main() {
         const optimizationSuccess = await optimizeFitScoreCalculations();
         
         if (indexesSuccess && analysisSuccess && optimizationSuccess) {
-            logSuccess('Fit score performance optimization completed successfully');
             process.exit(0);
         } else {
             logWarning('Some optimization steps failed, but continuing...');

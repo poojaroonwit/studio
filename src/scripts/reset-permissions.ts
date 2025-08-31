@@ -182,7 +182,6 @@ async function verifyPermissions() {
             }
         }
         
-        logSuccess('Permission verification completed successfully');
         return true;
         
     } catch (error: any) {

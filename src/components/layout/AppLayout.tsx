@@ -54,15 +54,15 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
   // Infinite loop prevention for critical effects
   const { trackRun: trackSettingsFetch } = useInfiniteLoopPrevention({
     effectName: 'AppLayout_settings_fetch',
-    maxRuns: 10,
-    timeWindow: 30000,
+    maxRuns: 20, // Increased from 10 to 20
+    timeWindow: 60000, // Increased from 30 seconds to 60 seconds
     onExcessiveRuns: () => console.error('🚨 Excessive settings fetch detected in AppLayout')
   });
 
   const { trackRun: trackThemeChange } = useInfiniteLoopPrevention({
     effectName: 'AppLayout_theme_change',
-    maxRuns: 20,
-    timeWindow: 10000,
+    maxRuns: 40, // Increased from 20 to 40
+    timeWindow: 20000, // Increased from 10 seconds to 20 seconds
     onExcessiveRuns: () => console.error('🚨 Excessive theme change detected in AppLayout')
   });
 
@@ -77,7 +77,7 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
   }, [trackSettingsFetch, trackThemeChange]);
 
   // Enhanced render monitoring with stricter thresholds
-  useRenderMonitor('AppLayout', 300); // Increased from 200 to 300ms
+  useRenderMonitor('AppLayout', 500); // Increased from 300 to 500ms to reduce false positives
 
   // Memoize session validation logic
   const shouldValidateSession = useMemo(() => {
@@ -86,7 +86,7 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
 
   // Memoize session validation options to prevent unnecessary re-renders
   const sessionValidationOptions = useMemo(() => ({
-    validateInterval: 5 * 60 * 1000,
+    validateInterval: 10 * 60 * 1000, // Increased from 5 to 10 minutes
     autoSignOut: true,
     redirectTo: '/auth/signin'
   }), []);

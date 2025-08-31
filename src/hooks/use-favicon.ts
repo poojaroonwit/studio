@@ -11,8 +11,8 @@ export function useFavicon() {
     const currentFavicon = settings.appFaviconDataUrl;
     const now = Date.now();
     
-    // Prevent updates more frequently than 500ms (increased from 200ms)
-    if (now - lastUpdateTimeRef.current < 500) {
+    // Increased debouncing to 1000ms to reduce frequent updates
+    if (now - lastUpdateTimeRef.current < 1000) {
       return lastFaviconRef.current;
     }
     

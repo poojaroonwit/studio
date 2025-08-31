@@ -989,7 +989,12 @@ export default function DashboardPageClient({
               description: "Need attention",
               button: {
                 label: "View All",
-                onClick: () => router.push('/candidates?query=' + encodeURIComponent('minAppliedJobFitScore:80'))
+                onClick: () => {
+                  console.log('🔍 Dashboard: Clicking "View All" for High Score (80+)');
+                  console.log('🔍 Dashboard: highPriorityCandidates count:', highPriorityCandidates.length);
+                  console.log('🔍 Dashboard: Sending query: minAppliedJobFitScore:80');
+                  router.push('/candidates?query=' + encodeURIComponent('minAppliedJobFitScore:80'));
+                }
               }
             },
             { 

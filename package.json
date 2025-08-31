@@ -45,7 +45,8 @@
     "fix:frozen": "node scripts/fix-frozen-app.js",
     "test:connections": "node scripts/test-connection-optimization.js",
     "test:enhanced-connections": "node scripts/test-enhanced-connections.js",
-    "test:ultra-high-connections": "node scripts/test-ultra-high-connections.js"
+    "test:ultra-high-connections": "node scripts/test-ultra-high-connections.js",
+    "test:stuck-fix": "node scripts/test-application-stuck-fix.js"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"

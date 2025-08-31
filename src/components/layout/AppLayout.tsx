@@ -87,7 +87,7 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
 
   // Memoize session validation options to prevent unnecessary re-renders
   const sessionValidationOptions = useMemo(() => ({
-    validateInterval: 10 * 60 * 1000, // Increased from 5 to 10 minutes
+    validateInterval: 15 * 60 * 1000, // Increased from 10 to 15 minutes
     autoSignOut: true,
     redirectTo: '/auth/signin'
   }), []);

@@ -22,9 +22,9 @@ interface LoopTracker {
  */
 export function useInfiniteLoopPrevention(config: LoopPreventionConfig = {}) {
   const {
-    maxRuns = 50,
-    timeWindow = 5000,
-    warningThreshold = 100,
+    maxRuns = 100, // Increased from 50 to 100
+    timeWindow = 10000, // Increased from 5000 to 10000ms
+    warningThreshold = 200, // Increased from 100 to 200ms
     effectName = 'unnamed-effect',
     onExcessiveRuns,
     onBlocked
@@ -67,16 +67,16 @@ export function useInfiniteLoopPrevention(config: LoopPreventionConfig = {}) {
       return false;
     }
 
-    // Check for rapid successive runs
-    if (currentTracker.runs > 10) {
+    // Check for rapid successive runs - only warn after more runs
+    if (currentTracker.runs > 20) { // Increased from 10 to 20
       const timeSinceLastRun = now - currentTracker.lastRun;
       if (timeSinceLastRun < warningThreshold) {
         console.warn(`⚠️ Frequent effect calls in "${effectName}": ${timeSinceLastRun}ms between calls (total: ${currentTracker.runs})`);
       }
     }
 
-    // Check total runs
-    if (currentTracker.runs > maxRuns * 10) {
+    // Check total runs - increased threshold
+    if (currentTracker.runs > maxRuns * 20) { // Increased from 10 to 20
       console.error(`🚨 Excessive total runs in "${effectName}": ${currentTracker.runs} total calls`);
       currentTracker.blocked = true;
       setIsBlocked(true);
@@ -102,17 +102,17 @@ export function useInfiniteLoopPrevention(config: LoopPreventionConfig = {}) {
     setIsBlocked(false);
   }, []);
 
-  // Auto-reset after a period of inactivity
+  // Auto-reset after a period of inactivity - increased interval
   useEffect(() => {
     const interval = setInterval(() => {
       const now = Date.now();
       const currentTracker = tracker.current;
       
-      // Reset if no activity for 30 seconds
-      if (now - currentTracker.lastRun > 30000) {
+      // Reset if no activity for 60 seconds (increased from 30)
+      if (now - currentTracker.lastRun > 60000) {
         reset();
       }
-    }, 10000); // Check every 10 seconds
+    }, 30000); // Check every 30 seconds (increased from 10)
 
     return () => clearInterval(interval);
   }, [reset]);

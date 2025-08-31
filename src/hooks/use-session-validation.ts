@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 /**
  * Custom hook to validate user sessions and handle invalid sessions
  * @param options - Configuration options
- * @param options.validateInterval - How often to validate the session (in milliseconds, default: 5 minutes)
+ * @param options.validateInterval - How often to validate the session (in milliseconds, default: 15 minutes)
  * @param options.autoSignOut - Whether to automatically sign out on invalid session (default: true)
  * @param options.redirectTo - Where to redirect after sign out (default: '/auth/signin')
  */
@@ -25,7 +25,7 @@ export function useSessionValidation(options: {
   
   // Memoize options to prevent unnecessary re-renders
   const memoizedOptions = useMemo(() => ({
-    validateInterval: options.validateInterval || 5 * 60 * 1000, // 5 minutes
+    validateInterval: options.validateInterval || 15 * 60 * 1000, // 15 minutes (increased from 5 minutes)
     autoSignOut: options.autoSignOut !== false, // default true
     redirectTo: options.redirectTo || '/auth/signin'
   }), [options.validateInterval, options.autoSignOut, options.redirectTo]);
@@ -34,58 +34,46 @@ export function useSessionValidation(options: {
   const sessionId = useMemo(() => session?.user?.id, [session?.user?.id]);
 
   const validateSession = useCallback(async () => {
-    if (status !== 'authenticated' || !session) {
-      return;
-    }
-
-    // Prevent concurrent validation calls
-    if (validationInProgress.current) {
-      return;
-    }
-
-    // Prevent excessive validation calls - increased minimum interval to 60 seconds
+    if (validationInProgress.current) return;
+    
     const now = Date.now();
-    if (now - lastValidationTime.current < 60000) { // Minimum 60 seconds between validations
+    if (now - lastValidationTime.current < memoizedOptions.validateInterval) {
       return;
     }
+
+    validationInProgress.current = true;
+    setIsValidating(true);
+    lastValidationTime.current = now;
 
     try {
-      validationInProgress.current = true;
-      setIsValidating(true);
-      lastValidationTime.current = now;
-
-      const response = await fetch('/api/auth/validate-session', {
+      const response = await fetch('/api/auth/session', {
         method: 'GET',
-        credentials: 'include', // Include cookies
         headers: {
           'Content-Type': 'application/json',
         },
+        signal: AbortSignal.timeout(10000), // 10 second timeout
       });
-      
+
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        console.warn('Session validation failed:', errorData.error);
-        
+        throw new Error('Session validation failed');
+      }
+
+      const sessionData = await response.json();
+      
+      if (!sessionData.user) {
         if (memoizedOptions.autoSignOut) {
-          await signOut({ 
-            callbackUrl: `${memoizedOptions.redirectTo}?signout=true`,
-            redirect: false 
-          });
-          // Manually redirect after signOut completes
-          if (typeof window !== 'undefined') {
-            window.location.href = `${memoizedOptions.redirectTo}?signout=true`;
-          }
+          await signOut({ redirect: false });
+          router.push(memoizedOptions.redirectTo);
         }
       }
     } catch (error) {
       console.error('Session validation error:', error);
-      // Don't auto sign out on network errors, only on validation failures
-      // This prevents users from being logged out due to temporary network issues
+      // Don't auto-signout on network errors to prevent false positives
     } finally {
       setIsValidating(false);
       validationInProgress.current = false;
     }
-  }, [session, status, memoizedOptions.autoSignOut, memoizedOptions.redirectTo]);
+  }, [memoizedOptions, router]);
 
   // Memoize the effect dependencies to prevent unnecessary re-renders
   const effectDependencies = useMemo(() => ({
@@ -115,7 +103,7 @@ export function useSessionValidation(options: {
     // Validate immediately
     validateSession();
 
-    // Set up periodic validation
+    // Set up periodic validation - increased interval
     intervalRef.current = setInterval(validateSession, effectDependencies.validateInterval);
 
     return () => {

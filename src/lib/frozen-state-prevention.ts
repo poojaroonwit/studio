@@ -3,12 +3,14 @@
  * 
  * This module provides comprehensive protection against the application getting stuck
  * in a frozen state with no resource leak and no activity.
+ * 
+ * OPTIMIZED: Reduced frequency of checks to prevent false positives and application stuck state
  */
 
-// Configuration
-const FROZEN_DETECTION_TIMEOUT = 120000; // 2 minutes (increased from 30 seconds)
-const MAX_RECOVERY_ATTEMPTS = 3;
-const ACTIVITY_CHECK_INTERVAL = 30000; // 30 seconds (increased from 10 seconds)
+// Configuration - increased timeouts to prevent false positives
+const FROZEN_DETECTION_TIMEOUT = 300000; // 5 minutes (increased from 2 minutes)
+const MAX_RECOVERY_ATTEMPTS = 2; // Reduced from 3 to 2
+const ACTIVITY_CHECK_INTERVAL = 60000; // 1 minute (increased from 30 seconds)
 // const API_HEALTH_CHECK_INTERVAL = 60000; // 1 minute - DISABLED to prevent frequent re-renders
 
 // Global state tracking
@@ -34,7 +36,7 @@ export function trackActivity() {
 async function checkApiHealth(): Promise<boolean> {
   // Temporarily disabled to prevent frequent re-renders
   return true;
-  
+
   /*
   try {
     const response = await fetch('/api/health', {
@@ -43,22 +45,21 @@ async function checkApiHealth(): Promise<boolean> {
     });
     
     if (response.ok) {
-      lastApiHealthCheck = Date.now();
       apiHealthCheckFailed = false;
+      lastApiHealthCheck = Date.now();
       return true;
     } else {
       apiHealthCheckFailed = true;
       return false;
     }
   } catch (error) {
-    console.warn('API health check failed:', error);
     apiHealthCheckFailed = true;
     return false;
   }
   */
 }
 
-// Check if application is frozen
+// Check if application is frozen - much less aggressive
 export function checkFrozenState(): boolean {
   // Temporarily disabled to prevent false positives
   // The application is working fine, this was causing unnecessary warnings
@@ -70,8 +71,8 @@ export function checkFrozenState(): boolean {
   const timeSinceLastApiCheck = Date.now() - lastApiHealthCheck;
   
   // Only check for frozen state if:
-  // 1. No user activity for 2 minutes AND
-  // 2. API health check failed OR no API health check in 1 minute
+  // 1. No user activity for 5 minutes AND
+  // 2. API health check failed OR no API health check in 2 minutes
   if (timeSinceLastActivity > FROZEN_DETECTION_TIMEOUT && 
       (apiHealthCheckFailed || timeSinceLastApiCheck > API_HEALTH_CHECK_INTERVAL)) {
     

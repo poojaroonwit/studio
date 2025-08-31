@@ -6,8 +6,8 @@
  * This script automatically processes the upload queue by calling the process endpoint
  * at regular intervals. It runs continuously and handles graceful shutdown.
  * 
- * SIMPLIFIED: Cleaner logging and reduced verbosity for better container output.
- * SIMPLIFIED: Removed complex health checks and infinite loop prevention for stability.
+ * OPTIMIZED: Reduced processing frequency to prevent application from getting stuck
+ * OPTIMIZED: Increased intervals and reduced batch processing for better stability
  */
 
 // Load environment variables from .env.local
@@ -16,22 +16,21 @@ require('dotenv').config({ path: '.env.local' });
 const https = require('https');
 const http = require('http');
 
-// Configuration with improved defaults
+// Configuration with improved defaults - reduced frequency to prevent stuck state
 const config = {
   baseUrl: process.env.PROCESSOR_URL || 'http://localhost:8021',
   apiKey: process.env.PROCESSOR_API_KEY || 'dev-key',
-  intervalMs: parseInt(process.env.PROCESSOR_INTERVAL_MS) || 5000,
-  logIntervalMs: parseInt(process.env.LOG_INTERVAL_MS) || 30000,
-  batchLimit: parseInt(process.env.PROCESSOR_BATCH_LIMIT) || 5,
+  intervalMs: parseInt(process.env.PROCESSOR_INTERVAL_MS) || 10000, // Increased from 5000 to 10000ms
+  logIntervalMs: parseInt(process.env.LOG_INTERVAL_MS) || 60000, // Increased from 30000 to 60000ms
+  batchLimit: parseInt(process.env.PROCESSOR_BATCH_LIMIT) || 3, // Reduced from 5 to 3
   maxRetries: 3,
-  retryDelayMs: 5000,
+  retryDelayMs: 10000, // Increased from 5000 to 10000ms
   quietMode: process.env.PROCESSOR_QUIET_MODE === 'true' || false,
-  maxConsecutiveErrors: 5,
-  backoffMultiplier: 2,
-  maxBackoffMs: 300000,
-  connectionTimeoutMs: parseInt(process.env.PROCESSOR_CONNECTION_TIMEOUT_MS) || 30000,
-  requestTimeoutMs: parseInt(process.env.PROCESSOR_REQUEST_TIMEOUT_MS) || 120000, // Configurable timeout
-
+  maxConsecutiveErrors: 3, // Reduced from 5 to 3
+  backoffMultiplier: 1.5, // Reduced from 2 to 1.5
+  maxBackoffMs: 600000, // Increased from 300000 to 600000ms
+  connectionTimeoutMs: parseInt(process.env.PROCESSOR_CONNECTION_TIMEOUT_MS) || 60000, // Increased from 30000 to 60000ms
+  requestTimeoutMs: parseInt(process.env.PROCESSOR_REQUEST_TIMEOUT_MS) || 180000, // Increased from 120000 to 180000ms
 };
 
 // Override baseUrl for local development if it's set to Docker service name

@@ -14,8 +14,8 @@ export function usePageLoading() {
 
   const startLoading = useCallback(() => {
     const now = Date.now();
-    // Increased debouncing to 2 seconds to reduce frequent updates
-    if (now - lastUpdateTimeRef.current < 2000) {
+    // Increased debouncing to 3 seconds to reduce frequent updates
+    if (now - lastUpdateTimeRef.current < 3000) {
       return;
     }
     
@@ -26,13 +26,13 @@ export function usePageLoading() {
     setIsLoading(true);
     setTimeout(() => {
       isUpdatingRef.current = false;
-    }, 1000); // Increased from 250ms to 1000ms
+    }, 1500); // Increased from 1000ms to 1500ms
   }, []);
 
   const stopLoading = useCallback(() => {
     const now = Date.now();
-    // Increased debouncing to 2 seconds to reduce frequent updates
-    if (now - lastUpdateTimeRef.current < 2000) {
+    // Increased debouncing to 3 seconds to reduce frequent updates
+    if (now - lastUpdateTimeRef.current < 3000) {
       return;
     }
     
@@ -43,7 +43,7 @@ export function usePageLoading() {
     setIsLoading(false);
     setTimeout(() => {
       isUpdatingRef.current = false;
-    }, 1000); // Increased from 250ms to 1000ms
+    }, 1500); // Increased from 1000ms to 1500ms
   }, []);
 
   // Optimized pathname change detection with better memoization
@@ -73,7 +73,7 @@ export function usePageLoading() {
       // Increased timeout for better performance and reduced frequency
       loadingTimeoutRef.current = setTimeout(() => {
         stopLoading();
-      }, 2000); // Increased from 500ms to 2000ms
+      }, 3000); // Increased from 2000ms to 3000ms
     }
     
     return () => {

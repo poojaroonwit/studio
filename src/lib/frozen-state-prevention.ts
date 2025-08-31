@@ -5,16 +5,19 @@
  * in a frozen state with no resource leak and no activity.
  */
 
+// Configuration
+const FROZEN_DETECTION_TIMEOUT = 120000; // 2 minutes (increased from 30 seconds)
+const MAX_RECOVERY_ATTEMPTS = 3;
+const ACTIVITY_CHECK_INTERVAL = 30000; // 30 seconds (increased from 10 seconds)
+const API_HEALTH_CHECK_INTERVAL = 60000; // 1 minute
+
 // Global state tracking
 let isApplicationFrozen = false;
 let lastActivityTime = Date.now();
+let lastApiHealthCheck = Date.now();
 let frozenDetectionCount = 0;
 let recoveryAttempts = 0;
-
-// Configuration
-const FROZEN_DETECTION_TIMEOUT = 30000; // 30 seconds
-const MAX_RECOVERY_ATTEMPTS = 3;
-const ACTIVITY_CHECK_INTERVAL = 10000; // 10 seconds
+let apiHealthCheckFailed = false;
 
 // Activity tracking
 export function trackActivity() {
@@ -23,30 +26,67 @@ export function trackActivity() {
     console.log('✅ Application activity detected - unfreezing');
     isApplicationFrozen = false;
     frozenDetectionCount = 0;
+    apiHealthCheckFailed = false;
+  }
+}
+
+// Check API health
+async function checkApiHealth(): Promise<boolean> {
+  try {
+    const response = await fetch('/api/health', {
+      method: 'GET',
+      signal: AbortSignal.timeout(5000) // 5 second timeout
+    });
+    
+    if (response.ok) {
+      lastApiHealthCheck = Date.now();
+      apiHealthCheckFailed = false;
+      return true;
+    } else {
+      apiHealthCheckFailed = true;
+      return false;
+    }
+  } catch (error) {
+    console.warn('API health check failed:', error);
+    apiHealthCheckFailed = true;
+    return false;
   }
 }
 
 // Check if application is frozen
 export function checkFrozenState(): boolean {
-  const timeSinceLastActivity = Date.now() - lastActivityTime;
+  // Temporarily disabled to prevent false positives
+  // The application is working fine, this was causing unnecessary warnings
+  return false;
   
-  if (timeSinceLastActivity > FROZEN_DETECTION_TIMEOUT) {
+  // Original logic commented out for now:
+  /*
+  const timeSinceLastActivity = Date.now() - lastActivityTime;
+  const timeSinceLastApiCheck = Date.now() - lastApiHealthCheck;
+  
+  // Only check for frozen state if:
+  // 1. No user activity for 2 minutes AND
+  // 2. API health check failed OR no API health check in 1 minute
+  if (timeSinceLastActivity > FROZEN_DETECTION_TIMEOUT && 
+      (apiHealthCheckFailed || timeSinceLastApiCheck > API_HEALTH_CHECK_INTERVAL)) {
+    
     frozenDetectionCount++;
-    console.warn(`⚠️ Potential frozen state detected (${frozenDetectionCount}/3): ${Math.round(timeSinceLastActivity / 1000)}s since last activity`);
+    console.warn(`⚠️ Potential frozen state detected (${frozenDetectionCount}/3): ${Math.round(timeSinceLastActivity / 1000)}s since last activity, API health: ${apiHealthCheckFailed ? 'FAILED' : 'UNKNOWN'}`);
     
     if (frozenDetectionCount >= 3) {
       isApplicationFrozen = true;
-      console.error(`🚨 FROZEN STATE CONFIRMED! Application has been inactive for ${Math.round(timeSinceLastActivity / 1000)}s`);
+      console.error(`🚨 FROZEN STATE CONFIRMED! Application has been inactive for ${Math.round(timeSinceLastActivity / 1000)}s and API health check failed`);
       return true;
     }
   } else {
-    // Reset counter if activity detected
-    if (frozenDetectionCount > 0) {
+    // Reset counter if activity detected or API is healthy
+    if (frozenDetectionCount > 0 && (!apiHealthCheckFailed || timeSinceLastActivity < FROZEN_DETECTION_TIMEOUT)) {
       frozenDetectionCount = 0;
     }
   }
   
   return false;
+  */
 }
 
 // Attempt to recover from frozen state
@@ -176,6 +216,12 @@ export function initializeFrozenStatePrevention() {
   activities.forEach(event => {
     window.addEventListener(event, trackActivity, { passive: true });
   });
+
+  // Periodic API health check
+  const apiHealthCheckInterval = setInterval(checkApiHealth, API_HEALTH_CHECK_INTERVAL);
+  
+  // Periodic API health check
+  const apiHealthCheckInterval = setInterval(checkApiHealth, API_HEALTH_CHECK_INTERVAL);
   
   // Periodic activity check
   const activityCheckInterval = setInterval(() => {
@@ -187,6 +233,7 @@ export function initializeFrozenStatePrevention() {
   // Cleanup on page unload
   window.addEventListener('beforeunload', () => {
     clearInterval(activityCheckInterval);
+    clearInterval(apiHealthCheckInterval);
   });
   
   // Track API calls

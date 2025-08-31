@@ -51,6 +51,9 @@ class ConnectionPoolManager {
   private inactivityTimeout = 3000; // Reduced from 60000 to 3000 (3 seconds)
   private maxConnectionLifetime = 300000; // 5 minutes max lifetime
 
+  // Connection cleanup callbacks
+  private cleanupCallbacks = new Set<(connectionId: string, url: string, type: string) => void>();
+
   // Connection health monitoring
   private connectionHealth = new Map<string, {
     lastSuccess: number;
@@ -243,6 +246,9 @@ class ConnectionPoolManager {
           }
         }
       }
+      
+      // Notify cleanup callbacks before removing connection info
+      this.notifyCleanupCallbacks(connectionId, info.url, info.type);
       
       this.removeConnectionInfo(connectionId);
     }
@@ -537,6 +543,29 @@ class ConnectionPoolManager {
   }
 
   /**
+   * Register cleanup callback
+   */
+  registerCleanupCallback(callback: (connectionId: string, url: string, type: string) => void): () => void {
+    this.cleanupCallbacks.add(callback);
+    return () => {
+      this.cleanupCallbacks.delete(callback);
+    };
+  }
+
+  /**
+   * Notify cleanup callbacks
+   */
+  private notifyCleanupCallbacks(connectionId: string, url: string, type: string): void {
+    this.cleanupCallbacks.forEach(callback => {
+      try {
+        callback(connectionId, url, type);
+      } catch (error) {
+        console.error('Error in cleanup callback:', error);
+      }
+    });
+  }
+
+  /**
    * Cleanup all connections
    */
   cleanup(): void {
@@ -584,4 +613,8 @@ export const getConnectionStatus = () => {
 
 export const forceConnectionCleanup = () => {
   connectionPoolManager.forceCleanup();
+};
+
+export const registerConnectionCleanupCallback = (callback: (connectionId: string, url: string, type: string) => void) => {
+  return connectionPoolManager.registerCleanupCallback(callback);
 };

@@ -135,8 +135,8 @@ export function RecruitmentPipelineCard({
     currentStageToRecords[record.stage].push(record);
   });
 
-  const currentStageIndex = localStages?.findIndex(s => s.name === localCurrentStatus) ?? -1;
-  const isCompleted = currentStageIndex > -1 && currentStageIndex < localStages.length - 1;
+  const currentStageIndex = localStages && localStages.length > 0 ? localStages.findIndex(s => s.name === localCurrentStatus) : -1;
+  const isCompleted = currentStageIndex > -1 && localStages && currentStageIndex < localStages.length - 1;
   const isCurrent = localCurrentStatus === localStages[currentStageIndex]?.name;
   const latestRecord = currentStageToRecords[localCurrentStatus]?.length > 0 ? currentStageToRecords[localCurrentStatus][currentStageToRecords[localCurrentStatus].length - 1] : null;
 
@@ -207,7 +207,7 @@ export function RecruitmentPipelineCard({
               justifyContent: localStages.length <= 5 ? 'space-between' : 'space-between'
             }}>
               {localStages.map((stage, index) => {
-                const records = currentStageToRecords[stage.name];
+                const records = currentStageToRecords[stage.name] || [];
                 const isCompleted = index <= currentStageIndex;
                 const isCurrent = localCurrentStatus === stage.name;
                 const isFuture = index > currentStageIndex;
@@ -510,8 +510,8 @@ export function RecruitmentPipelineCard({
                         color = '#d1d5db'; // Gray for current, future, and skipped stages
                       }
                       
-                      const startPercent = (index / (localStages.length - 1)) * 100;
-                      const endPercent = ((index + 1) / (localStages.length - 1)) * 100;
+                      const startPercent = localStages.length > 1 ? (index / (localStages.length - 1)) * 100 : 0;
+                      const endPercent = localStages.length > 1 ? ((index + 1) / (localStages.length - 1)) * 100 : 100;
                       return `${color} ${startPercent}%, ${color} ${endPercent}%`;
                     }).join(', ')}
                   )`,

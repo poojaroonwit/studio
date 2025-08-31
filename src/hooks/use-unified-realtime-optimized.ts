@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useSafeEffect } from './use-safe-effect';
-import { createOptimizedSSE, connectionPoolManager } from '@/lib/connection-pool-manager';
+import { createOptimizedSSE, connectionPoolManager, registerConnectionCleanupCallback } from '@/lib/connection-pool-manager';
 
 // Singleton class for managing global real-time connection
 class UnifiedRealtimeManager {
@@ -30,6 +30,22 @@ class UnifiedRealtimeManager {
     this.cleanupInterval = setInterval(() => {
       this.cleanupStaleConnections();
     }, 30000); // Clean up every 30 seconds
+    
+    // Start health check interval
+    setInterval(() => {
+      this.checkConnectionHealth();
+    }, 10000); // Check health every 10 seconds
+
+    // Register for connection pool cleanup notifications
+    registerConnectionCleanupCallback((connectionId, url, type) => {
+      if (type === 'sse' && url.includes('/api/realtime')) {
+        console.log('🔄 Connection pool cleaned up our SSE connection, updating state');
+        this.eventSource = null;
+        this.connectionCount = 0;
+        this.connectedSessions.clear();
+        this.isHealthy = false;
+      }
+    });
   }
 
   static getInstance(): UnifiedRealtimeManager {
@@ -172,11 +188,14 @@ class UnifiedRealtimeManager {
         console.error('🚨 SSE connection error:', error);
         this.isHealthy = false;
         
-        // Don't immediately reconnect on 401 errors (auth issues)
+        // Update connection state based on readyState
         if (eventSource.readyState === EventSource.CONNECTING) {
           console.log('SSE connection is reconnecting...');
         } else if (eventSource.readyState === EventSource.CLOSED) {
           console.log('SSE connection closed');
+          this.eventSource = null;
+          this.connectionCount = 0;
+          this.connectedSessions.clear();
           this.cleanup();
         }
         
@@ -297,10 +316,55 @@ class UnifiedRealtimeManager {
     }
   }
 
+  // Check if connection is actually active by monitoring heartbeat
+  private checkConnectionHealth() {
+    const timeSinceHeartbeat = Date.now() - this.lastHeartbeat;
+    
+    // If no heartbeat for more than 30 seconds, consider connection dead
+    if (timeSinceHeartbeat > 30000 && this.eventSource) {
+      console.log('🔄 No heartbeat detected for 30s, marking connection as inactive');
+      this.eventSource = null;
+      this.connectionCount = 0;
+      this.connectedSessions.clear();
+      this.isHealthy = false;
+    }
+  }
+
+  // Handle connection pool cleanup
+  private handleConnectionPoolCleanup() {
+    // Check if our connection was cleaned up by the connection pool manager
+    if (this.eventSource && this.eventSource.readyState !== EventSource.OPEN) {
+      console.log('🔄 Connection pool cleanup detected, updating state');
+      this.eventSource = null;
+      this.connectionCount = 0;
+      this.connectedSessions.clear();
+      this.isHealthy = false;
+    }
+  }
+
   // Get connection status
   getStatus() {
+    // Check connection health first
+    this.checkConnectionHealth();
+    
+    // Check for connection pool cleanup
+    this.handleConnectionPoolCleanup();
+    
+    // Check if the eventSource exists and is in OPEN state
+    const isConnected = this.eventSource?.readyState === EventSource.OPEN;
+    
+    // If we think we're connected but the eventSource is not in OPEN state,
+    // update our internal state to reflect the actual connection status
+    if (this.connectionCount > 0 && !isConnected) {
+      console.log('🔄 Connection state mismatch detected, updating internal state');
+      this.connectionCount = 0;
+      this.connectedSessions.clear();
+      this.isHealthy = false;
+      this.eventSource = null;
+    }
+    
     return {
-      isConnected: this.eventSource?.readyState === EventSource.OPEN,
+      isConnected,
       isConnecting: this.isConnecting,
       isHealthy: this.isHealthy,
       connectionCount: this.connectionCount,

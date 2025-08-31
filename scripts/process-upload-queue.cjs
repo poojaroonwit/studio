@@ -29,8 +29,8 @@ const config = {
   maxConsecutiveErrors: 5,
   backoffMultiplier: 2,
   maxBackoffMs: 300000,
-  connectionTimeoutMs: 10000,
-  requestTimeoutMs: 30000,
+  connectionTimeoutMs: parseInt(process.env.PROCESSOR_CONNECTION_TIMEOUT_MS) || 30000,
+  requestTimeoutMs: parseInt(process.env.PROCESSOR_REQUEST_TIMEOUT_MS) || 120000, // Configurable timeout
   // NEW: Infinite loop prevention settings
   maxIterationsWithoutProgress: parseInt(process.env.MAX_ITERATIONS_WITHOUT_PROGRESS) || 100,
   circuitBreakerThreshold: parseInt(process.env.CIRCUIT_BREAKER_THRESHOLD) || 50,
@@ -133,6 +133,21 @@ function recordCircuitBreakerSuccess() {
   }
 }
 
+// NEW: Simple connectivity test
+async function testConnectivity() {
+  try {
+    console.log(`[DEBUG] Testing connectivity to ${config.baseUrl}/api/health`);
+    const response = await makeRequest(`${config.baseUrl}/api/health`, {
+      method: 'GET'
+    });
+    console.log(`[DEBUG] Health check response: ${response.status}`);
+    return response.status === 200;
+  } catch (error) {
+    console.log(`[DEBUG] Health check failed: ${error.message}`);
+    return false;
+  }
+}
+
 // NEW: Health check function
 async function performHealthCheck() {
   try {
@@ -221,10 +236,12 @@ function makeRequest(url, options) {
     });
     
     req.on('error', (error) => {
+      console.log(`[DEBUG] HTTP request error: ${error.message} for ${url}`);
       reject(error);
     });
     
     req.on('timeout', () => {
+      console.log(`[DEBUG] HTTP request timeout after ${config.requestTimeoutMs}ms for ${url}`);
       req.destroy();
       reject(new Error('Request timeout'));
     });
@@ -395,6 +412,15 @@ function checkForInfiniteLoop() {
 
 // Main processing loop
 async function processLoop() {
+  // NEW: Initial connectivity test
+  console.log('[DEBUG] Performing initial connectivity test...');
+  const connectivityOk = await testConnectivity();
+  if (!connectivityOk) {
+    log('ERROR', 'Initial connectivity test failed, exiting');
+    return;
+  }
+  console.log('[DEBUG] Initial connectivity test passed');
+  
   while (isRunning) {
     try {
       totalIterations++;

@@ -39,49 +39,66 @@ export function useCandidateSettings() {
       return;
     }
 
-    try {
-      setIsLoading(true);
-      setError(null);
+    const maxRetries = 3;
+    let retryCount = 0;
 
-      const response = await fetch('/api/user-preferences', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        // Add timeout to prevent hanging requests
-        signal: AbortSignal.timeout(10000), // 10 second timeout
-      });
-      
-      if (!response.ok) {
-        if (response.status === 401) {
-          // If unauthorized, user might need to re-authenticate
-          setError('Authentication required. Please refresh the page.');
-        } else {
-          throw new Error(`Failed to load settings: ${response.status}`);
+    while (retryCount < maxRetries) {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        const response = await fetch('/api/user-preferences', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          // Increase timeout to prevent hanging requests
+          signal: AbortSignal.timeout(30000), // Increased from 10s to 30s
+        });
+        
+        if (!response.ok) {
+          if (response.status === 401) {
+            // If unauthorized, user might need to re-authenticate
+            setError('Authentication required. Please refresh the page.');
+            break;
+          } else {
+            throw new Error(`Failed to load settings: ${response.status}`);
+          }
         }
-        return;
-      }
 
-      const data = await response.json();
-      
-      // Merge with defaults in case some settings are missing
-      const candidateSettings = data.candidates || {};
-      const mergedSettings = {
-        ...defaultSettings,
-        ...candidateSettings
-      };
-      setSettings(mergedSettings);
-    } catch (err) {
-      console.error('Error loading candidate settings:', err);
-      if (err instanceof Error && err.name === 'AbortError') {
-        setError('Request timeout. Please try again.');
-      } else {
-        setError(err instanceof Error ? err.message : 'Failed to load settings');
+        const data = await response.json();
+        
+        // Merge with defaults in case some settings are missing
+        const candidateSettings = data.candidates || {};
+        const mergedSettings = {
+          ...defaultSettings,
+          ...candidateSettings
+        };
+        setSettings(mergedSettings);
+        break; // Success, exit retry loop
+        
+      } catch (err) {
+        retryCount++;
+        console.error(`Error loading candidate settings (attempt ${retryCount}):`, err);
+        
+        if (retryCount >= maxRetries) {
+          // Final attempt failed
+          if (err instanceof Error && err.name === 'AbortError') {
+            setError('Request timeout. Please try again.');
+          } else {
+            setError(err instanceof Error ? err.message : 'Failed to load settings');
+          }
+          // Fall back to default settings
+          setSettings(defaultSettings);
+        } else {
+          // Wait before retry with exponential backoff
+          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+        }
+      } finally {
+        if (retryCount >= maxRetries) {
+          setIsLoading(false);
+        }
       }
-      // Fall back to default settings
-      setSettings(defaultSettings);
-    } finally {
-      setIsLoading(false);
     }
   }, [session?.user?.id, status]);
 

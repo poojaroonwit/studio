@@ -269,24 +269,32 @@ export function useCandidateData({
       if (currentFilters.emailOperator) params.append('emailOperator', currentFilters.emailOperator);
       if (currentFilters.phone) params.append('phone', currentFilters.phone);
       if (currentFilters.phoneOperator) params.append('phoneOperator', currentFilters.phoneOperator);
-      if (currentFilters.positionId) params.append('positionId', currentFilters.positionId);
-      if (currentFilters.status) params.append('status', currentFilters.status);
+      if (currentFilters.selectedPositionIds && currentFilters.selectedPositionIds.length > 0) {
+        params.append('positionId', currentFilters.selectedPositionIds.join(','));
+      }
+      if (currentFilters.selectedStatuses && currentFilters.selectedStatuses.length > 0) {
+        params.append('status', currentFilters.selectedStatuses.join(','));
+      }
       if (currentFilters.education) params.append('education', currentFilters.education);
       if (currentFilters.minExperienceYears) params.append('minExperienceYears', currentFilters.minExperienceYears.toString());
       if (currentFilters.maxExperienceYears) params.append('maxExperienceYears', currentFilters.maxExperienceYears.toString());
       if (currentFilters.applicationDateStart) params.append('applicationDateStart', currentFilters.applicationDateStart.toISOString());
       if (currentFilters.applicationDateEnd) params.append('applicationDateEnd', currentFilters.applicationDateEnd.toISOString());
-      if (currentFilters.recruiterId) params.append('recruiterId', currentFilters.recruiterId);
-      if (currentFilters.sourceId) params.append('sourceId', currentFilters.sourceId);
+      if (currentFilters.selectedRecruiterIds && currentFilters.selectedRecruiterIds.length > 0) {
+        params.append('recruiterId', currentFilters.selectedRecruiterIds.join(','));
+      }
+      if (currentFilters.selectedSourceIds && currentFilters.selectedSourceIds.length > 0) {
+        params.append('sourceId', currentFilters.selectedSourceIds.join(','));
+      }
       if (currentFilters.location) params.append('location', currentFilters.location);
       if (currentFilters.locationOperator) params.append('locationOperator', currentFilters.locationOperator);
       if (currentFilters.skills) params.append('skills', currentFilters.skills);
 
       const url = `/api/candidates/fit-score-counts?${params.toString()}`;
       
-      // Reduced timeout for faster failure detection
+      // Increased timeout for better reliability
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // Reduced from 15s to 10s
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // Increased from 10s to 30s
       
       const response = await fetch(url, {
         signal: controller.signal,

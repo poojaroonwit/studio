@@ -10,14 +10,14 @@ export const runtime = 'nodejs';
 // Performance monitoring and circuit breaker
 const CACHE_DURATION = 300; // 5 minutes cache (increased from 60s)
 const STALE_WHILE_REVALIDATE = 600; // 10 minutes stale-while-revalidate
-const QUERY_TIMEOUT = 30000; // 30 seconds timeout
-const MAX_RETRIES = 2;
+const QUERY_TIMEOUT = 60000; // Increased from 30s to 60s timeout
+const MAX_RETRIES = 3; // Increased from 2 to 3
 
 // Circuit breaker for API protection
 let consecutiveFailures = 0;
 let lastFailureTime = 0;
 const CIRCUIT_BREAKER_THRESHOLD = 5;
-const CIRCUIT_BREAKER_RESET_TIME = 60000; // 1 minute
+const CIRCUIT_BREAKER_RESET_TIME = 120000; // Increased from 1 minute to 2 minutes
 
 // Helper for session and permission checks
 async function requireSessionAndPermission(requiredPermission: string, request: NextRequest) {
@@ -57,7 +57,7 @@ function isCircuitBreakerOpen(): boolean {
 
 // Optimized query builder with parameterized queries
 function buildOptimizedQueries(whereClause: string, queryParams: any[]) {
-  // Create a CTE (Common Table Expression) for better performance
+  // Create a simplified CTE (Common Table Expression) for better performance
   // Build the base query without interpolating the whereClause to avoid parameter conflicts
   let baseQuery = `
     WITH filtered_candidates AS (

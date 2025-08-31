@@ -42,6 +42,7 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
   const updateThemeAndColorsRef = useRef<any>(null);
   const resetToDefaultsRef = useRef<any>(null);
   const setLogoLoadingRef = useRef<any>(null);
+  const hasInitializedRef = useRef(false);
   
   // Infinite loop prevention for critical effects
   const { trackRun: trackSettingsFetch } = useInfiniteLoopPrevention({
@@ -58,10 +59,14 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
     onExcessiveRuns: () => console.error('🚨 Excessive theme change detected in AppLayout')
   });
 
-  // Update refs when functions are available
+  // Update refs when functions are available - only run once
   useEffect(() => {
-    trackSettingsFetchRef.current = trackSettingsFetch;
-    trackThemeChangeRef.current = trackThemeChange;
+    if (!trackSettingsFetchRef.current) {
+      trackSettingsFetchRef.current = trackSettingsFetch;
+    }
+    if (!trackThemeChangeRef.current) {
+      trackThemeChangeRef.current = trackThemeChange;
+    }
   }, [trackSettingsFetch, trackThemeChange]);
 
   // Render monitoring with higher threshold for development
@@ -95,12 +100,20 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
     resetToDefaults,
   } = useAppLayoutState();
 
-  // Update refs when functions are available
+  // Update refs when functions are available - only run once
   useEffect(() => {
-    updateAppConfigRef.current = updateAppConfig;
-    updateThemeAndColorsRef.current = updateThemeAndColors;
-    resetToDefaultsRef.current = resetToDefaults;
-    setLogoLoadingRef.current = setLogoLoading;
+    if (!updateAppConfigRef.current) {
+      updateAppConfigRef.current = updateAppConfig;
+    }
+    if (!updateThemeAndColorsRef.current) {
+      updateThemeAndColorsRef.current = updateThemeAndColors;
+    }
+    if (!resetToDefaultsRef.current) {
+      resetToDefaultsRef.current = resetToDefaults;
+    }
+    if (!setLogoLoadingRef.current) {
+      setLogoLoadingRef.current = setLogoLoading;
+    }
   }, [updateAppConfig, updateThemeAndColors, resetToDefaults, setLogoLoading]);
 
   // Memoize the fetch function to prevent recreation on every render
@@ -219,6 +232,9 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
 
   // Safe effect for client-side initialization - only run once
   useEffect(() => {
+    if (hasInitializedRef.current) return;
+    hasInitializedRef.current = true;
+    
     initializeClient();
     fetchGlobalSettings();
     
@@ -276,16 +292,8 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
       (lastSegment ? lastSegment.charAt(0).toUpperCase() + lastSegment.slice(1) : "Page");
   }, [pathname]);
 
-  // Early return for loading states
-  if (status === "loading" || !themeMounted) {
-    return <GlobalLoadingOverlay />;
-  }
-
-  if (!session) {
-    return <OptimizedContainer noWrapper>{children}</OptimizedContainer>;
-  }
-
-  return (
+  // Memoize the main layout JSX to prevent unnecessary re-renders
+  const mainLayout = useMemo(() => (
     <SidebarProvider defaultOpen={true}>
       <FaviconUpdater faviconDataUrl={faviconDataUrl} />
       <SidebarToggleButton />
@@ -293,6 +301,7 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
         layout="flex" 
         direction="row"
         className="h-screen bg-background overflow-hidden"
+        data-testid="app-layout"
       >
         <Sidebar collapsible="icon" className="border-r border-border">
           <SidebarHeader>
@@ -324,10 +333,34 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
         </LayoutContainer>
       </LayoutContainer>
     </SidebarProvider>
-  );
+  ), [
+    faviconDataUrl,
+    currentAppName,
+    appLogoUrl,
+    isClient,
+    isLogoLoading,
+    showLogoOnly,
+    sidebarLogoSize,
+    contextualLogos,
+    pageTitle,
+    isLoading,
+    children
+  ]);
+
+  // Early return for loading states
+  if (status === "loading" || !themeMounted) {
+    return <GlobalLoadingOverlay />;
+  }
+
+  if (!session) {
+    return <OptimizedContainer noWrapper>{children}</OptimizedContainer>;
+  }
+
+  return mainLayout;
 });
 
-function SidebarToggleButton() {
+// Memoize the SidebarToggleButton component
+const SidebarToggleButton = memo(() => {
   const { open, toggleSidebar } = useSidebar();
   const [mounted, setMounted] = useState(false);
 
@@ -362,4 +395,6 @@ function SidebarToggleButton() {
       </TooltipProvider>
     </OptimizedContainer>
   );
-}
+});
+
+SidebarToggleButton.displayName = 'SidebarToggleButton';

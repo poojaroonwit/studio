@@ -47,26 +47,7 @@ export const CandidateInfoTab: React.FC<CandidateInfoTabProps> = ({
     return parsedDataObj?.personal_info || undefined;
   })();
 
-  // Debug the personalInfo extraction
-  console.log('🎯 PersonalInfo Extraction Debug:', {
-    hasParsedData: !!candidate.parsedData,
-    parsedDataType: typeof candidate.parsedData,
-    personalInfo,
-    candidateParsedData: candidate.parsedData
-  });
 
-  // Debug logging (only when editing to reduce noise)
-  if (isEditing) {
-    console.log('🎯 CandidateInfoTab Debug:', {
-      isEditing,
-      candidateId: candidate?.id,
-      candidateName: candidate?.name,
-      parsedDataType: typeof candidate?.parsedData,
-      personalInfo,
-      hasControl: !!control,
-      hasWatch: !!watch
-    });
-  }
 
   // Function to compose full name from title, first name, and last name
   const composeFullName = (title: string, firstName: string, lastName: string) => {

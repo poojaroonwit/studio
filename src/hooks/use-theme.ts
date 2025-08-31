@@ -12,6 +12,7 @@ export function useTheme() {
   const lastThemeChange = useRef<number>(0);
   const hasInitializedRef = useRef<boolean>(false);
   const userIdRef = useRef<string | undefined>(undefined);
+  const isUpdatingRef = useRef<boolean>(false);
 
   // Update userId ref when session changes
   useEffect(() => {
@@ -22,7 +23,7 @@ export function useTheme() {
   const applyTheme = useCallback((theme: 'light' | 'dark') => {
     // Prevent excessive theme changes
     const now = Date.now();
-    if (now - lastThemeChange.current < 100) { // Minimum 100ms between theme changes
+    if (now - lastThemeChange.current < 200) { // Increased from 100ms to 200ms
       return;
     }
     lastThemeChange.current = now;
@@ -39,16 +40,25 @@ export function useTheme() {
       root.classList.remove('dark');
     }
     
-    // Re-apply sidebar colors for the new theme
-    requestAnimationFrame(() => {
-      import('@/lib/themeUtils').then(({ reapplyCurrentSidebarColors }) => {
-        reapplyCurrentSidebarColors();
+    // Re-apply sidebar colors for the new theme with debouncing
+    if (!isUpdatingRef.current) {
+      isUpdatingRef.current = true;
+      requestAnimationFrame(() => {
+        import('@/lib/themeUtils').then(({ reapplyCurrentSidebarColors }) => {
+          reapplyCurrentSidebarColors();
+          isUpdatingRef.current = false;
+        }).catch(() => {
+          isUpdatingRef.current = false;
+        });
       });
-    });
+    }
   }, []);
 
   // Memoize the set theme function
   const setTheme = useCallback(async (preference: ThemePreference) => {
+    // Prevent rapid theme changes
+    if (isUpdatingRef.current) return;
+    
     setThemePreference(preference);
     localStorage.setItem('theme', preference);
     
@@ -184,11 +194,20 @@ export function useTheme() {
     loadUserThemePreference();
   }, [userIdRef.current, themePreference, applyTheme]);
 
-  return {
+  // Memoize the return value to prevent unnecessary re-renders
+  const memoizedValue = useMemo(() => ({
     mounted,
     currentTheme,
     themePreference,
     setTheme,
     toggleTheme,
-  };
+  }), [
+    mounted,
+    currentTheme,
+    themePreference,
+    setTheme,
+    toggleTheme,
+  ]);
+
+  return memoizedValue;
 }

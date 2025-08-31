@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 
 interface AppLayoutState {
   isClient: boolean;
@@ -50,15 +50,16 @@ export function useAppLayoutState() {
   const lastUpdateTimeRef = useRef(0);
   const pendingUpdatesRef = useRef<Partial<AppLayoutState>>({});
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const updateQueueRef = useRef<Partial<AppLayoutState>[]>([]);
 
   // Batch state updates to prevent excessive re-renders
   const updateState = useCallback((updates: Partial<AppLayoutState>) => {
     const now = Date.now();
     
-    // Prevent updates more frequently than 100ms (increased from 50ms)
-    if (now - lastUpdateTimeRef.current < 100) {
-      // Merge with pending updates instead of dropping
-      pendingUpdatesRef.current = { ...pendingUpdatesRef.current, ...updates };
+    // Prevent updates more frequently than 150ms (increased from 100ms)
+    if (now - lastUpdateTimeRef.current < 150) {
+      // Add to update queue instead of merging immediately
+      updateQueueRef.current.push(updates);
       
       // Clear existing timeout and set a new one
       if (timeoutRef.current) {
@@ -66,22 +67,28 @@ export function useAppLayoutState() {
       }
       
       timeoutRef.current = setTimeout(() => {
-        if (Object.keys(pendingUpdatesRef.current).length > 0) {
+        if (updateQueueRef.current.length > 0) {
+          // Merge all pending updates
+          const mergedUpdates = updateQueueRef.current.reduce((acc, update) => ({
+            ...acc,
+            ...update,
+          }), {});
+          
           setState(prevState => ({
             ...prevState,
-            ...pendingUpdatesRef.current,
+            ...mergedUpdates,
           }));
-          pendingUpdatesRef.current = {};
+          updateQueueRef.current = [];
           lastUpdateTimeRef.current = Date.now();
         }
-      }, 50);
+      }, 100); // Increased from 50ms
       
       return;
     }
     
     if (isUpdatingRef.current) {
-      // Merge with pending updates
-      pendingUpdatesRef.current = { ...pendingUpdatesRef.current, ...updates };
+      // Add to queue instead of merging immediately
+      updateQueueRef.current.push(updates);
       return;
     }
 
@@ -93,10 +100,24 @@ export function useAppLayoutState() {
       ...updates,
     }));
 
-    // Reset the flag after a short delay
+    // Reset the flag after a longer delay
     setTimeout(() => {
       isUpdatingRef.current = false;
-    }, 20);
+      
+      // Process any queued updates
+      if (updateQueueRef.current.length > 0) {
+        const mergedUpdates = updateQueueRef.current.reduce((acc, update) => ({
+          ...acc,
+          ...update,
+        }), {});
+        
+        setState(prevState => ({
+          ...prevState,
+          ...mergedUpdates,
+        }));
+        updateQueueRef.current = [];
+      }
+    }, 50); // Increased from 20ms
   }, []); // Empty dependency array to ensure this function is stable
 
   // Initialize client state
@@ -141,17 +162,8 @@ export function useAppLayoutState() {
     });
   }, [updateState]);
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      isUpdatingRef.current = false;
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, []);
-
-  return {
+  // Memoize the return value to prevent unnecessary re-renders
+  const memoizedValue = useMemo(() => ({
     ...state,
     updateState,
     initializeClient,
@@ -159,5 +171,26 @@ export function useAppLayoutState() {
     updateAppConfig,
     updateThemeAndColors,
     resetToDefaults,
-  };
+  }), [
+    state,
+    updateState,
+    initializeClient,
+    setLogoLoading,
+    updateAppConfig,
+    updateThemeAndColors,
+    resetToDefaults,
+  ]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      isUpdatingRef.current = false;
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      updateQueueRef.current = [];
+    };
+  }, []);
+
+  return memoizedValue;
 }

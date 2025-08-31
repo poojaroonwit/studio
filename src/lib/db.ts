@@ -15,11 +15,11 @@ export function getPool() {
     const poolConfig = {
       connectionString: databaseUrl,
       ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false,
-      max: parseInt(process.env.DATABASE_MAX_CONNECTIONS || '10'),
-      idleTimeoutMillis: parseInt(process.env.DATABASE_IDLE_TIMEOUT || '30000'),
+      max: parseInt(process.env.DATABASE_MAX_CONNECTIONS || '20'), // Increased from 10 to 20
+      idleTimeoutMillis: parseInt(process.env.DATABASE_IDLE_TIMEOUT || '60000'), // Increased from 30s to 60s
       connectionTimeoutMillis: parseInt(process.env.DATABASE_CONNECTION_TIMEOUT || '1800000'),
       // Add query timeout to prevent hanging queries
-      statement_timeout: parseInt(process.env.DATABASE_STATEMENT_TIMEOUT || '120000'), // 120 seconds
+      statement_timeout: parseInt(process.env.DATABASE_STATEMENT_TIMEOUT || '180000'), // Increased from 120s to 180s
       // Add better error handling
       allowExitOnIdle: false,
     };

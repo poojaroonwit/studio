@@ -8,13 +8,24 @@ export function usePageLoading() {
   const pathname = usePathname();
   const previousPathnameRef = useRef<string | null>(null);
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isUpdatingRef = useRef(false);
 
   const startLoading = useCallback(() => {
+    if (isUpdatingRef.current) return;
+    isUpdatingRef.current = true;
     setIsLoading(true);
+    setTimeout(() => {
+      isUpdatingRef.current = false;
+    }, 50);
   }, []);
 
   const stopLoading = useCallback(() => {
+    if (isUpdatingRef.current) return;
+    isUpdatingRef.current = true;
     setIsLoading(false);
+    setTimeout(() => {
+      isUpdatingRef.current = false;
+    }, 50);
   }, []);
 
   // Memoize the pathname change detection
@@ -37,7 +48,7 @@ export function usePageLoading() {
       // Reduced timeout for faster response
       loadingTimeoutRef.current = setTimeout(() => {
         stopLoading();
-      }, 100); // Reduced from 200ms to 100ms for faster response
+      }, 150); // Increased from 100ms to 150ms for better performance
     }
     
     return () => {
@@ -56,5 +67,12 @@ export function usePageLoading() {
     };
   }, []);
 
-  return { isLoading, startLoading, stopLoading };
+  // Memoize the return value to prevent unnecessary re-renders
+  const memoizedValue = useMemo(() => ({
+    isLoading,
+    startLoading,
+    stopLoading,
+  }), [isLoading, startLoading, stopLoading]);
+
+  return memoizedValue;
 } 

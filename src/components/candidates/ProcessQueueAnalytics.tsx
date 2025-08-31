@@ -9,6 +9,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, Clock, FileText, AlertTriangle, TrendingUp, Database, CalendarIcon, Filter, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -62,13 +63,14 @@ export default function ProcessQueueAnalytics() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedJob, setSelectedJob] = useState<AnalyticsData['scatterData'][0] | null>(null);
   const [isJobDetailsOpen, setIsJobDetailsOpen] = useState(false);
   const { chartReady, isLoading: chartLoading, error: chartError } = useChartSetup();
 
   useEffect(() => {
     fetchAnalyticsData();
-  }, [dateRange]);
+  }, [dateRange, statusFilter]);
 
   const fetchAnalyticsData = async () => {
     try {
@@ -83,6 +85,11 @@ export default function ProcessQueueAnalytics() {
       }
       if (dateRange?.to) {
         params.append('date_end', dateRange.to.toISOString());
+      }
+
+      // Add status filter if set
+      if (statusFilter && statusFilter !== 'all') {
+        params.append('status', statusFilter);
       }
 
       const url = `/api/upload-queue?${params}`;
@@ -295,122 +302,146 @@ export default function ProcessQueueAnalytics() {
 
   return (
     <div className="space-y-6">
-      {/* Date Range Filter */}
+            {/* Date Range Filter */}
       <div className="flex items-center justify-between">
-        {dateRange && (
+        {(dateRange || statusFilter !== 'all') && (
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setDateRange(undefined)}
+            onClick={() => {
+              setDateRange(undefined);
+              setStatusFilter('all');
+            }}
             className="text-gray-600 hover:text-gray-800 h-7 px-2 text-xs"
           >
             <X className="h-3 w-3 mr-1" />
-            Clear Filter
+            Clear All Filters
           </Button>
         )}
       </div>
-      <div className="flex items-center space-x-2">
-        <div className="flex-1">
-          <Label htmlFor="dateRange" className="text-xs text-muted-foreground">Date Range</Label>
-          <div className="flex space-x-2 mt-1">
-            <Popover>
-              <PopoverTrigger asChild>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Date Range Filter */}
+        <div className="flex items-center space-x-2">
+          <div className="flex-1">
+            <Label htmlFor="dateRange" className="text-xs text-muted-foreground">Date Range</Label>
+            <div className="flex space-x-2 mt-1">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "flex-1 justify-start text-left font-normal h-8 text-sm",
+                      !dateRange && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-3 w-3" />
+                    {dateRange?.from ? (
+                      dateRange.to ? (
+                        <>
+                          {format(dateRange.from, "MMM dd, yyyy")} - {format(dateRange.to, "MMM dd, yyyy")}
+                        </>
+                      ) : (
+                        format(dateRange.from, "MMM dd, yyyy")
+                      )
+                    ) : (
+                      <span>Pick a date range</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    initialFocus
+                    mode="range"
+                    defaultMonth={dateRange?.from}
+                    selected={dateRange}
+                    onSelect={setDateRange}
+                    numberOfMonths={2}
+                    disabled={(date) =>
+                      date > new Date() || date < new Date("1900-01-01")
+                    }
+                  />
+                </PopoverContent>
+              </Popover>
+              {dateRange && (
                 <Button
                   variant="outline"
-                  className={cn(
-                    "flex-1 justify-start text-left font-normal h-8 text-sm",
-                    !dateRange && "text-muted-foreground"
-                  )}
+                  size="sm"
+                  onClick={() => setDateRange(undefined)}
+                  className="px-2 h-8"
                 >
-                  <CalendarIcon className="mr-2 h-3 w-3" />
-                  {dateRange?.from ? (
-                    dateRange.to ? (
-                      <>
-                        {format(dateRange.from, "MMM dd, yyyy")} - {format(dateRange.to, "MMM dd, yyyy")}
-                      </>
-                    ) : (
-                      format(dateRange.from, "MMM dd, yyyy")
-                    )
-                  ) : (
-                    <span>Pick a date range</span>
-                  )}
+                  <X className="h-3 w-3" />
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  initialFocus
-                  mode="range"
-                  defaultMonth={dateRange?.from}
-                  selected={dateRange}
-                  onSelect={setDateRange}
-                  numberOfMonths={2}
-                  disabled={(date) =>
-                    date > new Date() || date < new Date("1900-01-01")
-                  }
-                />
-              </PopoverContent>
-            </Popover>
-            {dateRange && (
+              )}
+            </div>
+            <div className="flex flex-wrap gap-1 mt-1">
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
-                onClick={() => setDateRange(undefined)}
-                className="px-2 h-8"
+                onClick={() => setDatePreset('today')}
+                className="text-xs h-5 px-1"
               >
-                <X className="h-3 w-3" />
+                Today
               </Button>
-            )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setDatePreset('yesterday')}
+                className="text-xs h-5 px-1"
+              >
+                Yesterday
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setDatePreset('last7days')}
+                className="text-xs h-5 px-1"
+              >
+                Last 7 days
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setDatePreset('last30days')}
+                className="text-xs h-5 px-1"
+              >
+                Last 30 days
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setDatePreset('thisMonth')}
+                className="text-xs h-5 px-1"
+              >
+                This month
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setDatePreset('lastMonth')}
+                className="text-xs h-5 px-1"
+              >
+                Last month
+              </Button>
+            </div>
           </div>
-          <div className="flex flex-wrap gap-1 mt-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setDatePreset('today')}
-              className="text-xs h-5 px-1"
-            >
-              Today
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setDatePreset('yesterday')}
-              className="text-xs h-5 px-1"
-            >
-              Yesterday
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setDatePreset('last7days')}
-              className="text-xs h-5 px-1"
-            >
-              Last 7 days
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setDatePreset('last30days')}
-              className="text-xs h-5 px-1"
-            >
-              Last 30 days
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setDatePreset('thisMonth')}
-              className="text-xs h-5 px-1"
-            >
-              This month
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setDatePreset('lastMonth')}
-              className="text-xs h-5 px-1"
-            >
-              Last month
-            </Button>
-          </div>
+        </div>
+
+        {/* Status Filter */}
+        <div className="space-y-1">
+          <Label htmlFor="status" className="text-xs text-muted-foreground">Status Filter</Label>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="h-8 text-sm">
+              <SelectValue placeholder="All Statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="queued">Queued</SelectItem>
+              <SelectItem value="inprocess">In Process</SelectItem>
+              <SelectItem value="success">Success</SelectItem>
+              <SelectItem value="error">Error</SelectItem>
+              <SelectItem value="fail">Failed</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

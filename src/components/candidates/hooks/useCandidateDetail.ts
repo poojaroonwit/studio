@@ -124,13 +124,8 @@ export const useCandidateDetail = (candidateId: string) => {
     shouldUnregister: false, // Keep fields registered even when not rendered
   });
 
-  // Watch form values for debugging
+  // Watch form values
   const watchedValues = watch();
-  useEffect(() => {
-    if (isEditing) {
-      console.log('🎯 Current Form Values:', watchedValues);
-    }
-  }, [watchedValues, isEditing]);
 
   const {
     fields: educationFields,
@@ -420,12 +415,6 @@ export const useCandidateDetail = (candidateId: string) => {
     // Populate form with candidate data when entering edit mode
   useEffect(() => {
     if (isEditing && candidate && !formPopulated) {
-      console.log('🎯 Form Population Debug:', {
-        isEditing,
-        candidateId: candidate?.id,
-        candidateName: candidate?.name,
-        parsedDataType: typeof candidate?.parsedData,
-      });
       // Normalize fitScore to ensure it's within 0-1 range
       let normalizedFitScore = candidate.fitScore;
       if (typeof candidate.fitScore === 'number') {
@@ -504,12 +493,6 @@ export const useCandidateDetail = (candidateId: string) => {
                  // Set main candidate fields explicitly
          setValue('email', formValues.email || '');
          setValue('phone', formValues.phone || '');
-         
-         console.log('🎯 Form Fields Set:', {
-           email: formValues.email,
-           phone: formValues.phone,
-           personalInfo: formValues.parsedData?.personal_info
-         });
       }, 100);
       
       // Populate field arrays

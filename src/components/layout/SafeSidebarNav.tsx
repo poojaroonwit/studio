@@ -24,7 +24,7 @@ import { useSession } from "next-auth/react";
 const NAV_ITEMS = {
   dashboard: { href: "/", label: "Dashboard", icon: LayoutDashboard },
   myTasks: { href: "/my-tasks", label: "My Task Board", icon: ListTodo },
-  taskBoard: { href: "/task-board", label: "Task Board", icon: Kanban },
+  taskBoard: { href: "/my-tasks", label: "Task Board", icon: Kanban },
   candidates: { href: "/candidates", label: "Candidates", icon: Users },
   positions: { href: "/positions", label: "Positions", icon: Briefcase },
   bulkUpload: { href: "/process-queue", label: "Process queue", icon: UploadCloud },
@@ -131,7 +131,7 @@ const FallbackNav = React.memo(() => {
             </Link>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <Link href="/task-board" className="w-full">
+            <Link href="/my-tasks" className="w-full">
               <SidebarMenuButton className="w-full justify-center" size="default">
                 <Kanban className="h-5 w-5" />
               </SidebarMenuButton>
@@ -181,7 +181,7 @@ const FallbackNav = React.memo(() => {
           </Link>
         </SidebarMenuItem>
         <SidebarMenuItem>
-          <Link href="/task-board" className="w-full">
+          <Link href="/my-tasks" className="w-full">
             <SidebarMenuButton className="w-full justify-start" size="default">
               <Kanban className="h-5 w-5" />
               <span className="truncate">Task Board</span>

@@ -11,6 +11,8 @@ import { GlobalSettingsProvider } from '@/contexts/GlobalSettingsContext';
 import { RamdaPolyfillInitializer } from '@/components/ui/RamdaPolyfillInitializer';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { FontLoader } from '@/components/ui/FontLoader';
+import { FontPreloader } from '@/components/ui/FontPreloader';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -65,22 +67,31 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en">
       <head>
+        {/* Font preloading for better performance */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&display=swap" />
+        <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&display=swap" />
+        <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&display=swap" />
         {/* Ramda polyfill is now handled by RamdaPolyfillInitializer component */}
       </head>
       <body>
         <ErrorBoundary>
-          <AuthProvider session={session}>
-            <LoadingProvider>
-              <NotificationProvider>
-                <WarningProvider>
-                  <GlobalSettingsProvider>
-                    <RamdaPolyfillInitializer />
-                    <AppLayout>{children}</AppLayout>
-                  </GlobalSettingsProvider>
-                </WarningProvider>
-              </NotificationProvider>
-            </LoadingProvider>
-          </AuthProvider>
+          <FontPreloader />
+          <FontLoader>
+            <AuthProvider session={session}>
+              <LoadingProvider>
+                <NotificationProvider>
+                  <WarningProvider>
+                    <GlobalSettingsProvider>
+                      <RamdaPolyfillInitializer />
+                      <AppLayout>{children}</AppLayout>
+                    </GlobalSettingsProvider>
+                  </WarningProvider>
+                </NotificationProvider>
+              </LoadingProvider>
+            </AuthProvider>
+          </FontLoader>
         </ErrorBoundary>
       </body>
     </html>

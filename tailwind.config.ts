@@ -179,8 +179,10 @@ export default {
   		},
   				fontFamily: {
 			'sidebar': 'var(--sidebar-font-family)',
-			'inter': ['Inter', 'Arial', 'Helvetica', 'sans-serif'],
-			'ibm-plex-sans-thai': ['IBM Plex Sans Thai', 'Inter', 'Arial', 'Helvetica', 'sans-serif'],
+			'inter': ['Inter', 'Segoe UI', 'Roboto', 'Arial', 'Helvetica', 'sans-serif'],
+			'ibm-plex-sans-thai': ['IBM Plex Sans Thai', 'Inter', 'Noto Sans Thai', 'Tahoma', 'Arial', 'Helvetica', 'sans-serif'],
+			'thai': ['IBM Plex Sans Thai', 'Inter', 'Noto Sans Thai', 'Tahoma', 'Arial', 'Helvetica', 'sans-serif'],
+			'english': ['Inter', 'Segoe UI', 'Roboto', 'Arial', 'Helvetica', 'sans-serif'],
 			'sans': 'var(--font-family-primary)',
 		},
   		padding: {

@@ -154,12 +154,16 @@ export function useInfiniteLoopPrevention(
     maxRuns
   });
   
+  // Store the callback in a ref to avoid dependency issues
+  const onExcessiveRunsRef = useRef(onExcessiveRuns);
+  onExcessiveRunsRef.current = onExcessiveRuns;
+  
   const trackRun = useCallback(() => {
     tracker.current.runs++;
     
     if (tracker.current.runs > maxRuns) {
       console.warn(`🚨 Infinite loop detected in "${effectKey}": ${tracker.current.runs} runs (max: ${maxRuns})`);
-      onExcessiveRuns?.();
+      onExcessiveRunsRef.current?.();
       return false;
     }
     
@@ -167,13 +171,13 @@ export function useInfiniteLoopPrevention(
     const timeSinceLastRun = now - tracker.current.lastRun;
     if (timeSinceLastRun < 100 && tracker.current.runs > 10) {
       console.warn(`🚨 Potential infinite loop in "${effectKey}": running too frequently`);
-      onExcessiveRuns?.();
+      onExcessiveRunsRef.current?.();
       return false;
     }
     
     tracker.current.lastRun = now;
     return true;
-  }, [effectKey, maxRuns, onExcessiveRuns]);
+  }, [effectKey, maxRuns]); // Removed onExcessiveRuns from dependencies to prevent recreation
   
   return { trackRun, runs: tracker.current.runs };
 }

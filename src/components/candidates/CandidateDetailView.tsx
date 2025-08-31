@@ -20,9 +20,11 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
   const [candidateExists, setCandidateExists] = useState<boolean | null>(null);
 
   // Add infinite loop prevention
-  const { trackRun: trackLoadData } = useInfiniteLoopPrevention('CandidateDetailView_loadData', 20, () => {
+  const onExcessiveRuns = useCallback(() => {
     console.error('🚨 Excessive data loading detected in CandidateDetailView');
-  });
+  }, []);
+  
+  const { trackRun: trackLoadData } = useInfiniteLoopPrevention('CandidateDetailView_loadData', 20, onExcessiveRuns);
 
   // Add abort controller for cleanup
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -37,8 +39,6 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
       setError('Invalid candidate ID');
       return;
     }
-
-
 
     console.log('🔄 Starting to load candidate data for ID:', candidateId);
 
@@ -60,7 +60,7 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
 
     // Set a timeout to prevent infinite loading
     timeoutRef.current = setTimeout(() => {
-      if (mountedRef.current && isLoading) {
+      if (mountedRef.current) {
         console.warn('⏰ Loading timeout reached for candidate details:', candidateId);
         setIsLoading(false);
         setError('Loading timeout - please try again');
@@ -173,7 +173,7 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
         console.log('🏁 Loading state set to false for candidate:', candidateId);
       }
     }
-  }, [candidateId, trackLoadData, isLoading]);
+  }, [candidateId, trackLoadData]);
 
   // Load data when component mounts or candidateId changes - FIXED: Use useEffect instead of useSafeEffect
   useEffect(() => {

@@ -3,8 +3,55 @@
 @tailwind utilities;
 
 /* Font Imports */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&display=swap');
+
+/* Font loading states */
+.fonts-loading {
+  font-display: swap;
+}
+
+.fonts-loaded {
+  font-display: swap;
+}
+
+/* Ensure fonts are loaded with proper fallbacks */
+@font-face {
+  font-family: 'IBM Plex Sans Thai';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('https://fonts.gstatic.com/s/ibmplexsansthai/v14/ZgNWBpUZKtVQZBQ3lxKQj6WAt6SDvf26zH.woff2') format('woff2');
+  unicode-range: U+0E00-0E7F, U+200C-200D, U+25CC;
+}
+
+@font-face {
+  font-family: 'IBM Plex Sans Thai';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('https://fonts.gstatic.com/s/ibmplexsansthai/v14/ZgNWBpUZKtVQZBQ3lxKQj6WAt6SDvf26zH.woff2') format('woff2');
+  unicode-range: U+0E00-0E7F, U+200C-200D, U+25CC;
+}
+
+@font-face {
+  font-family: 'IBM Plex Sans Thai';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('https://fonts.gstatic.com/s/ibmplexsansthai/v14/ZgNWBpUZKtVQZBQ3lxKQj6WAt6SDvf26zH.woff2') format('woff2');
+  unicode-range: U+0E00-0E7F, U+200C-200D, U+25CC;
+}
+
+@font-face {
+  font-family: 'IBM Plex Sans Thai';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('https://fonts.gstatic.com/s/ibmplexsansthai/v14/ZgNWBpUZKtVQZBQ3lxKQj6WAt6SDvf26zH.woff2') format('woff2');
+  unicode-range: U+0E00-0E7F, U+200C-200D, U+25CC;
+}
 
 /* Animation keyframes for smooth transitions */
 @keyframes fadeInUp {
@@ -453,11 +500,11 @@ audio::-webkit-scrollbar-button {
 
 /* Additional utility classes for font switching */
 .font-thai {
-  font-family: 'IBM Plex Sans Thai', 'Inter', Arial, Helvetica, sans-serif;
+  font-family: 'IBM Plex Sans Thai', 'Inter', 'Noto Sans Thai', 'Tahoma', Arial, Helvetica, sans-serif;
 }
 
 .font-english {
-  font-family: 'Inter', Arial, Helvetica, sans-serif;
+  font-family: 'Inter', 'Segoe UI', 'Roboto', Arial, Helvetica, sans-serif;
 }
 
 /* Auto-detect Thai text and apply appropriate font */
@@ -483,8 +530,8 @@ audio::-webkit-scrollbar-button {
 @layer base {
   :root {
     /* Font family variables */
-    --font-family-primary: 'IBM Plex Sans Thai', 'Inter', Arial, Helvetica, sans-serif;
-    --font-family-secondary: 'Inter', Arial, Helvetica, sans-serif;
+    --font-family-primary: 'IBM Plex Sans Thai', 'Inter', 'Noto Sans Thai', 'Tahoma', Arial, Helvetica, sans-serif;
+    --font-family-secondary: 'Inter', 'Segoe UI', 'Roboto', Arial, Helvetica, sans-serif;
     
     /* Border radius variable */
     --radius: 0.375rem;

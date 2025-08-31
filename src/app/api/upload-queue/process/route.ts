@@ -332,14 +332,6 @@ export async function POST(request: NextRequest) {
     
     if (status === 'success') {
       // Job processed successfully
-    } else {
-      console.error(`Upload queue job '${job.file_name}' failed with webhook error`, { 
-        jobId: job.id,
-        fileName: job.file_name,
-        error,
-        processingTimeMs: totalProcessingTime,
-        processingTimeSeconds: (totalProcessingTime / 1000).toFixed(1)
-      });
     }
     
     return NextResponse.json({ job: { ...job, status, error, error_details }, webhookResults });

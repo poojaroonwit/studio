@@ -500,18 +500,30 @@ export default function CandidateImportUploadQueue() {
 
   const handleRetryItem = async (itemId: string) => {
     try {
+      console.log(`Retrying job ${itemId}...`);
       const response = await fetch(`/api/upload-queue/${itemId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
+      
       if (response.ok) {
+        const result = await response.json();
+        console.log(`Retry successful for job ${itemId}:`, result);
         toast.success('Job queued for retry');
         fetchQueue(page, pageSize);
       } else {
         const error = await response.json();
-        toast.error(error.error || 'Failed to retry job');
+        console.error(`Retry failed for job ${itemId}:`, error);
+        
+        // Show more specific error messages
+        if (error.error && error.error.includes('already a queued job with the same file path')) {
+          toast.error('Cannot retry: there is already a queued job with the same file. Please wait for the existing job to complete or delete it first.');
+        } else {
+          toast.error(error.error || 'Failed to retry job');
+        }
       }
     } catch (error) {
+      console.error(`Retry error for job ${itemId}:`, error);
       toast.error('Failed to retry job');
     }
   };
@@ -588,7 +600,29 @@ export default function CandidateImportUploadQueue() {
         body: JSON.stringify({ action: 'retry', itemIds })
       });
       if (response.ok) {
-        toast.success('Jobs queued for retry');
+        const result = await response.json();
+        console.log('Bulk retry result:', result);
+        
+        // Show detailed results if available
+        if (result.failedDetails && result.failedDetails.length > 0) {
+          const failedCount = result.failedDetails.length;
+          const successCount = result.successCount || 0;
+          
+          if (successCount > 0) {
+            toast.success(`${successCount} jobs queued for retry`);
+          }
+          
+          if (failedCount > 0) {
+            const errorMessage = failedCount === 1 
+              ? `1 job failed to retry: ${result.failedDetails[0].reason}`
+              : `${failedCount} jobs failed to retry. Check console for details.`;
+            toast.error(errorMessage);
+            console.error('Bulk retry failed details:', result.failedDetails);
+          }
+        } else {
+          toast.success('Jobs queued for retry');
+        }
+        
         setSelectedItems(new Set());
         fetchQueue(page, pageSize);
       } else {
@@ -596,6 +630,7 @@ export default function CandidateImportUploadQueue() {
         toast.error(error.error || 'Failed to retry jobs');
       }
     } catch (error) {
+      console.error('Bulk retry error:', error);
       toast.error('Failed to retry jobs');
     }
   };
@@ -894,14 +929,21 @@ export default function CandidateImportUploadQueue() {
         {selectedItems.size > 0 && (
           <div className="flex items-center gap-3 p-2 bg-muted/30 border-b border-border">
             <span className="text-sm text-muted-foreground">{selectedItems.size} selected</span>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => handleBulkRetry(Array.from(selectedItems))} 
-              className="h-7 px-2 text-blue-600 hover:bg-blue-50 hover:text-blue-700"
-            >
-              <RotateCcw className="h-3 w-3 mr-1" /> Retry
-            </Button>
+            {(() => {
+              const hasRetryableItems = queueData?.data?.some(item => 
+                selectedItems.has(item.id) && ['error', 'fail'].includes(item.status)
+              );
+              return hasRetryableItems ? (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => handleBulkRetry(Array.from(selectedItems))} 
+                  className="h-7 px-2 text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+                >
+                  <RotateCcw className="h-3 w-3 mr-1" /> Retry
+                </Button>
+              ) : null;
+            })()}
             <Button 
               variant="ghost" 
               size="sm" 
@@ -1031,13 +1073,15 @@ export default function CandidateImportUploadQueue() {
                             <FileText className="mr-2 h-4 w-4" /> 
                             Preview File
                           </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onSelect={() => handleRetryItem(item.id)}
-                            className="text-sm py-2"
-                          >
-                            <RotateCcw className="mr-2 h-4 w-4" /> 
-                            Retry
-                          </DropdownMenuItem>
+                          {['error', 'fail'].includes(item.status) && (
+                            <DropdownMenuItem 
+                              onSelect={() => handleRetryItem(item.id)}
+                              className="text-sm py-2"
+                            >
+                              <RotateCcw className="mr-2 h-4 w-4" /> 
+                              Retry
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem 
                             onSelect={() => handleDeleteItem(item.id)}
                             className="text-destructive hover:!bg-destructive/10 focus:!bg-destructive/10 focus:!text-destructive text-sm py-2"

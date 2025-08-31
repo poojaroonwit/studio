@@ -314,15 +314,6 @@ This appears to be a timeout issue. Consider reducing the webhook timeout settin
     
     if (status === 'success') {
       // Job processed successfully
-    } else {
-      console.error(`Upload queue job '${job.file_name}' failed with webhook error`, {
-        jobId: job.id,
-        fileName: job.file_name,
-        webhookStatus: webhookResStatus,
-        error,
-        processingTimeMs: Date.now() - startTime,
-        processingTimeSeconds: ((Date.now() - startTime) / 1000).toFixed(1)
-      });
     }
     
     return { 

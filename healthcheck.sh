@@ -85,28 +85,26 @@ check_memory() {
 # Perform comprehensive health checks
 log_message "🚀 Starting comprehensive health check..."
 
-# Check basic system resources
-if ! check_disk_space; then
-    log_message "❌ Health check failed: Disk space critical"
-    exit 1
-fi
-
-if ! check_memory; then
-    log_message "❌ Health check failed: Memory usage critical"
-    exit 1
-fi
-
-# Check if application process is running
+# Check if application process is running (CRITICAL - must pass)
 if ! check_process; then
     log_message "❌ Health check failed: Application process not running"
     exit 1
 fi
 
-# Perform the HTTP health check
-if check_health; then
-    log_message "✅ All health checks passed - Application is healthy"
-    exit 0
-else
-    log_message "❌ Health check failed: Application is unhealthy - Container will restart"
+# Perform the HTTP health check (CRITICAL - must pass)
+if ! check_health; then
+    log_message "❌ Health check failed: Application HTTP endpoint not responding"
     exit 1
 fi
+
+# Check basic system resources (WARNING - log but don't fail)
+if ! check_disk_space; then
+    log_message "⚠️  Warning: Disk space critical but continuing"
+fi
+
+if ! check_memory; then
+    log_message "⚠️  Warning: Memory usage critical but continuing"
+fi
+
+log_message "✅ Critical health checks passed - Application is healthy"
+exit 0

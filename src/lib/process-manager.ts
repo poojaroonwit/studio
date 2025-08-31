@@ -37,8 +37,6 @@ class ProcessManager {
     const processHandler: ProcessHandler = { signal, handler, id };
     this.handlers.set(key, processHandler);
     process.on(signal, handler);
-    
-    console.log(`[ProcessManager] Added ${signal} handler: ${id}`);
   }
 
   /**
@@ -51,7 +49,6 @@ class ProcessManager {
     if (existingHandler) {
       process.removeListener(signal, existingHandler.handler);
       this.handlers.delete(key);
-      console.log(`[ProcessManager] Removed ${signal} handler: ${id}`);
     }
   }
 
@@ -63,7 +60,6 @@ class ProcessManager {
       if (handler.signal === signal) {
         process.removeListener(signal, handler.handler);
         this.handlers.delete(key);
-        console.log(`[ProcessManager] Removed ${signal} handler: ${handler.id}`);
       }
     }
   }
@@ -90,7 +86,6 @@ class ProcessManager {
       process.removeListener(handler.signal, handler.handler);
       this.handlers.delete(key);
     }
-    console.log('[ProcessManager] Cleaned up all handlers');
   }
 }
 

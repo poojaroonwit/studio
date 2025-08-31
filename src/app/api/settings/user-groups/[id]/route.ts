@@ -10,13 +10,6 @@ import { getPool } from '../../../../../lib/db';
 
 const platformModuleIds = PLATFORM_MODULES.map(m => m.id);
 
-// Add logging to debug the platformModuleIds array
-console.log('PUT /api/settings/user-groups/[id] - platformModuleIds created:', {
-  totalModules: PLATFORM_MODULES.length,
-  totalIds: platformModuleIds.length,
-  sampleIds: platformModuleIds.slice(0, 10)
-});
-
 // Test specific permissions from the error message
 const errorPermissions = [
   'CANDIDATES_VIEW', 'CANDIDATES_VIEW_DETAILED', 'CANDIDATES_CREATE', 'CANDIDATES_EDIT_BASIC', 
@@ -28,7 +21,6 @@ const errorPermissions = [
 ];
 
 const missingFromError = errorPermissions.filter(perm => !platformModuleIds.includes(perm));
-console.log('PUT /api/settings/user-groups/[id] - Missing permissions from error:', missingFromError);
 
 const updateGroupFormSchema = z.object({
   name: z.string().min(1, "Group name is required").max(100),

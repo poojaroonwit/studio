@@ -84,25 +84,20 @@ function validateFile(file: File): FileValidationResult {
  */
 async function uploadToMinIO(file: File, objectName: string): Promise<{ success: boolean; error?: string }> {
   try {
-    console.log(`[UPLOAD] Starting MinIO upload for file: ${file.name} to ${objectName}`);
     const buffer = Buffer.from(await file.arrayBuffer());
-    console.log(`[UPLOAD] File buffer created, size: ${buffer.length} bytes`);
     
     const result = await retryMinIOUpload(
       async () => {
-        console.log(`[UPLOAD] Attempting MinIO putObject for ${objectName}`);
         await minioClient.putObject(MINIO_BUCKET, objectName, buffer, buffer.length, {
           'Content-Type': file.type || 'application/pdf',
           'Content-Disposition': file.type === 'application/pdf' 
             ? `inline; filename="${encodeURIComponent(file.name)}"`
             : `attachment; filename="${encodeURIComponent(file.name)}"`,
         });
-        console.log(`[UPLOAD] MinIO putObject successful for ${objectName}`);
       },
       file.name
     );
     
-    console.log(`[UPLOAD] MinIO upload result for ${file.name}:`, result);
     return result;
   } catch (error) {
     console.error(`[UPLOAD] Error in uploadToMinIO for ${file.name}:`, error);
@@ -380,9 +375,7 @@ export async function POST(request: NextRequest) {
 
     // Step 3: Ensure MinIO bucket exists
     try {
-      console.log(`[UPLOAD] Checking MinIO bucket for user ${actingUserName}...`);
       const bucketResult = await ensureBucketExists();
-      console.log(`[UPLOAD] MinIO bucket check result:`, bucketResult);
     } catch (minioError) {
       console.error('[UPLOAD] MinIO bucket check error:', minioError);
       console.error(`MinIO bucket access failed during upload by ${actingUserName}`, {
@@ -396,7 +389,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Step 4: Process files with database transaction
-    console.log(`[UPLOAD] Starting database transaction for ${files.length} files`);
     client = await getPool().connect();
     
     // Set a timeout for database operations
@@ -418,7 +410,6 @@ export async function POST(request: NextRequest) {
 
     const results: UploadResult[] = [];
     const uploadPromises = files.map(async (file, index) => {
-      console.log(`[UPLOAD] Processing file ${index + 1}/${files.length}: ${file.name}`);
       return await processFileUpload(file, client, {
         position_id,
         batch_id,
@@ -427,13 +418,10 @@ export async function POST(request: NextRequest) {
         created_by: actingUserId
       });
     });
-
-    console.log(`[UPLOAD] Waiting for all file uploads to complete...`);
     const uploadResults = await Promise.all(uploadPromises);
     results.push(...uploadResults);
 
     // Step 5: Commit transaction if all operations succeeded
-    console.log(`[UPLOAD] Committing database transaction...`);
     clearTimeout(dbTimeout);
     await client.query('COMMIT');
 

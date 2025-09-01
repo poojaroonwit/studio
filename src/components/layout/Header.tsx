@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useSession, signOut, signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { UserAvatarCompact } from "@/components/ui/user-avatar";
@@ -162,17 +162,17 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
 
   // Memoize user object to prevent unnecessary re-renders
   const user = useMemo(() => {
-    return session?.user
-      ? {
-          id: session.user.id as string,
-          name: (session.user.name || session.user.email || 'User') as string,
-          email: session.user.email ?? undefined,
-          role: (session.user as any).role ?? 'Recruiter',
-          avatarUrl: ((session.user as any).avatarUrl ?? null) as string | null,
-          image: ((session.user as any).image ?? null) as string | null,
-          personalColor: ((session.user as any).personalColor ?? null) as string | null,
-        }
-      : null;
+    if (!session?.user) return null;
+    
+    return {
+      id: session.user.id as string,
+      name: (session.user.name || session.user.email || 'User') as string,
+      email: session.user.email ?? undefined,
+      role: (session.user as any).role ?? 'Recruiter',
+      avatarUrl: ((session.user as any).avatarUrl ?? null) as string | null,
+      image: ((session.user as any).image ?? null) as string | null,
+      personalColor: ((session.user as any).personalColor ?? null) as string | null,
+    };
   }, [
     session?.user?.id,
     session?.user?.name,
@@ -187,12 +187,85 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
     setMounted(true);
   }, []);
 
+  const [cacheInfo, setCacheInfo] = useState({
+    localStorageItems: 0,
+    sessionStorageItems: 0,
+    localStorageSize: 0,
+    sessionStorageSize: 0,
+    indexedDBAvailable: false,
+    serviceWorkersAvailable: false,
+    cachesAvailable: false,
+    memoryUsage: 0,
+    cacheNames: [] as string[]
+  });
+
+  const collectCacheInfo = useCallback(async () => {
+    if (typeof window === 'undefined') return;
+    
+    setIsLoadingCacheInfo(true);
+    try {
+      // Calculate storage sizes with error handling
+      let localStorageSize = 0;
+      let sessionStorageSize = 0;
+      
+      try {
+        localStorageSize = new Blob(Object.values(localStorage)).size;
+      } catch (error) {
+        console.warn('[HEADER] Failed to calculate localStorage size:', error);
+      }
+      
+      try {
+        sessionStorageSize = new Blob(Object.values(sessionStorage)).size;
+      } catch (error) {
+        console.warn('[HEADER] Failed to calculate sessionStorage size:', error);
+      }
+      
+      // Get cache names if available
+      let cacheNames: string[] = [];
+      if ('caches' in window) {
+        try {
+          cacheNames = await caches.keys();
+        } catch (error) {
+          console.warn('[HEADER] Failed to get cache names:', error);
+        }
+      }
+
+      setCacheInfo({
+        localStorageItems: localStorage.length,
+        sessionStorageItems: sessionStorage.length,
+        localStorageSize,
+        sessionStorageSize,
+        indexedDBAvailable: 'indexedDB' in window,
+        serviceWorkersAvailable: 'serviceWorker' in navigator,
+        cachesAvailable: 'caches' in window,
+        memoryUsage: 'memory' in performance ? Math.round((performance as any).memory.usedJSHeapSize / 1024 / 1024) : 0,
+        cacheNames
+      });
+    } catch (error) {
+      console.error('[HEADER] Cache info collection error:', error);
+      // Set default values on error
+      setCacheInfo({
+        localStorageItems: 0,
+        sessionStorageItems: 0,
+        localStorageSize: 0,
+        sessionStorageSize: 0,
+        indexedDBAvailable: false,
+        serviceWorkersAvailable: false,
+        cachesAvailable: false,
+        memoryUsage: 0,
+        cacheNames: []
+      });
+    } finally {
+      setIsLoadingCacheInfo(false);
+    }
+  }, []);
+
   // Collect cache info when dialog opens
   useEffect(() => {
     if (isCacheDetailsOpen) {
       collectCacheInfo();
     }
-  }, [isCacheDetailsOpen]);
+  }, [isCacheDetailsOpen, collectCacheInfo]);
 
   const [isDark, setIsDark] = useState(false);
 
@@ -202,20 +275,24 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
       const root = document.documentElement;
       let initial = root.classList.contains('dark');
       const saved = typeof window !== 'undefined' ? localStorage.getItem('theme') : null;
+      
       if (saved === 'dark') initial = true;
       if (saved === 'light') initial = false;
       if (saved == null && !initial && typeof window !== 'undefined' && window.matchMedia) {
         initial = window.matchMedia('(prefers-color-scheme: dark)').matches;
       }
-      if (initial) root.classList.add('dark'); else root.classList.remove('dark');
+      
+      if (initial) root.classList.add('dark'); 
+      else root.classList.remove('dark');
+      
       setIsDark(initial);
-    } catch {
-      // no-op
+    } catch (error) {
+      console.warn('[HEADER] Theme initialization error:', error);
+      setIsDark(false);
     }
   }, []);
 
   useEffect(() => {
-    // Fetch current app name from system settings
     const fetchAppName = async () => {
       try {
         const response = await fetch('/api/settings/system-settings');
@@ -231,7 +308,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
           setCurrentAppName(appName);
         }
       } catch (error) {
-        // Failed to fetch app name
+        console.warn('[HEADER] Failed to fetch app name:', error);
       }
     };
 
@@ -248,21 +325,32 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
     }
   }, [initialPageTitle, currentAppName]);
 
-  const handleThemeSwitch = (checked: boolean) => {
-    setIsDark(checked);
-    const root = document.documentElement;
-    if (checked) root.classList.add('dark'); else root.classList.remove('dark');
-    try { localStorage.setItem('theme', checked ? 'dark' : 'light'); } catch {}
-    requestAnimationFrame(() => {
+  const handleThemeSwitch = useCallback((checked: boolean) => {
+    try {
+      setIsDark(checked);
+      const root = document.documentElement;
+      
+      if (checked) root.classList.add('dark'); 
+      else root.classList.remove('dark');
+      
+      try { 
+        localStorage.setItem('theme', checked ? 'dark' : 'light'); 
+      } catch (error) {
+        console.warn('[HEADER] Failed to save theme preference:', error);
+      }
+      
       import('@/lib/themeUtils').then(({ reapplyCurrentSidebarColors }) => {
         reapplyCurrentSidebarColors();
+      }).catch((error) => {
+        console.warn('[HEADER] Failed to load theme utils:', error);
       });
-    });
-  };
+    } catch (error) {
+      console.error('[HEADER] Theme switch error:', error);
+    }
+  }, []);
 
-  const handleEditProfile = async (data: UserFormValues) => {
+  const handleEditProfile = useCallback(async (data: UserFormValues) => {
     if (!session?.user) return;
-    // Header handleEditProfile - Sending data
     
     try {
       const response = await fetch(`/api/users/${session.user.id}`, {
@@ -270,86 +358,36 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
-      const result = await response.json();
-              // Header handleEditProfile - API response
       
       if (!response.ok) {
+        const result = await response.json();
         throw new Error(result.message || 'Failed to update profile');
       }
+      
+      const result = await response.json();
       toast.success("Profile Updated");
       
-      // Trigger session update if name, email, avatar, or personalColor changed
+      // Check if session update is needed
       const needsSessionUpdate = 
         session.user.name !== result.name || 
         session.user.email !== result.email ||
         session.user.avatarUrl !== result.avatarUrl ||
         session.user.personalColor !== result.personalColor;
         
-              // Avatar URL changed
-        
       if (needsSessionUpdate) {
-        // Trigger a session refresh to update the session with new data
-                  // Triggering session refresh
         await updateSession();
         
         // Force refresh the avatar after session update if it was updated
         if (session.user.avatarUrl !== result.avatarUrl) {
-          // Forcing avatar refresh after session update
           forceRefresh();
         }
       }
       setIsUserModalOpen(false);
     } catch (error) {
+      console.error('[HEADER] Profile update error:', error);
       toast.error((error as Error).message);
     }
-  };
-
-  const [cacheInfo, setCacheInfo] = useState({
-    localStorageItems: 0,
-    sessionStorageItems: 0,
-    localStorageSize: 0,
-    sessionStorageSize: 0,
-    indexedDBAvailable: false,
-    serviceWorkersAvailable: false,
-    cachesAvailable: false,
-    memoryUsage: 0,
-    cacheNames: [] as string[]
-  });
-
-  const collectCacheInfo = async () => {
-    if (typeof window !== 'undefined') {
-      setIsLoadingCacheInfo(true);
-      try {
-        // Calculate storage sizes
-        const localStorageSize = new Blob(Object.values(localStorage)).size;
-        const sessionStorageSize = new Blob(Object.values(sessionStorage)).size;
-        
-        // Get cache names if available
-        let cacheNames: string[] = [];
-        if ('caches' in window) {
-          try {
-            cacheNames = await caches.keys();
-          } catch (error) {
-            console.warn('Failed to get cache names:', error);
-          }
-        }
-
-        setCacheInfo({
-          localStorageItems: localStorage.length,
-          sessionStorageItems: sessionStorage.length,
-          localStorageSize,
-          sessionStorageSize,
-          indexedDBAvailable: 'indexedDB' in window,
-          serviceWorkersAvailable: 'serviceWorker' in navigator,
-          cachesAvailable: 'caches' in window,
-          memoryUsage: 'memory' in performance ? Math.round((performance as any).memory.usedJSHeapSize / 1024 / 1024) : 0,
-          cacheNames
-        });
-      } finally {
-        setIsLoadingCacheInfo(false);
-      }
-    }
-  };
+  }, [session?.user, updateSession, forceRefresh]);
 
   const handleClearCache = () => {
     if (typeof window !== 'undefined') {

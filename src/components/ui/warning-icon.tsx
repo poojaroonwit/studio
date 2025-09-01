@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -12,14 +12,26 @@ export function WarningIcon() {
   const { data: session } = useSession();
   const { unreadCount, isLoading } = useWarnings();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const isClickingRef = useRef(false);
 
-  const handleWarningClick = () => {
+  const handleWarningClick = useCallback(() => {
+    // Prevent rapid clicks
+    if (isClickingRef.current) {
+      return;
+    }
+
+    isClickingRef.current = true;
     setIsDrawerOpen(true);
-  };
 
-  const handleDrawerClose = () => {
+    // Reset click protection after animation
+    setTimeout(() => {
+      isClickingRef.current = false;
+    }, 300);
+  }, []);
+
+  const handleDrawerClose = useCallback(() => {
     setIsDrawerOpen(false);
-  };
+  }, []);
 
   if (!session?.user) {
     return null;
@@ -32,7 +44,7 @@ export function WarningIcon() {
         size="icon"
         onClick={handleWarningClick}
         className="relative bg-transparent hover:bg-accent/50 border-0 shadow-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all duration-200 ease-in-out transform hover:scale-105 active:scale-95"
-        disabled={isLoading}
+        disabled={isLoading || isClickingRef.current}
       >
         <AlertTriangle className={`h-5 w-5 transition-transform duration-200 ease-in-out group-hover:rotate-12 ${unreadCount > 0 ? 'text-amber-500' : 'text-gray-300'}`} />
         {unreadCount > 0 && (

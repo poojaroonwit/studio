@@ -257,9 +257,8 @@ const getSafeSessionInfo = (session: any) => {
 // Optimized Link component with minimal click protection
 const OptimizedLink = React.memo(({ href, children, ...props }: { href: string; children: React.ReactNode; [key: string]: any }) => {
   const router = useRouter();
-  const [isNavigating, setIsNavigating] = React.useState(false);
+  const isNavigatingRef = React.useRef(false);
   const navigationTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
-  const lastClickTimeRef = React.useRef<number>(0);
   const isMountedRef = React.useRef(true);
 
   React.useEffect(() => {
@@ -280,47 +279,36 @@ const OptimizedLink = React.memo(({ href, children, ...props }: { href: string; 
       return;
     }
     
-    const now = Date.now();
-    const timeSinceLastClick = now - lastClickTimeRef.current;
-    
-    // Reduced protection: only prevent rapid clicks (less than 200ms apart - reduced from 500ms)
-    if (timeSinceLastClick < 200) {
-      console.log('Navigation blocked: too rapid clicking');
-      return;
-    }
-    
     // Prevent navigation if already navigating
-    if (isNavigating) {
-      console.log('Navigation blocked: already navigating');
+    if (isNavigatingRef.current) {
       return;
     }
     
-    lastClickTimeRef.current = now;
-    setIsNavigating(true);
+    isNavigatingRef.current = true;
     
     // Clear any existing timeout
     if (navigationTimeoutRef.current) {
       clearTimeout(navigationTimeoutRef.current);
     }
     
-    // Reduced timeout to reset navigation state (500ms - reduced from 1000ms)
+    // Reset navigation state after a short delay
     navigationTimeoutRef.current = setTimeout(() => {
       if (isMountedRef.current) {
-        setIsNavigating(false);
+        isNavigatingRef.current = false;
       }
-    }, 500);
+    }, 300);
     
     try {
       router.push(href);
     } catch (error) {
       console.error("Navigation error:", error);
       if (isMountedRef.current) {
-        setIsNavigating(false);
+        isNavigatingRef.current = false;
       }
       // Fallback to window.location
       window.location.href = href;
     }
-  }, [href, router, isNavigating]);
+  }, [href, router]);
 
   return (
     <a href={href} onClick={handleClick} {...props}>

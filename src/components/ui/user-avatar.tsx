@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { UserCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -44,42 +44,65 @@ export function UserAvatar({
 }: UserAvatarProps) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isMountedRef = useRef(true);
 
-  // Handle avatar loading with caching
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadAvatar = async () => {
-      if (!user.avatarUrl && !user.image) {
-        if (isMounted) {
-          setImageUrl(null);
-          setIsLoading(false);
-        }
-        return;
+  // Handle avatar loading with caching and timeout protection
+  const loadAvatar = useCallback(async () => {
+    if (!user.avatarUrl && !user.image) {
+      if (isMountedRef.current) {
+        setImageUrl(null);
+        setIsLoading(false);
       }
+      return;
+    }
 
-      try {
+    try {
+      if (isMountedRef.current) {
         setIsLoading(true);
-        const cachedUrl = await getCachedAvatarUrl(user, forceRefresh);
-        if (isMounted) {
-          setImageUrl(cachedUrl);
-          setIsLoading(false);
-        }
-      } catch (error) {
-        console.warn('Failed to load avatar:', error);
-        if (isMounted) {
-          setImageUrl(null);
-          setIsLoading(false);
-        }
       }
-    };
 
+      // Set timeout to prevent infinite loading
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timeoutRef.current = setTimeout(() => {
+          reject(new Error('Avatar loading timeout'));
+        }, 10000); // 10 second timeout
+      });
+
+      const avatarPromise = getCachedAvatarUrl(user, forceRefresh);
+      
+      const cachedUrl = await Promise.race([avatarPromise, timeoutPromise]);
+      
+      if (isMountedRef.current) {
+        setImageUrl(cachedUrl);
+        setIsLoading(false);
+      }
+    } catch (error) {
+      console.warn('[USER_AVATAR] Failed to load avatar:', error);
+      if (isMountedRef.current) {
+        setImageUrl(null);
+        setIsLoading(false);
+      }
+    } finally {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    }
+  }, [user.id, user.avatarUrl, user.image, forceRefresh]);
+
+  useEffect(() => {
+    isMountedRef.current = true;
     loadAvatar();
 
     return () => {
-      isMounted = false;
+      isMountedRef.current = false;
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
     };
-  }, [user.id, user.avatarUrl, user.image, forceRefresh]);
+  }, [loadAvatar]);
   
   // Generate initials from name
   const getInitials = (name: string) => {
@@ -122,6 +145,10 @@ export function UserAvatar({
             src={imageUrl} 
             alt={user.name}
             className="object-cover object-top rounded-full"
+            onError={() => {
+              console.warn('[USER_AVATAR] Image failed to load:', imageUrl);
+              setImageUrl(null);
+            }}
           />
         ) : null}
         <AvatarFallback 
@@ -157,42 +184,65 @@ export function UserAvatarCompact({ user, size = 'sm', className, forceRefresh }
 export function UserAvatarLarge({ user, className }: UserAvatarProps) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isMountedRef = useRef(true);
 
-  // Handle avatar loading with caching
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadAvatar = async () => {
-      if (!user.avatarUrl && !user.image) {
-        if (isMounted) {
-          setImageUrl(null);
-          setIsLoading(false);
-        }
-        return;
+  // Handle avatar loading with caching and timeout protection
+  const loadAvatar = useCallback(async () => {
+    if (!user.avatarUrl && !user.image) {
+      if (isMountedRef.current) {
+        setImageUrl(null);
+        setIsLoading(false);
       }
+      return;
+    }
 
-      try {
+    try {
+      if (isMountedRef.current) {
         setIsLoading(true);
-        const cachedUrl = await getCachedAvatarUrl(user, false);
-        if (isMounted) {
-          setImageUrl(cachedUrl);
-          setIsLoading(false);
-        }
-      } catch (error) {
-        console.warn('Failed to load avatar:', error);
-        if (isMounted) {
-          setImageUrl(null);
-          setIsLoading(false);
-        }
       }
-    };
 
+      // Set timeout to prevent infinite loading
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timeoutRef.current = setTimeout(() => {
+          reject(new Error('Avatar loading timeout'));
+        }, 10000); // 10 second timeout
+      });
+
+      const avatarPromise = getCachedAvatarUrl(user, false);
+      
+      const cachedUrl = await Promise.race([avatarPromise, timeoutPromise]);
+      
+      if (isMountedRef.current) {
+        setImageUrl(cachedUrl);
+        setIsLoading(false);
+      }
+    } catch (error) {
+      console.warn('[USER_AVATAR_LARGE] Failed to load avatar:', error);
+      if (isMountedRef.current) {
+        setImageUrl(null);
+        setIsLoading(false);
+      }
+    } finally {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    }
+  }, [user.id, user.avatarUrl, user.image]);
+
+  useEffect(() => {
+    isMountedRef.current = true;
     loadAvatar();
 
     return () => {
-      isMounted = false;
+      isMountedRef.current = false;
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
     };
-  }, [user.id, user.avatarUrl, user.image]);
+  }, [loadAvatar]);
   
   // Generate initials from name
   const getInitials = (name: string) => {
@@ -233,6 +283,10 @@ export function UserAvatarLarge({ user, className }: UserAvatarProps) {
             src={imageUrl} 
             alt={user.name}
             className="object-cover object-top rounded-full"
+            onError={() => {
+              console.warn('[USER_AVATAR_LARGE] Image failed to load:', imageUrl);
+              setImageUrl(null);
+            }}
           />
         ) : null}
         <AvatarFallback 

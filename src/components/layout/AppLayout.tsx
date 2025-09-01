@@ -381,45 +381,31 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
 const SidebarToggleButton = memo(() => {
   const { open, toggleSidebar } = useSidebar();
   const [mounted, setMounted] = useState(false);
-  const [isToggling, setIsToggling] = useState(false);
   const toggleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const lastToggleTimeRef = useRef<number>(0);
+  const isTogglingRef = useRef(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   const handleToggle = useCallback(() => {
-    const now = Date.now();
-    const timeSinceLastToggle = now - lastToggleTimeRef.current;
-    
-    // Reduced protection: prevent rapid toggling (less than 150ms apart - reduced from 300ms)
-    if (timeSinceLastToggle < 150) {
-      console.log('Sidebar toggle blocked: too rapid clicking');
+    // Prevent multiple rapid clicks
+    if (isTogglingRef.current) {
       return;
     }
-    
-    // Prevent toggle if already toggling
-    if (isToggling) {
-      console.log('Sidebar toggle blocked: already toggling');
-      return;
-    }
-    
-    lastToggleTimeRef.current = now;
-    setIsToggling(true);
-    
-    // Clear any existing timeout
+
+    isTogglingRef.current = true;
+    toggleSidebar();
+
+    // Reset after animation completes
     if (toggleTimeoutRef.current) {
       clearTimeout(toggleTimeoutRef.current);
     }
     
-    // Reduced timeout to reset toggle state (300ms - reduced from 500ms)
     toggleTimeoutRef.current = setTimeout(() => {
-      setIsToggling(false);
-    }, 300);
-    
-    toggleSidebar();
-  }, [toggleSidebar, isToggling]);
+      isTogglingRef.current = false;
+    }, 200);
+  }, [toggleSidebar]);
 
   useEffect(() => {
     return () => {
@@ -445,7 +431,7 @@ const SidebarToggleButton = memo(() => {
               size="icon"
               className="h-8 w-8 rounded-full border-2 bg-background/80 backdrop-blur-sm"
               onClick={handleToggle}
-              disabled={isToggling}
+              disabled={isTogglingRef.current}
             >
               <ChevronRight className="h-4 w-4" />
             </Button>

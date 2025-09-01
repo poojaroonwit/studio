@@ -397,7 +397,6 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
           <SidebarHeader>
             <MemoizedSidebarHeaderContent {...sidebarHeaderProps} />
           </SidebarHeader>
-          <SidebarSeparator className="my-0" />
           <SidebarContent>
             <MemoizedSidebarNav />
           </SidebarContent>

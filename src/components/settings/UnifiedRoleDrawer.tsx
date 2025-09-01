@@ -185,7 +185,7 @@ export function UnifiedRoleDrawer({
   const isSystemRole = role?.is_system_role || false;
   const isAdminRole = role?.name === 'Admin';
 
-  // Get all available permissions for Admin role
+  // Get all available permissions for Admin role with defensive checks
   const allPermissions = (() => {
     try {
       if (!Array.isArray(PLATFORM_MODULES)) {
@@ -211,8 +211,13 @@ export function UnifiedRoleDrawer({
       } else {
         // Defensive check to prevent React error #185
         const rolePermissions = Array.isArray(role?.permissions) ? role?.permissions : [];
-        setCurrentPermissions(rolePermissions);
+        // Additional validation to ensure all permissions are valid strings
+        const validPermissions = rolePermissions.filter(p => typeof p === 'string' && p.length > 0);
+        setCurrentPermissions(validPermissions);
       }
+    } else {
+      // Reset permissions when role is null
+      setCurrentPermissions([]);
     }
   }, [role, allPermissions]); // FIXED: Removed trackRoleLoad dependency
 
@@ -593,6 +598,12 @@ export function UnifiedRoleDrawer({
   // Defensive check to prevent React error #185
   if (!role.id || !role.name) {
     console.error('UnifiedRoleDrawer: Invalid role object:', role);
+    return null;
+  }
+
+  // Additional validation to ensure role object is complete
+  if (typeof role.id !== 'string' || typeof role.name !== 'string') {
+    console.error('UnifiedRoleDrawer: Role object has invalid id or name:', role);
     return null;
   }
 

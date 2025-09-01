@@ -469,7 +469,10 @@ export function TaskBoard({
     lastDragTimeRef.current = now;
     
     if (draggedTask && draggedTask.status !== stageId) {
-      onMoveTask(draggedTask, stageId);
+      // Add a small delay to ensure the drag state is properly reset before processing the move
+      setTimeout(() => {
+        onMoveTask(draggedTask, stageId);
+      }, 50);
     }
     
     // Ensure all drag state is properly reset to prevent resource leaks

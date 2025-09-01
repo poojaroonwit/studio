@@ -173,8 +173,8 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
           const optimisticTimestamp = optimisticUpdateTimestampsRef.current.get(updatedCandidate.id);
           const timeSinceOptimisticUpdate = optimisticTimestamp ? Date.now() - optimisticTimestamp : 0;
           
-          // If it's from the same user or came too quickly (within 2 seconds), ignore it
-          if (updateData?.actingUserId === userSession?.id || timeSinceOptimisticUpdate < 2000) {
+          // If it's from the same user or came too quickly (within 3 seconds), ignore it
+          if (updateData?.actingUserId === userSession?.id || timeSinceOptimisticUpdate < 3000) {
             console.log('🔄 Ignoring real-time update for optimistically updated candidate:', updatedCandidate.id, {
               reason: updateData?.actingUserId === userSession?.id ? 'same user' : 'too quick',
               timeSinceOptimisticUpdate
@@ -186,13 +186,28 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
           if (existingCandidate.status === updatedCandidate.status) {
             console.log('🔄 Confirmation received for optimistically updated candidate:', updatedCandidate.id, 'clearing optimistic tracking');
             optimisticUpdatesRef.current.delete(updatedCandidate.id);
+            optimisticUpdateTimestampsRef.current.delete(updatedCandidate.id);
             return prevCandidates; // Keep the current state since it matches
           }
           
-          // If the status is different, it means the server update succeeded
-          // Clear the optimistic update tracking and apply the server update
-          console.log('🔄 Server update received for optimistically updated candidate:', updatedCandidate.id, 'clearing optimistic tracking');
+          // If the status is different, check if it's a legitimate server update or a race condition
+          // Only apply server updates if they're newer than our optimistic update
+          if (updatedCandidate.updatedAt && optimisticTimestamp) {
+            const serverUpdateTime = new Date(updatedCandidate.updatedAt).getTime();
+            if (serverUpdateTime <= optimisticTimestamp) {
+              console.log('🔄 Ignoring outdated server update for optimistically updated candidate:', updatedCandidate.id, {
+                serverUpdateTime,
+                optimisticTimestamp,
+                timeDiff: optimisticTimestamp - serverUpdateTime
+              });
+              return prevCandidates;
+            }
+          }
+          
+          // If we reach here, it's a legitimate server update - clear tracking and apply
+          console.log('🔄 Legitimate server update received for optimistically updated candidate:', updatedCandidate.id, 'clearing optimistic tracking');
           optimisticUpdatesRef.current.delete(updatedCandidate.id);
+          optimisticUpdateTimestampsRef.current.delete(updatedCandidate.id);
         }
         
         // Only update if there are meaningful changes
@@ -249,9 +264,10 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
 
 
 
-  // Permission check: can view all candidates?
-  const canViewAllCandidates = userSession?.role === 'Admin' || 
-    (userSession?.modulePermissions || []).includes('CANDIDATES_VIEW');
+  // Permission check: If user is a recruiter (not Admin and doesn't have CANDIDATES_VIEW permission), 
+  // only show their assigned candidates
+  const isRecruiter = userSession?.role === 'Recruiter' && 
+    !userSession?.modulePermissions?.includes('CANDIDATES_VIEW');
 
   // Update local state when preferences are loaded - only once
   useEffect(() => {
@@ -450,8 +466,8 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     }
     
     try {
-      // If user can view all candidates, show all candidates
-      if (canViewAllCandidates) {
+      // If user is not a recruiter (Admin or has CANDIDATES_VIEW permission), show all candidates
+      if (!isRecruiter) {
         return candidates;
       }
       // Otherwise, show only candidates assigned to the current user
@@ -467,7 +483,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       console.error('MyTasksPageClient: Error in filteredCandidates useMemo:', error);
       return [];
     }
-  }, [candidates, userSession?.id, canViewAllCandidates]);
+  }, [candidates, userSession?.id, isRecruiter]);
 
   // Filtering logic (for fitScore, if not supported by API)
   const displayedCandidates = useMemo(() => {
@@ -555,10 +571,11 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       return;
     }
 
-    // Track this optimistic update
+    // Track this optimistic update with a more precise timestamp
+    const optimisticTimestamp = Date.now();
     optimisticUpdatesRef.current.add(candidate.id);
-    optimisticUpdateTimestampsRef.current.set(candidate.id, Date.now());
-    // console.log('🚀 Starting optimistic update for candidate:', candidate.id, 'to status:', newStatus);
+    optimisticUpdateTimestampsRef.current.set(candidate.id, optimisticTimestamp);
+    console.log('🚀 Starting optimistic update for candidate:', candidate.id, 'to status:', newStatus, 'at timestamp:', optimisticTimestamp);
     
     // Set a timeout to clear optimistic update after 60 seconds (fallback)
     setTimeout(() => {
@@ -624,16 +641,14 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
         // Success - don't re-fetch, rely on optimistic update and realtime updates
         toast.success(`Moved ${candidate.name} to ${newStatus}`);
         
-        // Remove from optimistic updates tracking
-        optimisticUpdatesRef.current.delete(candidate.id);
-        optimisticUpdateTimestampsRef.current.delete(candidate.id);
-        // Add a small delay to ensure the real-time update doesn't interfere
+        // Remove from optimistic updates tracking with a delay to allow for real-time updates
         setTimeout(() => {
           if (optimisticUpdatesRef.current.has(candidate.id)) {
-            console.log('⚠️ Optimistic update still tracked after success, clearing:', candidate.id);
+            console.log('✅ Clearing optimistic update tracking after successful API call for candidate:', candidate.id);
             optimisticUpdatesRef.current.delete(candidate.id);
+            optimisticUpdateTimestampsRef.current.delete(candidate.id);
           }
-        }, 1000);
+        }, 2000); // Wait 2 seconds for real-time updates to arrive
         
         } catch (fetchError: any) {
           clearTimeout(timeoutId);
@@ -796,12 +811,12 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                                                   filters.minFitScore !== undefined || filters.maxFitScore !== undefined;
                          
                          // If no manual filters and user can view all candidates, show simple count
-                         if (!hasManualFilters && canViewAllCandidates) {
+                         if (!hasManualFilters && !isRecruiter) {
                            return `${totalCandidates} candidates`;
                          }
                          
                          // If no manual filters but user has limited permissions, show permission-based count
-                         if (!hasManualFilters && !canViewAllCandidates) {
+                         if (!hasManualFilters && isRecruiter) {
                            return `${totalCandidates} total candidates (${displayedCandidates.length} assigned to you)`;
                          }
                          
@@ -843,7 +858,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
 
                {/* Stage filter is now handled by the TaskBoard component's built-in multi-select filter */}
 
-               {canViewAllCandidates && (
+               {!isRecruiter && (
                  <Popover>
                    <PopoverTrigger asChild>
                      <Button

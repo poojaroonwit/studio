@@ -87,6 +87,36 @@ export function RolePermissionSelector({
     );
   }
 
+  // Defensive check for selectedPermissions to prevent React error #185
+  const safeSelectedPermissions = (() => {
+    try {
+      if (!Array.isArray(selectedPermissions)) {
+        console.warn('RolePermissionSelector: selectedPermissions is not an array:', selectedPermissions);
+        return [];
+      }
+      // Filter out any invalid permission IDs
+      return selectedPermissions.filter(p => typeof p === 'string' && p.length > 0);
+    } catch (error) {
+      console.error('RolePermissionSelector: Error processing selectedPermissions:', error);
+      return [];
+    }
+  })();
+
+  // Defensive check for protectedPermissions
+  const safeProtectedPermissions = (() => {
+    try {
+      if (!Array.isArray(protectedPermissions)) {
+        console.warn('RolePermissionSelector: protectedPermissions is not an array:', protectedPermissions);
+        return [];
+      }
+      // Filter out any invalid permission IDs
+      return protectedPermissions.filter(p => typeof p === 'string' && p.length > 0);
+    } catch (error) {
+      console.error('RolePermissionSelector: Error processing protectedPermissions:', error);
+      return [];
+    }
+  })();
+
   const [searchQuery, setSearchQuery] = useState('');
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const scrollPositionRef = useRef<number>(0);
@@ -110,10 +140,6 @@ export function RolePermissionSelector({
     
     // Preserve scroll position
     preserveScrollPosition();
-    
-    // Ensure selectedPermissions is an array
-    const safeSelectedPermissions = Array.isArray(selectedPermissions) ? selectedPermissions : [];
-    const safeProtectedPermissions = Array.isArray(protectedPermissions) ? protectedPermissions : [];
     
     // Prevent removing protected permissions
     if (safeSelectedPermissions.includes(permissionId) && safeProtectedPermissions.includes(permissionId)) {
@@ -158,9 +184,6 @@ export function RolePermissionSelector({
     // Preserve scroll position
     preserveScrollPosition();
     
-    const safeSelectedPermissions = Array.isArray(selectedPermissions) ? selectedPermissions : [];
-    const safeProtectedPermissions = Array.isArray(protectedPermissions) ? protectedPermissions : [];
-    
     // If there are no protected permissions, clear all
     if (safeProtectedPermissions.length === 0) {
       onPermissionsChange([]);
@@ -188,7 +211,6 @@ export function RolePermissionSelector({
         .map(p => p.id)
         .filter(Boolean);
       
-      const safeSelectedPermissions = Array.isArray(selectedPermissions) ? selectedPermissions : [];
       const otherPermissions = safeSelectedPermissions.filter(p => 
         !categoryPermissions.includes(p)
       );
@@ -197,7 +219,7 @@ export function RolePermissionSelector({
     } catch (error) {
       console.error('RolePermissionSelector: Error selecting category permissions:', error);
     }
-  }, [disabled, selectedPermissions, onPermissionsChange]);
+  }, [disabled, safeSelectedPermissions, onPermissionsChange]);
 
   const clearCategoryPermissions = useCallback((category: string) => {
     if (disabled) return;
@@ -213,9 +235,6 @@ export function RolePermissionSelector({
         .map(p => p.id)
         .filter(Boolean);
       
-      const safeSelectedPermissions = Array.isArray(selectedPermissions) ? selectedPermissions : [];
-      const safeProtectedPermissions = Array.isArray(protectedPermissions) ? protectedPermissions : [];
-      
       const newPermissions = safeSelectedPermissions.filter(p => 
         !categoryPermissions.includes(p) || safeProtectedPermissions.includes(p)
       );
@@ -223,7 +242,7 @@ export function RolePermissionSelector({
     } catch (error) {
       console.error('RolePermissionSelector: Error clearing category permissions:', error);
     }
-  }, [disabled, selectedPermissions, protectedPermissions, onPermissionsChange]);
+  }, [disabled, safeSelectedPermissions, safeProtectedPermissions, onPermissionsChange]);
 
   const filteredGroupedPermissions = (() => {
     try {
@@ -311,7 +330,7 @@ export function RolePermissionSelector({
             )}
           </div>
           <Badge variant="secondary" className="text-xs">
-            {Array.isArray(selectedPermissions) ? selectedPermissions.length : 0} selected
+            {safeSelectedPermissions.length} selected
           </Badge>
         </div>
 
@@ -352,7 +371,6 @@ export function RolePermissionSelector({
                     <span className="text-xs text-muted-foreground">
                       {(() => {
                         try {
-                          const safeSelectedPermissions = Array.isArray(selectedPermissions) ? selectedPermissions : [];
                           const safePermissions = Array.isArray(permissions) ? permissions : [];
                           
                           const selectedCount = safeSelectedPermissions.filter(p => {
@@ -403,9 +421,6 @@ export function RolePermissionSelector({
                       console.warn('RolePermissionSelector: Invalid permission object:', permission);
                       return null;
                     }
-                    
-                    const safeSelectedPermissions = Array.isArray(selectedPermissions) ? selectedPermissions : [];
-                    const safeProtectedPermissions = Array.isArray(protectedPermissions) ? protectedPermissions : [];
                     
                     const isProtected = safeProtectedPermissions.includes(permission.id);
                     const isSelected = safeSelectedPermissions.includes(permission.id);
@@ -483,12 +498,12 @@ export function RolePermissionSelector({
         </div>
 
         {/* Selected Permissions Summary */}
-        {Array.isArray(selectedPermissions) && selectedPermissions.length > 0 && (
+        {safeSelectedPermissions.length > 0 && (
           <div className="p-4 border-t bg-muted/20 flex-shrink-0">
             <div className="flex items-center space-x-2 mb-2">
               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
               <p className="text-sm font-medium text-green-600 dark:text-green-400">
-                Selected Permissions ({selectedPermissions.length})
+                Selected Permissions ({safeSelectedPermissions.length})
               </p>
             </div>
             
@@ -504,7 +519,7 @@ export function RolePermissionSelector({
                     requiresApproval: 0
                   };
                   
-                  selectedPermissions.forEach(permissionId => {
+                  safeSelectedPermissions.forEach(permissionId => {
                     try {
                       if (!Array.isArray(PLATFORM_MODULES)) {
                         console.warn('RolePermissionSelector: PLATFORM_MODULES is not an array in stats:', PLATFORM_MODULES);
@@ -549,7 +564,7 @@ export function RolePermissionSelector({
             </div>
             
             <div className="flex flex-wrap gap-1">
-              {selectedPermissions.slice(0, 5).map(permissionId => {
+              {safeSelectedPermissions.slice(0, 5).map(permissionId => {
                 try {
                   if (!Array.isArray(PLATFORM_MODULES)) {
                     console.warn('RolePermissionSelector: PLATFORM_MODULES is not an array in summary:', PLATFORM_MODULES);
@@ -571,9 +586,9 @@ export function RolePermissionSelector({
                   return null;
                 }
               })}
-              {selectedPermissions.length > 5 && (
+              {safeSelectedPermissions.length > 5 && (
                 <Badge variant="outline" className="text-xs text-green-600 dark:text-green-400 border-green-500/30">
-                  +{selectedPermissions.length - 5} more
+                  +{safeSelectedPermissions.length - 5} more
                 </Badge>
               )}
             </div>

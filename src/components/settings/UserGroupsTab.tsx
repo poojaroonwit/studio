@@ -179,6 +179,13 @@ export function UserGroupsTab() {
   }, [fetchError]);
 
   const handleSelectRole = (role: UserGroup) => {
+    // Defensive check to prevent React error #185
+    if (!role || !role.id || !role.name) {
+      console.error('UserGroupsTab: Invalid role object:', role);
+      toast.error('Invalid role data. Please try refreshing the page.');
+      return;
+    }
+    
     setSelectedRole(role);
     setIsUnifiedDrawerOpen(true);
   };
@@ -310,60 +317,68 @@ export function UserGroupsTab() {
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
-             <TableBody>
-               {roles.map((role) => (
-                 <TableRow key={role.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleSelectRole(role)}>
-                   <TableCell>
-                     <div className="flex items-center gap-3">
-                       <ShieldCheck className="h-5 w-5 text-primary" />
-                       <span className="font-medium">{role.name}</span>
-                     </div>
-                   </TableCell>
-                   <TableCell>
-                     <span className="text-muted-foreground">
-                       {role.description || 'No description'}
-                     </span>
-                   </TableCell>
-                                       <TableCell>
-                      <span className="text-sm text-muted-foreground">
-                        {role.permissions?.length || 0} permissions
-                      </span>
-                    </TableCell>
-                                       <TableCell>
-                      <span className="text-sm text-muted-foreground">
-                        {(role as any).memberCount ?? role.user_count ?? 0} users
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                     <div className="flex items-center gap-2">
-                       <Button 
-                         variant="ghost" 
-                         size="sm" 
-                         className="h-8 px-3"
-                         onClick={(e) => {
-                           e.stopPropagation();
-                           handleSelectRole(role);
-                         }}
-                       >
-                         Manage
-                       </Button>
-                       {!role.is_default && (
+                          <TableBody>
+               {roles.map((role) => {
+                 // Defensive check to prevent React error #185
+                 if (!role || !role.id || !role.name) {
+                   console.warn('UserGroupsTab: Skipping invalid role:', role);
+                   return null;
+                 }
+                 
+                 return (
+                   <TableRow key={role.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleSelectRole(role)}>
+                     <TableCell>
+                       <div className="flex items-center gap-3">
+                         <ShieldCheck className="h-5 w-5 text-primary" />
+                         <span className="font-medium">{role.name}</span>
+                       </div>
+                     </TableCell>
+                     <TableCell>
+                       <span className="text-muted-foreground">
+                         {role.description || 'No description'}
+                       </span>
+                     </TableCell>
+                     <TableCell>
+                       <span className="text-sm text-muted-foreground">
+                         {Array.isArray(role.permissions) ? role.permissions.length : 0} permissions
+                       </span>
+                     </TableCell>
+                     <TableCell>
+                       <span className="text-sm text-muted-foreground">
+                         {(role as any).memberCount ?? role.user_count ?? 0} users
+                       </span>
+                     </TableCell>
+                     <TableCell className="text-right">
+                       <div className="flex items-center gap-2">
                          <Button 
                            variant="ghost" 
                            size="sm" 
-                           className="h-8 px-3 text-destructive hover:text-destructive"
+                           className="h-8 px-3"
                            onClick={(e) => {
                              e.stopPropagation();
-                             setRoleToDelete(role);
+                             handleSelectRole(role);
                            }}
                          >
-                           <Trash2 className="h-4 w-4" />
+                           Manage
                          </Button>
-                       )}
-                     </div>
-                   </TableCell>
-                 </TableRow>
-               ))}
+                         {!role.is_default && (
+                           <Button 
+                             variant="ghost" 
+                             size="sm" 
+                             className="h-8 px-3 text-destructive hover:text-destructive"
+                             onClick={(e) => {
+                               e.stopPropagation();
+                               setRoleToDelete(role);
+                             }}
+                           >
+                             <Trash2 className="h-4 w-4" />
+                           </Button>
+                         )}
+                       </div>
+                     </TableCell>
+                   </TableRow>
+                 );
+               })}
              </TableBody>
            </Table>
          )}

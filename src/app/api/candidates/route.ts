@@ -643,16 +643,16 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Auto-filter: If user can't view all candidates, only show their assigned candidates unless explicit filters are set
-    const canViewAllCandidates = session.user.role === 'Admin' || 
-                                 session.user.modulePermissions?.includes('USERS_MANAGE') || 
-                                 session.user.modulePermissions?.includes('CANDIDATES_VIEW');
+    // Auto-filter: If user is a recruiter (not Admin and doesn't have CANDIDATES_VIEW permission), 
+    // only show their assigned candidates unless explicit filters are set
+    const isRecruiter = session.user.role === 'Recruiter' && 
+                       !session.user.modulePermissions?.includes('CANDIDATES_VIEW');
     const recruiterIdFromFilter = filters.recruiterId;
     const positionIdFromFilter = filters.positionId;
     
-    // Only apply auto-filter if user doesn't have permissions AND there are no explicit filters
-    // This allows position-based and recruiter-based filtering to work properly even for users with limited permissions
-    if (!canViewAllCandidates && !recruiterIdFromFilter && !positionIdFromFilter) {
+    // Apply recruiter filter if user is a recruiter AND there are no explicit filters
+    // This allows position-based and recruiter-based filtering to work properly even for recruiters
+    if (isRecruiter && !recruiterIdFromFilter && !positionIdFromFilter) {
       whereClauses.push(`c."recruiterId" = $${paramIndex++}`);
       queryParams.push(session.user.id);
     }

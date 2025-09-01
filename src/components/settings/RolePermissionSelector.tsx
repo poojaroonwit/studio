@@ -48,7 +48,7 @@ const groupedPermissions = Object.values(PLATFORM_MODULE_CATEGORIES).map(categor
 });
 
 export function RolePermissionSelector({
-  selectedPermissions,
+  selectedPermissions = [],
   onPermissionsChange,
   title = "Permission Selection",
   description = "Choose which permissions should be granted to this role.",
@@ -83,13 +83,13 @@ export function RolePermissionSelector({
     preserveScrollPosition();
     
     // Prevent removing protected permissions
-    if (selectedPermissions.includes(permissionId) && protectedPermissions.includes(permissionId)) {
+    if (selectedPermissions && selectedPermissions.includes(permissionId) && protectedPermissions.includes(permissionId)) {
       return;
     }
     
-    const newPermissions = selectedPermissions.includes(permissionId)
+    const newPermissions = selectedPermissions && selectedPermissions.includes(permissionId)
       ? selectedPermissions.filter(p => p !== permissionId)
-      : [...selectedPermissions, permissionId];
+      : [...(selectedPermissions || []), permissionId];
     
     onPermissionsChange(newPermissions);
     
@@ -121,7 +121,7 @@ export function RolePermissionSelector({
       onPermissionsChange([]);
     } else {
       // Preserve protected permissions when clearing all
-      const preservedPermissions = selectedPermissions.filter(p => protectedPermissions.includes(p));
+      const preservedPermissions = selectedPermissions ? selectedPermissions.filter(p => protectedPermissions.includes(p)) : [];
       onPermissionsChange(preservedPermissions);
     }
     
@@ -135,9 +135,9 @@ export function RolePermissionSelector({
       .filter(p => p.category === category)
       .map(p => p.id);
     
-    const otherPermissions = selectedPermissions.filter(p => 
+    const otherPermissions = selectedPermissions ? selectedPermissions.filter(p => 
       !categoryPermissions.includes(p)
-    );
+    ) : [];
     const newPermissions = [...otherPermissions, ...categoryPermissions];
     onPermissionsChange(newPermissions);
   }, [disabled, selectedPermissions, onPermissionsChange]);
@@ -148,9 +148,9 @@ export function RolePermissionSelector({
       .filter(p => p.category === category)
       .map(p => p.id);
     
-    const newPermissions = selectedPermissions.filter(p => 
+    const newPermissions = selectedPermissions ? selectedPermissions.filter(p => 
       !categoryPermissions.includes(p) || protectedPermissions.includes(p)
-    );
+    ) : [];
     onPermissionsChange(newPermissions);
   }, [disabled, selectedPermissions, protectedPermissions, onPermissionsChange]);
 
@@ -368,7 +368,7 @@ export function RolePermissionSelector({
         </div>
 
         {/* Selected Permissions Summary */}
-        {selectedPermissions.length > 0 && (
+        {selectedPermissions && selectedPermissions.length > 0 && (
           <div className="p-4 border-t bg-muted/20 flex-shrink-0">
             <div className="flex items-center space-x-2 mb-2">
               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
@@ -389,7 +389,7 @@ export function RolePermissionSelector({
                     requiresApproval: 0
                   };
                   
-                  selectedPermissions.forEach(permissionId => {
+                  selectedPermissions && selectedPermissions.forEach(permissionId => {
                     const permission = PLATFORM_MODULES.find(p => p.id === permissionId);
                     if (permission) {
                       stats[permission.riskLevel]++;
@@ -423,7 +423,7 @@ export function RolePermissionSelector({
             </div>
             
             <div className="flex flex-wrap gap-1">
-              {selectedPermissions.slice(0, 5).map(permissionId => {
+              {selectedPermissions && selectedPermissions.slice(0, 5).map(permissionId => {
                 const permission = PLATFORM_MODULES.find(p => p.id === permissionId);
                 return (
                   <Badge 
@@ -435,7 +435,7 @@ export function RolePermissionSelector({
                   </Badge>
                 );
               })}
-              {selectedPermissions.length > 5 && (
+              {selectedPermissions && selectedPermissions.length > 5 && (
                 <Badge variant="outline" className="text-xs text-green-600 dark:text-green-400 border-green-500/30">
                   +{selectedPermissions.length - 5} more
                 </Badge>

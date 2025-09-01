@@ -56,12 +56,58 @@ import {
   ShieldCheck,
   Settings2,
   Save,
-  Edit3
+  Edit3,
+  AlertTriangle
 } from 'lucide-react';
 import type { UserGroup, PlatformModuleId } from '@/lib/types';
 import { PLATFORM_MODULES, PLATFORM_MODULE_CATEGORIES } from '@/lib/types';
 import { RolePermissionSelector } from './RolePermissionSelector';
 import { cn } from '@/lib/utils';
+
+// Error boundary component for UnifiedRoleDrawer
+class UnifiedRoleDrawerErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error?: Error }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('UnifiedRoleDrawer error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex h-full items-center justify-center">
+          <div className="text-center">
+            <div className="p-4 rounded-full bg-destructive/10 mb-4">
+              <AlertTriangle className="h-8 w-8 text-destructive mx-auto" />
+            </div>
+            <h3 className="text-lg font-semibold mb-2">Something went wrong</h3>
+            <p className="text-muted-foreground mb-4">
+              There was an error loading the role drawer. Please try refreshing the page.
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+            >
+              Refresh Page
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 // Removed complex safe effect and infinite loop prevention - using simple useEffect instead
 
 // Form schema for role editing
@@ -140,11 +186,13 @@ export function UnifiedRoleDrawer({
     roleLoadCount.current++;
     
     if (role) {
-      if (role.name === 'Admin') {
+      if (role?.name === 'Admin') {
         // Admin role should always have all permissions
         setCurrentPermissions(allPermissions);
       } else {
-        setCurrentPermissions(role.permissions || []);
+        // Defensive check to prevent React error #185
+        const rolePermissions = Array.isArray(role?.permissions) ? role.permissions : [];
+        setCurrentPermissions(rolePermissions);
       }
     }
   }, [role, allPermissions]); // FIXED: Removed trackRoleLoad dependency
@@ -197,16 +245,16 @@ export function UnifiedRoleDrawer({
   useEffect(() => {
     if (isOpen && role) {
       form.reset({
-        name: role.name,
-        description: role.description || '',
-        is_default: role.is_default || false
+        name: role?.name || '',
+        description: role?.description || '',
+        is_default: role?.is_default || false
       });
       
       // For Admin role, always show all permissions
-      if (role.name === 'Admin') {
+      if (role?.name === 'Admin') {
         setCurrentPermissions(allPermissions);
       } else {
-        setCurrentPermissions(role.permissions || []);
+        setCurrentPermissions(role?.permissions || []);
       }
       
       if (activeTab === 'members') {
@@ -249,7 +297,7 @@ export function UnifiedRoleDrawer({
 
 
   const loadGroupMembers = async () => {
-    if (!role) return;
+    if (!role?.id) return;
     
     // Create abort controller for this request
     const abortController = new AbortController();
@@ -281,7 +329,7 @@ export function UnifiedRoleDrawer({
   };
 
   const loadAvailableUsers = async () => {
-    if (!role) return;
+    if (!role?.id) return;
     
     // Create abort controller for this request
     const abortController = new AbortController();
@@ -318,7 +366,7 @@ export function UnifiedRoleDrawer({
   };
 
   const handleRoleFormSubmit = async (data: RoleFormValues) => {
-    if (!role) return;
+    if (!role?.id) return;
     
     setIsSavingRole(true);
     try {
@@ -349,7 +397,7 @@ export function UnifiedRoleDrawer({
   };
 
   const handlePermissionUpdate = useCallback(async (permissions: PlatformModuleId[]) => {
-    if (!role) return;
+    if (!role?.id) return;
     
     // Prevent infinite loops with tracking
     // Simple tracking (removed complex infinite loop prevention)
@@ -400,10 +448,10 @@ export function UnifiedRoleDrawer({
       const finalPermissions = isAdminRole ? allPermissions : permissions;
       
       const requestBody = {
-        name: role.name,
-        description: role.description,
+        name: role?.name,
+        description: role?.description,
         permissions: finalPermissions,
-        is_default: role.is_default
+        is_default: role?.is_default
       };
       
       try {
@@ -443,7 +491,7 @@ export function UnifiedRoleDrawer({
         console.error('Error updating permissions:', error);
         toast.error((error as Error).message || 'Failed to update permissions');
         // Revert on error
-        setCurrentPermissions(role.permissions || []);
+        setCurrentPermissions(role?.permissions || []);
       } finally {
         setIsUpdatingPermissions(false);
         abortControllerRef.current = null;
@@ -452,7 +500,7 @@ export function UnifiedRoleDrawer({
   }, [role, isAdminRole, allPermissions]);
 
   const handleAddUser = async () => {
-    if (!selectedUserId || !role) return;
+    if (!selectedUserId || !role?.id) return;
     
     setIsAddingUser(true);
     try {
@@ -481,7 +529,7 @@ export function UnifiedRoleDrawer({
   };
 
   const handleRemoveUser = async (userId: string, userName: string) => {
-    if (!role) return;
+    if (!role?.id) return;
     
     setIsRemovingUser(userId);
     try {
@@ -518,11 +566,6 @@ export function UnifiedRoleDrawer({
     return new Date(dateString).toLocaleDateString();
   };
 
-  // Prevent rendering if no role is provided
-  if (!role) {
-    return null;
-  }
-
   // Prevent infinite loops by checking if component is mounted
   const [isMounted, setIsMounted] = useState(false);
   
@@ -531,8 +574,14 @@ export function UnifiedRoleDrawer({
     return () => setIsMounted(false);
   }, []);
 
-  // Error boundary for the component
-  if (!isMounted) {
+  // Prevent rendering if no role is provided
+  if (!role || !isMounted) {
+    return null;
+  }
+
+  // Defensive check to prevent React error #185
+  if (!role.id || !role.name) {
+    console.error('UnifiedRoleDrawer: Invalid role object:', role);
     return null;
   }
 
@@ -540,15 +589,16 @@ export function UnifiedRoleDrawer({
     <>
       <Sheet open={isOpen} onOpenChange={onOpenChange}>
         <SheetContent className="w-full max-w-[85vw] sm:max-w-[80vw] md:max-w-[75vw] lg:max-w-[70vw] xl:max-w-[900px] h-screen flex flex-col p-0">
-          <SheetHeader className="flex-shrink-0 p-6 pb-4">
-            <SheetTitle className="flex items-center gap-2">
+          <UnifiedRoleDrawerErrorBoundary>
+            <SheetHeader className="flex-shrink-0 p-6 pb-4">
+                          <SheetTitle className="flex items-center gap-2">
               <Edit3 className="h-5 w-5" />
-              {role.name} - Role Management
+              {role?.name || 'Unknown'} - Role Management
             </SheetTitle>
             <SheetDescription>
-              Manage role details, permissions, and members for {role.name}
+              Manage role details, permissions, and members for {role?.name || 'Unknown'}
             </SheetDescription>
-          </SheetHeader>
+            </SheetHeader>
 
                      <div className="flex-1 flex flex-col min-h-0">
                        <div className="flex w-full border-b border-border/50">
@@ -683,12 +733,12 @@ export function UnifiedRoleDrawer({
                      }}
                    >
                      <RolePermissionSelector
-                       key={`${role.id}-${currentPermissions.length}`}
-                       selectedPermissions={isAdminRole ? PLATFORM_MODULES.map(p => p.id) : currentPermissions}
+                       key={`${role?.id || 'unknown'}-${currentPermissions.length}`}
+                       selectedPermissions={isAdminRole ? PLATFORM_MODULES.map(p => p.id) : (Array.isArray(currentPermissions) ? currentPermissions : [])}
                        onPermissionsChange={handlePermissionUpdate}
                        disabled={isAdminRole || isUpdatingPermissions}
                        isLoading={isUpdatingPermissions}
-                       title={`${role.name} Permissions`}
+                       title={`${role?.name || 'Unknown'} Permissions`}
                        description={isAdminRole ? 
                          "Admin role has all permissions by default and cannot be modified." : 
                          isUpdatingPermissions ? "Updating permissions..." :
@@ -706,7 +756,7 @@ export function UnifiedRoleDrawer({
                        <div>
                          <h3 className="text-lg font-semibold">Group Members</h3>
                          <p className="text-sm text-muted-foreground">
-                           Manage users in the {role.name} role. Currently {members.length} member{members.length !== 1 ? 's' : ''}.
+                           Manage users in the {role?.name || 'Unknown'} role. Currently {members.length} member{members.length !== 1 ? 's' : ''}.
                          </p>
                        </div>
                        <Button 
@@ -803,6 +853,7 @@ export function UnifiedRoleDrawer({
                  )}
                </div>
              </div>
+           </UnifiedRoleDrawerErrorBoundary>
         </SheetContent>
       </Sheet>
 
@@ -810,7 +861,7 @@ export function UnifiedRoleDrawer({
       <Dialog open={isAddUserModalOpen} onOpenChange={setIsAddUserModalOpen}>
         <DialogContent className="w-[95vw] max-w-md sm:w-full z-[100]">
           <DialogHeader>
-            <DialogTitle>Add User to {role.name}</DialogTitle>
+            <DialogTitle>Add User to {role?.name || 'Unknown'}</DialogTitle>
             <DialogDescription>
               Select a user to add to this role.
             </DialogDescription>

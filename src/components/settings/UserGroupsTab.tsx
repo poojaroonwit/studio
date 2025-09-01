@@ -56,7 +56,7 @@ const platformModuleIds = (() => {
       console.warn('UserGroupsTab: PLATFORM_MODULES is not an array at module level:', PLATFORM_MODULES);
       return [];
     }
-    return PLATFORM_MODULES.map(m => m.id);
+    return PLATFORM_MODULES.map(m => m?.id).filter(Boolean);
   } catch (error) {
     console.error('UserGroupsTab: Error creating platformModuleIds:', error);
     return [];
@@ -451,18 +451,18 @@ export function UserGroupsTab() {
                                     className="flex flex-row items-start space-x-3 space-y-0"
                                   >
                                     <FormControl>
-                                      <Checkbox
-                                        checked={field.value?.includes(module.id)}
-                                        onCheckedChange={(checked) => {
-                                          return checked
-                                            ? field.onChange([...field.value, module.id])
-                                            : field.onChange(
-                                                field.value?.filter(
-                                                  (value) => value !== module.id
-                                                )
-                                              )
-                                        }}
-                                      />
+                                                            <Checkbox
+                        checked={field.value?.includes(module.id)}
+                        onCheckedChange={(checked: boolean) => {
+                          return checked
+                            ? field.onChange([...field.value, module.id])
+                            : field.onChange(
+                                field.value?.filter(
+                                  (value) => value !== module.id
+                                )
+                              )
+                        }}
+                      />
                                     </FormControl>
                                     <div className="space-y-1 leading-none">
                                       <FormLabel className="text-sm font-medium">
@@ -523,7 +523,7 @@ export function UserGroupsTab() {
       </Dialog>
 
       {/* Delete Confirmation */}
-      <AlertDialog open={!!roleToDelete} onOpenChange={(open) => { if(!open) setRoleToDelete(null);}}>
+      <AlertDialog open={!!roleToDelete} onOpenChange={(open: boolean) => { if(!open) setRoleToDelete(null);}}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>

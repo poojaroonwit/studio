@@ -192,7 +192,7 @@ export function UnifiedRoleDrawer({
         console.warn('UnifiedRoleDrawer: PLATFORM_MODULES is not an array:', PLATFORM_MODULES);
         return [];
       }
-      return PLATFORM_MODULES.map(p => p.id);
+      return PLATFORM_MODULES.map(p => p?.id).filter(Boolean);
     } catch (error) {
       console.error('UnifiedRoleDrawer: Error getting all permissions:', error);
       return [];
@@ -751,7 +751,7 @@ export function UnifiedRoleDrawer({
                              console.warn('UnifiedRoleDrawer: PLATFORM_MODULES is not an array:', PLATFORM_MODULES);
                              return [];
                            }
-                           return PLATFORM_MODULES.map(p => p.id);
+                           return PLATFORM_MODULES.map(p => p?.id).filter(Boolean);
                          } catch (error) {
                            console.error('UnifiedRoleDrawer: Error mapping PLATFORM_MODULES:', error);
                            return [];

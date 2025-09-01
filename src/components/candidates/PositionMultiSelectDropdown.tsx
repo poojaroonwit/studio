@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Check, ChevronsUpDown, X, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,6 @@ import {
 } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import type { Position } from "@/lib/types";
-import { usePositionsCache } from "@/hooks/use-positions-cache";
 
 // DEBUGGING: This component has been enhanced with comprehensive debugging to help identify
 // issues with multiple selection and deselection. Check the browser console for detailed logs
@@ -61,18 +60,45 @@ export function PositionMultiSelectDropdown({
   // Test function to verify component functionality
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  
-  // Use the shared positions cache
-  const { positions, loading, error, refreshPositions } = usePositionsCache(filterOpenOnly);
+  const [positions, setPositions] = useState<Position[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
-  console.log('[PositionMultiSelectDropdown] Debug info:', {
-    positionsCount: positions.length,
-    loading,
-    error,
-    filterOpenOnly,
-    searchTerm,
-    selectedIds: Array.from(selectedIds)
-  });
+  // Fetch positions directly
+  useEffect(() => {
+    const fetchPositions = async () => {
+      try {
+        setLoading(true);
+        setError(false);
+        
+        const response = await fetch('/api/positions/all', {
+          headers: { 'Cache-Control': 'no-cache' },
+          credentials: 'include'
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch positions');
+        }
+        
+        const data = await response.json();
+        let fetchedPositions = data.data || [];
+        
+        // Filter for open headcount only if requested
+        if (filterOpenOnly) {
+          fetchedPositions = fetchedPositions.filter((pos: Position) => pos.isOpen);
+        }
+        
+        setPositions(fetchedPositions);
+      } catch (err) {
+        console.error('Error fetching positions:', err);
+        setError(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPositions();
+  }, [filterOpenOnly]);
 
   // Filter positions based on search term
   const filteredPositions = positions.filter(position => 
@@ -83,12 +109,14 @@ export function PositionMultiSelectDropdown({
     )
   );
 
-  console.log('[PositionMultiSelectDropdown] Filtered positions count:', filteredPositions.length);
-
   const selectedPositions = positions.filter(position => position && selectedIds.has(position.id));
   const hasNotApplied = selectedIds.has('not-applied');
 
-
+  const refreshPositions = () => {
+    // Trigger a re-fetch by updating the dependency
+    setPositions([]);
+    setLoading(true);
+  };
 
   const handleTogglePosition = (positionId: string) => {
     if (disabled) {
@@ -111,7 +139,6 @@ export function PositionMultiSelectDropdown({
       } else {
         newSelected.add(positionId);
       }
-      // Use a callback to ensure we're working with the latest state
       handleSelectionChange(newSelected);
     }
   };

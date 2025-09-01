@@ -12,15 +12,9 @@ import { Save, Loader2, User, UserPlus, Lock, Shield, Mail, Palette, Users, Edit
 import Image from 'next/image';
 import { signIn, useSession } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
-import type { SystemSetting, LoginPageBackgroundType, SystemSettingKey, LoginPageLayoutType } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
- 
 import {
   Dialog,
   DialogContent,
@@ -30,10 +24,9 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
-import { Checkbox } from "@/components/ui/checkbox";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import type { UserProfile, PlatformModuleId, UserGroup, PlatformModuleCategory } from '@/lib/types';
-import { PLATFORM_MODULES, PLATFORM_MODULE_CATEGORIES } from '@/lib/types';
+import { Checkbox } from "@/components/ui/checkbox";
+import type { UserProfile } from '@/lib/types';
 import { toast } from 'react-hot-toast';
 import { RoleSelector } from '@/components/settings/RoleSelector';
 import { UserAvatarUpload } from '@/components/ui/user-avatar-upload';
@@ -41,18 +34,6 @@ import { PersonalColorPicker } from '@/components/settings/PersonalColorPicker';
 import { useClickProtection } from '@/hooks/use-click-protection';
 
 const userRoleOptions: UserProfile['role'][] = ['Admin', 'Recruiter', 'Hiring Manager'];
-const platformModuleIds = (() => {
-  try {
-    if (!Array.isArray(PLATFORM_MODULES)) {
-      console.warn('UnifiedUserModal: PLATFORM_MODULES is not an array at module level:', PLATFORM_MODULES);
-      return [];
-    }
-    return PLATFORM_MODULES.map(m => m.id);
-  } catch (error) {
-    console.error('UnifiedUserModal: Error creating platformModuleIds:', error);
-    return [];
-  }
-})();
 
 // Unified form schema that handles all scenarios
 const unifiedUserFormSchema = z.object({
@@ -65,7 +46,6 @@ const unifiedUserFormSchema = z.object({
   authenticationMethod: z.enum(['basic', 'azure']).optional().default('basic'),
 
   userTeamIds: z.array(z.string()).optional().default([]),
-  modulePermissions: z.array(z.string()).optional().default([]),
   avatarUrl: z.string().optional(),
   personalColor: z.string().optional(),
 
@@ -84,30 +64,6 @@ interface UnifiedUserModalProps {
   onEditUser?: (userId: string, data: UnifiedUserFormValues) => Promise<void>;
   onAddUser?: (data: UnifiedUserFormValues) => Promise<void>;
 }
-
-const groupedPermissions = Object.values(PLATFORM_MODULE_CATEGORIES).map(category => {
-  try {
-    // Defensive check to prevent filter errors
-    if (!Array.isArray(PLATFORM_MODULES)) {
-      console.warn('UnifiedUserModal: PLATFORM_MODULES is not an array:', PLATFORM_MODULES);
-      return { category, permissions: [] };
-    }
-    
-    const permissions = PLATFORM_MODULES.filter(p => {
-      try {
-        return p && p.category === category;
-      } catch (error) {
-        console.warn('UnifiedUserModal: Error filtering platform module:', error, p);
-        return false;
-      }
-    });
-    
-    return { category, permissions };
-  } catch (error) {
-    console.error('UnifiedUserModal: Error creating grouped permissions:', error);
-    return { category, permissions: [] };
-  }
-});
 
 export function UnifiedUserModal({ 
   isOpen, 
@@ -132,19 +88,18 @@ export function UnifiedUserModal({
 
   const form = useForm<UnifiedUserFormValues>({
     resolver: zodResolver(unifiedUserFormSchema),
-    defaultValues: { 
-      name: '', 
-      email: '', 
-      password: '',
-      role: 'Recruiter', 
-      newPassword: '',  
-      forcePasswordChange: false, 
-      authenticationMethod: 'basic', 
-      userTeamIds: [], 
-      modulePermissions: [],
-      avatarUrl: '', 
-      personalColor: '#3B82F6',
-    },
+          defaultValues: { 
+        name: '', 
+        email: '', 
+        password: '',
+        role: 'Recruiter', 
+        newPassword: '',  
+        forcePasswordChange: false, 
+        authenticationMethod: 'basic', 
+        userTeamIds: [], 
+        avatarUrl: '', 
+        personalColor: '#3B82F6',
+      },
   });
 
   // Cleanup timeout on component unmount
@@ -193,7 +148,6 @@ export function UnifiedUserModal({
             forcePasswordChange: false,
             authenticationMethod: user.authenticationMethod || 'basic',
             userTeamIds: user.teams?.map(t => t.id) || [],
-            modulePermissions: user.modulePermissions || [],
             avatarUrl: user.avatarUrl || '',
             personalColor: user.personalColor || '#3B82F6',
 
@@ -210,7 +164,6 @@ export function UnifiedUserModal({
           forcePasswordChange: false,
           authenticationMethod: 'basic',
           userTeamIds: [],
-          modulePermissions: [],
           avatarUrl: '',
           personalColor: '#3B82F6',
           

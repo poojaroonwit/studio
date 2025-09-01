@@ -61,14 +61,10 @@ export const useCandidateDetail = (candidateId: string) => {
   const [isSaving, setIsSaving] = useState(false);
   const [formPopulated, setFormPopulated] = useState(false);
 
-  // Add refs for caching and cleanup
-  const cacheRef = useRef<Map<string, { data: any; timestamp: number }>>(new Map());
+  // Add refs for cleanup
   const avatarForceRefreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isMountedRef = useRef(true);
   const abortControllerRef = useRef<AbortController | null>(null);
-
-  // Cache duration: 30 seconds
-  const CACHE_DURATION = 30000;
 
   // Simple tracking for debugging (removed complex infinite loop prevention)
   const fetchCandidateCount = useRef(0);
@@ -177,7 +173,7 @@ export const useCandidateDetail = (candidateId: string) => {
     keyName: 'field_id',
   });
 
-  // Memoized fetch function with caching and infinite loop prevention
+  // Memoized fetch function with infinite loop prevention
   const fetchCandidate = useCallback(async (forceRefresh = false) => {
     // Simple tracking (removed complex infinite loop prevention)
     fetchCandidateCount.current++;
@@ -190,17 +186,6 @@ export const useCandidateDetail = (candidateId: string) => {
 
     // Create new abort controller
     abortControllerRef.current = new AbortController();
-
-    // Check cache first
-    const cacheKey = `candidate:${candidateId}`;
-    const cached = cacheRef.current.get(cacheKey);
-    const now = Date.now();
-
-    if (!forceRefresh && cached && (now - cached.timestamp) < CACHE_DURATION) {
-      setCandidate(cached.data);
-      setLoading(false);
-      return;
-    }
 
     setLoading(true);
     setError(null);
@@ -235,9 +220,6 @@ export const useCandidateDetail = (candidateId: string) => {
         return;
       }
 
-      // Cache the result
-      cacheRef.current.set(cacheKey, { data, timestamp: now });
-
       // Safely process candidate data
       setCandidate(data);
       setLoading(false);
@@ -264,7 +246,7 @@ export const useCandidateDetail = (candidateId: string) => {
   const fetchPositions = useCallback(async () => {
     try {
       const res = await fetch('/api/positions/all', {
-        headers: { 'Cache-Control': 'max-age=300' }, // Cache for 5 minutes
+        headers: { 'Cache-Control': 'no-cache' },
         credentials: 'include' // Include session cookies
       });
       if (res.ok) {
@@ -281,7 +263,7 @@ export const useCandidateDetail = (candidateId: string) => {
   const fetchRecruiters = useCallback(async () => {
     try {
       const res = await fetch('/api/users?role=Recruiter', {
-        headers: { 'Cache-Control': 'max-age=300' }, // Cache for 5 minutes
+        headers: { 'Cache-Control': 'no-cache' },
         credentials: 'include' // Include session cookies
       });
       if (res.ok) {
@@ -299,7 +281,7 @@ export const useCandidateDetail = (candidateId: string) => {
   const fetchSources = useCallback(async () => {
     try {
       const res = await fetch('/api/settings/candidate-sources', {
-        headers: { 'Cache-Control': 'max-age=300' }, // Cache for 5 minutes
+        headers: { 'Cache-Control': 'no-cache' },
         credentials: 'include' // Include session cookies
       });
       if (res.ok) {
@@ -316,7 +298,7 @@ export const useCandidateDetail = (candidateId: string) => {
   const fetchStages = useCallback(async () => {
     try {
       const res = await fetch('/api/recruitment-stages', {
-        headers: { 'Cache-Control': 'max-age=300' }, // Cache for 5 minutes
+        headers: { 'Cache-Control': 'no-cache' },
         credentials: 'include' // Include session cookies
       });
       if (res.ok) {
@@ -410,9 +392,6 @@ export const useCandidateDetail = (candidateId: string) => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
-
-      // Clear cache to prevent memory leaks
-      cacheRef.current.clear();
     };
   }, []); // FIXED: Empty dependency array for cleanup
 

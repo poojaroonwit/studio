@@ -44,6 +44,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useJobMatchFeature } from '@/hooks/useJobMatchFeature';
 
 
 interface CandidateTableProps {
@@ -213,6 +214,7 @@ export function CandidateTable({
   onBulkAssignRecruiter,
 }: CandidateTableProps) {
   const router = useRouter();
+  const { isJobMatchEnabled } = useJobMatchFeature();
   // Ensure selectedCandidateIds is always a Set
   const safeSelectedCandidateIds = selectedCandidateIds || new Set<string>();
   const [candidateToDelete, setCandidateToDelete] = useState<Candidate | null>(null);
@@ -471,7 +473,7 @@ export function CandidateTable({
                 </TableHead>
               )}
               {/* Job Matches Count Column */}
-              {(!settings || settings.showJobMatchesColumn !== false) && (
+              {isJobMatchEnabled && (!settings || settings.showJobMatchesColumn !== false) && (
                 <TableHead key="job-matches-count" className="min-w-[96px] max-w-[120px] text-center">Job Matches</TableHead>
               )}
               {(!settings || settings.showFitScoreColumn !== false) && (
@@ -777,7 +779,7 @@ export function CandidateTable({
                     </TableCell>
                   )}
                   {/* Job Matches Count Cell */}
-                  {(!settings || settings.showJobMatchesColumn !== false) && (
+                  {isJobMatchEnabled && (!settings || settings.showJobMatchesColumn !== false) && (
                     <TableCell key={`${candidate.id}-job-matches-count`} className="text-center max-w-[120px]">
                       {Array.isArray(candidate.jobMatches) && candidate.jobMatches.length > 0 ? candidate.jobMatches.length : '-'}
                     </TableCell>
@@ -991,7 +993,7 @@ export function CandidateTable({
                               </TableCell>
                             )}
                             {/* Job Matches Count Cell */}
-                            {(!settings || settings.showJobMatchesColumn !== false) && (
+                            {isJobMatchEnabled && (!settings || settings.showJobMatchesColumn !== false) && (
                               <TableCell key={`${candidate.id}-job-matches-count`} className="text-center max-w-[120px]">
                                 {Array.isArray(candidate.jobMatches) && candidate.jobMatches.length > 0 ? candidate.jobMatches.length : '-'}
                               </TableCell>

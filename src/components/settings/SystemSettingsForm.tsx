@@ -33,6 +33,8 @@ const ALLOWED_SYSTEM_SETTING_KEYS = [
   // Alternative keys used by system preferences page
   'themePreference', 'loginBackgroundType', 'loginBackgroundGradientStart', 
   'loginBackgroundGradientEnd', 'loginBackgroundColor',
+  // Feature toggles
+  'jobMatchFeatureEnabled',
   // Sidebar Light Theme - Background colors
   'sidebarBgStartL', 'sidebarBgEndL', 'sidebarTextL',
   'sidebarActiveBgStartL', 'sidebarActiveBgEndL', 'sidebarActiveTextL',

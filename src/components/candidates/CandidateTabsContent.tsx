@@ -7,7 +7,7 @@ import { ContactTab } from './tabs/ContactTab';
 import { EducationTab } from './tabs/EducationTab';
 import { ExperienceTab } from './tabs/ExperienceTab';
 import { JobSuitabilityTab } from './tabs/JobSuitabilityTab';
-
+import { useJobMatchFeature } from '@/hooks/useJobMatchFeature';
 
 import type { Candidate, Position } from '@/lib/types';
 
@@ -98,6 +98,8 @@ export const CandidateTabsContent: React.FC<CandidateTabsContentProps> = ({
   resumes = [],
   onRefresh
 }) => {
+  const { isJobMatchEnabled } = useJobMatchFeature();
+
   return (
     <div className="h-full bg-background">
       {/* Jobs Tab (Combined Job Applied and Job Match) */}
@@ -114,15 +116,17 @@ export const CandidateTabsContent: React.FC<CandidateTabsContentProps> = ({
             appliedJustification={appliedJustification}
             appliedJobBadge={appliedJobBadge}
           />
-          <JobMatchTab
-            candidate={candidate}
-            allDbPositions={allDbPositions}
-            isEditing={isEditing}
-            candidateJobMatches={candidateJobMatches}
-            onJobMatchClick={onJobMatchClick}
-            onCopyJobMatch={onCopyJobMatch}
-            copiedJobMatchIndex={copiedJobMatchIndex}
-          />
+          {isJobMatchEnabled && (
+            <JobMatchTab
+              candidate={candidate}
+              allDbPositions={allDbPositions}
+              isEditing={isEditing}
+              candidateJobMatches={candidateJobMatches}
+              onJobMatchClick={onJobMatchClick}
+              onCopyJobMatch={onCopyJobMatch}
+              copiedJobMatchIndex={copiedJobMatchIndex}
+            />
+          )}
         </div>
       )}
 

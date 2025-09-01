@@ -74,7 +74,7 @@ export function RolePermissionSelector({
   protectedPermissions = [],
   isLoading = false
 }: RolePermissionSelectorProps) {
-  // Early return if critical data is missing
+  // Early validation - must happen before any hooks
   if (!Array.isArray(PLATFORM_MODULES) || PLATFORM_MODULES.length === 0) {
     console.error('RolePermissionSelector: PLATFORM_MODULES is not available or empty');
     return (
@@ -86,6 +86,11 @@ export function RolePermissionSelector({
       </div>
     );
   }
+
+  // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
+  const [searchQuery, setSearchQuery] = useState('');
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const scrollPositionRef = useRef<number>(0);
 
   // Defensive check for selectedPermissions to prevent React error #185
   const safeSelectedPermissions = (() => {
@@ -116,10 +121,6 @@ export function RolePermissionSelector({
       return [];
     }
   })();
-
-  const [searchQuery, setSearchQuery] = useState('');
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const scrollPositionRef = useRef<number>(0);
 
   // Function to preserve scroll position
   const preserveScrollPosition = () => {

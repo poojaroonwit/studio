@@ -150,6 +150,12 @@ export function UnifiedRoleDrawer({
   onRoleChange,
   onMembersChange 
 }: UnifiedRoleDrawerProps) {
+  // Early validation - must happen before any hooks
+  if (!role || !role.id || !role.name || typeof role.id !== 'string' || typeof role.name !== 'string') {
+    console.error('UnifiedRoleDrawer: Invalid role object:', role);
+    return null;
+  }
+
   // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
   const [isMounted, setIsMounted] = useState(false);
   
@@ -590,20 +596,8 @@ export function UnifiedRoleDrawer({
     return new Date(dateString).toLocaleDateString();
   };
 
-  // Prevent rendering if no role is provided
-  if (!role || !isMounted) {
-    return null;
-  }
-
-  // Defensive check to prevent React error #185
-  if (!role.id || !role.name) {
-    console.error('UnifiedRoleDrawer: Invalid role object:', role);
-    return null;
-  }
-
-  // Additional validation to ensure role object is complete
-  if (typeof role.id !== 'string' || typeof role.name !== 'string') {
-    console.error('UnifiedRoleDrawer: Role object has invalid id or name:', role);
+  // Prevent rendering if component is not mounted
+  if (!isMounted) {
     return null;
   }
 

@@ -84,13 +84,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [metadataLoaded, setMetadataLoaded] = useState(false);
-  const [totalCandidates, setTotalCandidates] = useState(0);
-  
-  // Track optimistic updates to prevent real-time updates from overriding them
-  const optimisticUpdatesRef = useRef<Set<string>>(new Set());
-  
-  // Track the timing of optimistic updates to prevent race conditions
-  const optimisticUpdateTimestampsRef = useRef<Map<string, number>>(new Map());
+    const [totalCandidates, setTotalCandidates] = useState(0);
   
   // Get status color for YouTrack-style badges
   const getStatusColor = (status: string) => {
@@ -121,121 +115,22 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     selectedStages: [] 
   });
 
-  // FIXED: Stabilize callback functions to prevent infinite loops and preserve optimistic updates
+  // Simple candidate update handler
   const handleCandidateUpdate = useCallback((updateData: any) => {
-    // Extract candidate data from the unified broadcaster structure
     const updatedCandidate = updateData?.candidate || updateData;
-    const action = updateData?.action;
-    
-    // Debug: Log all incoming real-time updates
-    console.log('🔄 MyTasksPageClient received real-time update:', {
-      candidateId: updatedCandidate?.id,
-      action,
-      updateData,
-      optimisticUpdates: Array.from(optimisticUpdatesRef.current)
-    });
-    
-    // Handle candidate deletion
-    if (action === 'deleted' && updateData?.candidateId) {
-      console.log('🗑️ Removing deleted candidate:', updateData.candidateId);
-      setCandidates(prevCandidates => 
-        prevCandidates.filter(c => c.id !== updateData.candidateId)
-      );
-      return;
-    }
     
     if (!updatedCandidate || !updatedCandidate.id) {
-      console.warn('🔄 Invalid candidate update data received:', updateData);
       return;
     }
     
     setCandidates(prevCandidates => {
       const existingIndex = prevCandidates.findIndex(c => c.id === updatedCandidate.id);
       if (existingIndex !== -1) {
-        const existingCandidate = prevCandidates[existingIndex];
-        
-        // Check if this candidate is currently being optimistically updated
-        const isBeingOptimisticallyUpdated = optimisticUpdatesRef.current.has(updatedCandidate.id);
-        
-        // Debug logging for real-time updates
-        console.log('🔄 Real-time update received:', {
-          candidateId: updatedCandidate.id,
-          currentStatus: existingCandidate.status,
-          newStatus: updatedCandidate.status,
-          isBeingOptimisticallyUpdated,
-          action: updateData?.action,
-          updateData
-        });
-        
-        // Handle optimistic updates logic
-        if (isBeingOptimisticallyUpdated) {
-          // Check if this real-time update came too quickly after our optimistic update (race condition)
-          const optimisticTimestamp = optimisticUpdateTimestampsRef.current.get(updatedCandidate.id);
-          const timeSinceOptimisticUpdate = optimisticTimestamp ? Date.now() - optimisticTimestamp : 0;
-          
-          // If it's from the same user or came too quickly (within 3 seconds), ignore it
-          if (updateData?.actingUserId === userSession?.id || timeSinceOptimisticUpdate < 3000) {
-            console.log('🔄 Ignoring real-time update for optimistically updated candidate:', updatedCandidate.id, {
-              reason: updateData?.actingUserId === userSession?.id ? 'same user' : 'too quick',
-              timeSinceOptimisticUpdate
-            });
-            return prevCandidates;
-          }
-          
-          // If the status matches our optimistic state, it's a confirmation - clear tracking
-          if (existingCandidate.status === updatedCandidate.status) {
-            console.log('🔄 Confirmation received for optimistically updated candidate:', updatedCandidate.id, 'clearing optimistic tracking');
-            optimisticUpdatesRef.current.delete(updatedCandidate.id);
-            optimisticUpdateTimestampsRef.current.delete(updatedCandidate.id);
-            return prevCandidates; // Keep the current state since it matches
-          }
-          
-          // If the status is different, check if it's a legitimate server update or a race condition
-          // Only apply server updates if they're newer than our optimistic update
-          if (updatedCandidate.updatedAt && optimisticTimestamp) {
-            const serverUpdateTime = new Date(updatedCandidate.updatedAt).getTime();
-            if (serverUpdateTime <= optimisticTimestamp) {
-              console.log('🔄 Ignoring outdated server update for optimistically updated candidate:', updatedCandidate.id, {
-                serverUpdateTime,
-                optimisticTimestamp,
-                timeDiff: optimisticTimestamp - serverUpdateTime
-              });
-              return prevCandidates;
-            }
-          }
-          
-          // If we reach here, it's a legitimate server update - clear tracking and apply
-          console.log('🔄 Legitimate server update received for optimistically updated candidate:', updatedCandidate.id, 'clearing optimistic tracking');
-          optimisticUpdatesRef.current.delete(updatedCandidate.id);
-          optimisticUpdateTimestampsRef.current.delete(updatedCandidate.id);
-        }
-        
-        // Only update if there are meaningful changes
-        const hasMeaningfulChanges = 
-          existingCandidate.status !== updatedCandidate.status ||
-          existingCandidate.recruiterId !== updatedCandidate.recruiterId ||
-          existingCandidate.positionId !== updatedCandidate.positionId ||
-          existingCandidate.fitScore !== updatedCandidate.fitScore ||
-          existingCandidate.name !== updatedCandidate.name ||
-          existingCandidate.email !== updatedCandidate.email;
-        
-        if (hasMeaningfulChanges) {
-          const updated = [...prevCandidates];
-          updated[existingIndex] = { ...existingCandidate, ...updatedCandidate };
-          return updated;
-        }
-        // No meaningful changes, return same array to prevent unnecessary re-renders
-        return prevCandidates;
-      } else {
-        // New candidate, add to list (only for 'created' action or if we don't have action info)
-        if (action === 'created' || !action) {
-          console.log('➕ Adding new candidate:', updatedCandidate.id);
-          return [...prevCandidates, updatedCandidate];
-        }
-        // For other actions, don't add if we don't have the candidate
-        console.log('⚠️ Received update for unknown candidate:', updatedCandidate.id, 'action:', action);
-        return prevCandidates;
+        const updated = [...prevCandidates];
+        updated[existingIndex] = { ...prevCandidates[existingIndex], ...updatedCandidate };
+        return updated;
       }
+      return prevCandidates;
     });
   }, []);
 
@@ -325,7 +220,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     }
   }, [viewMode, selectedStages, isLoaded, updateTaskBoardPreferences]);
 
-  // Cleanup timeouts and optimistic updates on unmount
+  // Cleanup timeouts on unmount
   useEffect(() => {
     return () => {
       if (searchTimeoutRef.current) {
@@ -334,9 +229,6 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       if (preferenceUpdateTimeoutRef.current) {
         clearTimeout(preferenceUpdateTimeoutRef.current);
       }
-      // Clear any remaining optimistic updates
-      optimisticUpdatesRef.current.clear();
-      optimisticUpdateTimestampsRef.current.clear();
     };
   }, []);
 
@@ -556,9 +448,9 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     }));
   };
 
-  // Handle task movement
-  const handleMoveTask = (task: Task, newStatus: string) => {
-    // Prevent moving to the same status to avoid unnecessary updates
+  // Handle task movement - Simplified version
+  const handleMoveTask = async (task: Task, newStatus: string) => {
+    // Prevent moving to the same status
     if (task.status === newStatus) {
       return;
     }
@@ -566,127 +458,41 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     // Find the original candidate
     const candidate = candidates.find(c => c.id === task.id);
     if (!candidate) {
-      console.error('❌ Candidate not found for task:', task.id);
       toast.error('Candidate not found');
       return;
     }
 
-    // Track this optimistic update with a more precise timestamp
-    const optimisticTimestamp = Date.now();
-    optimisticUpdatesRef.current.add(candidate.id);
-    optimisticUpdateTimestampsRef.current.set(candidate.id, optimisticTimestamp);
-    console.log('🚀 Starting optimistic update for candidate:', candidate.id, 'to status:', newStatus, 'at timestamp:', optimisticTimestamp);
-    
-    // Set a timeout to clear optimistic update after 60 seconds (fallback)
-    setTimeout(() => {
-      if (optimisticUpdatesRef.current.has(candidate.id)) {
-        optimisticUpdatesRef.current.delete(candidate.id);
-        optimisticUpdateTimestampsRef.current.delete(candidate.id);
-        console.log('⏰ Cleared optimistic update timeout for candidate:', candidate.id);
-      }
-    }, 60000);
-    
-    // Optimistic update
-    setCandidates((prev) =>
-      prev.map((c) =>
-        c.id === candidate.id
-          ? { ...c, status: newStatus }
-          : c
-      )
-    );
+    try {
+      // Update the candidate status
+      const response = await fetch('/api/candidates/bulk-action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'change_status',
+          candidateIds: [candidate.id],
+          newStatus: newStatus
+        }),
+      });
 
-    // Simplified update function without complex retry logic
-    const updateCandidateStatus = async (): Promise<void> => {
-      try {
-        // Add timeout to prevent hanging requests
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-        
-        try {
-          // Use bulk-action API instead of individual candidate API for better broadcasting
-          const updateResponse = await fetch('/api/candidates/bulk-action', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              action: 'change_status',
-              candidateIds: [candidate.id],
-              newStatus: newStatus
-            }),
-            signal: controller.signal,
-          });
-          
-          clearTimeout(timeoutId);
-        
-        if (!updateResponse.ok) {
-          // Get detailed error information
-          let errorData = null;
-          
-          try {
-            errorData = await updateResponse.json();
-            console.error('📋 API Error Response:', errorData);
-          } catch (parseError) {
-            console.error('❌ Could not parse error response:', parseError);
-          }
-          
-          console.error('❌ API Error:', updateResponse.status, 'for candidate:', candidate.id);
-          
-          // Create error object with status for proper handling
-          const error = new Error(errorData?.message || `HTTP ${updateResponse.status}`);
-          (error as any).status = updateResponse.status;
-          (error as any).data = errorData;
-          
-          throw error;
-        }
-        
-        // Success - don't re-fetch, rely on optimistic update and realtime updates
-        toast.success(`Moved ${candidate.name} to ${newStatus}`);
-        
-        // Remove from optimistic updates tracking with a delay to allow for real-time updates
-        setTimeout(() => {
-          if (optimisticUpdatesRef.current.has(candidate.id)) {
-            console.log('✅ Clearing optimistic update tracking after successful API call for candidate:', candidate.id);
-            optimisticUpdatesRef.current.delete(candidate.id);
-            optimisticUpdateTimestampsRef.current.delete(candidate.id);
-          }
-        }, 2000); // Wait 2 seconds for real-time updates to arrive
-        
-        } catch (fetchError: any) {
-          clearTimeout(timeoutId);
-          throw fetchError;
-        }
-        
-      } catch (error: any) {
-        console.error('❌ Error updating candidate status:', error, 'for candidate:', candidate.id);
-        
-        // Remove from optimistic updates tracking
-        optimisticUpdatesRef.current.delete(candidate.id);
-        optimisticUpdateTimestampsRef.current.delete(candidate.id);
-        console.log('❌ Optimistic update failed for candidate:', candidate.id, 'reverting to:', candidate.status);
-        
-        // Revert optimistic update on error
-        setCandidates((prev) =>
-          prev.map((c) =>
-            c.id === candidate.id
-              ? { ...c, status: candidate.status }
-              : c
-          )
-        );
-        
-        // Use the network utility to get user-friendly error message
-        const userMessage = getErrorMessage(error);
-        toast.error(userMessage);
-        
-        // Track network errors to show diagnostics option
-        if (isRetryableError(error)) {
-          setHasNetworkError(true);
-        }
+      if (!response.ok) {
+        throw new Error(`Failed to update status: ${response.status}`);
       }
-    };
-    
-    // Execute the update
-    updateCandidateStatus().catch(error => {
-      console.error('❌ Final error in handleMoveTask:', error);
-    });
+
+      // Update local state
+      setCandidates((prev) =>
+        prev.map((c) =>
+          c.id === candidate.id
+            ? { ...c, status: newStatus }
+            : c
+        )
+      );
+
+      toast.success(`Moved ${candidate.name} to ${newStatus}`);
+      
+    } catch (error) {
+      console.error('Error updating candidate status:', error);
+      toast.error('Failed to update candidate status');
+    }
   };
 
   // Stage filter functions

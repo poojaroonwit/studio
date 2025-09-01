@@ -22,6 +22,7 @@ import ReprocessModal from './ReprocessModal';
 import { GenerativeAIModal } from './GenerativeAIModal';
 import CandidateAttachmentUploadModal from './CandidateAttachmentUploadModal';
 import { HeadcountWarningModal } from './HeadcountWarningModal';
+import { useJobMatchFeature } from '@/hooks/useJobMatchFeature';
 
 // Import hooks
 import { useCandidateDetail } from './hooks/useCandidateDetail';
@@ -53,6 +54,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
   onRefresh 
 }) => {
   const { data: session } = useSession();
+  const { isJobMatchEnabled } = useJobMatchFeature();
   const [avatarInputRef] = useState<React.RefObject<HTMLInputElement>>(React.createRef());
   
   // Modal states
@@ -210,7 +212,9 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
   };
 
   const handleJobMatchClick = (jobMatch: any) => {
-        const position = Array.isArray(allDbPositions)
+    if (!isJobMatchEnabled) return;
+    
+    const position = Array.isArray(allDbPositions)
       ? (allDbPositions.find(p => p.id === jobMatch.jobId) || allDbPositions.find(p => p.title === jobMatch.jobTitle))
           : null;
         
@@ -266,6 +270,8 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
   };
 
   const copyJobMatchToClipboard = async (match: any, index: number) => {
+    if (!isJobMatchEnabled) return;
+    
     const position = Array.isArray(allDbPositions) ? 
                    (allDbPositions.find(p => p.id === match.jobId) || 
                     allDbPositions.find(p => p.title === match.jobTitle)) : null;
@@ -454,8 +460,9 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                 onClick={() => setActiveTab('jobs')}
               >
                 <Briefcase className="w-4 h-4" />
-                Job Applied & Matched
+                {isJobMatchEnabled ? 'Job Applied & Matched' : 'Job Applied'}
                 {(() => {
+                  if (!isJobMatchEnabled) return '';
                   const jobMatches = candidateJobMatches || [];
                   const matchCount = jobMatches.length;
                   return matchCount > 0 ? ` (${matchCount})` : '';
@@ -709,11 +716,13 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
         onCommentsChange={handleCommentsChange}
       />
  
-      <JobMatchModal
-        isOpen={isJobMatchModalOpen}
-        onClose={() => setIsJobMatchModalOpen(false)}
-        jobMatch={selectedJobMatch}
-      />
+      {isJobMatchEnabled && (
+        <JobMatchModal
+          isOpen={isJobMatchModalOpen}
+          onClose={() => setIsJobMatchModalOpen(false)}
+          jobMatch={selectedJobMatch}
+        />
+      )}
  
 
 

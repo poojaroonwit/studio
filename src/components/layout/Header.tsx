@@ -116,8 +116,8 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
   const [mounted, setMounted] = useState(false);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
-  const [isCacheDetailsOpen, setIsCacheDetailsOpen] = useState(false);
-  const [isLoadingCacheInfo, setIsLoadingCacheInfo] = useState(false);
+// Remove cache details related code
+// Remove cache info state
   const [currentAppName, setCurrentAppName] = useState<string>(DEFAULT_APP_NAME);
   const [effectivePageTitle, setEffectivePageTitle] = useState(initialPageTitle);
   const { refreshKey, forceRefresh } = useAvatarRefresh();
@@ -187,85 +187,11 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
     setMounted(true);
   }, []);
 
-  const [cacheInfo, setCacheInfo] = useState({
-    localStorageItems: 0,
-    sessionStorageItems: 0,
-    localStorageSize: 0,
-    sessionStorageSize: 0,
-    indexedDBAvailable: false,
-    serviceWorkersAvailable: false,
-    cachesAvailable: false,
-    memoryUsage: 0,
-    cacheNames: [] as string[]
-  });
+// Remove cache info state
 
-  const collectCacheInfo = useCallback(async () => {
-    if (typeof window === 'undefined') return;
-    
-    setIsLoadingCacheInfo(true);
-    try {
-      // Calculate storage sizes with error handling
-      let localStorageSize = 0;
-      let sessionStorageSize = 0;
-      
-      try {
-        localStorageSize = new Blob(Object.values(localStorage)).size;
-      } catch (error) {
-        console.warn('[HEADER] Failed to calculate localStorage size:', error);
-      }
-      
-      try {
-        sessionStorageSize = new Blob(Object.values(sessionStorage)).size;
-      } catch (error) {
-        console.warn('[HEADER] Failed to calculate sessionStorage size:', error);
-      }
-      
-      // Get cache names if available
-      let cacheNames: string[] = [];
-      if ('caches' in window) {
-        try {
-          cacheNames = await caches.keys();
-        } catch (error) {
-          console.warn('[HEADER] Failed to get cache names:', error);
-        }
-      }
+// Remove cache info collection function
 
-      setCacheInfo({
-        localStorageItems: localStorage.length,
-        sessionStorageItems: sessionStorage.length,
-        localStorageSize,
-        sessionStorageSize,
-        indexedDBAvailable: 'indexedDB' in window,
-        serviceWorkersAvailable: 'serviceWorker' in navigator,
-        cachesAvailable: 'caches' in window,
-        memoryUsage: 'memory' in performance ? Math.round((performance as any).memory.usedJSHeapSize / 1024 / 1024) : 0,
-        cacheNames
-      });
-    } catch (error) {
-      console.error('[HEADER] Cache info collection error:', error);
-      // Set default values on error
-      setCacheInfo({
-        localStorageItems: 0,
-        sessionStorageItems: 0,
-        localStorageSize: 0,
-        sessionStorageSize: 0,
-        indexedDBAvailable: false,
-        serviceWorkersAvailable: false,
-        cachesAvailable: false,
-        memoryUsage: 0,
-        cacheNames: []
-      });
-    } finally {
-      setIsLoadingCacheInfo(false);
-    }
-  }, []);
-
-  // Collect cache info when dialog opens
-  useEffect(() => {
-    if (isCacheDetailsOpen) {
-      collectCacheInfo();
-    }
-  }, [isCacheDetailsOpen, collectCacheInfo]);
+// Remove cache details references
 
   const [isDark, setIsDark] = useState(false);
 
@@ -421,7 +347,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
       forceRefresh();
       
       // Update cache info
-      collectCacheInfo();
+      // Remove cache info collection call
       
       toast.success('Cache cleared successfully');
     }
@@ -506,10 +432,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
                   Change Password
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={() => setIsCacheDetailsOpen(true)}>
-                  <Database className="mr-2 h-4 w-4" />
-                  Cache Details
-                </DropdownMenuItem>
+                // Remove cache details menu item
                 <DropdownMenuItem onSelect={handleClearCache}>
                   <Trash2 className="mr-2 h-4 w-4" />
                   Clear Cache
@@ -542,98 +465,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
             user={session?.user as UserProfile | null}
             onSave={handleEditProfile}
           />
-          <Dialog open={isCacheDetailsOpen} onOpenChange={setIsCacheDetailsOpen}>
-             <DialogContent>
-               <DialogHeader>
-                 <DialogTitle className="flex items-center gap-2">
-                   <Database className="h-5 w-5" />
-                   Cache Details
-                 </DialogTitle>
-               </DialogHeader>
-               <div className="space-y-4">
-                 <div className="grid grid-cols-2 gap-4 text-sm">
-                   <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                     <span>Local Storage:</span>
-                     <div className="text-right">
-                       <div className="font-mono font-semibold">{cacheInfo.localStorageItems} items</div>
-                       <div className="text-xs text-muted-foreground">
-                         {Math.round(cacheInfo.localStorageSize / 1024)} KB
-                       </div>
-                     </div>
-                   </div>
-                   <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                     <span>Session Storage:</span>
-                     <div className="text-right">
-                       <div className="font-mono font-semibold">{cacheInfo.sessionStorageItems} items</div>
-                       <div className="text-xs text-muted-foreground">
-                         {Math.round(cacheInfo.sessionStorageSize / 1024)} KB
-                       </div>
-                     </div>
-                   </div>
-                   <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                     <span>Memory Usage:</span>
-                     <span className="font-mono font-semibold">{cacheInfo.memoryUsage} MB</span>
-                   </div>
-                   <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                     <span>IndexedDB:</span>
-                     <span className={`font-semibold ${cacheInfo.indexedDBAvailable ? 'text-green-600' : 'text-red-600'}`}>
-                       {cacheInfo.indexedDBAvailable ? 'Available' : 'Not Available'}
-                     </span>
-                   </div>
-                   <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                     <span>Service Workers:</span>
-                     <span className={`font-semibold ${cacheInfo.serviceWorkersAvailable ? 'text-green-600' : 'text-red-600'}`}>
-                       {cacheInfo.serviceWorkersAvailable ? 'Available' : 'Not Available'}
-                     </span>
-                   </div>
-                   <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                     <span>Browser Caches:</span>
-                     <div className="text-right">
-                       <span className={`font-semibold ${cacheInfo.cachesAvailable ? 'text-green-600' : 'text-red-600'}`}>
-                         {cacheInfo.cachesAvailable ? 'Available' : 'Not Available'}
-                       </span>
-                       {cacheInfo.cacheNames.length > 0 && (
-                         <div className="text-xs text-muted-foreground">
-                           {cacheInfo.cacheNames.length} cache{cacheInfo.cacheNames.length !== 1 ? 's' : ''}
-                         </div>
-                       )}
-                     </div>
-                   </div>
-                 </div>
-                 {cacheInfo.cacheNames.length > 0 && (
-                   <div className="space-y-2">
-                     <h4 className="text-sm font-medium">Cache Names:</h4>
-                     <div className="grid grid-cols-1 gap-1">
-                       {cacheInfo.cacheNames.map((name, index) => (
-                         <div key={index} className="text-xs p-2 bg-muted/30 rounded border">
-                           {name}
-                         </div>
-                       ))}
-                     </div>
-                   </div>
-                 )}
-                 <div className="flex gap-2 pt-4 border-t">
-                   <Button
-                     variant="outline"
-                     onClick={collectCacheInfo}
-                     disabled={isLoadingCacheInfo}
-                     className="flex-1"
-                   >
-                     <RefreshCw className={`h-4 w-4 mr-2 ${isLoadingCacheInfo ? 'animate-spin' : ''}`} />
-                     {isLoadingCacheInfo ? 'Refreshing...' : 'Refresh'}
-                   </Button>
-                   <Button
-                     variant="destructive"
-                     onClick={handleClearCache}
-                     className="flex-1"
-                   >
-                     <Trash2 className="h-4 w-4 mr-2" />
-                     Clear All
-                   </Button>
-                 </div>
-               </div>
-             </DialogContent>
-           </Dialog>
+// Remove cache details dialog
         </>
       )}
     </>

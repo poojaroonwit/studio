@@ -143,8 +143,10 @@ export async function HEAD(request: NextRequest, { params }: { params: Promise<{
       status: 200,
       headers: {
         'Content-Type': 'application/json',
-        'Cache-Control': 'public, max-age=30, stale-while-revalidate=60',
-        'ETag': `"${Buffer.from(id).toString('base64').slice(0, 8)}"`,
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
       }
     });
   } catch (error: any) {
@@ -330,7 +332,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     return NextResponse.json(responseData, {
       headers: {
-        'Cache-Control': 'public, max-age=30, stale-while-revalidate=60',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
         'ETag': `"${Buffer.from(JSON.stringify(responseData)).toString('base64').slice(0, 8)}"`,
         'Pragma': 'no-cache',
         'Expires': '0'

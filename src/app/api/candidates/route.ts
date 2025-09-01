@@ -21,7 +21,7 @@ export const runtime = 'nodejs';
 // Performance optimization constants
 const MAX_PAGE_SIZE = Number.MAX_SAFE_INTEGER; // No limit - allow all candidates
 const DEFAULT_PAGE_SIZE = 50; // Reduced from 100 for faster initial loads
-const CACHE_DURATION = 30; // seconds
+// Remove cache duration constant
 const QUERY_TIMEOUT = 25000; // 25 seconds
 
 // Fast count query for performance
@@ -909,7 +909,9 @@ export async function GET(request: NextRequest) {
       
       // Add performance headers
       const headers = {
-        'Cache-Control': `public, max-age=${CACHE_DURATION}, stale-while-revalidate=${CACHE_DURATION * 2}`,
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
         'ETag': `"${Buffer.from(JSON.stringify({ filters, page, limit: 'count-only', total, responseTime })).toString('base64').slice(0, 8)}"`,
         'X-Response-Time': `${responseTime}ms`,
         'X-Total-Count': total.toString(),
@@ -984,7 +986,9 @@ export async function GET(request: NextRequest) {
     
     // Add performance headers
     const headers = {
-      'Cache-Control': `public, max-age=${CACHE_DURATION}, stale-while-revalidate=${CACHE_DURATION * 2}`,
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
       'ETag': `"${Buffer.from(JSON.stringify({ filters, page, limit, total, responseTime })).toString('base64').slice(0, 8)}"`,
       'X-Response-Time': `${responseTime}ms`,
       'X-Total-Count': total.toString(),

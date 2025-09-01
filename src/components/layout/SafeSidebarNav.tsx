@@ -438,7 +438,7 @@ const SafeSidebarNavComponent = React.memo(() => {
               </SidebarMenuItem>
               {/* Add separator between My Task Board and Candidates */}
               {canAccessMyTasks && item.href === '/my-tasks' && (
-                <SidebarSeparator />
+                <SidebarSeparator className="my-2 bg-border/50" />
               )}
             </React.Fragment>
           ))}
@@ -446,7 +446,7 @@ const SafeSidebarNavComponent = React.memo(() => {
         
         <div className="mt-auto">
           <SidebarMenu>
-            <SidebarSeparator />
+            <SidebarSeparator className="my-2 bg-border/50" />
             <SidebarGroupLabel>System</SidebarGroupLabel>
             <SidebarMenuItem>
               <MenuItemWithTooltip label={NAV_ITEMS.bulkUpload.label}>

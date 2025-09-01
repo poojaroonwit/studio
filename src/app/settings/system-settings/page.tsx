@@ -42,6 +42,8 @@ export default function SystemSettingsPage() {
   // Add state for default match criteria
   const [defaultMatchCriteria, setDefaultMatchCriteria] = useState('');
   const [isEditorReady, setIsEditorReady] = useState(false);
+  // Add state for job match feature toggle
+  const [jobMatchFeatureEnabled, setJobMatchFeatureEnabled] = useState(true);
 
   const fetchSystemSettings = useCallback(async () => {
     setIsLoading(true);
@@ -75,6 +77,9 @@ export default function SystemSettingsPage() {
       
       // Load showLogoOnly setting
       setShowLogoOnly(settings.showLogoOnly === 'true' || settings.showLogoOnly === true);
+      
+      // Load job match feature setting
+      setJobMatchFeatureEnabled(settings.jobMatchFeatureEnabled !== 'false');
     } catch (error) {
       setFetchError((error as Error).message);
     } finally {
@@ -110,6 +115,7 @@ export default function SystemSettingsPage() {
       { key: 'resumeProcessingWebhookResponseMode', value: resumeProcessingWebhookResponseMode || 'blocking' },
       { key: 'resumeProcessingWebhookTimeout', value: resumeProcessingWebhookTimeout.toString() },
       { key: 'defaultMatchCriteria', value: defaultMatchCriteria || '' },
+      { key: 'jobMatchFeatureEnabled', value: jobMatchFeatureEnabled.toString() },
     ];
     try {
       const controller = new AbortController();
@@ -457,6 +463,35 @@ export default function SystemSettingsPage() {
             {activeTab === 'system' && (
               <ScrollArea className="h-full pr-4">
                 <div className="space-y-6">
+                  {/* Feature Toggles */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Settings className="h-5 w-5 text-primary" />
+                        Feature Configuration
+                      </CardTitle>
+                      <CardDescription>
+                        Enable or disable system features
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="job-match-feature">Job Match Feature</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Enable or disable the job match functionality. When disabled, all job match related UI components will be hidden.
+                          </p>
+                        </div>
+                        <Switch
+                          id="job-match-feature"
+                          checked={jobMatchFeatureEnabled}
+                          onCheckedChange={setJobMatchFeatureEnabled}
+                          disabled={isSaving}
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+
                   {/* Match Criteria */}
                   <Card>
                     <CardHeader>

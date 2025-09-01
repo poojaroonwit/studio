@@ -38,6 +38,8 @@ const ALLOWED_SYSTEM_SETTING_KEYS = [
   'loginPageContent',
   'loginPageFooter',
   'maxConcurrentProcessors',
+  // Feature toggles
+  'jobMatchFeatureEnabled',
 ];
 
 const SystemSettingsTable: React.FC<SystemSettingsTableProps> = ({ settings, isLoading, onEdit }) => {

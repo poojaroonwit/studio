@@ -39,6 +39,7 @@ export class EnhancedSSEManager {
   private maxConcurrentConnections: number = 2; // Max 2 connections at once
   private debugMode: boolean = (typeof process !== 'undefined' && process.env && process.env.NEXT_PUBLIC_SSE_DEBUG === '1');
   private subscriberCount: number = 0;
+  private eventListeners: Set<(event: any) => void> = new Set();
 
   private info(...args: any[]) {
     if (this.debugMode) {
@@ -149,6 +150,25 @@ export class EnhancedSSEManager {
     if (this.subscriberCount === 0) {
       this.disconnectAll();
     }
+  }
+
+  public addEventListener(listener: (event: any) => void): void {
+    this.eventListeners.add(listener);
+  }
+
+  public removeEventListener(listener: (event: any) => void): void {
+    this.eventListeners.delete(listener);
+  }
+
+  private notifyEventListeners(event: any): void {
+    this.info(`[Enhanced SSE Manager] Notifying ${this.eventListeners.size} listeners with event:`, event);
+    this.eventListeners.forEach(listener => {
+      try {
+        listener(event);
+      } catch (error) {
+        this.error('[Enhanced SSE Manager] Error in event listener:', error);
+      }
+    });
   }
 
   public getSubscriberCount(): number {
@@ -275,6 +295,14 @@ export class EnhancedSSEManager {
               this.error(`[Enhanced SSE Manager] ${endpoint.name} error parsing message:`, error);
             }
           }
+          
+          // Always try to parse and notify listeners
+          try {
+            const data = JSON.parse(event.data);
+            this.notifyEventListeners(data);
+          } catch (error) {
+            // Ignore parsing errors for non-JSON messages
+          }
         };
 
         // Handle specific events
@@ -287,21 +315,23 @@ export class EnhancedSSEManager {
           'keepalive'
         ];
 
-        if (this.debugMode) {
-          eventTypes.forEach(eventType => {
-            eventSource.addEventListener(eventType, (event: MessageEvent) => {
-              try {
-                const data = JSON.parse(event.data);
+        eventTypes.forEach(eventType => {
+          eventSource.addEventListener(eventType, (event: MessageEvent) => {
+            try {
+              const data = JSON.parse(event.data);
+              if (this.debugMode) {
                 // eslint-disable-next-line no-console
                 console.log(`[Enhanced SSE Manager] ${endpoint.name} received ${eventType} event:`, data);
-              } catch (error) {
-                endpoint.lastErrorEventType = eventType;
-                endpoint.lastErrorLocation = endpoint.url;
-                this.error(`[Enhanced SSE Manager] ${endpoint.name} error parsing ${eventType} event:`, error);
               }
-            });
+              // Notify all listeners with the parsed data
+              this.notifyEventListeners(data);
+            } catch (error) {
+              endpoint.lastErrorEventType = eventType;
+              endpoint.lastErrorLocation = endpoint.url;
+              this.error(`[Enhanced SSE Manager] ${endpoint.name} error parsing ${eventType} event:`, error);
+            }
           });
-        }
+        });
 
       } catch (error) {
         reject(error);

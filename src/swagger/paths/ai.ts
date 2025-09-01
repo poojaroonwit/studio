@@ -83,5 +83,68 @@ export const aiPaths = {
         '401': { description: 'Unauthorized' }
       }
     }
+  },
+  '/api/v1/ai/search-candidates': {
+    post: {
+      summary: 'Search candidates with AI (v1 API)',
+      description: 'Search for candidates using AI-powered matching. Requires Bearer token authentication.',
+      tags: ['V1 AI'],
+      security: [{ bearerAuth: [] }],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                query: { type: 'string', description: 'Search query or job description' },
+                positionId: { type: 'string', nullable: true, description: 'Position ID to match against' },
+                filters: {
+                  type: 'object',
+                  properties: {
+                    skills: { type: 'array', items: { type: 'string' } },
+                    experience: { type: 'number', description: 'Minimum years of experience' },
+                    location: { type: 'string' },
+                    salary: { type: 'number' }
+                  }
+                },
+                limit: { type: 'number', default: 20, description: 'Maximum number of results' }
+              },
+              required: ['query']
+            }
+          }
+        }
+      },
+      responses: {
+        '200': {
+          description: 'AI search completed successfully',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  candidates: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        candidate: { $ref: '#/components/schemas/Candidate' },
+                        matchScore: { type: 'number' },
+                        matchedSkills: { type: 'array', items: { type: 'string' } },
+                        reasoning: { type: 'string' }
+                      }
+                    }
+                  },
+                  total: { type: 'number' },
+                  searchTime: { type: 'number' }
+                }
+              }
+            }
+          }
+        },
+        '400': { description: 'Invalid search query' },
+        '401': { description: 'Unauthorized' }
+      }
+    }
   }
 };

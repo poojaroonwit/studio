@@ -85,33 +85,42 @@ export function useRealtimeCollaboration(options: RealtimeCollaborationOptions =
 
   // Handle real-time updates
   useEffect(() => {
+    console.log('🔄 RealtimeCollaboration received message:', { lastMessage, isConnected });
+    
     if (lastMessage && isConnected) {
       const data = lastMessage;
       
-      if (data.type === 'candidate_update' && data.candidate) {
-        const updatedCandidate = data.candidate;
+      // Handle both direct data structure and nested data structure
+      const eventData = data.data || data;
+      
+      if (data.type === 'candidate_update' && eventData.candidate) {
+        const updatedCandidate = eventData.candidate;
+        
+        console.log('🔄 Processing candidate update:', updatedCandidate);
         
         // Call the callback if provided
         if (onCandidateUpdate) {
-          onCandidateUpdate(updatedCandidate);
+          onCandidateUpdate(eventData);
         }
         
         // Show notification (but not for user's own actions)
-        if (updatedCandidate.status && (!data.actingUserId || data.actingUserId !== session?.user?.id)) {
+        if (updatedCandidate.status && (!eventData.actingUserId || eventData.actingUserId !== session?.user?.id)) {
           showNotification(`Candidate ${updatedCandidate.name} moved to ${updatedCandidate.status}`, '🔄');
         }
       }
       
-      if (data.type === 'position_update' && data.position) {
-        const position = data.position;
+      if (data.type === 'position_update' && eventData.position) {
+        const position = eventData.position;
+        
+        console.log('🔄 Processing position update:', position);
         
         // Call the callback if provided
         if (onPositionUpdate) {
-          onPositionUpdate(position);
+          onPositionUpdate(eventData);
         }
         
         // Show notification (but not for user's own actions)
-        if (!data.actingUserId || data.actingUserId !== session?.user?.id) {
+        if (!eventData.actingUserId || eventData.actingUserId !== session?.user?.id) {
           showNotification(`Position "${position.title}" updated`, '💼');
         }
       }

@@ -13,6 +13,9 @@ import { UserAvatarCompact } from "@/components/ui/user-avatar";
 import { Badge } from "@/components/ui/badge";
 import React, { useState, useEffect, useCallback } from 'react'; 
 import { UnifiedUserModal, type UnifiedUserFormValues, type ModalMode } from '@/components/users/UnifiedUserModal';
+// Import the component statically instead of using dynamic require
+import { UserGroupsTab } from '@/components/settings/UserGroupsTab';
+import { UserTeamsTab } from '@/components/settings/UserTeamsTab';
 
 import { useRouter, usePathname } from 'next/navigation'; 
 import {
@@ -82,7 +85,6 @@ class TabErrorBoundary extends React.Component<
 // Safe component wrapper to prevent hook order issues
 function SafeTeamsTab() {
   try {
-    const { UserTeamsTab } = require('@/components/settings/UserTeamsTab');
     return <UserTeamsTab />;
   } catch (error) {
     console.error('Failed to load UserTeamsTab:', error);
@@ -101,7 +103,6 @@ function SafeTeamsTab() {
 
 function SafeGroupsTab() {
   try {
-    const { UserGroupsTab } = require('@/components/settings/UserGroupsTab');
     return <UserGroupsTab />;
   } catch (error) {
     console.error('Failed to load UserGroupsTab:', error);

@@ -134,8 +134,17 @@ export function useEnhancedSSE() {
   // Subscribe once per mount
   useEffect(() => {
     enhancedSSEManager.addSubscriber();
+    
+    // Add event listener to receive SSE events
+    const handleSSEEvent = (event: any) => {
+      setLastMessage(event);
+    };
+    
+    enhancedSSEManager.addEventListener(handleSSEEvent);
+    
     return () => {
       enhancedSSEManager.removeSubscriber();
+      enhancedSSEManager.removeEventListener(handleSSEEvent);
     };
   }, []);
 

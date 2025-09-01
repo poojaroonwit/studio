@@ -130,12 +130,29 @@ console.log(`Password: ${adminPassword}`);
 
     // Create basic system settings
     console.log('Creating system settings...');
+    
+    // Create a simple SVG logo for FitScan as a data URL
+    const defaultLogoSvg = `<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#3B82F6;stop-opacity:1" />
+          <stop offset="100%" style="stop-color:#1D4ED8;stop-opacity:1" />
+        </linearGradient>
+      </defs>
+      <rect width="100" height="100" rx="20" fill="url(#logoGradient)"/>
+      <text x="50" y="65" font-family="Arial, sans-serif" font-size="32" font-weight="bold" text-anchor="middle" fill="white">FS</text>
+    </svg>`;
+    
+    const defaultLogoDataUrl = `data:image/svg+xml;base64,${Buffer.from(defaultLogoSvg).toString('base64')}`;
+    
     const systemSettings = [
       { key: 'appName', value: 'FitScan' },
       { key: 'appThemePreference', value: 'system' },
       { key: 'primaryGradientStart', value: '179 67% 66%' },
       { key: 'primaryGradientEnd', value: '238 74% 61%' },
       { key: 'loginPageLayoutType', value: '2column' },
+      { key: 'appLogoDataUrl', value: defaultLogoDataUrl },
+      { key: 'loginPageLogoSize', value: '100' },
       { 
         key: 'defaultMatchCriteria', 
         value: '<h2>Required Skills & Experience</h2><ul><li>Relevant educational background (Bachelor\'s degree or equivalent)</li><li>Minimum 2-3 years of professional experience in the field</li><li>Strong technical skills and proficiency in relevant tools</li><li>Excellent communication and teamwork abilities</li></ul><h2>Preferred Qualifications</h2><ul><li>Advanced degree or certifications</li><li>Experience with modern technologies and methodologies</li><li>Leadership or project management experience</li><li>Industry-specific knowledge and expertise</li></ul><h2>Personal Qualities</h2><ul><li>Problem-solving mindset and analytical thinking</li><li>Adaptability and willingness to learn</li><li>Strong work ethic and attention to detail</li><li>Cultural fit with company values</li></ul>'

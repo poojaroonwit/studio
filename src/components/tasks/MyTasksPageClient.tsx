@@ -29,6 +29,7 @@ import CandidateDetailModal from '@/components/candidates/CandidateDetailModal';
 import { PositionSelectDropdown } from '@/components/candidates/PositionSelectDropdown';
 
 import { useEnhancedSSE } from '@/hooks/use-enhanced-sse';
+import { useRealtimeCollaboration } from '@/hooks/use-realtime-collaboration';
 import { getErrorMessage, retryWithBackoff, isRetryableError } from '@/lib/networkUtils';
 import { NetworkDiagnostics } from '@/components/ui/network-diagnostics';
 import { formatScoreWithGrade } from '@/lib/scoreUtils';
@@ -237,6 +238,53 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
 
   // Simple SSE hook
   const { isConnected: realtimeConnected } = useEnhancedSSE();
+
+  // Use real-time collaboration hook to properly handle SSE events
+  useRealtimeCollaboration({
+    onCandidateUpdate: handleCandidateUpdate,
+    onPositionUpdate: handlePositionUpdate,
+    showNotifications: true
+  });
+
+  // Debug: Log SSE connection status
+  useEffect(() => {
+    console.log('🔍 Task Board SSE Status:', {
+      realtimeConnected,
+      userSession: userSession?.id,
+      candidatesCount: candidates.length
+    });
+  }, [realtimeConnected, userSession?.id, candidates.length]);
+
+  // Debug: Test real-time updates (remove this in production)
+  const testRealTimeUpdate = useCallback(async () => {
+    if (candidates.length > 0) {
+      const testCandidate = candidates[0];
+      console.log('🧪 Testing real-time update for candidate:', testCandidate.id);
+      
+      try {
+        const response = await fetch(`/api/candidates/simple-update`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            candidateId: testCandidate.id,
+            updates: {
+              status: testCandidate.status === 'Applied' ? 'Screening' : 'Applied'
+            }
+          })
+        });
+        
+        if (response.ok) {
+          console.log('✅ Test update sent successfully');
+        } else {
+          console.error('❌ Test update failed:', response.status);
+        }
+      } catch (error) {
+        console.error('❌ Test update error:', error);
+      }
+    }
+  }, [candidates]);
 
   // Permission check: can view all candidates?
   const canViewAllCandidates = userSession?.role === 'Admin' || 
@@ -547,7 +595,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     // Track this optimistic update
     optimisticUpdatesRef.current.add(candidate.id);
     optimisticUpdateTimestampsRef.current.set(candidate.id, Date.now());
-    console.log('🚀 Starting optimistic update for candidate:', candidate.id, 'to status:', newStatus);
+    // console.log('🚀 Starting optimistic update for candidate:', candidate.id, 'to status:', newStatus);
     
     // Set a timeout to clear optimistic update after 60 seconds (fallback)
     setTimeout(() => {
@@ -616,8 +664,6 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
         // Remove from optimistic updates tracking
         optimisticUpdatesRef.current.delete(candidate.id);
         optimisticUpdateTimestampsRef.current.delete(candidate.id);
-        console.log('✅ Optimistic update completed successfully for candidate:', candidate.id);
-        
         // Add a small delay to ensure the real-time update doesn't interfere
         setTimeout(() => {
           if (optimisticUpdatesRef.current.has(candidate.id)) {
@@ -1016,6 +1062,17 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                 title="Customize card display"
               >
                 <Settings className="w-4 h-4" />
+              </Button>
+
+              {/* Debug: Test real-time updates button (remove in production) */}
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 px-2"
+                onClick={testRealTimeUpdate}
+                title="Test real-time updates"
+              >
+                🧪 Test
               </Button>
 
               {/* View Mode Toggle */}

@@ -116,8 +116,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
   const [mounted, setMounted] = useState(false);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
-// Remove cache details related code
-// Remove cache info state
+
   const [currentAppName, setCurrentAppName] = useState<string>(DEFAULT_APP_NAME);
   const [effectivePageTitle, setEffectivePageTitle] = useState(initialPageTitle);
   const { refreshKey, forceRefresh } = useAvatarRefresh();
@@ -187,11 +186,6 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
     setMounted(true);
   }, []);
 
-// Remove cache info state
-
-// Remove cache info collection function
-
-// Remove cache details references
 
   const [isDark, setIsDark] = useState(false);
 
@@ -345,9 +339,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
       
       // Force refresh avatars
       forceRefresh();
-      
-      // Update cache info
-      // Remove cache info collection call
+ 
       
       toast.success('Cache cleared successfully');
     }
@@ -432,7 +424,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
                   Change Password
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                // Remove cache details menu item
+            
                 <DropdownMenuItem onSelect={handleClearCache}>
                   <Trash2 className="mr-2 h-4 w-4" />
                   Clear Cache
@@ -465,7 +457,6 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
             user={session?.user as UserProfile | null}
             onSave={handleEditProfile}
           />
-// Remove cache details dialog
         </>
       )}
     </>

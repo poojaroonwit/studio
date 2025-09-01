@@ -85,8 +85,6 @@ export function useRealtimeCollaboration(options: RealtimeCollaborationOptions =
 
   // Handle real-time updates
   useEffect(() => {
-    console.log('🔄 RealtimeCollaboration received message:', { lastMessage, isConnected });
-    
     if (lastMessage && isConnected) {
       const data = lastMessage;
       
@@ -95,8 +93,6 @@ export function useRealtimeCollaboration(options: RealtimeCollaborationOptions =
       
       if (data.type === 'candidate_update' && eventData.candidate) {
         const updatedCandidate = eventData.candidate;
-        
-        console.log('🔄 Processing candidate update:', updatedCandidate);
         
         // Call the callback if provided
         if (onCandidateUpdate) {
@@ -111,8 +107,6 @@ export function useRealtimeCollaboration(options: RealtimeCollaborationOptions =
       
       if (data.type === 'position_update' && eventData.position) {
         const position = eventData.position;
-        
-        console.log('🔄 Processing position update:', position);
         
         // Call the callback if provided
         if (onPositionUpdate) {

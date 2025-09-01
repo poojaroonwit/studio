@@ -67,8 +67,8 @@ export function RoleSelector({
   );
 
   const getRoleCategory = (role: UserGroup) => {
-    if (role.is_system_role) return 'System Groups';
-    if (role.is_default) return 'Default Groups';
+    if (role.isSystemRole) return 'System Groups';
+    if (role.isDefault) return 'Default Groups';
     return 'Custom Groups';
   };
 
@@ -239,12 +239,12 @@ export function RoleSelector({
                                  {role.name}
                                </span>
                                <div className="flex items-center space-x-1">
-                                 {role.is_system_role && (
+                                 {role.isSystemRole && (
                                    <Badge variant="secondary" className="text-xs bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20">
                                      System
                                    </Badge>
                                  )}
-                                 {role.is_default && (
+                                 {role.isDefault && (
                                    <Badge variant="secondary" className="text-xs bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20">
                                      Default
                                    </Badge>
@@ -288,12 +288,12 @@ export function RoleSelector({
                                    {role.name}
                                  </span>
                                  <div className="flex items-center space-x-1">
-                                   {role.is_system_role && (
+                                   {role.isSystemRole && (
                                      <Badge variant="secondary" className="text-xs bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20">
                                        System
                                      </Badge>
                                    )}
-                                   {role.is_default && (
+                                   {role.isDefault && (
                                      <Badge variant="secondary" className="text-xs bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20">
                                        Default
                                      </Badge>

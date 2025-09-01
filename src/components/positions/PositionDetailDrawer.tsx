@@ -32,6 +32,7 @@ import { formatScoreWithGrade } from '@/lib/scoreUtils';
 import { Pagination } from '@/components/ui/pagination';
 import CandidateDetailModal from '@/components/candidates/CandidateDetailModal';
 import { HeadcountTab } from './HeadcountTab';
+import { useJobMatchFeature } from '@/hooks/useJobMatchFeature';
 
 // Form schema
 const editPositionFormSchema = z.object({
@@ -56,6 +57,7 @@ interface PositionDetailDrawerProps {
 
 export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initialEditMode = false }: PositionDetailDrawerProps) {
   const { data: session, status: sessionStatus } = useSession();
+  const { isJobMatchEnabled } = useJobMatchFeature();
   
   // State for position and general data
   const [position, setPosition] = useState<Position | null>(null);
@@ -405,7 +407,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
 
   // Fetch potential candidates (candidates with job matches for this position but not applied)
   const fetchPotentialCandidates = useCallback(async () => {
-    if (!positionId) return;
+    if (!positionId || !isJobMatchEnabled) return;
     
     try {
       const query = new URLSearchParams();
@@ -436,7 +438,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       setPotentialCandidates([]);
       setPotentialCandidatesTotal(0);
     }
-  }, [positionId, potentialCandidatesPage, potentialCandidatesPageSize, potentialCandidatesSearchTerm, potentialCandidatesSortColumn, potentialCandidatesSortDirection]);
+  }, [positionId, potentialCandidatesPage, potentialCandidatesPageSize, potentialCandidatesSearchTerm, potentialCandidatesSortColumn, potentialCandidatesSortDirection, isJobMatchEnabled]);
 
   // Fetch headcount count for this position
   const fetchHeadcountCount = useCallback(async () => {
@@ -1833,10 +1835,13 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                         <div>
                           <h2 className="text-2xl font-bold flex items-center gap-3">
                             <Users className="h-6 w-6 text-primary" />
-                            Candidates ({allCandidatesTotal + potentialCandidatesTotal})
+                            Candidates ({isJobMatchEnabled ? allCandidatesTotal + potentialCandidatesTotal : allCandidatesTotal})
                           </h2>
                           <p className="mt-2 text-muted-foreground">
-                            Applied candidates and job matches for this position
+                            {isJobMatchEnabled 
+                              ? "Applied candidates and job matches for this position"
+                              : "Applied candidates for this position"
+                            }
                           </p>
                         </div>
                       </div>
@@ -1856,17 +1861,19 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                             >
                               Applied Candidates ({appliedCandidatesCount})
                             </div>
-                            <div
-                              onClick={() => setActiveCandidateTab('potential')}
-                              className={cn(
-                                "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
-                                activeCandidateTab === 'potential'
-                                  ? "text-primary border-b-2 border-primary"
-                                  : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-                              )}
-                            >
-                              Job Matches ({potentialCandidatesTotal})
-                            </div>
+                            {isJobMatchEnabled && (
+                              <div
+                                onClick={() => setActiveCandidateTab('potential')}
+                                className={cn(
+                                  "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                                  activeCandidateTab === 'potential'
+                                    ? "text-primary border-b-2 border-primary"
+                                    : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                                )}
+                              >
+                                Job Matches ({potentialCandidatesTotal})
+                              </div>
+                            )}
                           </div>
                           
                           {activeCandidateTab === 'applied' && (
@@ -1915,7 +1922,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                             </div>
                           )}
                           
-                          {activeCandidateTab === 'potential' && (
+                          {activeCandidateTab === 'potential' && isJobMatchEnabled && (
                             <div className="space-y-4 h-full flex flex-col">
                               {/* Search and Filters for Potential */}
                               <div className="flex items-center gap-4">

@@ -20,12 +20,12 @@ export async function GET(req: NextRequest) {
         writer.write(new TextEncoder().encode(':\n\n'));
       } catch (error) {
         console.error('[Dashboard Stream] Keepalive failed:', error);
-        // Clear interval if write fails
+       
         if (keepAlive) {
           clearInterval(keepAlive);
           keepAlive = null;
         }
-        // Remove client from list
+   
         const idx = clients.indexOf(writer);
         if (idx !== -1) clients.splice(idx, 1);
       }

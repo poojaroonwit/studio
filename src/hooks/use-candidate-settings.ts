@@ -11,7 +11,7 @@ const defaultSettings: CandidateSettings = {
   showSourceColumn: true,
   showStatusColumn: true,
   showAppliedDateColumn: true,
-  showLastUpdateColumn: true,
+  showLastUpdateColumn: false,
   showFilters: true,
   showHorizontalFitScoreFilters: true,
   fitScoreType: 'applied',

@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { Settings, X } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { useJobMatchFeature } from '@/hooks/useJobMatchFeature';
 
 interface CandidateSettingsDrawerProps {
   isOpen: boolean;
@@ -51,7 +52,7 @@ const defaultSettings: CandidateSettings = {
   showSourceColumn: true,
   showStatusColumn: true,
   showAppliedDateColumn: true,
-  showLastUpdateColumn: true,
+  showLastUpdateColumn: false,
   showFilters: true,
   showHorizontalFitScoreFilters: true,
   fitScoreType: 'applied',
@@ -66,6 +67,8 @@ export function CandidateSettingsDrawer({
   isLoading = false,
   error = null
 }: CandidateSettingsDrawerProps) {
+  const { isJobMatchEnabled } = useJobMatchFeature();
+  
   // Initialize local settings with currentSettings or defaults
   const [localSettings, setLocalSettings] = useState<CandidateSettings>(currentSettings || defaultSettings);
   const [isSaving, setIsSaving] = useState(false);
@@ -156,16 +159,18 @@ export function CandidateSettingsDrawer({
                      />
                   </div>
                   
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="showJobMatchesColumn" className="text-sm font-medium">
-                      Job Matches Count
-                    </Label>
-                                         <Switch
-                       id="showJobMatchesColumn"
-                       checked={localSettings.showJobMatchesColumn}
-                       onCheckedChange={(checked) => handleSettingChange('showJobMatchesColumn', checked)}
-                     />
-                  </div>
+                  {isJobMatchEnabled && (
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="showJobMatchesColumn" className="text-sm font-medium">
+                        Job Matches Count
+                      </Label>
+                                           <Switch
+                         id="showJobMatchesColumn"
+                         checked={localSettings.showJobMatchesColumn}
+                         onCheckedChange={(checked) => handleSettingChange('showJobMatchesColumn', checked)}
+                       />
+                    </div>
+                  )}
                   
                   <div className="flex items-center justify-between">
                     <Label htmlFor="showFitScoreColumn" className="text-sm font-medium">
@@ -282,12 +287,14 @@ export function CandidateSettingsDrawer({
                       Applied Job Fit Score
                     </Label>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="matching" id="matching" />
-                    <Label htmlFor="matching" className="text-sm font-medium">
-                      Job Match Fit Score
-                    </Label>
-                  </div>
+                  {isJobMatchEnabled && (
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="matching" id="matching" />
+                      <Label htmlFor="matching" className="text-sm font-medium">
+                        Job Match Fit Score
+                      </Label>
+                    </div>
+                  )}
                 </RadioGroup>
               </CardContent>
             </Card>

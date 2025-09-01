@@ -156,7 +156,7 @@ export default function RolesPermissionsPage() {
 
   const handleOpenModal = (role: UserGroup | null = null) => {
     setEditingRole(role);
-    form.reset(role ? { name: role.name, description: role.description || '', permissions: role.permissions || [], is_default: role.is_default || false } : { name: '', description: '', permissions: [], is_default: false });
+            form.reset(role ? { name: role.name, description: role.description || '', permissions: role.permissions || [], is_default: role.isDefault || false } : { name: '', description: '', permissions: [], is_default: false });
     setIsModalOpen(true);
   };
 
@@ -283,7 +283,7 @@ export default function RolesPermissionsPage() {
                   <TableCell>
                     <div className="flex items-center space-x-2">
                       <span className="font-medium">{role.name}</span>
-                      {role.is_default && (
+                      {role.isDefault && (
                         <Badge variant="secondary" className="text-xs">Default</Badge>
                       )}
                     </div>
@@ -294,7 +294,7 @@ export default function RolesPermissionsPage() {
                     </span>
                   </TableCell>
                   <TableCell>
-                    {role.is_system_role ? (
+                    {role.isSystemRole ? (
                       <Badge variant="secondary" className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20">
                         System
                       </Badge>
@@ -309,7 +309,7 @@ export default function RolesPermissionsPage() {
                   </TableCell>
                   <TableCell>
                     <span className="text-sm text-muted-foreground">
-                      {role.is_system_role && role.name === 'Admin' ? 'All' : (role.permissions || []).length + ' permissions'}
+                      {role.isSystemRole && role.name === 'Admin' ? 'All' : (role.permissions || []).length + ' permissions'}
                     </span>
                   </TableCell>
                   <TableCell className="text-right">
@@ -325,7 +325,7 @@ export default function RolesPermissionsPage() {
                           <DropdownMenuItem onClick={e => { e.stopPropagation(); handleSelectRole(role); }}>
                             <Edit3 className="mr-2 h-4 w-4" /> Manage Role
                           </DropdownMenuItem>
-                          {!role.is_system_role && (
+                          {!role.isSystemRole && (
                             <>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={e => { e.stopPropagation(); confirmDelete(role); }} className="text-destructive hover:!bg-destructive/10 focus:!bg-destructive/10 focus:!text-destructive">
@@ -360,9 +360,9 @@ export default function RolesPermissionsPage() {
               <FormField control={form.control} name="name" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Role Name *</FormLabel>
-                  <FormControl><Input {...field} disabled={editingRole?.is_system_role} /></FormControl>
+                  <FormControl><Input {...field} disabled={editingRole?.isSystemRole} /></FormControl>
                   <FormMessage />
-                   {editingRole?.is_system_role && <p className="text-xs text-muted-foreground">System role names cannot be changed.</p>}
+                   {editingRole?.isSystemRole && <p className="text-xs text-muted-foreground">System role names cannot be changed.</p>}
                 </FormItem>
               )} />
               <FormField control={form.control} name="description" render={({ field }) => (
@@ -386,7 +386,7 @@ export default function RolesPermissionsPage() {
             </Button>
             <Button 
               type="submit" 
-              disabled={form.formState.isSubmitting || (editingRole?.is_system_role && form.getValues("name") === editingRole.name && !form.getFieldState("description").isDirty && !form.getFieldState("is_default").isDirty )} 
+                              disabled={form.formState.isSubmitting || (editingRole?.isSystemRole && form.getValues("name") === editingRole.name && !form.getFieldState("description").isDirty && !form.getFieldState("is_default").isDirty )} 
               variant="default"
               className="flex items-center gap-2"
               onClick={form.handleSubmit(handleRoleFormSubmit)}

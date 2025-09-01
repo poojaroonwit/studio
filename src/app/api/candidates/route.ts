@@ -21,7 +21,7 @@ export const runtime = 'nodejs';
 // Performance optimization constants
 const MAX_PAGE_SIZE = Number.MAX_SAFE_INTEGER; // No limit - allow all candidates
 const DEFAULT_PAGE_SIZE = 50; // Reduced from 100 for faster initial loads
-// Remove cache duration constant
+
 const QUERY_TIMEOUT = 25000; // 25 seconds
 
 // Fast count query for performance

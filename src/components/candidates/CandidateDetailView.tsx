@@ -117,7 +117,6 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
         try {
           const commentsData = await commentsRes.value.json();
           setComments(Array.isArray(commentsData) ? commentsData : (commentsData.data || []));
-          console.log('✅ Comments loaded successfully');
         } catch (parseError) {
           console.warn('⚠️ Failed to parse comments response:', parseError);
           setComments([]);
@@ -140,7 +139,6 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
         try {
           const attachmentsData = await attachmentsRes.value.json();
           setAttachments(Array.isArray(attachmentsData) ? attachmentsData : (attachmentsData.data || []));
-          console.log('✅ Attachments loaded successfully');
         } catch (parseError) {
           console.warn('⚠️ Failed to parse attachments response:', parseError);
           setAttachments([]);
@@ -162,7 +160,6 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
       if (candidateRes.status === 'fulfilled') {
         if (candidateRes.value.ok) {
           setCandidateExists(true);
-          console.log('✅ Candidate exists and is accessible');
         } else if (candidateRes.value.status === 404) {
           setCandidateExists(false);
           setError('Candidate not found');
@@ -180,8 +177,6 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
         console.warn('⚠️ Candidate request rejected:', candidateRes.reason);
         setCandidateExists(true); // Assume exists if request failed
       }
-
-      console.log('✅ All candidate data loading completed for:', candidateId);
 
     } catch (error: any) {
       // Clear timeout since we got an error
@@ -203,7 +198,6 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
       isLoadingRef.current = false;
       if (mountedRef.current) {
         setIsLoading(false);
-        console.log('🏁 Loading state set to false for candidate:', candidateId);
       }
     }
   }, [candidateId]);

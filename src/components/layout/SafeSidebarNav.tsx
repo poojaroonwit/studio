@@ -418,6 +418,7 @@ const SafeSidebarNavComponent = React.memo(() => {
     // Expanded mode
     return (
       <div className="flex flex-col h-full">
+        <SidebarSeparator className="my-2 bg-border/50" />
         <SidebarMenu className="flex-1">
           <SidebarGroupLabel>General</SidebarGroupLabel>
           {navigationItems.map((item, index) => (

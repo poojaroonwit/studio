@@ -188,7 +188,7 @@ export function UnifiedRoleDrawer({
   const roleLoadCount = useRef(0);
 
   // Calculate isAdminRole early to avoid scope issues
-  const isSystemRole = role?.is_system_role || false;
+  const isSystemRole = role?.isSystemRole || false;
   const isAdminRole = role?.name === 'Admin';
 
   // Get all available permissions for Admin role with defensive checks
@@ -277,7 +277,7 @@ export function UnifiedRoleDrawer({
       form.reset({
         name: role?.name || '',
         description: role?.description || '',
-        is_default: role?.is_default || false
+                 is_default: role?.isDefault || false
       });
       
       // For Admin role, always show all permissions
@@ -481,7 +481,7 @@ export function UnifiedRoleDrawer({
         name: role?.name,
         description: role?.description,
         permissions: finalPermissions,
-        is_default: role?.is_default
+                 is_default: role?.isDefault
       };
       
       try {
@@ -604,6 +604,7 @@ export function UnifiedRoleDrawer({
   return (
     <>
       <Sheet open={isOpen} onOpenChange={onOpenChange}>
+        {console.log('UnifiedRoleDrawer: Sheet component rendering with isOpen:', isOpen)}
         <SheetContent className="w-full max-w-[85vw] sm:max-w-[80vw] md:max-w-[75vw] lg:max-w-[70vw] xl:max-w-[900px] h-screen flex flex-col p-0">
           <UnifiedRoleDrawerErrorBoundary>
             <SheetHeader className="flex-shrink-0 p-6 pb-4">
@@ -826,8 +827,8 @@ export function UnifiedRoleDrawer({
                                  </TableRow>
                                </TableHeader>
                                <TableBody>
-                                 {members.map((member) => (
-                                   <TableRow key={member.id}>
+                                                                 {members.filter(member => member && member.id && member.name).map((member) => (
+                                  <TableRow key={member.id}>
                                      <TableCell className="w-[40%] min-w-[200px]">
                                        <div className="flex items-center gap-3">
                                          <Avatar className="h-8 w-8 flex-shrink-0 rounded-full">
@@ -924,7 +925,7 @@ export function UnifiedRoleDrawer({
                     </div>
                   ) : (
                     <div className="max-h-[200px] overflow-y-auto">
-                      {availableUsers.map((user) => {
+                      {availableUsers.filter(user => user && user.id && user.name).map((user) => {
                         const isAlreadyMember = members.some(member => member.id === user.id);
                         return (
                           <SelectItem 

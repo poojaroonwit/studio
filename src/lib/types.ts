@@ -992,8 +992,8 @@ export interface UserGroup { // This is now "Role" in the UI
   name: string;
   description?: string | null;
   permissions?: PlatformModuleId[];
-  is_default?: boolean;
-  is_system_role?: boolean;
+  isDefault?: boolean; // Changed from is_default to match Prisma schema
+  isSystemRole?: boolean; // Changed from is_system_role to match Prisma schema
   user_count?: number; // For API response
   createdAt?: string;
   updatedAt?: string;

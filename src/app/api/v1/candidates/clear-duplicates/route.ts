@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Check permissions
-    if (user.role !== 'Admin' && !user.modulePermissions?.includes('CANDIDATES_MANAGE')) {
+    if (user.role !== 'Admin' && !user.modulePermissions?.includes('CANDIDATES_DELETE')) {
       return NextResponse.json({
         success: false,
         error: 'Insufficient permissions to manage candidates'
@@ -52,6 +52,22 @@ export async function POST(req: NextRequest) {
 
     const body: ClearDuplicatesRequest = await req.json();
     const { dryRun = false, positionId } = body;
+
+    // Validate positionId if provided
+    if (positionId && typeof positionId !== 'string') {
+      return NextResponse.json({
+        success: false,
+        error: 'Invalid positionId format'
+      }, { status: 400, headers });
+    }
+
+    // Validate dryRun parameter
+    if (typeof dryRun !== 'boolean') {
+      return NextResponse.json({
+        success: false,
+        error: 'Invalid dryRun format - must be boolean'
+      }, { status: 400, headers });
+    }
 
     // Build where clause
     const whereClause: any = {};
@@ -74,6 +90,24 @@ export async function POST(req: NextRequest) {
         createdAt: 'asc'
       }
     });
+
+    if (!candidates || candidates.length === 0) {
+      await logAudit('AUDIT', `Clear duplicates completed - no candidates found`, 'API:V1:Candidates:ClearDuplicates', user.id, {
+        dryRun,
+        positionId,
+        candidatesFound: 0
+      });
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          message: 'No candidates found',
+          duplicatesFound: 0,
+          candidatesToDelete: 0,
+          dryRun
+        }
+      }, { headers });
+    }
 
     // Group candidates by email and positionId
     const candidateGroups = new Map<string, DuplicateGroup>();
@@ -157,13 +191,30 @@ export async function POST(req: NextRequest) {
     // Actually delete the duplicates
     const candidateIdsToDelete = candidatesToDelete.map(c => c.id);
     
-    await prisma.candidate.deleteMany({
-      where: {
-        id: {
-          in: candidateIdsToDelete
-        }
+    if (candidateIdsToDelete.length > 0) {
+      try {
+        await prisma.candidate.deleteMany({
+          where: {
+            id: {
+              in: candidateIdsToDelete
+            }
+          }
+        });
+      } catch (deleteError) {
+        console.error('Error deleting candidates:', deleteError);
+        await logAudit('ERROR', `Failed to delete duplicate candidates`, 'API:V1:Candidates:ClearDuplicates', user.id, {
+          dryRun,
+          positionId,
+          candidatesToDelete: candidateIdsToDelete,
+          error: (deleteError as Error).message
+        });
+
+        return NextResponse.json({
+          success: false,
+          error: 'Failed to delete duplicate candidates'
+        }, { status: 500, headers });
       }
-    });
+    }
 
     await logAudit('AUDIT', `Successfully cleared ${totalToDelete} duplicate candidates`, 'API:V1:Candidates:ClearDuplicates', user.id, {
       dryRun,
@@ -186,9 +237,18 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('Error clearing duplicate candidates:', error);
     
-    const userId = req.headers.get('authorization') ? 
-      (await verifyApiToken(req.headers.get('authorization')!.split(' ')[1]))?.id : 
-      'unknown';
+    // Safely get userId without potentially causing another error
+    let userId = 'unknown';
+    try {
+      const authHeader = req.headers.get('authorization');
+      if (authHeader) {
+        const token = authHeader.split(' ')[1];
+        const user = await verifyApiToken(token);
+        userId = user?.id || 'unknown';
+      }
+    } catch (authError) {
+      console.error('Error getting user ID for audit log:', authError);
+    }
     
     await logAudit('ERROR', `Failed to clear duplicate candidates`, 'API:V1:Candidates:ClearDuplicates', userId, {
       error: (error as Error).message

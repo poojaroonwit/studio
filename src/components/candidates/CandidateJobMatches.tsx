@@ -2,12 +2,19 @@ import React from 'react';
 import type { AutomationJobMatch } from '@/lib/types';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { formatScoreWithGrade } from '@/lib/utils';
+import { useJobMatchFeature } from '@/hooks/useJobMatchFeature';
 
 interface CandidateJobMatchesProps {
   jobMatches: AutomationJobMatch[];
 }
 
 const CandidateJobMatches: React.FC<CandidateJobMatchesProps> = ({ jobMatches }) => {
+  const { isJobMatchEnabled } = useJobMatchFeature();
+  
+  if (!isJobMatchEnabled) {
+    return null;
+  }
+  
   return (
     <Card>
       <CardHeader>

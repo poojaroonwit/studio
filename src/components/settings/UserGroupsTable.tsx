@@ -38,7 +38,7 @@ const UserGroupsTable: React.FC<UserGroupsTableProps> = ({ groups, isLoading, on
               <td>{group.description || '-'}</td>
               <td>{typeof group.user_count === 'number' ? group.user_count : 0}</td>
               <td>
-                {group.is_system_role ? 'System' : group.is_default ? 'Default' : 'Custom'}
+                {group.isSystemRole ? 'System' : group.isDefault ? 'Default' : 'Custom'}
               </td>
               <td>
                 <button onClick={() => onEdit(group)}>Edit</button>

@@ -186,13 +186,19 @@ export function UserGroupsTab() {
       return;
     }
     
+    console.log('UserGroupsTab: handleSelectRole called with role:', role);
+    console.log('UserGroupsTab: Setting selectedRole to:', role);
+    console.log('UserGroupsTab: Setting isUnifiedDrawerOpen to true');
+    
     setSelectedRole(role);
     setIsUnifiedDrawerOpen(true);
+    
+    console.log('UserGroupsTab: State should now be updated');
   };
 
   const handleOpenModal = (role: UserGroup | null = null) => {
     setEditingRole(role);
-    form.reset(role ? { name: role.name, description: role.description || '', permissions: role.permissions || [], is_default: role.is_default || false } : { name: '', description: '', permissions: [], is_default: false });
+    form.reset(role ? { name: role.name, description: role.description || '', permissions: role.permissions || [], is_default: role.isDefault || false } : { name: '', description: '', permissions: [], is_default: false });
     setIsModalOpen(true);
   };
 
@@ -318,13 +324,7 @@ export function UserGroupsTab() {
                 </TableRow>
               </TableHeader>
                           <TableBody>
-               {roles.map((role) => {
-                 // Defensive check to prevent React error #185
-                 if (!role || !role.id || !role.name) {
-                   console.warn('UserGroupsTab: Skipping invalid role:', role);
-                   return null;
-                 }
-                 
+               {roles.filter(role => role && role.id && role.name).map((role) => {                 
                  return (
                    <TableRow key={role.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleSelectRole(role)}>
                      <TableCell>
@@ -361,7 +361,7 @@ export function UserGroupsTab() {
                          >
                            Manage
                          </Button>
-                         {!role.is_default && (
+                         {!role.isDefault && (
                            <Button 
                              variant="ghost" 
                              size="sm" 

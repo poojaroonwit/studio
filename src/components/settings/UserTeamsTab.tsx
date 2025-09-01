@@ -397,7 +397,15 @@ export function UserTeamsTab() {
                       </span>
                    </TableCell>
                    <TableCell className="text-right">
-                     <Button variant="ghost" size="sm" className="h-8 px-3">
+                     <Button 
+                       variant="ghost" 
+                       size="sm" 
+                       className="h-8 px-3"
+                       onClick={(e) => {
+                         e.stopPropagation();
+                         handleSelectTeam(team);
+                       }}
+                     >
                        Manage
                      </Button>
                    </TableCell>

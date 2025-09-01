@@ -280,7 +280,15 @@ export function UserGroupsTab() {
                     </TableCell>
                     <TableCell className="text-right">
                      <div className="flex items-center gap-2">
-                       <Button variant="ghost" size="sm" className="h-8 px-3">
+                       <Button 
+                         variant="ghost" 
+                         size="sm" 
+                         className="h-8 px-3"
+                         onClick={(e) => {
+                           e.stopPropagation();
+                           handleSelectRole(role);
+                         }}
+                       >
                          Manage
                        </Button>
                        {!role.is_default && (

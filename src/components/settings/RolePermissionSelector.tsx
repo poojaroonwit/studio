@@ -37,9 +37,12 @@ const groupedPermissions = (() => {
       return [];
     }
     
+    // Ensure PLATFORM_MODULES has valid objects
+    const validModules = PLATFORM_MODULES.filter(p => p && typeof p === 'object' && p.id && p.category);
+    
     return Object.values(PLATFORM_MODULE_CATEGORIES).map(category => {
       try {
-        const permissions = PLATFORM_MODULES.filter(p => {
+        const permissions = validModules.filter(p => {
           try {
             return p && p.category === category;
           } catch (error) {
@@ -71,6 +74,19 @@ export function RolePermissionSelector({
   protectedPermissions = [],
   isLoading = false
 }: RolePermissionSelectorProps) {
+  // Early return if critical data is missing
+  if (!Array.isArray(PLATFORM_MODULES) || PLATFORM_MODULES.length === 0) {
+    console.error('RolePermissionSelector: PLATFORM_MODULES is not available or empty');
+    return (
+      <div className="flex items-center justify-center p-8 text-center">
+        <div className="text-muted-foreground">
+          <p>Permission data is not available.</p>
+          <p className="text-sm">Please refresh the page or contact support.</p>
+        </div>
+      </div>
+    );
+  }
+
   const [searchQuery, setSearchQuery] = useState('');
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const scrollPositionRef = useRef<number>(0);
@@ -126,7 +142,7 @@ export function RolePermissionSelector({
         return;
       }
       
-      const allPermissions = PLATFORM_MODULES.map(p => p.id).filter(Boolean);
+      const allPermissions = PLATFORM_MODULES.map(p => p?.id).filter(Boolean);
       onPermissionsChange(allPermissions);
     } catch (error) {
       console.error('RolePermissionSelector: Error selecting all permissions:', error);
@@ -216,22 +232,34 @@ export function RolePermissionSelector({
         return [];
       }
       
-      return groupedPermissions.map(group => ({
-        ...group,
-        permissions: group.permissions.filter(permission => {
-          try {
-            if (!permission || !permission.label || !permission.description || !permission.id) {
-              return false;
-            }
-            return permission.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                   permission.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                   permission.id.toLowerCase().includes(searchQuery.toLowerCase());
-          } catch (error) {
-            console.warn('RolePermissionSelector: Error filtering permission:', error, permission);
-            return false;
+      return groupedPermissions.map(group => {
+        try {
+          if (!group || !Array.isArray(group.permissions)) {
+            console.warn('RolePermissionSelector: Invalid group structure:', group);
+            return { ...group, permissions: [] };
           }
-        })
-      })).filter(group => group.permissions.length > 0);
+          
+          return {
+            ...group,
+            permissions: group.permissions.filter(permission => {
+              try {
+                if (!permission || !permission.label || !permission.description || !permission.id) {
+                  return false;
+                }
+                return permission.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                       permission.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                       permission.id.toLowerCase().includes(searchQuery.toLowerCase());
+              } catch (error) {
+                console.warn('RolePermissionSelector: Error filtering permission:', error, permission);
+                return false;
+              }
+            })
+          };
+        } catch (error) {
+          console.error('RolePermissionSelector: Error processing group:', error, group);
+          return { ...group, permissions: [] };
+        }
+      }).filter(group => group.permissions.length > 0);
     } catch (error) {
       console.error('RolePermissionSelector: Error filtering grouped permissions:', error);
       return [];
@@ -308,7 +336,7 @@ export function RolePermissionSelector({
         {/* Scrollable Permission Groups */}
         <div className="flex-1 overflow-y-auto min-h-0" ref={scrollContainerRef}>
           {filteredGroupedPermissions.map(({ category, permissions }) => (
-            <div key={category} className="border-b border-border last:border-b-0">
+            <div key={`category-${category}`} className="border-b border-border last:border-b-0">
               {/* Category Header */}
               <div className="sticky top-0 bg-background border-b border-border/50 px-4 py-2 z-5">
                 <div className="flex items-center justify-between">
@@ -384,7 +412,7 @@ export function RolePermissionSelector({
                     const isDisabled = disabled || (isProtected && isSelected);
                     
                     return (
-                      <div key={permission.id} className="group">
+                      <div key={`permission-${permission.id}-${category}`} className="group">
                         <label className={cn(
                           "flex items-center space-x-3 p-3 hover:bg-muted/30 transition-colors cursor-pointer",
                           isDisabled && "cursor-not-allowed opacity-50"

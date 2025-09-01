@@ -596,9 +596,9 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
           {isClient && (() => {
             // Determine which logo to use based on theme
             let logoToUse = appLogoUrl;
-            if (isThemeDark && contextualLogos.loginPageLogoDarkMode) {
+            if (isThemeDark && contextualLogos.loginPageLogoDarkMode && contextualLogos.loginPageLogoDarkMode.trim() !== '') {
               logoToUse = contextualLogos.loginPageLogoDarkMode;
-            } else if (!isThemeDark && contextualLogos.loginPageLogoLightMode) {
+            } else if (!isThemeDark && contextualLogos.loginPageLogoLightMode && contextualLogos.loginPageLogoLightMode.trim() !== '') {
               logoToUse = contextualLogos.loginPageLogoLightMode;
             }
             

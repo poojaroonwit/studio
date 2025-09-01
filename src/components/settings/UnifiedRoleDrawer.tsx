@@ -150,6 +150,14 @@ export function UnifiedRoleDrawer({
   onRoleChange,
   onMembersChange 
 }: UnifiedRoleDrawerProps) {
+  // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
+  const [isMounted, setIsMounted] = useState(false);
+  
+  useEffect(() => {
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, []);
+
   const [activeTab, setActiveTab] = useState('details');
   const [members, setMembers] = useState<GroupMember[]>([]);
   const [availableUsers, setAvailableUsers] = useState<AvailableUser[]>([]);
@@ -576,14 +584,6 @@ export function UnifiedRoleDrawer({
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
   };
-
-  // Prevent infinite loops by checking if component is mounted
-  const [isMounted, setIsMounted] = useState(false);
-  
-  useEffect(() => {
-    setIsMounted(true);
-    return () => setIsMounted(false);
-  }, []);
 
   // Prevent rendering if no role is provided
   if (!role || !isMounted) {

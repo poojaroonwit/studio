@@ -74,21 +74,22 @@ export async function GET(request: NextRequest) {
                 personalColor: true,
                 authenticationMethod: true,
                 forcePasswordChange: true,
-                module_permissions: true,
                 createdAt: true,
                 updatedAt: true,
-                userTeams: {
-                    include: {
-                        team: {
-                            select: {
-                                id: true,
-                                name: true,
-                                color: true
-                            }
-                        }
+                userGroup: {
+                    select: {
+                        id: true,
+                        name: true,
+                        permissions: true
                     }
                 },
-
+                userTeam: {
+                    select: {
+                        id: true,
+                        name: true,
+                        color: true
+                    }
+                }
             }
         });
 
@@ -98,8 +99,8 @@ export async function GET(request: NextRequest) {
 
         const userToReturn = {
             ...user,
-            teams: user.userTeams.map((ut: any) => ut.team),
-            modulePermissions: user.module_permissions || [],
+            teams: user.userTeam ? [user.userTeam] : [],
+            modulePermissions: user.userGroup?.permissions || [],
         };
 
         return NextResponse.json(userToReturn, { status: 200 });

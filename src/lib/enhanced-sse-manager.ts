@@ -36,7 +36,7 @@ export class EnhancedSSEManager {
   private isConnecting: boolean = false;
   private connectionTimeout: number = 10000; // 10 seconds timeout
   private retryDelay: number = 5000; // 5 seconds between retries
-  private maxConcurrentConnections: number = 2; // Max 2 connections at once
+  private maxConcurrentConnections: number = 1; // Reduced from 2 to 1
   private debugMode: boolean = (typeof process !== 'undefined' && process.env && process.env.NEXT_PUBLIC_SSE_DEBUG === '1');
   private subscriberCount: number = 0;
   private eventListeners: Set<(event: any) => void> = new Set();

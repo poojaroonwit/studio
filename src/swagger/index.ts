@@ -25,6 +25,15 @@ import { aiPaths } from './paths/ai';
 import { recruitmentStagesPaths } from './paths/recruitment-stages';
 import { transitionsPaths } from './paths/transitions';
 import { candidateSourcesPaths } from './paths/candidate-sources';
+import { userPreferencesPaths } from './paths/user-preferences';
+import { slaViolationsPaths } from './paths/sla-violations';
+import { setupPaths } from './paths/setup';
+import { linkPreviewPaths } from './paths/link-preview';
+import { headcountPaths } from './paths/headcount';
+import { downloadPaths } from './paths/download';
+import { automationPaths } from './paths/automation';
+import { resumesPaths } from './paths/resumes';
+import { warningConfigurationsPaths } from './paths/warning-configurations';
 
 export function getSwaggerSpec() {
   return {
@@ -50,6 +59,15 @@ export function getSwaggerSpec() {
       ...recruitmentStagesPaths,
       ...transitionsPaths,
       ...candidateSourcesPaths,
+      ...userPreferencesPaths,
+      ...slaViolationsPaths,
+      ...setupPaths,
+      ...linkPreviewPaths,
+      ...headcountPaths,
+      ...downloadPaths,
+      ...automationPaths,
+      ...resumesPaths,
+      ...warningConfigurationsPaths,
     },
     components: {
       ...baseSwaggerConfig.components,

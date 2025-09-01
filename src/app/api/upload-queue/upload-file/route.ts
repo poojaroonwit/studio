@@ -4,7 +4,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { getServerSession } from 'next-auth/next';
 import { authOptions, validateUserSession } from '@/lib/auth';
 import { getPool } from '@/lib/db';
-// import { logAudit } from '@/lib/auditLog'; // Disabled for simplicity
+import { logAudit } from '@/lib/auditLog';
+import { hasAnyPermission } from '@/lib/permissions';
 // import { dispatchWebhooks } from '@/lib/webhookDispatcher'; // Disabled for simplicity
 import { broadcastUploadQueueUpdate } from '../sse/broadcastUploadQueueUpdate';
 import { retryMinIOUpload, retryDatabaseOperation } from '@/lib/uploadRetry';
@@ -332,10 +333,12 @@ export async function POST(request: NextRequest) {
     const actingUserId = validation.userId!;
     const actingUserName = validation.userName!;
 
-    // Check permissions
-    const canUpload = session.user.role === 'Admin' || session.user.modulePermissions?.includes('USERS_MANAGE') || 
-      session.user.modulePermissions?.includes('BULK_UPLOAD') ||
-      session.user.modulePermissions?.includes('UPLOAD_QUEUE_MANAGE');
+    // Check permissions using the new permission system
+    const canUpload = hasAnyPermission(
+      session.user.role,
+      session.user.modulePermissions,
+      ['USERS_MANAGE', 'BULK_UPLOAD_EXECUTE', 'UPLOAD_QUEUE_MANAGE']
+    );
     
     if (!canUpload) {
       console.warn(`Forbidden upload attempt by ${actingUserName}`);

@@ -420,10 +420,14 @@ export async function requireSessionAndPermission(requiredPermission: string, re
   if (!session?.user?.id) {
     return { error: NextResponse.json({ message: 'Unauthorized' }, { status: 401 }) };
   }
-  if (
-    session.user.role !== 'Admin' &&
-    !session.user.modulePermissions?.includes(requiredPermission)
-  ) {
+  
+  // Admin users have full access to everything
+  if (session.user.role === 'Admin') {
+    return { session };
+  }
+  
+  // For non-admin users, check specific permissions from user groups
+  if (!session.user.modulePermissions?.includes(requiredPermission)) {
     await logAudit(
       'WARN',
       `Forbidden attempt to access resource by ${session.user.name || session.user.email}.`,

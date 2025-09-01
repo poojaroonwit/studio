@@ -64,7 +64,12 @@ export default function ProcessQueueAnalytics() {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
+    // Default to last 30 days
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30);
+    return { from: thirtyDaysAgo, to: now };
+  });
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedJob, setSelectedJob] = useState<AnalyticsData['scatterData'][0] | null>(null);
   const [isJobDetailsOpen, setIsJobDetailsOpen] = useState(false);
@@ -78,16 +83,23 @@ export default function ProcessQueueAnalytics() {
     try {
       setLoading(true);
       const params = new URLSearchParams({
-        limit: '1000'
+        limit: '1000' // Use 1000 as max limit for analytics
       });
 
-      // Add date range parameters if set
-      if (dateRange?.from) {
-        params.append('date_start', dateRange.from.toISOString());
+      // Always add date range parameters - default to last 30 days if not set
+      let fromDate = dateRange?.from;
+      let toDate = dateRange?.to;
+      
+      if (!fromDate) {
+        const now = new Date();
+        fromDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30);
       }
-      if (dateRange?.to) {
-        params.append('date_end', dateRange.to.toISOString());
+      if (!toDate) {
+        toDate = new Date();
       }
+      
+      params.append('date_start', fromDate.toISOString());
+      params.append('date_end', toDate.toISOString());
 
       // Add status filter if set
       if (statusFilter && statusFilter !== 'all') {
@@ -561,18 +573,17 @@ export default function ProcessQueueAnalytics() {
     <div className="space-y-6">
             {/* Date Range Filter */}
       <div className="flex items-center justify-between">
-        {(dateRange || statusFilter !== 'all') && (
+        {(statusFilter !== 'all') && (
           <Button
             variant="outline"
             size="sm"
             onClick={() => {
-              setDateRange(undefined);
               setStatusFilter('all');
             }}
             className="text-gray-600 hover:text-gray-800 h-7 px-2 text-xs"
           >
             <X className="h-3 w-3 mr-1" />
-            Clear All Filters
+            Clear Status Filter
           </Button>
         )}
       </div>
@@ -601,7 +612,7 @@ export default function ProcessQueueAnalytics() {
                         format(dateRange.from, "MMM dd, yyyy")
                       )
                     ) : (
-                      <span>Pick a date range</span>
+                      <span>Last 30 days</span>
                     )}
                   </Button>
                 </PopoverTrigger>
@@ -619,16 +630,19 @@ export default function ProcessQueueAnalytics() {
                   />
                 </PopoverContent>
               </Popover>
-              {dateRange && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setDateRange(undefined)}
-                  className="px-2 h-8"
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const now = new Date();
+                  const thirtyDaysAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30);
+                  setDateRange({ from: thirtyDaysAgo, to: now });
+                }}
+                className="px-2 h-8"
+                title="Reset to last 30 days"
+              >
+                30d
+              </Button>
             </div>
             <div className="flex flex-wrap gap-1 mt-1">
               <Button

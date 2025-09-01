@@ -32,7 +32,7 @@
  */
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
-import { logAudit } from '@/lib/auditLog';
+import { hasPermission } from '@/lib/permissions';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { v4 as uuidv4 } from 'uuid';
@@ -333,7 +333,7 @@ export async function POST(request: NextRequest) {
   const actingUserId = session?.user?.id || null;
   const actingUserName = session?.user?.name || session?.user?.email || 'System (API Create)';
 
-  if (!session?.user || (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('POSITIONS_CREATE'))) {
+      if (!session?.user || !hasPermission(session.user.role, session.user.modulePermissions, 'POSITIONS_CREATE')) {
     await logAudit('WARN', `Forbidden attempt to create position by ${actingUserName}.`, 'API:Positions:Create', actingUserId);
     return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403, headers: handleCors(request) });
   }

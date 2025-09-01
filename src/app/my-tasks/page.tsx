@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 // src/app/my-tasks/page.tsx (Server Component)
 import { getServerSession } from 'next-auth/next';
 import { MyTasksPageClient } from '@/components/tasks/MyTasksPageClient';
+import { hasAnyPermission } from '@/lib/permissions';
 import { authOptions } from '@/lib/auth';
 
 export default async function MyTasksPageServer() {
@@ -22,9 +23,11 @@ export default async function MyTasksPageServer() {
   const modulePermissions = session.user.modulePermissions || [];
   
   // Allow access if user is Admin OR has TASK_BOARD_VIEW permission OR has CANDIDATES_VIEW permission
-  const canAccessTaskBoard = userRole === 'Admin' || 
-    modulePermissions.includes('TASK_BOARD_VIEW') || 
-    modulePermissions.includes('CANDIDATES_VIEW');
+  const canAccessTaskBoard = hasAnyPermission(
+    userRole,
+    modulePermissions,
+    ['TASK_BOARD_VIEW', 'CANDIDATES_VIEW']
+  );
 
   if (!canAccessTaskBoard) {
     return (

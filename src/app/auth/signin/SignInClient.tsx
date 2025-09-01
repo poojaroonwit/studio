@@ -457,11 +457,19 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
         {isClient && (() => {
           // Determine which logo to use based on theme
           let logoToUse = appLogoUrl;
-          if (isThemeDark && contextualLogos.loginPageLogoDarkMode) {
+          if (isThemeDark && contextualLogos.loginPageLogoDarkMode && contextualLogos.loginPageLogoDarkMode.trim() !== '') {
             logoToUse = contextualLogos.loginPageLogoDarkMode;
-          } else if (!isThemeDark && contextualLogos.loginPageLogoLightMode) {
+          } else if (!isThemeDark && contextualLogos.loginPageLogoLightMode && contextualLogos.loginPageLogoLightMode.trim() !== '') {
             logoToUse = contextualLogos.loginPageLogoLightMode;
           }
+          
+          console.log('[SIGNIN_CLIENT] Card layout logo rendering:', {
+            appLogoUrl,
+            isThemeDark,
+            contextualLogos,
+            logoToUse,
+            isClient
+          });
           
           return logoToUse ? (
             <Image
@@ -531,19 +539,37 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
             )}
             {/* Application Logo and Name */}
             <div className="text-center mb-8">
-              {isClient && appLogoUrl ? (
-                <img
-                  src={appLogoUrl}
-                  alt="Application Logo"
-                  width={loginPageLogoSize}
-                  height={loginPageLogoSize}
-                  className="rounded-xl mx-auto mb-4 feature-icon"
-                />
-              ) : (
-                <div className="w-20 h-20 bg-gradient-to-br from-primary to-primary/80 rounded-xl mx-auto mb-4 flex items-center justify-center feature-icon">
-                  <span className="text-2xl font-bold text-primary-foreground">CT</span>
-                </div>
-              )}
+              {isClient && (() => {
+                // Determine which logo to use based on theme
+                let logoToUse = appLogoUrl;
+                if (isThemeDark && contextualLogos.loginPageLogoDarkMode && contextualLogos.loginPageLogoDarkMode.trim() !== '') {
+                  logoToUse = contextualLogos.loginPageLogoDarkMode;
+                } else if (!isThemeDark && contextualLogos.loginPageLogoLightMode && contextualLogos.loginPageLogoLightMode.trim() !== '') {
+                  logoToUse = contextualLogos.loginPageLogoLightMode;
+                }
+                
+                console.log('[SIGNIN_CLIENT] 2-column logo rendering:', {
+                  appLogoUrl,
+                  isThemeDark,
+                  contextualLogos,
+                  logoToUse,
+                  isClient
+                });
+                
+                return logoToUse ? (
+                  <img
+                    src={logoToUse}
+                    alt="Application Logo"
+                    width={loginPageLogoSize}
+                    height={loginPageLogoSize}
+                    className="rounded-xl mx-auto mb-4 feature-icon"
+                  />
+                ) : (
+                  <div className="w-20 h-20 bg-gradient-to-br from-primary to-primary/80 rounded-xl mx-auto mb-4 flex items-center justify-center feature-icon">
+                    <span className="text-2xl font-bold text-primary-foreground">CT</span>
+                  </div>
+                );
+              })()}
               {!showLogoOnly && (
                 <h2 className="text-2xl font-bold text-foreground">{currentAppName}</h2>
               )}

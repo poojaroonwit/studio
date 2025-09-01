@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { hasPermission } from '@/lib/permissions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import './settings.css';
@@ -34,6 +35,7 @@ import {
 } from 'lucide-react';
 import type { PlatformModuleId } from '@/lib/types';
 import React from 'react'; // Added missing import for React
+import { SyncUserRoles } from '@/components/settings/SyncUserRoles';
 
 // Error boundary component for settings page
 class SettingsErrorBoundary extends React.Component<
@@ -183,30 +185,27 @@ function SettingsPageContent() {
     // Ensure session and user exist
     if (!session?.user) return false;
     
-    // Ensure user has a valid role
     const userRole = session.user.role || 'Recruiter';
-    
+    const modulePermissions = Array.isArray(session.user.modulePermissions) 
+      ? session.user.modulePermissions 
+      : [];
+
     // Admin has access to everything
     if (userRole === 'Admin') return true;
 
     // Check for adminOnly items
     if (item.adminOnly) return false;
 
-    // Ensure modulePermissions is an array
-    const modulePermissions = Array.isArray(session.user.modulePermissions) 
-      ? session.user.modulePermissions 
-      : [];
-
     // Check for adminOnlyOrPermission items
     if (item.adminOnlyOrPermission) {
-      if (item.permissionId && modulePermissions.includes(item.permissionId)) {
+      if (item.permissionId && hasPermission(userRole, modulePermissions, item.permissionId)) {
         return true;
       }
       return false;
     }
 
     // Check for specific permission items
-    if (item.permissionId && !modulePermissions.includes(item.permissionId)) {
+    if (item.permissionId && !hasPermission(userRole, modulePermissions, item.permissionId)) {
       return false;
     }
 
@@ -296,6 +295,16 @@ function SettingsPageContent() {
               </Card>
             ))}
           </div>
+
+          {/* Admin Tools Section */}
+          {session?.user?.role === 'Admin' && (
+            <div className="border-t pt-6">
+              <h2 className="text-lg font-semibold mb-4">Admin Tools</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <SyncUserRoles />
+              </div>
+            </div>
+          )}
 
           {accessibleItems.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full text-center p-8">

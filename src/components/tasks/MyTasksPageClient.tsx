@@ -246,45 +246,8 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     showNotifications: true
   });
 
-  // Debug: Log SSE connection status
-  useEffect(() => {
-    console.log('🔍 Task Board SSE Status:', {
-      realtimeConnected,
-      userSession: userSession?.id,
-      candidatesCount: candidates.length
-    });
-  }, [realtimeConnected, userSession?.id, candidates.length]);
 
-  // Debug: Test real-time updates (remove this in production)
-  const testRealTimeUpdate = useCallback(async () => {
-    if (candidates.length > 0) {
-      const testCandidate = candidates[0];
-      console.log('🧪 Testing real-time update for candidate:', testCandidate.id);
-      
-      try {
-        const response = await fetch(`/api/candidates/simple-update`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            candidateId: testCandidate.id,
-            updates: {
-              status: testCandidate.status === 'Applied' ? 'Screening' : 'Applied'
-            }
-          })
-        });
-        
-        if (response.ok) {
-          console.log('✅ Test update sent successfully');
-        } else {
-          console.error('❌ Test update failed:', response.status);
-        }
-      } catch (error) {
-        console.error('❌ Test update error:', error);
-      }
-    }
-  }, [candidates]);
+
 
   // Permission check: can view all candidates?
   const canViewAllCandidates = userSession?.role === 'Admin' || 
@@ -1064,16 +1027,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                 <Settings className="w-4 h-4" />
               </Button>
 
-              {/* Debug: Test real-time updates button (remove in production) */}
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-9 px-2"
-                onClick={testRealTimeUpdate}
-                title="Test real-time updates"
-              >
-                🧪 Test
-              </Button>
+
 
               {/* View Mode Toggle */}
               <div className="flex items-center gap-2">

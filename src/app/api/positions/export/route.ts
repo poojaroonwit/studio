@@ -1,6 +1,6 @@
 // src/app/api/positions/export/route.ts
 import { NextResponse } from 'next/server';
-import { logAudit } from '@/lib/auditLog';
+import { hasPermission } from '@/lib/permissions';
 import { getServerSession } from 'next-auth/next';
 import { getPool } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
@@ -98,7 +98,7 @@ export async function GET() {
   }
 
   // Check if user has permission to export positions
-  if (session.user.role !== 'Admin' &&  !session.user.modulePermissions?.includes('POSITIONS_EXPORT')) {
+  if (!hasPermission(session.user.role, session.user.modulePermissions, 'POSITIONS_EXPORT')) {
     await logAudit('WARN', `Forbidden attempt to export positions by ${actingUserName}`, 'API:Positions:Export', actingUserId);
     return NextResponse.json({ error: 'Forbidden: Insufficient permissions to export positions' }, { status: 403 });
   }

@@ -60,8 +60,6 @@ export function usePositionsCache(filterOpenOnly: boolean = false) {
     let timeoutId: NodeJS.Timeout | null = null;
 
     try {
-      console.log('[PositionsCache] Fetching positions...');
-      
       // Add a timeout so the UI won't hang indefinitely if the request stalls
       timeoutId = setTimeout(() => {
         if (controller === globalAbortController) {
@@ -82,8 +80,6 @@ export function usePositionsCache(filterOpenOnly: boolean = false) {
         timeoutId = null;
       }
       
-      console.log(`[PositionsCache] Response status: ${response.status}`);
-      
       if (!response.ok) {
         let errorMessage = 'Failed to fetch positions';
         try {
@@ -99,8 +95,6 @@ export function usePositionsCache(filterOpenOnly: boolean = false) {
       
       const data = await response.json();
       let fetchedPositions = data.data || [];
-      
-      console.log(`[PositionsCache] Successfully fetched ${fetchedPositions.length} positions`);
       
       // Filter for open headcount only if requested
       if (filterOpenOnlyRef.current) {

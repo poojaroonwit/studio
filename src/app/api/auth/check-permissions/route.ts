@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { hasAnyPermission } from '@/lib/permissions';
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,19 +27,13 @@ export async function POST(request: NextRequest) {
     const userRole = session.user.role || 'Recruiter';
     const userModulePermissions = session.user.modulePermissions || [];
 
-      // Check if user has any of the requested permissions
-  const hasAnyPermission = permissions.some(permission => {
-    // Admin role has all permissions
-    if (userRole === 'Admin') return true;
-    
-    // Check specific module permissions
-    return userModulePermissions.includes(permission);
-  });
+    // Check if user has any of the requested permissions using the new permission system
+    const hasAnyPermissionResult = hasAnyPermission(userRole, userModulePermissions, permissions);
 
-          return NextResponse.json({
-        hasPermission: hasAnyPermission,
-        userRole,
-        userModulePermissions,
+    return NextResponse.json({
+      hasPermission: hasAnyPermissionResult,
+      userRole,
+      userModulePermissions,
       requestedPermissions: permissions
     });
 

@@ -229,7 +229,6 @@ export function useCandidateData({
 
     // Prevent concurrent requests
     if (isFetchingFitScoreCountsRef.current && !forceRefresh) {
-      console.warn('🚫 Fit score counts request already in progress, skipping');
       return;
     }
 
@@ -321,7 +320,6 @@ export function useCandidateData({
         setDatabaseFitScoreCounts(newCounts);
         
         const responseTime = Date.now() - startTime;
-        console.log(`✅ Fit score counts fetched successfully in ${responseTime}ms`);
         
         // Reset circuit breaker on success
         circuitBreaker.consecutiveFailures = 0;

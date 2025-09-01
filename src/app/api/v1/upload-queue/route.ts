@@ -20,7 +20,7 @@ export const dynamic = 'force-dynamic';
  *         schema:
  *           type: integer
  *           default: 20
- *         description: Number of items per page
+ *         description: Number of items per page (max 1000)
  *         example: 20
  *       - in: query
  *         name: offset
@@ -242,9 +242,13 @@ export async function GET(request: NextRequest) {
 
     const whereSQL = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
 
+    // Validate and cap limit to prevent performance issues
+    const safeLimit = Math.min(Math.max(limit, 1), 1000); // Up to 1000 for all requests
+    const safeOffset = Math.max(offset, 0);
+
     // Add pagination
-    values.push(limit);
-    values.push(offset);
+    values.push(safeLimit);
+    values.push(safeOffset);
 
     const client = await getPool().connect();
     

@@ -1,102 +1,140 @@
 #!/usr/bin/env node
 
 /**
- * Permission Alignment Fix Script
+ * Fix Permission Alignment Script
  * 
- * This script:
- * 1. Identifies and fixes permission alignment issues between database and PLATFORM_MODULES
- * 2. Ensures all user groups have consistent permission structures
- * 3. Migrates old permission formats to the new granular system
+ * This script fixes the issue where users have admin-level permissions
+ * but their role field in the User table still shows as 'Recruiter'.
+ * 
+ * The system uses UserGroup.permissions as the primary permission source,
+ * but User.role should be synchronized to reflect the user's permission level.
  */
 
+// Load environment variables
 require('dotenv').config({ path: '.env.local' });
 
-// Use tsx to run TypeScript files directly
-const { spawn } = require('child_process');
-const path = require('path');
+const { PrismaClient } = require('@prisma/client');
 
-// Colors for console output
-const colors = {
-    red: '\x1b[31m',
-    green: '\x1b[32m',
-    yellow: '\x1b[33m',
-    blue: '\x1b[34m',
-    magenta: '\x1b[35m',
-    cyan: '\x1b[36m',
-    white: '\x1b[37m',
-    reset: '\x1b[0m'
-};
+const prisma = new PrismaClient();
 
-function log(message, color = 'white') {
-    console.log(`${colors[color]}${message}${colors.reset}`);
-}
+// Define permission levels
+const ADMIN_PERMISSIONS = [
+  'USERS_MANAGE', 'USER_GROUPS_MANAGE', 'SYSTEM_SETTINGS_VIEW', 
+  'SYSTEM_SETTINGS_EDIT', 'LOGS_VIEW', 'UPLOAD_QUEUE_MANAGE'
+];
 
-function logSuccess(message) {
-    log(`✅ ${message}`, 'green');
-}
+const RECRUITER_PERMISSIONS = [
+  'CANDIDATES_VIEW', 'CANDIDATES_CREATE', 'CANDIDATES_EDIT_BASIC',
+  'POSITIONS_VIEW', 'POSITIONS_CREATE', 'POSITIONS_EDIT_BASIC',
+  'TASK_BOARD_VIEW', 'TASK_BOARD_MANAGE_OWN'
+];
 
-function logWarning(message) {
-    log(`⚠️  ${message}`, 'yellow');
-}
+const HIRING_MANAGER_PERMISSIONS = [
+  'CANDIDATES_VIEW', 'POSITIONS_VIEW', 'TASK_BOARD_VIEW'
+];
 
-function logError(message) {
-    log(`❌ ${message}`, 'red');
-}
-
-function logInfo(message) {
-    log(`ℹ️  ${message}`, 'blue');
-}
-
-/**
- * Run TypeScript file with tsx
- */
-function runTypeScriptFile(filePath, args = []) {
-    return new Promise((resolve, reject) => {
-        const tsxPath = path.join(__dirname, '../node_modules/.bin/tsx');
-        const scriptPath = path.join(__dirname, filePath);
-        
-        const child = spawn(tsxPath, [scriptPath, ...args], {
-            stdio: 'inherit',
-            cwd: path.join(__dirname, '..')
-        });
-        
-        child.on('close', (code) => {
-            if (code === 0) {
-                resolve();
-            } else {
-                reject(new Error(`Process exited with code ${code}`));
-            }
-        });
-        
-        child.on('error', (error) => {
-            reject(error);
-        });
-    });
-}
-
-/**
- * Main execution function
- */
 async function main() {
-    log('🔧 Starting permission alignment fix...', 'cyan');
-    
-    try {
-        // Run the TypeScript version of this script
-        await runTypeScriptFile('../src/scripts/fix-permission-alignment.ts');
-        logSuccess('Permission alignment fix completed successfully');
-        process.exit(0);
-    } catch (error) {
-        logError(`Permission alignment fix failed: ${error.message}`);
-        console.error(error);
-        process.exit(1);
+  console.log('🔧 Starting Permission Alignment Fix...\n');
+
+  try {
+    // Get all users with their current roles and group memberships
+    const users = await prisma.user.findMany({
+      include: {
+        userGroup: true
+      }
+    });
+
+    console.log(`📊 Found ${users.length} users to check\n`);
+
+    let updatedCount = 0;
+    let skippedCount = 0;
+
+    for (const user of users) {
+      console.log(`👤 Checking user: ${user.name} (${user.email})`);
+      console.log(`   Current role: ${user.role}`);
+
+      // Get permissions from user group
+      const userPermissions = user.userGroup?.permissions || [];
+      const userGroupName = user.userGroup?.name || 'No group assigned';
+
+      console.log(`   User group: ${userGroupName}`);
+      console.log(`   Total permissions: ${userPermissions.length}`);
+
+      // Determine the appropriate role based on permissions
+      let newRole = user.role;
+
+      // Check if user has admin-level permissions
+      const hasAdminPermissions = ADMIN_PERMISSIONS.some(permission => 
+        userPermissions.includes(permission)
+      );
+
+      if (hasAdminPermissions) {
+        newRole = 'Admin';
+      } else {
+        // Check if user has recruiter-level permissions
+        const hasRecruiterPermissions = RECRUITER_PERMISSIONS.some(permission => 
+          userPermissions.includes(permission)
+        );
+
+        if (hasRecruiterPermissions) {
+          newRole = 'Recruiter';
+        } else {
+          // Check if user has hiring manager permissions
+          const hasHiringManagerPermissions = HIRING_MANAGER_PERMISSIONS.some(permission => 
+            userPermissions.includes(permission)
+          );
+
+          if (hasHiringManagerPermissions) {
+            newRole = 'Hiring Manager';
+          } else {
+            // Default to Recruiter if no specific permissions found
+            newRole = 'Recruiter';
+          }
+        }
+      }
+
+      // Update role if it's different
+      if (newRole !== user.role) {
+        console.log(`   ⚠️  Role mismatch detected!`);
+        console.log(`   🔄 Updating role from '${user.role}' to '${newRole}'...`);
+        
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { role: newRole }
+        });
+        
+        console.log(`   ✅ Role updated successfully`);
+        updatedCount++;
+      } else {
+        console.log(`   ✅ Role correctly set to '${user.role}'`);
+        skippedCount++;
+      }
+      
+      console.log(''); // Empty line for readability
     }
+
+    console.log('📈 Summary:');
+    console.log(`   ✅ Updated: ${updatedCount} users`);
+    console.log(`   ⏭️  Skipped: ${skippedCount} users`);
+    console.log(`   📊 Total: ${users.length} users`);
+
+    if (updatedCount > 0) {
+      console.log('\n🎉 Permission alignment completed successfully!');
+      console.log('💡 Users may need to sign out and sign back in for changes to take effect.');
+    } else {
+      console.log('\n✅ All user roles are already properly aligned!');
+    }
+
+  } catch (error) {
+    console.error('❌ Error during permission alignment:', error);
+    process.exit(1);
+  } finally {
+    await prisma.$disconnect();
+  }
 }
 
-// Run if called directly
-if (require.main === module) {
-    main().catch((error) => {
-        logError(`Unexpected error: ${error.message}`);
-        console.error(error);
-        process.exit(1);
-    });
-}
+// Run the script
+main().catch((error) => {
+  console.error('❌ Script failed:', error);
+  process.exit(1);
+});

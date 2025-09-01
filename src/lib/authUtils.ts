@@ -29,15 +29,12 @@ export async function authenticateUser(email: string, password: string) {
       return null;
     }
 
-    // Get user permissions in the same connection
+    // Get user permissions using direct foreign key relationship
     const permissionsResult = await client.query(`
-      SELECT array_agg(DISTINCT perm) AS group_permissions
-      FROM (
-        SELECT unnest(permissions) AS perm
-        FROM "UserGroup" ug
-        JOIN "User_UserGroup" uug ON ug.id = uug."groupId"
-        WHERE uug."userId" = $1
-      ) AS perms
+      SELECT ug.permissions AS group_permissions
+      FROM "User" u
+      LEFT JOIN "UserGroup" ug ON u."userGroupId" = ug.id
+      WHERE u.id = $1
     `, [user.id]);
 
     const permissions = (permissionsResult.rows[0]?.group_permissions || []) as PlatformModuleId[];
@@ -105,13 +102,10 @@ export async function getUserPermissions(userId: string): Promise<PlatformModule
   const client = await getPool().connect();
   try {
     const result = await client.query(`
-      SELECT array_agg(DISTINCT perm) AS group_permissions
-      FROM (
-        SELECT unnest(permissions) AS perm
-        FROM "UserGroup" ug
-        JOIN "User_UserGroup" uug ON ug.id = uug."groupId"
-        WHERE uug."userId" = $1
-      ) AS perms
+      SELECT ug.permissions AS group_permissions
+      FROM "User" u
+      LEFT JOIN "UserGroup" ug ON u."userGroupId" = ug.id
+      WHERE u.id = $1
     `, [userId]);
 
     return (result.rows[0]?.group_permissions || []) as PlatformModuleId[];

@@ -15,8 +15,8 @@ export function getPool() {
     const poolConfig = {
       connectionString: databaseUrl,
       ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false,
-      max: parseInt(process.env.DATABASE_MAX_CONNECTIONS || '100'), // Increased from 10 to 20
-      idleTimeoutMillis: parseInt(process.env.DATABASE_IDLE_TIMEOUT || '60000'), // Increased from 30s to 60s
+      max: parseInt(process.env.DATABASE_MAX_CONNECTIONS || '1000'), // Reduced from 100 to 20
+      idleTimeoutMillis: parseInt(process.env.DATABASE_IDLE_TIMEOUT || '30000'), // Reduced from 60s to 30s
       connectionTimeoutMillis: parseInt(process.env.DATABASE_CONNECTION_TIMEOUT || '1800000'),
       // Add query timeout to prevent hanging queries
       statement_timeout: parseInt(process.env.DATABASE_STATEMENT_TIMEOUT || '180000'), // Increased from 120s to 180s
@@ -135,15 +135,12 @@ export async function withDbTransaction<T>(
 // Returns permissions for a user from their assigned groups only
 export async function getMergedUserPermissions(userId: string): Promise<string[]> {
   return withDbClient(async (client) => {
-    // Get group permissions only
+    // Get group permissions using direct foreign key relationship
     const groupRes = await client.query(`
-      SELECT array_agg(DISTINCT perm) AS group_permissions
-      FROM (
-        SELECT unnest(permissions) AS perm
-        FROM "UserGroup" ug
-        JOIN "User_UserGroup" uug ON ug.id = uug."groupId"
-        WHERE uug."userId" = $1
-      ) AS perms
+      SELECT ug.permissions AS group_permissions
+      FROM "User" u
+      LEFT JOIN "UserGroup" ug ON u."userGroupId" = ug.id
+      WHERE u.id = $1
     `, [userId]);
     const group = (groupRes.rows[0]?.group_permissions || []) as string[];
 

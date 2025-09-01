@@ -3,7 +3,8 @@ import { getPool } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
 import { getServerSession } from 'next-auth/next';
 import { authOptions, validateUserSession } from '@/lib/auth';
-// import { logAudit } from '@/lib/auditLog'; // Removed to avoid database logging
+import { logAudit } from '@/lib/auditLog';
+import { hasAnyPermission } from '@/lib/permissions';
 import { dispatchWebhooks } from '@/lib/webhookDispatcher';
 import { broadcastUploadQueueUpdate } from './sse/broadcastUploadQueueUpdate';
 import { MINIO_PUBLIC_BASE_URL, MINIO_BUCKET } from '@/lib/minio-constants';
@@ -20,7 +21,7 @@ import { MINIO_PUBLIC_BASE_URL, MINIO_BUCKET } from '@/lib/minio-constants';
  *         schema:
  *           type: integer
  *           default: 20
- *         description: Number of items per page
+ *         description: Number of items per page (max 1000)
  *         example: 20
  *       - in: query
  *         name: offset
@@ -134,7 +135,7 @@ export async function GET(request: NextRequest) {
   const positionId = url.searchParams.get('position_id');
 
   // Validate and cap limit to prevent performance issues
-  const safeLimit = Math.min(Math.max(limit, 1), 100); // Between 1 and 100
+  const safeLimit = Math.min(Math.max(limit, 1), 1000); // Up to 1000 for all requests
   const safeOffset = Math.max(offset, 0);
 
   // Build dynamic WHERE clause
@@ -293,11 +294,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Check permissions
-  const canManageUploadQueue = session.user.role === 'Admin' || session.user.modulePermissions?.includes('USERS_MANAGE') || 
-    (session.user.modulePermissions?.includes('UPLOAD_QUEUE_MANAGE') || false);
+  // Check permissions using the new permission system
+  const canManageUploadQueue = hasAnyPermission(
+    session.user.role,
+    session.user.modulePermissions,
+    ['USERS_MANAGE', 'UPLOAD_QUEUE_MANAGE']
+  );
   
   if (!canManageUploadQueue) {
+    await logAudit(
+      'WARN',
+      `Forbidden attempt to manage upload queue by ${session.user.name || session.user.email}.`,
+      'API:UploadQueue:Manage',
+      session.user.id
+    );
     return NextResponse.json({ error: 'Forbidden: Insufficient permissions to manage upload queue' }, { status: 403 });
   }
 

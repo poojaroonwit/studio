@@ -112,13 +112,9 @@ export async function GET(request: NextRequest) {
       whereConditions.email = { contains: filterEmailInput, mode: 'insensitive' };
     }
 
-    // Team filter joins
+    // Team filter using direct foreign key
     if (filterTeamIdInput) {
-      whereConditions.userTeams = {
-        some: {
-          teamId: filterTeamIdInput
-        }
-      };
+      whereConditions.userTeamId = filterTeamIdInput;
     }
 
     // Get total count for pagination
@@ -139,18 +135,20 @@ export async function GET(request: NextRequest) {
           personalColor: true,
           authenticationMethod: true,
           forcePasswordChange: true,
-          module_permissions: true,
           createdAt: true,
           updatedAt: true,
-          userTeams: {
-            include: {
-              team: {
-                select: {
-                  id: true,
-                  name: true,
-                  color: true
-                }
-              }
+          userGroup: {
+            select: {
+              id: true,
+              name: true,
+              permissions: true
+            }
+          },
+          userTeam: {
+            select: {
+              id: true,
+              name: true,
+              color: true
             }
           }
         } as any,
@@ -176,8 +174,8 @@ export async function GET(request: NextRequest) {
 
     const usersToReturn = users.map((user: any) => ({
       ...user,
-      teams: user.userTeams.map((ut: any) => ut.team),
-      modulePermissions: user.module_permissions || []
+      teams: user.userTeam ? [user.userTeam] : [],
+      modulePermissions: user.userGroup?.permissions || []
     }));
 
     const totalPages = Math.ceil(totalCount / pageSize);

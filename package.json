@@ -43,6 +43,7 @@
     "debug:seed": "node scripts/debug-seed.js",
     "debug:performance": "node scripts/debug-performance-issues.js",
     "debug:frozen": "node scripts/debug-frozen-app.js",
+    "debug:connections": "node scripts/debug-connection-usage.js",
     "fix:frozen": "node scripts/fix-frozen-app.js",
     "test:connections": "node scripts/test-connection-optimization.js",
     "test:enhanced-connections": "node scripts/test-enhanced-connections.js",

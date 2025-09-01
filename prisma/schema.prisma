@@ -23,7 +23,16 @@ model User {
   updatedAt                  DateTime                    @updatedAt
   azure_oid                  String?                     @unique
   personalColor              String?                     @default("#3B82F6") @map("personal_color")
-  module_permissions         String[]                    @default([])
+  
+  // Direct foreign keys instead of many-to-many
+  userGroupId                String?                     @db.Uuid
+  userTeamId                 String?                     @db.Uuid
+  
+  // Relations
+  userGroup                  UserGroup?                  @relation(fields: [userGroupId], references: [id], onDelete: SetNull)
+  userTeam                   UserTeam?                   @relation(fields: [userTeamId], references: [id], onDelete: SetNull)
+  
+  // Other relations
   accounts                   Account[]
   attachments                Attachment[]                @relation("UserAttachments")
   candidates                 Candidate[]                 @relation("RecruiterCandidates")
@@ -35,8 +44,6 @@ model User {
   positions                  Position[]                  @relation("RecruiterPositions")
   transitionRecords          TransitionRecord[]          @relation("ActingUserTransitions")
   userPreferences            UserUIDisplayPreference[]
-  userGroups                 User_UserGroup[]
-  userTeams                  User_UserTeam[]
   warningConfigurations      WarningConfiguration[]      @relation("UserWarningConfiguration")
   warningConfigurationShares WarningConfigurationShare[]
   uploadQueue                UploadQueue[]               @relation("UserUploadQueue")
@@ -44,6 +51,8 @@ model User {
   @@index([email])
   @@index([role])
   @@index([authenticationMethod])
+  @@index([userGroupId])
+  @@index([userTeamId])
 }
 
 model Position {
@@ -222,53 +231,35 @@ model AuditLog {
 }
 
 model UserGroup {
-  id           String           @id @default(uuid()) @db.Uuid
-  name         String           @unique
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String   @unique
   description  String?
-  permissions  String[]         @default([])
-  isDefault    Boolean          @default(false) @map("is_default")
-  isSystemRole Boolean          @default(false) @map("is_system_role")
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
-  users        User_UserGroup[]
+  permissions  String[] @default([])
+  isDefault    Boolean  @default(false) @map("is_default")
+  isSystemRole Boolean  @default(false) @map("is_system_role")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  // Direct relation to users
+  users        User[]
 
   @@index([isDefault])
   @@index([isSystemRole])
 }
 
-model User_UserGroup {
-  userId  String    @db.Uuid
-  groupId String    @db.Uuid
-  group   UserGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  user    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@id([userId, groupId])
-  @@index([userId])
-  @@index([groupId])
-}
-
 model UserTeam {
-  id          String          @id @default(uuid()) @db.Uuid
-  name        String          @unique
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique
   description String?
-  color       String?         @default("#3B82F6")
-  isActive    Boolean         @default(true) @map("is_active")
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @default(now())
-  members     User_UserTeam[]
+  color       String?  @default("#3B82F6")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now())
+  
+  // Direct relation to users
+  users       User[]
 
   @@index([isActive])
-}
-
-model User_UserTeam {
-  userId String   @db.Uuid
-  teamId String   @db.Uuid
-  team   UserTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@id([userId, teamId])
-  @@index([userId])
-  @@index([teamId])
 }
 
 model SystemSetting {

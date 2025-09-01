@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import type { SettingsNavigationItem, PlatformModuleId } from '@/lib/types';
 import { useSession, signIn } from 'next-auth/react';
+import { hasPermission } from '@/lib/permissions';
 import { Button } from '@/components/ui/button';
 
 // Error boundary component for settings layout
@@ -105,6 +106,9 @@ function SettingsLayoutContent({ children }: { children: ReactNode }) {
     if (!session?.user) return false;
     
     const userRole = session.user.role || 'Recruiter'; // Default fallback
+    const modulePermissions = Array.isArray(session.user.modulePermissions) 
+      ? session.user.modulePermissions 
+      : [];
 
     // Admin has access to everything
     if (userRole === 'Admin') return true;
@@ -112,21 +116,16 @@ function SettingsLayoutContent({ children }: { children: ReactNode }) {
     // Check for adminOnly items
     if (item.adminOnly) return false;
 
-    // Ensure modulePermissions is an array
-    const modulePermissions = Array.isArray(session.user.modulePermissions) 
-      ? session.user.modulePermissions 
-      : [];
-
     // Check for adminOnlyOrPermission items
     if (item.adminOnlyOrPermission) {
-      if (item.permissionId && modulePermissions.includes(item.permissionId)) {
+      if (item.permissionId && hasPermission(userRole, modulePermissions, item.permissionId)) {
         return true;
       }
       return false;
     }
 
     // Check for specific permission items
-    if (item.permissionId && !modulePermissions.includes(item.permissionId)) {
+    if (item.permissionId && !hasPermission(userRole, modulePermissions, item.permissionId)) {
       return false;
     }
 

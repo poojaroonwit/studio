@@ -96,9 +96,9 @@ export async function GET(request: NextRequest) {
                 ut."is_active" as "isActive", 
                 ut."createdAt", 
                 ut."updatedAt",
-                COUNT(uut."userId")::int as member_count
+                COUNT(u.id)::int as member_count
             FROM "UserTeam" ut
-            LEFT JOIN "User_UserTeam" uut ON ut.id = uut."teamId"
+            LEFT JOIN "User" u ON ut.id = u."userTeamId"
             GROUP BY ut.id, ut.name, ut.description, ut.color, ut."is_active", ut."createdAt", ut."updatedAt"
             ORDER BY ut.name ASC
         `);

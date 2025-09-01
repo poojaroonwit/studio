@@ -45,7 +45,18 @@ import {
   DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
 
-const platformModuleIds = PLATFORM_MODULES.map(m => m.id);
+const platformModuleIds = (() => {
+  try {
+    if (!Array.isArray(PLATFORM_MODULES)) {
+      console.warn('RolesPermissionsPage: PLATFORM_MODULES is not an array at module level:', PLATFORM_MODULES);
+      return [];
+    }
+    return PLATFORM_MODULES.map(m => m.id);
+  } catch (error) {
+    console.error('RolesPermissionsPage: Error creating platformModuleIds:', error);
+    return [];
+  }
+})();
 
 const roleFormSchema = z.object({
   name: z.string().min(1, "Role name is required").max(100),

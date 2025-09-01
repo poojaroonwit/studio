@@ -41,7 +41,18 @@ import { PersonalColorPicker } from '@/components/settings/PersonalColorPicker';
 import { useClickProtection } from '@/hooks/use-click-protection';
 
 const userRoleOptions: UserProfile['role'][] = ['Admin', 'Recruiter', 'Hiring Manager'];
-const platformModuleIds = PLATFORM_MODULES.map(m => m.id);
+const platformModuleIds = (() => {
+  try {
+    if (!Array.isArray(PLATFORM_MODULES)) {
+      console.warn('UnifiedUserModal: PLATFORM_MODULES is not an array at module level:', PLATFORM_MODULES);
+      return [];
+    }
+    return PLATFORM_MODULES.map(m => m.id);
+  } catch (error) {
+    console.error('UnifiedUserModal: Error creating platformModuleIds:', error);
+    return [];
+  }
+})();
 
 // Unified form schema that handles all scenarios
 const unifiedUserFormSchema = z.object({
@@ -807,61 +818,73 @@ export function UnifiedUserModal({
                                   System Permissions
                                 </FormLabel>
                                 <div className="space-y-4">
-                                  {groupedPermissions.map(({ category, permissions }) => (
-                                    <div key={category} className="space-y-3">
-                                      <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 border-b pb-1">
-                                        {category}
-                                      </h4>
-                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                        {permissions.map((permission) => {
-                                          const isProtected = ['USERS_VIEW', 'USERS_CREATE', 'USERS_EDIT', 'USERS_DELETE', 'USERS_PERMISSIONS_MANAGE', 'USER_GROUPS_VIEW', 'USER_GROUPS_CREATE', 'USER_GROUPS_EDIT', 'USER_GROUPS_DELETE'].includes(permission.id);
-                                          const isSelected = field.value?.includes(permission.id);
-                                          
-                                          return (
-                                            <FormField
-                                              key={permission.id}
-                                              control={form.control}
-                                              name="modulePermissions"
-                                              render={({ field: permissionField }) => (
-                                                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                                                  <FormControl>
-                                                    <Checkbox
-                                                      checked={isSelected}
-                                                      onCheckedChange={(checked) => {
-                                                        if (isProtected && !checked) {
-                                                          // Prevent unchecking protected permissions
-                                                          return;
-                                                        }
-                                                        return checked
-                                                          ? permissionField.onChange([...field.value, permission.id])
-                                                          : permissionField.onChange(
-                                                              field.value?.filter((value) => value !== permission.id)
-                                                            );
-                                                      }}
-                                                      disabled={isProtected && isSelected}
-                                                    />
-                                                  </FormControl>
-                                                  <div className="space-y-1 leading-none">
-                                                    <FormLabel className="text-sm font-medium flex items-center gap-2">
-                                                      {permission.label}
-                                                      {isProtected && isSelected && (
-                                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200">
-                                                          Protected
-                                                        </span>
-                                                      )}
-                                                    </FormLabel>
-                                                    <p className="text-xs text-muted-foreground">
-                                                      {permission.description}
-                                                    </p>
-                                                  </div>
-                                                </FormItem>
-                                              )}
-                                            />
-                                          );
-                                        })}
-                                      </div>
-                                    </div>
-                                  ))}
+                                  {(() => {
+                                    try {
+                                      if (!Array.isArray(groupedPermissions)) {
+                                        console.warn('UnifiedUserModal: groupedPermissions is not an array:', groupedPermissions);
+                                        return <div className="text-muted-foreground">No permissions available</div>;
+                                      }
+                                      
+                                      return groupedPermissions.map(({ category, permissions }) => (
+                                        <div key={category} className="space-y-3">
+                                          <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 border-b pb-1">
+                                            {category}
+                                          </h4>
+                                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                            {permissions.map((permission) => {
+                                              const isProtected = ['USERS_VIEW', 'USERS_CREATE', 'USERS_EDIT', 'USERS_DELETE', 'USERS_PERMISSIONS_MANAGE', 'USER_GROUPS_VIEW', 'USER_GROUPS_CREATE', 'USER_GROUPS_EDIT', 'USER_GROUPS_DELETE'].includes(permission.id);
+                                              const isSelected = field.value?.includes(permission.id);
+                                              
+                                              return (
+                                                <FormField
+                                                  key={permission.id}
+                                                  control={form.control}
+                                                  name="modulePermissions"
+                                                  render={({ field: permissionField }) => (
+                                                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                                      <FormControl>
+                                                        <Checkbox
+                                                          checked={isSelected}
+                                                          onCheckedChange={(checked) => {
+                                                            if (isProtected && !checked) {
+                                                              // Prevent unchecking protected permissions
+                                                              return;
+                                                            }
+                                                            return checked
+                                                              ? permissionField.onChange([...field.value, permission.id])
+                                                              : permissionField.onChange(
+                                                                  field.value?.filter((value) => value !== permission.id)
+                                                                );
+                                                          }}
+                                                          disabled={isProtected && isSelected}
+                                                        />
+                                                      </FormControl>
+                                                      <div className="space-y-1 leading-none">
+                                                        <FormLabel className="text-sm font-medium flex items-center gap-2">
+                                                          {permission.label}
+                                                          {isProtected && isSelected && (
+                                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200">
+                                                              Protected
+                                                            </span>
+                                                          )}
+                                                        </FormLabel>
+                                                        <p className="text-xs text-muted-foreground">
+                                                          {permission.description}
+                                                        </p>
+                                                      </div>
+                                                    </FormItem>
+                                                  )}
+                                                />
+                                              );
+                                            })}
+                                          </div>
+                                        </div>
+                                      ));
+                                    } catch (error) {
+                                      console.error('UnifiedUserModal: Error rendering permissions:', error);
+                                      return <div className="text-muted-foreground">Error loading permissions</div>;
+                                    }
+                                  })()}
                                 </div>
                                 <FormMessage />
                               </FormItem>

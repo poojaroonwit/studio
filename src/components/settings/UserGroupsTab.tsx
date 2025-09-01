@@ -50,7 +50,18 @@ import {
   DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
 
-const platformModuleIds = PLATFORM_MODULES.map(m => m.id);
+const platformModuleIds = (() => {
+  try {
+    if (!Array.isArray(PLATFORM_MODULES)) {
+      console.warn('UserGroupsTab: PLATFORM_MODULES is not an array at module level:', PLATFORM_MODULES);
+      return [];
+    }
+    return PLATFORM_MODULES.map(m => m.id);
+  } catch (error) {
+    console.error('UserGroupsTab: Error creating platformModuleIds:', error);
+    return [];
+  }
+})();
 
 const roleFormSchema = z.object({
   name: z.string().min(1, "Role name is required").max(100),
@@ -421,44 +432,56 @@ export function UserGroupsTab() {
                   <FormItem>
                     <FormLabel>Permissions</FormLabel>
                     <div className="space-y-3 max-h-64 overflow-y-auto border rounded-lg p-4">
-                      {PLATFORM_MODULES.map((module) => (
-                        <FormField
-                          key={module.id}
-                          control={form.control}
-                          name="permissions"
-                          render={({ field }) => {
-                            return (
-                              <FormItem
-                                key={module.id}
-                                className="flex flex-row items-start space-x-3 space-y-0"
-                              >
-                                <FormControl>
-                                  <Checkbox
-                                    checked={field.value?.includes(module.id)}
-                                    onCheckedChange={(checked) => {
-                                      return checked
-                                        ? field.onChange([...field.value, module.id])
-                                        : field.onChange(
-                                            field.value?.filter(
-                                              (value) => value !== module.id
-                                            )
-                                          )
-                                    }}
-                                  />
-                                </FormControl>
-                                <div className="space-y-1 leading-none">
-                                  <FormLabel className="text-sm font-medium">
-                                    {module.label}
-                                  </FormLabel>
-                                  <p className="text-xs text-muted-foreground">
-                                    {module.description}
-                                  </p>
-                                </div>
-                              </FormItem>
-                            )
-                          }}
-                        />
-                      ))}
+                      {(() => {
+                        try {
+                          if (!Array.isArray(PLATFORM_MODULES)) {
+                            console.warn('UserGroupsTab: PLATFORM_MODULES is not an array:', PLATFORM_MODULES);
+                            return <div className="text-muted-foreground">No permissions available</div>;
+                          }
+                          
+                          return PLATFORM_MODULES.map((module) => (
+                            <FormField
+                              key={module.id}
+                              control={form.control}
+                              name="permissions"
+                              render={({ field }) => {
+                                return (
+                                  <FormItem
+                                    key={module.id}
+                                    className="flex flex-row items-start space-x-3 space-y-0"
+                                  >
+                                    <FormControl>
+                                      <Checkbox
+                                        checked={field.value?.includes(module.id)}
+                                        onCheckedChange={(checked) => {
+                                          return checked
+                                            ? field.onChange([...field.value, module.id])
+                                            : field.onChange(
+                                                field.value?.filter(
+                                                  (value) => value !== module.id
+                                                )
+                                              )
+                                        }}
+                                      />
+                                    </FormControl>
+                                    <div className="space-y-1 leading-none">
+                                      <FormLabel className="text-sm font-medium">
+                                        {module.label}
+                                      </FormLabel>
+                                      <p className="text-xs text-muted-foreground">
+                                        {module.description}
+                                      </p>
+                                    </div>
+                                  </FormItem>
+                                )
+                              }}
+                            />
+                          ));
+                        } catch (error) {
+                          console.error('UserGroupsTab: Error rendering permissions:', error);
+                          return <div className="text-muted-foreground">Error loading permissions</div>;
+                        }
+                      })()}
                     </div>
                     <FormMessage />
                   </FormItem>

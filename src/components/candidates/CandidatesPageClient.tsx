@@ -47,6 +47,7 @@ import { useCandidateData } from './hooks/use-candidate-data';
 import { useCandidateFetching } from './hooks/use-candidate-fetching';
 import { useCandidateActions } from './hooks/use-candidate-actions';
 import { useCandidateAiSearch } from './hooks/use-candidate-ai-search';
+import { useCandidateFiltersData } from '@/hooks/use-candidate-filters-data';
 
 // Import safe effect hooks
 // Removed complex emergency render monitor - using simple useEffect instead
@@ -151,6 +152,14 @@ export function CandidatesPageClient({
     optimisticUpdateRef
   } = useCandidateFilters(initialFilters);
 
+  // Use optimized filter data fetching
+  const {
+    filterData,
+    isLoading: isFilterDataLoading,
+    error: filterDataError,
+    refetch: refetchFilterData
+  } = useCandidateFiltersData();
+
   // Ensure filters is always defined to prevent "filters is not defined" errors
   const filters = filtersFromHook || {};
 
@@ -217,6 +226,12 @@ export function CandidatesPageClient({
     initialFetchError,
     filters
   });
+
+  // Use optimized filter data when available
+  const effectivePositions = filterData?.positions || availablePositions;
+  const effectiveStages = filterData?.stages || availableStages;
+  const effectiveRecruiters = filterData?.recruiters || availableRecruiters;
+  const effectiveSources = filterData?.sources || availableSources;
 
   const {
     fetchTableData,
@@ -1391,13 +1406,13 @@ export function CandidatesPageClient({
                       initialFilters={filters}
                       onFilterChange={onFilterChange}
                       onAiSearch={handleAiSearch}
-                      availablePositions={availablePositions}
-                      availableStages={availableStages}
-                      availableRecruiters={availableRecruiters}
-                      availableSources={availableSources}
+                      availablePositions={effectivePositions}
+                      availableStages={effectiveStages}
+                      availableRecruiters={effectiveRecruiters}
+                      availableSources={effectiveSources}
                       candidateCounts={candidateCountsByStage}
                       onClearAllFilters={handleClearAllFilters}
-                      isLoading={isLoading}
+                      isLoading={isLoading || isFilterDataLoading}
                       isAiSearching={isAiSearching}
                       candidateScoreCounts={candidateScoreCounts}
                       advancedQuery={advancedQuery}

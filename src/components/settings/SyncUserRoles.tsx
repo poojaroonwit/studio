@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, RefreshCw, CheckCircle, AlertTriangle } from 'lucide-react';
-import { toast } from 'sonner';
+import toast from 'react-hot-toast';
 
 interface SyncUserRolesProps {
   className?: string;
@@ -36,17 +36,13 @@ export function SyncUserRoles({ className }: SyncUserRolesProps) {
 
       if (response.ok) {
         setLastSync(data);
-        toast.success('User roles synchronized successfully', {
-          description: data.message,
-        });
+        toast.success('User roles synchronized successfully');
       } else {
         throw new Error(data.error || 'Failed to sync user roles');
       }
     } catch (error) {
       console.error('Error syncing user roles:', error);
-      toast.error('Failed to sync user roles', {
-        description: error instanceof Error ? error.message : 'An unexpected error occurred',
-      });
+      toast.error('Failed to sync user roles');
     } finally {
       setIsLoading(false);
     }

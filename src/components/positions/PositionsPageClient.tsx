@@ -39,7 +39,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Command, CommandEmpty, CommandInput, CommandList, CommandItem } from '@/components/ui/command';
 import { ChevronsUpDown, Check, UserX, User, RotateCcw } from 'lucide-react';
 import { useUserPreferences } from '@/hooks/use-user-preferences';
-import { useSimpleSSE, useCandidateUpdates, usePositionUpdates, useNotifications, useUploadQueueUpdates } from '@/hooks/use-simple-sse';
+import { useEnhancedSSE, useEnhancedCandidateUpdates, useEnhancedPositionUpdates, useEnhancedUploadQueueUpdates } from '@/hooks/use-enhanced-sse';
 import { checkSLAViolation, getSLABadgeVariant, formatSLAMessage, getSLARemainingDays } from '@/lib/slaUtils';
 import { Pagination } from '@/components/ui/pagination';
 
@@ -611,7 +611,7 @@ export default function PositionsPageClient() {
   }, [fetchPositions]);
 
   // Simple SSE hook
-  const { isConnected: realtimeConnected } = useSimpleSSE();
+  const { isConnected: realtimeConnected } = useEnhancedSSE();
 
   // Calculate vacant headcount from open positions
   useEffect(() => {

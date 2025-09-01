@@ -138,17 +138,7 @@ const nextConfig = {
           },
         ],
       },
-      // Cache static assets with proper MIME types
-      {
-        source: '/_next/static/(.*)',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
-        ],
-      },
-      // Ensure CSS files are served with correct MIME type
+      // Ensure CSS files are served with correct MIME type and prevent execution
       {
         source: '/_next/static/css/(.*)',
         headers: [
@@ -164,6 +154,10 @@ const nextConfig = {
             key: 'X-Content-Type-Options',
             value: 'nosniff',
           },
+          {
+            key: 'Content-Security-Policy',
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';",
+          },
         ],
       },
       // Ensure JS files are served with correct MIME type
@@ -174,6 +168,38 @@ const nextConfig = {
             key: 'Content-Type',
             value: 'application/javascript; charset=utf-8',
           },
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+        ],
+      },
+      // Ensure JS files in static directory are served correctly
+      {
+        source: '/_next/static/(.*\\.js)',
+        headers: [
+          {
+            key: 'Content-Type',
+            value: 'application/javascript; charset=utf-8',
+          },
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+        ],
+      },
+      // Cache other static assets
+      {
+        source: '/_next/static/(.*)',
+        headers: [
           {
             key: 'Cache-Control',
             value: 'public, max-age=31536000, immutable',

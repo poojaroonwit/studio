@@ -4,7 +4,7 @@ import { toast } from 'react-hot-toast';
 import { differenceInMonths } from 'date-fns';
 import * as z from 'zod';
 import type { Candidate, Position, UserProfile, RecruitmentStage, TransitionRecord, CandidateSource } from '@/lib/types';
-import { useSimpleSSE, useCandidateUpdates, usePositionUpdates, useNotifications, useUploadQueueUpdates } from '@/hooks/use-simple-sse';
+import { useEnhancedSSE, useEnhancedCandidateUpdates, useEnhancedPositionUpdates, useEnhancedUploadQueueUpdates } from '@/hooks/use-enhanced-sse';
 // Removed complex infinite loop prevention - using simple useEffect instead
 
 // Form schemas - validation removed
@@ -360,7 +360,7 @@ export const useCandidateDetail = (candidateId: string) => {
   }, [candidateId, fetchCandidate, fetchTransitionHistory]);
 
   // Simple SSE hook
-  const { isConnected: realtimeConnected } = useSimpleSSE();
+  const { isConnected: realtimeConnected } = useEnhancedSSE();
 
   // Fetch candidate data - FIXED: Remove fetchCandidate from dependencies to prevent infinite loops
   useEffect(() => {

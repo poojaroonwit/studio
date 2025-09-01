@@ -28,7 +28,7 @@ import { toast } from 'react-hot-toast';
 import CandidateDetailModal from '@/components/candidates/CandidateDetailModal';
 import { PositionSelectDropdown } from '@/components/candidates/PositionSelectDropdown';
 
-import { useSimpleSSE, useCandidateUpdates, usePositionUpdates, useNotifications, useUploadQueueUpdates } from '@/hooks/use-simple-sse';
+import { useEnhancedSSE, useEnhancedCandidateUpdates, useEnhancedPositionUpdates, useEnhancedNotifications, useEnhancedUploadQueueUpdates } from '@/hooks/use-enhanced-sse';
 import { getErrorMessage, retryWithBackoff, isRetryableError } from '@/lib/networkUtils';
 import { NetworkDiagnostics } from '@/components/ui/network-diagnostics';
 import { formatScoreWithGrade } from '@/lib/scoreUtils';
@@ -236,7 +236,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   }, []);
 
   // Simple SSE hook
-  const { isConnected: realtimeConnected } = useSimpleSSE();
+  const { isConnected: realtimeConnected } = useEnhancedSSE();
 
   // Permission check: can view all candidates?
   const canViewAllCandidates = userSession?.role === 'Admin' || 

@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useSimpleSSE, useCandidateUpdates, usePositionUpdates, useNotifications, useUploadQueueUpdates } from '@/hooks/use-simple-sse';
+import { useEnhancedSSE, useEnhancedCandidateUpdates, useEnhancedPositionUpdates, useEnhancedUploadQueueUpdates } from '@/hooks/use-enhanced-sse';
 import { 
   Users, 
   Bell, 
@@ -114,7 +114,7 @@ export function RealtimeCollaboration({
   }, [maxItems]);
 
   // Use simple SSE hook for real-time updates
-  const { isConnected } = useSimpleSSE();
+  const { isConnected } = useEnhancedSSE();
 
   // Mark notification as read (still uses API)
   const markNotificationAsRead = useCallback(async (notificationId: string) => {

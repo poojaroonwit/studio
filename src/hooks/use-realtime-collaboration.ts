@@ -1,7 +1,7 @@
-import { useCallback, useRef } from 'react';
 import { useToastManager } from '@/hooks/use-toast-manager';
 import { useSession } from 'next-auth/react';
-import { useSimpleSSE } from './use-simple-sse';
+import { useEnhancedSSE } from './use-enhanced-sse';
+import { useEffect, useCallback, useRef } from 'react';
 
 interface RealtimeCollaborationOptions {
   onCandidateUpdate?: (candidate: any) => void;
@@ -80,9 +80,14 @@ export function useRealtimeCollaboration(options: RealtimeCollaborationOptions =
     }
   }, [shouldShowErrorNotifications, errorToastCooldownMs, showErrorToast]);
 
-  // Use the unified real-time hook instead of individual SSE connection
-  const { isConnected, lastMessage, reconnect, disconnect } = useSimpleSSE();
-    onCandidateUpdate: (data) => {
+  // Use the enhanced SSE hook
+  const { isConnected, lastMessage, reconnect, disconnect } = useEnhancedSSE();
+
+  // Handle real-time updates
+  useEffect(() => {
+    if (lastMessage && isConnected) {
+      const data = lastMessage;
+      
       if (data.type === 'candidate_update' && data.candidate) {
         const updatedCandidate = data.candidate;
         
@@ -96,8 +101,7 @@ export function useRealtimeCollaboration(options: RealtimeCollaborationOptions =
           showNotification(`Candidate ${updatedCandidate.name} moved to ${updatedCandidate.status}`, '🔄');
         }
       }
-    },
-    onPositionUpdate: (data) => {
+      
       if (data.type === 'position_update' && data.position) {
         const position = data.position;
         
@@ -112,11 +116,11 @@ export function useRealtimeCollaboration(options: RealtimeCollaborationOptions =
         }
       }
     }
-  });
+  }, [lastMessage, isConnected, onCandidateUpdate, onPositionUpdate, session?.user?.id, showNotification]);
 
   return {
     isConnected,
-    lastUpdate,
+    lastUpdate: lastMessage,
     reconnect,
     disconnect
   };

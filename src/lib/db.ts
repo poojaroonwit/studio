@@ -15,7 +15,7 @@ export function getPool() {
     const poolConfig = {
       connectionString: databaseUrl,
       ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false,
-      max: parseInt(process.env.DATABASE_MAX_CONNECTIONS || '20'), // Increased from 10 to 20
+      max: parseInt(process.env.DATABASE_MAX_CONNECTIONS || '100'), // Increased from 10 to 20
       idleTimeoutMillis: parseInt(process.env.DATABASE_IDLE_TIMEOUT || '60000'), // Increased from 30s to 60s
       connectionTimeoutMillis: parseInt(process.env.DATABASE_CONNECTION_TIMEOUT || '1800000'),
       // Add query timeout to prevent hanging queries

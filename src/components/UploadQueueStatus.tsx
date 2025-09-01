@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { Clock, Loader2, CheckCircle, XCircle, Search, Filter, RefreshCw, AlertCircle, Info } from 'lucide-react';
-import { useUploadQueueUpdates } from '@/hooks/use-simple-sse';
+import { useEnhancedSSE, useEnhancedUploadQueueUpdates } from '@/hooks/use-enhanced-sse';
 
 interface QueueItem {
   id: string;
@@ -41,7 +41,7 @@ interface QueueResponse {
   };
 }
 
-export default function UploadQueueStatus() {
+export function UploadQueueStatus() {
   const [queueData, setQueueData] = useState<QueueResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -54,7 +54,8 @@ export default function UploadQueueStatus() {
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
   // Simple SSE hook for upload queue updates
-  const { isConnected: isRealtimeActive, latestUpdate } = useUploadQueueUpdates();
+  const { isConnected: realtimeConnected } = useEnhancedSSE();
+  const { isConnected: uploadQueueConnected, hasMainSSE } = useEnhancedUploadQueueUpdates();
 
   const fetchQueue = useCallback(async (currentPage = 1, currentPageSize = 10) => {
     setLoading(true);
@@ -91,11 +92,11 @@ export default function UploadQueueStatus() {
 
   // Refresh queue when we receive SSE updates
   useEffect(() => {
-    if (latestUpdate) {
+    if (hasMainSSE) {
       fetchQueue(page, pageSize);
       setLastUpdate(new Date());
     }
-  }, [latestUpdate, fetchQueue, page, pageSize]);
+  }, [hasMainSSE, fetchQueue, page, pageSize]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -155,8 +156,8 @@ export default function UploadQueueStatus() {
         </div>
         <div className="flex items-center space-x-2">
           <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-            <div className={`w-2 h-2 rounded-full ${isRealtimeActive ? 'bg-green-500' : 'bg-red-500'}`} />
-            <span>{isRealtimeActive ? 'Live' : 'Offline'}</span>
+            <div className={`w-2 h-2 rounded-full ${realtimeConnected ? 'bg-green-500' : 'bg-red-500'}`} />
+            <span>{realtimeConnected ? 'Live' : 'Offline'}</span>
           </div>
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loading}>
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
@@ -248,7 +249,7 @@ export default function UploadQueueStatus() {
                 )}
               </CardDescription>
             </div>
-            {isRealtimeActive && (
+            {realtimeConnected && (
               <Badge variant="secondary" className="flex items-center space-x-1">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                 <span>Live Updates</span>

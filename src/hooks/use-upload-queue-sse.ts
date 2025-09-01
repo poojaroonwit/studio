@@ -1,33 +1,25 @@
-import { useCallback, useState } from 'react';
-import { useUploadQueueUpdates } from './use-simple-sse';
+import { useEffect, useState, useCallback } from 'react';
+import { useEnhancedSSE, useEnhancedUploadQueueUpdates } from '@/hooks/use-enhanced-sse';
 
-interface UploadQueueSSEMessage {
-  type: 'queue' | 'error';
-  data?: any;
-}
-
-interface UseUploadQueueSSEReturn {
-  isConnected: boolean;
-  lastMessage: UploadQueueSSEMessage | null;
-  reconnect: () => void;
-}
-
-// Simple upload queue SSE hook
-export function useUploadQueueUpdates(): UseUploadQueueSSEReturn {
-  const { isConnected, latestUpdate, reconnect } = useUploadQueueUpdates();
+export function useUploadQueueSSE() {
+  const { isConnected: realtimeConnected } = useEnhancedSSE();
+  const { isConnected: uploadQueueConnected, hasMainSSE } = useEnhancedUploadQueueUpdates();
   
-  const lastMessage = latestUpdate ? {
-    type: 'queue' as const,
-    data: latestUpdate
-  } : null;
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
 
-  const handleReconnect = useCallback(() => {
-    reconnect();
-  }, [reconnect]);
+  useEffect(() => {
+    setIsConnected(realtimeConnected && uploadQueueConnected);
+  }, [realtimeConnected, uploadQueueConnected]);
+
+  const refresh = useCallback(() => {
+    setLastUpdate(new Date());
+  }, []);
 
   return {
     isConnected,
-    lastMessage,
-    reconnect: handleReconnect
+    lastUpdate,
+    refresh,
+    hasMainSSE
   };
 }

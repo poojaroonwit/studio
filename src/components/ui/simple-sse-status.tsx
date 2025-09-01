@@ -1,13 +1,13 @@
 'use client';
 
 import React from 'react';
-import { useSimpleSSE } from '@/hooks/use-simple-sse';
+import { useEnhancedSSE } from '@/hooks/use-enhanced-sse';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, Wifi, WifiOff, AlertCircle } from 'lucide-react';
 
 export function SimpleSSEStatus() {
-  const { isConnected, error, connectionAttempts, reconnect, disconnect } = useSimpleSSE();
+  const { isConnected, error, connectionAttempts, reconnect, disconnect } = useEnhancedSSE();
 
   const getStatusColor = () => {
     if (error) return 'destructive';
@@ -68,7 +68,7 @@ export function SimpleSSEStatus() {
 
 // Example of how to use SSE in a component
 export function CandidateListWithSSE() {
-  const { candidateUpdates, latestUpdate } = useCandidateUpdates();
+  const { isConnected: candidateConnected, hasMainSSE: candidateHasMainSSE } = useEnhancedCandidateUpdates();
 
   return (
     <div>

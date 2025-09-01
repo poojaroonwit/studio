@@ -5,7 +5,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { useSession } from 'next-auth/react';
 import { useToastManager } from '@/hooks/use-toast-manager';
 import { Bell } from 'lucide-react';
-import { useSimpleSSE, useCandidateUpdates, usePositionUpdates, useNotifications, useUploadQueueUpdates } from '@/hooks/use-simple-sse';
+import { useEnhancedSSE, useEnhancedCandidateUpdates, useEnhancedPositionUpdates, useEnhancedUploadQueueUpdates } from '@/hooks/use-enhanced-sse';
 
 interface Notification {
   id: string;
@@ -229,7 +229,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   }, [session?.user?.id, addNotification]);
 
   // Use simple SSE hook instead of complex unified realtime
-  const { isConnected } = useSimpleSSE();
+  const { isConnected } = useEnhancedSSE();
 
   // Fetch notifications on mount and when session changes (only on client)
   useEffect(() => {

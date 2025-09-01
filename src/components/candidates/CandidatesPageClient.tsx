@@ -38,7 +38,7 @@ import { FitScoreFilterTabs } from './FitScoreFilterTabs';
 import { CandidateSettingsDrawer } from './CandidateSettingsDrawer';
 import { useDynamicHeight } from '@/hooks/use-dynamic-height';
 import { useCandidateSettings } from '@/hooks/use-candidate-settings';
-import { useSimpleSSE, useCandidateUpdates } from '@/hooks/use-simple-sse';
+import { useEnhancedSSE, useEnhancedCandidateUpdates } from '@/hooks/use-enhanced-sse';
 
 
 // Import our new hooks
@@ -324,8 +324,8 @@ export function CandidatesPageClient({
   }, []);
 
   // Simple SSE hook
-  const { isConnected: realtimeConnected } = useSimpleSSE();
-  const { candidateUpdates, latestUpdate } = useCandidateUpdates();
+  const { isConnected: realtimeConnected } = useEnhancedSSE();
+  const { isConnected: candidateConnected, hasMainSSE } = useEnhancedCandidateUpdates();
 
   // Bulk action handlers
   const handleBulkDelete = useCallback(async (candidateIds: string[]) => {
@@ -1297,16 +1297,20 @@ export function CandidatesPageClient({
     return () => clearTimeout(timeoutId);
   }, [filters, page, pageSize, sortColumn, sortDirection, sessionStatus, serverAuthError, serverPermissionError, isClearingFilters, hasInitialDataFetch, initialCandidates.length, searchParams]);
 
-  // Refresh data when we receive candidate updates via SSE
+  // Refresh data periodically when SSE is connected
   useEffect(() => {
-    if (latestUpdate && sessionStatus === 'authenticated' && hasInitialDataFetch) {
-      console.log('🔄 CandidatesPageClient: Refreshing data due to SSE update:', latestUpdate);
-      if (filters) {
-        fetchTableData(filters, page, pageSize);
-      }
-      fetchAllCandidatesForCounts();
+    if (realtimeConnected && sessionStatus === 'authenticated' && hasInitialDataFetch) {
+      // Refresh data periodically when SSE is connected
+      const interval = setInterval(() => {
+        if (filters) {
+          fetchTableData(filters, page, pageSize);
+        }
+        fetchAllCandidatesForCounts();
+      }, 30000); // Refresh every 30 seconds when SSE is connected
+      
+      return () => clearInterval(interval);
     }
-  }, [latestUpdate, sessionStatus, hasInitialDataFetch, filters, page, pageSize, fetchTableData, fetchAllCandidatesForCounts]);
+  }, [realtimeConnected, sessionStatus, hasInitialDataFetch, filters, page, pageSize, fetchTableData, fetchAllCandidatesForCounts]);
 
     // Show error as toast popup if present
   useEffect(() => {

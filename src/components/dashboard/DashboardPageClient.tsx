@@ -26,7 +26,7 @@ import { SCORE_COLOR_STOPS } from '@/components/ui/score-color';
 import { SLAViolationsWidget } from './SLAViolationsWidget';
 import { useDynamicHeight } from '@/hooks/use-dynamic-height';
 import { PositionDetailDrawer } from '@/components/positions/PositionDetailDrawer';
-import { useSimpleSSE, useCandidateUpdates, usePositionUpdates, useNotifications, useUploadQueueUpdates } from '@/hooks/use-simple-sse';
+import { useEnhancedSSE, useEnhancedCandidateUpdates, useEnhancedPositionUpdates, useEnhancedUploadQueueUpdates } from '@/hooks/use-enhanced-sse';
 import { cn } from '@/lib/utils';
 import { useChartSetup } from '@/hooks/use-chart-setup';
 import { isDataLabelsAvailable } from '@/lib/chartjs-setup';
@@ -267,8 +267,8 @@ export default function DashboardPageClient({
     // Handle dashboard-related notifications
   }, []);
 
-  // Simple SSE hook
-  const { isConnected: realtimeConnected } = useSimpleSSE();
+  // Enhanced SSE hook
+  const { isConnected: realtimeConnected } = useEnhancedSSE();
 
   useEffect(() => {
     // Handle initial state passed from server component

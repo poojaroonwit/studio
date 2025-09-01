@@ -7,7 +7,7 @@ import Link from "next/link";
 import { AutoFont } from "./auto-font";
 import { RealtimeIndicator } from "./realtime-indicator";
 import { useLivePageDetection } from "@/hooks/use-live-page-detection";
-import { useSimpleSSE } from "@/hooks/use-simple-sse";
+import { useEnhancedSSE } from "@/hooks/use-enhanced-sse";
 
 export interface BreadcrumbItem {
   label: string;
@@ -24,7 +24,7 @@ export function Breadcrumb({ items, className }: BreadcrumbProps) {
   const { isLivePage } = useLivePageDetection();
   
   // Get real-time connection status for live pages
-  const { isConnected, error, reconnect } = useSimpleSSE();
+  const { isConnected, error, reconnect } = useEnhancedSSE();
 
   return (
     <nav className={cn("flex items-center space-x-1 text-sm text-muted-foreground", className)}>

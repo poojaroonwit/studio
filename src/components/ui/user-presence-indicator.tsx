@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useSimpleSSE, useCandidateUpdates, usePositionUpdates, useNotifications, useUploadQueueUpdates } from '@/hooks/use-simple-sse';
+import { useEnhancedSSE, useEnhancedCandidateUpdates, useEnhancedPositionUpdates, useEnhancedUploadQueueUpdates } from '@/hooks/use-enhanced-sse';
 import { useSession } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
@@ -255,7 +255,7 @@ export function UserPresenceIndicator({ className }: UserPresenceIndicatorProps)
   }, []);
 
   // Simple SSE hook
-  const { isConnected: realtimeConnected } = useSimpleSSE();
+  const { isConnected: realtimeConnected } = useEnhancedSSE();
 
   // Set up periodic presence updates and fetching with proper cleanup
   useEffect(() => {

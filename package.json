@@ -10,7 +10,7 @@
     "build": "next build --no-lint",
     "typecheck": "tsc --noEmit",
     "postbuild": "echo Build finished",
-    "start": "node --optimize-for-size ./node_modules/.bin/next start -p 8021",
+    "start": "node ./node_modules/.bin/next start -p 8021",
     "start:custom": "node server.js",
     "start:with-processor": "concurrently \"npm run start\" \"npm run processor\"",
     "start:local": "node start-local.js",

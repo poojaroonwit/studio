@@ -79,19 +79,19 @@ services:
       - minio
     mem_limit: 8g
     cpus: 2
-    deploy:
-      resources:
-        limits:
-          memory: 8g
-          cpus: '2'
-        reservations:
-          memory: 4g
-          cpus: '2'
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 5
-        window: 120s
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 8g
+    #       cpus: '2'
+    #     reservations:
+    #       memory: 4g
+    #       cpus: '2'
+    #   restart_policy:
+    #     condition: on-failure
+    #     delay: 5s
+    #     max_attempts: 5
+    #     window: 120s
     restart: unless-stopped
     # The command to run the application is defined in the Dockerfile's CMD instruction
     # which uses wait-for-db.sh for optimized startup

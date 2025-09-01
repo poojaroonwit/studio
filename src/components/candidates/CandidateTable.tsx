@@ -764,7 +764,7 @@ export function CandidateTable({
                         if (candidate.positionId) {
                           return (
                             <span className="text-warning-foreground bg-warning/20 px-2 py-1 rounded text-xs font-semibold">
-                              Missing Job Info
+                              -
                             </span>
                           );
                         }

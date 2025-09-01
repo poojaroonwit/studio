@@ -29,6 +29,51 @@ import type { SettingsNavigationItem, PlatformModuleId } from '@/lib/types';
 import { useSession, signIn } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 
+// Error boundary component for settings layout
+class SettingsLayoutErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error?: Error }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('Settings layout error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex h-full items-center justify-center">
+          <div className="text-center">
+            <div className="p-4 rounded-full bg-destructive/10 mb-4">
+              <AlertTriangle className="h-8 w-8 text-destructive mx-auto" />
+            </div>
+            <h3 className="text-lg font-semibold mb-2">Something went wrong</h3>
+            <p className="text-muted-foreground mb-4">
+              There was an error loading the settings layout. Please try refreshing the page.
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+            >
+              Refresh Page
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 const settingsNavItems: SettingsNavigationItem[] = [
   { href: "/settings/system-settings", label: "System Settings", icon: Database, description: "System-wide configuration and integrations.", permissionId: 'SYSTEM_SETTINGS_VIEW' as PlatformModuleId, adminOnlyOrPermission: true },
   { href: "/settings/system-preferences", label: "Branding & Theme", icon: Palette, description: "Global branding, theme, and logo settings.", permissionId: 'SYSTEM_SETTINGS_VIEW' as PlatformModuleId, adminOnlyOrPermission: true },
@@ -42,7 +87,7 @@ const settingsNavItems: SettingsNavigationItem[] = [
   { href: "/settings/logs", label: "Application Logs", icon: ListOrdered, description: "View system and audit logs.", permissionId: 'LOGS_VIEW' as PlatformModuleId, adminOnlyOrPermission: true },
 ];
 
-export default function SettingsLayout({ children }: { children: ReactNode }) {
+function SettingsLayoutContent({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { data: session, status } = useSession();
   const [isClient, setIsClient] = React.useState(false);
@@ -53,7 +98,12 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
   }, []);
 
   const canAccess = React.useCallback((item: SettingsNavigationItem) => {
-    if (!isClient || status !== 'authenticated' || !session?.user) return false;
+    // Defensive checks to prevent React error #185
+    if (!isClient || status !== 'authenticated') return false;
+    
+    // Ensure session and user exist
+    if (!session?.user) return false;
+    
     const userRole = session.user.role || 'Recruiter'; // Default fallback
 
     // Admin has access to everything
@@ -62,16 +112,21 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
     // Check for adminOnly items
     if (item.adminOnly) return false;
 
+    // Ensure modulePermissions is an array
+    const modulePermissions = Array.isArray(session.user.modulePermissions) 
+      ? session.user.modulePermissions 
+      : [];
+
     // Check for adminOnlyOrPermission items
     if (item.adminOnlyOrPermission) {
-      if (item.permissionId && (session.user.modulePermissions || []).includes(item.permissionId)) {
+      if (item.permissionId && modulePermissions.includes(item.permissionId)) {
         return true;
       }
       return false;
     }
 
     // Check for specific permission items
-    if (item.permissionId && !(session.user.modulePermissions || []).includes(item.permissionId)) {
+    if (item.permissionId && !modulePermissions.includes(item.permissionId)) {
       return false;
     }
 
@@ -81,7 +136,14 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
   const visibleNavItems = React.useMemo(() => {
     // Ensure settingsNavItems is an array before calling filter
     const safeSettingsNavItems = Array.isArray(settingsNavItems) ? settingsNavItems : [];
-    return safeSettingsNavItems.filter(item => canAccess(item));
+    return safeSettingsNavItems.filter(item => {
+      try {
+        return canAccess(item);
+      } catch (error) {
+        console.warn('Settings layout: Error filtering nav item:', error, item);
+        return false;
+      }
+    });
   }, [canAccess]);
 
   if (status === "loading" && !isClient) {
@@ -183,6 +245,14 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SettingsLayout({ children }: { children: ReactNode }) {
+  return (
+    <SettingsLayoutErrorBoundary>
+      <SettingsLayoutContent children={children} />
+    </SettingsLayoutErrorBoundary>
   );
 }
 

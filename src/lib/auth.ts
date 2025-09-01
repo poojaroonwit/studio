@@ -151,64 +151,98 @@ export const authOptions: NextAuthOptions = {
           return typeof str === 'string' && validateUuid(str);
         }
         
-     
-        
-        // If account and user are present (on sign-in), set token fields
-        if (account && user) {
-          token.accessToken = account.access_token;
-          token.id = user.id;
-          token.role = user.role || 'Recruiter';
-          token.modulePermissions = user.modulePermissions as PlatformModuleId[];
-          // Cache user data in token to avoid repeated database calls
-          (token as any).avatarUrl = (user as any).avatarUrl;
-          (token as any).personalColor = (user as any).personalColor;
-        }
-        // If token.id is not a valid UUID (e.g., Azure AD providerAccountId), fetch the user by email or azure_oid
-        if (typeof token.id === "string" && !validateUuid(token.id)) {
-          // Non-UUID token.id detected
-          const client = await getPool().connect();
-          try {
-            const oid = (profile as any)?.oid ?? (profile as any)?.sub ?? profile?.email;
-            console.log('[JWT CALLBACK] Looking up user for Azure AD:', { oid, email: profile?.email });
-            // Looking up user with oid
-            const res = await client.query('SELECT id FROM "User" WHERE email = $1 OR "azure_oid" = $2', [profile?.email, oid]);
-            const dbUser = res.rows[0];
-            if (dbUser) {
-              // Found user with UUID
-              // console.log('[JWT CALLBACK] Found user with UUID:', dbUser.id);
-              token.id = dbUser.id;
-            }
-          } catch (e) {
-            console.error('[JWT CALLBACK] Error fetching user UUID for Azure AD:', e);
-          } finally {
-            client.release();
-          }
-        }
-        // Only fetch fresh permissions and user data if we don't have them or if this is a new sign-in
-        if (typeof token.id === 'string' && validateUuid(token.id as string) && (!token.modulePermissions || token.modulePermissions.length === 0 || !token.role || account)) {
-          try {
-            const freshPermissions = await getUserPermissions(token.id as string);
-            token.modulePermissions = freshPermissions as PlatformModuleId[];
+        try {
+          // If account and user are present (on sign-in), set token fields
+          if (account && user) {
+            token.accessToken = account.access_token;
+            token.id = user.id;
+            token.role = user.role || 'Recruiter';
             
-            // Also fetch fresh user data to ensure role is up to date
-            const userData = await getUserSessionData(token.id as string);
-            if (userData) {
-              token.role = userData.role as UserProfile['role'];
-              (token as any).avatarUrl = userData.avatarUrl || userData.image || null;
-              (token as any).personalColor = userData.personalColor || null;
-            }
-          } catch (e) {
-            console.error('[JWT CALLBACK] Error fetching user data:', e);
-            // Don't set empty permissions, keep existing ones if available
-            if (!token.modulePermissions) {
-              token.modulePermissions = [];
+            // Ensure modulePermissions is always an array to prevent React error #185
+            const modulePermissions = Array.isArray(user.modulePermissions) 
+              ? (user.modulePermissions as PlatformModuleId[])
+              : [];
+            token.modulePermissions = modulePermissions;
+            
+            // Cache user data in token to avoid repeated database calls
+            (token as any).avatarUrl = (user as any).avatarUrl;
+            (token as any).personalColor = (user as any).personalColor;
+          }
+          
+          // If token.id is not a valid UUID (e.g., Azure AD providerAccountId), fetch the user by email or azure_oid
+          if (typeof token.id === "string" && !validateUuid(token.id)) {
+            // Non-UUID token.id detected
+            const client = await getPool().connect();
+            try {
+              const oid = (profile as any)?.oid ?? (profile as any)?.sub ?? profile?.email;
+              console.log('[JWT CALLBACK] Looking up user for Azure AD:', { oid, email: profile?.email });
+              // Looking up user with oid
+              const res = await client.query('SELECT id FROM "User" WHERE email = $1 OR "azure_oid" = $2', [profile?.email, oid]);
+              const dbUser = res.rows[0];
+              if (dbUser) {
+                // Found user with UUID
+                // console.log('[JWT CALLBACK] Found user with UUID:', dbUser.id);
+                token.id = dbUser.id;
+              }
+            } catch (e) {
+              console.error('[JWT CALLBACK] Error fetching user UUID for Azure AD:', e);
+            } finally {
+              client.release();
             }
           }
+          
+          // Only fetch fresh permissions and user data if we don't have them or if this is a new sign-in
+          if (typeof token.id === 'string' && validateUuid(token.id as string) && (!token.modulePermissions || token.modulePermissions.length === 0 || !token.role || account)) {
+            try {
+              const freshPermissions = await getUserPermissions(token.id as string);
+              
+              // Ensure freshPermissions is always an array
+              const modulePermissions = Array.isArray(freshPermissions) 
+                ? (freshPermissions as PlatformModuleId[])
+                : [];
+              token.modulePermissions = modulePermissions;
+              
+              // Also fetch fresh user data to ensure role is up to date
+              const userData = await getUserSessionData(token.id as string);
+              if (userData) {
+                token.role = userData.role as UserProfile['role'];
+                (token as any).avatarUrl = userData.avatarUrl || userData.image || null;
+                (token as any).personalColor = userData.personalColor || null;
+              }
+            } catch (e) {
+              console.error('[JWT CALLBACK] Error fetching user data:', e);
+              // Don't set empty permissions, keep existing ones if available
+              if (!token.modulePermissions) {
+                token.modulePermissions = [];
+              }
+            }
+          }
+          
+          // Ensure token always has valid structure to prevent React error #185
+          if (!token.modulePermissions) {
+            token.modulePermissions = [];
+          }
+          if (!token.role) {
+            token.role = 'Recruiter';
+          }
+          
+        } catch (error) {
+          console.error('[JWT CALLBACK] Critical error in JWT callback:', error);
+          // Ensure token has minimal valid structure
+          token.modulePermissions = token.modulePermissions || [];
+          token.role = token.role || 'Recruiter';
         }
+        
         return token;
       },
       async session({ session, token }) {
-        if (session.user) {
+        // Defensive check to prevent React error #185
+        if (!session || !session.user) {
+          console.error('[SESSION CALLBACK] Invalid session object:', session);
+          return session;
+        }
+
+        try {
           // Validate that token.id is a valid UUID before setting it in session
           if (typeof token.id === 'string' && !validateUuid(token.id)) {
             console.error('[SESSION CALLBACK] Invalid UUID in token.id:', token.id);
@@ -217,14 +251,22 @@ export const authOptions: NextAuthOptions = {
           } else {
             session.user.id = token.id as string;
           }
-          session.user.role = (token.role as UserProfile['role']) || 'Recruiter';
+          
+          // Ensure role is always a valid string
+          const userRole = (token.role as UserProfile['role']) || 'Recruiter';
+          session.user.role = userRole;
+          
           // Debug log to help identify role issues
           if (!token.role) {
             console.warn('[SESSION CALLBACK] No role found in token, using default:', session.user.role);
           }
           
-          // Use permissions from token (already fetched in JWT callback)
-          session.user.modulePermissions = token.modulePermissions as PlatformModuleId[] || [];
+          // Ensure modulePermissions is always an array to prevent React error #185
+          const modulePermissions = Array.isArray(token.modulePermissions) 
+            ? (token.modulePermissions as PlatformModuleId[])
+            : [];
+          session.user.modulePermissions = modulePermissions;
+          
           // Removed session logging to reduce container logs
           
           // Fetch user data including role, avatarUrl and personalColor from database
@@ -256,7 +298,22 @@ export const authOptions: NextAuthOptions = {
           }
           
           // Ensure session is properly established even if some data is missing
+        } catch (error) {
+          console.error('[SESSION CALLBACK] Critical error in session callback:', error);
+          // Return a minimal valid session to prevent React error #185
+          return {
+            ...session,
+            user: {
+              ...session.user,
+              id: '',
+              role: 'Recruiter',
+              modulePermissions: [],
+              avatarUrl: null,
+              personalColor: null
+            }
+          };
         }
+        
         return session;
       },
       async signIn({ user, account, profile }) {

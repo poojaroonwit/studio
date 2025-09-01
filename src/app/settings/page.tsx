@@ -29,9 +29,56 @@ import {
   Lock,
   Globe,
   BarChart3,
+  AlertTriangle,
 
 } from 'lucide-react';
 import type { PlatformModuleId } from '@/lib/types';
+import React from 'react'; // Added missing import for React
+
+// Error boundary component for settings page
+class SettingsErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error?: Error }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('Settings page error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex h-full items-center justify-center">
+          <div className="text-center">
+            <div className="p-4 rounded-full bg-destructive/10 mb-4">
+              <AlertTriangle className="h-8 w-8 text-destructive mx-auto" />
+            </div>
+            <h3 className="text-lg font-semibold mb-2">Something went wrong</h3>
+            <p className="text-muted-foreground mb-4">
+              There was an error loading the settings page. Please try refreshing the page.
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+            >
+              Refresh Page
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 // Define all settings items in a flat array
 const settingsItems = [
@@ -101,7 +148,7 @@ const settingsItems = [
   },
 ];
 
-export default function SettingsPage() {
+function SettingsPageContent() {
   const router = useRouter();
   const { data: session, status: sessionStatus } = useSession();
   const [isClient, setIsClient] = useState(false);
@@ -130,31 +177,45 @@ export default function SettingsPage() {
   }, [sessionStatus, isClient]);
 
   const canAccess = (item: { adminOnly?: boolean, permissionId?: PlatformModuleId, adminOnlyOrPermission?: boolean }) => {
+    // Defensive checks to prevent React error #185
     if (!isClient || sessionStatus !== 'authenticated') return false;
     
+    // Ensure session and user exist
+    if (!session?.user) return false;
+    
+    // Ensure user has a valid role
+    const userRole = session.user.role || 'Recruiter';
+    
     // Admin has access to everything
-    if (session?.user?.role === 'Admin') return true;
+    if (userRole === 'Admin') return true;
 
     // Check for adminOnly items
     if (item.adminOnly) return false;
 
+    // Ensure modulePermissions is an array
+    const modulePermissions = Array.isArray(session.user.modulePermissions) 
+      ? session.user.modulePermissions 
+      : [];
+
     // Check for adminOnlyOrPermission items
     if (item.adminOnlyOrPermission) {
-      if (item.permissionId && (session?.user?.modulePermissions || []).includes(item.permissionId)) {
+      if (item.permissionId && modulePermissions.includes(item.permissionId)) {
         return true;
       }
       return false;
     }
 
     // Check for specific permission items
-    if (item.permissionId && !(session?.user?.modulePermissions || []).includes(item.permissionId)) {
+    if (item.permissionId && !modulePermissions.includes(item.permissionId)) {
       return false;
     }
 
     return true;
   };
 
-  const accessibleItems = isClient ? (() => {
+  const accessibleItems = React.useMemo(() => {
+    if (!isClient) return [];
+    
     try {
       // Defensive check to prevent filter errors
       if (!Array.isArray(settingsItems)) {
@@ -174,7 +235,7 @@ export default function SettingsPage() {
       console.error('Settings page: Error filtering settings items:', error);
       return [];
     }
-  })() : [];
+  }, [isClient, sessionStatus, session?.user?.role, session?.user?.modulePermissions]);
 
   if (sessionStatus === 'loading' || !isClient) {
     return (
@@ -250,5 +311,13 @@ export default function SettingsPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SettingsPage() {
+  return (
+    <SettingsErrorBoundary>
+      <SettingsPageContent />
+    </SettingsErrorBoundary>
   );
 }

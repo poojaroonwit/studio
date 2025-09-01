@@ -147,7 +147,6 @@ export async function HEAD(request: NextRequest, { params }: { params: Promise<{
         'Pragma': 'no-cache',
         'Expires': '0'
       }
-      }
     });
   } catch (error: any) {
     console.error('Error validating candidate', id, error);
@@ -334,11 +333,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       headers: {
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         'Pragma': 'no-cache',
-        'Expires': '0'
-      }
-        'ETag': `"${Buffer.from(JSON.stringify(responseData)).toString('base64').slice(0, 8)}"`,
-        'Pragma': 'no-cache',
-        'Expires': '0'
+        'Expires': '0',
+        'ETag': `"${Buffer.from(JSON.stringify(responseData)).toString('base64').slice(0, 8)}"`
       }
     });
   } catch (error: any) {

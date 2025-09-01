@@ -1334,6 +1334,7 @@ export default function SystemPreferencesPage() {
         detail: {
           appName,
           logoUrl: savedLogoUrl,
+          showLogoOnly,
           themePreference,
           primaryGradientStart: primaryGradientStart || sidebarColors.sidebarActiveBgStartL || DEFAULT_PRIMARY_GRADIENT_START,
           primaryGradientEnd: primaryGradientEnd || sidebarColors.sidebarActiveBgEndL || DEFAULT_PRIMARY_GRADIENT_END,

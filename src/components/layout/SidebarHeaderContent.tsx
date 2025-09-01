@@ -36,6 +36,16 @@ export function SidebarHeaderContent({
   sidebarLogoSize = 48, 
   contextualLogos = {} 
 }: SidebarHeaderContentProps) {
+  console.log('[SIDEBAR_HEADER] Props received:', {
+    currentAppName,
+    appLogoUrl,
+    isClient,
+    isLogoLoading,
+    showLogoOnly,
+    sidebarLogoSize,
+    contextualLogos,
+  });
+  
   const sidebarContext = useSidebar();
   const [isDarkMode, setIsDarkMode] = useState(false);
   const isMountedRef = useRef(true);
@@ -66,6 +76,13 @@ export function SidebarHeaderContent({
   }, []);
 
   const getContextualLogo = useCallback((isCollapsed: boolean) => {
+    console.log('[SIDEBAR_HEADER] getContextualLogo called:', {
+      isCollapsed,
+      isDarkMode,
+      contextualLogos,
+      appLogoUrl,
+    });
+    
     if (isCollapsed) {
       if (isDarkMode && contextualLogos.sidebarLogoCollapsedDarkMode) {
         return contextualLogos.sidebarLogoCollapsedDarkMode;
@@ -135,11 +152,20 @@ export function SidebarHeaderContent({
   }, []);
 
   const renderLogo = useCallback((isCollapsed: boolean) => {
+    console.log('[SIDEBAR_HEADER] renderLogo called:', {
+      isCollapsed,
+      isLogoLoading,
+      isClient,
+      sidebarLogoSize,
+    });
+    
     if (isLogoLoading) {
       return <div className="h-8 w-8 bg-muted rounded-lg animate-pulse" />;
     }
     
     const logoToUse = getContextualLogo(isCollapsed);
+    
+    console.log('[SIDEBAR_HEADER] logoToUse:', logoToUse);
     
     if (isClient && logoToUse) {
       // Calculate responsive logo size based on sidebar state and available space
@@ -171,6 +197,7 @@ export function SidebarHeaderContent({
         </div>
       );
     }
+    console.log('[SIDEBAR_HEADER] Returning fallback Package2 icon');
     return <Package2 className="h-6 w-6" />;
   }, [isLogoLoading, getContextualLogo, isClient, sidebarLogoSize]);
 

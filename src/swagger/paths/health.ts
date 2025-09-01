@@ -1,10 +1,10 @@
-// Health check API paths for Swagger documentation
+// Health API paths for Swagger documentation
 
 export const healthPaths = {
   '/api/v1/health': {
     get: {
-      summary: 'Health check endpoint',
-      description: 'Returns the health status of the API and its dependencies.',
+      summary: 'Health check (v1 API)',
+      description: 'Returns the health status of the API. No authentication required.',
       tags: ['V1 Health'],
       responses: {
         '200': {
@@ -16,33 +16,14 @@ export const healthPaths = {
                 properties: {
                   status: { type: 'string', example: 'healthy' },
                   timestamp: { type: 'string', format: 'date-time' },
-                  uptime: { type: 'number', description: 'Server uptime in seconds' },
-                  version: { type: 'string', example: '1.0.0' },
-                  environment: { type: 'string', example: 'production' }
+                  uptime: { type: 'number' },
+                  version: { type: 'string' }
                 }
               }
             }
           }
         },
-        '503': {
-          description: 'API is unhealthy',
-          content: {
-            'application/json': {
-              schema: {
-                type: 'object',
-                properties: {
-                  status: { type: 'string', example: 'unhealthy' },
-                  timestamp: { type: 'string', format: 'date-time' },
-                  errors: {
-                    type: 'array',
-                    items: { type: 'string' },
-                    description: 'List of health check errors'
-                  }
-                }
-              }
-            }
-          }
-        }
+        '503': { description: 'API is unhealthy' }
       }
     }
   }

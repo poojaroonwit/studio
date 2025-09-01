@@ -983,6 +983,12 @@ export function CandidatesPageClient({
       filterChangeTimeoutRef.current = null;
     }
     
+    // Clear URL parameters by navigating to the base candidates page
+    const currentSearchParams = new URLSearchParams(searchParams);
+    currentSearchParams.delete('query'); // Remove the advanced query parameter
+    const newUrl = `${pathname}${currentSearchParams.toString() ? `?${currentSearchParams.toString()}` : ''}`;
+    router.replace(newUrl, { scroll: false });
+    
     // Fetch candidates with default filters to restore original state
     // Use a small delay to ensure state updates are processed
     const clearTimeoutId = setTimeout(() => {
@@ -994,7 +1000,7 @@ export function CandidatesPageClient({
     return () => {
       clearTimeout(clearTimeoutId);
     };
-  }, [clearAllFilters, pageSize, fetchTableData, fetchFitScoreCounts, filterChangeTimeoutRef]);
+  }, [clearAllFilters, pageSize, fetchTableData, fetchFitScoreCounts, filterChangeTimeoutRef, searchParams, pathname, router]);
 
   // Handle export candidates
   const handleExportCandidates = useCallback(async () => {

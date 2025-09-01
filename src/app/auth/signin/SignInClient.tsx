@@ -43,7 +43,9 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
   const nextSearchParams = useSearchParams();
   const [appLogoUrl, setAppLogoUrl] = useState<string | null>(() => {
     if (initialSettings) {
-      return initialSettings.find(s => s.key === 'appLogoDataUrl')?.value || null;
+      const logoUrl = initialSettings.find(s => s.key === 'appLogoDataUrl')?.value || null;
+      console.log('[SIGNIN_CLIENT] Initial logo URL from server:', logoUrl);
+      return logoUrl;
     }
     return null;
   });
@@ -155,6 +157,14 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
             setShowLogoOnly(settings.showLogoOnly === 'true' || settings.showLogoOnly === true);
             setLoginLayoutType(loginLayoutTypeSetting);
             setLoginPageLogoSize(loginPageLogoSizeSetting);
+            
+            // Debug logging
+            console.log('[SIGNIN_CLIENT] Loaded settings:', {
+              appName,
+              logoUrl,
+              showLogoOnly: settings.showLogoOnly === 'true' || settings.showLogoOnly === true,
+              contextualLogos: contextualLogoData,
+            });
 
             // Apply primary colors and theme dynamically for login page
             if (typeof document !== 'undefined') {
@@ -591,6 +601,14 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
             } else if (!isThemeDark && contextualLogos.loginPageLogoLightMode) {
               logoToUse = contextualLogos.loginPageLogoLightMode;
             }
+            
+            console.log('[SIGNIN_CLIENT] Logo rendering:', {
+              appLogoUrl,
+              isThemeDark,
+              contextualLogos,
+              logoToUse,
+              isClient
+            });
             
             return logoToUse ? (
               <img

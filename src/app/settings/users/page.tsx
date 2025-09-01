@@ -36,12 +36,87 @@ import { signIn, useSession } from "next-auth/react";
 import { toast } from 'react-hot-toast';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { UserTeamsTab } from "@/components/settings/UserTeamsTab";
-import { UserGroupsTab } from "@/components/settings/UserGroupsTab";
 import { Pagination } from "@/components/ui/pagination";
 
 const userRoleOptionsFilter: (UserProfile['role'] | "ALL_ROLES")[] = ['ALL_ROLES', 'Admin', 'Recruiter', 'Hiring Manager'];
 
+// Error boundary component for tab content
+class TabErrorBoundary extends React.Component<
+  { children: React.ReactNode; fallback?: React.ReactNode },
+  { hasError: boolean; error?: Error }
+> {
+  constructor(props: { children: React.ReactNode; fallback?: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('Tab Error Boundary caught an error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback || (
+        <div className="flex flex-col items-center justify-center p-8 text-center">
+          <ServerCrash className="w-16 h-16 text-destructive mb-4" />
+          <h3 className="text-lg font-semibold mb-2">Something went wrong</h3>
+          <p className="text-muted-foreground mb-4">There was an error loading this tab content.</p>
+          <Button 
+            onClick={() => this.setState({ hasError: false })} 
+            variant="outline"
+          >
+            Try Again
+          </Button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+// Safe component wrapper to prevent hook order issues
+function SafeTeamsTab() {
+  try {
+    const { UserTeamsTab } = require('@/components/settings/UserTeamsTab');
+    return <UserTeamsTab />;
+  } catch (error) {
+    console.error('Failed to load UserTeamsTab:', error);
+    return (
+      <div className="flex flex-col items-center justify-center p-8 text-center">
+        <ServerCrash className="w-16 h-16 text-destructive mb-4" />
+        <h3 className="text-lg font-semibold mb-2">Error Loading Teams</h3>
+        <p className="text-muted-foreground mb-4">Failed to load teams component</p>
+        <Button variant="outline" onClick={() => window.location.reload()}>
+          Try Again
+        </Button>
+      </div>
+    );
+  }
+}
+
+function SafeGroupsTab() {
+  try {
+    const { UserGroupsTab } = require('@/components/settings/UserGroupsTab');
+    return <UserGroupsTab />;
+  } catch (error) {
+    console.error('Failed to load UserGroupsTab:', error);
+    return (
+      <div className="flex flex-col items-center justify-center p-8 text-center">
+        <ServerCrash className="w-16 h-16 text-destructive mb-4" />
+        <h3 className="text-lg font-semibold mb-2">Error Loading Roles</h3>
+        <p className="text-muted-foreground mb-4">Failed to load groups component</p>
+        <Button variant="outline" onClick={() => window.location.reload()}>
+          Try Again
+        </Button>
+      </div>
+    );
+  }
+}
 
 export default function ManageUsersPage() {
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -526,12 +601,16 @@ export default function ManageUsersPage() {
 
           {/* User Teams Tab */}
           {activeTab === 'teams' && (
-            <UserTeamsTab />
+            <TabErrorBoundary>
+              <SafeTeamsTab />
+            </TabErrorBoundary>
           )}
 
           {/* Roles & Permissions Tab */}
           {activeTab === 'groups' && (
-            <UserGroupsTab />
+            <TabErrorBoundary>
+              <SafeGroupsTab />
+            </TabErrorBoundary>
           )}
         </div>
       </ScrollArea>

@@ -147,15 +147,21 @@ export function useAppLayoutState() {
     sidebarLogoSize?: number;
     contextualLogos?: AppLayoutState['contextualLogos'];
   }) => {
+    // For logo updates, apply immediately without batching
+    if (config.appLogoUrl !== undefined) {
+      updateState(config);
+      return;
+    }
+    
     // Clear any existing batch timeout
     if (batchTimeoutRef.current) {
       clearTimeout(batchTimeoutRef.current);
     }
     
-    // Batch app config updates
+    // Batch app config updates - reduced delay for immediate logo updates
     batchTimeoutRef.current = setTimeout(() => {
       updateState(config);
-    }, 400); // Increased from 200ms
+    }, 100); // Reduced from 400ms for immediate logo updates
   }, [updateState]);
 
   // Update theme and colors with enhanced batching

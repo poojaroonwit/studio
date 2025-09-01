@@ -220,13 +220,13 @@ export function RecruitmentPipelineCard({
                   <div key={stage.id} className="flex items-center">
                     {/* Stage Circle */}
                                          <div 
-                       className="relative flex flex-col items-center cursor-pointer hover:bg-muted/30 rounded-lg p-1 transition-colors"
+                       className={`relative flex flex-col items-center cursor-pointer hover:bg-muted/30 rounded-lg p-1 transition-colors ${isSkipped ? 'opacity-60' : ''}`}
                        onClick={() => handleStageClick(stage.name)}
                        title={`${stage.name} - ${isSkipped ? 'Skipped' : isCompleted ? 'Completed' : isCurrent ? 'Current' : 'Future'} stage${records.length > 0 ? ` (${records.length} update${records.length > 1 ? 's' : ''})` : ''}`}
                      >
                        <div className={`
                          w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold z-10 transition-all duration-300
-                         ${isSkipped ? 'bg-gray-400 text-white' : ''}
+                         ${isSkipped ? 'bg-gray-400 text-gray-600' : ''}
                          ${isCompleted && !isCurrent && !isSkipped ? 'bg-green-500 text-white' : ''}
                          ${isFuture ? 'bg-muted text-muted-foreground' : ''}
                          ${isCurrent && isTransitioning ? 'animate-pulse' : ''}
@@ -252,7 +252,7 @@ export function RecruitmentPipelineCard({
                          ) : isCompleted && !isSkipped ? (
                            <CheckCircle className="w-4 h-4" />
                          ) : isSkipped ? (
-                           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                           <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                            </svg>
                          ) : (
@@ -263,7 +263,7 @@ export function RecruitmentPipelineCard({
                       {/* Stage Name */}
                       <div className="mt-2 text-center">
                         <div className="flex items-center gap-1 justify-center">
-                          <h4 className={`text-xs font-medium ${isCurrent ? 'text-primary' : isSkipped ? 'text-gray-500' : ''} truncate`}>
+                          <h4 className={`text-xs font-medium ${isCurrent ? 'text-primary' : isSkipped ? 'text-gray-400' : ''} truncate`}>
                             {stage.name}
                           </h4>
                           {/* Show loading indicator for current stage during transition */}
@@ -506,8 +506,10 @@ export function RecruitmentPipelineCard({
                       if (isCompleted && !isSkipped) {
                         // Use the stage's color_complete setting, fallback to green
                         color = stage.color_complete || '#22c55e';
+                      } else if (isSkipped) {
+                        color = '#9ca3af'; // Lighter gray for skipped stages
                       } else {
-                        color = '#d1d5db'; // Gray for current, future, and skipped stages
+                        color = '#d1d5db'; // Gray for current and future stages
                       }
                       
                       const startPercent = localStages.length > 1 ? (index / (localStages.length - 1)) * 100 : 0;

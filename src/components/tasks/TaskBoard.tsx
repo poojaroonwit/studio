@@ -335,15 +335,9 @@ export function TaskBoard({
 
     container.addEventListener('scroll', handleScroll, { passive: true });
     
-    // Multiple checks to ensure content is rendered
-    const timeouts = [
-      setTimeout(updateScrollButtons, 100),
-      setTimeout(updateScrollButtons, 300),
-      setTimeout(updateScrollButtons, 500),
-      setTimeout(updateScrollButtons, 1000)
-    ];
-    
-    timeoutIds.push(...timeouts);
+    // Single timeout instead of multiple - optimized for performance
+    const timeoutId = setTimeout(updateScrollButtons, 200);
+    timeoutIds.push(timeoutId);
     
     return () => {
       container.removeEventListener('scroll', handleScroll);
@@ -415,7 +409,7 @@ export function TaskBoard({
     
     // Rate limiting: prevent rapid drag operations to prevent resource leaks
     const now = Date.now();
-    if (now - lastDragTimeRef.current < 100) {
+    if (now - lastDragTimeRef.current < 200) { // Increased from 100ms to reduce frequency
       return;
     }
     lastDragTimeRef.current = now;

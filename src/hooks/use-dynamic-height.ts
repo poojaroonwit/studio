@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { SafeResizeObserver } from '@/lib/resize-observer-utils';
 
 interface UseDynamicHeightOptions {
   minHeight?: number;
@@ -14,24 +15,44 @@ export function useDynamicHeight(options: UseDynamicHeightOptions = {}) {
   const elementRef = useRef<HTMLDivElement>(null);
   const filterRefs = useRef<Set<HTMLElement>>(new Set());
   const resizeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const resizeObserverRef = useRef<SafeResizeObserver | null>(null);
+  const isUpdatingRef = useRef<boolean>(false);
+  const lastHeightRef = useRef<number>(minHeight);
 
   const updateHeight = useCallback(() => {
-    if (elementRef.current) {
-      const elementHeight = elementRef.current.offsetHeight;
-      
-      // Calculate total height of filter elements
-      let filterHeight = 0;
-      filterRefs.current.forEach(ref => {
-        if (ref) {
-          filterHeight += ref.offsetHeight;
-        }
-      });
+    // Prevent recursive updates
+    if (isUpdatingRef.current) {
+      return;
+    }
 
-      // Calculate available height for the table
-      const availableHeight = typeof window !== 'undefined' ? window.innerHeight - filterHeight - buffer : minHeight;
-      const newHeight = Math.max(minHeight, Math.min(maxHeight, availableHeight));
+    if (elementRef.current) {
+      isUpdatingRef.current = true;
       
-      setHeight(newHeight);
+      try {
+        const elementHeight = elementRef.current.offsetHeight;
+        
+        // Calculate total height of filter elements
+        let filterHeight = 0;
+        filterRefs.current.forEach(ref => {
+          if (ref) {
+            filterHeight += ref.offsetHeight;
+          }
+        });
+
+        // Calculate available height for the table
+        const availableHeight = typeof window !== 'undefined' ? window.innerHeight - filterHeight - buffer : minHeight;
+        const newHeight = Math.max(minHeight, Math.min(maxHeight, availableHeight));
+        
+        // Only update if height actually changed significantly (prevent infinite loops)
+        if (Math.abs(newHeight - lastHeightRef.current) > 5) {
+          lastHeightRef.current = newHeight;
+          setHeight(newHeight);
+        }
+      } catch (error) {
+        console.warn('Error updating dynamic height:', error);
+      } finally {
+        isUpdatingRef.current = false;
+      }
     }
   }, [minHeight, maxHeight, buffer]);
 
@@ -39,7 +60,12 @@ export function useDynamicHeight(options: UseDynamicHeightOptions = {}) {
     if (resizeTimeoutRef.current) {
       clearTimeout(resizeTimeoutRef.current);
     }
-    resizeTimeoutRef.current = setTimeout(updateHeight, debounceMs);
+    resizeTimeoutRef.current = setTimeout(() => {
+      // Only update if not currently updating
+      if (!isUpdatingRef.current) {
+        updateHeight();
+      }
+    }, debounceMs);
   }, [updateHeight, debounceMs]);
 
   const addFilterRef = useCallback((ref: HTMLElement | null) => {
@@ -62,15 +88,16 @@ export function useDynamicHeight(options: UseDynamicHeightOptions = {}) {
     // Initial measurement with a small delay to ensure DOM is ready
     const initialTimer = setTimeout(updateHeight, 100);
 
-    // Set up ResizeObserver to watch for height changes
-    const resizeObserver = new ResizeObserver(() => {
-      if (resizeTimeoutRef.current) {
-        clearTimeout(resizeTimeoutRef.current);
+    // Set up SafeResizeObserver to watch for height changes
+    resizeObserverRef.current = new SafeResizeObserver(() => {
+      // Only update if not currently updating and element still exists
+      if (!isUpdatingRef.current && elementRef.current) {
+        debouncedUpdateHeight();
       }
-      resizeTimeoutRef.current = setTimeout(updateHeight, debounceMs);
-    });
+    }, debounceMs);
+
     if (elementRef.current) {
-      resizeObserver.observe(elementRef.current);
+      resizeObserverRef.current.observe(elementRef.current);
     }
 
     // Also listen for window resize events
@@ -78,10 +105,16 @@ export function useDynamicHeight(options: UseDynamicHeightOptions = {}) {
       if (resizeTimeoutRef.current) {
         clearTimeout(resizeTimeoutRef.current);
       }
-      resizeTimeoutRef.current = setTimeout(updateHeight, debounceMs);
+      resizeTimeoutRef.current = setTimeout(() => {
+        // Only update if not currently updating
+        if (!isUpdatingRef.current) {
+          updateHeight();
+        }
+      }, debounceMs);
     };
+    
     if (typeof window !== 'undefined') {
-      window.addEventListener('resize', handleResize);
+      window.addEventListener('resize', handleResize, { passive: true });
     }
 
     return () => {
@@ -90,10 +123,19 @@ export function useDynamicHeight(options: UseDynamicHeightOptions = {}) {
         clearTimeout(resizeTimeoutRef.current);
         resizeTimeoutRef.current = null;
       }
-      resizeObserver.disconnect();
+      
+      // Properly disconnect SafeResizeObserver
+      if (resizeObserverRef.current) {
+        resizeObserverRef.current.disconnect();
+        resizeObserverRef.current = null;
+      }
+      
       if (typeof window !== 'undefined') {
         window.removeEventListener('resize', handleResize);
       }
+      
+      // Reset update flag
+      isUpdatingRef.current = false;
     };
   }, [updateHeight, debounceMs]);
 

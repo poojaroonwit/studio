@@ -24,9 +24,9 @@ export function useSessionValidation(options: {
   const hasInitializedRef = useRef<boolean>(false);
   const lastSessionIdRef = useRef<string | undefined>(undefined);
   
-  // Simple constants instead of complex dynamic performance
-  const DEFAULT_VALIDATE_INTERVAL = 15 * 60 * 1000; // 15 minutes
-  const DEFAULT_REQUEST_TIMEOUT = 10000; // 10 seconds
+  // Simple constants instead of complex dynamic performance - optimized for better performance
+  const DEFAULT_VALIDATE_INTERVAL = 30 * 60 * 1000; // Increased from 15 to 30 minutes
+  const DEFAULT_REQUEST_TIMEOUT = 15000; // Increased from 10 to 15 seconds
   
   // Memoize options to prevent unnecessary re-renders
   const memoizedOptions = useMemo(() => ({

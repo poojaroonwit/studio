@@ -349,105 +349,113 @@ export default function DashboardPageClient({
     };
   }, [fetchDataClientSide]);
 
-  const totalActiveCandidates = useMemo(() => {
-    const safeAllCandidates = Array.isArray(filteredCandidates)? filteredCandidates : [];
-    return safeAllCandidates.filter((c: Candidate) => !BACKLOG_EXCLUSION_STATUSES.includes(c.status)).length;
-  }, [filteredCandidates]);
-  const totalOpenPositions = useMemo(() => {
+  // Optimized dashboard computations - combined related calculations to reduce render overhead
+  const dashboardStats = useMemo(() => {
+    const safeAllCandidates = Array.isArray(filteredCandidates) ? filteredCandidates : [];
     const safeAllPositions = Array.isArray(allPositions) ? allPositions : [];
-    return safeAllPositions.filter((p: Position) => p.isOpen).length;
-  }, [allPositions]);
-
-      // Memoize open headcount to avoid repeated filtering
-  const openPositions = useMemo(() => {
-    const safeAllPositions = Array.isArray(allPositions) ? allPositions : [];
-    return safeAllPositions.filter((p: Position) => p.isOpen);
-  }, [allPositions]);
-  const hiredThisMonthAdmin = useMemo(() => {
-    const safeAllCandidates = Array.isArray(filteredCandidates)? filteredCandidates : [];
+    const safeAllUsers = Array.isArray(allUsers) ? allUsers : [];
+    const safeMyAssignedCandidates = Array.isArray(myAssignedCandidates) ? myAssignedCandidates : [];
+    const safeMyBacklogCandidates = Array.isArray(myBacklogCandidates) ? myBacklogCandidates : [];
+    
     const now = new Date();
-    return safeAllCandidates.filter((c: Candidate) => {
+    
+    // Combined candidate statistics
+    const totalActiveCandidates = safeAllCandidates.filter((c: Candidate) => !BACKLOG_EXCLUSION_STATUSES.includes(c.status)).length;
+    
+    // Combined position statistics
+    const openPositions = safeAllPositions.filter((p: Position) => p.isOpen);
+    const totalOpenPositions = openPositions.length;
+    
+    // Combined monthly statistics
+    const hiredThisMonthAdmin = safeAllCandidates.filter((c: Candidate) => {
       if (c.status !== 'Hired' || !c.applicationDate || typeof c.applicationDate !== 'string') return false;
       try {
         const appDate = parseISO(c.applicationDate);
         return appDate.getMonth() === now.getMonth() && appDate.getFullYear() === now.getFullYear();
       } catch { return false; }
     }).length;
-  }, [filteredCandidates]);
-
-  const rejectedThisMonthAdmin = useMemo(() => {
-    const safeAllCandidates = Array.isArray(filteredCandidates)? filteredCandidates : [];
-    const now = new Date();
-    return safeAllCandidates.filter((c: Candidate) => {
+    
+    const rejectedThisMonthAdmin = safeAllCandidates.filter((c: Candidate) => {
       if (c.status !== 'Rejected' || !c.applicationDate || typeof c.applicationDate !== 'string') return false;
       try {
         const appDate = parseISO(c.applicationDate);
         return appDate.getMonth() === now.getMonth() && appDate.getFullYear() === now.getFullYear();
       } catch { return false; }
     }).length;
-  }, [filteredCandidates]);
-  const totalActiveRecruiters = useMemo(() => {
-    const safeAllUsers = Array.isArray(allUsers) ? allUsers : [];
-    // Count users who can manage candidates (not just hardcoded 'Recruiter' role)
-    return safeAllUsers.filter((u: UserProfile) => 
+    
+    // Combined recruiter statistics
+    const totalActiveRecruiters = safeAllUsers.filter((u: UserProfile) => 
       u.role === 'Recruiter' || 
       (u.modulePermissions || []).includes('CANDIDATES_VIEW') ||
       (u.modulePermissions || []).includes('CANDIDATES_CREATE') ||
       (u.modulePermissions || []).includes('CANDIDATES_EDIT_BASIC') ||
       (u.modulePermissions || []).includes('CANDIDATES_EDIT_SENSITIVE')
     ).length;
-  }, [allUsers]);
-  const newCandidatesTodayAdminList = useMemo(() => {
-    const safeAllCandidates = Array.isArray(filteredCandidates)? filteredCandidates : [];
-    return safeAllCandidates.filter((c: Candidate) => {
+    
+    // Combined today's statistics
+    const newCandidatesTodayAdminList = safeAllCandidates.filter((c: Candidate) => {
       try {
         if (!c.applicationDate || typeof c.applicationDate !== 'string') return false;
         return isToday(parseISO(c.applicationDate));
       } catch { return false; }
     });
-  }, [filteredCandidates]);
-  const openPositionsWithNoCandidates = useMemo(() => {
-    const safeAllPositions = Array.isArray(allPositions) ? allPositions : [];
-    const safeAllCandidates = Array.isArray(filteredCandidates)? filteredCandidates : [];
-    return safeAllPositions.filter((position: Position) => {
-      if (!position.isOpen) return false;
+    
+    const openPositionsWithNoCandidates = openPositions.filter((position: Position) => {
       return !safeAllCandidates.some(candidate => candidate.positionId === position.id);
     });
-  }, [allPositions, filteredCandidates]);
-
-  const myActiveCandidatesList = useMemo(() => {
-    const safeMyAssignedCandidates = Array.isArray(myAssignedCandidates) ? myAssignedCandidates : [];
-    return safeMyAssignedCandidates.filter((c: Candidate) => !BACKLOG_EXCLUSION_STATUSES.includes(c.status));
-  }, [myAssignedCandidates]);
-  const myCandidatesInInterviewCount = useMemo(() => {
-    const safeMyActiveCandidatesList = Array.isArray(myActiveCandidatesList) ? myActiveCandidatesList : [];
-    return safeMyActiveCandidatesList.filter((c: Candidate) => INTERVIEW_STATUSES.includes(c.status)).length;
-  }, [myActiveCandidatesList]);
-  const newCandidatesAssignedToMeTodayList = useMemo(() => {
-    const safeMyActiveCandidatesList = Array.isArray(myActiveCandidatesList) ? myActiveCandidatesList : [];
-    return safeMyActiveCandidatesList.filter((c: Candidate) => {
+    
+    // Combined my candidates statistics
+    const myActiveCandidatesList = safeMyAssignedCandidates.filter((c: Candidate) => !BACKLOG_EXCLUSION_STATUSES.includes(c.status));
+    const myCandidatesInInterviewCount = myActiveCandidatesList.filter((c: Candidate) => INTERVIEW_STATUSES.includes(c.status)).length;
+    
+    const newCandidatesAssignedToMeTodayList = myActiveCandidatesList.filter((c: Candidate) => {
       try {
         if (!c.applicationDate || typeof c.applicationDate !== 'string') return false;
         return isToday(parseISO(c.applicationDate));
       } catch { return false; }
     });
-  }, [myActiveCandidatesList]);
-  const myActionItemsList = useMemo(() => {
-    try {
-      const safeMyBacklogCandidates = Array.isArray(myBacklogCandidates) ? myBacklogCandidates : [];
-      return safeMyBacklogCandidates.filter((c: Candidate) => {
-        try {
-          return c && c.recruiterId === session?.user?.id;
-        } catch (error) {
-          console.warn('DashboardPageClient: Error filtering my action items:', error, c);
-          return false;
-        }
-      });
-    } catch (error) {
-      console.error('DashboardPageClient: Error in myActionItemsList useMemo:', error);
-      return [];
-    }
-  }, [myBacklogCandidates, session?.user?.id]);
+    
+    // Combined action items
+    const myActionItemsList = safeMyBacklogCandidates.filter((c: Candidate) => {
+      try {
+        return c && c.recruiterId === session?.user?.id;
+      } catch (error) {
+        console.warn('DashboardPageClient: Error filtering my action items:', error, c);
+        return false;
+      }
+    });
+    
+    return {
+      totalActiveCandidates,
+      totalOpenPositions,
+      openPositions,
+      hiredThisMonthAdmin,
+      rejectedThisMonthAdmin,
+      totalActiveRecruiters,
+      newCandidatesTodayAdminList,
+      openPositionsWithNoCandidates,
+      myActiveCandidatesList,
+      myCandidatesInInterviewCount,
+      newCandidatesAssignedToMeTodayList,
+      myActionItemsList
+    };
+  }, [filteredCandidates, allPositions, allUsers, myAssignedCandidates, myBacklogCandidates, session?.user?.id]);
+
+  // Destructure for backward compatibility
+  const {
+    totalActiveCandidates,
+    totalOpenPositions,
+    openPositions,
+    hiredThisMonthAdmin,
+    rejectedThisMonthAdmin,
+    totalActiveRecruiters,
+    newCandidatesTodayAdminList,
+    openPositionsWithNoCandidates,
+    myActiveCandidatesList,
+    myCandidatesInInterviewCount,
+    newCandidatesAssignedToMeTodayList,
+    myActionItemsList
+  } = dashboardStats;
 
   // Derived statistics from processed data
   const candidateScoreRanges = useMemo(() => {

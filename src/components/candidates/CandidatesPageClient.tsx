@@ -1276,7 +1276,6 @@ export function CandidatesPageClient({
       if (currentRequestRefFromHook?.current !== undefined) {
         currentRequestRefFromHook.current = requestId;
       }
-      console.log('🔍 CandidatesPageClient: Fetching table data with filters:', filters);
       fetchTableData(filters, page, pageSize);
     }, 300); // Increased delay to prevent resource leaks
     

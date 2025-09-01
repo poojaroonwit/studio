@@ -277,19 +277,19 @@ export function UserPresenceIndicator({ className }: UserPresenceIndicatorProps)
     // Fetch initial presence data
     fetchPresence();
 
-    // Update presence every 30 seconds
+    // Update presence every 60 seconds (increased from 30 seconds)
     presenceIntervalRef.current = setInterval(() => {
       if (mountedRef.current) {
         updatePresence();
       }
-    }, 30000);
+    }, 60000); // Increased from 30000 to 60000
     
-    // Fetch presence data every 10 seconds
+    // Fetch presence data every 30 seconds (increased from 10 seconds)
     updateIntervalRef.current = setInterval(() => {
       if (mountedRef.current) {
         fetchPresence();
       }
-    }, 10000);
+    }, 30000); // Increased from 10000 to 30000
 
     // Cleanup on unmount or dependency change
     return () => {

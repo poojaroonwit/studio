@@ -1,272 +1,142 @@
-import React from 'react';
+import React, { useRef, useCallback } from 'react';
+
+// Performance monitoring utilities
+// DISABLED to improve application performance
 
 interface PerformanceMetrics {
   renderCount: number;
-  lastRenderTime: number;
-  averageRenderTime: number;
-  maxRenderTime: number;
-  minRenderTime: number;
-  totalRenderTime: number;
+  memoryUsage: number;
+  apiCallCount: number;
+  slowQueries: number;
 }
 
 class PerformanceMonitor {
-  private metrics: Map<string, PerformanceMetrics> = new Map();
-  private isMonitoring: boolean = false;
+  private metrics: Map<string, PerformanceMetrics> = new Map()
+  private isMonitoring = false;
 
   constructor() {
-    this.setupGlobalMonitoring();
+    // DISABLED: this.setupGlobalMonitoring();
   }
 
   private setupGlobalMonitoring() {
     if (this.isMonitoring) return;
     this.isMonitoring = true;
 
-    // Monitor for excessive re-renders
-    let renderCount = 0;
-    let lastRenderTime = Date.now();
-    let totalRenderTime = 0;
-    let maxRenderTime = 0;
-    let minRenderTime = Infinity;
+    // DISABLED: Monitor for excessive re-renders
+    // let renderCount = 0;
+    // let lastRenderTime = Date.now();
+    // let totalRenderTime = 0;
+    // let maxRenderTime = 0;
+    // let minRenderTime = Infinity;
 
-    const originalRender = (ReactDOM as any)?.render;
-    if (originalRender) {
-      (ReactDOM as any).render = (...args: any[]) => {
-        const now = Date.now();
-        const timeSinceLastRender = now - lastRenderTime;
+    // const originalRender = (ReactDOM as any)?.render;
+    // if (originalRender) {
+    //   (ReactDOM as any).render = (...args: any[]) => {
+    //     const now = Date.now();
+    //     const timeSinceLastRender = now - lastRenderTime;
         
-        renderCount++;
-        totalRenderTime += timeSinceLastRender;
-        maxRenderTime = Math.max(maxRenderTime, timeSinceLastRender);
-        minRenderTime = Math.min(minRenderTime, timeSinceLastRender);
+    //     renderCount++;
+    //     totalRenderTime += timeSinceLastRender;
+    //     maxRenderTime = Math.max(maxRenderTime, timeSinceLastRender);
+    //     minRenderTime = Math.min(minRenderTime, timeSinceLastRender);
 
-        if (timeSinceLastRender < 50 && renderCount > 100) {
-          console.warn('🚨 Excessive re-renders detected:', renderCount, 'renders in', timeSinceLastRender, 'ms');
-        }
+    //     if (timeSinceLastRender < 50 && renderCount > 100) {
+    //       console.warn('🚨 Excessive re-renders detected:', renderCount, 'renders in', timeSinceLastRender, 'ms');
+    //     }
 
-        if (timeSinceLastRender < 30 && renderCount > 50) {
-          console.error('🚨 Critical render frequency:', renderCount, 'renders in', timeSinceLastRender, 'ms');
-        }
+    //     if (timeSinceLastRender < 30 && renderCount > 50) {
+    //       console.error('🚨 Critical render frequency:', renderCount, 'renders in', timeSinceLastRender, 'ms');
+    //     }
 
-        lastRenderTime = now;
-        return originalRender.apply(this, args);
-      };
-    }
+    //     lastRenderTime = now;
+    //     return originalRender.apply(this, args);
+    //   };
+    // }
 
-    // Monitor for memory leaks
-    if (typeof window !== 'undefined' && window.performance && (window.performance as any).memory) {
-      setInterval(() => {
-        const memory = (window.performance as any).memory;
-        const usedMB = memory.usedJSHeapSize / 1024 / 1024;
-        const totalMB = memory.totalJSHeapSize / 1024 / 1024;
+    // DISABLED: Monitor for memory leaks
+    // if (typeof window !== 'undefined' && window.performance && (window.performance as any).memory) {
+    //   setInterval(() => {
+    //     const memory = (window.performance as any).memory;
+    //     const usedMB = memory.usedJSHeapSize / 1024 / 1024;
+    //     const totalMB = memory.totalJSHeapSize / 1024 / 1024;
 
-        if (usedMB > 100) { // 100MB threshold
-          console.warn('⚠️ High memory usage detected:', usedMB.toFixed(2), 'MB');
-        }
+    //     if (usedMB > 100) { // 100MB threshold
+    //       console.warn('⚠️ High memory usage detected:', usedMB.toFixed(2), 'MB');
+    //     }
 
-        if (usedMB / totalMB > 0.8) { // 80% threshold
-          console.error('🚨 Critical memory usage:', (usedMB / totalMB * 100).toFixed(1), '%');
-        }
-      }, 30000); // Check every 30 seconds
-    }
+    //     if (usedMB / totalMB > 0.8) { // 80% threshold
+    //       console.error('🚨 Critical memory usage:', (usedMB / totalMB * 100).toFixed(1), '%');
+    //     }
+    //   }, 30000); // Check every 30 seconds
+    // }
 
-    // Monitor for long-running tasks
-    if (typeof window !== 'undefined' && 'PerformanceObserver' in window) {
-      try {
-        const observer = new PerformanceObserver((list) => {
-          for (const entry of list.getEntries()) {
-            if (entry.duration > 50) { // Tasks longer than 50ms
-              console.warn('⚠️ Long task detected:', entry.name, entry.duration.toFixed(2), 'ms');
-            }
-          }
-        });
-        observer.observe({ entryTypes: ['longtask'] });
-      } catch (error) {
-        console.warn('PerformanceObserver not supported:', error);
-      }
-    }
+    // DISABLED: Monitor for long-running tasks
+    // if (typeof window !== 'undefined' && 'PerformanceObserver' in window) {
+    //   try {
+    //     const observer = new PerformanceObserver((list) => {
+    //       for (const entry of list.getEntries()) {
+    //         if (entry.duration > 50) { // 50ms threshold
+    //           console.warn('⚠️ Long task detected:', entry.duration.toFixed(2), 'ms');
+    //         }
+    //       }
+    //     });
+    //     observer.observe({ entryTypes: ['longtask'] });
+    //   } catch (error) {
+    //     console.warn('PerformanceObserver not supported');
+    //   }
+    // }
   }
 
-  trackComponent(componentName: string, operation: 'render' | 'effect' | 'state' | 'callback') {
-    const now = Date.now();
-    const key = `${componentName}_${operation}`;
-    
-    if (!this.metrics.has(key)) {
-      this.metrics.set(key, {
-        renderCount: 0,
-        lastRenderTime: 0,
-        averageRenderTime: 0,
-        maxRenderTime: 0,
-        minRenderTime: Infinity,
-        totalRenderTime: 0,
-      });
-    }
-
-    const metric = this.metrics.get(key)!;
-    const timeSinceLastOperation = now - metric.lastRenderTime;
-    
-    metric.renderCount++;
-    metric.lastRenderTime = now;
-    metric.totalRenderTime += timeSinceLastOperation;
-    metric.maxRenderTime = Math.max(metric.maxRenderTime, timeSinceLastOperation);
-    metric.minRenderTime = Math.min(metric.minRenderTime, timeSinceLastOperation);
-    metric.averageRenderTime = metric.totalRenderTime / metric.renderCount;
-
-    // Alert for frequent operations
-    if (timeSinceLastOperation < 50 && metric.renderCount > 10) {
-      console.warn(`⚠️ Frequent ${operation}s in "${componentName}": ${timeSinceLastOperation}ms between ${operation}s`);
-    }
-
-    // Alert for excessive operations
-    if (metric.renderCount > 100) {
-      console.error(`🚨 Excessive ${operation}s in "${componentName}": ${metric.renderCount} ${operation}s`);
-    }
-
-    return metric;
+  public startMonitoring(intervalMs: number = 30000): void {
+    // DISABLED: Performance monitoring disabled for better performance
+    console.log('Performance monitoring disabled for better application performance');
   }
 
-  getMetrics(componentName?: string) {
-    if (componentName) {
-      const componentMetrics: Record<string, PerformanceMetrics> = {};
-      for (const [key, value] of this.metrics.entries()) {
-        if (key.startsWith(componentName)) {
-          componentMetrics[key] = value;
-        }
-      }
-      return componentMetrics;
-    }
-    return Object.fromEntries(this.metrics);
+  public stopMonitoring(): void {
+    // DISABLED: Performance monitoring disabled for better performance
   }
 
-  resetMetrics(componentName?: string) {
-    if (componentName) {
-      for (const key of this.metrics.keys()) {
-        if (key.startsWith(componentName)) {
-          this.metrics.delete(key);
-        }
-      }
-    } else {
-      this.metrics.clear();
-    }
-  }
-
-  logMetrics(componentName?: string) {
-    const metrics = this.getMetrics(componentName);
-    console.log('📊 Performance Metrics:', metrics);
-    return metrics;
+  public getMetrics(): Map<string, PerformanceMetrics> {
+    return this.metrics;
   }
 }
 
-// Create a singleton instance
-const performanceMonitor = new PerformanceMonitor();
-
-export { performanceMonitor, PerformanceMonitor };
-export type { PerformanceMetrics };
+// Global performance monitor instance
+export const performanceMonitor = new PerformanceMonitor();
 
 /**
- * Hook to track component performance
- */
-export function usePerformanceTracking(componentName: string) {
-  const trackRender = () => performanceMonitor.trackComponent(componentName, 'render');
-  const trackEffect = () => performanceMonitor.trackComponent(componentName, 'effect');
-  const trackState = () => performanceMonitor.trackComponent(componentName, 'state');
-  const trackCallback = () => performanceMonitor.trackComponent(componentName, 'callback');
-
-  return {
-    trackRender,
-    trackEffect,
-    trackState,
-    trackCallback
-  };
-}
-
-/**
- * Higher-order component to automatically track performance
- */
-export function withPerformanceTracking<P extends object>(
-  WrappedComponent: React.ComponentType<P>,
-  componentName?: string
-) {
-  const displayName = componentName || WrappedComponent.displayName || WrappedComponent.name || 'Component';
-
-  const WithPerformanceTracking = React.forwardRef<any, P>((props, ref) => {
-    const { trackRender } = usePerformanceTracking(displayName);
-
-    React.useEffect(() => {
-      trackRender();
-    });
-
-    return React.createElement(WrappedComponent, { ...props, ref });
-  });
-
-  WithPerformanceTracking.displayName = `withPerformanceTracking(${displayName})`;
-
-  return WithPerformanceTracking;
-}
-
-/**
- * Utility to detect infinite loops in async operations
- */
-export class AsyncLoopDetector {
-  private operationCount: Map<string, number> = new Map();
-  private lastOperationTime: Map<string, number> = new Map();
-  private blockedOperations: Set<string> = new Set();
-
-  constructor(private maxOperations: number = 50, private timeWindow: number = 5000) {}
-
-  canExecute(operationName: string): boolean {
-    if (this.blockedOperations.has(operationName)) {
-      return false;
-    }
-
-    const now = Date.now();
-    const count = this.operationCount.get(operationName) || 0;
-    const lastTime = this.lastOperationTime.get(operationName) || 0;
-
-    // Check if too many operations in time window
-    if (now - lastTime < this.timeWindow && count > this.maxOperations) {
-      console.error(`🚨 Async loop detected in "${operationName}": ${count} operations in ${this.timeWindow}ms`);
-      this.blockedOperations.add(operationName);
-      return false;
-    }
-
-    // Reset count if outside time window
-    if (now - lastTime > this.timeWindow) {
-      this.operationCount.set(operationName, 1);
-    } else {
-      this.operationCount.set(operationName, count + 1);
-    }
-
-    this.lastOperationTime.set(operationName, now);
-    return true;
-  }
-
-  reset(operationName?: string) {
-    if (operationName) {
-      this.operationCount.delete(operationName);
-      this.lastOperationTime.delete(operationName);
-      this.blockedOperations.delete(operationName);
-    } else {
-      this.operationCount.clear();
-      this.lastOperationTime.clear();
-      this.blockedOperations.clear();
-    }
-  }
-}
-
-// Global async loop detector
-export const asyncLoopDetector = new AsyncLoopDetector();
-
-/**
- * Hook to prevent infinite loops in async operations
+ * Hook to prevent excessive async operations
  */
 export function useAsyncLoopPrevention(operationName: string) {
-  const canExecute = React.useCallback(() => {
-    return asyncLoopDetector.canExecute(operationName);
+  const lastExecutionTime = useRef(0);
+  const executionCount = useRef(0);
+
+  const canExecute = useCallback(() => {
+    const now = Date.now();
+    const timeSinceLastExecution = now - lastExecutionTime.current;
+    
+    // Allow execution if enough time has passed
+    if (timeSinceLastExecution > 1000) { // 1 second minimum
+      lastExecutionTime.current = now;
+      executionCount.current = 0;
+      return true;
+    }
+    
+    executionCount.current++;
+    
+    // Block if too many executions in short time
+    if (executionCount.current > 10) {
+      console.warn(`🚨 Too many ${operationName} executions detected`);
+      return false;
+    }
+    
+    return true;
   }, [operationName]);
 
-  const reset = React.useCallback(() => {
-    asyncLoopDetector.reset(operationName);
-  }, [operationName]);
+  const reset = useCallback(() => {
+    lastExecutionTime.current = 0;
+    executionCount.current = 0;
+  }, []);
 
   return { canExecute, reset };
 }
@@ -365,7 +235,7 @@ export function useMemoryLeakTracking(componentName: string) {
 if (typeof window !== 'undefined') {
   window.addEventListener('beforeunload', () => {
     memoryLeakDetector.cleanup();
-    asyncLoopDetector.reset();
-    performanceMonitor.resetMetrics(); // Changed from reset() to resetMetrics()
+    // asyncLoopDetector.reset(); // This line was removed from the new_code, so it's removed here.
+    // performanceMonitor.resetMetrics(); // Changed from reset() to resetMetrics()
   });
 }

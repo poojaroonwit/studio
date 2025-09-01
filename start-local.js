@@ -42,11 +42,9 @@ const childProcesses = [];
 
 // Function to start the main application
 function startMainApp() {
-  console.log('🚀 Starting main application with increased memory...');
+  console.log('🚀 Starting main application (Docker memory management)...');
   
   const child = spawn('node', [
-    '--max-old-space-size=4096',
-    '--optimize-for-size',
     './node_modules/.bin/next',
     'start',
     '-p', '8021'
@@ -79,7 +77,6 @@ function startProcessor() {
   console.log('⚙️  Starting upload queue processor...');
   
   const child = spawn('node', [
-    '--max-old-space-size=2048',
     './scripts/process-upload-queue.cjs'
   ], {
     stdio: 'inherit',

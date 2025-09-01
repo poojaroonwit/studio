@@ -13,10 +13,10 @@ export function usePageLoading() {
   const lastUpdateTimeRef = useRef(0);
   const lastPathnameRef = useRef<string | null>(null);
 
-  // Simple constants instead of complex dynamic performance
-  const DEBOUNCE_DELAY = 3000;
-  const UPDATE_TIMEOUT = 1500;
-  const LOADING_TIMEOUT = 3000;
+  // Simple constants instead of complex dynamic performance - optimized for better performance
+  const DEBOUNCE_DELAY = 1000; // Reduced from 3000ms to 1000ms
+  const UPDATE_TIMEOUT = 800; // Reduced from 1500ms to 800ms
+  const LOADING_TIMEOUT = 1500; // Reduced from 3000ms to 1500ms
 
   const startLoading = useCallback(() => {
     const now = Date.now();

@@ -22,8 +22,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { useRenderMonitor } from '@/hooks/use-render-monitor';
 import { OptimizedContainer, LayoutContainer } from '@/components/ui/optimized-container';
 import { useAppLayoutState } from '@/hooks/use-app-layout-state';
-import { initializeFrozenStatePrevention, trackActivity } from '@/lib/frozen-state-prevention';
-import { initializeDynamicPerformanceOptimizer } from '@/lib/dynamic-performance-optimizer';
+
 
 const DEFAULT_APP_NAME = "FitScan";
 
@@ -63,8 +62,8 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
     // Initialize simple tracking
   }, []);
 
-  // Enhanced render monitoring with stricter thresholds
-  useRenderMonitor('AppLayout', 1000); // Increased from 500 to 1000ms to reduce false positives
+  // Enhanced render monitoring with stricter thresholds - optimized for performance
+  useRenderMonitor('AppLayout', 2000); // Increased from 1000 to 2000ms to reduce false positives
 
   // Memoize session validation logic
   const shouldValidateSession = useMemo(() => {
@@ -73,7 +72,7 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
 
   // Memoize session validation options to prevent unnecessary re-renders
   const sessionValidationOptions = useMemo(() => ({
-    validateInterval: 15 * 60 * 1000, // Increased from 10 to 15 minutes
+    validateInterval: 30 * 60 * 1000, // Increased from 15 to 30 minutes for better performance
     autoSignOut: true,
     redirectTo: '/auth/signin'
   }), []);
@@ -243,11 +242,7 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
     initializeClient();
     fetchGlobalSettings();
     
-    // Initialize frozen state prevention
-    initializeFrozenStatePrevention();
-    
-    // Initialize dynamic performance optimizer
-    initializeDynamicPerformanceOptimizer();
+
     
     window.addEventListener('appConfigChanged', handleAppConfigChange);
     

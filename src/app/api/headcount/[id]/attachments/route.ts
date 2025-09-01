@@ -80,12 +80,11 @@ export async function POST(
 
     console.log('[HEADCOUNT ATTACHMENT] File received:', file.name, 'Size:', file.size, 'Type:', file.type);
 
-    // Validate file size (max 50MB)
-    const maxSize = 50 * 1024 * 1024; // 50MB
+    // Check file size (increased from 50MB to 500MB)
+    const maxSize = 500 * 1024 * 1024; // 500MB
     if (file.size > maxSize) {
-      console.log('[HEADCOUNT ATTACHMENT] File too large:', file.size, '>', maxSize);
       return NextResponse.json(
-        { error: 'File size must be less than 50MB' },
+        { error: `File size exceeds maximum allowed size of ${maxSize / (1024 * 1024)}MB` },
         { status: 400 }
       );
     }

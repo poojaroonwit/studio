@@ -197,8 +197,8 @@ export async function POST(request: NextRequest) {
       const fileStats = await minioClient.statObject(MINIO_BUCKET, job.file_path);
       const fileSize = fileStats.size;
       
-      // Skip processing if file is too large (e.g., > 50MB)
-      const maxFileSize = 50 * 1024 * 1024; // 50MB
+      // Skip processing if file is too large (increased from 50MB to 500MB)
+      const maxFileSize = 500 * 1024 * 1024; // 500MB
       if (fileSize > maxFileSize) {
         console.warn(`File too large (${fileSize} bytes), skipping processing for job ${job.id}`);
         await client.query(

@@ -68,6 +68,7 @@ export function applySidebarStylesWithTheme(sidebarColors: Record<string, string
     'sidebarTextL': '--sidebar-foreground-l',
     'sidebarBorderL': '--sidebar-border-l',
     'sidebarActiveBgStartL': '--sidebar-active-bg-start-l',
+    'sidebarActiveBgEndL': '--sidebar-active-bg-end-l',
     'sidebarActiveTextL': '--sidebar-active-foreground-l',
     'sidebarHoverBgL': '--sidebar-accent-l',
     'sidebarHoverTextL': '--sidebar-accent-foreground-l',
@@ -97,6 +98,8 @@ export function applySidebarStylesWithTheme(sidebarColors: Record<string, string
     'sidebarWidthCollapsedL': '--sidebar-width-collapsed-l',
     'sidebarTransitionDurationL': '--sidebar-transition-duration-l',
     'sidebarTransitionTimingL': '--sidebar-transition-timing-l',
+    'sidebarItemSpacingL': '--sidebar-item-spacing-l',
+    'sidebarGroupSpacingL': '--sidebar-group-spacing-l',
     
     // Light theme - Menu item specific settings
     'sidebarMenuItemBgL': '--sidebar-menu-item-background-l',
@@ -141,6 +144,7 @@ export function applySidebarStylesWithTheme(sidebarColors: Record<string, string
     'sidebarTextD': '--sidebar-foreground-d',
     'sidebarBorderD': '--sidebar-border-d',
     'sidebarActiveBgStartD': '--sidebar-active-bg-start-d',
+    'sidebarActiveBgEndD': '--sidebar-active-bg-end-d',
     'sidebarActiveTextD': '--sidebar-active-foreground-d',
     'sidebarHoverBgD': '--sidebar-accent-d',
     'sidebarHoverTextD': '--sidebar-accent-foreground-d',
@@ -170,6 +174,8 @@ export function applySidebarStylesWithTheme(sidebarColors: Record<string, string
     'sidebarWidthCollapsedD': '--sidebar-width-collapsed-d',
     'sidebarTransitionDurationD': '--sidebar-transition-duration-d',
     'sidebarTransitionTimingD': '--sidebar-transition-timing-d',
+    'sidebarItemSpacingD': '--sidebar-item-spacing-d',
+    'sidebarGroupSpacingD': '--sidebar-group-spacing-d',
     
     // Dark theme - Menu item specific settings
     'sidebarMenuItemBgD': '--sidebar-menu-item-background-d',

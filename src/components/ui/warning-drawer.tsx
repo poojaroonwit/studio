@@ -38,6 +38,8 @@ import { useSession } from 'next-auth/react';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow, format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import { PositionDetailDrawer } from '@/components/positions/PositionDetailDrawer';
+import CandidateDetailModal from '@/components/candidates/CandidateDetailModal';
 
 interface WarningDrawerProps {
   isOpen: boolean;
@@ -84,6 +86,12 @@ export function WarningDrawer({ isOpen, onClose }: WarningDrawerProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [recordsPerPage, setRecordsPerPage] = useState(10);
   const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Entity drawer/modal state
+  const [isPositionDrawerOpen, setIsPositionDrawerOpen] = useState(false);
+  const [selectedPositionId, setSelectedPositionId] = useState<string | null>(null);
+  const [isCandidateModalOpen, setIsCandidateModalOpen] = useState(false);
+  const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
 
   // Reset view when drawer opens/closes
   useEffect(() => {
@@ -315,6 +323,19 @@ export function WarningDrawer({ isOpen, onClose }: WarningDrawerProps) {
     }
   };
 
+  const handleViewEntity = (entityType: string, entityId: string) => {
+    if (entityType === 'position') {
+      setSelectedPositionId(entityId);
+      setIsPositionDrawerOpen(true);
+    } else if (entityType === 'candidate') {
+      setSelectedCandidateId(entityId);
+      setIsCandidateModalOpen(true);
+    } else {
+      // For other entity types, fall back to window.open
+      window.open(`/${entityType}s/${entityId}`, '_blank');
+    }
+  };
+
   const fetchEntityName = useCallback(async (entityType: string, entityId: string) => {
     const key = `${entityType}-${entityId}`;
     if (entityNames[key]) return entityNames[key];
@@ -498,17 +519,32 @@ export function WarningDrawer({ isOpen, onClose }: WarningDrawerProps) {
                        {record.entityType}
                      </TableCell>
                      <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleRecordClick(record);
-                        }}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRecordClick(record);
+                          }}
+                          title="View Details"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleViewEntity(record.entityType, record.entityId);
+                          }}
+                          title="View Entity"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
@@ -770,7 +806,7 @@ export function WarningDrawer({ isOpen, onClose }: WarningDrawerProps) {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => window.open(`/${selectedRecord.entityType}s/${selectedRecord.entityId}`, '_blank')}
+                onClick={() => handleViewEntity(selectedRecord.entityType, selectedRecord.entityId)}
                 className="flex-1"
                 disabled={loadingEntities.has(`${selectedRecord.entityType}-${selectedRecord.entityId}`)}
               >
@@ -879,6 +915,30 @@ export function WarningDrawer({ isOpen, onClose }: WarningDrawerProps) {
           </ScrollArea>
         </div>
       </SheetContent>
+
+      {/* Position Detail Drawer */}
+      <PositionDetailDrawer
+        isOpen={isPositionDrawerOpen}
+        onOpenChange={(open) => {
+          setIsPositionDrawerOpen(open);
+          if (!open) {
+            setSelectedPositionId(null);
+          }
+        }}
+        positionId={selectedPositionId}
+      />
+
+      {/* Candidate Detail Modal */}
+      {selectedCandidateId && isCandidateModalOpen && (
+        <CandidateDetailModal
+          candidateId={selectedCandidateId}
+          open={isCandidateModalOpen}
+          onClose={() => {
+            setIsCandidateModalOpen(false);
+            setSelectedCandidateId(null);
+          }}
+        />
+      )}
     </Sheet>
   );
 }

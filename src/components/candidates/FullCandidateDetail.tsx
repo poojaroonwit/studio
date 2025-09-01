@@ -158,6 +158,11 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
 
   // UUID validation removed - proceed with any candidate ID
 
+  // Memoized callback for comments change
+  const handleCommentsChange = useCallback(() => {
+    onRefresh();
+  }, [onRefresh]);
+
   // Loading state
   if (loading) {
     return (
@@ -701,9 +706,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
         }}
         preselectedStage={preselectedStage}
         comments={comments}
-        onCommentsChange={useCallback(() => {
-          onRefresh();
-        }, [onRefresh])}
+        onCommentsChange={handleCommentsChange}
       />
  
       <JobMatchModal

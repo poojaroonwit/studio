@@ -8,6 +8,8 @@ import { logAudit } from '@/lib/auditLog';
 import type { UserProfile, PlatformModuleId } from '@/lib/types';
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4, validate as validateUuid } from 'uuid';
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
 
 // Cache for user validation to reduce database calls
 const userValidationCache = new Map<string, { exists: boolean; timestamp: number }>();
@@ -349,6 +351,32 @@ export const authOptions: NextAuthOptions = {
     },
     secret: process.env.NEXTAUTH_SECRET,
   }; 
+
+/**
+ * Helper for session and permission checks
+ * @param requiredPermission - The permission required to access the resource
+ * @param request - The NextRequest object
+ * @returns Promise<{session?: any, error?: NextResponse}>
+ */
+export async function requireSessionAndPermission(requiredPermission: string, request: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return { error: NextResponse.json({ message: 'Unauthorized' }, { status: 401 }) };
+  }
+  if (
+    session.user.role !== 'Admin' &&
+    !session.user.modulePermissions?.includes(requiredPermission)
+  ) {
+    await logAudit(
+      'WARN',
+      `Forbidden attempt to access resource by ${session.user.name || session.user.email}.`,
+      `API:${requiredPermission}`,
+      session.user.id
+    );
+    return { error: NextResponse.json({ message: `Forbidden: Insufficient permissions to ${requiredPermission.toLowerCase().replace('_', ' ')}` }, { status: 403 }) };
+  }
+  return { session };
+}
 
 /**
  * Verifies a JWT bearer token for external API authentication.

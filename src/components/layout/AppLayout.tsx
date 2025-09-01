@@ -186,6 +186,22 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
         sidebarColors,
       });
 
+      // Immediately apply sidebar styles to ensure they're set
+      import('@/lib/themeUtils').then(({ setThemeAndColors, applySidebarStyles }) => {
+        // Apply sidebar styles immediately
+        applySidebarStyles(sidebarColors);
+        
+        // Then apply the full theme
+        setThemeAndColors({
+          themePreference: prefs.appThemePreference || 'system',
+          primaryGradientStart: prefs.primaryGradientStart || prefs.sidebarActiveBgStartL,
+          primaryGradientEnd: prefs.primaryGradientEnd || prefs.sidebarActiveBgEndL,
+          sidebarColors,
+        });
+      }).catch((error) => {
+        console.warn('[APPLAYOUT] Error applying theme and colors:', error);
+      });
+
       if (prefs.sidebarBackgroundType || prefs.sidebarBackgroundImageUrl) {
         import('@/lib/themeUtils').then(({ applySidebarBackgroundSettings }) => {
           applySidebarBackgroundSettings({
@@ -194,6 +210,17 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
             sidebarBackgroundImageFit: prefs.sidebarBackgroundImageFit,
             sidebarBackgroundImagePosition: prefs.sidebarBackgroundImagePosition,
           });
+        }).catch((error) => {
+          console.warn('[APPLAYOUT] Error loading theme utils:', error);
+        });
+      }
+
+      // Reapply sidebar colors to ensure they're properly applied
+      if (Object.keys(sidebarColors).length > 0) {
+        import('@/lib/themeUtils').then(({ reapplyCurrentSidebarColors }) => {
+          setTimeout(() => {
+            reapplyCurrentSidebarColors();
+          }, 100); // Small delay to ensure DOM is ready
         }).catch((error) => {
           console.warn('[APPLAYOUT] Error loading theme utils:', error);
         });
@@ -254,6 +281,15 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
     hasInitializedRef.current = true;
     
     initializeClient();
+    
+    // Initialize sidebar styles first
+    import('@/lib/themeUtils').then(({ initializeSidebarStyles }) => {
+      initializeSidebarStyles();
+    }).catch((error) => {
+      console.warn('[APPLAYOUT] Error loading theme utils:', error);
+    });
+    
+    // Then fetch global settings
     fetchGlobalSettings();
     
     window.addEventListener('appConfigChanged', handleAppConfigChange);

@@ -575,10 +575,15 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
         const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
         
         try {
-          const updateResponse = await fetch(`/api/candidates/${candidate.id}`, {
-            method: 'PUT',
+          // Use bulk-action API instead of individual candidate API for better broadcasting
+          const updateResponse = await fetch('/api/candidates/bulk-action', {
+            method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status: newStatus }),
+            body: JSON.stringify({
+              action: 'change_status',
+              candidateIds: [candidate.id],
+              newStatus: newStatus
+            }),
             signal: controller.signal,
           });
           

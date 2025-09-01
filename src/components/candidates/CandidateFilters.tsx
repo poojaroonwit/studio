@@ -761,26 +761,28 @@ export function CandidateFilters({
   const processedAdvancedQueryRef = useRef<string>('');
   
   useEffect(() => {
-    if (advancedQuery && advancedQuery.trim() && processedAdvancedQueryRef.current !== advancedQuery) {
+    if (advancedQuery && advancedQuery.trim()) {
       try {
-    
         processedAdvancedQueryRef.current = advancedQuery;
         setAdvancedQueryInput(advancedQuery);
         // Switch to advanced tab when query comes from URL
         setActiveTab('advanced');
+        
         // Automatically apply the query if it's from URL
         const parsedFilters = parseAdvancedQuery(advancedQuery);
 
         if (Object.keys(parsedFilters).length > 0) {
           // Apply the filters first to avoid state update conflicts
-          onFilterChange({
-            ...parsedFilters,
-            applicationDateStart: parsedFilters.applicationDateStart,
-            applicationDateEnd: parsedFilters.applicationDateEnd,
-            location: parsedFilters.location,
-            locationOperator: parsedFilters.locationOperator,
-            aiSearchQuery: undefined,
-          });
+          if (typeof onFilterChangeRef.current === 'function') {
+            onFilterChangeRef.current({
+              ...parsedFilters,
+              applicationDateStart: parsedFilters.applicationDateStart,
+              applicationDateEnd: parsedFilters.applicationDateEnd,
+              location: parsedFilters.location,
+              locationOperator: parsedFilters.locationOperator,
+              aiSearchQuery: undefined,
+            });
+          }
           
           // Update local state to reflect the parsed filters
           if (parsedFilters.name) setName(parsedFilters.name);
@@ -805,7 +807,7 @@ export function CandidateFilters({
         setActiveTab('advanced');
       }
     }
-  }, [advancedQuery]); // Removed onFilterChange from dependencies
+  }, [advancedQuery]);
 
      // Clear all filters function (unused - handleResetFilters is used instead)
    // const handleClearAll = () => { ... };
@@ -874,7 +876,12 @@ export function CandidateFilters({
       setAiSearchQueryInput(initialFilters.aiSearchQuery || '');
       setAiSearchType(initialFilters.aiSearchType || 'hybrid');
       setAiSearchFilters(initialFilters.aiSearchFilters || {});
-      setAdvancedQueryInput('');
+      // Don't clear advanced query input if we have an advanced query from URL
+      // Only clear if we're not currently processing an advanced query
+      if (!advancedQuery && !processedAdvancedQueryRef.current) {
+        setAdvancedQueryInput('');
+        setActiveTab('filters');
+      }
       
       // Defer unsetting the syncing flag to the next tick to let dependent effects settle
       // Clear any existing timeout
@@ -1892,17 +1899,32 @@ export function CandidateFilters({
                       disabled={false}
                     />
                   </div>
-                  <div className="flex gap-2 pt-2 mx-4">
-                  <Button
-                    onClick={handleApplyAdvancedQuery}
-                    disabled={!advancedQueryInput.trim()}
-                    className="flex-1"
-                    size="sm"
-                  >
-                    <Play className="mr-2 h-4 w-4" />
-                    Apply Query
-                  </Button>
-                </div>
+                                     <div className="flex gap-2 pt-2 mx-4">
+                   <Button
+                     onClick={handleApplyAdvancedQuery}
+                     disabled={!advancedQueryInput.trim()}
+                     className="flex-1"
+                     size="sm"
+                   >
+                     <Play className="mr-2 h-4 w-4" />
+                     Apply Query
+                   </Button>
+                   <Button
+                     variant="outline"
+                     onClick={() => {
+                       setAdvancedQueryInput('');
+                       if (onClearAllFilters) {
+                         onClearAllFilters();
+                       }
+                     }}
+                     disabled={!advancedQueryInput.trim()}
+                     className="flex-1"
+                     size="sm"
+                   >
+                     <FilterX className="mr-2 h-4 w-4" />
+                     Clear All
+                   </Button>
+                 </div>
                 </div>
 
                 {/* Action Buttons */}

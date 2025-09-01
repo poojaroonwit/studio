@@ -591,6 +591,10 @@ audio::-webkit-scrollbar-button {
     --sidebar-active-background-l: linear-gradient(to right, hsl(var(--sidebar-active-bg-start-l)), hsl(var(--sidebar-active-bg-end-l)));
     --sidebar-active-foreground-l: hsl(var(--primary-foreground)); /* This is white */
 
+    /* Additional sidebar spacing variables */
+    --sidebar-item-spacing-l: 0.25rem;
+    --sidebar-group-spacing-l: 1rem;
+
     --sidebar-accent-l: 220 10% 92%;       /* Subtle darker grey for hover background on non-active items */
     --sidebar-accent-foreground-l: 220 25% 25%; /* Darker text for hover */
     --sidebar-border-l: 220 15% 85%;     /* Slightly more defined, but still light border */
@@ -713,6 +717,10 @@ audio::-webkit-scrollbar-button {
     --sidebar-active-bg-end-d: var(--primary-gradient-end-d);
     --sidebar-active-background-d: linear-gradient(to right, hsl(var(--sidebar-active-bg-start-d)), hsl(var(--sidebar-active-bg-end-d)));
     --sidebar-active-foreground-d: hsl(0 0% 100%); /* Explicitly white for selected menu text in dark mode */
+
+    /* Additional sidebar spacing variables */
+    --sidebar-item-spacing-d: 0.25rem;
+    --sidebar-group-spacing-d: 1rem;
 
     --sidebar-accent-d: 220 15% 20%; /* Hover for non-active */
     --sidebar-accent-foreground-d: 210 30% 90%; /* Text for hover non-active */

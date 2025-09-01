@@ -17,6 +17,7 @@ export function useEnhancedSSE() {
   
   const statusUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const connectingRef = useRef<boolean>(false);
 
   // Update connection status periodically
   const updateConnectionStatus = useCallback(() => {
@@ -28,7 +29,7 @@ export function useEnhancedSSE() {
     if (hasErrors) {
       const errorMessages = status.endpoints
         .filter(endpoint => endpoint.lastError)
-        .map(endpoint => `${endpoint.name}: ${endpoint.lastError}`)
+        .map(endpoint => `${endpoint.name}: ${endpoint.lastError}${endpoint.lastErrorEventType ? ` [${endpoint.lastErrorEventType}]` : ''}${endpoint.lastErrorLocation ? ` @ ${endpoint.lastErrorLocation}` : ''}`)
         .join('; ');
       
       setError(errorMessages);
@@ -44,11 +45,12 @@ export function useEnhancedSSE() {
       return;
     }
 
-    if (isConnecting) {
+    if (connectingRef.current) {
       info('[Enhanced SSE Hook] Connection already in progress, skipping');
       return;
     }
 
+    connectingRef.current = true;
     setIsConnecting(true);
     setError(null);
 
@@ -68,9 +70,10 @@ export function useEnhancedSSE() {
       errorLog('[Enhanced SSE Hook] Connection error:', errorMessage);
       setError(errorMessage);
     } finally {
+      connectingRef.current = false;
       setIsConnecting(false);
     }
-  }, [session?.user?.id, isConnecting, updateConnectionStatus]);
+  }, [session?.user?.id, updateConnectionStatus]);
 
   // Disconnect from all SSE endpoints
   const disconnect = useCallback(() => {
@@ -128,6 +131,14 @@ export function useEnhancedSSE() {
     return enhancedSSEManager.isEndpointConnected(endpointId);
   }, []);
 
+  // Subscribe once per mount
+  useEffect(() => {
+    enhancedSSEManager.addSubscriber();
+    return () => {
+      enhancedSSEManager.removeSubscriber();
+    };
+  }, []);
+
   // Connect on mount when session is available
   useEffect(() => {
     if (session?.user?.id) {
@@ -143,7 +154,7 @@ export function useEnhancedSSE() {
         clearTimeout(reconnectTimeoutRef.current);
       }
     };
-  }, [session?.user?.id, connect]);
+  }, [session?.user?.id]);
 
   // Set up periodic status updates
   useEffect(() => {
@@ -160,8 +171,6 @@ export function useEnhancedSSE() {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      disconnect();
-      
       if (statusUpdateIntervalRef.current) {
         clearInterval(statusUpdateIntervalRef.current);
       }
@@ -170,7 +179,7 @@ export function useEnhancedSSE() {
         clearTimeout(reconnectTimeoutRef.current);
       }
     };
-  }, [disconnect]);
+  }, []);
 
   // Calculate overall connection status
   const isConnected = connectionStatus.connectedEndpoints > 0;

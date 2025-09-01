@@ -357,7 +357,7 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
         className="h-screen bg-background overflow-hidden"
         data-testid="app-layout"
       >
-        <Sidebar collapsible="icon" className="border-r border-border">
+        <Sidebar collapsible="icon" className="border-r border-border" data-testid="sidebar">
           <SidebarHeader>
             <MemoizedSidebarHeaderContent {...sidebarHeaderProps} />
           </SidebarHeader>

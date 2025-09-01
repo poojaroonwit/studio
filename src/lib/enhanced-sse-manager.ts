@@ -38,6 +38,7 @@ export class EnhancedSSEManager {
   private retryDelay: number = 5000; // 5 seconds between retries
   private maxConcurrentConnections: number = 2; // Max 2 connections at once
   private debugMode: boolean = (typeof process !== 'undefined' && process.env && process.env.NEXT_PUBLIC_SSE_DEBUG === '1');
+  private subscriberCount: number = 0;
 
   private info(...args: any[]) {
     if (this.debugMode) {
@@ -137,6 +138,21 @@ export class EnhancedSSEManager {
 
     this.isConnecting = false;
     this.info('[Enhanced SSE Manager] Connection sequence completed');
+  }
+
+  public addSubscriber(): void {
+    this.subscriberCount++;
+  }
+
+  public removeSubscriber(): void {
+    this.subscriberCount = Math.max(0, this.subscriberCount - 1);
+    if (this.subscriberCount === 0) {
+      this.disconnectAll();
+    }
+  }
+
+  public getSubscriberCount(): number {
+    return this.subscriberCount;
   }
 
   private async connectToEndpoint(endpointId: string): Promise<void> {

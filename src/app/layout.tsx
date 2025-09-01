@@ -14,6 +14,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { FontLoader } from '@/components/ui/FontLoader';
 import { FontPreloader } from '@/components/ui/FontPreloader';
 import ToastClient from '@/components/ui/ToastClient';
+import { ResizeObserverInitializer } from '@/components/ui/ResizeObserverInitializer';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -78,6 +79,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </head>
       <body>
         <ErrorBoundary>
+          <ResizeObserverInitializer />
           <FontPreloader />
           <FontLoader>
             <AuthProvider session={session}>

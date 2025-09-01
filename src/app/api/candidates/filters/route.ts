@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
             id,
             name,
             "sort_order",
-            color,
+            color_badge AS color,
             description
           FROM "RecruitmentStage" 
           ORDER BY "sort_order" ASC

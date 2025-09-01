@@ -446,13 +446,13 @@ const SafeSidebarNavComponent = React.memo(() => {
                 <OptimizedLink href={NAV_ITEMS.bulkUpload.href} className="w-full">
                   <SidebarMenuButton
                     isActive={pathname === NAV_ITEMS.bulkUpload.href}
-                    className="w-full justify-start relative"
+                    className="w-full justify-start"
                     size="default"
                   >
                     <NAV_ITEMS.bulkUpload.icon className="h-5 w-5" />
                     <span className="truncate">{NAV_ITEMS.bulkUpload.label}</span>
                     {pendingCount !== null && (
-                      <Badge className="absolute -top-1 -right-1 h-5 min-w-5 px-1 text-xs flex items-center justify-center">
+                      <Badge className="ml-2 h-5 min-w-5 px-1 text-xs flex items-center justify-center">
                         {isLoading ? (
                           <div className="h-3 w-3 animate-spin rounded-full border border-current border-t-transparent" />
                         ) : (

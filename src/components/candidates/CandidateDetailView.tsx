@@ -31,9 +31,17 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
   const abortControllerRef = useRef<AbortController | null>(null);
   const mountedRef = useRef(true);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const isLoadingRef = useRef(false);
 
   // Simple data loading function with infinite loop prevention and timeout protection
   const loadData = useCallback(async () => {
+    // Prevent multiple simultaneous requests
+    if (isLoadingRef.current) {
+      console.log('⚠️ Request already in progress for candidate:', candidateId);
+      return;
+    }
+
     // Simple tracking (removed complex infinite loop prevention)
     loadDataCount.current++;
     if (!candidateId) {
@@ -43,15 +51,18 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
     }
 
     console.log('🔄 Starting to load candidate data for ID:', candidateId);
+    isLoadingRef.current = true;
 
     // Abort any existing request
     if (abortControllerRef.current) {
+      console.log('🛑 Aborting existing request for candidate:', candidateId);
       abortControllerRef.current.abort();
     }
 
     // Clear any existing timeout
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
     }
 
     // Create new abort controller
@@ -60,17 +71,15 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
     setIsLoading(true);
     setError(null);
 
-    // Set a timeout to prevent infinite loading
+    // Set a longer timeout to prevent infinite loading (increased from 30s to 60s)
     timeoutRef.current = setTimeout(() => {
-      if (mountedRef.current) {
+      if (mountedRef.current && abortControllerRef.current) {
         console.warn('⏰ Loading timeout reached for candidate details:', candidateId);
         setIsLoading(false);
         setError('Loading timeout - please try again');
-        if (abortControllerRef.current) {
-          abortControllerRef.current.abort();
-        }
+        abortControllerRef.current.abort();
       }
-    }, 30000); // 30 second timeout
+    }, 60000); // 60 second timeout (increased from 30s)
 
     try {
       console.log('📡 Making API requests for candidate:', candidateId);
@@ -113,8 +122,16 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
           console.warn('⚠️ Failed to parse comments response:', parseError);
           setComments([]);
         }
+      } else if (commentsRes.status === 'rejected') {
+        // Check if it's an AbortError
+        if (commentsRes.reason?.name === 'AbortError') {
+          console.log('🛑 Comments request was aborted');
+          return; // Exit early for aborted requests
+        }
+        console.warn('⚠️ Comments request failed:', commentsRes.reason);
+        setComments([]);
       } else {
-        console.warn('⚠️ Comments request failed:', commentsRes.status === 'rejected' ? commentsRes.reason : commentsRes.value.status);
+        console.warn('⚠️ Comments request failed with status:', commentsRes.value.status);
         setComments([]);
       }
 
@@ -128,8 +145,16 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
           console.warn('⚠️ Failed to parse attachments response:', parseError);
           setAttachments([]);
         }
+      } else if (attachmentsRes.status === 'rejected') {
+        // Check if it's an AbortError
+        if (attachmentsRes.reason?.name === 'AbortError') {
+          console.log('🛑 Attachments request was aborted');
+          return; // Exit early for aborted requests
+        }
+        console.warn('⚠️ Attachments request failed:', attachmentsRes.reason);
+        setAttachments([]);
       } else {
-        console.warn('⚠️ Attachments request failed:', attachmentsRes.status === 'rejected' ? attachmentsRes.reason : attachmentsRes.value.status);
+        console.warn('⚠️ Attachments request failed with status:', attachmentsRes.value.status);
         setAttachments([]);
       }
 
@@ -146,7 +171,12 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
           console.warn('⚠️ Candidate request failed with status:', candidateRes.value.status);
           setCandidateExists(true); // Assume exists if we can't determine
         }
-      } else {
+      } else if (candidateRes.status === 'rejected') {
+        // Check if it's an AbortError
+        if (candidateRes.reason?.name === 'AbortError') {
+          console.log('🛑 Candidate request was aborted');
+          return; // Exit early for aborted requests
+        }
         console.warn('⚠️ Candidate request rejected:', candidateRes.reason);
         setCandidateExists(true); // Assume exists if request failed
       }
@@ -170,6 +200,7 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
       setError('Failed to load candidate data. Please try again.');
       setCandidateExists(false);
     } finally {
+      isLoadingRef.current = false;
       if (mountedRef.current) {
         setIsLoading(false);
         console.log('🏁 Loading state set to false for candidate:', candidateId);
@@ -193,11 +224,27 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
         clearTimeout(timeoutRef.current);
         timeoutRef.current = null;
       }
+      // Clear any pending debounce timeout
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+        debounceRef.current = null;
+      }
+      // Reset loading flag
+      isLoadingRef.current = false;
     };
   }, [loadData]);
 
+  // Debounced refresh to prevent rapid successive calls
   const handleRefresh = useCallback(() => {
-    loadData();
+    // Clear any existing debounce timeout
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    
+    // Set a new debounce timeout
+    debounceRef.current = setTimeout(() => {
+      loadData();
+    }, 300); // 300ms debounce
   }, [loadData]);
 
   // Show loading state

@@ -66,6 +66,8 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const mountedRef = useRef(true);
   
   // File viewer modal state
   const [selectedFile, setSelectedFile] = useState<{
@@ -79,11 +81,16 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
 
   // Load initial comments from API
   useEffect(() => {
+    mountedRef.current = true;
+    
     const loadInitialComments = async () => {
       try {
         const response = await fetch(`/api/candidates/${candidateId}/comments?limit=${COMMENTS_PER_LOAD}&offset=0`, {
           credentials: 'include'
         });
+        
+        if (!mountedRef.current) return;
+        
         if (response.ok) {
           const data = await response.json();
           const initialCommentsData = Array.isArray(data.data) ? data.data : [];
@@ -97,6 +104,8 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
           setHasMoreComments(true);
         }
       } catch (error) {
+        if (!mountedRef.current) return;
+        
         console.error('Error loading initial comments:', error);
         // Fallback to parent-provided comments if API fails
         setComments(Array.isArray(initialComments) ? initialComments : []);
@@ -106,6 +115,13 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
     };
 
     loadInitialComments();
+    
+    return () => {
+      mountedRef.current = false;
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [candidateId, initialComments]);
 
   // Fetch activity logs once on candidateId change (no real-time polling)
@@ -124,11 +140,21 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
   const loadMoreComments = useCallback(async () => {
     if (loadingMore || !hasMoreComments) return;
     
+    // Create new abort controller for this request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+    
     setLoadingMore(true);
     try {
       const response = await fetch(`/api/candidates/${candidateId}/comments?limit=${COMMENTS_PER_LOAD}&offset=${commentsOffset}`, {
-        credentials: 'include'
+        credentials: 'include',
+        signal: abortControllerRef.current.signal
       });
+      
+      if (!mountedRef.current) return;
+      
       if (response.ok) {
         const data = await response.json();
         const newComments = Array.isArray(data.data) ? data.data : [];
@@ -141,10 +167,16 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
           setHasMoreComments(false);
         }
       }
-    } catch (error) {
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        console.log('🛑 Load more comments request was aborted');
+        return;
+      }
       console.error('Error loading more comments:', error);
     } finally {
-      setLoadingMore(false);
+      if (mountedRef.current) {
+        setLoadingMore(false);
+      }
     }
   }, [candidateId, commentsOffset, loadingMore, hasMoreComments]);
 

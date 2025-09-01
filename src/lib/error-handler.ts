@@ -38,6 +38,16 @@ class GlobalErrorHandler {
 
     // Handle global errors
     window.addEventListener('error', (event) => {
+      // Respect other handlers that may have already handled this
+      if (event.defaultPrevented) {
+        return;
+      }
+
+      // Ignore benign ResizeObserver loop error noise
+      if (event.message && typeof event.message === 'string' && event.message.includes('ResizeObserver loop completed with undelivered notifications')) {
+        return;
+      }
+
       this.handleError(event.error || new Error(event.message), 'global_error', {
         filename: event.filename,
         lineno: event.lineno,

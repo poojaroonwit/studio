@@ -503,12 +503,52 @@ export function CandidateRowKanbanView({
     e.preventDefault();
     setDragOverRowValue(rowValue);
   };
-  const handleDrop = (rowValue: string) => {
+  const persistCandidateFieldUpdate = async (candidate: Candidate, field: string, value: any) => {
+    try {
+      if (field === 'status') {
+        toast.loading('Updating candidate status...', { id: candidate.id });
+        const res = await fetch('/api/candidates/bulk-action', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'change_status',
+            candidateIds: [candidate.id],
+            newStatus: value
+          })
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.message || 'Failed to update status');
+        }
+        toast.success(`Status updated to ${value}`, { id: candidate.id });
+      } else if (field === 'recruiterId' || field === 'positionId') {
+        toast.loading('Updating candidate...', { id: candidate.id });
+        const res = await fetch(`/api/candidates/${candidate.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ [field]: value })
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.message || 'Failed to update candidate');
+        }
+        toast.success('Candidate updated', { id: candidate.id });
+      }
+    } catch (error: any) {
+      toast.error(error?.message || 'Update failed', { id: candidate.id });
+    }
+  };
+
+  const handleDrop = async (rowValue: string) => {
     if (draggedCandidate && draggedCandidate[rowField as keyof Candidate] !== rowValue) {
       // Create update object with the new row field value
       const updateData: any = {};
       updateData[rowField] = rowValue;
-      onMoveCandidate?.(draggedCandidate, rowValue);
+      if (onMoveCandidate) {
+        onMoveCandidate(draggedCandidate, rowValue);
+      } else {
+        await persistCandidateFieldUpdate(draggedCandidate, rowField, rowValue);
+      }
     }
     setDraggedCandidate(null);
     setDragOverRowValue(null);
@@ -667,20 +707,64 @@ export function FlexibleKanbanView({
     }
   };
   
-  const handleDrop = (rowValue: string, colValue: string) => {
+  const persistCandidateFieldUpdate = async (candidate: Candidate, field: string, value: any) => {
+    try {
+      if (field === 'status') {
+        toast.loading('Updating candidate status...', { id: candidate.id });
+        const res = await fetch('/api/candidates/bulk-action', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'change_status',
+            candidateIds: [candidate.id],
+            newStatus: value
+          })
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.message || 'Failed to update status');
+        }
+        toast.success(`Status updated to ${value}`, { id: candidate.id });
+      } else if (field === 'recruiterId' || field === 'positionId') {
+        toast.loading('Updating candidate...', { id: candidate.id });
+        const res = await fetch(`/api/candidates/${candidate.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ [field]: value })
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.message || 'Failed to update candidate');
+        }
+        toast.success('Candidate updated', { id: candidate.id });
+      }
+    } catch (error: any) {
+      toast.error(error?.message || 'Update failed', { id: candidate.id });
+    }
+  };
+
+  const handleDrop = async (rowValue: string, colValue: string) => {
     if (draggedCandidate) {
       // Determine which field to update based on the layout
       if (isColumnBased && !isRowBased) {
         // Column-based layout: update column field
         const newValue = colValue;
         if (getFieldValue(draggedCandidate, columnField) !== newValue) {
-          onMoveCandidate?.(draggedCandidate, newValue);
+          if (onMoveCandidate) {
+            onMoveCandidate(draggedCandidate, newValue);
+          } else {
+            await persistCandidateFieldUpdate(draggedCandidate, columnField, newValue);
+          }
         }
       } else if (isRowBased && !isColumnBased) {
         // Row-based layout: update row field
         const newValue = rowValue;
         if (getFieldValue(draggedCandidate, rowField) !== newValue) {
-          onMoveCandidate?.(draggedCandidate, newValue);
+          if (onMoveCandidate) {
+            onMoveCandidate(draggedCandidate, newValue);
+          } else {
+            await persistCandidateFieldUpdate(draggedCandidate, rowField, newValue);
+          }
         }
       } else if (isRowBased && isColumnBased) {
         // Both row and column: update both fields
@@ -694,7 +778,11 @@ export function FlexibleKanbanView({
         
         if (Object.keys(updateData).length > 0) {
           // For now, prioritize row field update
-          onMoveCandidate?.(draggedCandidate, rowValue);
+          if (onMoveCandidate) {
+            onMoveCandidate(draggedCandidate, rowValue);
+          } else {
+            await persistCandidateFieldUpdate(draggedCandidate, rowField, rowValue);
+          }
         }
       }
     }
@@ -2163,14 +2251,42 @@ export function HorizontalStageKanbanView({
     }
   };
 
-  const handleDrop = (column: string, e: React.DragEvent) => {
+  const persistCandidateFieldUpdate = async (candidate: Candidate, field: string, value: any) => {
+    try {
+      if (field === 'status') {
+        toast.loading('Updating candidate status...', { id: candidate.id });
+        const res = await fetch('/api/candidates/bulk-action', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'change_status',
+            candidateIds: [candidate.id],
+            newStatus: value
+          })
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.message || 'Failed to update status');
+        }
+        toast.success(`Status updated to ${value}`, { id: candidate.id });
+      }
+    } catch (error: any) {
+      toast.error(error?.message || 'Update failed', { id: candidate.id });
+    }
+  };
+
+  const handleDrop = async (column: string, e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
     if (draggedCandidate && getColumnValue(draggedCandidate) !== column) {
       // Only allow drag and drop for status-based columns
       if (columnField === 'status') {
-        onMoveCandidate?.(draggedCandidate, column);
+        if (onMoveCandidate) {
+          onMoveCandidate(draggedCandidate, column);
+        } else {
+          await persistCandidateFieldUpdate(draggedCandidate, 'status', column);
+        }
       } else {
         // For non-status columns, show a warning that drag and drop is not supported
         toast?.('Drag and drop is only supported for status columns');

@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -701,9 +701,9 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
         }}
         preselectedStage={preselectedStage}
         comments={comments}
-        onCommentsChange={() => {
+        onCommentsChange={useCallback(() => {
           onRefresh();
-        }}
+        }, [onRefresh])}
       />
  
       <JobMatchModal

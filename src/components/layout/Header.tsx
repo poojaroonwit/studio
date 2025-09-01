@@ -13,7 +13,6 @@ import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { usePathname } from 'next/navigation';
 import { NotificationIcon } from '@/components/ui/notification-icon';
 import { WarningIcon } from '@/components/ui/warning-icon';
-import { SimpleSSEStatus } from '@/components/ui/simple-sse-status';
 import { ChangePasswordModal } from '@/components/auth/ChangePasswordModal';
 import { RedesignedUserModal } from '@/components/users/RedesignedUserModal';
 
@@ -456,8 +455,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
           {/* User Presence Indicator */}
           {user && <UserPresenceIndicator />}
           
-          {/* SSE Status Indicator */}
-          {user && <SimpleSSEStatus />}
+          
           
           {/* Theme switch is shown inside avatar dropdown, not here */}
           {user && <WarningIcon />}

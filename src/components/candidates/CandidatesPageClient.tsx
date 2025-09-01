@@ -49,7 +49,7 @@ import { useCandidateActions } from './hooks/use-candidate-actions';
 import { useCandidateAiSearch } from './hooks/use-candidate-ai-search';
 
 // Import safe effect hooks
-import { useEmergencyRenderMonitor } from '@/hooks/use-safe-effect';
+// Removed complex emergency render monitor - using simple useEffect instead
 
 
 interface CandidatesPageClientProps {
@@ -163,7 +163,7 @@ export function CandidatesPageClient({
   }, [filters]);
 
   // Add emergency render monitoring
-  useEmergencyRenderMonitor();
+  // Removed complex emergency render monitor - using simple useEffect instead
 
   const {
     filteredCandidates,

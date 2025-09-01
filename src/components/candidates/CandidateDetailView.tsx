@@ -4,7 +4,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Loader2, ServerCrash, UserX } from 'lucide-react';
 import FullCandidateDetail from './FullCandidateDetail';
-import { useInfiniteLoopPrevention } from '@/hooks/use-safe-effect';
+// Removed complex infinite loop prevention - using simple useEffect instead
 
 interface CandidateDetailViewProps {
   candidateId: string;
@@ -24,7 +24,8 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
     console.error('🚨 Excessive data loading detected in CandidateDetailView');
   }, []);
   
-  const { trackRun: trackLoadData } = useInfiniteLoopPrevention('CandidateDetailView_loadData', 20, onExcessiveRuns);
+  // Simple tracking for debugging (removed complex infinite loop prevention)
+  const loadDataCount = useRef(0);
 
   // Add abort controller for cleanup
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -33,7 +34,8 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
 
   // Simple data loading function with infinite loop prevention and timeout protection
   const loadData = useCallback(async () => {
-    if (!trackLoadData()) return;
+    // Simple tracking (removed complex infinite loop prevention)
+    loadDataCount.current++;
     if (!candidateId) {
       setIsLoading(false);
       setError('Invalid candidate ID');
@@ -173,7 +175,7 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
         console.log('🏁 Loading state set to false for candidate:', candidateId);
       }
     }
-  }, [candidateId, trackLoadData]);
+  }, [candidateId]);
 
   // Load data when component mounts or candidateId changes - FIXED: Use useEffect instead of useSafeEffect
   useEffect(() => {

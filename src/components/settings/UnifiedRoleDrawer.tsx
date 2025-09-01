@@ -62,7 +62,7 @@ import type { UserGroup, PlatformModuleId } from '@/lib/types';
 import { PLATFORM_MODULES, PLATFORM_MODULE_CATEGORIES } from '@/lib/types';
 import { RolePermissionSelector } from './RolePermissionSelector';
 import { cn } from '@/lib/utils';
-import { useSafeEffect, useInfiniteLoopPrevention } from '@/hooks/use-safe-effect';
+// Removed complex safe effect and infinite loop prevention - using simple useEffect instead
 
 // Form schema for role editing
 const roleFormSchema = z.object({
@@ -123,15 +123,9 @@ export function UnifiedRoleDrawer({
   const abortControllerRef = useRef<AbortController | null>(null);
   const lastPermissionUpdateRef = useRef<string>('');
 
-  // Infinite loop prevention hooks
-  const { trackRun: trackPermissionUpdate } = useInfiniteLoopPrevention('UnifiedRoleDrawer_permissionUpdate', 50, () => {
-    console.error('🚨 Excessive permission updates detected in UnifiedRoleDrawer');
-    toast.error('Too many permission updates. Please wait a moment before trying again.');
-  });
-
-  const { trackRun: trackRoleLoad } = useInfiniteLoopPrevention('UnifiedRoleDrawer_roleLoad', 20, () => {
-    console.error('🚨 Excessive role loading detected in UnifiedRoleDrawer');
-  });
+  // Simple tracking for debugging (removed complex infinite loop prevention)
+  const permissionUpdateCount = useRef(0);
+  const roleLoadCount = useRef(0);
 
   // Calculate isAdminRole early to avoid scope issues
   const isSystemRole = role?.is_system_role || false;
@@ -142,7 +136,8 @@ export function UnifiedRoleDrawer({
 
   // Initialize permissions when role changes - FIXED: Use useEffect instead of useSafeEffect
   useEffect(() => {
-    if (!trackRoleLoad()) return;
+    // Simple tracking (removed complex infinite loop prevention)
+    roleLoadCount.current++;
     
     if (role) {
       if (role.name === 'Admin') {
@@ -152,7 +147,7 @@ export function UnifiedRoleDrawer({
         setCurrentPermissions(role.permissions || []);
       }
     }
-  }, [role, allPermissions, trackRoleLoad]); // FIXED: Include trackRoleLoad in dependencies
+  }, [role, allPermissions]); // FIXED: Removed trackRoleLoad dependency
 
   // Reset states when drawer closes to prevent memory leaks - FIXED: Use useEffect instead of useSafeEffect
   useEffect(() => {
@@ -357,7 +352,11 @@ export function UnifiedRoleDrawer({
     if (!role) return;
     
     // Prevent infinite loops with tracking
-    if (!trackPermissionUpdate()) {
+    // Simple tracking (removed complex infinite loop prevention)
+    permissionUpdateCount.current++;
+    
+    // Prevent excessive calls
+    if (permissionUpdateCount.current > 50) {
       console.warn('Permission update blocked due to excessive calls');
       return;
     }
@@ -450,7 +449,7 @@ export function UnifiedRoleDrawer({
         abortControllerRef.current = null;
       }
     }, 500); // 500ms debounce delay
-  }, [role, isAdminRole, allPermissions, trackPermissionUpdate]);
+  }, [role, isAdminRole, allPermissions]);
 
   const handleAddUser = async () => {
     if (!selectedUserId || !role) return;

@@ -5,7 +5,7 @@ import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button';
 import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useSafeEffect, useInfiniteLoopPrevention } from '@/hooks/use-safe-effect';
+// Removed complex safe effect and infinite loop prevention - using simple useEffect instead
 
 import { TaskCard, Task } from './TaskCard';
 
@@ -229,9 +229,8 @@ export function TaskBoard({
   const dragThrottleRef = useRef<NodeJS.Timeout | null>(null);
 
   // Add infinite loop prevention for drag operations only
-  const { trackRun: trackDragOperation } = useInfiniteLoopPrevention('TaskBoardDragOperation', 50, () => {
-    console.error('🚨 Excessive drag operations detected in TaskBoard');
-  });
+  // Simple tracking for debugging (removed complex infinite loop prevention)
+  const dragOperationCount = useRef(0);
 
   // Memoized data
   const tasksByStage = useMemo(() => {
@@ -411,7 +410,8 @@ export function TaskBoard({
 
   // Drag and drop handlers with improved resource management
   const handleDragStart = useCallback((task: Task) => {
-    if (!trackDragOperation()) return;
+    // Simple tracking (removed complex infinite loop prevention)
+    dragOperationCount.current++;
     
     // Rate limiting: prevent rapid drag operations to prevent resource leaks
     const now = Date.now();
@@ -423,7 +423,7 @@ export function TaskBoard({
     setDraggedTask(task);
     setIsDragging(true);
     document.body.style.cursor = 'grabbing';
-  }, [trackDragOperation]);
+  }, []);
 
   const handleDragEnd = useCallback(() => {
     // Ensure all drag state is properly reset to prevent resource leaks
@@ -464,7 +464,8 @@ export function TaskBoard({
     e.preventDefault();
     e.stopPropagation();
     
-    if (!trackDragOperation()) return;
+    // Simple tracking (removed complex infinite loop prevention)
+    dragOperationCount.current++;
     
     // Rate limiting: prevent rapid drop operations to prevent resource leaks
     const now = Date.now();
@@ -486,7 +487,7 @@ export function TaskBoard({
     if (document.body.style.cursor === 'grabbing') {
       document.body.style.cursor = '';
     }
-  }, [draggedTask, onMoveTask, trackDragOperation]);
+  }, [draggedTask, onMoveTask]);
 
   // Empty state
   if (!stages || stages.length === 0) {

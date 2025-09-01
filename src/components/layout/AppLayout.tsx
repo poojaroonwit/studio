@@ -18,7 +18,8 @@ import { useFavicon } from '@/hooks/use-favicon';
 import { FaviconUpdater } from '@/components/layout/FaviconUpdater';
 import { useSessionValidation } from '@/hooks/use-session-validation';
 import { useTheme } from '@/hooks/use-theme';
-import { useInfiniteLoopPrevention, useRenderMonitor } from '@/hooks/use-infinite-loop-prevention';
+// Removed complex infinite loop prevention - using simple useEffect instead
+import { useRenderMonitor } from '@/hooks/use-render-monitor';
 import { OptimizedContainer, LayoutContainer } from '@/components/ui/optimized-container';
 import { useAppLayoutState } from '@/hooks/use-app-layout-state';
 import { initializeFrozenStatePrevention, trackActivity } from '@/lib/frozen-state-prevention';
@@ -53,30 +54,14 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
   const hasInitializedRef = useRef(false);
   const lastRenderTimeRef = useRef(0);
   
-  // Infinite loop prevention for critical effects
-  const { trackRun: trackSettingsFetch } = useInfiniteLoopPrevention({
-    effectName: 'AppLayout_settings_fetch',
-    maxRuns: 20, // Increased from 10 to 20
-    timeWindow: 60000, // Increased from 30 seconds to 60 seconds
-    onExcessiveRuns: () => console.error('🚨 Excessive settings fetch detected in AppLayout')
-  });
+  // Simple tracking for debugging (removed complex infinite loop prevention)
+  const settingsFetchCount = useRef(0);
+  const themeChangeCount = useRef(0);
 
-  const { trackRun: trackThemeChange } = useInfiniteLoopPrevention({
-    effectName: 'AppLayout_theme_change',
-    maxRuns: 40, // Increased from 20 to 40
-    timeWindow: 20000, // Increased from 10 seconds to 20 seconds
-    onExcessiveRuns: () => console.error('🚨 Excessive theme change detected in AppLayout')
-  });
-
-  // Update refs when functions are available - only run once
+  // Simple tracking setup (removed complex infinite loop prevention)
   useEffect(() => {
-    if (!trackSettingsFetchRef.current) {
-      trackSettingsFetchRef.current = trackSettingsFetch;
-    }
-    if (!trackThemeChangeRef.current) {
-      trackThemeChangeRef.current = trackThemeChange;
-    }
-  }, [trackSettingsFetch, trackThemeChange]);
+    // Initialize simple tracking
+  }, []);
 
   // Enhanced render monitoring with stricter thresholds
   useRenderMonitor('AppLayout', 1000); // Increased from 500 to 1000ms to reduce false positives
@@ -137,7 +122,8 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
 
   // Memoize the fetch function to prevent recreation on every render
   const fetchGlobalSettings = useCallback(async () => {
-    if (!trackSettingsFetchRef.current?.()) return;
+    // Simple tracking (removed complex infinite loop prevention)
+    settingsFetchCount.current++;
     
     try {
       setLogoLoadingRef.current?.(true);
@@ -276,7 +262,8 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
 
   // Memoize theme change handler
   const handleThemeChange = useCallback(() => {
-    if (!trackThemeChangeRef.current?.()) return;
+    // Simple tracking (removed complex infinite loop prevention)
+    themeChangeCount.current++;
     
     import('@/lib/themeUtils').then(({ reapplyCurrentSidebarColors }) => {
       reapplyCurrentSidebarColors();

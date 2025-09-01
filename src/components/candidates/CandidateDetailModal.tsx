@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import CandidateDetailView from './CandidateDetailView';
-import { useInfiniteLoopPrevention } from '@/hooks/use-safe-effect';
+// Removed complex infinite loop prevention - using simple useEffect instead
 
 interface CandidateDetailModalProps {
   candidateId: string;
@@ -16,9 +16,8 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
   const portalContainerRef = useRef<HTMLDivElement | null>(null);
 
   // Add infinite loop prevention
-  const { trackRun: trackModalOpen } = useInfiniteLoopPrevention('CandidateDetailModal_open', 50, () => {
-    console.error('🚨 Excessive modal open/close cycles detected in CandidateDetailModal');
-  });
+  // Simple tracking for debugging (removed complex infinite loop prevention)
+  const modalOpenCount = useRef(0);
 
   // Create portal container on mount - FIXED: Use useEffect instead of useSafeEffect
   useEffect(() => {
@@ -43,7 +42,8 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
 
   // Handle escape key - FIXED: Use useEffect instead of useSafeEffect
   useEffect(() => {
-    if (!trackModalOpen()) return;
+    // Simple tracking (removed complex infinite loop prevention)
+    modalOpenCount.current++;
 
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && open) {
@@ -62,7 +62,7 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
       // Restore body scroll when modal closes
       document.body.style.overflow = '';
     };
-  }, [open, onClose, trackModalOpen]); // FIXED: Include trackModalOpen in dependencies
+  }, [open, onClose]); // FIXED: Removed trackModalOpen dependency
 
   // Cleanup on unmount - FIXED: Use useEffect instead of useSafeEffect
   useEffect(() => {

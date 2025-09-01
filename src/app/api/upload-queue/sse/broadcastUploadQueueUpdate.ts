@@ -1,5 +1,5 @@
 import { getPool } from '@/lib/db';
-import { broadcastToAll } from '@/lib/realtime';
+import { broadcastToAll } from '@/lib/simple-sse';
 
 // Keep the old controllers for backward compatibility during transition
 const uploadQueueControllers = new Set<ReadableStreamDefaultController<any>>();

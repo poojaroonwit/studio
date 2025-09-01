@@ -4,6 +4,11 @@ import enhancedSSEManager, { SSEConnectionStatus, SSEEndpoint } from '@/lib/enha
 
 // Enhanced SSE hook that uses the enhanced SSE manager
 export function useEnhancedSSE() {
+  const debugMode = (typeof process !== 'undefined' && process.env && process.env.NEXT_PUBLIC_SSE_DEBUG === '1');
+  const info = (...args: any[]) => { if (debugMode) { /* eslint-disable no-console */ console.log(...args); /* eslint-enable no-console */ } };
+  const warn = (...args: any[]) => { /* eslint-disable no-console */ console.warn(...args); /* eslint-enable no-console */ };
+  const errorLog = (...args: any[]) => { /* eslint-disable no-console */ console.error(...args); /* eslint-enable no-console */ };
+
   const { data: session } = useSession();
   const [connectionStatus, setConnectionStatus] = useState<SSEConnectionStatus>(enhancedSSEManager.getConnectionStatus());
   const [isConnecting, setIsConnecting] = useState(false);
@@ -35,12 +40,12 @@ export function useEnhancedSSE() {
   // Connect to all SSE endpoints
   const connect = useCallback(async () => {
     if (!session?.user?.id) {
-      console.log('[Enhanced SSE Hook] No session, skipping connection');
+      info('[Enhanced SSE Hook] No session, skipping connection');
       return;
     }
 
     if (isConnecting) {
-      console.log('[Enhanced SSE Hook] Connection already in progress, skipping');
+      info('[Enhanced SSE Hook] Connection already in progress, skipping');
       return;
     }
 
@@ -48,7 +53,7 @@ export function useEnhancedSSE() {
     setError(null);
 
     try {
-      console.log('[Enhanced SSE Hook] Starting connection to all SSE endpoints...');
+      info('[Enhanced SSE Hook] Starting connection to all SSE endpoints...');
       
       // Connect to all endpoints sequentially
       await enhancedSSEManager.connectAll();
@@ -56,11 +61,11 @@ export function useEnhancedSSE() {
       // Update status after connection
       updateConnectionStatus();
       
-      console.log('[Enhanced SSE Hook] Connection sequence completed');
+      info('[Enhanced SSE Hook] Connection sequence completed');
       
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      console.error('[Enhanced SSE Hook] Connection error:', errorMessage);
+      errorLog('[Enhanced SSE Hook] Connection error:', errorMessage);
       setError(errorMessage);
     } finally {
       setIsConnecting(false);
@@ -69,7 +74,7 @@ export function useEnhancedSSE() {
 
   // Disconnect from all SSE endpoints
   const disconnect = useCallback(() => {
-    console.log('[Enhanced SSE Hook] Disconnecting from all SSE endpoints');
+    info('[Enhanced SSE Hook] Disconnecting from all SSE endpoints');
     
     enhancedSSEManager.disconnectAll();
     updateConnectionStatus();
@@ -78,7 +83,7 @@ export function useEnhancedSSE() {
 
   // Manual reconnect
   const reconnect = useCallback(() => {
-    console.log('[Enhanced SSE Hook] Manual reconnect requested');
+    info('[Enhanced SSE Hook] Manual reconnect requested');
     
     // Clear any existing reconnect timeout
     if (reconnectTimeoutRef.current) {
@@ -94,7 +99,7 @@ export function useEnhancedSSE() {
 
   // Force reconnect specific endpoint
   const reconnectEndpoint = useCallback((endpointId: string) => {
-    console.log(`[Enhanced SSE Hook] Force reconnecting endpoint: ${endpointId}`);
+    info(`[Enhanced SSE Hook] Force reconnecting endpoint: ${endpointId}`);
     enhancedSSEManager.forceReconnect(endpointId);
     
     // Update status after a short delay to allow reconnection
@@ -126,10 +131,10 @@ export function useEnhancedSSE() {
   // Connect on mount when session is available
   useEffect(() => {
     if (session?.user?.id) {
-      console.log('[Enhanced SSE Hook] Session available, connecting...');
+      info('[Enhanced SSE Hook] Session available, connecting...');
       connect();
     } else {
-      console.log('[Enhanced SSE Hook] No session available');
+      info('[Enhanced SSE Hook] No session available');
     }
 
     return () => {

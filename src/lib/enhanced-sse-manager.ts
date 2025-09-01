@@ -9,11 +9,17 @@ export interface SSEEndpoint {
   enabled: boolean;
   retryCount: number;
   maxRetries: number;
+  // Per-endpoint connection timeout (ms). Defaults to manager's timeout.
+  connectionTimeout: number;
   lastError?: string;
   lastErrorTime?: number;
+  lastErrorEventType?: string;
+  lastErrorLocation?: string;
   connectionAttempts: number;
   isConnected: boolean;
   eventSource?: EventSource;
+  // True if the last failure was due to a timeout (hanging connection)
+  isHanging?: boolean;
 }
 
 export interface SSEConnectionStatus {
@@ -31,6 +37,22 @@ export class EnhancedSSEManager {
   private connectionTimeout: number = 10000; // 10 seconds timeout
   private retryDelay: number = 5000; // 5 seconds between retries
   private maxConcurrentConnections: number = 2; // Max 2 connections at once
+  private debugMode: boolean = (typeof process !== 'undefined' && process.env && process.env.NEXT_PUBLIC_SSE_DEBUG === '1');
+
+  private info(...args: any[]) {
+    if (this.debugMode) {
+      // eslint-disable-next-line no-console
+      console.log(...args);
+    }
+  }
+  private warn(...args: any[]) {
+    // eslint-disable-next-line no-console
+    console.warn(...args);
+  }
+  private error(...args: any[]) {
+    // eslint-disable-next-line no-console
+    console.error(...args);
+  }
 
   constructor() {
     this.initializeEndpoints();
@@ -68,6 +90,7 @@ export class EnhancedSSEManager {
     endpointConfigs.forEach(config => {
       this.endpoints.set(config.id, {
         ...config,
+        connectionTimeout: this.connectionTimeout,
         retryCount: 0,
         connectionAttempts: 0,
         isConnected: false
@@ -82,56 +105,56 @@ export class EnhancedSSEManager {
         return endpointA.priority - endpointB.priority;
       });
 
-    console.log('[Enhanced SSE Manager] Initialized with endpoints:', this.connectionQueue);
+    this.info('[Enhanced SSE Manager] Initialized with endpoints:', this.connectionQueue);
   }
 
   public async connectAll(): Promise<void> {
     if (this.isConnecting) {
-      console.log('[Enhanced SSE Manager] Connection already in progress, skipping');
+      this.info('[Enhanced SSE Manager] Connection already in progress, skipping');
       return;
     }
 
     this.isConnecting = true;
-    console.log('[Enhanced SSE Manager] Starting sequential connection of endpoints...');
+    this.info('[Enhanced SSE Manager] Starting sequential connection of endpoints...');
 
-    try {
-      // Connect to endpoints one by one
-      for (const endpointId of this.connectionQueue) {
-        const endpoint = this.endpoints.get(endpointId);
-        if (!endpoint || !endpoint.enabled) {
-          console.log(`[Enhanced SSE Manager] Skipping disabled endpoint: ${endpointId}`);
-          continue;
-        }
-
-        await this.connectToEndpoint(endpointId);
-        
-        // Small delay between connections to avoid overwhelming the server
-        await this.delay(1000);
+    // Connect to endpoints one by one; do not abort the sequence on failure
+    for (const endpointId of this.connectionQueue) {
+      const endpoint = this.endpoints.get(endpointId);
+      if (!endpoint || !endpoint.enabled) {
+        this.info(`[Enhanced SSE Manager] Skipping disabled endpoint: ${endpointId}`);
+        continue;
       }
-    } catch (error) {
-      console.error('[Enhanced SSE Manager] Error during connection sequence:', error);
-    } finally {
-      this.isConnecting = false;
-      console.log('[Enhanced SSE Manager] Connection sequence completed');
+
+      try {
+        await this.connectToEndpoint(endpointId);
+      } catch (error) {
+        this.error(`[Enhanced SSE Manager] Error connecting ${endpoint?.name ?? endpointId}:`, error);
+      }
+
+      // Small delay between connections to avoid overwhelming the server
+      await this.delay(1000);
     }
+
+    this.isConnecting = false;
+    this.info('[Enhanced SSE Manager] Connection sequence completed');
   }
 
   private async connectToEndpoint(endpointId: string): Promise<void> {
     const endpoint = this.endpoints.get(endpointId);
     if (!endpoint) return;
 
-    console.log(`[Enhanced SSE Manager] Connecting to ${endpoint.name} (${endpoint.url})`);
+    this.info(`[Enhanced SSE Manager] Connecting to ${endpoint.name} (${endpoint.url})`);
 
     try {
       // Check if endpoint is already connected
       if (endpoint.isConnected && endpoint.eventSource) {
-        console.log(`[Enhanced SSE Manager] ${endpoint.name} already connected, skipping`);
+        this.info(`[Enhanced SSE Manager] ${endpoint.name} already connected, skipping`);
         return;
       }
 
       // Check if endpoint has exceeded max retries
       if (endpoint.retryCount >= endpoint.maxRetries) {
-        console.warn(`[Enhanced SSE Manager] ${endpoint.name} exceeded max retries (${endpoint.maxRetries}), disabling`);
+        this.warn(`[Enhanced SSE Manager] ${endpoint.name} exceeded max retries (${endpoint.maxRetries}), disabling`);
         endpoint.enabled = false;
         endpoint.lastError = 'Max retries exceeded';
         endpoint.lastErrorTime = Date.now();
@@ -145,6 +168,9 @@ export class EnhancedSSEManager {
       const result = await Promise.race([connectionPromise, timeoutPromise]);
 
       if (result === 'timeout') {
+        // Mark timeout context so caller can record precise reason
+        endpoint.lastErrorEventType = 'connection_timeout';
+        endpoint.lastErrorLocation = endpoint.url;
         throw new Error(`Connection timeout after ${endpoint.connectionTimeout}ms`);
       }
 
@@ -153,19 +179,23 @@ export class EnhancedSSEManager {
       endpoint.retryCount = 0;
       endpoint.lastError = undefined;
       endpoint.lastErrorTime = undefined;
+      endpoint.lastErrorEventType = undefined;
+      endpoint.lastErrorLocation = undefined;
+      endpoint.isHanging = false;
       endpoint.connectionAttempts++;
 
-      console.log(`✅ [Enhanced SSE Manager] ${endpoint.name} connected successfully`);
+      this.info(`✅ [Enhanced SSE Manager] ${endpoint.name} connected successfully`);
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      console.error(`❌ [Enhanced SSE Manager] Failed to connect to ${endpoint.name}:`, errorMessage);
+      this.error(`❌ [Enhanced SSE Manager] Failed to connect to ${endpoint.name}:`, errorMessage);
 
       // Update endpoint error state
       endpoint.isConnected = false;
       endpoint.retryCount++;
       endpoint.lastError = errorMessage;
       endpoint.lastErrorTime = Date.now();
+      endpoint.isHanging = errorMessage.startsWith('Connection timeout');
       endpoint.connectionAttempts++;
 
       // Close any existing connection
@@ -178,56 +208,56 @@ export class EnhancedSSEManager {
         }
       }
 
-      // Schedule retry if within retry limit
-      if (endpoint.retryCount < endpoint.maxRetries) {
-        const retryDelay = this.retryDelay * Math.pow(2, endpoint.retryCount - 1); // Exponential backoff
-        console.log(`[Enhanced SSE Manager] Scheduling retry for ${endpoint.name} in ${retryDelay}ms`);
-        
-        setTimeout(() => {
-          if (endpoint.enabled) {
-            this.connectToEndpoint(endpointId);
-          }
-        }, retryDelay);
-      } else {
-        console.warn(`[Enhanced SSE Manager] ${endpoint.name} reached max retries, will not retry`);
-      }
+      // Do not retry on error: disable endpoint to avoid repeated attempts
+      endpoint.enabled = false;
+      this.warn(`[Enhanced SSE Manager] ${endpoint.name} disabled after error (no retry policy)`);
     }
   }
 
   private async createEventSourceConnection(endpoint: SSEEndpoint): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
-        console.log(`[Enhanced SSE Manager] Creating EventSource for ${endpoint.name}`);
+        this.info(`[Enhanced SSE Manager] Creating EventSource for ${endpoint.name}`);
         
         const eventSource = new EventSource(endpoint.url);
         endpoint.eventSource = eventSource;
 
         // Set connection timeout
         const connectionTimeout = setTimeout(() => {
-          console.error(`[Enhanced SSE Manager] ${endpoint.name} connection timeout`);
+          this.error(`[Enhanced SSE Manager] ${endpoint.name} connection timeout`);
+          endpoint.lastErrorEventType = 'connection_timeout';
+          endpoint.lastErrorLocation = endpoint.url;
           eventSource.close();
           reject(new Error('Connection timeout'));
         }, endpoint.connectionTimeout);
 
         eventSource.onopen = () => {
-          console.log(`[Enhanced SSE Manager] ${endpoint.name} EventSource opened`);
+          this.info(`[Enhanced SSE Manager] ${endpoint.name} EventSource opened`);
           clearTimeout(connectionTimeout);
           resolve();
         };
 
         eventSource.onerror = (error) => {
-          console.error(`[Enhanced SSE Manager] ${endpoint.name} EventSource error:`, error);
+          this.error(`[Enhanced SSE Manager] ${endpoint.name} EventSource error:`, error);
+          endpoint.lastErrorEventType = 'eventsource_error';
+          endpoint.lastErrorLocation = endpoint.url;
           clearTimeout(connectionTimeout);
           eventSource.close();
-          reject(new Error(`EventSource error: ${error}`));
+          // Avoid stringifying the Event object in the error message; log above for details
+          reject(new Error('EventSource error'));
         };
 
         eventSource.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            console.log(`[Enhanced SSE Manager] ${endpoint.name} received message:`, data);
-          } catch (error) {
-            console.error(`[Enhanced SSE Manager] ${endpoint.name} error parsing message:`, error);
+          if (this.debugMode) {
+            try {
+              const data = JSON.parse(event.data);
+              // eslint-disable-next-line no-console
+              console.log(`[Enhanced SSE Manager] ${endpoint.name} received message:`, data);
+            } catch (error) {
+              endpoint.lastErrorEventType = 'message';
+              endpoint.lastErrorLocation = endpoint.url;
+              this.error(`[Enhanced SSE Manager] ${endpoint.name} error parsing message:`, error);
+            }
           }
         };
 
@@ -241,16 +271,21 @@ export class EnhancedSSEManager {
           'keepalive'
         ];
 
-        eventTypes.forEach(eventType => {
-          eventSource.addEventListener(eventType, (event: MessageEvent) => {
-            try {
-              const data = JSON.parse(event.data);
-              console.log(`[Enhanced SSE Manager] ${endpoint.name} received ${eventType} event:`, data);
-            } catch (error) {
-              console.error(`[Enhanced SSE Manager] ${endpoint.name} error parsing ${eventType} event:`, error);
-            }
+        if (this.debugMode) {
+          eventTypes.forEach(eventType => {
+            eventSource.addEventListener(eventType, (event: MessageEvent) => {
+              try {
+                const data = JSON.parse(event.data);
+                // eslint-disable-next-line no-console
+                console.log(`[Enhanced SSE Manager] ${endpoint.name} received ${eventType} event:`, data);
+              } catch (error) {
+                endpoint.lastErrorEventType = eventType;
+                endpoint.lastErrorLocation = endpoint.url;
+                this.error(`[Enhanced SSE Manager] ${endpoint.name} error parsing ${eventType} event:`, error);
+              }
+            });
           });
-        });
+        }
 
       } catch (error) {
         reject(error);
@@ -269,7 +304,7 @@ export class EnhancedSSEManager {
   }
 
   public disconnectAll(): void {
-    console.log('[Enhanced SSE Manager] Disconnecting all endpoints...');
+    this.info('[Enhanced SSE Manager] Disconnecting all endpoints...');
     
     this.endpoints.forEach(endpoint => {
       if (endpoint.eventSource) {
@@ -277,9 +312,9 @@ export class EnhancedSSEManager {
           endpoint.eventSource.close();
           endpoint.eventSource = undefined;
           endpoint.isConnected = false;
-          console.log(`[Enhanced SSE Manager] Disconnected ${endpoint.name}`);
+          this.info(`[Enhanced SSE Manager] Disconnected ${endpoint.name}`);
         } catch (error) {
-          console.error(`[Enhanced SSE Manager] Error disconnecting ${endpoint.name}:`, error);
+          this.error(`[Enhanced SSE Manager] Error disconnecting ${endpoint.name}:`, error);
         }
       }
     });
@@ -292,9 +327,9 @@ export class EnhancedSSEManager {
         endpoint.eventSource.close();
         endpoint.eventSource = undefined;
         endpoint.isConnected = false;
-        console.log(`[Enhanced SSE Manager] Disconnected ${endpoint.name}`);
+        this.info(`[Enhanced SSE Manager] Disconnected ${endpoint.name}`);
       } catch (error) {
-        console.error(`[Enhanced SSE Manager] Error disconnecting ${endpoint.name}:`, error);
+        this.error(`[Enhanced SSE Manager] Error disconnecting ${endpoint.name}:`, error);
       }
     }
   }
@@ -330,7 +365,7 @@ export class EnhancedSSEManager {
       endpoint.retryCount = 0;
       endpoint.lastError = undefined;
       endpoint.lastErrorTime = undefined;
-      console.log(`[Enhanced SSE Manager] Enabled ${endpoint.name}`);
+      this.info(`[Enhanced SSE Manager] Enabled ${endpoint.name}`);
     }
   }
 
@@ -344,17 +379,17 @@ export class EnhancedSSEManager {
           endpoint.eventSource = undefined;
           endpoint.isConnected = false;
         } catch (error) {
-          console.error(`[Enhanced SSE Manager] Error closing ${endpoint.name}:`, error);
+          this.error(`[Enhanced SSE Manager] Error closing ${endpoint.name}:`, error);
         }
       }
-      console.log(`[Enhanced SSE Manager] Disabled ${endpoint.name}`);
+      this.info(`[Enhanced SSE Manager] Disabled ${endpoint.name}`);
     }
   }
 
   public forceReconnect(endpointId: string): void {
     const endpoint = this.endpoints.get(endpointId);
     if (endpoint) {
-      console.log(`[Enhanced SSE Manager] Force reconnecting ${endpoint.name}`);
+      this.info(`[Enhanced SSE Manager] Force reconnecting ${endpoint.name}`);
       endpoint.retryCount = 0;
       endpoint.lastError = undefined;
       endpoint.lastErrorTime = undefined;
@@ -365,7 +400,7 @@ export class EnhancedSSEManager {
           endpoint.eventSource = undefined;
           endpoint.isConnected = false;
         } catch (error) {
-          console.error(`[Enhanced SSE Manager] Error closing ${endpoint.name}:`, error);
+          this.error(`[Enhanced SSE Manager] Error closing ${endpoint.name}:`, error);
         }
       }
 

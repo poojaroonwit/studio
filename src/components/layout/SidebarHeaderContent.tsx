@@ -38,11 +38,12 @@ export function SidebarHeaderContent({
 }: SidebarHeaderContentProps) {
   const sidebarContext = useSidebar();
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const isMountedRef = useRef(true);
 
   // Track dark mode state to avoid DOM queries on every render
   useEffect(() => {
     const checkDarkMode = () => {
-      if (typeof window !== 'undefined') {
+      if (typeof window !== 'undefined' && isMountedRef.current) {
         setIsDarkMode(document.documentElement.classList.contains('dark'));
       }
     };
@@ -58,7 +59,10 @@ export function SidebarHeaderContent({
       });
     }
 
-    return () => observer.disconnect();
+    return () => {
+      isMountedRef.current = false;
+      observer.disconnect();
+    };
   }, []);
 
   const getContextualLogo = useCallback((isCollapsed: boolean) => {
@@ -84,18 +88,20 @@ export function SidebarHeaderContent({
   const lastToggleTimeRef = useRef<number>(0);
 
   const handleToggle = useCallback(() => {
+    if (!isMountedRef.current) return;
+    
     const now = Date.now();
     const timeSinceLastToggle = now - lastToggleTimeRef.current;
     
-    // Reduced protection: prevent rapid toggling (less than 150ms apart - reduced from 300ms)
-    if (timeSinceLastToggle < 150) {
-      console.log('Sidebar header toggle blocked: too rapid clicking');
+    // Reduced protection: prevent rapid toggling (less than 100ms apart - reduced from 150ms)
+    if (timeSinceLastToggle < 100) {
+      console.log('[SIDEBAR_HEADER] Toggle blocked: too rapid clicking');
       return;
     }
     
     // Prevent toggle if already toggling
     if (isToggling) {
-      console.log('Sidebar header toggle blocked: already toggling');
+      console.log('[SIDEBAR_HEADER] Toggle blocked: already toggling');
       return;
     }
     
@@ -107,10 +113,12 @@ export function SidebarHeaderContent({
       clearTimeout(toggleTimeoutRef.current);
     }
     
-    // Set a timeout to reset toggle state
+    // Set a timeout to reset toggle state (reduced from 500ms to 300ms)
     toggleTimeoutRef.current = setTimeout(() => {
-      setIsToggling(false);
-    }, 500);
+      if (isMountedRef.current) {
+        setIsToggling(false);
+      }
+    }, 300);
     
     if (sidebarContext?.toggleSidebar) {
       sidebarContext.toggleSidebar();
@@ -119,6 +127,7 @@ export function SidebarHeaderContent({
 
   useEffect(() => {
     return () => {
+      isMountedRef.current = false;
       if (toggleTimeoutRef.current) {
         clearTimeout(toggleTimeoutRef.current);
       }
@@ -153,6 +162,9 @@ export function SidebarHeaderContent({
             }}
             className="object-contain"
             data-ai-hint="company logo"
+            onError={() => {
+              console.warn('[SIDEBAR_HEADER] Logo failed to load:', logoToUse);
+            }}
           />
           {/* Fallback icon that shows if image fails to load */}
           <Package2 className="h-6 w-6 absolute inset-0 m-auto opacity-0" style={{ pointerEvents: 'none' }} />

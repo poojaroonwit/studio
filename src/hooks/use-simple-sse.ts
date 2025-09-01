@@ -7,33 +7,45 @@ export function useSimpleSSE() {
   const [isConnected, setIsConnected] = useState(false);
   const [lastMessage, setLastMessage] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [connectionAttempts, setConnectionAttempts] = useState(0);
   
   const eventSourceRef = useRef<EventSource | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttemptsRef = useRef(0);
-  const maxReconnectAttempts = 3;
+  const maxReconnectAttempts = 5; // Increased from 3 to 5
 
   // Connect to SSE
   const connect = useCallback(() => {
-    if (!session?.user?.id || eventSourceRef.current) return;
+    if (!session?.user?.id) {
+      console.log('[SSE Client] No session, skipping connection');
+      return;
+    }
+
+    if (eventSourceRef.current) {
+      console.log('[SSE Client] Connection already exists, skipping');
+      return;
+    }
 
     try {
+      console.log('[SSE Client] Attempting to connect to SSE...');
       const eventSource = new EventSource('/api/sse');
       eventSourceRef.current = eventSource;
 
       eventSource.onopen = () => {
-        console.log('✅ SSE connected');
+        console.log('✅ SSE connected successfully');
         setIsConnected(true);
         setError(null);
+        setConnectionAttempts(prev => prev + 1);
         reconnectAttemptsRef.current = 0;
       };
 
       eventSource.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
+          console.log('[SSE Client] Received message:', data);
           setLastMessage(data);
         } catch (error) {
-          console.error('Error parsing SSE message:', error);
+          console.error('[SSE Client] Error parsing SSE message:', error);
         }
       };
 
@@ -51,39 +63,47 @@ export function useSimpleSSE() {
         eventSource.addEventListener(eventType, (event: MessageEvent) => {
           try {
             const data = JSON.parse(event.data);
+            console.log(`[SSE Client] Received ${eventType} event:`, data);
             setLastMessage(data);
           } catch (error) {
-            console.error(`Error parsing ${eventType} event:`, error);
+            console.error(`[SSE Client] Error parsing ${eventType} event:`, error);
           }
         });
       });
 
       eventSource.onerror = (error) => {
-        console.error('SSE connection error:', error);
+        console.error('[SSE Client] SSE connection error:', error);
         setIsConnected(false);
         setError('Connection failed');
         
-        // Attempt reconnection
+        // Attempt reconnection with exponential backoff
         if (reconnectAttemptsRef.current < maxReconnectAttempts) {
           reconnectAttemptsRef.current++;
-          const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 10000);
+          const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000); // Max 30 seconds
+          
+          console.log(`[SSE Client] Attempting reconnection ${reconnectAttemptsRef.current}/${maxReconnectAttempts} in ${delay}ms`);
           
           reconnectTimeoutRef.current = setTimeout(() => {
             eventSource.close();
             eventSourceRef.current = null;
             connect();
           }, delay);
+        } else {
+          console.error('[SSE Client] Max reconnection attempts reached');
+          setError('Max reconnection attempts reached');
         }
-      };
+      }
 
     } catch (error) {
-      console.error('Failed to create SSE connection:', error);
+      console.error('[SSE Client] Failed to create SSE connection:', error);
       setError('Failed to connect');
     }
   }, [session?.user?.id]);
 
   // Disconnect from SSE
   const disconnect = useCallback(() => {
+    console.log('[SSE Client] Disconnecting from SSE');
+    
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
       eventSourceRef.current = null;
@@ -101,6 +121,7 @@ export function useSimpleSSE() {
 
   // Manual reconnect
   const reconnect = useCallback(() => {
+    console.log('[SSE Client] Manual reconnect requested');
     disconnect();
     reconnectAttemptsRef.current = 0;
     setTimeout(connect, 1000);
@@ -109,7 +130,10 @@ export function useSimpleSSE() {
   // Connect on mount
   useEffect(() => {
     if (session?.user?.id) {
+      console.log('[SSE Client] Session available, connecting...');
       connect();
+    } else {
+      console.log('[SSE Client] No session available');
     }
 
     return () => {
@@ -128,6 +152,7 @@ export function useSimpleSSE() {
     isConnected,
     lastMessage,
     error,
+    connectionAttempts,
     reconnect,
     disconnect
   };
@@ -136,68 +161,36 @@ export function useSimpleSSE() {
 // Specialized hooks for specific event types
 export function useCandidateUpdates() {
   const { isConnected, lastMessage } = useSimpleSSE();
-  const [candidateUpdates, setCandidateUpdates] = useState<any[]>([]);
-
-  useEffect(() => {
-    if (lastMessage?.type === 'candidate_update') {
-      setCandidateUpdates(prev => [...prev, lastMessage.data]);
-    }
-  }, [lastMessage]);
-
+  
   return {
     isConnected,
-    candidateUpdates,
-    latestUpdate: lastMessage?.type === 'candidate_update' ? lastMessage.data : null
+    candidateUpdate: lastMessage?.type === 'candidate_update' ? lastMessage : null
   };
 }
 
 export function usePositionUpdates() {
   const { isConnected, lastMessage } = useSimpleSSE();
-  const [positionUpdates, setPositionUpdates] = useState<any[]>([]);
-
-  useEffect(() => {
-    if (lastMessage?.type === 'position_update') {
-      setPositionUpdates(prev => [...prev, lastMessage.data]);
-    }
-  }, [lastMessage]);
-
+  
   return {
     isConnected,
-    positionUpdates,
-    latestUpdate: lastMessage?.type === 'position_update' ? lastMessage.data : null
-  };
-}
-
-export function useNotifications() {
-  const { isConnected, lastMessage } = useSimpleSSE();
-  const [notifications, setNotifications] = useState<any[]>([]);
-
-  useEffect(() => {
-    if (lastMessage?.type === 'notification') {
-      setNotifications(prev => [...prev, lastMessage.data]);
-    }
-  }, [lastMessage]);
-
-  return {
-    isConnected,
-    notifications,
-    latestNotification: lastMessage?.type === 'notification' ? lastMessage.data : null
+    positionUpdate: lastMessage?.type === 'position_update' ? lastMessage : null
   };
 }
 
 export function useUploadQueueUpdates() {
   const { isConnected, lastMessage } = useSimpleSSE();
-  const [queueUpdates, setQueueUpdates] = useState<any[]>([]);
-
-  useEffect(() => {
-    if (lastMessage?.type === 'upload_queue_update') {
-      setQueueUpdates(prev => [...prev, lastMessage.data]);
-    }
-  }, [lastMessage]);
-
+  
   return {
     isConnected,
-    queueUpdates,
-    latestUpdate: lastMessage?.type === 'upload_queue_update' ? lastMessage.data : null
+    uploadQueueUpdate: lastMessage?.type === 'upload_queue_update' ? lastMessage : null
+  };
+}
+
+export function useDashboardUpdates() {
+  const { isConnected, lastMessage } = useSimpleSSE();
+  
+  return {
+    isConnected,
+    dashboardUpdate: lastMessage?.type === 'dashboard_update' ? lastMessage : null
   };
 }

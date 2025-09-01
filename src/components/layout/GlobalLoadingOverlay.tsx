@@ -1,20 +1,44 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 
 export function GlobalLoadingOverlay() {
   const [isLoading, setIsLoading] = useState(false);
   const pathname = usePathname();
+  const isMountedRef = useRef(true);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     // Only show loading for actual page changes, not for the same page
-    const timer = setTimeout(() => {
-      setIsLoading(false);
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    
+    timeoutRef.current = setTimeout(() => {
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
     }, 300); // Reduced from 500ms to 300ms for faster response
 
-    return () => clearTimeout(timer);
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    };
   }, [pathname]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    };
+  }, []);
 
   if (!isLoading) return null;
 

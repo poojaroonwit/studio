@@ -1,94 +1,68 @@
 'use client';
 
-import { useSimpleSSE, useCandidateUpdates, useNotifications } from '@/hooks/use-simple-sse';
+import React from 'react';
+import { useSimpleSSE } from '@/hooks/use-simple-sse';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Wifi, WifiOff, Bell } from 'lucide-react';
+import { RefreshCw, Wifi, WifiOff, AlertCircle } from 'lucide-react';
 
 export function SimpleSSEStatus() {
-  const { isConnected, error, reconnect, disconnect } = useSimpleSSE();
-  const { candidateUpdates, latestUpdate } = useCandidateUpdates();
-  const { notifications, latestNotification } = useNotifications();
+  const { isConnected, error, connectionAttempts, reconnect, disconnect } = useSimpleSSE();
+
+  const getStatusColor = () => {
+    if (error) return 'destructive';
+    if (isConnected) return 'default';
+    return 'secondary';
+  };
+
+  const getStatusIcon = () => {
+    if (error) return <AlertCircle className="h-3 w-3" />;
+    if (isConnected) return <Wifi className="h-3 w-3" />;
+    return <WifiOff className="h-3 w-3" />;
+  };
+
+  const getStatusText = () => {
+    if (error) return `Error: ${error}`;
+    if (isConnected) return 'Connected';
+    return 'Disconnected';
+  };
 
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Wifi className={`h-4 w-4 ${isConnected ? 'text-green-500' : 'text-red-500'}`} />
-          SSE Status
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Connection Status */}
-        <div className="flex items-center justify-between">
-          <span>Connection:</span>
-          <Badge variant={isConnected ? 'default' : 'destructive'}>
-            {isConnected ? 'Connected' : 'Disconnected'}
-          </Badge>
-        </div>
-
-        {/* Error Display */}
-        {error && (
-          <div className="text-sm text-red-500 bg-red-50 p-2 rounded">
-            Error: {error}
-          </div>
-        )}
-
-        {/* Stats */}
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <span className="text-muted-foreground">Candidate Updates:</span>
-            <div className="font-semibold">{candidateUpdates.length}</div>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Notifications:</span>
-            <div className="font-semibold">{notifications.length}</div>
-          </div>
-        </div>
-
-        {/* Latest Updates */}
-        {latestUpdate && (
-          <div className="text-sm">
-            <span className="text-muted-foreground">Latest Candidate Update:</span>
-            <div className="font-mono text-xs bg-gray-100 p-2 rounded mt-1">
-              {JSON.stringify(latestUpdate, null, 2)}
-            </div>
-          </div>
-        )}
-
-        {latestNotification && (
-          <div className="text-sm">
-            <span className="text-muted-foreground">Latest Notification:</span>
-            <div className="font-mono text-xs bg-gray-100 p-2 rounded mt-1">
-              {JSON.stringify(latestNotification, null, 2)}
-            </div>
-          </div>
-        )}
-
-        {/* Actions */}
-        <div className="flex gap-2">
-          <Button 
-            onClick={reconnect} 
-            size="sm" 
+    <div className="flex items-center gap-2">
+      <Badge variant={getStatusColor()} className="flex items-center gap-1">
+        {getStatusIcon()}
+        {getStatusText()}
+      </Badge>
+      
+      {connectionAttempts > 0 && (
+        <span className="text-xs text-muted-foreground">
+          Attempts: {connectionAttempts}
+        </span>
+      )}
+      
+      <div className="flex gap-1">
+        {isConnected ? (
+          <Button
             variant="outline"
-            className="flex items-center gap-1"
+            size="sm"
+            onClick={disconnect}
+            className="h-6 px-2 text-xs"
           >
-            <RefreshCw className="h-3 w-3" />
-            Reconnect
-          </Button>
-          <Button 
-            onClick={disconnect} 
-            size="sm" 
-            variant="outline"
-            className="flex items-center gap-1"
-          >
-            <WifiOff className="h-3 w-3" />
             Disconnect
           </Button>
-        </div>
-      </CardContent>
-    </Card>
+        ) : (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={reconnect}
+            className="h-6 px-2 text-xs"
+          >
+            <RefreshCw className="h-3 w-3 mr-1" />
+            Reconnect
+          </Button>
+        )}
+      </div>
+    </div>
   );
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 interface FaviconUpdaterProps {
   faviconDataUrl?: string | null;
@@ -9,6 +9,7 @@ interface FaviconUpdaterProps {
 export function FaviconUpdater({ faviconDataUrl }: FaviconUpdaterProps) {
   // faviconDataUrl is now a MinIO URL, not a data URL
   const [currentFavicon, setCurrentFavicon] = useState<string | null>(null);
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
     // If no custom favicon is provided, use the default
@@ -18,40 +19,14 @@ export function FaviconUpdater({ faviconDataUrl }: FaviconUpdaterProps) {
       if (existingLink) {
         existingLink.remove();
       }
-      setCurrentFavicon(null);
+      if (isMountedRef.current) {
+        setCurrentFavicon(null);
+      }
       return;
     }
 
-    // Create or update the favicon link
-    let faviconLink = document.querySelector('link[data-custom-favicon="true"]') as HTMLLinkElement;
-    
-    if (!faviconLink) {
-      faviconLink = document.createElement('link');
-      faviconLink.rel = 'icon';
-      faviconLink.setAttribute('data-custom-favicon', 'true');
-      document.head.appendChild(faviconLink);
-    }
-
-    faviconLink.href = faviconDataUrl;
-    setCurrentFavicon(faviconDataUrl);
-  }, [faviconDataUrl]);
-
-  // Listen for real-time favicon updates
-  useEffect(() => {
-    const handleFaviconUpdate = (event: CustomEvent) => {
-      const { faviconDataUrl: newFaviconUrl } = event.detail;
-      
-      if (!newFaviconUrl) {
-        // Remove custom favicon
-        const existingLink = document.querySelector('link[data-custom-favicon="true"]');
-        if (existingLink) {
-          existingLink.remove();
-        }
-        setCurrentFavicon(null);
-        return;
-      }
-
-      // Update favicon
+    try {
+      // Create or update the favicon link
       let faviconLink = document.querySelector('link[data-custom-favicon="true"]') as HTMLLinkElement;
       
       if (!faviconLink) {
@@ -61,14 +36,59 @@ export function FaviconUpdater({ faviconDataUrl }: FaviconUpdaterProps) {
         document.head.appendChild(faviconLink);
       }
 
-      faviconLink.href = newFaviconUrl;
-      setCurrentFavicon(newFaviconUrl);
+      faviconLink.href = faviconDataUrl;
+      if (isMountedRef.current) {
+        setCurrentFavicon(faviconDataUrl);
+      }
+    } catch (error) {
+      console.warn('[FAVICON_UPDATER] Error updating favicon:', error);
+    }
+  }, [faviconDataUrl]);
+
+  // Listen for real-time favicon updates
+  useEffect(() => {
+    const handleFaviconUpdate = (event: CustomEvent) => {
+      if (!isMountedRef.current) return;
+      
+      try {
+        const { faviconDataUrl: newFaviconUrl } = event.detail;
+        
+        if (!newFaviconUrl) {
+          // Remove custom favicon
+          const existingLink = document.querySelector('link[data-custom-favicon="true"]');
+          if (existingLink) {
+            existingLink.remove();
+          }
+          setCurrentFavicon(null);
+          return;
+        }
+
+        // Update favicon
+        let faviconLink = document.querySelector('link[data-custom-favicon="true"]') as HTMLLinkElement;
+        
+        if (!faviconLink) {
+          faviconLink = document.createElement('link');
+          faviconLink.rel = 'icon';
+          faviconLink.setAttribute('data-custom-favicon', 'true');
+          document.head.appendChild(faviconLink);
+        }
+
+        faviconLink.href = newFaviconUrl;
+        setCurrentFavicon(newFaviconUrl);
+      } catch (error) {
+        console.warn('[FAVICON_UPDATER] Error handling favicon update event:', error);
+      }
     };
 
     window.addEventListener('faviconUpdated', handleFaviconUpdate as EventListener);
     
     return () => {
-      window.removeEventListener('faviconUpdated', handleFaviconUpdate as EventListener);
+      isMountedRef.current = false;
+      try {
+        window.removeEventListener('faviconUpdated', handleFaviconUpdate as EventListener);
+      } catch (error) {
+        console.warn('[FAVICON_UPDATER] Error removing favicon update listener:', error);
+      }
     };
   }, []);
 

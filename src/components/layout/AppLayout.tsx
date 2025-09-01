@@ -18,11 +18,9 @@ import { useFavicon } from '@/hooks/use-favicon';
 import { FaviconUpdater } from '@/components/layout/FaviconUpdater';
 import { useSessionValidation } from '@/hooks/use-session-validation';
 import { useTheme } from '@/hooks/use-theme';
-// Removed complex infinite loop prevention - using simple useEffect instead
 import { useRenderMonitor } from '@/hooks/use-render-monitor';
 import { OptimizedContainer, LayoutContainer } from '@/components/ui/optimized-container';
 import { useAppLayoutState } from '@/hooks/use-app-layout-state';
-
 
 const DEFAULT_APP_NAME = "FitScan";
 
@@ -44,26 +42,16 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
   const { mounted: themeMounted } = useTheme();
   
   // Refs to store stable function references
-  const trackSettingsFetchRef = useRef<any>(null);
-  const trackThemeChangeRef = useRef<any>(null);
   const updateAppConfigRef = useRef<any>(null);
   const updateThemeAndColorsRef = useRef<any>(null);
   const resetToDefaultsRef = useRef<any>(null);
   const setLogoLoadingRef = useRef<any>(null);
   const hasInitializedRef = useRef(false);
-  const lastRenderTimeRef = useRef(0);
-  
-  // Simple tracking for debugging (removed complex infinite loop prevention)
-  const settingsFetchCount = useRef(0);
-  const themeChangeCount = useRef(0);
-
-  // Simple tracking setup (removed complex infinite loop prevention)
-  useEffect(() => {
-    // Initialize simple tracking
-  }, []);
+  const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isMountedRef = useRef(true);
 
   // Enhanced render monitoring with stricter thresholds - optimized for performance
-  useRenderMonitor('AppLayout', 2000); // Increased from 1000 to 2000ms to reduce false positives
+  useRenderMonitor('AppLayout', 1000); // Reduced to 1000ms for better detection
 
   // Memoize session validation logic
   const shouldValidateSession = useMemo(() => {
@@ -119,15 +107,26 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
     }
   }, [updateAppConfig, updateThemeAndColors, resetToDefaults, setLogoLoading]);
 
-  // Memoize the fetch function to prevent recreation on every render
+  // Memoize the fetch function to prevent recreation on every render with timeout protection
   const fetchGlobalSettings = useCallback(async () => {
-    // Simple tracking (removed complex infinite loop prevention)
-    settingsFetchCount.current++;
+    if (!isMountedRef.current) return;
     
     try {
       setLogoLoadingRef.current?.(true);
-      const res = await fetch('/api/settings/system-settings');
-      const data = await res.json();
+      
+      // Set timeout to prevent infinite loading
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        fetchTimeoutRef.current = setTimeout(() => {
+          reject(new Error('Settings fetch timeout'));
+        }, 15000); // 15 second timeout
+      });
+
+      const fetchPromise = fetch('/api/settings/system-settings');
+      
+      const response = await Promise.race([fetchPromise, timeoutPromise]);
+      const data = await response.json();
+
+      if (!isMountedRef.current) return;
 
       let prefs: any = {};
       if (data.settings && Array.isArray(data.settings)) {
@@ -195,42 +194,57 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
             sidebarBackgroundImageFit: prefs.sidebarBackgroundImageFit,
             sidebarBackgroundImagePosition: prefs.sidebarBackgroundImagePosition,
           });
+        }).catch((error) => {
+          console.warn('[APPLAYOUT] Error loading theme utils:', error);
         });
       }
-    } catch (e) {
+    } catch (error) {
+      console.warn('[APPLAYOUT] Failed to fetch global settings:', error);
       resetToDefaultsRef.current?.();
     } finally {
-      setLogoLoadingRef.current?.(false);
+      if (isMountedRef.current) {
+        setLogoLoadingRef.current?.(false);
+      }
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+        fetchTimeoutRef.current = null;
+      }
     }
   }, []); // Empty dependency array to prevent infinite loops - functions are stable from useAppLayoutState
 
   // Memoize the app config change handler
   const handleAppConfigChange = useCallback((event: Event) => {
-    const customEvent = event as CustomEvent<{
-      appName?: string;
-      logoUrl?: string | null;
-      showLogoOnly?: boolean;
-      sidebarLogoSize?: number;
-    }>;
+    if (!isMountedRef.current) return;
     
-    if (customEvent.detail) {
-      const updates: any = {};
-      if (customEvent.detail.appName) {
-        updates.currentAppName = customEvent.detail.appName;
-      }
-      if (customEvent.detail.logoUrl !== undefined) {
-        updates.appLogoUrl = customEvent.detail.logoUrl;
-      }
-      if (customEvent.detail.showLogoOnly !== undefined) {
-        updates.showLogoOnly = customEvent.detail.showLogoOnly;
-      }
-      if (customEvent.detail.sidebarLogoSize !== undefined) {
-        updates.sidebarLogoSize = customEvent.detail.sidebarLogoSize;
-      }
+    try {
+      const customEvent = event as CustomEvent<{
+        appName?: string;
+        logoUrl?: string | null;
+        showLogoOnly?: boolean;
+        sidebarLogoSize?: number;
+      }>;
       
-      if (Object.keys(updates).length > 0) {
-        updateAppConfigRef.current?.(updates);
+      if (customEvent.detail) {
+        const updates: any = {};
+        if (customEvent.detail.appName) {
+          updates.currentAppName = customEvent.detail.appName;
+        }
+        if (customEvent.detail.logoUrl !== undefined) {
+          updates.appLogoUrl = customEvent.detail.logoUrl;
+        }
+        if (customEvent.detail.showLogoOnly !== undefined) {
+          updates.showLogoOnly = customEvent.detail.showLogoOnly;
+        }
+        if (customEvent.detail.sidebarLogoSize !== undefined) {
+          updates.sidebarLogoSize = customEvent.detail.sidebarLogoSize;
+        }
+        
+        if (Object.keys(updates).length > 0) {
+          updateAppConfigRef.current?.(updates);
+        }
       }
+    } catch (error) {
+      console.warn('[APPLAYOUT] Error handling app config change:', error);
     }
   }, []); // Empty dependency array to prevent infinite loops
 
@@ -242,28 +256,25 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
     initializeClient();
     fetchGlobalSettings();
     
-
-    
     window.addEventListener('appConfigChanged', handleAppConfigChange);
     
     return () => {
       try {
         window.removeEventListener('appConfigChanged', handleAppConfigChange);
       } catch (error) {
-        console.warn('Error removing app config listener:', error);
+        console.warn('[APPLAYOUT] Error removing app config listener:', error);
       }
     };
   }, []); // Empty dependency array since this should only run once on mount
 
   // Memoize theme change handler
   const handleThemeChange = useCallback(() => {
-    // Simple tracking (removed complex infinite loop prevention)
-    themeChangeCount.current++;
+    if (!isMountedRef.current) return;
     
     import('@/lib/themeUtils').then(({ reapplyCurrentSidebarColors }) => {
       reapplyCurrentSidebarColors();
     }).catch((error) => {
-      console.warn('Error loading theme utils:', error);
+      console.warn('[APPLAYOUT] Error loading theme utils:', error);
     });
   }, []); // Empty dependency array to prevent infinite loops
 
@@ -277,7 +288,7 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
       mediaQuery.removeEventListener('change', handleThemeChange);
       mediaQuery.addEventListener('change', handleThemeChange);
     } catch (error) {
-      console.warn('MediaQuery not supported:', error);
+      console.warn('[APPLAYOUT] MediaQuery not supported:', error);
     }
 
     return () => {
@@ -285,11 +296,22 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
         try {
           mediaQuery.removeEventListener('change', handleThemeChange);
         } catch (error) {
-          console.warn('Error removing theme change listener:', error);
+          console.warn('[APPLAYOUT] Error removing theme change listener:', error);
         }
       }
     };
   }, []); // Empty dependency array since this should only run once on mount
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+        fetchTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   // Memoize page title calculation
   const pageTitle = useMemo(() => {

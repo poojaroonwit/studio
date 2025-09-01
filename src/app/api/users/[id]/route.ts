@@ -18,11 +18,10 @@ const updateUserSchema = z.object({
   authenticationMethod: z.enum(['basic', 'azure']).optional(),
   forcePasswordChange: z.boolean().optional(),
   newPassword: z.string().min(8, "New password must be at least 8 characters").optional().or(z.literal("")),
-  modulePermissions: z.array(z.string()).optional(),
+  // modulePermissions removed - permissions come from UserGroup based on role
   userTeamIds: z.array(z.string().uuid()).optional(),
   avatarUrl: z.string().optional(),
   personalColor: z.string().optional(),
-
 });
 
 function extractIdFromUrl(request: NextRequest): string | null {
@@ -177,43 +176,24 @@ export async function PUT(request: NextRequest) {
         return NextResponse.json({ message: "Invalid input", errors: validationResult.error.flatten().fieldErrors }, { status: 400 });
     }
 
-    const { password, newPassword, userTeamIds, modulePermissions, role, ...fieldsToUpdate } = validationResult.data;
+    const { password, newPassword, userTeamIds, role, ...fieldsToUpdate } = validationResult.data;
 
-    if (Object.keys(fieldsToUpdate).length === 0 && !password && (!newPassword || newPassword.trim() === "") && !userTeamIds && modulePermissions === undefined && role === undefined) {
+    if (Object.keys(fieldsToUpdate).length === 0 && !password && (!newPassword || newPassword.trim() === "") && !userTeamIds && role === undefined) {
         return NextResponse.json({ message: "No fields to update." }, { status: 400 });
     }
 
-    // Special handling for admin users modifying their own permissions
-    if (isModifyingSelf && isAdmin && modulePermissions !== undefined) {
-        // Admin users can modify their own permissions but cannot remove critical permissions
-        const criticalPermissions = ['USERS_MANAGE', 'USER_GROUPS_MANAGE'];
-        const currentPermissions = session?.user?.modulePermissions || [];
-        
-        // Check if trying to remove critical permissions
-        const removedCriticalPermissions = criticalPermissions.filter(permission => 
-            currentPermissions.includes(permission) && !modulePermissions.includes(permission)
-        );
-        
-        if (removedCriticalPermissions.length > 0) {
-            await logAudit('WARN', `Admin user ${session?.user?.email} attempted to remove critical permissions: ${removedCriticalPermissions.join(', ')}`, 'API:Users:Update', actingUserId);
-            return NextResponse.json({ 
-                message: "Cannot remove critical permissions (USERS_MANAGE, USER_GROUPS_MANAGE) from admin account for security reasons." 
-            }, { status: 400 });
-        }
-    }
-
-    // Prevent non-admin users from modifying role or critical permissions
-    if (!isAdmin && (role !== undefined || modulePermissions !== undefined)) {
-        await logAudit('WARN', `Non-admin user ${session?.user?.email} attempted to modify role or permissions`, 'API:Users:Update', actingUserId);
+    // Prevent non-admin users from modifying role
+    if (!isAdmin && role !== undefined) {
+        await logAudit('WARN', `Non-admin user ${session?.user?.email} attempted to modify role`, 'API:Users:Update', actingUserId);
         return NextResponse.json({ 
-            message: "Only admin users can modify roles and permissions." 
+            message: "Only admin users can modify roles." 
         }, { status: 403 });
     }
     
     try {
         const updateData: any = { 
             ...fieldsToUpdate,
-            ...(modulePermissions !== undefined && { module_permissions: modulePermissions }),
+            // Remove module_permissions - permissions come from UserGroup
             ...(role !== undefined && { role })
         };
         
@@ -228,32 +208,25 @@ export async function PUT(request: NextRequest) {
             updateData.password = await bcrypt.hash(newPassword, saltRounds);
         }
 
-        // Handle user teams update
-        let userTeamsUpdate: any = undefined;
-        if (userTeamIds !== undefined) {
-            // Delete existing user teams
-            await prisma.user_UserTeam.deleteMany({
-                where: { userId: id }
-            });
-            
-            // Create new user teams if any
-            if (userTeamIds.length > 0) {
-                userTeamsUpdate = {
-                    create: userTeamIds.map(teamId => ({
-                        teamId
-                    }))
-                };
-            }
+        // Handle user group assignment based on role
+        if (role !== undefined) {
+            const roleToGroupId = {
+                'Admin': '00000000-0000-0000-0000-000000000001',
+                'Recruiter': '00000000-0000-0000-0000-000000000002',
+                'Hiring Manager': '00000000-0000-0000-0000-000000000003'
+            };
+            updateData.userGroupId = roleToGroupId[role] || null;
         }
 
-
+        // Handle user teams update (direct foreign key)
+        if (userTeamIds !== undefined) {
+            // For direct foreign key, just use the first team ID
+            updateData.userTeamId = userTeamIds.length > 0 ? userTeamIds[0] : null;
+        }
 
         const updatedUser = await prisma.user.update({
             where: { id },
-            data: {
-                ...updateData,
-                ...(userTeamsUpdate && { userTeams: userTeamsUpdate })
-            },
+            data: updateData,
             select: {
                 id: true,
                 name: true,
@@ -263,20 +236,22 @@ export async function PUT(request: NextRequest) {
                 personalColor: true,
                 authenticationMethod: true,
                 forcePasswordChange: true,
-                module_permissions: true,
                 createdAt: true,
                 updatedAt: true,
-                userTeams: {
-                    include: {
-                        team: {
-                            select: {
-                                id: true,
-                                name: true
-                            }
-                        }
+                userGroup: {
+                    select: {
+                        id: true,
+                        name: true,
+                        permissions: true
                     }
                 },
-
+                userTeam: {
+                    select: {
+                        id: true,
+                        name: true,
+                        color: true
+                    }
+                }
             }
         });
 
@@ -285,8 +260,8 @@ export async function PUT(request: NextRequest) {
 
         const userToReturn = {
             ...updatedUser,
-            teams: updatedUser.userTeams.map((ut: any) => ut.team),
-            modulePermissions: updatedUser.module_permissions || [],
+            teams: updatedUser.userTeam ? [updatedUser.userTeam] : [],
+            modulePermissions: updatedUser.userGroup?.permissions || [],
         };
 
         await logAudit('AUDIT', `User '${updatedUser.name}' (ID: ${id}) was updated.`, 'API:Users:Update', actingUserId, { targetUserId: id, changes: validationResult.data });

@@ -34,9 +34,12 @@ export function usePositionsCache(filterOpenOnly: boolean = false) {
     // Check if component is still mounted
     if (!mountedRef.current) return;
 
+    console.log('[PositionsCache] Starting to fetch positions...');
+
     // Check if we have fresh cached data
     const now = Date.now();
     if (globalCache.lastFetched && (now - globalCache.lastFetched) < CACHE_DURATION) {
+      console.log('[PositionsCache] Using cached positions data');
       if (mountedRef.current) {
         setCache(globalCache);
       }
@@ -67,6 +70,7 @@ export function usePositionsCache(filterOpenOnly: boolean = false) {
         }
       }, 10000);
 
+      console.log('[PositionsCache] Making API request to /api/positions/all');
       const response = await fetch('/api/positions/all', { signal: controller.signal });
       
       // Check if component is still mounted and this is still the current request
@@ -79,6 +83,8 @@ export function usePositionsCache(filterOpenOnly: boolean = false) {
         clearTimeout(timeoutId);
         timeoutId = null;
       }
+      
+      console.log('[PositionsCache] API response status:', response.status);
       
       if (!response.ok) {
         let errorMessage = 'Failed to fetch positions';
@@ -94,13 +100,18 @@ export function usePositionsCache(filterOpenOnly: boolean = false) {
       }
       
       const data = await response.json();
+      console.log('[PositionsCache] API response data:', data);
+      
       let fetchedPositions = data.data || [];
+      console.log('[PositionsCache] Raw fetched positions count:', fetchedPositions.length);
       
       // Filter for open headcount only if requested
       if (filterOpenOnlyRef.current) {
         fetchedPositions = fetchedPositions.filter((pos: Position) => pos.isOpen);
         console.log(`[PositionsCache] Filtered to ${fetchedPositions.length} open positions`);
       }
+      
+      console.log('[PositionsCache] Final positions to cache:', fetchedPositions.length);
       
       // Update global cache
       globalCache = {

@@ -2,10 +2,11 @@ import type { Candidate } from '@/lib/types';
 import { containsThaiText, getFontClass } from './fontUtils';
 
 /**
- * Formats candidate name as "Title FirstName LastName"
+ * Formats candidate name as "Title FirstName LastName" or "FirstName LastName"
  * Falls back to candidate.name if personal info is not available
+ * @param includeTitle - Whether to include the title in the formatted name (default: true)
  */
-export const formatCandidateName = (candidate: Partial<Candidate> & { id: string; name: string }): string => {
+export const formatCandidateName = (candidate: Partial<Candidate> & { id: string; name: string }, includeTitle: boolean = true): string => {
   // If candidate is null/undefined or doesn't have required properties, return loading state
   if (!candidate || !candidate.id) {
     return 'Loading...';
@@ -16,7 +17,7 @@ export const formatCandidateName = (candidate: Partial<Candidate> & { id: string
     : undefined;
   
   if (personalInfo) {
-    const title = personalInfo.title_honorific?.trim();
+    const title = includeTitle ? personalInfo.title_honorific?.trim() : undefined;
     const firstName = personalInfo.firstname?.trim();
     const lastName = personalInfo.lastname?.trim();
     
@@ -25,6 +26,14 @@ export const formatCandidateName = (candidate: Partial<Candidate> & { id: string
   }
   
   return candidate.name || 'Loading...';
+};
+
+/**
+ * Gets the raw candidate name without title (FirstName LastName)
+ * Falls back to candidate.name if personal info is not available
+ */
+export const getRawCandidateName = (candidate: Partial<Candidate> & { id: string; name: string }): string => {
+  return formatCandidateName(candidate, false);
 };
 
 /**

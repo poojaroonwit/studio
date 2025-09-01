@@ -33,19 +33,17 @@ export async function POST(req: NextRequest) {
     // Verify API token
     const authHeader = req.headers.get('authorization');
     const token = authHeader?.split(' ')[1];
-    const authResult = token ? await verifyApiToken(token) : { success: false };
+    const user = token ? await verifyApiToken(token) : null;
 
-    if (!authResult.success || !authResult.user) {
+    if (!user) {
       return NextResponse.json({
         success: false,
         error: 'Invalid API token'
       }, { status: 401, headers });
     }
 
-    const user = authResult.user;
-
     // Check permissions
-    if (!user.module_permissions?.includes('candidates')) {
+    if (user.role !== 'Admin' && !user.modulePermissions?.includes('CANDIDATES_MANAGE')) {
       return NextResponse.json({
         success: false,
         error: 'Insufficient permissions to manage candidates'
@@ -189,7 +187,7 @@ export async function POST(req: NextRequest) {
     console.error('Error clearing duplicate candidates:', error);
     
     const userId = req.headers.get('authorization') ? 
-      (await verifyApiToken(req.headers.get('authorization')!.split(' ')[1]))?.user?.id : 
+      (await verifyApiToken(req.headers.get('authorization')!.split(' ')[1]))?.id : 
       'unknown';
     
     await logAudit('ERROR', `Failed to clear duplicate candidates`, 'API:V1:Candidates:ClearDuplicates', userId, {

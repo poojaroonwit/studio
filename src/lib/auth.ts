@@ -158,7 +158,7 @@ export const authOptions: NextAuthOptions = {
             token.id = user.id;
             token.role = user.role || 'Recruiter';
             
-            // Ensure modulePermissions is always an array to prevent React error #185
+            // Get permissions from UserGroup (not from direct field)
             const modulePermissions = Array.isArray(user.modulePermissions) 
               ? (user.modulePermissions as PlatformModuleId[])
               : [];

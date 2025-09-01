@@ -43,6 +43,7 @@ interface QueueItem {
   position_id?: string;
   webhook_payload?: any;
   source?: string;
+  url?: string; // MinIO URL for file access
 }
 
 interface QueueResponse {
@@ -495,10 +496,17 @@ export default function CandidateImportUploadQueue() {
   const handleRetryItem = async (itemId: string) => {
     try {
       console.log(`Retrying job ${itemId}...`);
+      
+      // Add debugging to check the request
       const response = await fetch(`/api/upload-queue/${itemId}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include'
       });
+      
+      console.log(`Response status: ${response.status} ${response.statusText}`);
       
       if (response.ok) {
         const result = await response.json();
@@ -512,6 +520,8 @@ export default function CandidateImportUploadQueue() {
         // Show more specific error messages
         if (error.error && error.error.includes('already a queued job with the same file path')) {
           toast.error('Cannot retry: there is already a queued job with the same file. Please wait for the existing job to complete or delete it first.');
+        } else if (error.error && error.error.includes('Forbidden')) {
+          toast.error('Permission denied: You do not have permission to retry jobs.');
         } else {
           toast.error(error.error || 'Failed to retry job');
         }
@@ -541,8 +551,8 @@ export default function CandidateImportUploadQueue() {
   };
 
   const handleFilePreview = (item: QueueItem) => {
-    // Construct the file URL - you may need to adjust this based on your file storage setup
-    const fileUrl = `/api/upload-queue/${item.id}/file`;
+    // Use the URL provided by the API (MinIO URL) instead of constructing our own
+    const fileUrl = item.url || `/api/upload-queue/${item.id}/file`;
     
     setSelectedFile({
       fileName: item.file_name,
@@ -1069,7 +1079,10 @@ export default function CandidateImportUploadQueue() {
                           </DropdownMenuItem>
                           {['error', 'fail'].includes(item.status) && (
                             <DropdownMenuItem 
-                              onSelect={() => handleRetryItem(item.id)}
+                              onSelect={() => {
+                                console.log('Retry dropdown item selected for job:', item.id);
+                                handleRetryItem(item.id);
+                              }}
                               className="text-sm py-2"
                             >
                               <RotateCcw className="mr-2 h-4 w-4" /> 
@@ -1290,7 +1303,7 @@ export default function CandidateImportUploadQueue() {
               {selectedItem.webhook_payload && (
                 <div>
                   <Label className="text-sm font-medium">Webhook Payload</Label>
-                  <pre className="text-xs bg-gray-50 p-3 rounded mt-1 overflow-auto max-h-40">
+                  <pre className="text-xs bg-muted/30 p-3 rounded mt-1 overflow-auto max-h-40">
                     {JSON.stringify(selectedItem.webhook_payload, null, 2)}
                   </pre>
                 </div>

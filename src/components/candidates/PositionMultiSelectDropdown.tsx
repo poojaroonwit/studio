@@ -65,6 +65,15 @@ export function PositionMultiSelectDropdown({
   // Use the shared positions cache
   const { positions, loading, error, refreshPositions } = usePositionsCache(filterOpenOnly);
 
+  console.log('[PositionMultiSelectDropdown] Debug info:', {
+    positionsCount: positions.length,
+    loading,
+    error,
+    filterOpenOnly,
+    searchTerm,
+    selectedIds: Array.from(selectedIds)
+  });
+
   // Filter positions based on search term
   const filteredPositions = positions.filter(position => 
     position && (
@@ -73,6 +82,8 @@ export function PositionMultiSelectDropdown({
       (position.positionLevel && position.positionLevel.toLowerCase().includes(searchTerm.toLowerCase()))
     )
   );
+
+  console.log('[PositionMultiSelectDropdown] Filtered positions count:', filteredPositions.length);
 
   const selectedPositions = positions.filter(position => position && selectedIds.has(position.id));
   const hasNotApplied = selectedIds.has('not-applied');

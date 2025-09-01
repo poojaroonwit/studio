@@ -420,26 +420,33 @@ const SafeSidebarNavComponent = React.memo(() => {
       <div className="flex flex-col h-full">
         <SidebarMenu className="flex-1">
           <SidebarGroupLabel>General</SidebarGroupLabel>
-          {navigationItems.map((item) => (
-            <SidebarMenuItem key={item.href}>
-              <MenuItemWithTooltip label={item.label}>
-                <OptimizedLink href={item.href} className="w-full">
-                  <SidebarMenuButton
-                    isActive={pathname === item.href}
-                    className="w-full justify-start"
-                    size="default"
-                  >
-                    <item.icon className="h-5 w-5" />
-                    <span className="truncate">{item.label}</span>
-                  </SidebarMenuButton>
-                </OptimizedLink>
-              </MenuItemWithTooltip>
-            </SidebarMenuItem>
+          {navigationItems.map((item, index) => (
+            <React.Fragment key={item.href}>
+              <SidebarMenuItem>
+                <MenuItemWithTooltip label={item.label}>
+                  <OptimizedLink href={item.href} className="w-full">
+                    <SidebarMenuButton
+                      isActive={pathname === item.href}
+                      className="w-full justify-start"
+                      size="default"
+                    >
+                      <item.icon className="h-5 w-5" />
+                      <span className="truncate">{item.label}</span>
+                    </SidebarMenuButton>
+                  </OptimizedLink>
+                </MenuItemWithTooltip>
+              </SidebarMenuItem>
+              {/* Add separator between My Task Board and Candidates */}
+              {canAccessMyTasks && item.href === '/my-tasks' && (
+                <SidebarSeparator />
+              )}
+            </React.Fragment>
           ))}
         </SidebarMenu>
         
         <div className="mt-auto">
           <SidebarMenu>
+            <SidebarSeparator />
             <SidebarGroupLabel>System</SidebarGroupLabel>
             <SidebarMenuItem>
               <MenuItemWithTooltip label={NAV_ITEMS.bulkUpload.label}>

@@ -59,7 +59,7 @@ const createUserSchema = z.object({
   // Password is only required for 'basic' users; for 'azure', it is optional
   password: z.string().min(8, "Password must be at least 8 characters long").optional(),
   role: userRoleEnum,
-  modulePermissions: z.array(z.string()).optional().default([]),
+  // modulePermissions removed - permissions come from UserGroup based on role
   userTeamIds: z.array(z.string().uuid()).optional().default([]),
   authenticationMethod: z.enum(['basic', 'azure']).optional().default('basic'),
   forcePasswordChange: z.boolean().optional().default(false),
@@ -236,19 +236,10 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { name, email, password, role, modulePermissions, userTeamIds, authenticationMethod, forcePasswordChange, personalColor } = validationResult.data;
-  
-  // Validate modulePermissions if provided
-  if (modulePermissions && Array.isArray(modulePermissions)) {
-    const invalidPermissions = modulePermissions.filter(permission => !platformModuleIds.includes(permission));
-    if (invalidPermissions.length > 0) {
-      console.error('POST /api/users - Invalid modulePermissions:', invalidPermissions);
-      return NextResponse.json({ 
-        message: 'Invalid module permissions provided', 
-        errors: { modulePermissions: [`Invalid permissions: ${invalidPermissions.join(', ')}`] } 
-      }, { status: 400 });
-    }
-  }
+     const { name, email, password, role, userTeamIds, authenticationMethod, forcePasswordChange, personalColor } = validationResult.data;
+   
+   // Note: modulePermissions are now handled through UserGroup assignment
+   // The role determines which UserGroup the user gets, and the UserGroup contains the permissions
 
 
   const saltRounds = 10;
@@ -280,32 +271,49 @@ export async function POST(request: NextRequest) {
       'Hiring Manager': '00000000-0000-0000-0000-000000000003'
     };
 
-    const newUser = await prisma.user.create({
-      data: {
-        name,
-        email,
-        password: hashedPassword,
-        role,
-        avatarUrl: defaultAvatarUrl,
-        dataAiHint: defaultDataAiHint,
-        module_permissions: modulePermissions,
-        authenticationMethod,
-        forcePasswordChange,
-        personalColor,
-        // Assign user to the appropriate group based on role
-        userGroups: roleToGroupId[role] ? {
-          create: {
-            groupId: roleToGroupId[role]
-          }
-        } : undefined,
-        // Temporarily comment out team assignment to isolate the issue
-        // userTeams: userTeamIds && userTeamIds.length > 0 ? {
-        //   create: userTeamIds.map(teamId => ({
-        //     teamId
-        //   }))
-        // } : undefined
-      } as any
-    });
+    // Verify that the target user group exists before creating the user
+    if (roleToGroupId[role]) {
+      const groupExists = await prisma.userGroup.findUnique({
+        where: { id: roleToGroupId[role] }
+      });
+      
+      if (!groupExists) {
+        console.error(`User group with ID ${roleToGroupId[role]} for role ${role} does not exist`);
+        await logAudit('ERROR', `Failed to create user ${email} - User group for role ${role} does not exist.`, 'API:Users:Create', session.user.id);
+        return NextResponse.json({ 
+          message: `User group for role '${role}' does not exist. Please contact your system administrator.`,
+          error: "Missing user group"
+        }, { status: 500 });
+      }
+    }
+
+         const newUser = await prisma.user.create({
+       data: {
+         name,
+         email,
+         password: hashedPassword,
+         role,
+         avatarUrl: defaultAvatarUrl,
+         dataAiHint: defaultDataAiHint,
+         // Remove module_permissions - permissions come from UserGroup
+         authenticationMethod,
+         forcePasswordChange,
+         personalColor,
+         // Assign user to the appropriate group based on role
+         userGroupId: roleToGroupId[role] || null,
+         // Temporarily comment out team assignment to isolate the issue
+         // userTeamId: userTeamIds && userTeamIds.length > 0 ? userTeamIds[0] : null
+       },
+       include: {
+         userGroup: {
+           select: {
+             id: true,
+             name: true,
+             permissions: true
+           }
+         }
+       }
+     });
 
     // Create default warning configurations for the new user
     try {
@@ -317,11 +325,12 @@ export async function POST(request: NextRequest) {
       await logAudit('WARN', `Failed to create default warning configurations for user ${newUser.id}. Error: ${(warningError as Error).message}`, 'API:Users:Create', session.user.id);
     }
 
-    const userToReturn = {
-      ...newUser,
-      teams: [],
-      modulePermissions: (newUser as any).module_permissions || []
-    };
+         const userToReturn = {
+       ...newUser,
+       teams: [],
+       // Get permissions from UserGroup, not from direct field
+       modulePermissions: newUser.userGroup?.permissions || []
+     };
 
     // Clear user validation cache for the new user
     clearUserValidationCache(newUser.id);
@@ -343,6 +352,16 @@ export async function POST(request: NextRequest) {
     
     if (error.code === 'P2002' && error.meta?.target?.includes('email')) {
       return NextResponse.json({ message: "User with this email already exists." }, { status: 409 });
+    }
+    
+    // Handle database connection errors more gracefully
+    if (error.message?.includes('Can\'t reach database server') || 
+        error.message?.includes('Connection') ||
+        error.code === 'P1001') {
+      return NextResponse.json({ 
+        message: "Database connection error. Please try again later or contact your system administrator.",
+        error: "Database connection failed"
+      }, { status: 503 });
     }
     
     return NextResponse.json({ message: "Error creating user", error: error.message }, { status: 500 });

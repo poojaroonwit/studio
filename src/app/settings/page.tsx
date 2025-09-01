@@ -35,7 +35,6 @@ import {
 } from 'lucide-react';
 import type { PlatformModuleId } from '@/lib/types';
 import React from 'react'; // Added missing import for React
-import { SyncUserRoles } from '@/components/settings/SyncUserRoles';
 
 // Error boundary component for settings page
 class SettingsErrorBoundary extends React.Component<
@@ -295,16 +294,6 @@ function SettingsPageContent() {
               </Card>
             ))}
           </div>
-
-          {/* Admin Tools Section */}
-          {session?.user?.role === 'Admin' && (
-            <div className="border-t pt-6">
-              <h2 className="text-lg font-semibold mb-4">Admin Tools</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <SyncUserRoles />
-              </div>
-            </div>
-          )}
 
           {accessibleItems.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full text-center p-8">

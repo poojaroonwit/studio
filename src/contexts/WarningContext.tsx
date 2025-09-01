@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
 
 import { useSession } from 'next-auth/react';
-import { useEnhancedSSE, useEnhancedCandidateUpdates, useEnhancedPositionUpdates, useEnhancedUploadQueueUpdates } from '@/hooks/use-enhanced-sse';
+import { useEnhancedSSE } from '@/hooks/use-enhanced-sse';
 
 interface Warning {
   id: string;

@@ -26,7 +26,7 @@ import { SCORE_COLOR_STOPS } from '@/components/ui/score-color';
 import { SLAViolationsWidget } from './SLAViolationsWidget';
 import { useDynamicHeight } from '@/hooks/use-dynamic-height';
 import { PositionDetailDrawer } from '@/components/positions/PositionDetailDrawer';
-import { useEnhancedSSE, useEnhancedCandidateUpdates, useEnhancedPositionUpdates, useEnhancedUploadQueueUpdates } from '@/hooks/use-enhanced-sse';
+import { useEnhancedSSE } from '@/hooks/use-enhanced-sse';
 import { cn } from '@/lib/utils';
 import { useChartSetup } from '@/hooks/use-chart-setup';
 import { isDataLabelsAvailable } from '@/lib/chartjs-setup';
@@ -165,27 +165,8 @@ export default function DashboardPageClient({
       if (myBacklogCandidatesResOrNull && !myBacklogCandidatesResOrNull.ok) { 
         const errorText = myBacklogCandidatesResOrNull.statusText || `Status: ${myBacklogCandidatesResOrNull.status}`;
         accumulatedFetchError += `Failed to fetch backlog candidates: ${errorText}. `;
-        setMyBacklogCandidates((() => {
-          try {
-            // Defensive check to prevent filter errors
-            if (!Array.isArray(backlogData)) {
-              console.warn('DashboardPageClient: backlogData is not an array:', backlogData);
-              return [];
-            }
-            
-            return backlogData.filter(c => {
-              try {
-                return c && !BACKLOG_EXCLUSION_STATUSES.includes(c.status);
-              } catch (error) {
-                console.warn('DashboardPageClient: Error filtering backlog candidate:', error, c);
-                return false;
-              }
-            });
-          } catch (error) {
-            console.error('DashboardPageClient: Error filtering backlog candidates:', error);
-            return [];
-          }
-        })());
+        // On error, safely reset backlog candidates to an empty list
+        setMyBacklogCandidates([]);
       }
       else if (myBacklogCandidatesResOrNull) {
         const response = await myBacklogCandidatesResOrNull.json();

@@ -6,7 +6,7 @@
  * - Replace useCandidateUpdates() with useEnhancedCandidateUpdates()
  * - Replace usePositionUpdates() with useEnhancedPositionUpdates()
  * - Replace useUploadQueueUpdates() with useEnhancedUploadQueueUpdates()
- * - Replace useNotifications() with useEnhancedNotifications()
+ * - Replace useNotifications() with useEnhancedDashboardUpdates()
  * 
  * The new system provides:
  * - Sequential endpoint loading (one by one)

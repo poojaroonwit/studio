@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useEnhancedSSE, useEnhancedCandidateUpdates, useEnhancedPositionUpdates, useEnhancedUploadQueueUpdates } from '@/hooks/use-enhanced-sse';
+import { useEnhancedSSE } from '@/hooks/use-enhanced-sse';
 import { useSession } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';

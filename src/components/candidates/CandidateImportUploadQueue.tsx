@@ -18,7 +18,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Clock, Loader2, CheckCircle, XCircle, Search, Filter, AlertCircle, Info, Upload, FileText, Users, Calendar as CalendarIcon, MoreHorizontal, Play, X, Trash2, Eye, RotateCcw, CheckSquare, Square, ChevronLeft, ChevronRight, ChevronUp, ChevronDown } from 'lucide-react';
 import { FileViewerModal } from '@/components/ui/file-viewer-modal';
 
-import { useEnhancedSSE, useEnhancedCandidateUpdates, useEnhancedPositionUpdates, useEnhancedUploadQueueUpdates } from '@/hooks/use-enhanced-sse';
+import { useEnhancedSSE, useEnhancedUploadQueueUpdates } from '@/hooks/use-enhanced-sse';
 import { toast } from 'react-hot-toast';
 import { format } from 'date-fns';
 import { DateRange } from 'react-day-picker';

@@ -39,7 +39,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Command, CommandEmpty, CommandInput, CommandList, CommandItem } from '@/components/ui/command';
 import { ChevronsUpDown, Check, UserX, User, RotateCcw } from 'lucide-react';
 import { useUserPreferences } from '@/hooks/use-user-preferences';
-import { useEnhancedSSE, useEnhancedCandidateUpdates, useEnhancedPositionUpdates, useEnhancedUploadQueueUpdates } from '@/hooks/use-enhanced-sse';
+import { useEnhancedSSE } from '@/hooks/use-enhanced-sse';
 import { checkSLAViolation, getSLABadgeVariant, formatSLAMessage, getSLARemainingDays } from '@/lib/slaUtils';
 import { Pagination } from '@/components/ui/pagination';
 

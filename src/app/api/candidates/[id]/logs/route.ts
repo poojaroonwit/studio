@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
-import { broadcastCandidateTransitionUpdate } from '@/lib/candidateSse';
+import { broadcastCandidateUpdate } from '@/lib/simple-broadcaster';
 import { z } from 'zod';
 // Type imports removed due to linter errors
 

@@ -6,7 +6,7 @@ import { logAudit } from '@/lib/auditLog';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { v4 as uuidv4 } from 'uuid';
-import { unifiedBroadcaster } from '@/lib/unified-realtime-broadcaster';
+import { broadcastCandidateUpdate, broadcastCandidateDeleted } from '@/lib/simple-broadcaster';
 import { normalizeFitScore } from '@/lib/scoreUtils';
 import { syncRecruiterForCandidate } from '@/lib/recruiterSync';
 import { NotificationService } from '@/lib/notificationService';
@@ -654,11 +654,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         if (transitionResult.rows.length > 0) {
           const newTransition = transitionResult.rows[0];
           // Broadcast the new transition
-          await unifiedBroadcaster.broadcastCandidateTransitionUpdated({
-            candidateId: id,
-            transition: newTransition,
-            action: 'add'
-          }, actingUserId);
+          broadcastCandidateUpdate({ id, transition: newTransition }, actingUserId);
         }
 
         // Send notification to recruiter about status change
@@ -730,11 +726,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         const transitionResult = await client.query(getTransitionQuery, [newTransitionId]);
         if (transitionResult.rows.length > 0) {
           const newTransition = transitionResult.rows[0];
-          await unifiedBroadcaster.broadcastCandidateTransitionUpdated({
-            candidateId: id,
-            transition: newTransition,
-            action: 'add'
-          }, actingUserId);
+          broadcastCandidateUpdate({ id, transition: newTransition }, actingUserId);
         }
       } catch (transitionError) {
         console.error('Error creating recruiter change transition record:', transitionError);
@@ -840,11 +832,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
     
     // Broadcast update with safe candidate data
-    await unifiedBroadcaster.broadcastCandidateUpdated({ ...candidate, customAttributes }, actingUserId, {
-      priority: 'high',
-      retryOnFailure: true,
-      maxRetries: 3
-    });
+    broadcastCandidateUpdate({ ...candidate, customAttributes }, actingUserId);
   
     return NextResponse.json({
       ...candidate,
@@ -922,11 +910,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const candidateName = result.rows[0].name;
     await client.query('COMMIT');
     await logAudit('AUDIT', `Candidate '${candidateName}' deleted by ${actingUserName}.`, 'API:Candidates:Delete', actingUserId, { candidateId: id });
-    await unifiedBroadcaster.broadcastCandidateDeleted(id, actingUserId, {
-      priority: 'high',
-      retryOnFailure: true,
-      maxRetries: 3
-    });
+    broadcastCandidateDeleted(id, actingUserId);
     return NextResponse.json({ message: 'Candidate deleted successfully' });
   } catch (error: any) {
     await client.query('ROLLBACK');

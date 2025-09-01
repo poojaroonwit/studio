@@ -155,7 +155,7 @@ export const authOptions: NextAuthOptions = {
         if (account && user) {
           token.accessToken = account.access_token;
           token.id = user.id;
-          token.role = user.role;
+          token.role = user.role || 'Recruiter';
           token.modulePermissions = user.modulePermissions as PlatformModuleId[];
           // Cache user data in token to avoid repeated database calls
           (token as any).avatarUrl = (user as any).avatarUrl;
@@ -182,13 +182,21 @@ export const authOptions: NextAuthOptions = {
             client.release();
           }
         }
-        // Only fetch fresh permissions if we don't have them or if this is a new sign-in
-        if (typeof token.id === 'string' && validateUuid(token.id as string) && (!token.modulePermissions || token.modulePermissions.length === 0 || account)) {
+        // Only fetch fresh permissions and user data if we don't have them or if this is a new sign-in
+        if (typeof token.id === 'string' && validateUuid(token.id as string) && (!token.modulePermissions || token.modulePermissions.length === 0 || !token.role || account)) {
           try {
             const freshPermissions = await getUserPermissions(token.id as string);
             token.modulePermissions = freshPermissions as PlatformModuleId[];
+            
+            // Also fetch fresh user data to ensure role is up to date
+            const userData = await getUserSessionData(token.id as string);
+            if (userData) {
+              token.role = userData.role as UserProfile['role'];
+              (token as any).avatarUrl = userData.avatarUrl || userData.image || null;
+              (token as any).personalColor = userData.personalColor || null;
+            }
           } catch (e) {
-            console.error('[JWT CALLBACK] Error fetching group permissions:', e);
+            console.error('[JWT CALLBACK] Error fetching user data:', e);
             // Don't set empty permissions, keep existing ones if available
             if (!token.modulePermissions) {
               token.modulePermissions = [];
@@ -207,18 +215,26 @@ export const authOptions: NextAuthOptions = {
           } else {
             session.user.id = token.id as string;
           }
-          session.user.role = token.role as UserProfile['role'];
+          session.user.role = (token.role as UserProfile['role']) || 'Recruiter';
+          // Debug log to help identify role issues
+          if (!token.role) {
+            console.warn('[SESSION CALLBACK] No role found in token, using default:', session.user.role);
+          }
           
           // Use permissions from token (already fetched in JWT callback)
           session.user.modulePermissions = token.modulePermissions as PlatformModuleId[] || [];
           // Removed session logging to reduce container logs
           
-          // Fetch user data including avatarUrl and personalColor from database
-          // Only fetch if we don't have this data in the token or if it's a new session
-          if (token.id && validateUuid(token.id as string) && (!(token as any).avatarUrl || !(token as any).personalColor)) {
+          // Fetch user data including role, avatarUrl and personalColor from database
+          // Only fetch if we don't have this data in the token or if this is a new session
+          if (token.id && validateUuid(token.id as string) && (!(token as any).avatarUrl || !(token as any).personalColor || !token.role)) {
             try {
               const userData = await getUserSessionData(token.id as string);
               if (userData) {
+                // Add role to session (ensure it's always fresh from database)
+                session.user.role = userData.role as UserProfile['role'];
+                token.role = userData.role as UserProfile['role'];
+                
                 // Add avatarUrl to session (avatarUrl takes precedence over image)
                 session.user.avatarUrl = userData.avatarUrl || userData.image || null;
                 // Add personalColor to session (map from snake_case to camelCase)

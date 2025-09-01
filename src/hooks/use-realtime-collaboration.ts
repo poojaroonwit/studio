@@ -1,7 +1,7 @@
 import { useCallback, useRef } from 'react';
 import { useToastManager } from '@/hooks/use-toast-manager';
 import { useSession } from 'next-auth/react';
-import { useUnifiedRealtime } from './use-unified-realtime';
+import { useSimpleSSE } from './use-simple-sse';
 
 interface RealtimeCollaborationOptions {
   onCandidateUpdate?: (candidate: any) => void;
@@ -81,7 +81,7 @@ export function useRealtimeCollaboration(options: RealtimeCollaborationOptions =
   }, [shouldShowErrorNotifications, errorToastCooldownMs, showErrorToast]);
 
   // Use the unified real-time hook instead of individual SSE connection
-  const { isConnected, lastUpdate, reconnect, disconnect } = useUnifiedRealtime({
+  const { isConnected, lastMessage, reconnect, disconnect } = useSimpleSSE();
     onCandidateUpdate: (data) => {
       if (data.type === 'candidate_update' && data.candidate) {
         const updatedCandidate = data.candidate;

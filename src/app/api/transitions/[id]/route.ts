@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { logAudit } from '@/lib/auditLog';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { broadcastCandidateTransitionUpdate } from '@/lib/candidateSse';
+import { broadcastCandidateUpdate } from '@/lib/simple-broadcaster';
 
 export const dynamic = 'force-dynamic';
 
@@ -71,11 +71,11 @@ export async function PUT(request: NextRequest) {
     const updatedTransition = result.rows[0];
     
     // Broadcast the transition update
-    broadcastCandidateTransitionUpdate({
+    broadcastCandidateUpdate({
       candidateId: currentTransition.candidateId,
       transition: updatedTransition,
       action: 'update'
-    });
+    }, session.user.id);
     
     await logAudit('AUDIT', `Transition record (ID: ${id}) was updated.`, 'API:Transitions:Update', actingUserId, { transitionId: id });
     return NextResponse.json(updatedTransition, { status: 200 });
@@ -125,11 +125,11 @@ export async function DELETE(request: NextRequest) {
     }
     
     // Broadcast the transition deletion
-    broadcastCandidateTransitionUpdate({
+    broadcastCandidateUpdate({
       candidateId: transitionToDelete.candidateId,
       transition: transitionToDelete,
       action: 'delete'
-    });
+    }, session.user.id);
     
     await logAudit('AUDIT', `Transition record (ID: ${id}) was deleted.`, 'API:Transitions:Delete', actingUserId, { transitionId: id });
     return NextResponse.json({ message: "Transition record deleted successfully" }, { status: 200 });

@@ -4,7 +4,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { logAudit } from '@/lib/auditLog';
 import { z } from 'zod';
-import { broadcastRecruitmentStagesUpdate } from '@/lib/candidateSse';
+import { broadcastCandidateUpdate } from '@/lib/simple-broadcaster';
 import { fetchAllRecruitmentStagesDb } from '@/lib/apiUtils';
 
 const reorderSchema = z.object({
@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
     
     // Broadcast the updated stages list to all connected clients
     const updatedStages = await fetchAllRecruitmentStagesDb();
-    broadcastRecruitmentStagesUpdate(updatedStages);
+    broadcastCandidateUpdate({ action: 'recruitment_stages_updated', stages: updatedStages }, session.user.id);
     
     return NextResponse.json({ message: 'Recruitment stages reordered successfully' }, { status: 200 });
   } catch (error: any) {

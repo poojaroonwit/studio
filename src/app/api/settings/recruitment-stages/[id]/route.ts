@@ -6,7 +6,7 @@ import { getServerSession } from 'next-auth/next';
 import type { RecruitmentStage } from '@/lib/types';
 import { logAudit } from '@/lib/auditLog';
 import { authOptions } from '@/lib/auth';
-import { broadcastRecruitmentStagesUpdate } from '@/lib/candidateSse';
+import { broadcastCandidateUpdate } from '@/lib/simple-broadcaster';
 import { fetchAllRecruitmentStagesDb } from '@/lib/apiUtils';
 
 const updateRecruitmentStageSchema = z.object({
@@ -159,7 +159,7 @@ export async function PUT(request: NextRequest) {
         
         // Broadcast the updated stages list to all connected clients
         const updatedStages = await fetchAllRecruitmentStagesDb();
-        broadcastRecruitmentStagesUpdate(updatedStages);
+        broadcastCandidateUpdate({ action: 'recruitment_stages_updated', stages: updatedStages }, session.user.id);
         
         return NextResponse.json(result.rows[0]);
 
@@ -231,7 +231,7 @@ export async function DELETE(request: NextRequest) {
         
         // Broadcast the updated stages list to all connected clients
         const updatedStages = await fetchAllRecruitmentStagesDb();
-        broadcastRecruitmentStagesUpdate(updatedStages);
+        broadcastCandidateUpdate({ action: 'recruitment_stages_updated', stages: updatedStages }, session.user.id);
         
         return NextResponse.json({ message: "Recruitment stage deleted successfully" });
 

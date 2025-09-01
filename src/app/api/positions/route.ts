@@ -41,7 +41,7 @@ import { handleCors } from '@/lib/cors';
 import { dispatchWebhooks } from '@/lib/webhookDispatcher';
 import { getDefaultMatchCriteria } from '@/lib/systemSettings';
 import { WarningService } from '@/lib/warningService';
-import { unifiedBroadcaster } from '@/lib/unified-realtime-broadcaster';
+import { broadcastPositionCreated } from '@/lib/simple-broadcaster';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -401,12 +401,8 @@ export async function POST(request: NextRequest) {
       // Failed to check warnings for new position
     }
     
-    // Broadcast to unified SSE clients
-    await unifiedBroadcaster.broadcastPositionCreated(newPosition, actingUserId || undefined, {
-      priority: 'high',
-      retryOnFailure: true,
-      maxRetries: 3
-    });
+    // Broadcast to SSE clients
+    broadcastPositionCreated(newPosition, actingUserId || undefined);
     
     return NextResponse.json(newPosition, { status: 201, headers: handleCors(request) });
   } catch (error) {

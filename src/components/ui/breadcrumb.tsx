@@ -7,7 +7,7 @@ import Link from "next/link";
 import { AutoFont } from "./auto-font";
 import { RealtimeIndicator } from "./realtime-indicator";
 import { useLivePageDetection } from "@/hooks/use-live-page-detection";
-import { useUnifiedRealtime } from "@/hooks/use-unified-realtime";
+import { useSimpleSSE } from "@/hooks/use-simple-sse";
 
 export interface BreadcrumbItem {
   label: string;
@@ -24,10 +24,7 @@ export function Breadcrumb({ items, className }: BreadcrumbProps) {
   const { isLivePage } = useLivePageDetection();
   
   // Get real-time connection status for live pages
-  const { isConnected, isReconnecting, reconnectAttempts } = useUnifiedRealtime({
-    showNotifications: false,
-    showErrorNotifications: false
-  });
+  const { isConnected, error, reconnect } = useSimpleSSE();
 
   return (
     <nav className={cn("flex items-center space-x-1 text-sm text-muted-foreground", className)}>
@@ -46,8 +43,8 @@ export function Breadcrumb({ items, className }: BreadcrumbProps) {
               {isLivePage && (
                 <RealtimeIndicator 
                   isConnected={isConnected}
-                  isReconnecting={isReconnecting}
-                  reconnectAttempts={reconnectAttempts}
+                  isReconnecting={!!error}
+                  reconnectAttempts={0}
                   size="sm"
                   showText={false}
                   className="ml-2"

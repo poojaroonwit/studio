@@ -38,7 +38,7 @@ import { FitScoreFilterTabs } from './FitScoreFilterTabs';
 import { CandidateSettingsDrawer } from './CandidateSettingsDrawer';
 import { useDynamicHeight } from '@/hooks/use-dynamic-height';
 import { useCandidateSettings } from '@/hooks/use-candidate-settings';
-import { useUnifiedRealtime } from '@/hooks/use-unified-realtime';
+import { useSimpleSSE, useCandidateUpdates } from '@/hooks/use-simple-sse';
 
 
 // Import our new hooks
@@ -308,16 +308,9 @@ export function CandidatesPageClient({
     // Handle notifications if needed
   }, []);
 
-  // Unified realtime hook
-  const { isConnected: realtimeConnected } = useUnifiedRealtime({
-    onCandidateUpdate: handleCandidateUpdate,
-    onPositionUpdate: handlePositionUpdate,
-    onPresenceUpdate: handlePresenceUpdate,
-    onUserListUpdate: handleUserListUpdate,
-    onNotificationUpdate: handleNotificationUpdate,
-    showNotifications: true,
-    showErrorNotifications: false, // Disable error toast notifications
-  });
+  // Simple SSE hook
+  const { isConnected: realtimeConnected } = useSimpleSSE();
+  const { candidateUpdates, latestUpdate } = useCandidateUpdates();
 
   // Bulk action handlers
   const handleBulkDelete = useCallback(async (candidateIds: string[]) => {
@@ -1289,6 +1282,17 @@ export function CandidatesPageClient({
     
     return () => clearTimeout(timeoutId);
   }, [filters, page, pageSize, sortColumn, sortDirection, sessionStatus, serverAuthError, serverPermissionError, isClearingFilters, hasInitialDataFetch, initialCandidates.length, searchParams]);
+
+  // Refresh data when we receive candidate updates via SSE
+  useEffect(() => {
+    if (latestUpdate && sessionStatus === 'authenticated' && hasInitialDataFetch) {
+      console.log('🔄 CandidatesPageClient: Refreshing data due to SSE update:', latestUpdate);
+      if (filters) {
+        fetchTableData(filters, page, pageSize);
+      }
+      fetchAllCandidatesForCounts();
+    }
+  }, [latestUpdate, sessionStatus, hasInitialDataFetch, filters, page, pageSize, fetchTableData, fetchAllCandidatesForCounts]);
 
     // Show error as toast popup if present
   useEffect(() => {

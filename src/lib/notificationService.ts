@@ -1,6 +1,6 @@
 import prisma from '@/lib/prisma';
 import { logAudit } from '@/lib/auditLog';
-import { broadcastUserNotification } from '@/lib/candidateSse';
+import { broadcastNotification } from '@/lib/simple-broadcaster';
 import { validate as validateUuid } from 'uuid';
 
 export interface NotificationData {
@@ -52,15 +52,7 @@ export class NotificationService {
       });
 
       // Broadcast real-time notification
-      broadcastUserNotification(userId, {
-        id: newNotification.id,
-        type: newNotification.type,
-        title: newNotification.title,
-        message: newNotification.message,
-        data: newNotification.data,
-        isRead: newNotification.isRead,
-        createdAt: newNotification.createdAt,
-      });
+      broadcastNotification(newNotification.message, newNotification.type, userId);
 
       if (actingUserId) {
         await logAudit('AUDIT', `Notification '${notification.title}' created for user ${userId}`, 'NotificationService:Create', actingUserId, {

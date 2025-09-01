@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
 
 import { useSession } from 'next-auth/react';
-import { useUnifiedRealtime } from '@/hooks/use-unified-realtime';
+import { useSimpleSSE, useCandidateUpdates, usePositionUpdates, useNotifications, useUploadQueueUpdates } from '@/hooks/use-simple-sse';
 
 interface Warning {
   id: string;
@@ -142,10 +142,8 @@ export function WarningProvider({ children }: { children: React.ReactNode }) {
     fetchWarnings();
   }, [fetchWarnings]);
 
-  // Use unified real-time hook instead of individual SSE connection (only on client)
-  const { isConnected } = useUnifiedRealtime({
-    onWarningUpdate: handleWarningUpdate
-  });
+  // Use simple SSE hook instead of complex unified realtime
+  const { isConnected } = useSimpleSSE();
 
   // Only run realtime effects on client side
   const shouldUseRealtime = isClient && session?.user;

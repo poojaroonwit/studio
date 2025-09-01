@@ -5,7 +5,7 @@ import { authOptions } from '@/lib/auth';
 import { minioClient, MINIO_BUCKET } from '@/lib/minio';
 import { MINIO_PUBLIC_BASE_URL } from '@/lib/minio-constants';
 import { v4 as uuidv4 } from 'uuid';
-import { unifiedBroadcaster } from '@/lib/unified-realtime-broadcaster';
+import { broadcastCandidateUpdate } from '@/lib/simple-broadcaster';
 import { dispatchWebhooks } from '@/lib/webhookDispatcher';
 import { z } from 'zod';
 
@@ -197,11 +197,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       include: { author: { select: { id: true, name: true, email: true } } },
     });
     // Broadcast SSE event for new comment
-    await unifiedBroadcaster.broadcastCandidateUpdated({ id, comment: newComment, action: 'comment_added' }, session.user.id, {
-      priority: 'normal',
-      retryOnFailure: true,
-      maxRetries: 2
-    });
+    broadcastCandidateUpdate({ id, comment: newComment, action: 'comment_added' }, session.user.id);
     
     // Dispatch webhook for comment creation
     try {
@@ -315,11 +311,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       include: { author: { select: { id: true, name: true, email: true } } },
     });
     // Broadcast SSE event for updated comment
-    await unifiedBroadcaster.broadcastCandidateUpdated({ id, comment: updatedComment, action: 'comment_updated' }, session.user.id, {
-      priority: 'normal',
-      retryOnFailure: true,
-      maxRetries: 2
-    });
+    broadcastCandidateUpdate({ id, comment: updatedComment, action: 'comment_updated' }, session.user.id);
     
     // Dispatch webhook for comment update
     try {
@@ -365,11 +357,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     }
     await prisma.candidateComment.delete({ where: { id: commentId, candidateId: id } });
     // After successful deletion
-    await unifiedBroadcaster.broadcastCandidateUpdated({ id, comment: { id: commentId }, action: 'comment_deleted' }, session.user.id, {
-      priority: 'normal',
-      retryOnFailure: true,
-      maxRetries: 2
-    });
+    broadcastCandidateUpdate({ id, comment: { id: commentId }, action: 'comment_deleted' }, session.user.id);
     
     // Dispatch webhook for comment deletion
     try {

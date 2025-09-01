@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { useUnifiedRealtime } from './use-unified-realtime';
+import { useUploadQueueUpdates } from './use-simple-sse';
 
 interface UploadQueueSSEMessage {
   type: 'queue' | 'error';
@@ -12,18 +12,14 @@ interface UseUploadQueueSSEReturn {
   reconnect: () => void;
 }
 
-// Centralized upload queue SSE hook using unified realtime system
-export function useUploadQueueSSE(): UseUploadQueueSSEReturn {
-  const [lastMessage, setLastMessage] = useState<UploadQueueSSEMessage | null>(null);
+// Simple upload queue SSE hook
+export function useUploadQueueUpdates(): UseUploadQueueSSEReturn {
+  const { isConnected, latestUpdate, reconnect } = useUploadQueueUpdates();
   
-  const { isConnected, reconnect } = useUnifiedRealtime({
-    onUploadQueueUpdate: (queueData: any) => {
-      setLastMessage({
-        type: 'queue',
-        data: queueData
-      });
-    }
-  });
+  const lastMessage = latestUpdate ? {
+    type: 'queue' as const,
+    data: latestUpdate
+  } : null;
 
   const handleReconnect = useCallback(() => {
     reconnect();

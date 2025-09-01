@@ -554,15 +554,15 @@ export function CandidateFilters({
 
   // Parse advanced query string into filter values
   const parseAdvancedQuery = (query: string): Partial<CandidateFilterValues> => {
-    console.log('🔍 parseAdvancedQuery called with:', query);
+
     const filters: Partial<CandidateFilterValues> = {};
     
     // First, decode the entire query to handle URL encoding
     const decodedQuery = decodeURIComponent(query);
-    console.log('🔍 decodedQuery:', decodedQuery);
+
     
     const parts = decodedQuery.split(' ').filter(part => part.includes(':'));
-    console.log('🔍 parts after split:', parts);
+
     
     parts.forEach(part => {
       const colonIndex = part.indexOf(':');
@@ -572,7 +572,7 @@ export function CandidateFilters({
       const value = part.substring(colonIndex + 1);
       if (!key || !value) return;
       
-      console.log('🔍 Processing part:', part, 'key:', key, 'value:', value);
+    
       
       switch (key.toLowerCase()) {
         case 'name':
@@ -606,13 +606,13 @@ export function CandidateFilters({
           filters.selectedPositionIds = value.split(',');
           break;
         case 'status':
-          console.log('🔍 Processing status with value:', value);
+
           // Handle status values that might contain spaces by splitting on commas
           // and then handling each status individually
           const statusValues = value.split(',').map(s => s.trim());
-          console.log('🔍 statusValues after split:', statusValues);
+
           filters.selectedStatuses = statusValues;
-          console.log('🔍 selectedStatuses set to:', filters.selectedStatuses);
+
           break;
         case 'recruiterid':
           filters.selectedRecruiterIds = value.split(',');
@@ -690,7 +690,7 @@ export function CandidateFilters({
       }
     });
     
-    console.log('🔍 Final parsed filters:', filters);
+
     return filters;
   };
 
@@ -763,14 +763,14 @@ export function CandidateFilters({
   useEffect(() => {
     if (advancedQuery && advancedQuery.trim() && processedAdvancedQueryRef.current !== advancedQuery) {
       try {
-        console.log('🔍 Processing advanced query from URL:', advancedQuery);
+    
         processedAdvancedQueryRef.current = advancedQuery;
         setAdvancedQueryInput(advancedQuery);
         // Switch to advanced tab when query comes from URL
         setActiveTab('advanced');
         // Automatically apply the query if it's from URL
         const parsedFilters = parseAdvancedQuery(advancedQuery);
-        console.log('🔍 Parsed filters:', parsedFilters);
+
         if (Object.keys(parsedFilters).length > 0) {
           // Apply the filters first to avoid state update conflicts
           onFilterChange({

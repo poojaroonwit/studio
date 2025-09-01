@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { Clock, Loader2, CheckCircle, XCircle, Search, Filter, RefreshCw, AlertCircle, Info } from 'lucide-react';
-import { useUnifiedRealtime } from '@/hooks/use-unified-realtime';
+import { useUploadQueueUpdates } from '@/hooks/use-simple-sse';
 
 interface QueueItem {
   id: string;
@@ -53,14 +53,8 @@ export default function UploadQueueStatus() {
   const [pageSize, setPageSize] = useState(10);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
-  // Centralized realtime hook
-  const { isConnected: isRealtimeActive, lastUpdate: realtimeLastUpdate } = useUnifiedRealtime({
-    onUploadQueueUpdate: (queueData: any) => {
-      // Refresh the queue data when we receive realtime updates
-      fetchQueue(page, pageSize);
-      setLastUpdate(new Date());
-    }
-  });
+  // Simple SSE hook for upload queue updates
+  const { isConnected: isRealtimeActive, latestUpdate } = useUploadQueueUpdates();
 
   const fetchQueue = useCallback(async (currentPage = 1, currentPageSize = 10) => {
     setLoading(true);
@@ -94,6 +88,14 @@ export default function UploadQueueStatus() {
   useEffect(() => {
     fetchQueue(page, pageSize);
   }, [fetchQueue, page, pageSize]);
+
+  // Refresh queue when we receive SSE updates
+  useEffect(() => {
+    if (latestUpdate) {
+      fetchQueue(page, pageSize);
+      setLastUpdate(new Date());
+    }
+  }, [latestUpdate, fetchQueue, page, pageSize]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {

@@ -30,7 +30,6 @@ export function FontPreloader() {
               // Check font availability
               if ('fonts' in document) {
                 document.fonts.ready.then(function() {
-                  console.log('Fonts loaded successfully');
                   document.documentElement.classList.add('fonts-loaded');
                 });
               }

@@ -1,5 +1,5 @@
 import { useRef, useEffect } from 'react';
-import { useDynamicPerformance } from './use-dynamic-performance';
+// Removed complex dynamic performance - using simple constants instead
 
 /**
  * Hook to monitor render frequency with dynamic performance optimization
@@ -7,20 +7,19 @@ import { useDynamicPerformance } from './use-dynamic-performance';
  * Automatically adjusts thresholds based on system resources
  */
 export function useRenderMonitor(componentName: string, maxRenders: number = 200) {
-  const { getOptimizedThreshold } = useDynamicPerformance();
   const renderCount = useRef(0);
   const lastRenderTime = useRef(0);
   const warningShown = useRef(false);
 
-  // Get dynamic threshold based on system performance
-  const dynamicMaxRenders = getOptimizedThreshold(maxRenders, 'render');
+  // Simple constant instead of complex dynamic performance
+  const RENDER_THRESHOLD = maxRenders;
 
   useEffect(() => {
     const now = Date.now();
     renderCount.current++;
 
     // Only show warning once per component to reduce noise
-    if (renderCount.current > dynamicMaxRenders && !warningShown.current) {
+    if (renderCount.current > RENDER_THRESHOLD && !warningShown.current) {
       console.warn(`⚠️ High render count in "${componentName}": ${renderCount.current} renders`);
       warningShown.current = true;
     }
@@ -37,7 +36,7 @@ export function useRenderMonitor(componentName: string, maxRenders: number = 200
     lastRenderTime.current = now;
 
     // Reset warning flag after a period of normal renders
-    if (renderCount.current > dynamicMaxRenders * 2) {
+    if (renderCount.current > RENDER_THRESHOLD * 2) {
       renderCount.current = 0;
       warningShown.current = false;
     }
@@ -46,7 +45,7 @@ export function useRenderMonitor(componentName: string, maxRenders: number = 200
   return {
     renderCount: renderCount.current,
     lastRenderTime: lastRenderTime.current,
-    // Add dynamic settings info for debugging
-    dynamicMaxRenders
+    // Simple threshold info for debugging
+    maxRenders: RENDER_THRESHOLD
   };
 }

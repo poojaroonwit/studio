@@ -6,7 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { logAudit } from '@/lib/auditLog';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { broadcastRecruitmentStagesUpdate } from '@/lib/candidateSse';
+import { broadcastCandidateUpdate } from '@/lib/simple-broadcaster';
 import { fetchAllRecruitmentStagesDb } from '@/lib/apiUtils';
 
 const recruitmentStageSchema = z.object({
@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
         
         // Broadcast the updated stages list to all connected clients
         const updatedStages = await fetchAllRecruitmentStagesDb();
-        broadcastRecruitmentStagesUpdate(updatedStages);
+        broadcastCandidateUpdate({ action: 'recruitment_stages_updated', stages: updatedStages }, session.user.id);
         
         return NextResponse.json(result.rows[0], { status: 201 });
     } catch (error: any) {

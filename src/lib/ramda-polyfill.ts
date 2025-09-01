@@ -260,8 +260,6 @@ export function initializeRamdaPolyfill(): void {
         window.R[key] = implementation;
       }
     });
-
-    console.log('✅ Ramda polyfill initialized successfully');
   }
 }
 

@@ -4,8 +4,8 @@ import { toast } from 'react-hot-toast';
 import { differenceInMonths } from 'date-fns';
 import * as z from 'zod';
 import type { Candidate, Position, UserProfile, RecruitmentStage, TransitionRecord, CandidateSource } from '@/lib/types';
-import { useUnifiedRealtime } from '@/hooks/use-unified-realtime';
-import { useInfiniteLoopPrevention } from '@/hooks/use-safe-effect';
+import { useSimpleSSE, useCandidateUpdates, usePositionUpdates, useNotifications, useUploadQueueUpdates } from '@/hooks/use-simple-sse';
+// Removed complex infinite loop prevention - using simple useEffect instead
 
 // Form schemas - validation removed
 const editCandidateDetailSchema = z.object({
@@ -70,14 +70,9 @@ export const useCandidateDetail = (candidateId: string) => {
   // Cache duration: 30 seconds
   const CACHE_DURATION = 30000;
 
-  // Add infinite loop prevention
-  const { trackRun: trackFetchCandidate } = useInfiniteLoopPrevention('useCandidateDetail_fetchCandidate', 20, () => {
-    console.error('🚨 Excessive fetchCandidate calls detected in useCandidateDetail');
-  });
-
-  const { trackRun: trackRealtimeUpdate } = useInfiniteLoopPrevention('useCandidateDetail_realtimeUpdate', 50, () => {
-    console.error('🚨 Excessive realtime updates detected in useCandidateDetail');
-  });
+  // Simple tracking for debugging (removed complex infinite loop prevention)
+  const fetchCandidateCount = useRef(0);
+  const realtimeUpdateCount = useRef(0);
 
   // Safe default values to prevent temporal dead zone issues
   const getDefaultFormValues = (): EditCandidateFormValues => ({
@@ -184,7 +179,8 @@ export const useCandidateDetail = (candidateId: string) => {
 
   // Memoized fetch function with caching and infinite loop prevention
   const fetchCandidate = useCallback(async (forceRefresh = false) => {
-    if (!trackFetchCandidate()) return;
+    // Simple tracking (removed complex infinite loop prevention)
+    fetchCandidateCount.current++;
     if (!candidateId) return;
 
     // Abort any existing request
@@ -262,7 +258,7 @@ export const useCandidateDetail = (candidateId: string) => {
       setError('Failed to load candidate details');
       setLoading(false);
     }
-  }, [candidateId, trackFetchCandidate]);
+  }, [candidateId]);
 
   // Memoized fetch functions for static data
   const fetchPositions = useCallback(async () => {
@@ -354,23 +350,17 @@ export const useCandidateDetail = (candidateId: string) => {
 
   // Stable realtime update handler
   const handleRealtimeUpdate = useCallback((updatedCandidate: any) => {
-    if (!trackRealtimeUpdate()) return;
+    // Simple tracking (removed complex infinite loop prevention)
+    realtimeUpdateCount.current++;
     if (updatedCandidate.id === candidateId) {
       // Refresh candidate data when updated
       fetchCandidate(true); // Force refresh
       fetchTransitionHistory();
     }
-  }, [candidateId, fetchCandidate, fetchTransitionHistory, trackRealtimeUpdate]);
+  }, [candidateId, fetchCandidate, fetchTransitionHistory]);
 
-  // Unified realtime hook with stable handlers
-  const { isConnected: realtimeConnected } = useUnifiedRealtime({
-    onCandidateUpdate: handleRealtimeUpdate,
-    onNotificationUpdate: (notification: any) => {
-      // Handle notifications if needed
-    },
-    showNotifications: false, // Disable notifications to prevent conflicts
-    showErrorNotifications: false // Disable error toast notifications
-  });
+  // Simple SSE hook
+  const { isConnected: realtimeConnected } = useSimpleSSE();
 
   // Fetch candidate data - FIXED: Remove fetchCandidate from dependencies to prevent infinite loops
   useEffect(() => {

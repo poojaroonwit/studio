@@ -213,8 +213,6 @@ function resetReactState() {
 export function initializeFrozenStatePrevention() {
   if (typeof window === 'undefined') return;
   
-  console.log('🛡️ Initializing frozen state prevention system');
-  
   // Track various activities
   const activities = [
     'click', 'keydown', 'scroll', 'mousemove', 'touchstart',

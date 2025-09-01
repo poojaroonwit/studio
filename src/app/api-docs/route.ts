@@ -15,7 +15,7 @@ export async function OPTIONS() {
 export async function GET(req: NextRequest) {
   try {
     // Lazy load swagger spec only when requested
-    const swaggerSpec = await import('@/swagger').then(m => m.default);
+    const swaggerSpec = await import('@/swagger/index').then(m => m.default);
     return new Response(JSON.stringify(swaggerSpec, null, 2), {
       headers: { 
         'Content-Type': 'application/json',

@@ -2,10 +2,9 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { usePathname } from 'next/navigation';
-import { useDynamicPerformance } from './use-dynamic-performance';
+// Removed complex dynamic performance - using simple constants instead
 
 export function usePageLoading() {
-  const { getOptimizedInterval } = useDynamicPerformance();
   const [isLoading, setIsLoading] = useState(false);
   const pathname = usePathname();
   const previousPathnameRef = useRef<string | null>(null);
@@ -14,15 +13,15 @@ export function usePageLoading() {
   const lastUpdateTimeRef = useRef(0);
   const lastPathnameRef = useRef<string | null>(null);
 
-  // Get dynamic intervals based on system performance
-  const dynamicDebounce = getOptimizedInterval(3000, 'page');
-  const dynamicUpdateTimeout = getOptimizedInterval(1500, 'page');
-  const dynamicLoadingTimeout = getOptimizedInterval(3000, 'page');
+  // Simple constants instead of complex dynamic performance
+  const DEBOUNCE_DELAY = 3000;
+  const UPDATE_TIMEOUT = 1500;
+  const LOADING_TIMEOUT = 3000;
 
   const startLoading = useCallback(() => {
     const now = Date.now();
-    // Use dynamic debouncing based on system performance
-    if (now - lastUpdateTimeRef.current < dynamicDebounce) {
+    // Simple debouncing
+    if (now - lastUpdateTimeRef.current < DEBOUNCE_DELAY) {
       return;
     }
     
@@ -33,13 +32,13 @@ export function usePageLoading() {
     setIsLoading(true);
     setTimeout(() => {
       isUpdatingRef.current = false;
-    }, dynamicUpdateTimeout);
-  }, [dynamicDebounce, dynamicUpdateTimeout]);
+    }, UPDATE_TIMEOUT);
+  }, []);
 
   const stopLoading = useCallback(() => {
     const now = Date.now();
-    // Use dynamic debouncing based on system performance
-    if (now - lastUpdateTimeRef.current < dynamicDebounce) {
+    // Simple debouncing
+    if (now - lastUpdateTimeRef.current < DEBOUNCE_DELAY) {
       return;
     }
     
@@ -50,8 +49,8 @@ export function usePageLoading() {
     setIsLoading(false);
     setTimeout(() => {
       isUpdatingRef.current = false;
-    }, dynamicUpdateTimeout);
-  }, [dynamicDebounce, dynamicUpdateTimeout]);
+    }, UPDATE_TIMEOUT);
+  }, []);
 
   // Optimized pathname change detection with better memoization
   const hasPathnameChanged = useMemo(() => {
@@ -77,10 +76,10 @@ export function usePageLoading() {
       
       startLoading();
       
-      // Use dynamic timeout based on system performance
+      // Simple timeout
       loadingTimeoutRef.current = setTimeout(() => {
         stopLoading();
-      }, dynamicLoadingTimeout);
+      }, LOADING_TIMEOUT);
     }
     
     return () => {
@@ -88,7 +87,7 @@ export function usePageLoading() {
         clearTimeout(loadingTimeoutRef.current);
       }
     };
-  }, [hasPathnameChanged, startLoading, stopLoading, dynamicLoadingTimeout]);
+  }, [hasPathnameChanged, startLoading, stopLoading]);
 
   // Cleanup on unmount
   useEffect(() => {

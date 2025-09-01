@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { logAudit } from '@/lib/auditLog';
 import prisma from '@/lib/prisma';
-import { broadcastUserNotification } from '@/lib/candidateSse';
+import { broadcastNotification } from '@/lib/simple-broadcaster';
 
 export const dynamic = 'force-dynamic';
 
@@ -126,15 +126,7 @@ export async function POST(request: NextRequest) {
 
     // Broadcast real-time notification
     const targetUser = targetUserId || actingUserId;
-    broadcastUserNotification(targetUser, {
-      id: newNotification.id,
-      type: newNotification.type,
-      title: newNotification.title,
-      message: newNotification.message,
-      data: newNotification.data,
-      isRead: newNotification.isRead,
-      createdAt: newNotification.createdAt,
-    });
+    broadcastNotification(newNotification.message, newNotification.type, targetUser);
 
     await logAudit('AUDIT', `Notification '${title}' created by ${actingUserName}`, 'API:Realtime:Notifications:Post', actingUserId, {
       notificationType: type,

@@ -178,7 +178,18 @@ export function UnifiedRoleDrawer({
   const isAdminRole = role?.name === 'Admin';
 
   // Get all available permissions for Admin role
-  const allPermissions = PLATFORM_MODULES.map(p => p.id);
+  const allPermissions = (() => {
+    try {
+      if (!Array.isArray(PLATFORM_MODULES)) {
+        console.warn('UnifiedRoleDrawer: PLATFORM_MODULES is not an array:', PLATFORM_MODULES);
+        return [];
+      }
+      return PLATFORM_MODULES.map(p => p.id);
+    } catch (error) {
+      console.error('UnifiedRoleDrawer: Error getting all permissions:', error);
+      return [];
+    }
+  })();
 
   // Initialize permissions when role changes - FIXED: Use useEffect instead of useSafeEffect
   useEffect(() => {
@@ -191,7 +202,7 @@ export function UnifiedRoleDrawer({
         setCurrentPermissions(allPermissions);
       } else {
         // Defensive check to prevent React error #185
-        const rolePermissions = Array.isArray(role?.permissions) ? role.permissions : [];
+        const rolePermissions = Array.isArray(role?.permissions) ? role?.permissions : [];
         setCurrentPermissions(rolePermissions);
       }
     }
@@ -733,8 +744,19 @@ export function UnifiedRoleDrawer({
                      }}
                    >
                      <RolePermissionSelector
-                       key={`${role?.id || 'unknown'}-${currentPermissions.length}`}
-                       selectedPermissions={isAdminRole ? PLATFORM_MODULES.map(p => p.id) : (Array.isArray(currentPermissions) ? currentPermissions : [])}
+                       key={`${role?.id || 'unknown'}-${currentPermissions?.length || 0}`}
+                       selectedPermissions={isAdminRole ? (() => {
+                         try {
+                           if (!Array.isArray(PLATFORM_MODULES)) {
+                             console.warn('UnifiedRoleDrawer: PLATFORM_MODULES is not an array:', PLATFORM_MODULES);
+                             return [];
+                           }
+                           return PLATFORM_MODULES.map(p => p.id);
+                         } catch (error) {
+                           console.error('UnifiedRoleDrawer: Error mapping PLATFORM_MODULES:', error);
+                           return [];
+                         }
+                       })() : (Array.isArray(currentPermissions) ? currentPermissions : [])}
                        onPermissionsChange={handlePermissionUpdate}
                        disabled={isAdminRole || isUpdatingPermissions}
                        isLoading={isUpdatingPermissions}

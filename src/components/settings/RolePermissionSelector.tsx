@@ -23,29 +23,42 @@ interface RolePermissionSelectorProps {
 }
 
 // Group permissions by category for display
-const groupedPermissions = Object.values(PLATFORM_MODULE_CATEGORIES).map(category => {
+const groupedPermissions = (() => {
   try {
-    // Defensive check to prevent filter errors
-    if (!Array.isArray(PLATFORM_MODULES)) {
-      console.warn('RolePermissionSelector: PLATFORM_MODULES is not an array:', PLATFORM_MODULES);
-      return { category, permissions: [] };
+    // Defensive check to prevent errors
+    if (!PLATFORM_MODULE_CATEGORIES || typeof PLATFORM_MODULE_CATEGORIES !== 'object') {
+      console.warn('RolePermissionSelector: PLATFORM_MODULE_CATEGORIES is not available:', PLATFORM_MODULE_CATEGORIES);
+      return [];
     }
     
-    const permissions = PLATFORM_MODULES.filter(p => {
+    return Object.values(PLATFORM_MODULE_CATEGORIES).map(category => {
       try {
-        return p && p.category === category;
+        // Defensive check to prevent filter errors
+        if (!Array.isArray(PLATFORM_MODULES)) {
+          console.warn('RolePermissionSelector: PLATFORM_MODULES is not an array:', PLATFORM_MODULES);
+          return { category, permissions: [] };
+        }
+        
+        const permissions = PLATFORM_MODULES.filter(p => {
+          try {
+            return p && p.category === category;
+          } catch (error) {
+            console.warn('RolePermissionSelector: Error filtering platform module:', error, p);
+            return false;
+          }
+        });
+        
+        return { category, permissions };
       } catch (error) {
-        console.warn('RolePermissionSelector: Error filtering platform module:', error, p);
-        return false;
+        console.error('RolePermissionSelector: Error creating grouped permissions:', error);
+        return { category, permissions: [] };
       }
     });
-    
-    return { category, permissions };
   } catch (error) {
     console.error('RolePermissionSelector: Error creating grouped permissions:', error);
-    return { category, permissions: [] };
+    return [];
   }
-});
+})();
 
 export function RolePermissionSelector({
   selectedPermissions = [],
@@ -103,8 +116,17 @@ export function RolePermissionSelector({
     // Preserve scroll position
     preserveScrollPosition();
     
-    const allPermissions = PLATFORM_MODULES.map(p => p.id);
-    onPermissionsChange(allPermissions);
+    try {
+      if (!Array.isArray(PLATFORM_MODULES)) {
+        console.warn('RolePermissionSelector: PLATFORM_MODULES is not an array:', PLATFORM_MODULES);
+        return;
+      }
+      
+      const allPermissions = PLATFORM_MODULES.map(p => p.id);
+      onPermissionsChange(allPermissions);
+    } catch (error) {
+      console.error('RolePermissionSelector: Error selecting all permissions:', error);
+    }
     
     // Restore scroll position after a short delay
     setTimeout(restoreScrollPosition, 0);
@@ -131,37 +153,69 @@ export function RolePermissionSelector({
 
   const selectCategoryPermissions = useCallback((category: string) => {
     if (disabled) return;
-    const categoryPermissions = PLATFORM_MODULES
-      .filter(p => p.category === category)
-      .map(p => p.id);
     
-    const otherPermissions = selectedPermissions ? selectedPermissions.filter(p => 
-      !categoryPermissions.includes(p)
-    ) : [];
-    const newPermissions = [...otherPermissions, ...categoryPermissions];
-    onPermissionsChange(newPermissions);
+    try {
+      if (!Array.isArray(PLATFORM_MODULES)) {
+        console.warn('RolePermissionSelector: PLATFORM_MODULES is not an array:', PLATFORM_MODULES);
+        return;
+      }
+      
+      const categoryPermissions = PLATFORM_MODULES
+        .filter(p => p.category === category)
+        .map(p => p.id);
+      
+      const otherPermissions = selectedPermissions ? selectedPermissions.filter(p => 
+        !categoryPermissions.includes(p)
+      ) : [];
+      const newPermissions = [...otherPermissions, ...categoryPermissions];
+      onPermissionsChange(newPermissions);
+    } catch (error) {
+      console.error('RolePermissionSelector: Error selecting category permissions:', error);
+    }
   }, [disabled, selectedPermissions, onPermissionsChange]);
 
   const clearCategoryPermissions = useCallback((category: string) => {
     if (disabled) return;
-    const categoryPermissions = PLATFORM_MODULES
-      .filter(p => p.category === category)
-      .map(p => p.id);
     
-    const newPermissions = selectedPermissions ? selectedPermissions.filter(p => 
-      !categoryPermissions.includes(p) || protectedPermissions.includes(p)
-    ) : [];
-    onPermissionsChange(newPermissions);
+    try {
+      if (!Array.isArray(PLATFORM_MODULES)) {
+        console.warn('RolePermissionSelector: PLATFORM_MODULES is not an array:', PLATFORM_MODULES);
+        return;
+      }
+      
+      const categoryPermissions = PLATFORM_MODULES
+        .filter(p => p.category === category)
+        .map(p => p.id);
+      
+      const newPermissions = selectedPermissions ? selectedPermissions.filter(p => 
+        !categoryPermissions.includes(p) || protectedPermissions.includes(p)
+      ) : [];
+      onPermissionsChange(newPermissions);
+    } catch (error) {
+      console.error('RolePermissionSelector: Error clearing category permissions:', error);
+    }
   }, [disabled, selectedPermissions, protectedPermissions, onPermissionsChange]);
 
-  const filteredGroupedPermissions = groupedPermissions.map(group => ({
-    ...group,
-    permissions: group.permissions.filter(permission =>
-      permission.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      permission.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      permission.id.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-  })).filter(group => group.permissions.length > 0);
+  const filteredGroupedPermissions = (() => {
+    try {
+      if (!Array.isArray(groupedPermissions)) {
+        console.warn('RolePermissionSelector: groupedPermissions is not an array:', groupedPermissions);
+        return [];
+      }
+      
+      return groupedPermissions.map(group => ({
+        ...group,
+        permissions: group.permissions.filter(permission =>
+          permission.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          permission.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          permission.id.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+      })).filter(group => group.permissions.length > 0);
+    } catch (error) {
+      console.error('RolePermissionSelector: Error filtering grouped permissions:', error);
+      return [];
+    }
+  })();
 
   const content = (
     <>
@@ -208,7 +262,7 @@ export function RolePermissionSelector({
             )}
           </div>
           <Badge variant="secondary" className="text-xs">
-            {selectedPermissions.length} selected
+            {selectedPermissions?.length || 0} selected
           </Badge>
         </div>
 
@@ -299,7 +353,7 @@ export function RolePermissionSelector({
               <div className="divide-y divide-border/50">
                 {permissions.map(permission => {
                   const isProtected = protectedPermissions.includes(permission.id);
-                  const isSelected = selectedPermissions.includes(permission.id);
+                  const isSelected = selectedPermissions?.includes(permission.id) || false;
                   const isDisabled = disabled || (isProtected && isSelected);
                   
                   return (
@@ -390,10 +444,19 @@ export function RolePermissionSelector({
                   };
                   
                   selectedPermissions && selectedPermissions.forEach(permissionId => {
-                    const permission = PLATFORM_MODULES.find(p => p.id === permissionId);
-                    if (permission) {
-                      stats[permission.riskLevel]++;
-                      if (permission.requiresApproval) stats.requiresApproval++;
+                    try {
+                      if (!Array.isArray(PLATFORM_MODULES)) {
+                        console.warn('RolePermissionSelector: PLATFORM_MODULES is not an array in stats:', PLATFORM_MODULES);
+                        return;
+                      }
+                      
+                      const permission = PLATFORM_MODULES.find(p => p.id === permissionId);
+                      if (permission) {
+                        stats[permission.riskLevel]++;
+                        if (permission.requiresApproval) stats.requiresApproval++;
+                      }
+                    } catch (error) {
+                      console.warn('RolePermissionSelector: Error processing permission stats:', error, permissionId);
                     }
                   });
                   
@@ -424,16 +487,26 @@ export function RolePermissionSelector({
             
             <div className="flex flex-wrap gap-1">
               {selectedPermissions && selectedPermissions.slice(0, 5).map(permissionId => {
-                const permission = PLATFORM_MODULES.find(p => p.id === permissionId);
-                return (
-                  <Badge 
-                    key={permissionId} 
-                    variant="secondary" 
-                    className="text-xs bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20"
-                  >
-                    {permission?.label || permissionId}
-                  </Badge>
-                );
+                try {
+                  if (!Array.isArray(PLATFORM_MODULES)) {
+                    console.warn('RolePermissionSelector: PLATFORM_MODULES is not an array in summary:', PLATFORM_MODULES);
+                    return null;
+                  }
+                  
+                  const permission = PLATFORM_MODULES.find(p => p.id === permissionId);
+                  return (
+                    <Badge 
+                      key={permissionId} 
+                      variant="secondary" 
+                      className="text-xs bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20"
+                    >
+                      {permission?.label || permissionId}
+                    </Badge>
+                  );
+                } catch (error) {
+                  console.warn('RolePermissionSelector: Error rendering permission badge:', error, permissionId);
+                  return null;
+                }
               })}
               {selectedPermissions && selectedPermissions.length > 5 && (
                 <Badge variant="outline" className="text-xs text-green-600 dark:text-green-400 border-green-500/30">

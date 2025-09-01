@@ -94,11 +94,7 @@ export async function GET(request: NextRequest) {
         u.role,
         u."createdAt"
       FROM "User" u
-      WHERE u.id NOT IN (
-        SELECT uug."userId" 
-        FROM "User_UserGroup" uug 
-        WHERE uug."groupId" = $1
-      )
+      WHERE u."userGroupId" IS NULL OR u."userGroupId" != $1
     `;
     
     const queryParams = [groupId];

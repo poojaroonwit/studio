@@ -355,8 +355,8 @@ export const authOptions: NextAuthOptions = {
                       // Assign the new user to the Recruiter group by default
                       try {
                           await client.query(
-                              'INSERT INTO "User_UserGroup" ("userId", "groupId") VALUES ($1, $2) ON CONFLICT ("userId", "groupId") DO NOTHING',
-                              [dbUser.id, '00000000-0000-0000-0000-000000000002'] // Recruiter group ID
+                              'UPDATE "User" SET "userGroupId" = $1 WHERE id = $2',
+                              ['00000000-0000-0000-0000-000000000002', dbUser.id] // Recruiter group ID
                           );
                           await logAudit('AUDIT', `User '${profile.name}' assigned to Recruiter group via Azure AD SSO.`, 'Auth:SignIn', dbUser.id);
                       } catch (groupError) {

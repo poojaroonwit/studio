@@ -167,11 +167,9 @@ async function verifyPermissions() {
         
         // Check for users without any permissions
         const usersWithoutPermissionsResult = await client.query(`
-            SELECT u.id, u.email, COUNT(uug."userId") as group_count
+            SELECT u.id, u.email, u."userGroupId"
             FROM "User" u
-            LEFT JOIN "User_UserGroup" uug ON u.id = uug."userId"
-            GROUP BY u.id, u.email
-            HAVING COUNT(uug."userId") = 0
+            WHERE u."userGroupId" IS NULL
         `);
         
         const usersWithoutPermissions = usersWithoutPermissionsResult.rows;

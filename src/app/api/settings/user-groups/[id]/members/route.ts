@@ -96,8 +96,7 @@ export async function GET(request: NextRequest) {
         u.role,
         u."createdAt"
       FROM "User" u
-      INNER JOIN "User_UserGroup" uug ON u.id = uug."userId"
-      WHERE uug."groupId" = $1
+      WHERE u."userGroupId" = $1
       ORDER BY u.name ASC
     `, [groupId]);
 
@@ -204,7 +203,7 @@ export async function POST(request: NextRequest) {
 
     // Check if user is already in the group
     const existingMembership = await client.query(
-      'SELECT "userId" FROM "User_UserGroup" WHERE "userId" = $1 AND "groupId" = $2',
+      'SELECT id FROM "User" WHERE id = $1 AND "userGroupId" = $2',
       [userId, groupId]
     );
 
@@ -214,8 +213,8 @@ export async function POST(request: NextRequest) {
 
     // Add user to group
     await client.query(
-      'INSERT INTO "User_UserGroup" ("userId", "groupId") VALUES ($1, $2)',
-      [userId, groupId]
+      'UPDATE "User" SET "userGroupId" = $1 WHERE id = $2',
+      [groupId, userId]
     );
 
     await logAudit('AUDIT', `User '${userCheck.rows[0].name}' added to group '${groupCheck.rows[0].name}' by ${session.user.name}.`, 'API:UserGroups:AddMember', session.user.id, { targetGroupId: groupId, targetUserId: userId });
@@ -307,7 +306,7 @@ export async function DELETE(request: NextRequest) {
 
     // Check if user is in the group
     const existingMembership = await client.query(
-      'SELECT "userId" FROM "User_UserGroup" WHERE "userId" = $1 AND "groupId" = $2',
+      'SELECT id FROM "User" WHERE id = $1 AND "userGroupId" = $2',
       [userId, groupId]
     );
 
@@ -317,8 +316,8 @@ export async function DELETE(request: NextRequest) {
 
     // Remove user from group
     await client.query(
-      'DELETE FROM "User_UserGroup" WHERE "userId" = $1 AND "groupId" = $2',
-      [userId, groupId]
+      'UPDATE "User" SET "userGroupId" = NULL WHERE id = $1',
+      [userId]
     );
 
     await logAudit('AUDIT', `User '${userCheck.rows[0].name}' removed from group '${groupCheck.rows[0].name}' by ${session.user.name}.`, 'API:UserGroups:RemoveMember', session.user.id, { targetGroupId: groupId, targetUserId: userId });

@@ -120,10 +120,9 @@ console.log(`Password: ${adminPassword}`);
     console.log('Assigning admin user to Admin group...');
     const adminUser = await prisma.user.findUnique({ where: { email: adminEmail } });
     if (adminUser) {
-      await prisma.user_UserGroup.upsert({
-        where: { userId_groupId: { userId: adminUser.id, groupId: '00000000-0000-0000-0000-000000000001' } },
-        update: {},
-        create: { userId: adminUser.id, groupId: '00000000-0000-0000-0000-000000000001' }
+      await prisma.user.update({
+        where: { id: adminUser.id },
+        data: { userGroupId: '00000000-0000-0000-0000-000000000001' }
       });
       console.log('✅ Admin user assigned to Admin group');
     }

@@ -1,5 +1,4 @@
--- Create Grade table
-CREATE TABLE "Grade" (
+CREATE TABLE IF NOT EXISTS "Grade" (
     "id" UUID NOT NULL,
     "name" TEXT NOT NULL,
     "description" TEXT,
@@ -15,31 +14,43 @@ CREATE TABLE "Grade" (
     CONSTRAINT "Grade_pkey" PRIMARY KEY ("id")
 );
 
--- Create unique constraint on name
-CREATE UNIQUE INDEX "Grade_name_key" ON "Grade"("name");
+CREATE UNIQUE INDEX IF NOT EXISTS "Grade_name_key" ON "Grade"("name");
 
--- Create indexes
-CREATE INDEX "Grade_min_level_idx" ON "Grade"("min_level");
-CREATE INDEX "Grade_max_level_idx" ON "Grade"("max_level");
-CREATE INDEX "Grade_is_active_idx" ON "Grade"("is_active");
-CREATE INDEX "Grade_sort_order_idx" ON "Grade"("sort_order");
+CREATE INDEX IF NOT EXISTS "Grade_min_level_idx" ON "Grade"("min_level");
+CREATE INDEX IF NOT EXISTS "Grade_max_level_idx" ON "Grade"("max_level");
+CREATE INDEX IF NOT EXISTS "Grade_is_active_idx" ON "Grade"("is_active");
+CREATE INDEX IF NOT EXISTS "Grade_sort_order_idx" ON "Grade"("sort_order");
 
--- Add gradeId and hiringDate columns to Position table
-ALTER TABLE "Position" ADD COLUMN "gradeId" UUID;
-ALTER TABLE "Position" ADD COLUMN "hiringDate" TIMESTAMP(3);
+ALTER TABLE "Position" ADD COLUMN IF NOT EXISTS "gradeId" UUID;
+ALTER TABLE "Position" ADD COLUMN IF NOT EXISTS "hiringDate" TIMESTAMP(3);
 
--- Create indexes for new columns
-CREATE INDEX "Position_gradeId_idx" ON "Position"("gradeId");
-CREATE INDEX "Position_hiringDate_idx" ON "Position"("hiringDate");
+CREATE INDEX IF NOT EXISTS "Position_gradeId_idx" ON "Position"("gradeId");
+CREATE INDEX IF NOT EXISTS "Position_hiringDate_idx" ON "Position"("hiringDate");
 
--- Add foreign key constraint
-ALTER TABLE "Position" ADD CONSTRAINT "Position_gradeId_fkey" FOREIGN KEY ("gradeId") REFERENCES "Grade"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints tc
+    WHERE tc.table_schema = 'public' AND tc.table_name = 'Position' AND tc.constraint_name = 'Position_gradeId_fkey'
+  ) THEN
+    ALTER TABLE "Position" ADD CONSTRAINT "Position_gradeId_fkey" FOREIGN KEY ("gradeId") REFERENCES "Grade"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+  END IF;
+END$$;
 
--- Insert default grades based on the KPI requirements
-INSERT INTO "Grade" ("id", "name", "description", "min_level", "max_level", "sla_days", "color", "sort_order") VALUES
-    (gen_random_uuid(), 'Grade 8+', 'ระดับเกรด 8 ขึ้นไป', 8, 999, 60, '#EF4444', 1),
-    (gen_random_uuid(), 'Grade 6-7', 'ระดับเกรด 6-7', 6, 7, 45, '#F59E0B', 2),
-    (gen_random_uuid(), 'Grade 3-5', 'ระดับเกรด 3-5', 3, 5, 30, '#10B981', 3),
-    (gen_random_uuid(), 'Grade 1-2 & Contract', 'ระดับเกรด 1-2 และพนักงานสัญญาจ้าง/รายวัน', 1, 2, 15, '#3B82F6', 4);
+INSERT INTO "Grade" ("id", "name", "description", "min_level", "max_level", "sla_days", "color", "sort_order")
+SELECT gen_random_uuid(), 'Grade 8+', 'ระดับเกรด 8 ขึ้นไป', 8, 999, 60, '#EF4444', 1
+WHERE NOT EXISTS (SELECT 1 FROM "Grade" WHERE "name" = 'Grade 8+');
+
+INSERT INTO "Grade" ("id", "name", "description", "min_level", "max_level", "sla_days", "color", "sort_order")
+SELECT gen_random_uuid(), 'Grade 6-7', 'ระดับเกรด 6-7', 6, 7, 45, '#F59E0B', 2
+WHERE NOT EXISTS (SELECT 1 FROM "Grade" WHERE "name" = 'Grade 6-7');
+
+INSERT INTO "Grade" ("id", "name", "description", "min_level", "max_level", "sla_days", "color", "sort_order")
+SELECT gen_random_uuid(), 'Grade 3-5', 'ระดับเกรด 3-5', 3, 5, 30, '#10B981', 3
+WHERE NOT EXISTS (SELECT 1 FROM "Grade" WHERE "name" = 'Grade 3-5');
+
+INSERT INTO "Grade" ("id", "name", "description", "min_level", "max_level", "sla_days", "color", "sort_order")
+SELECT gen_random_uuid(), 'Grade 1-2 & Contract', 'ระดับเกรด 1-2 และพนักงานสัญญาจ้าง/รายวัน', 1, 2, 15, '#3B82F6', 4
+WHERE NOT EXISTS (SELECT 1 FROM "Grade" WHERE "name" = 'Grade 1-2 & Contract');
 
 

@@ -1,6 +1,8 @@
 -- Migration: Update candidate status to reference recruitmentstage.id (idempotent)
 -- This migration safely converts TEXT status to UUID FK if needed; otherwise it skips.
 
+-- STEP 1: Add statusId as nullable, populate it, but don't make it required yet
+
 DO $$
 DECLARE
   v_status_type text;
@@ -32,7 +34,7 @@ BEGIN
   -- Create unique index on name if it doesn't exist
   CREATE UNIQUE INDEX IF NOT EXISTS "RecruitmentStage_name_key" ON "RecruitmentStage"("name");
 
-  -- New staging column
+  -- New staging column - ADD AS NULLABLE FIRST
   ALTER TABLE "Candidate" ADD COLUMN IF NOT EXISTS "statusId" uuid;
 
   -- Ensure default stage exists and capture id (using correct column names)
@@ -55,8 +57,8 @@ BEGIN
   SET "statusId" = v_applied_id
   WHERE "statusId" IS NULL;
 
-  -- Enforce not null and FK
-  ALTER TABLE "Candidate" ALTER COLUMN "statusId" SET NOT NULL;
+  -- DON'T make it NOT NULL yet - we'll do that in a separate migration
+  -- ALTER TABLE "Candidate" ALTER COLUMN "statusId" SET NOT NULL;
 
   SELECT EXISTS (
     SELECT 1 FROM information_schema.table_constraints
@@ -69,19 +71,13 @@ BEGIN
       FOREIGN KEY ("statusId") REFERENCES "RecruitmentStage"("id") ON DELETE SET NULL;
   END IF;
 
-  -- Drop old text column if present
-  IF EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_schema='public' AND table_name='Candidate' AND column_name='status' AND data_type='text'
-  ) THEN
-    ALTER TABLE "Candidate" DROP COLUMN "status";
-  END IF;
+  -- Don't drop the old status column yet - keep it for now
+  -- We'll handle the column swap in a later migration
 
-  -- Swap
-  ALTER TABLE "Candidate" RENAME COLUMN "statusId" TO "status";
-
-  -- Index
-  DROP INDEX IF EXISTS "Candidate_status_idx";
-  CREATE INDEX IF NOT EXISTS "Candidate_status_idx" ON "Candidate"("status");
+  -- Create index on the new statusId column
+  CREATE INDEX IF NOT EXISTS "Candidate_statusId_idx" ON "Candidate"("statusId");
+  
+  RAISE NOTICE 'Migration completed: statusId column added and populated. statusId is still nullable.';
+  RAISE NOTICE 'Next step: Run a separate migration to make statusId NOT NULL and handle the old status column.';
 END
 $$;

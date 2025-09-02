@@ -139,7 +139,7 @@ model Candidate {
   sourceId                String?            @db.Uuid
   subSource               String?
   companyId               String?            @db.Uuid
-  statusId                String             @db.Uuid
+  statusId                String?            @db.Uuid
   attachments             Attachment[]
   position                Position?          @relation(fields: [positionId], references: [id])
   recruiter               User?              @relation("RecruiterCandidates", fields: [recruiterId], references: [id])

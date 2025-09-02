@@ -86,7 +86,7 @@ async function initializeWarningConditions() {
       const existingUserConditionsResult = await client.query(`
         SELECT COUNT(*) as count
         FROM "WarningConfiguration"
-        WHERE "createdBy" = $1
+        WHERE "created_by" = $1
       `, [user.id]);
       
       const existingUserConditions = existingUserConditionsResult.rows[0].count;

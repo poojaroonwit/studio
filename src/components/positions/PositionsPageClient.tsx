@@ -1519,16 +1519,10 @@ export default function PositionsPageClient() {
                         <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                       </div>
                     ) : headcountData[position.id] ? (
-                      <div className="flex flex-col items-center text-xs leading-tight">
-                        <div className="font-medium text-sm mb-1">
-                          {headcountData[position.id].total}
-                        </div>
-                        <div className="text-green-600 dark:text-green-400">
-                          {headcountData[position.id].filled} filled
-                        </div>
-                        <div className="text-orange-600 dark:text-orange-400">
-                          {headcountData[position.id].vacant} vacant
-                        </div>
+                      <div className="flex items-center justify-center">
+                        <Badge variant={headcountData[position.id].filled >= headcountData[position.id].total ? 'success' : 'secondary'} className="text-xs px-2 py-0.5">
+                          {headcountData[position.id].filled}/{headcountData[position.id].total}
+                        </Badge>
                       </div>
                     ) : (
                       <span className="text-sm text-muted-foreground">-</span>

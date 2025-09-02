@@ -468,10 +468,10 @@ const SafeSidebarNavComponent = React.memo(() => {
           ))}
         </SidebarMenu>
         
-        {/* Show assigned positions section if enabled and user is recruiter */}
+        {/* Show assigned positions under Positions menu without header, matching menu style */}
         {sidebarPreferences?.showAssignedPositions && session?.user?.role === 'Recruiter' && (
-          <div className="mt-auto mb-4">
-            <AssignedPositionsSidebar />
+          <div className="mt-2 mb-4 px-2">
+            <AssignedPositionsSidebar variant="compact" />
           </div>
         )}
         

@@ -28,9 +28,10 @@ interface AssignedPosition {
 
 interface AssignedPositionsSidebarProps {
   className?: string;
+  variant?: 'default' | 'compact';
 }
 
-export function AssignedPositionsSidebar({ className }: AssignedPositionsSidebarProps) {
+export function AssignedPositionsSidebar({ className, variant = 'default' }: AssignedPositionsSidebarProps) {
   const { data: session } = useSession();
   const [positions, setPositions] = useState<AssignedPosition[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -103,54 +104,70 @@ export function AssignedPositionsSidebar({ className }: AssignedPositionsSidebar
 
   if (positions.length === 0) {
     return (
-      <div className={cn("p-4 text-sm text-muted-foreground text-center", className)}>
-        <Briefcase className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
-        <p>No assigned positions</p>
+      <div className={cn(variant === 'compact' ? "px-0" : "p-4 text-center", className)}>
+        {variant !== 'compact' && (
+          <>
+            <Briefcase className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
+            <p className="text-sm text-muted-foreground">No assigned positions</p>
+          </>
+        )}
       </div>
     );
   }
 
   return (
     <>
-      <div className={cn("space-y-3", className)}>
-        <div className="flex items-center gap-2 px-3">
-          <Briefcase className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium text-muted-foreground">Positions</span>
-          <Badge variant="secondary" className="ml-auto text-xs">
-            {positions.length}
-          </Badge>
-        </div>
+      <div className={cn(variant === 'compact' ? "space-y-1" : "space-y-3", className)}>
+        {variant !== 'compact' && (
+          <>
+            <div className="flex items-center gap-2 px-3">
+              <Briefcase className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium text-muted-foreground">Positions</span>
+              <Badge variant="secondary" className="ml-auto text-xs">
+                {positions.length}
+              </Badge>
+            </div>
+            <div className="px-3">
+              <div className="border-t" />
+            </div>
+          </>
+        )}
 
-        <div className="px-3">
-          <div className="border-t" />
-        </div>
-
-        <ScrollArea className="h-[300px] px-3">
-          <ul className="mt-2 space-y-1 pl-3 border-l">
-            {positions.slice(0, visibleCount).map((position) => (
-              <li
-                key={position.id}
-                className="flex items-center gap-2 py-1 cursor-pointer hover:text-foreground"
-                onClick={() => handlePositionClick(position.id)}
-                title={position.title}
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
-                <span className="flex-1 min-w-0 text-sm text-muted-foreground truncate">
-                  {position.title}
-                </span>
-                <span className="text-xs tabular-nums text-muted-foreground">
-                  {position.headcount.filled}/{position.headcount.total}
-                </span>
-              </li>
-            ))}
-          </ul>
+        <ScrollArea className={cn("h-[300px]", variant === 'compact' ? "px-0" : "px-3") }>
+          <div className="relative">
+            <div className="pointer-events-none absolute left-1.5 top-1 bottom-6 w-px bg-border/60 rounded-full" />
+            <ul className={cn("mt-2 space-y-1 pl-4", variant === 'compact' ? "mt-1" : "")}>
+              {positions.slice(0, visibleCount).map((position) => (
+                <li
+                  key={position.id}
+                  className={cn("flex items-center gap-2 py-1 cursor-pointer", variant === 'compact' ? "text-foreground hover:opacity-80" : "hover:text-foreground")}
+                  onClick={() => handlePositionClick(position.id)}
+                  title={position.title}
+                >
+                  <span className="w-3 h-px bg-border/60 rounded-full" />
+                  <span className={cn("flex-1 min-w-0 text-sm truncate", variant === 'compact' ? "text-foreground" : "text-muted-foreground") }>
+                    {position.title}
+                  </span>
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      "text-xs h-5 px-1.5 tabular-nums",
+                      variant === 'compact' ? "border-foreground/30 text-foreground" : "border-border text-muted-foreground"
+                    )}
+                  >
+                    {position.headcount.filled}/{position.headcount.total}
+                  </Badge>
+                </li>
+              ))}
+            </ul>
+          </div>
 
           {visibleCount < positions.length && (
             <div className="pt-2">
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-6 px-2 text-xs text-primary hover:underline"
+                className={cn("h-6 px-2 text-xs", variant === 'compact' ? "text-foreground/80 hover:underline" : "text-primary hover:underline")}
                 onClick={() => setVisibleCount((c) => Math.min(c + 3, positions.length))}
               >
                 Load more

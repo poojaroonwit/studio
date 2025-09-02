@@ -32,6 +32,7 @@ import { RoleSelector } from '@/components/settings/RoleSelector';
 import { UserAvatarUpload } from '@/components/ui/user-avatar-upload';
 import { PersonalColorPicker } from '@/components/settings/PersonalColorPicker';
 import { useClickProtection } from '@/hooks/use-click-protection';
+import { Switch } from '@/components/ui/switch';
 
 const userRoleOptions: UserProfile['role'][] = ['Admin', 'Recruiter', 'Hiring Manager'];
 
@@ -79,6 +80,8 @@ export function UnifiedUserModal({
   const [userTeams, setUserTeams] = useState<Array<{ id: string; name: string; color?: string }>>([]);
   const [isLoading, setIsLoading] = useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [sidebarShowAssigned, setSidebarShowAssigned] = useState<boolean>(false);
+  const [sidebarPrefLoading, setSidebarPrefLoading] = useState<boolean>(false);
   
   const { isActioning, handleProtectedAsyncClick } = useClickProtection({
     actionName: 'save user',
@@ -187,6 +190,60 @@ export function UnifiedUserModal({
       }
     }
   }, [isOpen, user, mode, form, canManageTeams]);
+
+  // Load sidebar preference when modal opens and when role/user changes
+  useEffect(() => {
+    const loadSidebarPref = async () => {
+      if (!isOpen) return;
+      setSidebarPrefLoading(true);
+      try {
+        if ((mode === 'profile') || (user && user.id === session?.user?.id)) {
+          const res = await fetch('/api/user-preferences', { credentials: 'include' });
+          if (res.ok) {
+            const data = await res.json();
+            setSidebarShowAssigned(Boolean(data?.sidebar?.showAssignedPositions));
+          }
+        } else if ((mode === 'edit') && user && (session?.user?.role === 'Admin')) {
+          const res = await fetch(`/api/user-preferences/${user.id}`, { credentials: 'include' });
+          if (res.ok) {
+            const data = await res.json();
+            setSidebarShowAssigned(Boolean(data?.sidebar?.showAssignedPositions));
+          }
+        } else {
+          setSidebarShowAssigned(false);
+        }
+      } catch (e) {
+        // ignore
+      } finally {
+        setSidebarPrefLoading(false);
+      }
+    };
+    loadSidebarPref();
+  }, [isOpen, mode, user?.id, session?.user?.id, session?.user?.role]);
+
+  const saveSidebarPref = async (checked: boolean) => {
+    try {
+      setSidebarShowAssigned(checked);
+      if ((mode === 'profile') || (user && user.id === session?.user?.id)) {
+        await fetch('/api/user-preferences', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ modelType: 'sidebar', updates: { showAssignedPositions: checked } })
+        });
+      } else if ((mode === 'edit') && user && (session?.user?.role === 'Admin')) {
+        await fetch(`/api/user-preferences/${user.id}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ sidebar: { showAssignedPositions: checked } })
+        });
+      }
+    } catch (e) {
+      toast.error('Failed to save sidebar preference');
+      setSidebarShowAssigned(prev => !checked ? prev : prev); // no-op rollback
+    }
+  };
 
   const onSubmit = async (data: UnifiedUserFormValues) => {
     await handleProtectedAsyncClick(async () => {
@@ -626,6 +683,23 @@ export function UnifiedUserModal({
                                 )}
                               />
                             </div>
+
+                            {/* Sidebar preferences (Recruiter only) */}
+                            {form.watch('role') === 'Recruiter' && (
+                              <div className="rounded-md border p-4">
+                                <div className="flex items-center justify-between">
+                                  <div className="space-y-1">
+                                    <Label className="text-sm font-medium">Show Assigned Positions</Label>
+                                    <p className="text-sm text-muted-foreground">Show this user's open assigned positions in the main sidebar.</p>
+                                  </div>
+                                  <Switch
+                                    checked={sidebarShowAssigned}
+                                    onCheckedChange={(c) => saveSidebarPref(Boolean(c))}
+                                    disabled={sidebarPrefLoading || (mode === 'edit' && user && session?.user?.role !== 'Admin')}
+                                  />
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
 

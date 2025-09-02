@@ -25,6 +25,7 @@ import type { UserProfile } from '@/lib/types';
 import { toast } from 'react-hot-toast';
 import { UserAvatarUpload } from '@/components/ui/user-avatar-upload';
 import { PersonalColorPicker } from '@/components/settings/PersonalColorPicker';
+import { Switch } from '@/components/ui/switch';
 
 const userRoleOptions: UserProfile['role'][] = ['Admin', 'Recruiter', 'Hiring Manager'];
 
@@ -320,6 +321,49 @@ interface AccountSettingsContentProps {
 }
 
 function AccountSettingsContent({ form, mode, canManageAuthentication, canForcePasswordChange, userRoleOptions }: AccountSettingsContentProps) {
+  const [sidebarShowAssigned, setSidebarShowAssigned] = useState<boolean>(false);
+  const [sidebarPrefLoading, setSidebarPrefLoading] = useState<boolean>(false);
+
+  useEffect(() => {
+    const loadSidebarPref = async () => {
+      setSidebarPrefLoading(true);
+      try {
+        // In profile mode, affect current user; in edit mode, this modal edits another user via admin context
+        if (mode === 'profile') {
+          const res = await fetch('/api/user-preferences', { credentials: 'include' });
+          if (res.ok) {
+            const data = await res.json();
+            setSidebarShowAssigned(Boolean(data?.sidebar?.showAssignedPositions));
+          }
+        } else {
+          // For simplicity, keep disabled state unless admin flow is implemented at this modal scope
+          // The switch will still render and save to current user when acting on own profile
+        }
+      } catch (e) {
+        // ignore
+      } finally {
+        setSidebarPrefLoading(false);
+      }
+    };
+    loadSidebarPref();
+  }, [mode]);
+
+  const saveSidebarPref = async (checked: boolean) => {
+    try {
+      setSidebarShowAssigned(checked);
+      if (mode === 'profile') {
+        await fetch('/api/user-preferences', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ modelType: 'sidebar', updates: { showAssignedPositions: checked } })
+        });
+      }
+    } catch (e) {
+      setSidebarShowAssigned(prev => prev);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -354,6 +398,23 @@ function AccountSettingsContent({ form, mode, canManageAuthentication, canForceP
           )}
         />
         
+        {/* Sidebar preferences (Recruiter only) */}
+        {form.watch('role') === 'Recruiter' && (
+          <div className="rounded-md border p-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <FormLabel className="text-sm font-medium">Show Assigned Positions</FormLabel>
+                <p className="text-sm text-slate-600 dark:text-slate-400">Show this user's open assigned positions in the main sidebar.</p>
+              </div>
+              <Switch
+                checked={sidebarShowAssigned}
+                onCheckedChange={(c) => saveSidebarPref(Boolean(c))}
+                disabled={sidebarPrefLoading || mode !== 'profile'}
+              />
+            </div>
+          </div>
+        )}
+
         {canManageAuthentication && (
           <FormField 
             control={form.control} 

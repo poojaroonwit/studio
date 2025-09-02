@@ -38,31 +38,27 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     
-    // Simple filter building
+    // Simple filter building (supporting comma-separated multi-select values)
     const whereClauses: string[] = [];
     const queryParams: any[] = [];
     let paramIndex = 1;
 
-    // Basic filters only
-    if (searchParams.get('positionId')) {
-      whereClauses.push(`c."positionId" = $${paramIndex++}`);
-      queryParams.push(searchParams.get('positionId'));
-    }
-    
-    if (searchParams.get('status')) {
-          whereClauses.push(`c.status = $${paramIndex++}`);
-      queryParams.push(searchParams.get('status'));
-    }
-    
-    if (searchParams.get('recruiterId')) {
-      whereClauses.push(`c."recruiterId" = $${paramIndex++}`);
-      queryParams.push(searchParams.get('recruiterId'));
-    }
-    
-    if (searchParams.get('sourceId')) {
-            whereClauses.push(`c."sourceId" = $${paramIndex++}`);
-      queryParams.push(searchParams.get('sourceId'));
-    }
+    const appendInClause = (column: string, raw: string | null, cast: 'int' | 'text' = 'text') => {
+      if (!raw) return;
+      const values = raw.split(',').map(v => v.trim()).filter(v => v.length > 0);
+      if (values.length === 0) return;
+      const placeholders: string[] = [];
+      for (const v of values) {
+        placeholders.push(`$${paramIndex++}`);
+        queryParams.push(cast === 'int' ? Number(v) : v);
+      }
+      whereClauses.push(`${column} IN (${placeholders.join(', ')})`);
+    };
+
+    appendInClause('c."positionId"', searchParams.get('positionId'), 'int');
+    appendInClause('c.status', searchParams.get('status'), 'text');
+    appendInClause('c."recruiterId"', searchParams.get('recruiterId'), 'int');
+    appendInClause('c."sourceId"', searchParams.get('sourceId'), 'int');
 
     const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
 

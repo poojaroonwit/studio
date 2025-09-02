@@ -19,10 +19,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Recruiter ID is required' }, { status: 400 });
     }
 
-    // Check if the user is requesting their own positions or is an admin
-    if (session.user.role !== 'Admin' && session.user.id !== recruiterId) {
-      return NextResponse.json({ error: 'Forbidden: Can only view own assigned positions' }, { status: 403 });
-    }
+    // Allow any authenticated user to view assigned positions for the specified recruiter
 
     const client = await getPool().connect();
     

@@ -206,8 +206,13 @@ echo "✅ Comprehensive permission setup completed"
 
 
 
-# Prisma client already generated during build
-echo "✅ Prisma client already generated during build"
+# Generate Prisma client after database is ready
+echo "🔧 Generating Prisma client..."
+if ! npx prisma generate --schema=prisma/schema.prisma; then
+    echo "❌ ERROR: Failed to generate Prisma client"
+    exit 1
+fi
+echo "✅ Prisma client generated successfully"
 
 echo "✅ Database and permission setup complete!"
 

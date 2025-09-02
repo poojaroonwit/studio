@@ -30,14 +30,8 @@ RUN dos2unix ./entrypoint.sh ./entrypoint-processor.sh 2>/dev/null || true
 # Debug: check if src/lib/db.ts exists
 RUN ls -l src/lib/db.ts || (echo 'src/lib/db.ts not found!' && exit 1)
 
-# 
-# Generate Prisma client during build (using mock DATABASE_URL)
-# ENV DATABASE_URL="postgresql://mock:mock@localhost:5432/mock"
-RUN npx prisma generate
-
 # Run migration to convert status to statusId during build
 RUN npm run fix:status-rename
-
 
 # Build the application (removed memory limit - let Docker manage memory)
 ENV NEXT_TELEMETRY_DISABLED=1

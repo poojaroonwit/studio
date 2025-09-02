@@ -4,9 +4,9 @@
 
 The candidate status field is still showing as UUID values instead of properly resolving to stage names through the foreign key relationship. This happens because:
 
-1. **Field Naming Inconsistency**: The database has a `status` column but the schema now uses `statusId` for better consistency
-2. **Foreign Key Constraint Issue**: The constraint mapping needs to be updated to match the new field name
-3. **Database Integrity**: Without proper foreign key constraints, the relationship between candidates and recruitment stages is broken
+1. **Field Naming Inconsistency**: The database has a `status` column but we want to use `statusId` for better consistency
+2. **Missing Foreign Key Constraint**: The field doesn't have a proper foreign key constraint to `RecruitmentStage.id`
+3. **Relation Mapping Issue**: The Prisma relation needs to be updated to use the new field name
 
 ## Root Cause Analysis
 
@@ -36,7 +36,7 @@ But the final constraint mapping still references the old `statusId` name.
 ## Solution
 
 ### 1. Fix Prisma Schema
-Rename the field to `statusId` and fix the constraint mapping:
+Rename the field to `statusId` and ensure proper relation mapping:
 
 ```prisma
 // Fixed schema
@@ -52,11 +52,10 @@ model Candidate {
 ```
 
 ### 2. Create New Migration
-Created `20250128000003_rename_candidate_status_to_statusId/migration.sql` to:
-- Rename the `status` column to `statusId`
-- Drop any existing incorrect constraints
-- Create the correct foreign key constraint
-- Ensure proper indexing
+Created `20250128000005_fix_candidate_status_relation/migration.sql` to:
+- Add the missing foreign key constraint for the `status` field
+- Ensure proper relation to `RecruitmentStage.id`
+- Create proper indexing
 
 ### 3. Comprehensive Fix Script
 Created `scripts/fix-candidate-status-uuid.js` to:
@@ -85,41 +84,20 @@ npm run fix:candidate-status
 
 ### Option 2: Manual Database Fix
 ```sql
--- Rename column and fix constraints
-ALTER TABLE "Candidate" RENAME COLUMN "status" TO "statusId";
-
--- Drop any existing constraints
-DO $$
-DECLARE
-  v_constraint_name text;
-BEGIN
-  SELECT constraint_name INTO v_constraint_name
-  FROM information_schema.table_constraints
-  WHERE table_schema='public' 
-    AND table_name='Candidate' 
-    AND constraint_type='FOREIGN KEY'
-    AND constraint_name LIKE '%status%';
-  
-  IF v_constraint_name IS NOT NULL THEN
-    EXECUTE 'ALTER TABLE "Candidate" DROP CONSTRAINT "' || v_constraint_name || '"';
-  END IF;
-END
-$$;
-
--- Create correct constraint
+-- Add foreign key constraint for status field
 ALTER TABLE "Candidate"
-ADD CONSTRAINT "Candidate_statusId_fkey"
-FOREIGN KEY ("statusId") REFERENCES "RecruitmentStage"("id") 
+ADD CONSTRAINT "Candidate_status_fkey"
+FOREIGN KEY (status) REFERENCES "RecruitmentStage"("id") 
 ON DELETE SET NULL ON UPDATE NO ACTION;
 
 -- Ensure index exists
-CREATE INDEX IF NOT EXISTS "Candidate_statusId_idx" ON "Candidate"("statusId");
+CREATE INDEX IF NOT EXISTS "Candidate_status_idx" ON "Candidate"(status);
 ```
 
 ### Option 3: Use Prisma Migrate
 ```bash
 # Generate and apply the new migration
-npx prisma migrate dev --name rename_candidate_status_to_statusId
+npx prisma migrate dev --name fix_candidate_status_relation
 ```
 
 ## Verification
@@ -130,41 +108,41 @@ After applying the fix, verify that:
    ```sql
    SELECT constraint_name, constraint_type
    FROM information_schema.table_constraints
-   WHERE table_name = 'Candidate' AND column_name = 'statusId';
+   WHERE table_name = 'Candidate' AND column_name = 'status';
    ```
 
 2. **Status Values are Valid UUIDs**:
    ```sql
    SELECT COUNT(*) as invalid_count
    FROM "Candidate"
-   WHERE "statusId" !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$';
+   WHERE status !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$';
    ```
 
 3. **JOIN Queries Work**:
    ```sql
-   SELECT c.name, c."statusId", rs.name as stage_name
+   SELECT c.name, c.status, rs.name as stage_name
    FROM "Candidate" c
-   LEFT JOIN "RecruitmentStage" rs ON c."statusId" = rs.id
+   LEFT JOIN "RecruitmentStage" rs ON c.status = rs.id
    LIMIT 5;
    ```
 
 ## Expected Result
 
 After the fix:
-- ✅ Candidate statusId field properly references RecruitmentStage.id
+- ✅ Candidate status field properly references RecruitmentStage.id
 - ✅ Foreign key constraints ensure data integrity
 - ✅ StatusBadge components display stage names instead of UUIDs
 - ✅ API endpoints return proper stage information
 - ✅ Database queries work with JOIN operations
-- ✅ All code consistently uses `statusId` instead of `status`
-- ✅ Field naming is consistent with the migration design
+- ✅ All code consistently uses `status` field
+- ✅ Simple migration without column renaming
 
 ## Files Modified
 
-- `prisma/schema.prisma` - Renamed status to statusId and fixed constraint mapping
-- `prisma/migrations/20250128000003_rename_candidate_status_to_statusId/migration.sql` - New migration
-- `src/lib/types.ts` - Updated Candidate interface to use statusId
-- `scripts/fix-candidate-status-uuid.js` - Comprehensive fix script updated for statusId
+- `prisma/schema.prisma` - Fixed constraint mapping for status field
+- `prisma/migrations/20250128000005_fix_candidate_status_relation/migration.sql` - New migration
+- `src/lib/types.ts` - Updated Candidate interface to use status field
+- `scripts/fix-candidate-status-uuid.js` - Comprehensive fix script
 - `package.json` - Added npm script for easy execution
 
 ## Rollback Plan

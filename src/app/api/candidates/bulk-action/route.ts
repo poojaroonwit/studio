@@ -1,15 +1,11 @@
 // src/app/api/candidates/bulk-action/route.ts
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
-import { logAudit } from '@/lib/auditLog';
 import { getServerSession } from 'next-auth/next';
 import { v4 as uuidv4 } from 'uuid';
 import { getPool } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
 import { broadcastCandidateUpdate } from '@/lib/simple-broadcaster';
-import { validateCandidateHiringStatus, assignCandidateToHeadcount, autoClosePositionIfHeadcountFilled } from '@/lib/headcountUtils';
-
-
 
 const bulkActionSchema = z.object({
   action: z.enum(['delete', 'change_status', 'assign_recruiter']),
@@ -28,58 +24,176 @@ const bulkActionSchema = z.object({
   path: ["newStatus"]
 });
 
-/**
- * @openapi
- * /api/candidates/bulk-action:
- *   post:
- *     summary: Perform a bulk action on candidates
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               action:
- *                 type: string
- *                 enum: [delete, change_status, assign_recruiter]
- *               candidateIds:
- *                 type: array
- *                 items:
- *                   type: string
- *               newStatus:
- *                 type: string
- *                 nullable: true
- *               newRecruiterId:
- *                 type: string
- *                 nullable: true
- *               notes:
- *                 type: string
- *                 nullable: true
- *     responses:
- *       200:
- *         description: Bulk action result
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                 successCount:
- *                   type: integer
- *                 failCount:
- *                   type: integer
- *                 failedDetails:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       candidateId:
- *                         type: string
- *                       reason:
- *                         type: string
- */
+// OPTIMIZED: Inline headcount validation using single connection
+async function validateCandidateHiringStatusWithClient(client: any, candidateId: string, positionId: string) {
+  try {
+    // Check if position has any headcounts
+    const headcountsResult = await client.query(
+      'SELECT id, status, "candidateId" FROM headcount WHERE "positionId" = $1',
+      [positionId]
+    );
+    const headcounts = headcountsResult.rows;
+
+    if (headcounts.length === 0) {
+      return {
+        canHire: false,
+        reason: 'NO_HEADCOUNT',
+        message: 'This position has no headcount defined. Cannot hire candidate without available headcount.',
+        headcountStatus: {
+          hasHeadcounts: false,
+          totalHeadcounts: 0,
+          vacantHeadcounts: 0,
+          filledHeadcounts: 0,
+        },
+      };
+    }
+
+    // A headcount is only considered filled if it has status 'filled' AND has a candidate assigned
+    const vacantHeadcounts = headcounts.filter((h: any) => h.status === 'vacant' || h.candidateId === null);
+    const filledHeadcounts = headcounts.filter((h: any) => h.status === 'filled' && h.candidateId !== null);
+
+    if (vacantHeadcounts.length === 0) {
+      return {
+        canHire: false,
+        reason: 'NO_VACANT_HEADCOUNT',
+        message: 'All headcounts for this position are already filled. Cannot hire candidate without available headcount.',
+        headcountStatus: {
+          hasHeadcounts: true,
+          totalHeadcounts: headcounts.length,
+          vacantHeadcounts: 0,
+          filledHeadcounts: filledHeadcounts.length,
+        },
+      };
+    }
+
+    // Check if candidate is already assigned to a headcount
+    const existingAssignment = headcounts.find((h: any) => h.candidateId === candidateId);
+    if (existingAssignment) {
+      return {
+        canHire: true,
+        reason: 'ALREADY_ASSIGNED',
+        message: 'Candidate is already assigned to a headcount.',
+        headcountId: existingAssignment.id,
+        headcountStatus: {
+          hasHeadcounts: true,
+          totalHeadcounts: headcounts.length,
+          vacantHeadcounts: vacantHeadcounts.length,
+          filledHeadcounts: filledHeadcounts.length,
+        },
+      };
+    }
+
+    return {
+      canHire: true,
+      reason: 'VACANT_HEADCOUNT_AVAILABLE',
+      message: 'Vacant headcount available for hiring.',
+      availableHeadcountId: vacantHeadcounts[0].id, // Return the first available headcount
+      headcountStatus: {
+        hasHeadcounts: true,
+        totalHeadcounts: headcounts.length,
+        vacantHeadcounts: vacantHeadcounts.length,
+        filledHeadcounts: filledHeadcounts.length,
+      },
+    };
+  } catch (error) {
+    console.error('Error validating candidate hiring status:', error);
+    throw error;
+  }
+}
+
+// OPTIMIZED: Inline headcount assignment using single connection
+async function assignCandidateToHeadcountWithClient(client: any, candidateId: string, positionId: string, actingUserId: string, actingUserName: string) {
+  try {
+    // Find vacant headcount for this position (status is vacant OR no candidate assigned)
+    const vacantHeadcountResult = await client.query(
+      `SELECT id FROM headcount 
+       WHERE "positionId" = $1 AND (status = 'vacant' OR "candidateId" IS NULL)
+       ORDER BY "createdAt" ASC 
+       LIMIT 1`,
+      [positionId]
+    );
+
+    if (vacantHeadcountResult.rows.length === 0) {
+      return {
+        success: false,
+        message: 'No vacant headcount available for this position',
+      };
+    }
+
+    const vacantHeadcount = vacantHeadcountResult.rows[0];
+
+    // Update the headcount to assign this candidate
+    await client.query(
+      'UPDATE headcount SET status = $1, "candidateId" = $2 WHERE id = $3',
+      ['filled', candidateId, vacantHeadcount.id]
+    );
+
+    // Check if all headcounts are now filled and auto-close position if needed
+    let autoCloseResult = null;
+    try {
+      const allHeadcountsResult = await client.query(
+        'SELECT COUNT(*) as total, COUNT(CASE WHEN status = $1 AND "candidateId" IS NOT NULL THEN 1 END) as filled FROM headcount WHERE "positionId" = $2',
+        ['filled', positionId]
+      );
+      
+      const { total, filled } = allHeadcountsResult.rows[0];
+      
+      if (parseInt(total) > 0 && parseInt(total) === parseInt(filled)) {
+        // All headcounts are filled, close the position
+        await client.query(
+          'UPDATE "Position" SET "isOpen" = false, "updatedAt" = NOW() WHERE id = $1',
+          [positionId]
+        );
+        
+        autoCloseResult = {
+          action: 'closed',
+          message: 'Position automatically closed as all headcounts are filled'
+        };
+      }
+    } catch (autoCloseError) {
+      console.error('Error auto-closing position:', autoCloseError);
+      // Don't fail the headcount assignment if auto-close fails
+    }
+
+    return {
+      success: true,
+      message: 'Candidate automatically assigned to headcount',
+      headcountId: vacantHeadcount.id,
+      autoCloseResult,
+    };
+  } catch (error) {
+    console.error('Error assigning candidate to headcount:', error);
+    throw error;
+  }
+}
+
+// OPTIMIZED: Inline audit logging using existing connection
+async function logAuditWithClient(client: any, level: string, message: string, source: string, actingUserId: string | null, details: any = null) {
+  try {
+    // Ensure actingUserId refers to an existing user; otherwise set to null to avoid FK errors
+    let sanitizedActingUserId: string | null = actingUserId;
+    if (sanitizedActingUserId) {
+      try {
+        const check = await client.query('SELECT 1 FROM "User" WHERE id = $1 LIMIT 1', [sanitizedActingUserId]);
+        if (check.rowCount === 0) {
+          sanitizedActingUserId = null;
+        }
+      } catch (_) {
+        sanitizedActingUserId = null;
+      }
+    }
+    
+    const query = `
+      INSERT INTO "LogEntry" (id, timestamp, level, message, source, "actingUserId", details, "createdAt")
+      VALUES ($1, NOW(), $2, $3, $4, $5, $6, NOW());
+    `;
+    await client.query(query, [uuidv4(), level, message, source, sanitizedActingUserId, details]);
+  } catch (error) {
+    // If the log itself fails, we log to the console as a fallback.
+    console.error('CRITICAL: Failed to write to LogEntry table:', error);
+    console.error('Fallback Log:', { level, message, source, actingUserId, details });
+  }
+}
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -91,18 +205,43 @@ export async function POST(request: NextRequest) {
   }
 
   // Check if user has permission to manage candidates
-      if (session.user.role !== 'Admin' &&  !session.user.modulePermissions?.includes('CANDIDATES_PIPELINE_STAGE_BULK_UPDATE')) {
-    await logAudit('WARN', `Forbidden attempt to perform bulk candidate action by ${actingUserName}.`, 'API:Candidates:BulkAction', actingUserId);
-    return NextResponse.json({ message: 'Forbidden: Insufficient permissions to perform bulk candidate actions' }, { status: 403 });
-  }
-
+  // Check permissions based on the action being performed
+  let hasPermission = false;
+  
+  // Read the request body first to check permissions
   let body;
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ message: 'Invalid JSON body' }, { status: 400 });
   }
+  
+  if (session.user.role === 'Admin') {
+    hasPermission = true;
+  } else {
+    // Check specific permissions based on action
+    const { action } = body;
+    
+    switch (action) {
+      case 'assign_recruiter':
+        hasPermission = session.user.modulePermissions?.includes('CANDIDATES_RECRUITER_ASSIGN') || false;
+        break;
+      case 'change_status':
+        hasPermission = session.user.modulePermissions?.includes('CANDIDATES_PIPELINE_STAGE_BULK_UPDATE') || false;
+        break;
+      case 'delete':
+        hasPermission = session.user.modulePermissions?.includes('CANDIDATES_DELETE') || false;
+        break;
+      default:
+        hasPermission = false;
+    }
+  }
+  
+  if (!hasPermission) {
+    return NextResponse.json({ message: 'Forbidden: Insufficient permissions to perform this bulk candidate action' }, { status: 403 });
+  }
 
+  // Validate the request body
   const validationResult = bulkActionSchema.safeParse(body);
   if (!validationResult.success) {
     return NextResponse.json({ message: 'Invalid input', errors: validationResult.error.flatten().fieldErrors }, { status: 400 });
@@ -116,6 +255,7 @@ export async function POST(request: NextRequest) {
     throw new Error('Invalid candidateIds array: must be array of UUID strings');
   }
 
+  // OPTIMIZED: Use single database connection for entire operation
   const client = await getPool().connect();
   try {
     await client.query('BEGIN');
@@ -143,7 +283,8 @@ export async function POST(request: NextRequest) {
           for (const candidate of oldStatuses) {
             if (candidate.status !== newStatus && candidate.positionId) {
               try {
-                const validation = await validateCandidateHiringStatus(candidate.id, candidate.positionId);
+                // OPTIMIZED: Use inline validation with same connection
+                const validation = await validateCandidateHiringStatusWithClient(client, candidate.id, candidate.positionId);
                 if (validation.canHire) {
                   candidatesToUpdate.push(candidate);
                   headcountValidationResults.push({
@@ -220,7 +361,9 @@ export async function POST(request: NextRequest) {
           for (const result of headcountValidationResults) {
             if (result.willAutoAssign) {
               try {
-                const assignmentResult = await assignCandidateToHeadcount(
+                // OPTIMIZED: Use inline assignment with same connection
+                const assignmentResult = await assignCandidateToHeadcountWithClient(
+                  client,
                   result.candidateId,
                   candidatesToUpdate.find(c => c.id === result.candidateId)?.positionId!,
                   actingUserId,
@@ -276,10 +419,39 @@ export async function POST(request: NextRequest) {
           }
         }
 
+        // Get current recruiter assignments for transition records
+        const currentRecruiterResult = await client.query(
+          'SELECT id, "recruiterId", "positionId", status FROM "Candidate" WHERE id = ANY($1::uuid[])',
+          [candidateIds]
+        );
+        const currentRecruiters = currentRecruiterResult.rows;
+
         const assignRecruiterResult = await client.query(
           'UPDATE "Candidate" SET "recruiterId" = $1, "updatedAt" = NOW() WHERE id = ANY($2::uuid[]) RETURNING id',
           [newRecruiterId, candidateIds]
         );
+
+        // Create transition records for recruiter changes
+        for (const candidate of currentRecruiters) {
+          if (candidate.recruiterId !== newRecruiterId) {
+            const newTransitionId = uuidv4();
+            const transitionMessage = newRecruiterId 
+              ? `Recruiter assigned: ${newRecruiterId}` 
+              : 'Recruiter unassigned';
+            
+            await client.query(`
+              INSERT INTO "TransitionRecord" (id, "candidateId", "positionId", stage, notes, "actingUserId", date, "createdAt", "updatedAt")
+              VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW(), NOW())
+            `, [
+              newTransitionId,
+              candidate.id,
+              candidate.positionId,
+              candidate.status || 'Applied',
+              transitionMessage,
+              actingUserId
+            ]);
+          }
+        }
 
         result = { updatedCount: assignRecruiterResult.rowCount };
         auditMessage = `Bulk assigned recruiter for ${assignRecruiterResult.rowCount} candidates`;
@@ -290,7 +462,9 @@ export async function POST(request: NextRequest) {
     }
 
     await client.query('COMMIT');
-    await logAudit('AUDIT', `${auditMessage} by ${actingUserName}.`, 'API:Candidates:BulkAction', actingUserId, { 
+    
+    // OPTIMIZED: Use inline audit logging with same connection
+    await logAuditWithClient(client, 'AUDIT', `${auditMessage} by ${actingUserName}.`, 'API:Candidates:BulkAction', actingUserId, { 
       action, 
       candidateIds, 
       result 
@@ -303,11 +477,14 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     await client.query('ROLLBACK');
-    await logAudit('ERROR', `Bulk action failed. Error: ${error.message}`, 'API:Candidates:BulkAction', actingUserId, { 
+    
+    // OPTIMIZED: Use inline audit logging with same connection
+    await logAuditWithClient(client, 'ERROR', `Bulk action failed. Error: ${error.message}`, 'API:Candidates:BulkAction', actingUserId, { 
       action, 
       candidateIds, 
       input: body 
     });
+    
     return NextResponse.json({ message: 'Error performing bulk action', error: error.message }, { status: 500 });
   } finally {
     client.release();

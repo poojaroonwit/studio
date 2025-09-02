@@ -4,8 +4,19 @@ import { authOptions } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
-
 export async function GET(request: NextRequest) {
+  // Check authentication
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Check if user has permission to download files
+  // Users should be able to download files if they can view candidates (basic access)
+  if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('CANDIDATES_VIEW')) {
+    return NextResponse.json({ error: 'Forbidden: Insufficient permissions to download files' }, { status: 403 });
+  }
+
   const url = new URL(request.url);
   const fileUrl = url.searchParams.get('url');
   const fileName = url.searchParams.get('fileName');

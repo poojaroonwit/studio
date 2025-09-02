@@ -92,6 +92,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Check if user has permission to update presence
+  // Users should be able to update their own presence if they can view candidates (basic access)
+  if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('CANDIDATES_VIEW')) {
+    return NextResponse.json({ error: 'Forbidden: Insufficient permissions to update presence' }, { status: 403 });
+  }
+
   try {
     const body = await request.json();
     const { userId, userName, userRole, avatarUrl, personalColor, currentPage } = body;
@@ -131,6 +137,12 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Check if user has permission to remove presence
+  // Users should be able to remove their own presence if they can view candidates (basic access)
+  if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('CANDIDATES_VIEW')) {
+    return NextResponse.json({ error: 'Forbidden: Insufficient permissions to remove presence' }, { status: 403 });
+  }
+
   try {
     const body = await request.json();
     const { userId } = body;
@@ -157,6 +169,12 @@ export async function GET() {
   
   if (!session?.user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Check if user has permission to view presence data
+  // Users should be able to view presence if they can view candidates (basic access)
+  if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('CANDIDATES_VIEW')) {
+    return NextResponse.json({ error: 'Forbidden: Insufficient permissions to view presence data' }, { status: 403 });
   }
 
   try {

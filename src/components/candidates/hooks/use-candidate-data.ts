@@ -204,7 +204,7 @@ export function useCandidateData({
       return;
     }
 
-    // Add debouncing for smoother experience (but keep it simple)
+    // Much more responsive debouncing for smoother experience
     if (!forceRefresh && fitScoreCountsDebounceRef.current) {
       clearTimeout(fitScoreCountsDebounceRef.current);
     }
@@ -212,7 +212,7 @@ export function useCandidateData({
     if (!forceRefresh) {
       fitScoreCountsDebounceRef.current = setTimeout(() => {
         fetchFitScoreCounts(true);
-      }, 200); // Simple 200ms debounce
+      }, 100); // Reduced to 100ms for ultra-responsive feel
       return;
     }
 

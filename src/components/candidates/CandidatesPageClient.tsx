@@ -793,7 +793,7 @@ export function CandidatesPageClient({
     return paginatedCandidates;
   }, [isAiSearchActive, aiMatchedCandidateIds, mappedCandidates, filteredCandidates, page, pageSize, total, paginatedCandidates, isLoading, tableLoading]);
 
-  // Apply horizontal filters when selections change (SIMPLIFIED)
+  // Apply horizontal filters when selections change (ULTRA-RESPONSIVE)
   useEffect(() => {
     // Skip if we're currently clearing filters to prevent conflicts
     if (isClearingFilters) {
@@ -810,7 +810,7 @@ export function CandidatesPageClient({
       clearTimeout(filterChangeTimeoutRef.current);
     }
     
-    // Simple debounced filter application
+    // Ultra-responsive filter application with immediate feedback
     filterChangeTimeoutRef.current = setTimeout(() => {
       // Only apply horizontal filters if there are selections
       if (horizontalSelectedFitScoreGrades.size > 0 || horizontalSelectedMatchingFitScoreGrades.size > 0) {
@@ -820,11 +820,31 @@ export function CandidatesPageClient({
         const hasValidFilters = Object.values(horizontalFilters).some(value => value !== undefined);
         
         if (hasValidFilters) {
-          // Apply the filters
+          // Apply the filters immediately for instant feedback
           setFilters(prev => ({ ...prev, ...horizontalFilters }));
+          
+          // Add instant visual feedback
+          const feedbackElement = document.createElement('div');
+          feedbackElement.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg transform transition-all duration-300 z-50';
+          feedbackElement.textContent = 'Filters applied!';
+          feedbackElement.style.transform = 'translateX(100%)';
+          document.body.appendChild(feedbackElement);
+          
+          // Animate in
+          setTimeout(() => {
+            feedbackElement.style.transform = 'translateX(0)';
+          }, 10);
+          
+          // Animate out and remove
+          setTimeout(() => {
+            feedbackElement.style.transform = 'translateX(100%)';
+            setTimeout(() => {
+              document.body.removeChild(feedbackElement);
+            }, 300);
+          }, 2000);
         }
       }
-    }, 300);
+    }, 50); // Ultra-fast 50ms debounce for instant feel
     
     return () => {
       if (filterChangeTimeoutRef.current) {

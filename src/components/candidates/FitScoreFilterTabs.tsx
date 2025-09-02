@@ -154,10 +154,10 @@ export function FitScoreFilterTabs({
             safeOnClearAll();
           }}
           className={cn(
-            "flex items-center gap-2 px-2 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer rounded-t-lg",
+            "flex items-center gap-2 px-2 py-3 text-sm font-medium transition-all duration-150 relative cursor-pointer rounded-t-lg transform",
             isAllSelected
-              ? "text-white border-b-2 bg-blue-800"
-              : "text-black hover:text-foreground hover:bg-muted/30 border-b-2 border-gray-300"
+              ? "text-white border-b-2 bg-blue-800 scale-105"
+              : "text-black hover:text-foreground hover:bg-muted/30 border-b-2 border-gray-300 hover:scale-102"
           )}
         >
           {isAiSearchActive && aiMatchedCount > 0 ? "AI Matched" : "All (0-100)"} 
@@ -178,10 +178,10 @@ export function FitScoreFilterTabs({
               safeOnGradeToggle(grade.letter);
             }}
             className={cn(
-              "flex items-center gap-2 px-2 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer rounded-t-lg",
+              "flex items-center gap-2 px-2 py-3 text-sm font-medium transition-all duration-150 relative cursor-pointer rounded-t-lg transform",
               safeSelectedGrades.has(grade.letter)
-                ? cn("text-white border-b-2", getGradeBorderColor(grade.letter))
-                : cn("hover:bg-muted/30", getGradeTextColor(grade.letter))
+                ? cn("text-white border-b-2 scale-105", getGradeBorderColor(grade.letter))
+                : cn("hover:bg-muted/30 hover:scale-102", getGradeTextColor(grade.letter))
             )}
           >
             {grade.letter} ({grade.min}-{grade.max}) 
@@ -201,10 +201,10 @@ export function FitScoreFilterTabs({
             safeOnGradeToggle('no-score');
           }}
           className={cn(
-            "flex items-center gap-2 px-2 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer rounded-t-lg",
+            "flex items-center gap-2 px-2 py-3 text-sm font-medium transition-all duration-150 relative cursor-pointer rounded-t-lg transform",
             safeSelectedGrades.has('no-score')
-              ? cn("text-white border-b-2", getGradeBorderColor('no-score'))
-              : cn("hover:bg-muted/30", getGradeTextColor('no-score'))
+              ? cn("text-white border-b-2 scale-105", getGradeBorderColor('no-score'))
+              : cn("hover:bg-muted/30 hover:scale-102", getGradeTextColor('no-score'))
           )}
         >
           No Score 

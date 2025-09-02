@@ -48,6 +48,12 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
+    // Check if user has permission to view recruitment stages
+    // Users should be able to view stages if they can view candidates (for filtering purposes)
+    if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('CANDIDATES_VIEW')) {
+        return NextResponse.json({ message: "Forbidden: Insufficient permissions to view recruitment stages" }, { status: 403 });
+    }
+
     const client = await getPool().connect();
     try {
         const result = await client.query(

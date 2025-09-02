@@ -19,6 +19,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Check if user has permission to view headcount data
+    // Users should be able to view headcount if they can view positions or candidates
+    if (session.user.role !== 'Admin' && 
+        !session.user.modulePermissions?.includes('POSITIONS_VIEW') &&
+        !session.user.modulePermissions?.includes('CANDIDATES_VIEW')) {
+      return NextResponse.json({ error: 'Forbidden: Insufficient permissions to view headcount data' }, { status: 403 });
+    }
+
     if (!positionId) {
       return NextResponse.json({ error: 'Position ID is required' }, { status: 400 });
     }
@@ -74,6 +82,14 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Check if user has permission to create headcount data
+    // Users should be able to create headcount if they can manage positions or have headcount-specific permissions
+    if (session.user.role !== 'Admin' && 
+        !session.user.modulePermissions?.includes('POSITIONS_MANAGE') &&
+        !session.user.modulePermissions?.includes('HEADCOUNT_MANAGE')) {
+      return NextResponse.json({ error: 'Forbidden: Insufficient permissions to create headcount data' }, { status: 403 });
     }
 
     body = await request.json();

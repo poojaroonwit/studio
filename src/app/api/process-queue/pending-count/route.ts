@@ -14,6 +14,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
+    // Check if user has permission to view process queue data
+    // Users should be able to view queue data if they can manage uploads or have system monitoring permissions
+    if (session.user.role !== 'Admin' && 
+        !session.user.modulePermissions?.includes('UPLOAD_QUEUE_VIEW') &&
+        !session.user.modulePermissions?.includes('SYSTEM_MONITORING_VIEW')) {
+      return NextResponse.json({ message: 'Forbidden: Insufficient permissions to view process queue data' }, { status: 403 });
+    }
+
     const actingUserId = session.user.id;
     const actingUserName = session.user.name || session.user.email || 'System';
 

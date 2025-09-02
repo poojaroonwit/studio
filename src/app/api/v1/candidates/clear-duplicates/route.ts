@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
   const headers = handleCors(req);
   
   try {
+    console.log('[Clear Duplicates] Starting request processing');
 
     // Verify API token
     const authHeader = req.headers.get('authorization');
@@ -36,14 +37,18 @@ export async function POST(req: NextRequest) {
     const user = token ? await verifyApiToken(token) : null;
 
     if (!user) {
+      console.log('[Clear Duplicates] Authentication failed - no valid token');
       return NextResponse.json({
         success: false,
         error: 'Invalid API token'
       }, { status: 401, headers });
     }
 
+    console.log('[Clear Duplicates] User authenticated:', user.id, user.role);
+
     // Check permissions
     if (user.role !== 'Admin' && !user.modulePermissions?.includes('CANDIDATES_DELETE')) {
+      console.log('[Clear Duplicates] Permission denied for user:', user.id);
       return NextResponse.json({
         success: false,
         error: 'Insufficient permissions to manage candidates'
@@ -52,6 +57,8 @@ export async function POST(req: NextRequest) {
 
     const body: ClearDuplicatesRequest = await req.json();
     const { dryRun = false, positionId } = body;
+
+    console.log('[Clear Duplicates] Request parameters:', { dryRun, positionId });
 
     // Validate positionId if provided
     if (positionId && typeof positionId !== 'string') {
@@ -75,7 +82,22 @@ export async function POST(req: NextRequest) {
       whereClause.positionId = positionId;
     }
 
+    console.log('[Clear Duplicates] Database query where clause:', whereClause);
+
+    // Test database connection first
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      console.log('[Clear Duplicates] Database connection test successful');
+    } catch (dbTestError) {
+      console.error('[Clear Duplicates] Database connection test failed:', dbTestError);
+      return NextResponse.json({
+        success: false,
+        error: 'Database connection failed'
+      }, { status: 500, headers });
+    }
+
     // Fetch all candidates
+    console.log('[Clear Duplicates] Fetching candidates from database...');
     const candidates = await prisma.candidate.findMany({
       where: whereClause,
       select: {
@@ -91,12 +113,20 @@ export async function POST(req: NextRequest) {
       }
     });
 
+    console.log('[Clear Duplicates] Found candidates:', candidates.length);
+
     if (!candidates || candidates.length === 0) {
-      await logAudit('AUDIT', `Clear duplicates completed - no candidates found`, 'API:V1:Candidates:ClearDuplicates', user.id, {
-        dryRun,
-        positionId,
-        candidatesFound: 0
-      });
+      console.log('[Clear Duplicates] No candidates found');
+      try {
+        await logAudit('AUDIT', `Clear duplicates completed - no candidates found`, 'API:V1:Candidates:ClearDuplicates', user.id, {
+          dryRun,
+          positionId,
+          candidatesFound: 0
+        });
+      } catch (auditError) {
+        console.error('[Clear Duplicates] Audit logging failed:', auditError);
+        // Continue execution even if audit logging fails
+      }
 
       return NextResponse.json({
         success: true,
@@ -110,6 +140,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Group candidates by email and positionId
+    console.log('[Clear Duplicates] Grouping candidates...');
     const candidateGroups = new Map<string, DuplicateGroup>();
     
     candidates.forEach((candidate: any) => {
@@ -130,12 +161,20 @@ export async function POST(req: NextRequest) {
     const duplicateGroups = Array.from(candidateGroups.values())
       .filter(group => group.candidates.length > 1);
 
+    console.log('[Clear Duplicates] Found duplicate groups:', duplicateGroups.length);
+
     if (duplicateGroups.length === 0) {
-      await logAudit('AUDIT', `Clear duplicates dry run completed - no duplicates found`, 'API:V1:Candidates:ClearDuplicates', user.id, {
-        dryRun,
-        positionId,
-        duplicatesFound: 0
-      });
+      console.log('[Clear Duplicates] No duplicates found');
+      try {
+        await logAudit('AUDIT', `Clear duplicates dry run completed - no duplicates found`, 'API:V1:Candidates:ClearDuplicates', user.id, {
+          dryRun,
+          positionId,
+          duplicatesFound: 0
+        });
+      } catch (auditError) {
+        console.error('[Clear Duplicates] Audit logging failed:', auditError);
+        // Continue execution even if audit logging fails
+      }
 
       return NextResponse.json({
         success: true,
@@ -167,13 +206,21 @@ export async function POST(req: NextRequest) {
       totalToDelete += toDelete.length;
     }
 
+    console.log('[Clear Duplicates] Processing complete. Total to delete:', totalToDelete);
+
     if (dryRun) {
-      await logAudit('AUDIT', `Clear duplicates dry run completed`, 'API:V1:Candidates:ClearDuplicates', user.id, {
-        dryRun,
-        positionId,
-        duplicatesFound: duplicateGroups.length,
-        candidatesToDelete: totalToDelete
-      });
+      console.log('[Clear Duplicates] Dry run mode - no actual deletion');
+      try {
+        await logAudit('AUDIT', `Clear duplicates dry run completed`, 'API:V1:Candidates:ClearDuplicates', user.id, {
+          dryRun,
+          positionId,
+          duplicatesFound: duplicateGroups.length,
+          candidatesToDelete: totalToDelete
+        });
+      } catch (auditError) {
+        console.error('[Clear Duplicates] Audit logging failed:', auditError);
+        // Continue execution even if audit logging fails
+      }
 
       return NextResponse.json({
         success: true,
@@ -189,25 +236,32 @@ export async function POST(req: NextRequest) {
     }
 
     // Actually delete the duplicates
+    console.log('[Clear Duplicates] Starting actual deletion...');
     const candidateIdsToDelete = candidatesToDelete.map(c => c.id);
     
     if (candidateIdsToDelete.length > 0) {
       try {
-        await prisma.candidate.deleteMany({
+        console.log('[Clear Duplicates] Deleting candidates with IDs:', candidateIdsToDelete);
+        const deleteResult = await prisma.candidate.deleteMany({
           where: {
             id: {
               in: candidateIdsToDelete
             }
           }
         });
+        console.log('[Clear Duplicates] Delete operation completed:', deleteResult);
       } catch (deleteError) {
-        console.error('Error deleting candidates:', deleteError);
-        await logAudit('ERROR', `Failed to delete duplicate candidates`, 'API:V1:Candidates:ClearDuplicates', user.id, {
-          dryRun,
-          positionId,
-          candidatesToDelete: candidateIdsToDelete,
-          error: (deleteError as Error).message
-        });
+        console.error('[Clear Duplicates] Error deleting candidates:', deleteError);
+        try {
+          await logAudit('ERROR', `Failed to delete duplicate candidates`, 'API:V1:Candidates:ClearDuplicates', user.id, {
+            dryRun,
+            positionId,
+            candidatesToDelete: candidateIdsToDelete,
+            error: (deleteError as Error).message
+          });
+        } catch (auditError) {
+          console.error('[Clear Duplicates] Audit logging failed:', auditError);
+        }
 
         return NextResponse.json({
           success: false,
@@ -216,12 +270,18 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    await logAudit('AUDIT', `Successfully cleared ${totalToDelete} duplicate candidates`, 'API:V1:Candidates:ClearDuplicates', user.id, {
-      dryRun,
-      positionId,
-      duplicatesFound: duplicateGroups.length,
-      candidatesDeleted: totalToDelete
-    });
+    console.log('[Clear Duplicates] Successfully completed deletion');
+    try {
+      await logAudit('AUDIT', `Successfully cleared ${totalToDelete} duplicate candidates`, 'API:V1:Candidates:ClearDuplicates', user.id, {
+        dryRun,
+        positionId,
+        duplicatesFound: duplicateGroups.length,
+        candidatesDeleted: totalToDelete
+      });
+    } catch (auditError) {
+      console.error('[Clear Duplicates] Audit logging failed:', auditError);
+      // Continue execution even if audit logging fails
+    }
 
     return NextResponse.json({
       success: true,
@@ -235,7 +295,7 @@ export async function POST(req: NextRequest) {
     }, { headers });
 
   } catch (error) {
-    console.error('Error clearing duplicate candidates:', error);
+    console.error('[Clear Duplicates] Unexpected error:', error);
     
     // Safely get userId without potentially causing another error
     let userId = 'unknown';
@@ -247,12 +307,16 @@ export async function POST(req: NextRequest) {
         userId = user?.id || 'unknown';
       }
     } catch (authError) {
-      console.error('Error getting user ID for audit log:', authError);
+      console.error('[Clear Duplicates] Error getting user ID for audit log:', authError);
     }
     
-    await logAudit('ERROR', `Failed to clear duplicate candidates`, 'API:V1:Candidates:ClearDuplicates', userId, {
-      error: (error as Error).message
-    });
+    try {
+      await logAudit('ERROR', `Failed to clear duplicate candidates`, 'API:V1:Candidates:ClearDuplicates', userId, {
+        error: (error as Error).message
+      });
+    } catch (auditError) {
+      console.error('[Clear Duplicates] Audit logging failed:', auditError);
+    }
 
     return NextResponse.json({
       success: false,

@@ -403,18 +403,18 @@ export function UserPreferencesModal({ isOpen, onOpenChange, user }: UserPrefere
                 </TabsContent>
 
                 {/* Sidebar Tab */}
-                <TabsContent value="sidebar" className="space-y-4">
+                <TabsContent value="sidebar" className="space-y-6">
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
-                        <Layout className="h-4 w-4" />
+                        <Layout className="w-5 h-5" />
                         Sidebar Preferences
                       </CardTitle>
                       <CardDescription>
-                        Customize how the sidebar displays information
+                        Configure sidebar display and information preferences
                       </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-4">
+                    <CardContent className="space-y-6">
                       {/* Show Assigned Positions Switch */}
                       <div className="flex items-center justify-between">
                         <div className="space-y-1">
@@ -422,7 +422,7 @@ export function UserPreferencesModal({ isOpen, onOpenChange, user }: UserPrefere
                             Show Assigned Positions
                           </Label>
                           <p className="text-sm text-muted-foreground">
-                            Display assigned open positions in the main sidebar
+                            Display assigned open positions in the main sidebar with headcount information
                           </p>
                         </div>
                         <Switch

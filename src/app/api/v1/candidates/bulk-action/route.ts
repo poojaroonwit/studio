@@ -25,8 +25,43 @@ export async function POST(req: NextRequest) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: handleCors(req) });
   }
 
-      if (user.role !== 'Admin' &&  !user.modulePermissions?.includes('CANDIDATES_PIPELINE_STAGE_BULK_UPDATE')) {
-    return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions' }), { status: 403, headers: handleCors(req) });
+  // Check permissions based on the action being performed
+  let hasPermission = false;
+  
+  if (user.role === 'Admin') {
+    hasPermission = true;
+  } else {
+    // Read the request body first to check permissions
+    let body;
+    try {
+      body = await req.json();
+    } catch {
+      return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers: handleCors(req) });
+    }
+    
+    // Check specific permissions based on action
+    const { action } = body;
+    
+    switch (action) {
+      case 'assign_recruiter':
+        hasPermission = user.modulePermissions?.includes('CANDIDATES_RECRUITER_ASSIGN') || false;
+        break;
+      case 'assign_position':
+        hasPermission = user.modulePermissions?.includes('CANDIDATES_EDIT_BASIC') || false;
+        break;
+      case 'update_status':
+        hasPermission = user.modulePermissions?.includes('CANDIDATES_PIPELINE_STAGE_BULK_UPDATE') || false;
+        break;
+      case 'delete':
+        hasPermission = user.modulePermissions?.includes('CANDIDATES_DELETE') || false;
+        break;
+      default:
+        hasPermission = false;
+    }
+  }
+  
+  if (!hasPermission) {
+    return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to perform this bulk action' }), { status: 403, headers: handleCors(req) });
   }
 
   let body;

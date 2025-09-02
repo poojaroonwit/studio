@@ -16,6 +16,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
+  // Check if user has permission to view SLA violations
+  // Users should be able to view SLA data if they can view candidates or have SLA-specific permissions
+  if (session.user.role !== 'Admin' && 
+      !session.user.modulePermissions?.includes('CANDIDATES_VIEW') &&
+      !session.user.modulePermissions?.includes('SLA_MONITORING_VIEW')) {
+    return NextResponse.json({ message: 'Forbidden: Insufficient permissions to view SLA violations' }, { status: 403 });
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const recruiterId = searchParams.get('recruiterId');

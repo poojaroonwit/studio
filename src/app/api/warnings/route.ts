@@ -14,6 +14,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Check if user has permission to view warnings
+  // Users should be able to view warnings if they can view candidates or have warning-specific permissions
+  if (session.user.role !== 'Admin' && 
+      !session.user.modulePermissions?.includes('CANDIDATES_VIEW') &&
+      !session.user.modulePermissions?.includes('WARNINGS_VIEW')) {
+    return NextResponse.json({ error: 'Forbidden: Insufficient permissions to view warnings' }, { status: 403 });
+  }
+
   const actingUserId = session.user.id;
   const actingUserName = session.user.name || session.user.email || 'System';
 
@@ -120,6 +128,14 @@ export async function POST(request: NextRequest) {
 
   if (!session?.user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Check if user has permission to create/update warnings
+  // Users should be able to manage warnings if they can edit candidates or have warning-specific permissions
+  if (session.user.role !== 'Admin' && 
+      !session.user.modulePermissions?.includes('CANDIDATES_EDIT_BASIC') &&
+      !session.user.modulePermissions?.includes('WARNINGS_MANAGE')) {
+    return NextResponse.json({ error: 'Forbidden: Insufficient permissions to manage warnings' }, { status: 403 });
   }
 
   const actingUserId = session.user.id;

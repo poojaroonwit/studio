@@ -42,7 +42,9 @@ export async function POST(request: NextRequest) {
     return handleApiError(request, createUnauthorizedError('Authentication required'));
   }
 
-  if (user.role !== 'Admin' && !user.modulePermissions?.includes('CANDIDATES_VIEW')) {
+  // Check if user has permission to send notifications
+  // Users should be able to send notifications if they can edit candidates (basic interaction)
+  if (user.role !== 'Admin' && !user.modulePermissions?.includes('CANDIDATES_EDIT_BASIC')) {
     return handleApiError(request, createForbiddenError('Insufficient permissions to send notifications'));
   }
 

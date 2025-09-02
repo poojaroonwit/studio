@@ -50,7 +50,7 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
       return;
     }
 
-    console.log('🔄 Starting to load candidate data for ID:', candidateId);
+
     isLoadingRef.current = true;
 
     // Abort any existing request
@@ -82,7 +82,7 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
     }, 60000); // 60 second timeout (increased from 30s)
 
     try {
-      console.log('📡 Making API requests for candidate:', candidateId);
+
       
       // Load all data in parallel with better error handling
       const [commentsRes, attachmentsRes, candidateRes] = await Promise.allSettled([
@@ -100,11 +100,7 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
         })
       ]);
 
-      console.log('📡 API responses received for candidate:', candidateId, {
-        comments: commentsRes.status,
-        attachments: attachmentsRes.status,
-        candidate: candidateRes.status
-      });
+
 
       // Clear timeout since we got a response
       if (timeoutRef.current) {

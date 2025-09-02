@@ -42,6 +42,7 @@ import { useUserPreferences } from '@/hooks/use-user-preferences';
 import { useEnhancedSSE } from '@/hooks/use-enhanced-sse';
 import { checkSLAViolation, getSLABadgeVariant, formatSLAMessage, getSLARemainingDays } from '@/lib/slaUtils';
 import { Pagination } from '@/components/ui/pagination';
+import { useJobMatchFeature } from '@/hooks/useJobMatchFeature';
 
 
 export default function PositionsPageClient() {
@@ -52,6 +53,9 @@ export default function PositionsPageClient() {
     resetPositionsPreferences,
     isLoaded 
   } = useUserPreferences();
+
+  // Check if job match feature is enabled
+  const { isJobMatchEnabled } = useJobMatchFeature();
 
   // All useState hooks first
   const [positions, setPositions] = useState<Position[]>([]);
@@ -1433,7 +1437,9 @@ export default function PositionsPageClient() {
                 </TableHead>
 
                 <TableHead className="hide-on-mobile">Applied</TableHead>
-                <TableHead className="hide-on-mobile">Potential Matched</TableHead>
+                {isJobMatchEnabled && (
+                  <TableHead className="hide-on-mobile">Potential Matched</TableHead>
+                )}
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -1550,17 +1556,19 @@ export default function PositionsPageClient() {
                       </span>
                     )}
                   </TableCell>
-                  <TableCell className="text-center hide-on-mobile">
-                    {(position.candidateStats?.totalMatching ?? 0) > 0 ? (
-                      <span className="inline-flex items-center justify-center px-2 py-1 text-sm font-medium bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300 rounded-md">
-                        {position.candidateStats?.totalMatching}
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center justify-center px-2 py-1 text-sm font-medium bg-muted text-muted-foreground rounded-md">
-                        0
-                      </span>
-                    )}
-                  </TableCell>
+                  {isJobMatchEnabled && (
+                    <TableCell className="text-center hide-on-mobile">
+                      {(position.candidateStats?.totalMatching ?? 0) > 0 ? (
+                        <span className="inline-flex items-center justify-center px-2 py-1 text-sm font-medium bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300 rounded-md">
+                          {position.candidateStats?.totalMatching}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center justify-center px-2 py-1 text-sm font-medium bg-muted text-muted-foreground rounded-md">
+                          0
+                        </span>
+                      )}
+                    </TableCell>
+                  )}
                   <TableCell>
                       <div className="flex items-center gap-2 action-buttons">
                       <Button

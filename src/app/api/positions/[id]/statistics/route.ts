@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { getSystemSetting } from '@/lib/systemSettings';
 
 export async function GET(
   request: NextRequest,
@@ -39,91 +40,97 @@ export async function GET(
       totalApplied = 0;
     }
 
+    // Check if job match feature is enabled
+    const jobMatchFeatureEnabled = await getSystemSetting('jobMatchFeatureEnabled');
+    const isJobMatchEnabled = jobMatchFeatureEnabled !== 'false';
+
     // Get candidates who have job matches for this position
     let totalMatching = 0;
     let matchingNotApplied = 0;
     
-    try {
-      // Method 1: Check JobMatch table directly (new system)
-      const jobMatchCandidates = await prisma.jobMatch.findMany({
-        where: {
-          jobId: positionId
-        },
-        select: {
-          candidateId: true,
-          candidate: {
-            select: {
-              positionId: true
+    if (isJobMatchEnabled) {
+      try {
+        // Method 1: Check JobMatch table directly (new system)
+        const jobMatchCandidates = await prisma.jobMatch.findMany({
+          where: {
+            jobId: positionId
+          },
+          select: {
+            candidateId: true,
+            candidate: {
+              select: {
+                positionId: true
+              }
             }
           }
-        }
-      });
-
-      // Get unique candidate IDs from JobMatch table
-      const jobMatchCandidateIds = new Set(jobMatchCandidates.map((match: any) => match.candidateId));
-
-      // Method 2: Check parsedData.job_matches (legacy system)
-      const filteredCandidates = await prisma.candidate.findMany({
-        select: {
-          id: true,
-          positionId: true,
-          parsedData: true
-        }
-      });
-      
-      // Filter candidates who have job matches for this position in parsedData
-      const parsedDataCandidateIds = new Set();
-      filteredCandidates.forEach((candidate: any) => {
-        try {
-          const parsedData = candidate.parsedData as any;
-          if (!parsedData || typeof parsedData !== 'object') return;
-          
-          const jobMatches = parsedData.job_matches;
-          if (!Array.isArray(jobMatches)) return;
-          
-          // Check if any job match has the target positionId
-          const hasMatch = jobMatches.some((match: any) => 
-            match && typeof match === 'object' && match.jobId === positionId
-          );
-          
-          if (hasMatch) {
-            parsedDataCandidateIds.add(candidate.id);
-          }
-        } catch (error) {
-                    console.error('Error parsing candidate data for candidate', candidate.id, ':', error);
-        }
-      });
-
-      // Combine both sources - get unique candidate IDs
-      const allMatchingCandidateIds = new Set([...jobMatchCandidateIds, ...parsedDataCandidateIds]);
-      totalMatching = allMatchingCandidateIds.size;
-
-      // Calculate matching but not applied
-      // Get candidates who match but haven't applied to this position
-      matchingNotApplied = 0;
-      
-      // From JobMatch table
-      jobMatchCandidates.forEach((match: any) => {
-        if (match.candidate.positionId !== positionId) {
-          matchingNotApplied++;
-        }
-      });
-      
-            // From parsedData (only count if not already counted from JobMatch table)
-        filteredCandidates
-        .filter((candidate: any) =>
-          parsedDataCandidateIds.has(candidate.id) &&
-          !jobMatchCandidateIds.has(candidate.id) &&
-          candidate.positionId !== positionId
-        )
-        .forEach(() => {
-          matchingNotApplied++;
         });
 
-    } catch (error) {
-      console.error('Error calculating job matching statistics:', error);
-      totalMatching = 0;
-      matchingNotApplied = 0;
+        // Get unique candidate IDs from JobMatch table
+        const jobMatchCandidateIds = new Set(jobMatchCandidates.map((match: any) => match.candidateId));
+
+        // Method 2: Check parsedData.job_matches (legacy system)
+        const filteredCandidates = await prisma.candidate.findMany({
+          select: {
+            id: true,
+            positionId: true,
+            parsedData: true
+          }
+        });
+        
+        // Filter candidates who have job matches for this position in parsedData
+        const parsedDataCandidateIds = new Set();
+        filteredCandidates.forEach((candidate: any) => {
+          try {
+            const parsedData = candidate.parsedData as any;
+            if (!parsedData || typeof parsedData !== 'object') return;
+            
+            const jobMatches = parsedData.job_matches;
+            if (!Array.isArray(jobMatches)) return;
+            
+            // Check if any job match has the target positionId
+            const hasMatch = jobMatches.some((match: any) => 
+              match && typeof match === 'object' && match.jobId === positionId
+            );
+            
+            if (hasMatch) {
+              parsedDataCandidateIds.add(candidate.id);
+            }
+          } catch (error) {
+            console.error('Error parsing candidate data for candidate', candidate.id, ':', error);
+          }
+        });
+
+        // Combine both sources - get unique candidate IDs
+        const allMatchingCandidateIds = new Set([...jobMatchCandidateIds, ...parsedDataCandidateIds]);
+        totalMatching = allMatchingCandidateIds.size;
+
+        // Calculate matching but not applied
+        // Get candidates who match but haven't applied to this position
+        matchingNotApplied = 0;
+        
+        // From JobMatch table
+        jobMatchCandidates.forEach((match: any) => {
+          if (match.candidate.positionId !== positionId) {
+            matchingNotApplied++;
+          }
+        });
+        
+        // From parsedData (only count if not already counted from JobMatch table)
+        filteredCandidates
+          .filter((candidate: any) =>
+            parsedDataCandidateIds.has(candidate.id) &&
+            !jobMatchCandidateIds.has(candidate.id) &&
+            candidate.positionId !== positionId
+          )
+          .forEach(() => {
+            matchingNotApplied++;
+          });
+
+      } catch (error) {
+        console.error('Error calculating job matching statistics:', error);
+        totalMatching = 0;
+        matchingNotApplied = 0;
+      }
     }
 
     const result = {

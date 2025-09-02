@@ -127,10 +127,9 @@ export function FitScoreFilterTabs({
       return (
         <Badge 
           variant="secondary" 
-          className="ml-1 text-xs px-1.5 py-0.5 h-5 min-w-5 flex items-center justify-center text-foreground bg-muted/50 animate-pulse"
+          className="ml-1 px-2 py-0.5 text-xs font-medium bg-muted text-muted-foreground animate-pulse transition-all duration-200"
         >
-          <Loader2 className="h-3 w-3 animate-spin mr-1" />
-          ...
+          <div className="w-4 h-3 bg-muted-foreground/20 rounded animate-pulse"></div>
         </Badge>
       );
     }
@@ -138,12 +137,8 @@ export function FitScoreFilterTabs({
     return (
       <Badge 
         variant="secondary" 
-        className={cn(
-          "ml-1 text-xs px-1.5 py-0.5 h-5 min-w-5 flex items-center justify-center text-foreground transition-all duration-200",
-          showPerformanceIndicator && "bg-secondary text-foreground border-transparent"
-        )}
+        className="ml-1 px-2 py-0.5 text-xs font-medium bg-muted text-muted-foreground transition-all duration-200 hover:bg-muted/80"
       >
-        {/* {showPerformanceIndicator && <Clock className="h-2.5 w-2.5 mr-0.5" />} */}
         {formatCount(count)}
       </Badge>
     );

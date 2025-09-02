@@ -1,11 +1,13 @@
 // src/app/api/candidates/export/route.ts
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { logAudit } from '@/lib/auditLog';
 import { getServerSession } from 'next-auth/next';
 import { getPool } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
 import * as XLSX from 'xlsx';
 import { NextRequest } from 'next/server';
+import { hasPermission } from '@/lib/permissions';
+import { getSystemSetting } from '@/lib/systemSettings';
 
 export const dynamic = 'force-dynamic';
 
@@ -114,7 +116,7 @@ function formatJobMatches(jobMatches: any[]): string {
 }
 
 // Helper function to transform candidate data for export
-function transformCandidateForExport(candidate: any): any {
+function transformCandidateForExport(candidate: any, isJobMatchEnabled: boolean): any {
   const parsedData = candidate.parsedData || {};
   
   return {
@@ -131,7 +133,7 @@ function transformCandidateForExport(candidate: any): any {
     'Application Date': formatDateForExport(candidate.applicationDate),
     'Applied Job': candidate.position_title || '',
     'Applied Job Justification': formatAssignmentJustification(candidate.assignmentJustification),
-    'Job Matches': formatJobMatches(candidate.job_matches || []),
+    ...(isJobMatchEnabled && { 'Job Matches': formatJobMatches(candidate.job_matches || []) }),
     'Location': extractFromParsedData(parsedData, 'personal_info.location') || '',
     'Introduction/About Me': extractFromParsedData(parsedData, 'personal_info.introduction_aboutme') || '',
     'Education (JSON)': parsedData.education ? JSON.stringify(parsedData.education) : '',
@@ -159,6 +161,10 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    // Check if job match feature is enabled
+    const jobMatchFeatureEnabled = await getSystemSetting('jobMatchFeatureEnabled');
+    const isJobMatchEnabled = jobMatchFeatureEnabled !== 'false';
+    
     const client = await getPool().connect();
     
     // Parse query parameters for filtering
@@ -316,36 +322,37 @@ export async function GET(request: NextRequest) {
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
     
     // Get candidates with position, recruiter, and job matches information
-    const query = `
-      SELECT 
-        c.*,
-        p.title as position_title,
-        u.name as recruiter_name,
-        COALESCE(
-          json_agg(
-            json_build_object(
-              'jobTitle', jm."jobTitle",
-              'fitScore', jm."fitScore",
-              'matchReasons', jm."matchReasons",
-              'jobDescriptionSummary', jm."job_description_summary"
-            ) ORDER BY jm."fitScore" DESC NULLS LAST
-          ) FILTER (WHERE jm.id IS NOT NULL),
-          '[]'::json
-        ) as job_matches
-      FROM "Candidate" c
-      LEFT JOIN "Position" p ON c."positionId" = p.id
-      LEFT JOIN "User" u ON c."recruiterId" = u.id
-      LEFT JOIN "JobMatch" jm ON c.id = jm."candidateId"
-      ${whereClause}
-      GROUP BY c.id, p.title, u.name
-      ORDER BY c."applicationDate" DESC
-    `;
+          const query = `
+        SELECT 
+          c.*,
+          p.title as position_title,
+          u.name as recruiter_name
+          ${isJobMatchEnabled ? `,
+          COALESCE(
+            json_agg(
+              json_build_object(
+                'jobTitle', jm."jobTitle",
+                'fitScore', jm."fitScore",
+                'matchReasons', jm."matchReasons",
+                'jobDescriptionSummary', jm."job_description_summary"
+              ) ORDER BY jm."fitScore" DESC NULLS LAST
+            ) FILTER (WHERE jm.id IS NOT NULL),
+            '[]'::json
+          ) as job_matches` : ''}
+        FROM "Candidate" c
+        LEFT JOIN "Position" p ON c."positionId" = p.id
+        LEFT JOIN "User" u ON c."recruiterId" = u.id
+        ${isJobMatchEnabled ? 'LEFT JOIN "JobMatch" jm ON c.id = jm."candidateId"' : ''}
+        ${whereClause}
+        GROUP BY c.id, p.title, u.name
+        ORDER BY c."applicationDate" DESC
+      `;
     
     const result = await client.query(query, queryParams);
     client.release();
 
     // Transform data for export
-    const exportData = result.rows.map(transformCandidateForExport);
+    const exportData = result.rows.map(candidate => transformCandidateForExport(candidate, isJobMatchEnabled));
     
     // Check if user wants Excel format (default) or CSV
     const format = url.searchParams.get('format') || 'excel';
@@ -357,30 +364,30 @@ export async function GET(request: NextRequest) {
       // Create the main data worksheet
       const dataWorksheet = XLSX.utils.json_to_sheet(exportData);
       
-      // Set column widths for better readability
-      const columnWidths = [
-        { wch: 36 }, // ID
-        { wch: 20 }, // Name
-        { wch: 25 }, // Email
-        { wch: 15 }, // Phone
-        { wch: 36 }, // Position ID
-        { wch: 30 }, // Position Name
-        { wch: 36 }, // Recruiter ID
-        { wch: 25 }, // Recruiter Name
-        { wch: 15 }, // Fit Score
-        { wch: 15 }, // Status
-        { wch: 15 }, // Application Date
-        { wch: 30 }, // Applied Job
-        { wch: 50 }, // Applied Job Justification
-        { wch: 60 }, // Job Matches
-        { wch: 20 }, // Location
-        { wch: 40 }, // Introduction
-        { wch: 50 }, // Education
-        { wch: 50 }, // Experience
-        { wch: 50 }, // Skills
-        { wch: 50 }, // Job Suitable
-        { wch: 50 }  // Custom Attributes
-      ];
+              // Set column widths for better readability
+        const columnWidths = [
+          { wch: 36 }, // ID
+          { wch: 20 }, // Name
+          { wch: 25 }, // Email
+          { wch: 15 }, // Phone
+          { wch: 36 }, // Position ID
+          { wch: 30 }, // Position Name
+          { wch: 36 }, // Recruiter ID
+          { wch: 25 }, // Recruiter Name
+          { wch: 15 }, // Fit Score
+          { wch: 15 }, // Status
+          { wch: 15 }, // Application Date
+          { wch: 30 }, // Applied Job
+          { wch: 50 }, // Applied Job Justification
+          ...(isJobMatchEnabled ? [{ wch: 60 }] : []), // Job Matches
+          { wch: 20 }, // Location
+          { wch: 40 }, // Introduction
+          { wch: 50 }, // Education
+          { wch: 50 }, // Experience
+          { wch: 50 }, // Skills
+          { wch: 50 }, // Job Suitable
+          { wch: 50 }  // Custom Attributes
+        ];
       
       dataWorksheet['!cols'] = columnWidths;
       

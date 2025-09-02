@@ -7,7 +7,7 @@ import { getPool } from '@/lib/db';
 import { dispatchWebhooks } from '@/lib/webhookDispatcher';
 import { syncRecruitersForPosition } from '@/lib/recruiterSync';
 import { NotificationService } from '@/lib/notificationService';
-import { WarningService } from '@/lib/warningService';
+import { SimpleWarningService } from '@/lib/warnings';
 import { broadcastPositionUpdate, broadcastPositionListUpdated, broadcastPositionStatisticsUpdated } from '@/lib/simple-broadcaster';
 
 const updatePositionSchema = z.object({

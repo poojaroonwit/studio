@@ -5,6 +5,7 @@ import { logAudit } from '@/lib/auditLog';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 import { createDateInTimezone } from '@/lib/dateUtils';
+import { getSystemSetting } from '@/lib/systemSettings';
 
 export const dynamic = "force-dynamic";
 
@@ -54,6 +55,11 @@ export async function POST(request: NextRequest) {
   }
 
   const { candidate, job_matches } = validation.data;
+  
+  // Check if job match feature is enabled
+  const jobMatchFeatureEnabled = await getSystemSetting('jobMatchFeatureEnabled');
+  const isJobMatchEnabled = jobMatchFeatureEnabled !== 'false';
+  
   const newCandidateId = uuidv4();
   const client = await getPool().connect();
 
@@ -85,10 +91,12 @@ export async function POST(request: NextRequest) {
       }, { status: 200 });
     }
 
-    // Always filter job_matches to valid objects with jobId
-    let safeJobMatches = Array.isArray(job_matches)
-      ? job_matches.filter((m: any) => m && typeof m === 'object' && m.jobId)
-      : [];
+    // Always filter job_matches to valid objects with jobId (only if feature is enabled)
+    let safeJobMatches: any[] = [];
+    if (isJobMatchEnabled && Array.isArray(job_matches)) {
+      safeJobMatches = job_matches.filter((m: any) => m && typeof m === 'object' && m.jobId);
+    }
+    
     if (safeJobMatches.length > 0) {
       candidate.parsedData = {
         ...candidate.parsedData,
@@ -126,7 +134,7 @@ export async function POST(request: NextRequest) {
     const newCandidateResult = await client.query(insertCandidateQuery, candidateParams);
     const newCandidate = newCandidateResult.rows[0];
 
-    if (job_matches && job_matches.length > 0) {
+    if (isJobMatchEnabled && job_matches && job_matches.length > 0) {
       for (const match of job_matches) {
         const insertMatchQuery = `
           INSERT INTO "JobMatch" (id, "candidateId", "jobId", "jobTitle", "fitScore", "matchReasons", "job_description_summary", "createdAt", "updatedAt")
@@ -147,13 +155,13 @@ export async function POST(request: NextRequest) {
 
     await client.query('COMMIT');
     
-    await logAudit('AUDIT', `Candidate '${candidate.name}' created via automation with ${job_matches?.length || 0} job matches`, 'API:Automation:CreateCandidate', null, { 
+    await logAudit('AUDIT', `Candidate '${candidate.name}' created via automation${isJobMatchEnabled ? ` with ${job_matches?.length || 0} job matches` : ' (job match feature disabled)'}`, 'API:Automation:CreateCandidate', null, { 
       candidateId: newCandidateId,
       candidateName: candidate.name,
       candidateEmail: candidate.email,
       positionId: candidate.positionId,
       recruiterId: candidate.recruiterId,
-      jobMatchesCount: job_matches?.length || 0,
+      jobMatchesCount: isJobMatchEnabled ? (job_matches?.length || 0) : 0,
       fitScore: candidate.fitScore
     });
     

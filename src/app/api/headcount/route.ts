@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import type { CreateHeadcountRequest } from '@/lib/types';
 import { autoClosePositionIfHeadcountFilled } from '@/lib/headcountUtils';
-import { WarningService } from '@/lib/warningService';
+import { SimpleWarningService } from '@/lib/warnings';
 
 export const dynamic = 'force-dynamic';
 
@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
 
     // Check for warnings after headcount creation
     try {
-      await WarningService.createOrUpdateWarnings('headcount', headcount.id, session.user.id);
+      await SimpleWarningService.createOrUpdateWarnings('headcount', headcount.id, session.user.id);
     } catch (warningError) {
       console.error('Failed to check warnings for new headcount:', warningError);
       // Don't fail the request if warning check fails

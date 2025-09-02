@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { WarningService } from '@/lib/warningService';
+import { SimpleWarningService } from '@/lib/warnings';
 import prisma from '@/lib/prisma';
 import { logAudit } from '@/lib/auditLog';
 
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
     // console.log('🔍 Checking candidates...');
     for (const candidate of candidates) {
       try {
-        await WarningService.createOrUpdateWarnings('candidate', candidate.id, actingUserId);
+        await SimpleWarningService.createOrUpdateWarnings('candidate', candidate.id, actingUserId);
         totalWarningsCreated++;
       } catch (error) {
         console.error(`Error checking candidate ${candidate.name}:`, error);
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
     // console.log('🔍 Checking positions...');
     for (const position of positions) {
       try {
-        await WarningService.createOrUpdateWarnings('position', position.id, actingUserId);
+        await SimpleWarningService.createOrUpdateWarnings('position', position.id, actingUserId);
         totalWarningsCreated++;
       } catch (error) {
         console.error(`Error checking position ${position.title}:`, error);
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
     // console.log('🔍 Checking headcounts...');
     for (const headcount of headcounts) {
       try {
-        await WarningService.createOrUpdateWarnings('headcount', headcount.id, actingUserId);
+        await SimpleWarningService.createOrUpdateWarnings('headcount', headcount.id, actingUserId);
         totalWarningsCreated++;
       } catch (error) {
         console.error(`Error checking headcount ${headcount.id} (${headcount.type}/${headcount.status}):`, error);

@@ -11,7 +11,8 @@ import { normalizeFitScore } from '@/lib/scoreUtils';
 import { syncRecruiterForCandidate } from '@/lib/recruiterSync';
 import { NotificationService } from '@/lib/notificationService';
 import { validateCandidateHiringStatus, assignCandidateToHeadcount } from '@/lib/headcountUtils';
-import { WarningService } from '@/lib/warningService';
+import { SimpleWarningService } from '@/lib/warnings';
+import { getSystemSetting } from '@/lib/systemSettings';
 
 export const dynamic = 'force-dynamic';
 
@@ -233,34 +234,41 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     const candidate = candidateResult.rows[0];
 
+    // Check if job match feature is enabled
+    const jobMatchFeatureEnabled = await getSystemSetting('jobMatchFeatureEnabled');
+    const isJobMatchEnabled = jobMatchFeatureEnabled !== 'false';
+
     // Fetch job matches separately with pagination (reduced limit for performance)
-    const jobMatchesQuery = `
-      SELECT 
-        jm.id,
-        jm."candidateId",
-        jm."jobId",
-        jm."fitScore",
-        jm."createdAt",
-        jm."updatedAt",
-        p.title as "positionTitle",
-        p.department as "positionDepartment",
-        p.description as "positionDescription"
-      FROM "JobMatch" jm
-      LEFT JOIN "Position" p ON jm."jobId" = p.id
-      WHERE jm."candidateId" = $1::uuid
-      ORDER BY jm."fitScore" DESC
-      LIMIT 3
-    `;
-    
-    const jobMatchesStartTime = Date.now();
-    const jobMatchesResult = await client.query(jobMatchesQuery, [id]);
-    const jobMatchesQueryTime = Date.now() - jobMatchesStartTime;
-    
-    if (jobMatchesQueryTime > 3000) {
-      console.warn(`[PERF] Slow job matches query: ${jobMatchesQueryTime}ms for ID: ${id}`);
+    let jobMatches: any[] = [];
+    if (isJobMatchEnabled) {
+      const jobMatchesQuery = `
+        SELECT 
+          jm.id,
+          jm."candidateId",
+          jm."jobId",
+          jm."fitScore",
+          jm."createdAt",
+          jm."updatedAt",
+          p.title as "positionTitle",
+          p.department as "positionDepartment",
+          p.description as "positionDescription"
+        FROM "JobMatch" jm
+        LEFT JOIN "Position" p ON jm."jobId" = p.id
+        WHERE jm."candidateId" = $1::uuid
+        ORDER BY jm."fitScore" DESC
+        LIMIT 3
+      `;
+      
+      const jobMatchesStartTime = Date.now();
+      const jobMatchesResult = await client.query(jobMatchesQuery, [id]);
+      const jobMatchesQueryTime = Date.now() - jobMatchesStartTime;
+      
+      if (jobMatchesQueryTime > 3000) {
+        console.warn(`[PERF] Slow job matches query: ${jobMatchesQueryTime}ms for ID: ${id}`);
+      }
+      
+      jobMatches = jobMatchesResult.rows || [];
     }
-    
-    const jobMatches = jobMatchesResult.rows || [];
 
     // Fetch recent attachments only (reduced limit for performance)
     const attachmentsQuery = `
@@ -779,14 +787,17 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     
     const candidate = candidateResult.rows[0];
     
-    // Get job matches for this candidate
-    const jobMatchesResult = await client.query(`
-      SELECT jm.*, p.title as "positionTitle"
-      FROM "JobMatch" jm
-      LEFT JOIN "Position" p ON jm."jobId" = p.id
-      WHERE jm."candidateId" = $1::uuid
-      ORDER BY jm."fitScore" DESC;
-    `, [id]);
+    // Get job matches for this candidate (only if feature is enabled)
+    let jobMatchesResult = { rows: [] };
+    if (isJobMatchEnabled) {
+      jobMatchesResult = await client.query(`
+        SELECT jm.*, p.title as "positionTitle"
+        FROM "JobMatch" jm
+        LEFT JOIN "Position" p ON jm."jobId" = p.id
+        WHERE jm."candidateId" = $1::uuid
+        ORDER BY jm."fitScore" DESC;
+      `, [id]);
+    }
     
     // Get attachment history for this candidate
     const attachmentsResult = await client.query(`

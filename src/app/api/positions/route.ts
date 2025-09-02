@@ -40,8 +40,9 @@ import { getPool } from '@/lib/db';
 import { handleCors } from '@/lib/cors';
 import { dispatchWebhooks } from '@/lib/webhookDispatcher';
 import { getDefaultMatchCriteria } from '@/lib/systemSettings';
-import { WarningService } from '@/lib/warningService';
+import { SimpleWarningService } from '@/lib/warnings';
 import { broadcastPositionCreated } from '@/lib/simple-broadcaster';
+import { getSystemSetting } from '@/lib/systemSettings';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -208,6 +209,10 @@ export async function GET(request: NextRequest) {
 
       // Include candidate statistics for each position if requested
       if (includeCandidateStats && positions.length > 0) {
+        // Check if job match feature is enabled
+        const jobMatchFeatureEnabled = await getSystemSetting('jobMatchFeatureEnabled');
+        const isJobMatchEnabled = jobMatchFeatureEnabled !== 'false';
+        
         const positionIds = positions.map(p => p.id);
         
         // Get candidate statistics for all positions
@@ -221,8 +226,9 @@ export async function GET(request: NextRequest) {
             LEFT JOIN "Candidate" c ON p.id = c."positionId"
             WHERE p.id = ANY($1::uuid[])
             GROUP BY p.id
-          ),
-          position_matching AS (
+          )
+          ${isJobMatchEnabled ? `
+          ,position_matching AS (
             SELECT 
               p.id as position_id,
               COUNT(DISTINCT jm."candidateId") as total_matching
@@ -231,13 +237,14 @@ export async function GET(request: NextRequest) {
             WHERE p.id = ANY($1::uuid[])
             GROUP BY p.id
           )
+          ` : ''}
           SELECT 
             pa.position_id,
             COALESCE(pa.total_applied, 0) as total_applied,
-            COALESCE(pa.applied_status_count, 0) as applied_status_count,
-            COALESCE(pm.total_matching, 0) as total_matching
+            COALESCE(pa.applied_status_count, 0) as applied_status_count
+            ${isJobMatchEnabled ? ',COALESCE(pm.total_matching, 0) as total_matching' : ',0 as total_matching'}
           FROM position_applied pa
-          LEFT JOIN position_matching pm ON pa.position_id = pm.position_id
+          ${isJobMatchEnabled ? 'LEFT JOIN position_matching pm ON pa.position_id = pm.position_id' : ''}
         `;
         
         let statsResult;
@@ -253,7 +260,7 @@ export async function GET(request: NextRequest) {
           statsMap.set(row.position_id, {
             totalApplied: parseInt(row.total_applied, 10),
             appliedStatusCount: parseInt(row.applied_status_count, 10),
-            totalMatching: parseInt(row.total_matching, 10)
+            totalMatching: isJobMatchEnabled ? parseInt(row.total_matching, 10) : 0
           });
         });
         
@@ -396,7 +403,7 @@ export async function POST(request: NextRequest) {
     
     // Check for warnings after position creation
     try {
-      await WarningService.createOrUpdateWarnings('position', newPosition.id, actingUserId || undefined);
+      await SimpleWarningService.createOrUpdateWarnings('position', newPosition.id, actingUserId || undefined);
     } catch (warningError) {
       // Failed to check warnings for new position
     }

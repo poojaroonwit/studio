@@ -36,7 +36,7 @@ function getFileIcon(fileOrUrl: { fileName: string }) {
 }
 
 const CandidateResumesSection: React.FC<CandidateResumesSectionProps> = ({ candidateId, resumes, isEditing, onResumesChange }) => {
-  console.log('[CandidateResumesSection] Rendering with candidateId:', candidateId, 'resumes:', resumes?.length, 'isEditing:', isEditing);
+
   const [sortDesc, setSortDesc] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);

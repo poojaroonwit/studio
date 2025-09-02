@@ -21,7 +21,7 @@ import { logAudit } from '@/lib/auditLog';
 import { syncRecruiterForCandidate } from '@/lib/recruiterSync';
 import { createDateInTimezone } from '@/lib/dateUtils';
 import { NotificationService } from '@/lib/notificationService';
-import { WarningService } from '@/lib/warningService';
+import { SimpleWarningService } from '@/lib/warnings';
 import { normalizeFitScore } from '@/lib/scoreUtils';
 
 export const dynamic = 'force-dynamic';
@@ -245,7 +245,7 @@ export async function POST(request: NextRequest) {
     
     // Check for warnings after candidate creation
     try {
-      await WarningService.createOrUpdateWarnings('candidate', newCandidateId, user.id);
+      await SimpleWarningService.createOrUpdateWarnings('candidate', newCandidateId, user.id);
     } catch (warningError) {
       console.error('Failed to check warnings for new candidate:', warningError);
       // Don't fail the request if warning check fails

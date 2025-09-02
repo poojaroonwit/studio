@@ -1,4 +1,4 @@
-import { WarningService } from './warningService';
+import { SimpleWarningService } from './warnings';
 
 export interface WarningCheckOptions {
   entityType: string;
@@ -21,7 +21,7 @@ export class WarningMiddleware {
     setTimeout(async () => {
       try {
         // console.log(`🔄 Scheduled warning check for ${entityType} ${entityId}`);
-        await WarningService.createOrUpdateWarnings(entityType, entityId, userId);
+        await SimpleWarningService.createOrUpdateWarnings(entityType, entityId, userId);
         // console.log(`✅ Completed scheduled warning check for ${entityType} ${entityId}`);
       } catch (error) {
         console.error(`❌ Error in scheduled warning check for ${entityType} ${entityId}:`, error);
@@ -36,7 +36,7 @@ export class WarningMiddleware {
     const { entityType, entityId, userId } = options;
     
     try {
-      await WarningService.createOrUpdateWarnings(entityType, entityId, userId);
+      await SimpleWarningService.createOrUpdateWarnings(entityType, entityId, userId);
     } catch (error) {
       console.error(`❌ Error in immediate warning check for ${entityType} ${entityId}:`, error);
     }
@@ -48,9 +48,9 @@ export class WarningMiddleware {
   static async batchCheckWarnings(entities: WarningCheckOptions[]): Promise<void> {
     const promises = entities.map(async (entity) => {
       try {
-        await WarningService.createOrUpdateWarnings(entity.entityType, entity.entityId, entity.userId);
+        await SimpleWarningService.createOrUpdateWarnings(entity.entityType, entity.entityId, entity.userId);
       } catch (error) {
-        console.error(`❌ Error checking warnings for ${entity.entityType} ${entity.entityId}:`, error);
+        console.error(`❌ Error checking warnings for ${entity.entityId}:`, error);
       }
     });
 

@@ -115,7 +115,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     selectedStages: [] 
   });
 
-  // Simple candidate update handler
+  // Enhanced candidate update handler with conflict resolution
   const handleCandidateUpdate = useCallback((updateData: any) => {
     const updatedCandidate = updateData?.candidate || updateData;
     
@@ -127,10 +127,22 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       const existingIndex = prevCandidates.findIndex(c => c.id === updatedCandidate.id);
       if (existingIndex !== -1) {
         const updated = [...prevCandidates];
-        updated[existingIndex] = { ...prevCandidates[existingIndex], ...updatedCandidate };
+        const existing = updated[existingIndex];
+        
+        // Merge updates while preserving any local changes that haven't been confirmed
+        const merged = { 
+          ...existing, 
+          ...updatedCandidate,
+          // Preserve local status if it's different from the updated one (might be a pending change)
+          status: existing.status !== updatedCandidate.status ? existing.status : updatedCandidate.status
+        };
+        
+        updated[existingIndex] = merged;
         return updated;
+      } else {
+        // Add new candidate if not found
+        return [...prevCandidates, updatedCandidate];
       }
-      return prevCandidates;
     });
   }, []);
 
@@ -163,6 +175,17 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   // only show their assigned candidates
   const isRecruiter = userSession?.role === 'Recruiter' && 
     !userSession?.modulePermissions?.includes('CANDIDATES_VIEW');
+
+  // Check if user can see all recruiters (Admin or has CANDIDATES_VIEW permission)
+  const canSeeAllRecruiters = userSession?.role === 'Admin' || 
+    userSession?.modulePermissions?.includes('CANDIDATES_VIEW');
+
+  // Set initial recruiter filter for recruiters
+  useEffect(() => {
+    if (isRecruiter && userSession?.id && !filters.recruiterId) {
+      setFilters((prev: any) => ({ ...prev, recruiterId: userSession.id }));
+    }
+  }, [isRecruiter, userSession?.id, filters.recruiterId]);
 
   // Update local state when preferences are loaded - only once
   useEffect(() => {
@@ -448,7 +471,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     }));
   };
 
-  // Handle task movement - Simplified version
+  // Handle task movement - Improved version with proper error handling
   const handleMoveTask = async (task: Task, newStatus: string) => {
     // Prevent moving to the same status
     if (task.status === newStatus) {
@@ -463,6 +486,9 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     }
 
     try {
+      // Show loading state
+      toast.loading(`Moving ${candidate.name} to ${newStatus}...`, { id: `move-${candidate.id}` });
+      
       // Update the candidate status
       const response = await fetch('/api/candidates/bulk-action', {
         method: 'POST',
@@ -475,23 +501,35 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to update status: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Failed to update status: ${response.status}`);
       }
 
-      // Update local state
-      setCandidates((prev) =>
-        prev.map((c) =>
-          c.id === candidate.id
-            ? { ...c, status: newStatus }
-            : c
-        )
-      );
-
-      toast.success(`Moved ${candidate.name} to ${newStatus}`);
+      const result = await response.json();
+      
+      // Only update local state if the API call was successful
+      if (result.updatedCount > 0) {
+        // Update local state optimistically but let real-time updates handle the final state
+        setCandidates((prev) =>
+          prev.map((c) =>
+            c.id === candidate.id
+              ? { ...c, status: newStatus }
+              : c
+          )
+        );
+        
+        toast.success(`Moved ${candidate.name} to ${newStatus}`, { id: `move-${candidate.id}` });
+      } else {
+        // If no candidates were updated, show error
+        toast.error(`Failed to move ${candidate.name}: No candidates updated`, { id: `move-${candidate.id}` });
+      }
       
     } catch (error) {
       console.error('Error updating candidate status:', error);
-      toast.error('Failed to update candidate status');
+      toast.error(`Failed to update candidate status: ${error instanceof Error ? error.message : 'Unknown error'}`, { id: `move-${candidate.id}` });
+      
+      // Revert the visual change if the API call failed
+      // The real-time update will handle the correct state
     }
   };
 
@@ -664,8 +702,8 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
 
                {/* Stage filter is now handled by the TaskBoard component's built-in multi-select filter */}
 
-               {!isRecruiter && (
-                 <Popover>
+               {/* Recruiter Filter - Show for all users with permission to access task board */}
+               <Popover>
                    <PopoverTrigger asChild>
                      <Button
                        variant="outline"
@@ -704,22 +742,24 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                      <div className="p-2">
                        <div className="text-sm font-medium mb-2">Select Recruiter</div>
                        
-                       {/* All recruiters option */}
-                       <button
-                         onClick={() => setFilters((f: any) => ({ ...f, recruiterId: '' }))}
-                         className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-accent text-left"
-                       >
-                         <div className="h-5 w-5 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                           <Users className="h-3 w-3 text-gray-500" />
-                         </div>
-                         <div className="flex flex-col flex-1">
-                           <span className="text-sm">All Recruiters</span>
-                           <span className="text-xs text-muted-foreground">Show all recruiters</span>
-                         </div>
-                         {!filters.recruiterId && (
-                           <div className="w-3 h-3 rounded-full bg-primary" />
-                         )}
-                       </button>
+                       {/* All recruiters option - Only show if user can see all recruiters */}
+                       {canSeeAllRecruiters && (
+                         <button
+                           onClick={() => setFilters((f: any) => ({ ...f, recruiterId: '' }))}
+                           className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-accent text-left"
+                         >
+                           <div className="h-5 w-5 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                             <Users className="h-3 w-3 text-gray-500" />
+                           </div>
+                           <div className="flex flex-col flex-1">
+                             <span className="text-sm">All Recruiters</span>
+                             <span className="text-xs text-muted-foreground">Show all recruiters</span>
+                           </div>
+                           {!filters.recruiterId && (
+                             <div className="w-3 h-3 rounded-full bg-primary" />
+                           )}
+                         </button>
+                       )}
 
                        {/* Available recruiters */}
                        {recruiters.map((r: any) => (
@@ -749,7 +789,6 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                      </div>
                    </PopoverContent>
                  </Popover>
-               )}
 
                {/* Stage Filter */}
                <div className="w-48">

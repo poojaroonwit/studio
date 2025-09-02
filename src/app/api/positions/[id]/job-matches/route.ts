@@ -3,6 +3,7 @@ import { getPool } from '@/lib/db';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { normalizeFitScore } from '@/lib/scoreUtils';
+import { getSystemSetting } from '@/lib/systemSettings';
 
 export async function GET(
   request: NextRequest,
@@ -12,6 +13,16 @@ export async function GET(
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Check if job match feature is enabled
+    const jobMatchFeatureEnabled = await getSystemSetting('jobMatchFeatureEnabled');
+    if (jobMatchFeatureEnabled === 'false') {
+      return NextResponse.json({ 
+        data: [], 
+        pagination: { total: 0, page: 1, limit: 20, totalPages: 0 },
+        message: 'Job match feature is disabled' 
+      }, { status: 200 });
     }
 
     const { id: positionId } = await params;

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { WarningService } from '@/lib/warningService';
+import { SimpleWarningService } from '@/lib/warnings';
 import prisma from '@/lib/prisma';
 import { logAudit } from '@/lib/auditLog';
 
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
 
     if (entityType && entityId) {
       // Check specific entity
-      await WarningService.createOrUpdateWarnings(entityType, entityId, actingUserId);
+      await SimpleWarningService.createOrUpdateWarnings(entityType, entityId, actingUserId);
       
       await logAudit('AUDIT', `Warning check triggered for ${entityType} ${entityId} by ${actingUserName}`, 'API:Warnings:Trigger', actingUserId, {
         action: 'check_entity',
@@ -72,7 +72,7 @@ async function checkAllEntities(userId: string) {
     });
     
     for (const candidate of candidates) {
-      await WarningService.createOrUpdateWarnings('candidate', candidate.id, userId);
+              await SimpleWarningService.createOrUpdateWarnings('candidate', candidate.id, userId);
       results.candidates.checked++;
     }
 
@@ -82,7 +82,7 @@ async function checkAllEntities(userId: string) {
     });
     
     for (const position of positions) {
-      await WarningService.createOrUpdateWarnings('position', position.id, userId);
+              await SimpleWarningService.createOrUpdateWarnings('position', position.id, userId);
       results.positions.checked++;
     }
 
@@ -92,7 +92,7 @@ async function checkAllEntities(userId: string) {
     });
     
     for (const headcount of headcounts) {
-      await WarningService.createOrUpdateWarnings('headcount', headcount.id, userId);
+              await SimpleWarningService.createOrUpdateWarnings('headcount', headcount.id, userId);
       results.headcounts.checked++;
     }
 

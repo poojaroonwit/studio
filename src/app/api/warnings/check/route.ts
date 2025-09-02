@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { logAudit } from '@/lib/auditLog';
-import { WarningService } from '@/lib/warningService';
+import { SimpleWarningService } from '@/lib/warnings';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check for warnings using the warning service
-    await WarningService.createOrUpdateWarnings(entityType, entityId, actingUserId);
+          await SimpleWarningService.createOrUpdateWarnings(entityType, entityId, actingUserId);
 
     await logAudit('AUDIT', `Warning check performed for ${entityType} ${entityId} by ${actingUserName}`, 'API:Warnings:Check', actingUserId, {
       entityType,

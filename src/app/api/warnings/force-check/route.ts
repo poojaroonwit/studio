@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { WarningService } from '@/lib/warningService';
+import { SimpleWarningService } from '@/lib/warnings';
 import { logAudit } from '@/lib/auditLog';
 
 export async function POST(request: NextRequest) {
@@ -20,10 +20,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Force re-evaluation of warnings
-    await WarningService.createOrUpdateWarnings(entityType, entityId, actingUserId);
+    await SimpleWarningService.createOrUpdateWarnings(entityType, entityId, actingUserId);
 
     // Get current warnings after re-evaluation
-    const currentWarnings = await WarningService.checkEntityWarnings(entityType, entityId, actingUserId);
+    const currentWarnings = await SimpleWarningService.checkEntityWarnings(entityType, entityId, actingUserId);
 
     await logAudit('AUDIT', `Warning force check performed for ${entityType} ${entityId} by ${actingUserName}`, 'API:Warnings:ForceCheck', actingUserId, {
       entityType,

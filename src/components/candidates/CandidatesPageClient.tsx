@@ -1447,6 +1447,16 @@ export function CandidatesPageClient({
                           isLoading={isFitScoreCountsLoadingState}
                         />
                       )}
+                      
+                      {/* Simple loading indicator for fitscore counts */}
+                      {isFitScoreCountsLoadingState && (
+                        <div className="flex items-center justify-center py-2 mt-2">
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <div className="w-3 h-3 bg-muted-foreground/20 rounded-full animate-pulse"></div>
+                            <span>Updating counts...</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
                     
                     <div className="flex items-center space-x-3 ml-3">

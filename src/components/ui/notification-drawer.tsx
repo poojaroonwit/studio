@@ -278,7 +278,7 @@ export function NotificationDrawer({ isOpen, onClose, onNotificationRead }: Noti
                     readNotifications.map((notification, index) => (
                       <div
                         key={notification.id}
-                        className="notification-item flex items-start gap-3 p-3 rounded-lg border transition-all duration-200 cursor-pointer hover:shadow-md bg-card opacity-60 border-border"
+                        className="notification-item flex items-start gap-3 p-3 rounded-lg border transition-all duration-200 cursor-pointer hover:shadow-md bg-card opacity-60 border-border mb-2"
                         style={{ animationDelay: `${index * 0.05}s` }}
                       >
                         <div className="flex-shrink-0 mt-1">

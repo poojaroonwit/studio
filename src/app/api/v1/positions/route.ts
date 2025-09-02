@@ -14,7 +14,7 @@ import {
 } from '@/lib/apiErrorHandler';
 import { logAudit } from '@/lib/auditLog';
 import { getDefaultMatchCriteria } from '@/lib/systemSettings';
-import { WarningService } from '@/lib/warningService';
+import { SimpleWarningService } from '@/lib/warnings';
 
 const createPositionSchema = z.object({
   title: z.string().min(1, { message: 'Title is required' }),
@@ -151,7 +151,7 @@ export async function POST(req: NextRequest) {
     
     // Check for warnings after position creation
     try {
-      await WarningService.createOrUpdateWarnings('position', newPositionId, user.id);
+      await SimpleWarningService.createOrUpdateWarnings('position', newPositionId, user.id);
     } catch (warningError) {
       console.error('Failed to check warnings for new position:', warningError);
       // Don't fail the request if warning check fails

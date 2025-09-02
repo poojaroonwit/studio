@@ -1,4 +1,4 @@
-import { WarningService } from './warningService';
+import { SimpleWarningService } from './warnings';
 import prisma from './prisma';
 
 export interface WarningAutomationConfig {
@@ -171,7 +171,7 @@ export class WarningAutomation {
         const beforeCount = entityWarnings.length;
 
         // Use the warning service to check and update warnings
-        await WarningService.createOrUpdateWarnings(entityType, entityId);
+        await SimpleWarningService.createOrUpdateWarnings(entityType, entityId);
 
         // Check if warnings were cleared
         const afterWarnings = await prisma.warning.findMany({
@@ -201,7 +201,7 @@ export class WarningAutomation {
    */
   static async triggerEntityCheck(entityType: string, entityId: string, userId?: string) {
     try {
-      await WarningService.createOrUpdateWarnings(entityType, entityId, userId);
+      await SimpleWarningService.createOrUpdateWarnings(entityType, entityId, userId);
     } catch (error) {
       console.error(`❌ Error in warning check for ${entityType} ${entityId}:`, error);
       throw error;

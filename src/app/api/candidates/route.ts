@@ -12,7 +12,7 @@ import { dispatchWebhooks } from '@/lib/webhookDispatcher';
 import { normalizeFitScore } from '@/lib/scoreUtils';
 import { syncRecruiterForCandidate } from '@/lib/recruiterSync';
 import { NotificationService } from '@/lib/notificationService';
-import { WarningService } from '@/lib/warningService';
+import { SimpleWarningService } from '@/lib/warnings';
 import type { CandidateFilterValues } from '@/components/candidates/CandidateFilters';
 
 export const dynamic = 'force-dynamic';
@@ -245,7 +245,7 @@ export async function POST(request: NextRequest) {
     
     // Check for warnings after candidate creation
     try {
-      await WarningService.createOrUpdateWarnings('candidate', newCandidateId, actingUserId);
+      await SimpleWarningService.createOrUpdateWarnings('candidate', newCandidateId, actingUserId);
     } catch (warningError) {
       // Failed to check warnings for new candidate
     }

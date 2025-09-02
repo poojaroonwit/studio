@@ -217,6 +217,7 @@ export function TaskBoard({
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
   const [dragOverStage, setDragOverStage] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [movingTasks, setMovingTasks] = useState<Set<string>>(new Set());
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   
   // Scroll navigation state
@@ -383,6 +384,7 @@ export function TaskBoard({
       setDraggedTask(null);
       setDragOverStage(null);
       setIsDragging(false);
+      setMovingTasks(new Set());
       
       // Reset document cursor
       if (document.body.style.cursor === 'grabbing') {

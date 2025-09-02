@@ -204,6 +204,18 @@ export function useCandidateData({
       return;
     }
 
+    // Add debouncing for smoother experience (but keep it simple)
+    if (!forceRefresh && fitScoreCountsDebounceRef.current) {
+      clearTimeout(fitScoreCountsDebounceRef.current);
+    }
+
+    if (!forceRefresh) {
+      fitScoreCountsDebounceRef.current = setTimeout(() => {
+        fetchFitScoreCounts(true);
+      }, 200); // Simple 200ms debounce
+      return;
+    }
+
     isFetchingFitScoreCountsRef.current = true;
     setIsFitScoreCountsLoading(true);
 

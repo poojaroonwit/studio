@@ -30,17 +30,12 @@ RUN dos2unix ./entrypoint.sh ./entrypoint-processor.sh 2>/dev/null || true
 # Debug: check if src/lib/db.ts exists
 RUN ls -l src/lib/db.ts || (echo 'src/lib/db.ts not found!' && exit 1)
 
-# Run migration to convert status to statusId during build with debugging
-RUN echo "🔍 Starting migration script..." && \
-    echo "📁 Current directory: $(pwd)" && \
-    echo "📁 Files in current dir: $(ls -la)" && \
-    echo "📁 Script exists: $(ls -la scripts/update-components-to-statusId.js)" && \
-    npm run fix:status-rename || (echo "❌ Migration failed" && exit 1)
+# Run migration to convert status to statusId during build
+RUN npm run fix:status-rename
 
-# Build the application (removed memory limit - let Docker manage memory)
+# Build the application
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN echo "🔨 Starting build process..." && \
-    npm run build || (echo "❌ Build failed" && exit 1)
+RUN npm run build
 
 # Make entrypoint scripts executable
 RUN chmod +x ./entrypoint.sh

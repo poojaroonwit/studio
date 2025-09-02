@@ -57,13 +57,15 @@ console.log(`Password: ${adminPassword}`);
     console.log('✅ Recruitment stages created/updated');
 
     // Create default user groups with detailed permissions
+    console.log('Creating default user groups...');
+    
     const adminGroup = await prisma.userGroup.upsert({
-      where: { id: '00000000-0000-0000-0000-000000000001' },
+      where: { name: 'Administrators' },
       update: {},
       create: {
         id: '00000000-0000-0000-0000-000000000001',
-        name: 'Admin',
-        description: 'Full system access',
+        name: 'Administrators',
+        description: 'Full system access and management',
         permissions: [
           // Candidate permissions
           'CANDIDATES_VIEW','CANDIDATES_VIEW_DETAILED','CANDIDATES_CREATE','CANDIDATES_EDIT_BASIC','CANDIDATES_EDIT_SENSITIVE','CANDIDATES_DELETE','CANDIDATES_SOURCE_ASSIGN','CANDIDATES_SOURCE_ASSIGN_BULK','CANDIDATES_RECRUITER_ASSIGN','CANDIDATES_RECRUITER_ASSIGN_BULK','CANDIDATES_PIPELINE_STAGE_UPDATE','CANDIDATES_PIPELINE_STAGE_BULK_UPDATE','CANDIDATES_RESUMES_UPLOAD','CANDIDATES_RESUMES_DELETE','CANDIDATES_COMMENTS_VIEW','CANDIDATES_COMMENTS_ADD','CANDIDATES_COMMENTS_EDIT','CANDIDATES_IMPORT','CANDIDATES_EXPORT',
@@ -82,12 +84,12 @@ console.log(`Password: ${adminPassword}`);
     });
 
     const recruiterGroup = await prisma.userGroup.upsert({
-      where: { id: '00000000-0000-0000-0000-000000000002' },
+      where: { name: 'Recruiters' },
       update: {},
       create: {
         id: '00000000-0000-0000-0000-000000000002',
-        name: 'Recruiter',
-        description: 'Can manage candidates and positions',
+        name: 'Recruiters',
+        description: 'Standard recruiter access',
         permissions: [
           // Candidate management
           'CANDIDATES_VIEW','CANDIDATES_VIEW_DETAILED','CANDIDATES_CREATE','CANDIDATES_EDIT_BASIC','CANDIDATES_SOURCE_ASSIGN','CANDIDATES_RECRUITER_ASSIGN','CANDIDATES_PIPELINE_STAGE_UPDATE','CANDIDATES_RESUMES_UPLOAD','CANDIDATES_COMMENTS_VIEW','CANDIDATES_COMMENTS_ADD','CANDIDATES_IMPORT','CANDIDATES_EXPORT',
@@ -102,12 +104,12 @@ console.log(`Password: ${adminPassword}`);
     });
 
     const hiringManagerGroup = await prisma.userGroup.upsert({
-      where: { id: '00000000-0000-0000-0000-000000000003' },
+      where: { name: 'Hiring Managers' },
       update: {},
       create: {
         id: '00000000-0000-0000-0000-000000000003',
-        name: 'Hiring Manager',
-        description: 'Can view candidates and positions',
+        name: 'Hiring Managers',
+        description: 'View-only access for hiring decisions',
         permissions: [
           'CANDIDATES_VIEW','CANDIDATES_VIEW_DETAILED','CANDIDATES_COMMENTS_VIEW','POSITIONS_VIEW','TASK_BOARD_VIEW','DASHBOARD_VIEW','USER_PREFERENCES_MANAGE_OWN'
         ],
@@ -116,31 +118,12 @@ console.log(`Password: ${adminPassword}`);
       },
     });
 
-    // Assign admin user to Admin group
-    console.log('Assigning admin user to Admin group...');
+    console.log('✅ Default user groups created/updated');
+
+    // Assign admin user to Administrators group
+    console.log('Assigning admin user to Administrators group...');
     const adminUser = await prisma.user.findUnique({ where: { email: adminEmail } });
     if (adminUser) {
-      // First, ensure the Admin group exists
-      const adminGroup = await prisma.userGroup.upsert({
-        where: { name: 'Administrators' },
-        update: {},
-        create: {
-          id: '00000000-0000-0000-0000-000000000001',
-          name: 'Administrators',
-          description: 'Full system access and management',
-          permissions: [
-            'USERS_PERMISSIONS_MANAGE', 'USER_GROUPS_EDIT', 'SYSTEM_SETTINGS_VIEW', 
-            'SYSTEM_SETTINGS_EDIT', 'LOGS_VIEW', 'UPLOAD_QUEUE_MANAGE', 
-            'CANDIDATES_VIEW', 'CANDIDATES_CREATE', 'CANDIDATES_EDIT_BASIC', 
-            'CANDIDATES_EDIT_ADVANCED', 'POSITIONS_VIEW', 'POSITIONS_CREATE', 
-            'POSITIONS_EDIT_BASIC', 'POSITIONS_EDIT_ADVANCED', 'TASK_BOARD_VIEW', 
-            'TASK_BOARD_MANAGE_OWN', 'TASK_BOARD_MANAGE_ALL'
-          ],
-          isDefault: true,
-          isSystemRole: true
-        }
-      });
-
       // Assign user to the Admin group using the junction table
       await prisma.user_UserGroup.upsert({
         where: {

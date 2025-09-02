@@ -157,10 +157,10 @@ export function StagePipeline({
       </div> */}
       
       {localStages.map((stage, idx) => {
-        const records = currentStageToRecords[stage.name] || [];
-        const currentStageIndex = localStages?.findIndex(s => s.name === localCurrentStatus) ?? -1;
+                 const records = currentStageToRecords[stage.id] || [];
+                 const currentStageIndex = localStages?.findIndex(s => s.id === localCurrentStatus) ?? -1;
         const isCompleted = idx < currentStageIndex;
-        const isCurrent = localCurrentStatus === stage.name;
+        const isCurrent = localCurrentStatus === stage.id;
         const latestRecord = records.length > 0 ? records[records.length - 1] : null;
         const latestNote = latestRecord ? latestRecord.notes : null;
         const latestUser = latestRecord ? (latestRecord.actingUserName || 'Unknown') : null;
@@ -196,7 +196,7 @@ export function StagePipeline({
                          : 'bg-muted/10 text-muted-foreground hover:bg-muted/20'}
                      ${isCurrent && isTransitioning ? 'animate-pulse' : ''}
                    `}
-                   onClick={() => handleStageClick(stage.name)}
+                   onClick={() => handleStageClick(stage.id)}
                    title={`${stage.name} - ${isCompleted ? 'Completed' : isCurrent ? 'Current' : 'Future'} stage${records.length > 0 ? ` (${records.length} update${records.length > 1 ? 's' : ''})` : ''}`}
                  >
                   {/* Node circle with checkmark if completed */}
@@ -238,7 +238,7 @@ export function StagePipeline({
                           } else {
                             // For passed stages, find the next stage record to calculate duration
                             const nextStageRecord = localTransitionHistory
-                              .filter(record => record.stage !== stage.name)
+                              .filter(record => record.stage !== stage.id)
                               .find(record => {
                                 const recordDate = new Date(record.date);
                                 return recordDate > stageDate;
@@ -272,7 +272,7 @@ export function StagePipeline({
                         // For stages without transition records, show default duration based on stage position
                         if (!isCompleted && !isCurrent) {
                           // Calculate expected duration based on stage position
-                          const stageIndex = localStages.findIndex(s => s.name === stage.name);
+                          const stageIndex = localStages.findIndex(s => s.id === stage.id);
                           
                           // Default duration logic: earlier stages typically take less time
                           let defaultDays;
@@ -378,7 +378,7 @@ export function StagePipeline({
                           } else {
                             // For passed stages, find the next stage record to calculate duration
                             const nextStageRecord = localTransitionHistory
-                              .filter(record => record.stage !== stage.name)
+                              .filter(record => record.stage !== stage.id)
                               .find(record => {
                                 const recordDate = new Date(record.date);
                                 return recordDate > stageDate;
@@ -479,7 +479,7 @@ export function StagePipeline({
                           } else {
                             // For passed stages, find the next stage record to calculate duration
                             const nextStageRecord = localTransitionHistory
-                              .filter(record => record.stage !== stage.name)
+                              .filter(record => record.stage !== stage.id)
                               .find(record => {
                                 const recordDate = new Date(record.date);
                                 return recordDate > stageDate;

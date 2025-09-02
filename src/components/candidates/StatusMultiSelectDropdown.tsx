@@ -18,7 +18,7 @@ interface StatusMultiSelectDropdownProps {
   className?: string;
   disabled?: boolean;
   stages: RecruitmentStage[];
-  candidateCounts?: { [stageName: string]: number };
+  candidateCounts?: { [stageId: string]: number };
 }
 
 export function StatusMultiSelectDropdown({
@@ -33,20 +33,18 @@ export function StatusMultiSelectDropdown({
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
-
-
   // Filter stages based on search term
   const filteredStages = stages.filter(stage => 
     stage.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const selectedStages = stages.filter(stage => selectedIds.has(stage.name));
+  const selectedStages = stages.filter(stage => selectedIds.has(stage.id));
   const hasSelectAll = selectedIds.has('select-all');
 
-  const handleToggleStage = (stageName: string) => {
+  const handleToggleStage = (stageId: string) => {
     const newSelected = new Set(selectedIds);
     
-    if (stageName === 'select-all') {
+    if (stageId === 'select-all') {
       // If "Select All" is being selected, clear all other selections
       if (newSelected.has('select-all')) {
         newSelected.delete('select-all');
@@ -56,13 +54,13 @@ export function StatusMultiSelectDropdown({
       }
     } else {
       // If a specific stage is being selected
-      if (newSelected.has(stageName)) {
+      if (newSelected.has(stageId)) {
         // Remove this stage
-        newSelected.delete(stageName);
+        newSelected.delete(stageId);
       } else {
         // Add this stage and remove "Select All" if it was selected
         newSelected.delete('select-all');
-        newSelected.add(stageName);
+        newSelected.add(stageId);
       }
     }
     
@@ -70,10 +68,10 @@ export function StatusMultiSelectDropdown({
     onSelectionChange(newSelected);
   };
 
-  const handleRemoveStage = (stageName: string, e?: React.MouseEvent | React.KeyboardEvent) => {
+  const handleRemoveStage = (stageId: string, e?: React.MouseEvent | React.KeyboardEvent) => {
     e?.stopPropagation();
     const newSelected = new Set(selectedIds);
-    newSelected.delete(stageName);
+    newSelected.delete(stageId);
     onSelectionChange(newSelected);
   };
 
@@ -99,48 +97,59 @@ export function StatusMultiSelectDropdown({
                 e.preventDefault();
                 e.stopPropagation();
               }}
-              onClick={(e) => handleToggleStage('select-all')}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleToggleStage('select-all');
+              }}
             >
-              <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+              <X className="h-2 w-2" />
             </button>
           </Badge>
         </div>
       );
     }
 
-    // If no stages are selected, it means all stages are selected by default
-    if (selectedIds.size === 0) {
-      return <span className="text-muted-foreground">All pipeline stages</span>;
+    // If specific stages are selected
+    if (selectedStages.length > 0) {
+      return (
+        <div className="flex flex-wrap gap-1 flex-1">
+          {selectedStages.map((stage) => (
+            <Badge 
+              key={stage.id} 
+              variant="secondary" 
+              className="text-xs"
+            >
+              {stage.name}
+              <button
+                type="button"
+                className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleRemoveStage(stage.id, e);
+                  }
+                }}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleRemoveStage(stage.id, e);
+                }}
+              >
+                <X className="h-2 w-2" />
+              </button>
+            </Badge>
+          ))}
+        </div>
+      );
     }
 
+    // Default state
     return (
-      <div className="flex flex-wrap gap-1 flex-1">
-        {selectedStages.map((stage) => (
-          <Badge
-            key={stage.name}
-            variant="secondary"
-            className="text-xs"
-          >
-            {stage.name}
-            <button
-              type="button"
-              className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  handleRemoveStage(stage.name, e);
-                }
-              }}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-              }}
-              onClick={(e) => handleRemoveStage(stage.name, e)}
-            >
-              <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-            </button>
-          </Badge>
-        ))}
-      </div>
+      <span className="text-muted-foreground">{placeholder}</span>
     );
   };
 
@@ -152,74 +161,17 @@ export function StatusMultiSelectDropdown({
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            className="w-full min-w-full justify-between min-h-[40px] h-auto py-2"
+            className="w-full justify-between h-auto min-h-10 px-3 py-2"
             disabled={disabled}
           >
-            <div className="flex flex-wrap gap-1 flex-1">
-              {/* If "Select All" is selected */}
-              {hasSelectAll ? (
-                <Badge 
-                  variant="default"
-                  className="text-xs"
-                >
-                  Select All
-                  <button
-                    type="button"
-                    className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        handleToggleStage('select-all');
-                      }
-                    }}
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                    }}
-                    onClick={() => handleToggleStage('select-all')}
-                  >
-                    <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-                  </button>
-                </Badge>
-              ) : selectedIds.size === 0 ? (
-                <span className="text-muted-foreground">All pipeline stages</span>
-              ) : (
-                selectedStages.map((stage) => (
-                  <Badge
-                    key={stage.name}
-                    variant="secondary"
-                    className="text-xs"
-                  >
-                    {stage.name}
-                    <button
-                      type="button"
-                      className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          handleRemoveStage(stage.name);
-                        }
-                      }}
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                      }}
-                      onClick={() => handleRemoveStage(stage.name)}
-                    >
-                      <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-                    </button>
-                  </Badge>
-                ))
-              )}
-            </div>
-            <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+            {renderTrigger()}
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 bg-popover border-border shadow-lg z-[100001] max-h-[300px] overflow-y-auto" align="start">
+        <PopoverContent className="w-full p-0" align="start">
           <div className="p-2">
-            <div className="text-sm font-medium mb-2">Select Pipeline Stages</div>
-            
-            {/* Search Input */}
-            <div className="relative mb-2">
-              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+            <div className="relative">
+              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
                 type="text"
                 placeholder="Search pipeline stages..."
@@ -267,18 +219,18 @@ export function StatusMultiSelectDropdown({
                 
                 {filteredStages.map((stage) => (
                   <button
-                    key={stage.name}
-                    onClick={() => handleToggleStage(stage.name)}
+                    key={stage.id}
+                    onClick={() => handleToggleStage(stage.id)}
                     className={cn(
                       "w-full text-left px-2 py-1.5 rounded-sm hover:bg-accent hover:text-accent-foreground cursor-pointer text-sm",
-                      selectedIds.has(stage.name) && "bg-accent text-accent-foreground"
+                      selectedIds.has(stage.id) && "bg-accent text-accent-foreground"
                     )}
                   >
                     <div className="flex items-center">
                       <Check
                         className={cn(
                           "mr-2 h-3 w-3",
-                          selectedIds.has(stage.name) ? "opacity-100" : "opacity-0"
+                          selectedIds.has(stage.id) ? "opacity-100" : "opacity-0"
                         )}
                       />
                       <div className="flex flex-col flex-1">
@@ -287,12 +239,12 @@ export function StatusMultiSelectDropdown({
                           {stage.description && stage.description}
                         </span>
                       </div>
-                      {(candidateCounts[stage.name] && candidateCounts[stage.name] > 0) && (
+                      {(candidateCounts[stage.id] && candidateCounts[stage.id] > 0) && (
                         <Badge 
                           variant="outline"
                           className="ml-auto text-xs"
                         >
-                          {candidateCounts[stage.name]}
+                          {candidateCounts[stage.id]}
                         </Badge>
                       )}
                     </div>

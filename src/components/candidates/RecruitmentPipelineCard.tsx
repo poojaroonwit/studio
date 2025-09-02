@@ -208,7 +208,7 @@ export function RecruitmentPipelineCard({
               justifyContent: localStages.length <= 5 ? 'space-between' : 'space-between'
             }}>
                              {localStages.map((stage, index) => {
-                 const records = currentStageToRecords[stage.name] || [];
+                 const records = currentStageToRecords[stage.id] || [];
                  const isCompleted = index <= currentStageIndex;
                  const isCurrent = localCurrentStatus === stage.id;
                  const isFuture = index > currentStageIndex;
@@ -396,7 +396,7 @@ export function RecruitmentPipelineCard({
                                          } else {
                                            // For passed stages, find the next stage record to calculate duration
                                            const nextStageRecord = localTransitionHistory
-                                             .filter(record => record.stage !== stage.name)
+                                             .filter(record => record.stage !== stage.id)
                                              .find(record => {
                                                const recordDate = new Date(record.date);
                                                return recordDate > stageDate;
@@ -505,7 +505,7 @@ export function RecruitmentPipelineCard({
                                          ${localStages.map((stage, index) => {
                        const isCompleted = index < currentStageIndex;
                        const isCurrent = index === currentStageIndex;
-                       const records = currentStageToRecords[stage.name] || [];
+                       const records = currentStageToRecords[stage.id] || [];
                        const isSkipped = isCompleted && records.length === 0;
                        const isActuallyCompleted = index < currentStageIndex && records.length > 0;
                        

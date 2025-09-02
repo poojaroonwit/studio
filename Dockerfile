@@ -1,5 +1,5 @@
 # Use Node.js 18 Alpine for smaller image size
-FROM node:18-alpine AS base
+FROM node:18-alpine
 
 # Install necessary build tools and dependencies
 RUN apk add --no-cache \
@@ -15,15 +15,11 @@ WORKDIR /app
 
 # Copy package files first for better caching
 COPY package*.json ./
-COPY prisma ./prisma/
 
 # Install dependencies with fallback options
 RUN npm cache clean --force && \
     (npm ci --no-audit --no-fund --prefer-offline || \
      npm install --no-audit --no-fund --legacy-peer-deps)
-
-# Generate Prisma client (this works without database connection)
-RUN npx prisma generate
 
 # Copy source code
 COPY . .
@@ -33,6 +29,9 @@ RUN dos2unix ./entrypoint.sh ./entrypoint-processor.sh 2>/dev/null || true
 
 # Debug: check if src/lib/db.ts exists
 RUN ls -l src/lib/db.ts || (echo 'src/lib/db.ts not found!' && exit 1)
+
+# Generate Prisma client
+RUN npx prisma generate
 
 # Build the application (removed memory limit - let Docker manage memory)
 ENV NEXT_TELEMETRY_DISABLED=1

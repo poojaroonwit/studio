@@ -4,9 +4,9 @@
 
 The candidate status field is still showing as UUID values instead of properly resolving to stage names through the foreign key relationship. This happens because:
 
-1. **Migration Mismatch**: The original migration was designed to work with a field called `statusId` but the final schema was using `status`
-2. **Foreign Key Constraint Issue**: The constraint mapping `"Candidate_statusId_fkey"` didn't match the actual field name `status`
-3. **Database Integrity**: Without proper foreign key constraints, the relationship between candidates and recruitment stages was broken
+1. **Field Naming Inconsistency**: The database has a `status` column but the schema now uses `statusId` for better consistency
+2. **Foreign Key Constraint Issue**: The constraint mapping needs to be updated to match the new field name
+3. **Database Integrity**: Without proper foreign key constraints, the relationship between candidates and recruitment stages is broken
 
 ## Root Cause Analysis
 

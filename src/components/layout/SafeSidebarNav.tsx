@@ -397,14 +397,7 @@ const SafeSidebarNavComponent = React.memo(() => {
               </React.Fragment>
             ))}
           </SidebarMenu>
-          
-          {/* Show assigned positions section if enabled and user is recruiter */}
-          {sidebarPreferences?.showAssignedPositions && session?.user?.role === 'Recruiter' && (
-            <div className="mt-auto mb-4">
-              <AssignedPositionsSidebar />
-            </div>
-          )}
-          
+
           <div className="mt-auto">
             <SidebarSeparator className="my-2 bg-border/50" />
             <SidebarMenu>

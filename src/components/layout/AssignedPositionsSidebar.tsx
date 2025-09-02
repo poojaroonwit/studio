@@ -3,12 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Briefcase, Users, Eye, Loader2 } from 'lucide-react';
+import { Briefcase, Loader2 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { PositionDetailDrawer } from '@/components/positions/PositionDetailDrawer';
 import { cn } from '@/lib/utils';
+ 
 
 interface AssignedPosition {
   id: string;
@@ -37,6 +37,7 @@ export function AssignedPositionsSidebar({ className }: AssignedPositionsSidebar
   const [error, setError] = useState<string | null>(null);
   const [selectedPositionId, setSelectedPositionId] = useState<string | null>(null);
   const [isPositionDrawerOpen, setIsPositionDrawerOpen] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(3);
 
   useEffect(() => {
     if (session?.user?.id) {
@@ -58,6 +59,7 @@ export function AssignedPositionsSidebar({ className }: AssignedPositionsSidebar
       
       const data = await response.json();
       setPositions(data.data || []);
+      setVisibleCount(3);
     } catch (err) {
       setError((err as Error).message);
       console.error('Error fetching assigned positions:', err);
@@ -113,60 +115,48 @@ export function AssignedPositionsSidebar({ className }: AssignedPositionsSidebar
       <div className={cn("space-y-3", className)}>
         <div className="flex items-center gap-2 px-3">
           <Briefcase className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium text-muted-foreground">My Positions</span>
+          <span className="text-sm font-medium text-muted-foreground">Positions</span>
           <Badge variant="secondary" className="ml-auto text-xs">
             {positions.length}
           </Badge>
         </div>
-        
+
+        <div className="px-3">
+          <div className="border-t" />
+        </div>
+
         <ScrollArea className="h-[300px] px-3">
-          <div className="space-y-2">
-            {positions.map((position) => (
-              <Card 
-                key={position.id} 
-                className="cursor-pointer hover:bg-muted/50 transition-colors"
+          <ul className="mt-2 space-y-1 pl-3 border-l">
+            {positions.slice(0, visibleCount).map((position) => (
+              <li
+                key={position.id}
+                className="flex items-center gap-2 py-1 cursor-pointer hover:text-foreground"
                 onClick={() => handlePositionClick(position.id)}
+                title={position.title}
               >
-                <CardHeader className="p-3 pb-2">
-                  <CardTitle className="text-sm font-medium leading-tight">
-                    {position.title}
-                  </CardTitle>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span>{position.department}</span>
-                    {position.positionLevel && (
-                      <>
-                        <span>•</span>
-                        <span>{position.positionLevel}</span>
-                      </>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent className="p-3 pt-0">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Users className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground">
-                        {position.headcount.vacant} vacant
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Badge 
-                        variant="outline" 
-                        className="text-xs h-5 px-1.5"
-                        style={{
-                          borderColor: position.grade?.color || 'hsl(var(--border))',
-                          color: position.grade?.color || 'hsl(var(--muted-foreground))'
-                        }}
-                      >
-                        {position.headcount.total}
-                      </Badge>
-                      <Eye className="h-3 w-3 text-muted-foreground" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
+                <span className="flex-1 min-w-0 text-sm text-muted-foreground truncate">
+                  {position.title}
+                </span>
+                <span className="text-xs tabular-nums text-muted-foreground">
+                  {position.headcount.filled}/{position.headcount.total}
+                </span>
+              </li>
             ))}
-          </div>
+          </ul>
+
+          {visibleCount < positions.length && (
+            <div className="pt-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 px-2 text-xs text-primary hover:underline"
+                onClick={() => setVisibleCount((c) => Math.min(c + 3, positions.length))}
+              >
+                Load more
+              </Button>
+            </div>
+          )}
         </ScrollArea>
       </div>
 

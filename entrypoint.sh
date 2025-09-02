@@ -24,6 +24,12 @@ if ! npx prisma generate --schema=prisma/schema.prisma; then
     exit 1
 fi
 
+# Run column rename script if it exists
+if [ -f "/app/rename-status-column.sh" ]; then
+    echo "🔧 Running column rename script..."
+    /app/rename-status-column.sh
+fi
+
 # Wait for database to be ready
 echo "🔍 Waiting for database to be ready..."
 DB_MAX_WAIT_SECONDS=${DB_MAX_WAIT_SECONDS:-60}

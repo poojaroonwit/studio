@@ -1,3 +1,13 @@
+// DEPRECATED: This complex error handler has been replaced with simplified modules
+// Use the new SimpleErrorHandler instead:
+// import { SimpleErrorHandler } from '@/lib/errors';
+//
+// Migration guide:
+// 1. Replace createErrorResponse with SimpleErrorHandler.createErrorResponse
+// 2. Replace createSuccessResponse with SimpleErrorHandler.createSuccessResponse
+// 3. Replace handleApiError with SimpleErrorHandler.handleApiError
+// 4. Import from '@/lib/errors' instead of this file
+
 import { NextRequest } from 'next/server';
 import { handleCors } from './cors';
 

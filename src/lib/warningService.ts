@@ -1,17 +1,14 @@
-import prisma from '@/lib/prisma';
+// DEPRECATED: This complex service has been replaced with simplified modules
+// Use the new SimpleWarningService instead:
+// import { SimpleWarningService } from '@/lib/warnings';
 
-export interface WarningCheckResult {
-  hasWarning: boolean;
-  message?: string;
-  currentValue?: string;
-  expectedValue?: string;
-  severity?: string;
-  configurationId?: string;
-}
+import { SimpleWarningService, WarningCheckResult } from '@/lib/warnings';
+
+export { WarningCheckResult };
 
 export class WarningService {
   /**
-   * Check for warnings on a specific entity
+   * @deprecated Use SimpleWarningService.checkEntityWarnings instead
    */
   static async checkEntityWarnings(entityType: string, entityId: string, userId?: string): Promise<WarningCheckResult[]> {
     // Build where clause to get user's accessible configurations
@@ -797,4 +794,16 @@ export class WarningService {
       });
     }
   }
+
+  /**
+   * @deprecated This entire service is deprecated. Use the new simplified modules:
+   * - SimpleWarningService for warning operations
+   * - SimpleWarningChecker for condition evaluation
+   * - WarningRepository for database operations
+   * 
+   * Migration guide:
+   * 1. Replace WarningService.checkEntityWarnings with SimpleWarningService.checkEntityWarnings
+   * 2. Replace WarningService.createOrUpdateWarnings with SimpleWarningService.createOrUpdateWarnings
+   * 3. Import from '@/lib/warnings' instead of this file
+   */
 }

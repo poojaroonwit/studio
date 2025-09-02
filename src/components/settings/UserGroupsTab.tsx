@@ -136,6 +136,11 @@ export function UserGroupsTab() {
     defaultValues: { name: '', description: '', permissions: [], is_default: false },
   });
 
+  // Check if user has permission to manage roles
+  const canManageRoles = session?.user?.role === 'Admin' || 
+    (Array.isArray(session?.user?.modulePermissions) && 
+     session.user.modulePermissions.includes('USER_GROUPS_VIEW'));
+
   const fetchRoles = useCallback(async () => {
     if (sessionStatus !== 'authenticated') return;
     setIsLoading(true);
@@ -179,21 +184,50 @@ export function UserGroupsTab() {
   }, [fetchError]);
 
   const handleSelectRole = (role: UserGroup) => {
-    // Defensive check to prevent React error #185
-    if (!role || !role.id || !role.name) {
-      console.error('UserGroupsTab: Invalid role object:', role);
-      toast.error('Invalid role data. Please try refreshing the page.');
+    // Check if user has permission to manage roles
+    if (!canManageRoles) {
+      toast.error('You do not have permission to manage roles and permissions.');
       return;
     }
     
-    console.log('UserGroupsTab: handleSelectRole called with role:', role);
-    console.log('UserGroupsTab: Setting selectedRole to:', role);
-    console.log('UserGroupsTab: Setting isUnifiedDrawerOpen to true');
-    
-    setSelectedRole(role);
-    setIsUnifiedDrawerOpen(true);
-    
-    console.log('UserGroupsTab: State should now be updated');
+    // Enhanced defensive check to prevent React error #185
+    try {
+      if (!role) {
+        console.error('UserGroupsTab: Role is null or undefined');
+        toast.error('Invalid role data. Please try refreshing the page.');
+        return;
+      }
+      
+      if (!role.id || typeof role.id !== 'string') {
+        console.error('UserGroupsTab: Invalid role ID:', role.id);
+        toast.error('Invalid role ID. Please try refreshing the page.');
+        return;
+      }
+      
+      if (!role.name || typeof role.name !== 'string') {
+        console.error('UserGroupsTab: Invalid role name:', role.name);
+        toast.error('Invalid role name. Please try refreshing the page.');
+        return;
+      }
+      
+      // Ensure permissions is always an array
+      if (!Array.isArray(role.permissions)) {
+        console.warn('UserGroupsTab: Role permissions is not an array, setting to empty array:', role.permissions);
+        role.permissions = [];
+      }
+      
+      console.log('UserGroupsTab: handleSelectRole called with valid role:', role);
+      console.log('UserGroupsTab: Setting selectedRole to:', role);
+      console.log('UserGroupsTab: Setting isUnifiedDrawerOpen to true');
+      
+      setSelectedRole(role);
+      setIsUnifiedDrawerOpen(true);
+      
+      console.log('UserGroupsTab: State should now be updated');
+    } catch (error) {
+      console.error('UserGroupsTab: Error in handleSelectRole:', error);
+      toast.error('An error occurred while opening the role. Please try refreshing the page.');
+    }
   };
 
   const handleOpenModal = (role: UserGroup | null = null) => {
@@ -350,17 +384,19 @@ export function UserGroupsTab() {
                      </TableCell>
                      <TableCell className="text-right">
                        <div className="flex items-center gap-2">
-                         <Button 
-                           variant="ghost" 
-                           size="sm" 
-                           className="h-8 px-3"
-                           onClick={(e) => {
-                             e.stopPropagation();
-                             handleSelectRole(role);
-                           }}
-                         >
-                           Manage
-                         </Button>
+                         {canManageRoles && (
+                           <Button 
+                             variant="ghost" 
+                             size="sm" 
+                             className="h-8 px-3"
+                             onClick={(e) => {
+                               e.stopPropagation();
+                               handleSelectRole(role);
+                             }}
+                           >
+                             Manage
+                           </Button>
+                         )}
                          {!role.isDefault && (
                            <Button 
                              variant="ghost" 

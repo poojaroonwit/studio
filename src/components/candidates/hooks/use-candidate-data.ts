@@ -194,61 +194,18 @@ export function useCandidateData({
   const filtersRef = useRef(filters);
   filtersRef.current = filters;
 
-  // Circuit breaker for fit score counts
-  const fitScoreCountsCircuitBreaker = useRef({
-    consecutiveFailures: 0,
-    lastFailureTime: 0,
-    isOpen: false,
-    threshold: 3,
-    resetTime: 30000 // 30 seconds
-  });
-
   // Debounce ref for fit score counts
   const fitScoreCountsDebounceRef = useRef<NodeJS.Timeout | null>(null);
   const isFetchingFitScoreCountsRef = useRef(false);
 
   // Fetch fit score counts with circuit breaker and debouncing
-  const fetchFitScoreCounts = useCallback(async (forceRefresh = false) => {
-    if (sessionStatus !== 'authenticated') return;
-
-    // Circuit breaker check
-    const circuitBreaker = fitScoreCountsCircuitBreaker.current;
-    const now = Date.now();
-    
-    if (circuitBreaker.isOpen) {
-      if (now - circuitBreaker.lastFailureTime < circuitBreaker.resetTime) {
-        console.warn('🚫 Fit score counts circuit breaker is open, skipping request');
-        return;
-      } else {
-        // Reset circuit breaker after timeout
-        circuitBreaker.isOpen = false;
-        circuitBreaker.consecutiveFailures = 0;
-        circuitBreaker.lastFailureTime = 0;
-      }
-    }
-
-    // Prevent concurrent requests
+  const fetchFitScoreCounts = async (forceRefresh = false) => {
     if (isFetchingFitScoreCountsRef.current && !forceRefresh) {
       return;
     }
 
-    // Clear existing debounce
-    if (fitScoreCountsDebounceRef.current) {
-      clearTimeout(fitScoreCountsDebounceRef.current);
-      fitScoreCountsDebounceRef.current = null;
-    }
-
-    // Reduced debounce time for better responsiveness
-    if (!forceRefresh) {
-      fitScoreCountsDebounceRef.current = setTimeout(() => {
-        fetchFitScoreCounts(forceRefresh);
-      }, 150); // Reduced from 300ms to 150ms
-      return;
-    }
-
-    setIsFitScoreCountsLoading(true);
     isFetchingFitScoreCountsRef.current = true;
-    const startTime = Date.now();
+    setIsFitScoreCountsLoading(true);
 
     try {
       // Build query parameters from current filters
@@ -261,49 +218,28 @@ export function useCandidateData({
         return;
       }
       
-      // Add all current filters except fit score filters to prevent circular dependency
-      if (currentFilters.name) params.append('name', currentFilters.name);
-      if (currentFilters.nameOperator) params.append('nameOperator', currentFilters.nameOperator);
-      if (currentFilters.email) params.append('email', currentFilters.email);
-      if (currentFilters.emailOperator) params.append('emailOperator', currentFilters.emailOperator);
-      if (currentFilters.phone) params.append('phone', currentFilters.phone);
-      if (currentFilters.phoneOperator) params.append('phoneOperator', currentFilters.phoneOperator);
+      // Add basic filters only
       if (currentFilters.selectedPositionIds && currentFilters.selectedPositionIds.length > 0) {
         params.append('positionId', currentFilters.selectedPositionIds.join(','));
       }
       if (currentFilters.selectedStatuses && currentFilters.selectedStatuses.length > 0) {
         params.append('status', currentFilters.selectedStatuses.join(','));
       }
-      if (currentFilters.education) params.append('education', currentFilters.education);
-      if (currentFilters.minExperienceYears) params.append('minExperienceYears', currentFilters.minExperienceYears.toString());
-      if (currentFilters.maxExperienceYears) params.append('maxExperienceYears', currentFilters.maxExperienceYears.toString());
-      if (currentFilters.applicationDateStart) params.append('applicationDateStart', currentFilters.applicationDateStart.toISOString());
-      if (currentFilters.applicationDateEnd) params.append('applicationDateEnd', currentFilters.applicationDateEnd.toISOString());
       if (currentFilters.selectedRecruiterIds && currentFilters.selectedRecruiterIds.length > 0) {
         params.append('recruiterId', currentFilters.selectedRecruiterIds.join(','));
       }
       if (currentFilters.selectedSourceIds && currentFilters.selectedSourceIds.length > 0) {
         params.append('sourceId', currentFilters.selectedSourceIds.join(','));
       }
-      if (currentFilters.location) params.append('location', currentFilters.location);
-      if (currentFilters.locationOperator) params.append('locationOperator', currentFilters.locationOperator);
-      if (currentFilters.skills) params.append('skills', currentFilters.skills);
 
       const url = `/api/candidates/fit-score-counts?${params.toString()}`;
       
-      // Increased timeout for better reliability
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // Increased from 10s to 30s
-      
       const response = await fetch(url, {
-        signal: controller.signal,
         headers: {
           'Cache-Control': 'no-cache',
           'Pragma': 'no-cache'
         }
       });
-      
-      clearTimeout(timeoutId);
       
       if (response.ok) {
         const data = await response.json();
@@ -318,48 +254,18 @@ export function useCandidateData({
           }))
         };
         setDatabaseFitScoreCounts(newCounts);
-        
-        const responseTime = Date.now() - startTime;
-        
-        // Reset circuit breaker on success
-        circuitBreaker.consecutiveFailures = 0;
-        circuitBreaker.lastFailureTime = 0;
-        circuitBreaker.isOpen = false;
-        
-      } else if (response.status === 503) {
-        // Service unavailable - circuit breaker on server side
-        console.warn('⚠️ Fit score counts service temporarily unavailable');
-        setDatabaseFitScoreCounts(null);
-        
-        // Don't update circuit breaker for 503 errors as they're handled server-side
       } else {
-        console.error('❌ Failed to fetch fit score counts:', response.status, response.statusText);
+        console.error('Failed to fetch fit score counts:', response.status);
         setDatabaseFitScoreCounts(null);
-        
-        // Update circuit breaker
-        circuitBreaker.consecutiveFailures++;
-        circuitBreaker.lastFailureTime = now;
-        if (circuitBreaker.consecutiveFailures >= circuitBreaker.threshold) {
-          circuitBreaker.isOpen = true;
-          console.warn(`🚫 Fit score counts circuit breaker opened after ${circuitBreaker.consecutiveFailures} failures`);
-        }
       }
     } catch (error: any) {
-      console.error('❌ Error fetching fit score counts:', error);
+      console.error('Error fetching fit score counts:', error);
       setDatabaseFitScoreCounts(null);
-      
-      // Update circuit breaker
-      circuitBreaker.consecutiveFailures++;
-      circuitBreaker.lastFailureTime = now;
-      if (circuitBreaker.consecutiveFailures >= circuitBreaker.threshold) {
-        circuitBreaker.isOpen = true;
-        console.warn(`🚫 Fit score counts circuit breaker opened after ${circuitBreaker.consecutiveFailures} failures`);
-      }
     } finally {
       setIsFitScoreCountsLoading(false);
       isFetchingFitScoreCountsRef.current = false;
     }
-  }, [sessionStatus]);
+  };
 
   // Debounced version for filter changes
   const debouncedFetchFitScoreCounts = useCallback(() => {

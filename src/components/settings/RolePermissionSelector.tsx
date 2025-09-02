@@ -74,7 +74,7 @@ export function RolePermissionSelector({
   protectedPermissions = [],
   isLoading = false
 }: RolePermissionSelectorProps) {
-  // Early validation - must happen before any hooks
+  // Enhanced early validation - must happen before any hooks
   if (!Array.isArray(PLATFORM_MODULES) || PLATFORM_MODULES.length === 0) {
     console.error('RolePermissionSelector: PLATFORM_MODULES is not available or empty');
     return (
@@ -92,30 +92,50 @@ export function RolePermissionSelector({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const scrollPositionRef = useRef<number>(0);
 
-  // Defensive check for selectedPermissions to prevent React error #185
+  // Enhanced defensive check for selectedPermissions to prevent React error #185
   const safeSelectedPermissions = (() => {
     try {
       if (!Array.isArray(selectedPermissions)) {
         console.warn('RolePermissionSelector: selectedPermissions is not an array:', selectedPermissions);
         return [];
       }
-      // Filter out any invalid permission IDs
-      return selectedPermissions.filter(p => typeof p === 'string' && p.length > 0);
+      // Filter out any invalid permission IDs and ensure they're strings
+      return selectedPermissions.filter(p => {
+        if (typeof p !== 'string') {
+          console.warn('RolePermissionSelector: Invalid permission ID type:', typeof p, p);
+          return false;
+        }
+        if (p.length === 0) {
+          console.warn('RolePermissionSelector: Empty permission ID found');
+          return false;
+        }
+        return true;
+      });
     } catch (error) {
       console.error('RolePermissionSelector: Error processing selectedPermissions:', error);
       return [];
     }
   })();
 
-  // Defensive check for protectedPermissions
+  // Enhanced defensive check for protectedPermissions
   const safeProtectedPermissions = (() => {
     try {
       if (!Array.isArray(protectedPermissions)) {
         console.warn('RolePermissionSelector: protectedPermissions is not an array:', protectedPermissions);
         return [];
       }
-      // Filter out any invalid permission IDs
-      return protectedPermissions.filter(p => typeof p === 'string' && p.length > 0);
+      // Filter out any invalid permission IDs and ensure they're strings
+      return protectedPermissions.filter(p => {
+        if (typeof p !== 'string') {
+          console.warn('RolePermissionSelector: Invalid protected permission ID type:', typeof p, p);
+          return false;
+        }
+        if (p.length === 0) {
+          console.warn('RolePermissionSelector: Empty protected permission ID found');
+          return false;
+        }
+        return true;
+      });
     } catch (error) {
       console.error('RolePermissionSelector: Error processing protectedPermissions:', error);
       return [];

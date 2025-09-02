@@ -51,7 +51,7 @@ ON CONFLICT ("userId", "teamId") DO NOTHING;
 -- =====================================================
 -- STEP 5: Add back module_permissions column
 -- =====================================================
-ALTER TABLE "User" ADD COLUMN "module_permissions" String[] DEFAULT '{}';
+ALTER TABLE "User" ADD COLUMN "module_permissions" text[] DEFAULT '{}';
 
 -- =====================================================
 -- STEP 6: Update module_permissions from UserGroup

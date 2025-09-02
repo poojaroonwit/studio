@@ -793,7 +793,7 @@ export function CandidatesPageClient({
     return paginatedCandidates;
   }, [isAiSearchActive, aiMatchedCandidateIds, mappedCandidates, filteredCandidates, page, pageSize, total, paginatedCandidates, isLoading, tableLoading]);
 
-  // Apply horizontal filters when selections change (OPTIMIZED to prevent resource leaks)
+  // Apply horizontal filters when selections change (SIMPLIFIED)
   useEffect(() => {
     // Skip if we're currently clearing filters to prevent conflicts
     if (isClearingFilters) {
@@ -810,7 +810,7 @@ export function CandidatesPageClient({
       clearTimeout(filterChangeTimeoutRef.current);
     }
     
-    // Debounce the filter application to prevent resource leaks
+    // Simple debounced filter application
     filterChangeTimeoutRef.current = setTimeout(() => {
       // Only apply horizontal filters if there are selections
       if (horizontalSelectedFitScoreGrades.size > 0 || horizontalSelectedMatchingFitScoreGrades.size > 0) {
@@ -820,52 +820,18 @@ export function CandidatesPageClient({
         const hasValidFilters = Object.values(horizontalFilters).some(value => value !== undefined);
         
         if (hasValidFilters) {
-          const newFilters = {
-            ...currentFiltersRef.current,
-            ...horizontalFilters
-          };
-          setFilters(newFilters);
-          setPage(1); // Always reset to page 1 when applying fit score filters
-          setTableLoading(true); // Show loading state; central filters effect will fetch
-          // Avoid double-fetch here; fetching is handled by the filters change effects
-        } else {
-          // Clear fit score filters if no valid horizontal filters
-          const newFilters = {
-            ...currentFiltersRef.current,
-            minAppliedJobFitScore: undefined,
-            maxAppliedJobFitScore: undefined,
-            minMatchingJobFitScore: undefined,
-            maxMatchingJobFitScore: undefined,
-          };
-          setFilters(newFilters);
-          setPage(1); // Reset to page 1 when clearing fit score filters
-          setTableLoading(true); // Show loading state; central filters effect will fetch
-          // Avoid double-fetch here; fetching is handled by the filters change effects
+          // Apply the filters
+          setFilters(prev => ({ ...prev, ...horizontalFilters }));
         }
-      } else {
-        // If no horizontal selections, clear fit score filters from main filters
-        const newFilters = {
-          ...currentFiltersRef.current,
-          minAppliedJobFitScore: undefined,
-          maxAppliedJobFitScore: undefined,
-          minMatchingJobFitScore: undefined,
-          maxMatchingJobFitScore: undefined,
-        };
-        setFilters(newFilters);
-        setPage(1); // Reset to page 1 when clearing all fit score filters
-        setTableLoading(true); // Show loading state; central filters effect will fetch
-        // Avoid double-fetch here; fetching is handled by the filters change effects
       }
-    }, 400); // Increased debounce to prevent resource leaks
+    }, 300);
     
-    // Cleanup timeout on unmount or when dependencies change
     return () => {
       if (filterChangeTimeoutRef.current) {
         clearTimeout(filterChangeTimeoutRef.current);
-        filterChangeTimeoutRef.current = null;
       }
     };
-  }, [horizontalSelectedFitScoreGrades, horizontalSelectedMatchingFitScoreGrades, applyHorizontalFitScoreFilters, isClearingFilters, hasInitialDataFetch]);
+  }, [horizontalSelectedFitScoreGrades, horizontalSelectedMatchingFitScoreGrades, isClearingFilters, hasInitialDataFetch]);
 
   // Handle filter changes (OPTIMIZED to prevent infinite loops)
   const onFilterChange = useCallback((newFilters: CandidateFilterValues) => {

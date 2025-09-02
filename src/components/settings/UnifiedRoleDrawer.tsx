@@ -150,10 +150,26 @@ export function UnifiedRoleDrawer({
   onRoleChange,
   onMembersChange 
 }: UnifiedRoleDrawerProps) {
-  // Early validation - must happen before any hooks
-  if (!role || !role.id || !role.name || typeof role.id !== 'string' || typeof role.name !== 'string') {
-    console.error('UnifiedRoleDrawer: Invalid role object:', role);
+  // Enhanced early validation - must happen before any hooks
+  if (!role) {
+    console.error('UnifiedRoleDrawer: Role is null or undefined');
     return null;
+  }
+  
+  if (!role.id || typeof role.id !== 'string') {
+    console.error('UnifiedRoleDrawer: Invalid role ID:', role.id);
+    return null;
+  }
+  
+  if (!role.name || typeof role.name !== 'string') {
+    console.error('UnifiedRoleDrawer: Invalid role name:', role.name);
+    return null;
+  }
+  
+  // Ensure permissions is always an array to prevent React error #185
+  if (!Array.isArray(role.permissions)) {
+    console.warn('UnifiedRoleDrawer: Role permissions is not an array, setting to empty array:', role.permissions);
+    role.permissions = [];
   }
 
   // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
@@ -163,6 +179,16 @@ export function UnifiedRoleDrawer({
     setIsMounted(true);
     return () => setIsMounted(false);
   }, []);
+
+  // Add render counter to prevent infinite loops
+  const renderCount = useRef(0);
+  renderCount.current++;
+  
+  // Safety check to prevent infinite renders
+  if (renderCount.current > 100) {
+    console.error('UnifiedRoleDrawer: Too many renders detected, preventing infinite loop');
+    return null;
+  }
 
   const [activeTab, setActiveTab] = useState('details');
   const [members, setMembers] = useState<GroupMember[]>([]);
@@ -191,8 +217,8 @@ export function UnifiedRoleDrawer({
   const isSystemRole = role?.isSystemRole || false;
   const isAdminRole = role?.name === 'Admin';
 
-  // Get all available permissions for Admin role with defensive checks
-  const allPermissions = (() => {
+  // Get all available permissions for Admin role with defensive checks - MEMOIZED to prevent infinite loops
+  const allPermissions = React.useMemo(() => {
     try {
       if (!Array.isArray(PLATFORM_MODULES)) {
         console.warn('UnifiedRoleDrawer: PLATFORM_MODULES is not an array:', PLATFORM_MODULES);
@@ -203,7 +229,7 @@ export function UnifiedRoleDrawer({
       console.error('UnifiedRoleDrawer: Error getting all permissions:', error);
       return [];
     }
-  })();
+  }, []); // Empty dependency array since PLATFORM_MODULES is static
 
   // Initialize permissions when role changes - FIXED: Use useEffect instead of useSafeEffect
   useEffect(() => {
@@ -225,7 +251,7 @@ export function UnifiedRoleDrawer({
       // Reset permissions when role is null
       setCurrentPermissions([]);
     }
-  }, [role, allPermissions]); // FIXED: Removed trackRoleLoad dependency
+  }, [role?.id, role?.name, allPermissions]); // FIXED: Only depend on role properties that matter
 
   // Reset states when drawer closes to prevent memory leaks - FIXED: Use useEffect instead of useSafeEffect
   useEffect(() => {
@@ -527,7 +553,7 @@ export function UnifiedRoleDrawer({
         abortControllerRef.current = null;
       }
     }, 500); // 500ms debounce delay
-  }, [role, isAdminRole, allPermissions]);
+  }, [role?.id, role?.name, role?.description, role?.isDefault, isAdminRole, allPermissions]);
 
   const handleAddUser = async () => {
     if (!selectedUserId || !role?.id) return;

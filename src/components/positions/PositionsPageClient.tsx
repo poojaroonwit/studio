@@ -1477,6 +1477,27 @@ export default function PositionsPageClient() {
                         title="Click to view position details"
                                               >
                           {position.title}
+                          {/* SLA badges inline with title */}
+                          {(() => {
+                            const slaResult = checkSLAViolation(position);
+                            const remaining = getSLARemainingDays(position);
+                            if (slaResult && slaResult.isViolated) {
+                              const variant = getSLABadgeVariant(slaResult.daysOverdue);
+                              return (
+                                <Badge variant={variant} className="ml-2 text-[10px] px-1.5 py-0.5">
+                                  SLA overdue {slaResult.daysOverdue}d
+                                </Badge>
+                              );
+                            }
+                            if (remaining !== null && remaining <= 3 && remaining > 0) {
+                              return (
+                                <Badge variant="secondary" className="ml-2 text-[10px] px-1.5 py-0.5">
+                                  SLA due in {remaining}d
+                                </Badge>
+                              );
+                            }
+                            return null;
+                          })()}
                           {position.grade && position.grade.color && (
                             <span 
                               className="inline text-xs px-1.5 py-0.5 rounded-full border ml-1"

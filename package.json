@@ -52,7 +52,10 @@
     "test:ultra-high-connections": "node scripts/test-ultra-high-connections.js",
     "test:stuck-fix": "node scripts/test-application-stuck-fix.js",
     "fix:stages": "node scripts/fix-stage-mismatches.js",
-    "fix:stages:dry-run": "node scripts/fix-stage-mismatches.js --dry-run"
+    "fix:stages:dry-run": "node scripts/fix-stage-mismatches.js --dry-run",
+    "fix:candidate-status": "node scripts/fix-candidate-status-uuid.js",
+    "fix:status-rename": "node scripts/fix-candidate-status-uuid.js",
+    "update:status-to-statusId": "node scripts/update-components-to-statusId.js"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"

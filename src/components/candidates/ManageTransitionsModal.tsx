@@ -39,7 +39,7 @@ import { cn } from "@/lib/utils";
 
 import CandidateCommentsSection from './CandidateCommentsSection';
 import { StageSelect } from './StageSelect';
-import { getRecruitmentStageName } from '@/lib/recruitmentStageUtils';
+import { getRecruitmentStageNameClient } from '@/lib/recruitmentStageUtils';
 
 const transitionFormSchema = z.object({
   newStatus: z.string().min(1, "New status is required"),
@@ -98,7 +98,7 @@ export function ManageTransitionsModal({
     const fetchStageName = async () => {
       if (candidate?.status) {
         try {
-          const name = await getRecruitmentStageName(candidate.status);
+          const name = await getRecruitmentStageNameClient(candidate.status);
           setCurrentStageName(name);
         } catch (error) {
           console.error('Error fetching stage name:', error);
@@ -117,7 +117,7 @@ export function ManageTransitionsModal({
     setTransitionToDelete(transition);
     if (transition?.stage) {
       try {
-        const name = await getRecruitmentStageName(transition.stage);
+        const name = await getRecruitmentStageNameClient(transition.stage);
         setDeletingStageName(name);
       } catch (error) {
         console.error('Error fetching stage name for deletion:', error);

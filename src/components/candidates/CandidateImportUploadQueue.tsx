@@ -15,7 +15,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Clock, Loader2, CheckCircle, XCircle, Search, Filter, AlertCircle, Info, Upload, FileText, Users, Calendar as CalendarIcon, MoreHorizontal, Play, X, Trash2, Eye, RotateCcw, CheckSquare, Square, ChevronLeft, ChevronRight, ChevronUp, ChevronDown } from 'lucide-react';
+import { Clock, Loader2, CheckCircle, XCircle, Search, Filter, AlertCircle, Info, Upload, FileText, Users, Calendar as CalendarIcon, MoreHorizontal, Play, X, Trash2, Eye, RotateCcw, CheckSquare, Square, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, RefreshCw } from 'lucide-react';
 import { FileViewerModal } from '@/components/ui/file-viewer-modal';
 
 import { useEnhancedSSE, useEnhancedUploadQueueUpdates } from '@/hooks/use-enhanced-sse';
@@ -170,6 +170,44 @@ export default function CandidateImportUploadQueue() {
     }
   }, [selectedItems, queueData?.data]);
 
+  // Refresh queue when we receive SSE updates for real-time updates
+  useEffect(() => {
+    if (isRealtimeActive && lastMessage) {
+      // Check if the message is related to upload queue updates
+      if (lastMessage.type === 'upload_queue_update' || lastMessage.type === 'queue') {
+        fetchQueue(page, pageSize);
+        setLastUpdate(new Date());
+        
+        // Show a subtle toast notification for real-time updates
+        if (lastMessage.summary) {
+          const { queued, inprocess, success, error } = lastMessage.summary;
+          toast.success(`Queue updated: ${queued} queued, ${inprocess} processing, ${success} completed, ${error} errors`, {
+            duration: 2000,
+            position: 'top-right',
+            style: {
+              background: '#10b981',
+              color: 'white',
+              fontSize: '12px',
+            }
+          });
+        }
+      }
+    }
+  }, [isRealtimeActive, lastMessage, fetchQueue, page, pageSize]);
+
+  // Fallback periodic refresh when real-time updates are not working
+  useEffect(() => {
+    if (!isRealtimeActive) {
+      // If real-time updates are not working, refresh every 30 seconds
+      const interval = setInterval(() => {
+        fetchQueue(page, pageSize);
+        setLastUpdate(new Date());
+      }, 30000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [isRealtimeActive, fetchQueue, page, pageSize]);
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'queued': return <Clock className="h-4 w-4 text-blue-500" />;
@@ -265,6 +303,11 @@ export default function CandidateImportUploadQueue() {
     setDateRange(undefined);
     setPage(1);
     fetchQueue(1, pageSize);
+  };
+
+  const handleRefresh = () => {
+    fetchQueue(page, pageSize);
+    setLastUpdate(new Date());
   };
 
   const setDatePreset = (preset: 'today' | 'yesterday' | 'last7days' | 'last30days' | 'thisMonth' | 'lastMonth') => {
@@ -649,6 +692,24 @@ export default function CandidateImportUploadQueue() {
 
 
           <div className="flex-1 overflow-y-auto space-y-4">
+            {/* Real-time Connection Status */}
+            <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg border">
+              <div className="flex items-center space-x-2">
+                <div className={`w-2 h-2 rounded-full ${isRealtimeActive ? 'bg-green-500' : 'bg-red-500'}`} />
+                <span className="text-sm font-medium">
+                  {isRealtimeActive ? 'Live Updates Active' : 'Real-time Updates Offline'}
+                </span>
+                {!isRealtimeActive && (
+                  <span className="text-xs text-muted-foreground">
+                    (Auto-refresh every 30s)
+                  </span>
+                )}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Last updated: {lastUpdate ? formatDate(lastUpdate.toISOString()) : 'Never'}
+              </div>
+            </div>
+
       {/* Summary Cards */}
       {queueData?.summary && (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
@@ -903,6 +964,22 @@ export default function CandidateImportUploadQueue() {
                   className="text-xs h-6 px-1"
                 >
                   30d
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Actions</Label>
+              <div className="flex flex-wrap gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRefresh}
+                  disabled={loading}
+                  className="h-6 px-2 text-xs"
+                >
+                  <RefreshCw className={`h-3 w-3 mr-1 ${loading ? 'animate-spin' : ''}`} />
+                  Refresh
                 </Button>
               </div>
             </div>

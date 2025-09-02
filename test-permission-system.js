@@ -12,18 +12,21 @@ async function testPermissionSystem() {
   try {
     console.log('🔍 Testing permission system...\n');
 
-    // Test 1: Check if User_UserGroup table exists and has data
-    console.log('📊 Test 1: Checking User_UserGroup table...');
-    const userGroups = await prisma.user_UserGroup.findMany({
+    // Test 1: Check if users have proper group assignments
+    console.log('📊 Test 1: Checking user group assignments...');
+    const usersWithGroups = await prisma.user.findMany({
       include: {
-        user: { select: { email: true, role: true } },
-        group: { select: { name: true, permissions: true } }
+        userGroup: { select: { name: true, permissions: true } }
       }
     });
     
-    console.log(`   Found ${userGroups.length} user-group assignments`);
-    for (const ug of userGroups) {
-      console.log(`   - ${ug.user.email} (${ug.user.role}) → ${ug.group.name} [${ug.group.permissions.length} permissions]`);
+    console.log(`   Found ${usersWithGroups.length} users with group assignments`);
+    for (const user of usersWithGroups) {
+      if (user.userGroup) {
+        console.log(`   - ${user.email} (${user.role}) → ${user.userGroup.name} [${user.userGroup.permissions.length} permissions]`);
+      } else {
+        console.log(`   - ${user.email} (${user.role}) → No group assigned`);
+      }
     }
 
     // Test 2: Check if default groups exist
@@ -53,22 +56,18 @@ async function testPermissionSystem() {
     console.log('\n📊 Test 4: Checking permission alignment...');
     const usersWithGroups = await prisma.user.findMany({
       include: {
-        userGroups: {
-          include: {
-            group: { select: { name: true, permissions: true } }
-          }
-        }
+        userGroup: { select: { name: true, permissions: true } }
       }
     });
 
     for (const user of usersWithGroups) {
-      const totalPermissions = user.userGroups.flatMap(ug => ug.group.permissions);
-      const uniquePermissions = [...new Set(totalPermissions)];
-      
-      console.log(`   - ${user.email} (${user.role}): ${user.userGroups.length} groups, ${uniquePermissions.length} unique permissions`);
-      
-      if (user.userGroups.length === 0) {
-        console.log(`     ⚠️  No group assignments`);
+      if (user.userGroup) {
+        const totalPermissions = user.userGroup.permissions;
+        const uniquePermissions = [...new Set(totalPermissions)];
+        
+        console.log(`   - ${user.email} (${user.role}): ${user.userGroup.name} group, ${uniquePermissions.length} unique permissions`);
+      } else {
+        console.log(`   - ${user.email} (${user.role}): No group assigned`);
       }
     }
 

@@ -2,6 +2,7 @@ import prisma from './prisma';
 
 /**
  * Get recruitment stage ID by name (case-insensitive)
+ * @server-only This function uses Prisma and should only be called on the server side
  */
 export async function getRecruitmentStageByName(name: string): Promise<string | null> {
   try {
@@ -23,6 +24,7 @@ export async function getRecruitmentStageByName(name: string): Promise<string | 
 
 /**
  * Get recruitment stage name by ID
+ * @server-only This function uses Prisma and should only be called on the server side
  */
 export async function getRecruitmentStageName(id: string): Promise<string | null> {
   try {
@@ -33,6 +35,46 @@ export async function getRecruitmentStageName(id: string): Promise<string | null
     return stage?.name || null;
   } catch (error) {
     console.error(`Error finding recruitment stage by ID '${id}':`, error);
+    return null;
+  }
+}
+
+/**
+ * Get recruitment stage names by IDs (client-side safe)
+ * This function uses the API endpoint and can be called from client components
+ */
+export async function getRecruitmentStageNamesByIds(ids: string[]): Promise<Record<string, string>> {
+  try {
+    if (ids.length === 0) return {};
+    
+    const response = await fetch(`/api/settings/recruitment-stages?ids=${ids.join(',')}`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch stage names: ${response.statusText}`);
+    }
+    
+    const stages = await response.json();
+    const nameMap: Record<string, string> = {};
+    stages.forEach((stage: any) => {
+      nameMap[stage.id] = stage.name;
+    });
+    
+    return nameMap;
+  } catch (error) {
+    console.error('Error fetching recruitment stage names:', error);
+    return {};
+  }
+}
+
+/**
+ * Get recruitment stage name by ID (client-side safe)
+ * This function uses the API endpoint and can be called from client components
+ */
+export async function getRecruitmentStageNameClient(id: string): Promise<string | null> {
+  try {
+    const nameMap = await getRecruitmentStageNamesByIds([id]);
+    return nameMap[id] || null;
+  } catch (error) {
+    console.error(`Error finding recruitment stage name by ID '${id}':`, error);
     return null;
   }
 }

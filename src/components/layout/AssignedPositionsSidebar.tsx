@@ -136,24 +136,21 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
 
         <ScrollArea className={cn("h-[300px] overflow-x-hidden", variant === 'compact' ? "px-0" : "px-3") }>
           <div className="relative">
-            {/* Common tree pattern: subtle vertical rail + node dots */}
-            <ul className={cn("mt-2 space-y-1 pl-4 border-l border-border/60 relative", variant === 'compact' ? "mt-1" : "") }>
+            {/* CodeHim-like tree: vertical branches via li:before and elbows via node:after */}
+            <ul className={cn("ap-tree mt-2 space-y-1 pl-0 relative", variant === 'compact' ? "mt-1" : "") }>
               {positions.slice(0, visibleCount).map((position) => (
                 <li
                   key={position.id}
                   className={cn(
-                    "group relative flex items-center gap-2 py-1 cursor-pointer w-full max-w-full",
+                    "ap-item group relative flex items-center gap-2 py-1 cursor-pointer w-full max-w-full pl-4",
                     variant === 'compact' ? "text-foreground hover:opacity-80" : "hover:text-foreground"
                   )}
                   onClick={() => handlePositionClick(position.id)}
                   title={position.title}
                 >
-                  {/* Node dot sitting on the rail */}
-                  <span className="absolute -left-[5px] top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-muted-foreground/70 ring-1 ring-border group-hover:bg-foreground/70" />
-
                   <span
                     className={cn(
-                      "flex-1 min-w-0 text-sm overflow-hidden text-ellipsis whitespace-nowrap pr-2",
+                      "ap-node relative flex-1 min-w-0 text-sm overflow-hidden text-ellipsis whitespace-nowrap pr-2",
                       variant === 'compact' ? "text-foreground" : "text-muted-foreground"
                     )}
                   >
@@ -178,19 +175,6 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
               ))}
             </ul>
           </div>
-
-          {visibleCount < positions.length && (
-            <div className="pt-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                className={cn("h-6 px-2 text-xs", variant === 'compact' ? "text-foreground/80 hover:underline" : "text-primary hover:underline")}
-                onClick={() => setVisibleCount((c) => Math.min(c + 3, positions.length))}
-              >
-                Load more
-              </Button>
-            </div>
-          )}
         </ScrollArea>
       </div>
 
@@ -199,6 +183,39 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
         onOpenChange={setIsPositionDrawerOpen}
         positionId={selectedPositionId}
       />
+      <style jsx>{`
+        /* Tree core */
+        .ap-tree { position: relative; }
+        .ap-tree .ap-item { padding-bottom: 0.25rem; }
+        .ap-tree .ap-item:last-child { padding-bottom: 0; }
+        /* Vertical branch */
+        .ap-tree .ap-item:before {
+          content: '';
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          left: 0.75rem; /* aligns with pl-4 */
+          border-left: 1px solid hsl(var(--border));
+        }
+        .ap-tree .ap-item:last-child:before {
+          height: 0.9rem; /* stop at last row */
+          bottom: auto;
+        }
+        /* Elbow connector */
+        .ap-tree .ap-node:after {
+          content: '';
+          position: absolute;
+          top: 0.5em;
+          left: -1.25rem; /* meets the vertical line */
+          width: 1rem;
+          height: 0.6em;
+          border-bottom: 1px solid hsl(var(--border));
+          border-left: 1px solid hsl(var(--border));
+          border-bottom-left-radius: 0.3rem;
+        }
+        /* Hover emphasis without breaking theme */
+        .ap-tree .ap-item:hover .ap-node { color: hsl(var(--foreground)); }
+      `}</style>
     </>
   );
 }

@@ -30,12 +30,6 @@ RUN dos2unix ./entrypoint.sh ./entrypoint-processor.sh 2>/dev/null || true
 # Debug: check if src/lib/db.ts exists
 RUN ls -l src/lib/db.ts || (echo 'src/lib/db.ts not found!' && exit 1)
 
-# Run migration to convert status to statusId before building
-RUN npm run fix:status-rename
-
-# Generate Prisma client after migration
-RUN npx prisma generate
-
 # Build the application (removed memory limit - let Docker manage memory)
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build

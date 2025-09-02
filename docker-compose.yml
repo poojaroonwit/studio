@@ -4,9 +4,10 @@ services:
     # image: studio-6-app:${IMAGE_TAG:-latest}
     build:
       context: .
-      dockerfile: Dockerfile
-      # args:
-      #   BUILD_DATE: ${BUILD_DATE:-$(date +%s)}
+      dockerfile: Dockerfile.optimized
+      args:
+        BUILDKIT_INLINE_CACHE: 1
+        NODE_OPTIONS: "--max-old-space-size=4096"
     ports:
       - "${APP_PORT:-8021}:8021"
     # For production deployments, you typically want the application code to be self-contained

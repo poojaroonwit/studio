@@ -59,6 +59,9 @@ export async function GET(request: NextRequest) {
         personalColor: string;
         themePreference: 'light' | 'dark' | 'system';
       };
+      sidebar: {
+        showAssignedPositions: boolean;
+      };
       candidates: {
         showCandidateColumn: boolean;
         showAppliedJobColumn: boolean;
@@ -109,6 +112,9 @@ export async function GET(request: NextRequest) {
       appearance: {
         personalColor: '#3B82F6',
         themePreference: 'system',
+      },
+      sidebar: {
+        showAssignedPositions: false,
       },
       candidates: {
         showCandidateColumn: true,
@@ -267,6 +273,12 @@ export async function GET(request: NextRequest) {
               transformedPreferences.candidates.fitScoreFilterMode = value as 'single' | 'multi';
               break;
           }
+        } else if (pref.modelType === 'sidebar') {
+          switch (pref.attributeKey) {
+            case 'showAssignedPositions':
+              transformedPreferences.sidebar.showAssignedPositions = value === 'true';
+              break;
+          }
         }
     });
 
@@ -359,9 +371,9 @@ export async function DELETE(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const modelType = searchParams.get('modelType');
 
-    if (modelType && !['taskBoard', 'positions', 'appearance', 'candidates'].includes(modelType)) {
+    if (modelType && !['taskBoard', 'positions', 'appearance', 'candidates', 'sidebar'].includes(modelType)) {
       return NextResponse.json(
-        { error: 'Invalid modelType. Must be "taskBoard", "positions", "appearance", or "candidates"' },
+        { error: 'Invalid modelType. Must be "taskBoard", "positions", "appearance", "candidates", or "sidebar"' },
         { status: 400 }
       );
     }

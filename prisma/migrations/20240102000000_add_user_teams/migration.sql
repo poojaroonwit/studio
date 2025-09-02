@@ -5,7 +5,7 @@
 
 */
 -- AlterTable
-ALTER TABLE "User" DROP COLUMN "modulePermissions";
+ALTER TABLE "User" DROP COLUMN IF EXISTS "modulePermissions";
 
 -- CreateTable
 CREATE TABLE "UserTeam" (

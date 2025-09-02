@@ -3,59 +3,47 @@
 -- Run this script step by step to ensure data integrity
 
 -- =====================================================
--- STEP 1: Add new foreign key columns to User table
+-- STEP 1: Add new foreign key columns to User table (idempotent)
 -- =====================================================
-ALTER TABLE "User" ADD COLUMN "userGroupId" UUID;
-ALTER TABLE "User" ADD COLUMN "userTeamId" UUID;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "userGroupId" UUID;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "userTeamId" UUID;
 
 -- =====================================================
--- STEP 2: Create indexes for the new foreign keys
+-- STEP 2: Create indexes for the new foreign keys (idempotent)
 -- =====================================================
-CREATE INDEX "User_userGroupId_idx" ON "User"("userGroupId");
-CREATE INDEX "User_userTeamId_idx" ON "User"("userTeamId");
+CREATE INDEX IF NOT EXISTS "User_userGroupId_idx" ON "User"("userGroupId");
+CREATE INDEX IF NOT EXISTS "User_userTeamId_idx" ON "User"("userTeamId");
 
 -- =====================================================
--- STEP 3: Verify current data structure
--- =====================================================
--- Check current users and their group memberships
-SELECT 
-  u.id,
-  u.name,
-  u.email,
-  u.role,
-  array_agg(DISTINCT ug.name) as current_groups,
-  array_agg(DISTINCT ut.name) as current_teams
-FROM "User" u
-LEFT JOIN "User_UserGroup" uug ON u.id = uug."userId"
-LEFT JOIN "UserGroup" ug ON uug."groupId" = ug.id
-LEFT JOIN "User_UserTeam" uut ON u.id = uut."userId"
-LEFT JOIN "UserTeam" ut ON uut."teamId" = ut.id
-GROUP BY u.id, u.name, u.email, u.role
-ORDER BY u.name;
+-- Skipped: diagnostics that reference legacy junction tables (they may not exist)
 
 -- =====================================================
--- STEP 4: Migrate existing data - Set primary UserGroup
--- =====================================================
--- Update users with their primary UserGroup (first one found)
-UPDATE "User" 
-SET "userGroupId" = (
-  SELECT uug."groupId" 
-  FROM "User_UserGroup" uug 
-  WHERE uug."userId" = "User".id 
-  LIMIT 1
-);
+DO $$
+BEGIN
+  IF to_regclass('public."User_UserGroup"') IS NOT NULL THEN
+    UPDATE "User" 
+    SET "userGroupId" = (
+      SELECT uug."groupId" 
+      FROM "User_UserGroup" uug 
+      WHERE uug."userId" = "User".id 
+      LIMIT 1
+    );
+  END IF;
+END $$;
 
 -- =====================================================
--- STEP 5: Migrate existing data - Set primary UserTeam
--- =====================================================
--- Update users with their primary UserTeam (first one found)
-UPDATE "User" 
-SET "userTeamId" = (
-  SELECT uut."teamId" 
-  FROM "User_UserTeam" uut 
-  WHERE uut."userId" = "User".id 
-  LIMIT 1
-);
+DO $$
+BEGIN
+  IF to_regclass('public."User_UserTeam"') IS NOT NULL THEN
+    UPDATE "User" 
+    SET "userTeamId" = (
+      SELECT uut."teamId" 
+      FROM "User_UserTeam" uut 
+      WHERE uut."userId" = "User".id 
+      LIMIT 1
+    );
+  END IF;
+END $$;
 
 -- =====================================================
 -- STEP 6: Update role field to match UserGroup name
@@ -65,21 +53,26 @@ SET role = (
   SELECT ug.name 
   FROM "UserGroup" ug 
   WHERE ug.id = "User"."userGroupId"
-);
+)
+WHERE "userGroupId" IS NOT NULL;
 
 -- =====================================================
 -- STEP 7: Add foreign key constraints
 -- =====================================================
-ALTER TABLE "User" ADD CONSTRAINT "User_userGroupId_fkey" 
-  FOREIGN KEY ("userGroupId") REFERENCES "UserGroup"("id") ON DELETE SET NULL;
+DO $$ BEGIN
+  ALTER TABLE "User" ADD CONSTRAINT "User_userGroupId_fkey" 
+    FOREIGN KEY ("userGroupId") REFERENCES "UserGroup"("id") ON DELETE SET NULL;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
-ALTER TABLE "User" ADD CONSTRAINT "User_userTeamId_fkey" 
-  FOREIGN KEY ("userTeamId") REFERENCES "UserTeam"("id") ON DELETE SET NULL;
+DO $$ BEGIN
+  ALTER TABLE "User" ADD CONSTRAINT "User_userTeamId_fkey" 
+    FOREIGN KEY ("userTeamId") REFERENCES "UserTeam"("id") ON DELETE SET NULL;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- =====================================================
 -- STEP 8: Remove the unused module_permissions column
 -- =====================================================
-ALTER TABLE "User" DROP COLUMN "modulePermissions";
+ALTER TABLE "User" DROP COLUMN IF EXISTS "modulePermissions";
 
 -- =====================================================
 -- STEP 9: Verify the migration results

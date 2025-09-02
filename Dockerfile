@@ -18,8 +18,8 @@ COPY package*.json ./
 
 # Install dependencies with fallback options
 RUN npm cache clean --force && \
-    (npm ci --no-audit --no-fund --prefer-offline || \
-     npm install --no-audit --no-fund --legacy-peer-deps)
+    npm ci --no-audit --no-fund --prefer-offline || \
+    npm install --no-audit --no-fund --legacy-peer-deps
 
 # Copy source code
 COPY . .
@@ -27,15 +27,28 @@ COPY . .
 # Fix line endings for shell scripts (important for Windows development)
 RUN dos2unix ./entrypoint.sh ./entrypoint-processor.sh 2>/dev/null || true
 
-# Debug: check if src/lib/db.ts exists
-RUN ls -l src/lib/db.ts || (echo 'src/lib/db.ts not found!' && exit 1)
-
-# Generate Prisma client (will be done at runtime after migration)
-# RUN npx prisma generate
-
-# Build the application (removed memory limit - let Docker manage memory)
+# Set environment variables for build
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN npm run build
+ENV NODE_ENV=production
+ENV CI=true
+
+# Debug: show environment and check Node.js version
+RUN echo "Node.js version:" && node --version && \
+    echo "npm version:" && npm --version && \
+    echo "Current directory:" && pwd && \
+    echo "Files in current directory:" && ls -la
+
+# Build the application with retry logic
+RUN set -e; \
+    echo "Starting build process..." && \
+    (npm run build || \
+     (echo "First build attempt failed, trying clean build..." && \
+      npm run build:clean) || \
+     (echo "Clean build failed, trying force build..." && \
+      npm run build:force) || \
+     (echo "All build attempts failed. Build output:" && \
+      ls -la .next/ || echo "No .next directory found" && \
+      exit 1))
 
 # Make entrypoint scripts executable
 RUN chmod +x ./entrypoint.sh

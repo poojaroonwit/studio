@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
     }
     
     if (searchParams.get('status')) {
-      whereClauses.push(`c.status = $${paramIndex++}`);
+          whereClauses.push(`c.status = $${paramIndex++}`);
       queryParams.push(searchParams.get('status'));
     }
     
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
     }
     
     if (searchParams.get('sourceId')) {
-      whereClauses.push(`c."sourceId" = $${paramIndex++}`);
+            whereClauses.push(`c."sourceId" = $${paramIndex++}`);
       queryParams.push(searchParams.get('sourceId'));
     }
 

@@ -79,6 +79,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
+  // Check if user has permission to view candidate sources
+  // Users should be able to view sources if they can view candidates or manage system settings
+  if (session.user.role !== 'Admin' && 
+      !session.user.modulePermissions?.includes('CANDIDATES_VIEW') &&
+      !session.user.modulePermissions?.includes('SYSTEM_SETTINGS_VIEW')) {
+    return NextResponse.json({ message: "Forbidden: Insufficient permissions to view candidate sources" }, { status: 403 });
+  }
+
   try {
     const result = await getPool().query(`
       SELECT 

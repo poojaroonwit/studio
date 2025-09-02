@@ -25,6 +25,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Check if user has permission to view headcount type options
+    // Users should be able to view these options if they can view positions or manage headcount
+    if (session.user.role !== 'Admin' && 
+        !session.user.modulePermissions?.includes('POSITIONS_VIEW') &&
+        !session.user.modulePermissions?.includes('HEADCOUNT_MANAGE')) {
+      return NextResponse.json({ error: 'Forbidden: Insufficient permissions to view headcount type options' }, { status: 403 });
+    }
+
     const pool = getPool();
     const client = await pool.connect();
 

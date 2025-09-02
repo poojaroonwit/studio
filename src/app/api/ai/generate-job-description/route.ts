@@ -15,6 +15,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Check if user has permission to use AI features
+  // Users should be able to use AI features if they can manage positions or have AI-specific permissions
+  if (session.user.role !== 'Admin' && 
+      !session.user.modulePermissions?.includes('POSITIONS_MANAGE') &&
+      !session.user.modulePermissions?.includes('AI_INTEGRATION_VIEW')) {
+    return NextResponse.json({ error: 'Forbidden: Insufficient permissions to use AI features' }, { status: 403 });
+  }
+
   try {
     const body = await request.json();
     const { title, department, positionLevel } = body;

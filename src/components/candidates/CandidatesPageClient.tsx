@@ -1349,6 +1349,46 @@ export function CandidatesPageClient({
     };
   }, []);
 
+  // Memoized fitscore counts to prevent unnecessary re-renders
+  const memoizedCandidateScoreCounts = useMemo(() => {
+    if (!databaseFitScoreCounts) return null;
+    
+    return {
+      applied: databaseFitScoreCounts.applied || [],
+      matching: databaseFitScoreCounts.matching || []
+    };
+  }, [databaseFitScoreCounts]);
+
+  // Memoized horizontal filter handlers to prevent re-renders
+  const memoizedHandleHorizontalFitScoreGradeToggle = useCallback((grade: string) => {
+    setHorizontalSelectedFitScoreGrades(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(grade)) {
+        newSet.delete(grade);
+      } else {
+        newSet.add(grade);
+      }
+      return newSet;
+    });
+  }, []);
+
+  const memoizedHandleHorizontalMatchingFitScoreGradeToggle = useCallback((grade: string) => {
+    setHorizontalSelectedMatchingFitScoreGrades(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(grade)) {
+        newSet.delete(grade);
+      } else {
+        newSet.add(grade);
+      }
+      return newSet;
+    });
+  }, []);
+
+  const memoizedClearAllHorizontalFitScoreFilters = useCallback(() => {
+    setHorizontalSelectedFitScoreGrades(new Set());
+    setHorizontalSelectedMatchingFitScoreGrades(new Set());
+  }, []);
+
   // Handle authentication
   if (sessionStatus === 'loading') {
     return (
@@ -1410,7 +1450,7 @@ export function CandidatesPageClient({
                       onClearAllFilters={handleClearAllFilters}
                       isLoading={isLoading || isFilterDataLoading}
                       isAiSearching={isAiSearching}
-                      candidateScoreCounts={candidateScoreCounts}
+                      candidateScoreCounts={candidateScoreCounts?.applied || []}
                       advancedQuery={advancedQuery}
                     />
                   );
@@ -1434,14 +1474,9 @@ export function CandidatesPageClient({
                       {candidateSettings.fitScoreType === 'applied' && (
                         <FitScoreFilterTabs
                           selectedGrades={horizontalSelectedFitScoreGrades}
-                          onGradeToggle={handleHorizontalFitScoreGradeToggle}
-                          onClearAll={() => {
-                            clearAllHorizontalFitScoreFilters();
-                            setIsClearingFilters(true);
-                            // Don't reset the flag immediately - let the fitscore counts loading complete first
-                            // The flag will be reset in the useEffect that handles fitscore counts loading
-                          }}
-                          candidateCounts={candidateScoreCounts?.applied || []}
+                          onGradeToggle={memoizedHandleHorizontalFitScoreGradeToggle}
+                          onClearAll={memoizedClearAllHorizontalFitScoreFilters}
+                          candidateCounts={memoizedCandidateScoreCounts?.applied || []}
                           className=""
                           filterMode={candidateSettings.fitScoreFilterMode}
                           aiMatchedCount={aiRecordCount}
@@ -1452,14 +1487,9 @@ export function CandidatesPageClient({
                       {candidateSettings.fitScoreType === 'matching' && (
                         <FitScoreFilterTabs
                           selectedGrades={horizontalSelectedMatchingFitScoreGrades}
-                          onGradeToggle={handleHorizontalMatchingFitScoreGradeToggle}
-                          onClearAll={() => {
-                            clearAllHorizontalFitScoreFilters();
-                            setIsClearingFilters(true);
-                            // Don't reset the flag immediately - let the fitscore counts loading complete first
-                            // The flag will be reset in the useEffect that handles fitscore counts loading
-                          }}
-                          candidateCounts={candidateScoreCounts?.matching || []}
+                          onGradeToggle={memoizedHandleHorizontalMatchingFitScoreGradeToggle}
+                          onClearAll={memoizedClearAllHorizontalFitScoreFilters}
+                          candidateCounts={memoizedCandidateScoreCounts?.matching || []}
                           className=""
                           filterMode={candidateSettings.fitScoreFilterMode}
                           aiMatchedCount={aiRecordCount}

@@ -59,64 +59,136 @@ console.log(`Password: ${adminPassword}`);
     // Create default user groups with detailed permissions
     console.log('Creating default user groups...');
     
-    const adminGroup = await prisma.userGroup.upsert({
-      where: { name: 'Administrators' },
-      update: {},
-      create: {
-        id: '00000000-0000-0000-0000-000000000001',
-        name: 'Administrators',
-        description: 'Full system access and management',
-        permissions: [
-          // Candidate permissions
-          'CANDIDATES_VIEW','CANDIDATES_VIEW_DETAILED','CANDIDATES_CREATE','CANDIDATES_EDIT_BASIC','CANDIDATES_EDIT_SENSITIVE','CANDIDATES_DELETE','CANDIDATES_SOURCE_ASSIGN','CANDIDATES_SOURCE_ASSIGN_BULK','CANDIDATES_RECRUITER_ASSIGN','CANDIDATES_RECRUITER_ASSIGN_BULK','CANDIDATES_PIPELINE_STAGE_UPDATE','CANDIDATES_PIPELINE_STAGE_BULK_UPDATE','CANDIDATES_RESUMES_UPLOAD','CANDIDATES_RESUMES_DELETE','CANDIDATES_COMMENTS_VIEW','CANDIDATES_COMMENTS_ADD','CANDIDATES_COMMENTS_EDIT','CANDIDATES_IMPORT','CANDIDATES_EXPORT',
-          // Position permissions
-          'POSITIONS_VIEW','POSITIONS_CREATE','POSITIONS_EDIT_BASIC','POSITIONS_EDIT_DETAILED','POSITIONS_RECRUITER_ASSIGN','POSITIONS_DELETE','POSITIONS_IMPORT','POSITIONS_EXPORT',
-          // User management permissions
-          'USERS_VIEW','USERS_CREATE','USERS_EDIT','USERS_DELETE','USERS_PERMISSIONS_MANAGE','USER_GROUPS_VIEW','USER_GROUPS_CREATE','USER_GROUPS_EDIT','USER_GROUPS_DELETE',
-          // System permissions
-          'SYSTEM_SETTINGS_VIEW','SYSTEM_SETTINGS_EDIT','RECRUITMENT_STAGES_VIEW','RECRUITMENT_STAGES_EDIT','CUSTOM_FIELDS_VIEW','CUSTOM_FIELDS_EDIT','WEBHOOKS_VIEW','WEBHOOKS_EDIT','AI_INTEGRATION_VIEW','AI_INTEGRATION_EDIT',
-          // Other permissions
-          'UPLOAD_QUEUE_VIEW','UPLOAD_QUEUE_MANAGE','BULK_UPLOAD_EXECUTE','DASHBOARD_VIEW','REPORTS_GENERATE','WEBHOOK_ANALYTICS_VIEW','LOGS_VIEW','LOGS_EXPORT','APP_PERFORMANCE_VIEW','TASK_BOARD_VIEW','TASK_BOARD_MANAGE_OWN','TASK_BOARD_MANAGE_ALL','JOB_MATCH_VIEW','JOB_MATCH_MANAGE','WARNING_CONFIGURATIONS_VIEW','WARNING_CONFIGURATIONS_MANAGE','USER_PREFERENCES_MANAGE_OWN','USER_PREFERENCES_MANAGE_ALL'
-        ],
-        isDefault: true,
-        isSystemRole: true,
-      },
+    // First, check if groups already exist by name
+    const existingAdminGroup = await prisma.userGroup.findUnique({
+      where: { name: 'Administrators' }
     });
+    
+    const existingRecruiterGroup = await prisma.userGroup.findUnique({
+      where: { name: 'Recruiters' }
+    });
+    
+    const existingHiringManagerGroup = await prisma.userGroup.findUnique({
+      where: { name: 'Hiring Managers' }
+    });
+    
+    // Create or update admin group
+    let adminGroup;
+    if (existingAdminGroup) {
+      console.log('   Updating existing Administrators group...');
+      adminGroup = await prisma.userGroup.update({
+        where: { id: existingAdminGroup.id },
+        data: {
+          description: 'Full system access and management',
+          permissions: [
+            // Candidate permissions
+            'CANDIDATES_VIEW','CANDIDATES_VIEW_DETAILED','CANDIDATES_CREATE','CANDIDATES_EDIT_BASIC','CANDIDATES_EDIT_SENSITIVE','CANDIDATES_DELETE','CANDIDATES_SOURCE_ASSIGN','CANDIDATES_SOURCE_ASSIGN_BULK','CANDIDATES_RECRUITER_ASSIGN','CANDIDATES_RECRUITER_ASSIGN_BULK','CANDIDATES_PIPELINE_STAGE_UPDATE','CANDIDATES_PIPELINE_STAGE_BULK_UPDATE','CANDIDATES_RESUMES_UPLOAD','CANDIDATES_RESUMES_DELETE','CANDIDATES_COMMENTS_VIEW','CANDIDATES_COMMENTS_ADD','CANDIDATES_COMMENTS_EDIT','CANDIDATES_IMPORT','CANDIDATES_EXPORT',
+            // Position permissions
+            'POSITIONS_VIEW','POSITIONS_CREATE','POSITIONS_EDIT_BASIC','POSITIONS_EDIT_DETAILED','POSITIONS_RECRUITER_ASSIGN','POSITIONS_DELETE','POSITIONS_IMPORT','POSITIONS_EXPORT',
+            // User management permissions
+            'USERS_VIEW','USERS_CREATE','USERS_EDIT','USERS_DELETE','USERS_PERMISSIONS_MANAGE','USER_GROUPS_VIEW','USER_GROUPS_CREATE','USER_GROUPS_EDIT','USER_GROUPS_DELETE',
+            // System permissions
+            'SYSTEM_SETTINGS_VIEW','SYSTEM_SETTINGS_EDIT','RECRUITMENT_STAGES_VIEW','RECRUITMENT_STAGES_EDIT','CUSTOM_FIELDS_VIEW','CUSTOM_FIELDS_EDIT','WEBHOOKS_VIEW','WEBHOOKS_EDIT','AI_INTEGRATION_VIEW','AI_INTEGRATION_EDIT',
+            // Other permissions
+            'UPLOAD_QUEUE_VIEW','UPLOAD_QUEUE_MANAGE','BULK_UPLOAD_EXECUTE','DASHBOARD_VIEW','REPORTS_GENERATE','WEBHOOK_ANALYTICS_VIEW','LOGS_VIEW','LOGS_EXPORT','APP_PERFORMANCE_VIEW','TASK_BOARD_VIEW','TASK_BOARD_MANAGE_OWN','TASK_BOARD_MANAGE_ALL','JOB_MATCH_VIEW','JOB_MATCH_MANAGE','WARNING_CONFIGURATIONS_VIEW','WARNING_CONFIGURATIONS_MANAGE','USER_PREFERENCES_MANAGE_OWN','USER_PREFERENCES_MANAGE_ALL'
+          ],
+          isDefault: true,
+          isSystemRole: true,
+        }
+      });
+    } else {
+      console.log('   Creating new Administrators group...');
+      adminGroup = await prisma.userGroup.create({
+        data: {
+          name: 'Administrators',
+          description: 'Full system access and management',
+          permissions: [
+            // Candidate permissions
+            'CANDIDATES_VIEW','CANDIDATES_VIEW_DETAILED','CANDIDATES_CREATE','CANDIDATES_EDIT_BASIC','CANDIDATES_EDIT_SENSITIVE','CANDIDATES_DELETE','CANDIDATES_SOURCE_ASSIGN','CANDIDATES_SOURCE_ASSIGN_BULK','CANDIDATES_RECRUITER_ASSIGN','CANDIDATES_RECRUITER_ASSIGN_BULK','CANDIDATES_PIPELINE_STAGE_UPDATE','CANDIDATES_PIPELINE_STAGE_BULK_UPDATE','CANDIDATES_RESUMES_UPLOAD','CANDIDATES_RESUMES_DELETE','CANDIDATES_COMMENTS_VIEW','CANDIDATES_COMMENTS_ADD','CANDIDATES_COMMENTS_EDIT','CANDIDATES_IMPORT','CANDIDATES_EXPORT',
+            // Position permissions
+            'POSITIONS_VIEW','POSITIONS_CREATE','POSITIONS_EDIT_BASIC','POSITIONS_EDIT_DETAILED','POSITIONS_RECRUITER_ASSIGN','POSITIONS_DELETE','POSITIONS_IMPORT','POSITIONS_EXPORT',
+            // User management permissions
+            'USERS_VIEW','USERS_CREATE','USERS_EDIT','USERS_DELETE','USERS_PERMISSIONS_MANAGE','USER_GROUPS_VIEW','USER_GROUPS_CREATE','USER_GROUPS_EDIT','USER_GROUPS_DELETE',
+            // System permissions
+            'SYSTEM_SETTINGS_VIEW','SYSTEM_SETTINGS_EDIT','RECRUITMENT_STAGES_VIEW','RECRUITMENT_STAGES_EDIT','CUSTOM_FIELDS_VIEW','CUSTOM_FIELDS_EDIT','WEBHOOKS_VIEW','WEBHOOKS_EDIT','AI_INTEGRATION_VIEW','AI_INTEGRATION_EDIT',
+            // Other permissions
+            'UPLOAD_QUEUE_VIEW','UPLOAD_QUEUE_MANAGE','BULK_UPLOAD_EXECUTE','DASHBOARD_VIEW','REPORTS_GENERATE','WEBHOOK_ANALYTICS_VIEW','LOGS_VIEW','LOGS_EXPORT','APP_PERFORMANCE_VIEW','TASK_BOARD_VIEW','TASK_BOARD_MANAGE_OWN','TASK_BOARD_MANAGE_ALL','JOB_MATCH_VIEW','JOB_MATCH_MANAGE','WARNING_CONFIGURATIONS_VIEW','WARNING_CONFIGURATIONS_MANAGE','USER_PREFERENCES_MANAGE_OWN','USER_PREFERENCES_MANAGE_ALL'
+          ],
+          isDefault: true,
+          isSystemRole: true,
+        }
+      });
+    }
 
-    const recruiterGroup = await prisma.userGroup.upsert({
-      where: { name: 'Recruiters' },
-      update: {},
-      create: {
-        id: '00000000-0000-0000-0000-000000000002',
-        name: 'Recruiters',
-        description: 'Standard recruiter access',
-        permissions: [
-          // Candidate management
-          'CANDIDATES_VIEW','CANDIDATES_VIEW_DETAILED','CANDIDATES_CREATE','CANDIDATES_EDIT_BASIC','CANDIDATES_SOURCE_ASSIGN','CANDIDATES_RECRUITER_ASSIGN','CANDIDATES_PIPELINE_STAGE_UPDATE','CANDIDATES_RESUMES_UPLOAD','CANDIDATES_COMMENTS_VIEW','CANDIDATES_COMMENTS_ADD','CANDIDATES_IMPORT','CANDIDATES_EXPORT',
-          // Position management
-          'POSITIONS_VIEW','POSITIONS_CREATE','POSITIONS_EDIT_BASIC','POSITIONS_RECRUITER_ASSIGN','POSITIONS_IMPORT','POSITIONS_EXPORT',
-          // Other permissions
-          'TASK_BOARD_VIEW','TASK_BOARD_MANAGE_OWN','RECRUITMENT_STAGES_VIEW','USER_PREFERENCES_MANAGE_OWN','BULK_UPLOAD_EXECUTE','DASHBOARD_VIEW','REPORTS_GENERATE'
-        ],
-        isDefault: true,
-        isSystemRole: false,
-      },
-    });
+    // Create or update recruiter group
+    let recruiterGroup;
+    if (existingRecruiterGroup) {
+      console.log('   Updating existing Recruiters group...');
+      recruiterGroup = await prisma.userGroup.update({
+        where: { id: existingRecruiterGroup.id },
+        data: {
+          description: 'Standard recruiter access',
+          permissions: [
+            // Candidate management
+            'CANDIDATES_VIEW','CANDIDATES_VIEW_DETAILED','CANDIDATES_CREATE','CANDIDATES_EDIT_BASIC','CANDIDATES_SOURCE_ASSIGN','CANDIDATES_RECRUITER_ASSIGN','CANDIDATES_PIPELINE_STAGE_UPDATE','CANDIDATES_RESUMES_UPLOAD','CANDIDATES_COMMENTS_VIEW','CANDIDATES_COMMENTS_ADD','CANDIDATES_IMPORT','CANDIDATES_EXPORT',
+            // Position management
+            'POSITIONS_VIEW','POSITIONS_CREATE','POSITIONS_EDIT_BASIC','POSITIONS_RECRUITER_ASSIGN','POSITIONS_IMPORT','POSITIONS_EXPORT',
+            // Other permissions
+            'TASK_BOARD_VIEW','TASK_BOARD_MANAGE_OWN','RECRUITMENT_STAGES_VIEW','USER_PREFERENCES_MANAGE_OWN','BULK_UPLOAD_EXECUTE','DASHBOARD_VIEW','REPORTS_GENERATE'
+          ],
+          isDefault: true,
+          isSystemRole: false,
+        }
+      });
+    } else {
+      console.log('   Creating new Recruiters group...');
+      recruiterGroup = await prisma.userGroup.create({
+        data: {
+          name: 'Recruiters',
+          description: 'Standard recruiter access',
+          permissions: [
+            // Candidate management
+            'CANDIDATES_VIEW','CANDIDATES_VIEW_DETAILED','CANDIDATES_CREATE','CANDIDATES_EDIT_BASIC','CANDIDATES_SOURCE_ASSIGN','CANDIDATES_RECRUITER_ASSIGN','CANDIDATES_PIPELINE_STAGE_UPDATE','CANDIDATES_RESUMES_UPLOAD','CANDIDATES_COMMENTS_VIEW','CANDIDATES_COMMENTS_ADD','CANDIDATES_IMPORT','CANDIDATES_EXPORT',
+            // Position management
+            'POSITIONS_VIEW','POSITIONS_CREATE','POSITIONS_EDIT_BASIC','POSITIONS_RECRUITER_ASSIGN','POSITIONS_IMPORT','POSITIONS_EXPORT',
+            // Other permissions
+            'TASK_BOARD_VIEW','TASK_BOARD_MANAGE_OWN','RECRUITMENT_STAGES_VIEW','USER_PREFERENCES_MANAGE_OWN','BULK_UPLOAD_EXECUTE','DASHBOARD_VIEW','REPORTS_GENERATE'
+          ],
+          isDefault: true,
+          isSystemRole: false,
+        }
+      });
+    }
 
-    const hiringManagerGroup = await prisma.userGroup.upsert({
-      where: { name: 'Hiring Managers' },
-      update: {},
-      create: {
-        id: '00000000-0000-0000-0000-000000000003',
-        name: 'Hiring Managers',
-        description: 'View-only access for hiring decisions',
-        permissions: [
-          'CANDIDATES_VIEW','CANDIDATES_VIEW_DETAILED','CANDIDATES_COMMENTS_VIEW','POSITIONS_VIEW','TASK_BOARD_VIEW','DASHBOARD_VIEW','USER_PREFERENCES_MANAGE_OWN'
-        ],
-        isDefault: true,
-        isSystemRole: false,
-      },
-    });
+    // Create or update hiring manager group
+    let hiringManagerGroup;
+    if (existingHiringManagerGroup) {
+      console.log('   Updating existing Hiring Managers group...');
+      hiringManagerGroup = await prisma.userGroup.update({
+        where: { id: existingHiringManagerGroup.id },
+        data: {
+          description: 'View-only access for hiring decisions',
+          permissions: [
+            'CANDIDATES_VIEW','CANDIDATES_VIEW_DETAILED','CANDIDATES_COMMENTS_VIEW','POSITIONS_VIEW','TASK_BOARD_VIEW','DASHBOARD_VIEW','USER_PREFERENCES_MANAGE_OWN'
+          ],
+          isDefault: true,
+          isSystemRole: false,
+        }
+      });
+    } else {
+      console.log('   Creating new Hiring Managers group...');
+      hiringManagerGroup = await prisma.userGroup.create({
+        data: {
+          name: 'Hiring Managers',
+          description: 'View-only access for hiring decisions',
+          permissions: [
+            'CANDIDATES_VIEW','CANDIDATES_VIEW_DETAILED','CANDIDATES_COMMENTS_VIEW','POSITIONS_VIEW','TASK_BOARD_VIEW','DASHBOARD_VIEW','USER_PREFERENCES_MANAGE_OWN'
+          ],
+          isDefault: true,
+          isSystemRole: false,
+        }
+      });
+    }
 
     console.log('✅ Default user groups created/updated');
 
@@ -124,21 +196,28 @@ console.log(`Password: ${adminPassword}`);
     console.log('Assigning admin user to Administrators group...');
     const adminUser = await prisma.user.findUnique({ where: { email: adminEmail } });
     if (adminUser) {
-      // Assign user to the Admin group using the junction table
-      await prisma.user_UserGroup.upsert({
+      // Check if the assignment already exists
+      const existingAssignment = await prisma.user_UserGroup.findUnique({
         where: {
           userId_groupId: {
             userId: adminUser.id,
             groupId: adminGroup.id
           }
-        },
-        update: {},
-        create: {
-          userId: adminUser.id,
-          groupId: adminGroup.id
         }
       });
-      console.log('✅ Admin user assigned to Administrators group');
+      
+      if (!existingAssignment) {
+        // Create the assignment
+        await prisma.user_UserGroup.create({
+          data: {
+            userId: adminUser.id,
+            groupId: adminGroup.id
+          }
+        });
+        console.log('✅ Admin user assigned to Administrators group');
+      } else {
+        console.log('✅ Admin user already assigned to Administrators group');
+      }
     }
 
     // Create basic system settings

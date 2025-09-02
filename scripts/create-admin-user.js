@@ -57,21 +57,10 @@ async function createAdminUser() {
 
       if (adminUser) {
         // Check if user is already in the admin group
-        const existingMembership = await prisma.user_UserGroup.findUnique({
-          where: { 
-            userId_groupId: { 
-              userId: adminUser.id, 
-              groupId: '00000000-0000-0000-0000-000000000001' 
-            } 
-          }
-        });
-
-        if (!existingMembership) {
-          await prisma.user_UserGroup.create({
-            data: {
-              userId: adminUser.id,
-              groupId: '00000000-0000-0000-0000-000000000001'
-            }
+        if (!adminUser.userGroupId) {
+          await prisma.user.update({
+            where: { id: adminUser.id },
+            data: { userGroupId: '00000000-0000-0000-0000-000000000001' }
           });
           console.log('✅ Admin user assigned to Admin group');
         } else {

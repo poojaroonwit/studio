@@ -56,11 +56,11 @@ async function main() {
       console.log(`👤 Checking user: ${user.name} (${user.email})`);
       console.log(`   Current role: ${user.role}`);
 
-      // Get user's permissions through the junction table
-      const userGroupMemberships = await prisma.user_UserGroup.findMany({
-        where: { userId: user.id },
+      // Get user's permissions through the direct foreign key relationship
+      const userWithGroup = await prisma.user.findUnique({
+        where: { id: user.id },
         include: {
-          group: {
+          userGroup: {
             select: {
               name: true,
               permissions: true
@@ -69,16 +69,12 @@ async function main() {
         }
       });
 
-      // Flatten all permissions from all groups the user belongs to
-      const userPermissions = userGroupMemberships.flatMap(membership => 
-        membership.group?.permissions || []
-      );
+      // Get permissions from the user's group
+      const userPermissions = userWithGroup?.userGroup?.permissions || [];
       
-      const userGroupNames = userGroupMemberships.map(membership => 
-        membership.group?.name || 'Unknown group'
-      ).join(', ');
+      const userGroupName = userWithGroup?.userGroup?.name || 'No group assigned';
 
-      console.log(`   User groups: ${userGroupNames || 'No groups assigned'}`);
+      console.log(`   User group: ${userGroupName}`);
       console.log(`   Total permissions: ${userPermissions.length}`);
 
       // Determine the appropriate role based on permissions

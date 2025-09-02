@@ -23,7 +23,15 @@ model User {
   updatedAt                  DateTime                    @updatedAt
   azure_oid                  String?                     @unique
   personalColor              String?                     @default("#3B82F6") @map("personal_color")
-  module_permissions         String[]                    @default([])
+  // Direct foreign keys instead of many-to-many
+  userGroupId                String?                     @db.Uuid
+  userTeamId                 String?                     @db.Uuid
+  
+  // Relations
+  userGroup                  UserGroup?                  @relation(fields: [userGroupId], references: [id], onDelete: SetNull)
+  userTeam                   UserTeam?                   @relation(fields: [userTeamId], references: [id], onDelete: SetNull)
+  
+  // Other relations
   accounts                   Account[]
   attachments                Attachment[]                @relation("UserAttachments")
   candidates                 Candidate[]                 @relation("RecruiterCandidates")
@@ -38,11 +46,12 @@ model User {
   warningConfigurations      WarningConfiguration[]      @relation("UserWarningConfiguration")
   warningConfigurationShares WarningConfigurationShare[]
   uploadQueue                UploadQueue[]               @relation("UserUploadQueue")
-  userGroups                 User_UserGroup[]           @relation("UserUserGroups")
 
   @@index([email])
   @@index([role])
   @@index([authenticationMethod])
+  @@index([userGroupId])
+  @@index([userTeamId])
 }
 
 model Position {
@@ -231,7 +240,7 @@ model UserGroup {
   isSystemRole Boolean  @default(false) @map("is_system_role")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-  users        User_UserGroup[] @relation("UserGroupUsers")
+  users        User[]
 
   @@index([isDefault])
   @@index([isSystemRole])
@@ -245,6 +254,9 @@ model UserTeam {
   isActive    Boolean  @default(true) @map("is_active")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @default(now())
+  
+  // Direct relation to users
+  users       User[]
 
   @@index([isActive])
 }
@@ -720,23 +732,4 @@ model WarningSystemStatus {
   @@index([initialized])
 }
 
-model User_UserGroup {
-  userId  String @db.Uuid
-  groupId String @db.Uuid
-  
-  user   User     @relation("UserUserGroups", fields: [userId], references: [id], onDelete: Cascade)
-  group  UserGroup @relation("UserGroupUsers", fields: [groupId], references: [id], onDelete: Cascade)
 
-  @@id([userId, groupId])
-  @@index([groupId])
-  @@index([userId])
-}
-
-model User_UserTeam {
-  userId String @db.Uuid
-  teamId String @db.Uuid
-
-  @@id([userId, teamId])
-  @@index([teamId])
-  @@index([userId])
-}

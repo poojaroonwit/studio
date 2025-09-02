@@ -221,9 +221,7 @@ export default function ApplicationLogsPage() {
         <p className="text-muted-foreground mb-4 max-w-md">{fetchError}</p>
         {fetchError === "You do not have permission to view logs." ? (
              <Button onClick={() => router.push('/')} className="btn-hover-primary-gradient">Go to Dashboard</Button>
-        ) : (
-             <Button onClick={handleApplyFilters} className="btn-hover-primary-gradient">Try Again</Button>
-        )}
+        ) : null}
       </div>
     );
   }

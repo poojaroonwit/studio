@@ -85,10 +85,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user has permission to create headcount data
-    // Users should be able to create headcount if they can manage positions or have headcount-specific permissions
+    // Users should be able to create headcount if they can manage positions
     if (session.user.role !== 'Admin' && 
-        !session.user.modulePermissions?.includes('POSITIONS_MANAGE') &&
-        !session.user.modulePermissions?.includes('HEADCOUNT_MANAGE')) {
+        !session.user.modulePermissions?.includes('POSITIONS_EDIT_BASIC')) {
       return NextResponse.json({ error: 'Forbidden: Insufficient permissions to create headcount data' }, { status: 403 });
     }
 

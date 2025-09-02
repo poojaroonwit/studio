@@ -301,7 +301,7 @@ export function UserGroupsTab() {
         <ServerCrash className="w-16 h-16 text-destructive mb-4" />
         <h2 className="text-2xl font-semibold text-foreground mb-2">Error Loading Roles</h2>
         <p className="text-muted-foreground mb-4 max-w-md">{fetchError}</p>
-        <Button onClick={() => fetchRoles()} className="btn-hover-primary-gradient">Try Again</Button>
+        {null}
       </div>
     );
   }

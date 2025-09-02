@@ -16,17 +16,6 @@ export async function GET(
       );
     }
 
-    // Test database connection first
-    try {
-      await prisma.$connect();
-    } catch (dbError) {
-      console.error('Database connection failed:', dbError);
-      return NextResponse.json(
-        { error: 'Database connection failed' },
-        { status: 500 }
-      );
-    }
-
     // Get total candidates who applied to this position (regardless of status)
     let totalApplied = 0;
     try {
@@ -138,13 +127,6 @@ export async function GET(
       totalMatching,
       matchingNotApplied
     };
-
-    // Close database connection
-    try {
-      await prisma.$disconnect();
-    } catch (error) {
-      console.error('Error closing database connection:', error);
-    }
     
     return NextResponse.json(result);
   } catch (error) {

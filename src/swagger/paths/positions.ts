@@ -93,7 +93,7 @@ export const positionsPaths = {
     },
     put: {
       summary: 'Update position by ID (v1 API)',
-      description: 'Updates a position. Requires Bearer token authentication and Admin or POSITIONS_MANAGE permission.',
+      description: 'Updates a position. Requires Bearer token authentication and Admin or POSITIONS_EDIT_BASIC permission.',
       tags: ['V1 Positions'],
       security: [{ bearerAuth: [] }],
       parameters: [
@@ -131,7 +131,7 @@ export const positionsPaths = {
     },
     delete: {
       summary: 'Delete position by ID (v1 API)',
-      description: 'Deletes a position. Requires Bearer token authentication and Admin or POSITIONS_MANAGE permission.',
+      description: 'Deletes a position. Requires Bearer token authentication and Admin or POSITIONS_DELETE permission.',
       tags: ['V1 Positions'],
       security: [{ bearerAuth: [] }],
       parameters: [
@@ -148,7 +148,7 @@ export const positionsPaths = {
   '/api/v1/positions/bulk-action': {
     post: {
       summary: 'Bulk action on positions (v1 API)',
-      description: 'Perform bulk actions on multiple positions. Requires Bearer token authentication and Admin or POSITIONS_MANAGE permission.',
+      description: 'Perform bulk actions on multiple positions. Requires Bearer token authentication and Admin or POSITIONS_DELETE permission.',
       tags: ['V1 Positions'],
       security: [{ bearerAuth: [] }],
       requestBody: {
@@ -178,7 +178,7 @@ export const positionsPaths = {
   '/api/v1/positions/import': {
     post: {
       summary: 'Import positions (v1 API)',
-      description: 'Import positions from CSV file. Requires Bearer token authentication and Admin or POSITIONS_MANAGE permission.',
+      description: 'Import positions from CSV file. Requires Bearer token authentication and Admin or POSITIONS_IMPORT permission.',
       tags: ['V1 Positions'],
       security: [{ bearerAuth: [] }],
       requestBody: {

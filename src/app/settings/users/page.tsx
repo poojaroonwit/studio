@@ -68,12 +68,7 @@ class TabErrorBoundary extends React.Component<
           <ServerCrash className="w-16 h-16 text-destructive mb-4" />
           <h3 className="text-lg font-semibold mb-2">Something went wrong</h3>
           <p className="text-muted-foreground mb-4">There was an error loading this tab content.</p>
-          <Button 
-            onClick={() => this.setState({ hasError: false })} 
-            variant="outline"
-          >
-            Try Again
-          </Button>
+          null
         </div>
       );
     }
@@ -93,9 +88,7 @@ function SafeTeamsTab() {
         <ServerCrash className="w-16 h-16 text-destructive mb-4" />
         <h3 className="text-lg font-semibold mb-2">Error Loading Teams</h3>
         <p className="text-muted-foreground mb-4">Failed to load teams component</p>
-        <Button variant="outline" onClick={() => window.location.reload()}>
-          Try Again
-        </Button>
+        {null}
       </div>
     );
   }
@@ -111,9 +104,7 @@ function SafeGroupsTab() {
         <ServerCrash className="w-16 h-16 text-destructive mb-4" />
         <h3 className="text-lg font-semibold mb-2">Error Loading Roles</h3>
         <p className="text-muted-foreground mb-4">Failed to load groups component</p>
-        <Button variant="outline" onClick={() => window.location.reload()}>
-          Try Again
-        </Button>
+        {null}
       </div>
     );
   }
@@ -382,9 +373,7 @@ export default function ManageUsersPage() {
         <p className="text-muted-foreground mb-4 max-w-md">{fetchError}</p>
         {fetchError === "You do not have permission to view this page." ? (
             <Button onClick={() => router.push('/')} className="btn-hover-primary-gradient">Go to Dashboard</Button>
-        ) : (
-            <Button onClick={() => fetchUsers({name: nameFilter, email: emailFilter, role: roleFilter})} className="btn-hover-primary-gradient">Try Again</Button>
-        )}
+        ) : null}
       </div>
     );
   }
@@ -398,7 +387,7 @@ export default function ManageUsersPage() {
             <h1 className="text-2xl font-semibold text-foreground">User Management</h1>
             <p className="text-muted-foreground">Manage users, roles, permissions, and teams</p>
           </div>
-                     {(session?.user?.role === 'Admin' || (session?.user?.modulePermissions || []).includes('USERS_MANAGE')) && activeTab === 'users' && (
+                     {(session?.user?.role === 'Admin' || (session?.user?.modulePermissions || []).includes('USERS_CREATE')) && activeTab === 'users' && (
             <Button variant="default" onClick={() => openUserModal('create')}> 
               <PlusCircle className="mr-2 h-4 w-4" /> Add New User
             </Button>
@@ -501,7 +490,7 @@ export default function ManageUsersPage() {
                 <div className="text-center py-10">
                   <UsersRound className="mx-auto h-12 w-12 text-muted-foreground" />
                   <p className="mt-4 text-muted-foreground">No users found matching your criteria.</p>
-                                         {(session?.user?.role === 'Admin' || (session?.user?.modulePermissions || []).includes('USERS_MANAGE')) && (
+                                         {(session?.user?.role === 'Admin' || (session?.user?.modulePermissions || []).includes('USERS_CREATE')) && (
                       <Button variant="default" className="mt-4" onClick={() => openUserModal('create')}> 
                         <PlusCircle className="mr-2 h-4 w-4" /> Add First User
                     </Button>
@@ -546,7 +535,7 @@ export default function ManageUsersPage() {
                             }
                           </TableCell>
                                                      <TableCell className="text-right">
-                             {(session?.user?.role === 'Admin' || (session?.user?.modulePermissions || []).includes('USERS_MANAGE') || (session?.user?.modulePermissions || []).includes('WARNING_CONFIGURATIONS_MANAGE')) && (
+                             {(session?.user?.role === 'Admin' || (session?.user?.modulePermissions || []).includes('USERS_EDIT') || (session?.user?.modulePermissions || []).includes('WARNING_CONFIGURATIONS_MANAGE')) && (
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button variant="ghost" size="icon" className="h-8 w-8">

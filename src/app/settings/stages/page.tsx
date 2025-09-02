@@ -316,7 +316,7 @@ export default function RecruitmentStagesPage() {
         <ServerCrash className="w-16 h-16 text-destructive mb-4" />
         <h2 className="text-xl font-semibold text-foreground mb-2">Error Loading Data</h2>
         <p className="text-sm text-muted-foreground mb-4 max-w-md">{fetchError}</p>
-        {isPermissionError ? (<Button onClick={() => router.push('/')} className="btn-hover-primary-gradient">Go to Dashboard</Button>) : (<Button onClick={fetchStages} className="btn-hover-primary-gradient">Try Again</Button>)}
+        {isPermissionError ? (<Button onClick={() => router.push('/')} className="btn-hover-primary-gradient">Go to Dashboard</Button>) : null}
       </div>
     );
   }

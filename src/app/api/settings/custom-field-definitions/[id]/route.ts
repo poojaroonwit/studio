@@ -120,7 +120,7 @@ export async function GET(request: NextRequest) {
  * /api/settings/custom-field-definitions/{id}:
  *   put:
  *     summary: Update a custom field definition by ID
- *     description: Updates a custom field definition. Requires Admin or CUSTOM_FIELDS_MANAGE permission.
+ *     description: Updates a custom field definition. Requires Admin or CUSTOM_FIELDS_EDIT permission.
  *     parameters:
  *       - in: path
  *         name: id
@@ -160,7 +160,7 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
-  if (session.user.role !== 'Admin' &&  !session.user.modulePermissions?.includes('CUSTOM_FIELDS_MANAGE')) {
+  if (session.user.role !== 'Admin' &&  !session.user.modulePermissions?.includes('CUSTOM_FIELDS_EDIT')) {
     await logAudit('WARN', `Forbidden attempt to update custom field by ${session.user.name}.`, 'API:CustomFields:Update', session.user.id);
     return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
   }
@@ -253,7 +253,7 @@ export async function PUT(request: NextRequest) {
  * /api/settings/custom-field-definitions/{id}:
  *   delete:
  *     summary: Delete a custom field definition by ID
- *     description: Deletes a custom field definition. Requires Admin or CUSTOM_FIELDS_MANAGE permission.
+ *     description: Deletes a custom field definition. Requires Admin or CUSTOM_FIELDS_EDIT permission.
  *     parameters:
  *       - in: path
  *         name: id
@@ -285,7 +285,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
-  if (session.user.role !== 'Admin' &&  !session.user.modulePermissions?.includes('CUSTOM_FIELDS_MANAGE')) {
+  if (session.user.role !== 'Admin' &&  !session.user.modulePermissions?.includes('CUSTOM_FIELDS_EDIT')) {
     await logAudit('WARN', `Forbidden attempt to delete custom field by ${session.user.name}.`, 'API:CustomFields:Delete', session.user.id);
     return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
   }

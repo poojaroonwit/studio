@@ -1,63 +1,20 @@
 export const dynamic = "force-dynamic";
 import { NextRequest } from 'next/server';
-import { broadcastDashboardUpdate, clients } from './broadcastDashboardUpdate';
 
+// This endpoint is now deprecated - redirect to unified SSE
 export async function GET(req: NextRequest) {
-  const { readable, writable } = new TransformStream();
-  const writer = writable.getWriter();
-  let keepAlive: NodeJS.Timeout | null = null;
-
-  try {
-    // Write initial headers for SSE
-    writer.write(new TextEncoder().encode('\n\n'));
-
-    // Add this client to the list
-    clients.push(writer);
-
-    // Keep-alive ping every 30s
-    keepAlive = setInterval(() => {
-      try {
-        writer.write(new TextEncoder().encode(':\n\n'));
-      } catch (error) {
-        console.error('[Dashboard Stream] Keepalive failed:', error);
-       
-        if (keepAlive) {
-          clearInterval(keepAlive);
-          keepAlive = null;
-        }
-   
-        const idx = clients.indexOf(writer);
-        if (idx !== -1) clients.splice(idx, 1);
-      }
-    }, 30000);
-
-    // Cleanup on connection close
-    req.signal.addEventListener('abort', () => {
-      if (keepAlive) {
-        clearInterval(keepAlive);
-        keepAlive = null;
-      }
-      const idx = clients.indexOf(writer);
-      if (idx !== -1) clients.splice(idx, 1);
-      writer.close();
-    });
-
-    return new Response(readable, {
-      headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-      },
-    });
-  } catch (error) {
-    // Cleanup on error
-    if (keepAlive) {
-      clearInterval(keepAlive);
-      keepAlive = null;
+  console.log('[DASHBOARD STREAM] This endpoint is deprecated. Redirecting to unified SSE.');
+  
+  // Return a response indicating the endpoint is deprecated
+  return new Response(JSON.stringify({
+    error: 'Endpoint deprecated',
+    message: 'Dashboard stream endpoint has been deprecated. Use the unified SSE endpoint at /api/sse instead.',
+    redirect: '/api/sse'
+  }), {
+    status: 410, // Gone
+    headers: {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-cache'
     }
-    const idx = clients.indexOf(writer);
-    if (idx !== -1) clients.splice(idx, 1);
-    writer.close();
-    throw error;
-  }
+  });
 } 

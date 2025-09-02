@@ -185,7 +185,7 @@ export default function UserTeamsPage() {
     if (sessionStatus === 'unauthenticated') {
       signIn(undefined, { callbackUrl: pathname });
     } else if (sessionStatus === 'authenticated' && session) {
-      if (session.user.role !== 'Admin' &&  !session.user.modulePermissions?.includes('USERS_MANAGE')) {
+      if (session.user.role !== 'Admin' &&  !session.user.modulePermissions?.includes('USERS_EDIT')) {
         setFetchError("You do not have permission to manage user teams.");
         setIsLoading(false);
       } else {
@@ -397,11 +397,7 @@ export default function UserTeamsPage() {
           <Button onClick={() => router.push('/')} className="btn-hover-primary-gradient">
             Go to Dashboard
           </Button>
-        ) : (
-          <Button onClick={() => fetchTeams()} className="btn-hover-primary-gradient">
-            Try Again
-          </Button>
-        )}
+        ) : null}
       </div>
     );
   }

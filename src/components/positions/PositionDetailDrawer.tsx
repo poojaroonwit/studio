@@ -1357,7 +1357,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
               <div className="flex-1 flex items-center justify-center p-6">
                 <div className="text-center">
                   <p className="text-muted-foreground mb-4">{fetchError}</p>
-                  <Button onClick={fetchPosition}>Try Again</Button>
+                  {null}
                 </div>
               </div>
             ) : position ? (

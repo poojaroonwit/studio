@@ -125,8 +125,8 @@ export default function CustomFieldsPage() {
     if (sessionStatus === 'unauthenticated') {
       signIn(undefined, { callbackUrl: pathname });
     } else if (sessionStatus === 'authenticated') {
-      // Check if user has Admin role or CUSTOM_FIELDS_MANAGE permission
-      if (session.user.role !== 'Admin' &&  !(session.user.modulePermissions || []).includes('CUSTOM_FIELDS_MANAGE')) {
+      // Check if user has Admin role or CUSTOM_FIELDS_EDIT permission
+      if (session.user.role !== 'Admin' &&  !(session.user.modulePermissions || []).includes('CUSTOM_FIELDS_EDIT')) {
         setFetchError("You do not have permission to manage custom field definitions.");
         setIsLoading(false);
       } else {
@@ -210,9 +210,7 @@ export default function CustomFieldsPage() {
         <p className="text-muted-foreground mb-4 max-w-md">{fetchError}</p>
          {fetchError === "You do not have permission to manage custom field definitions." ? (
             <Button onClick={() => router.push('/')} className="btn-hover-primary-gradient">Go to Dashboard</Button>
-         ) : (
-            <Button onClick={fetchDefinitions} className="btn-hover-primary-gradient">Try Again</Button>
-         )}
+         ) : null}
       </div>
     );
   }

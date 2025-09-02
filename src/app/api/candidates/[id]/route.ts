@@ -416,11 +416,46 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   // Skip validation and use body directly
   const { name, email, phone, positionId, recruiterId, fitScore, status, assignmentJustification, parsedData, custom_attributes, resumePath, transitionNotes, avatarUrl, sourceId, subSource } = body;
 
+  // Log source assignment specifically for debugging
+  if (sourceId !== undefined) {
+    console.log(`Source assignment request - candidate: ${id}, sourceId: ${sourceId}, subSource: ${subSource}`);
+  }
+
   // Validation removed - proceed with data as-is
 
-  const client = await getPool().connect();
+  let client;
   try {
-    await client.query('BEGIN');
+    client = await getPool().connect();
+    if (!client) {
+      throw new Error('Failed to get database connection from pool');
+    }
+    console.log('Database connection acquired successfully');
+    // Test database connection
+    try {
+      await client.query('SELECT 1');
+      console.log('Database connection test passed');
+    } catch (testError: any) {
+      throw new Error(`Database connection test failed: ${testError.message}`);
+    }
+    try {
+      await client.query('BEGIN');
+      console.log('Database transaction started successfully');
+    } catch (beginError: any) {
+      throw new Error(`Failed to begin database transaction: ${beginError.message}`);
+    }
+
+    // Check if job match feature is enabled
+    let jobMatchFeatureEnabled;
+    let isJobMatchEnabled;
+    try {
+      jobMatchFeatureEnabled = await getSystemSetting('jobMatchFeatureEnabled');
+      isJobMatchEnabled = jobMatchFeatureEnabled !== 'false';
+      console.log(`Job match feature enabled: ${isJobMatchEnabled}`);
+    } catch (settingError) {
+      console.error('Failed to get job match feature setting:', settingError);
+      // Default to enabled if setting retrieval fails
+      isJobMatchEnabled = true;
+    }
 
     // Check if candidate exists first
     const existingResult = await client.query('SELECT * FROM "Candidate" WHERE id = $1::uuid', [id]);
@@ -431,6 +466,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     const existingCandidate = existingResult.rows[0];
+    console.log(`Candidate found - name: ${existingCandidate.name}, current status: ${existingCandidate.status}`);
     const oldStatus = existingCandidate.status;
     const oldRecruiterId = existingCandidate.recruiterId;
     const oldPositionId = existingCandidate.positionId;
@@ -445,6 +481,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         console.error('Position not found:', positionId);
         return NextResponse.json({ message: 'Position not found.' }, { status: 400 });
       }
+      console.log(`Position validation passed - positionId: ${positionId}`);
     }
     if (recruiterId) {
       const recCheck = await client.query('SELECT id FROM "User" WHERE id = $1::uuid AND role = $2', [recruiterId, 'Recruiter']);
@@ -453,6 +490,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         console.error('Recruiter not found or user is not a recruiter:', recruiterId);
         return NextResponse.json({ message: 'Recruiter not found or user is not a recruiter.' }, { status: 400 });
       }
+      console.log(`Recruiter validation passed - recruiterId: ${recruiterId}`);
     }
     if (sourceId) {
       const sourceCheck = await client.query('SELECT id FROM "CandidateSource" WHERE id = $1::uuid', [sourceId]);
@@ -461,6 +499,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         console.error('Candidate source not found:', sourceId);
         return NextResponse.json({ message: 'Candidate source not found.' }, { status: 400 });
       }
+      console.log(`Source validation passed - sourceId: ${sourceId}`);
     }
 
     // Validate headcount availability if changing status to "Hired"
@@ -475,6 +514,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
             headcountStatus: validation.headcountStatus
           }, { status: 400 });
         }
+        console.log('Headcount validation passed');
       } catch (error) {
         await client.query('ROLLBACK');
         console.error('Error validating headcount for hiring:', error);
@@ -573,8 +613,14 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     `;
     updateValues.push(id);
 
+    console.log(`Executing update query: ${updateQuery}`);
+    console.log(`Update values:`, updateValues);
   
     const updateResult = await client.query(updateQuery, updateValues);
+    
+    if (updateResult.rows.length === 0) {
+      throw new Error('Failed to update candidate - no rows returned');
+    }
     
     // Fetch updated candidate with source information
     const updatedCandidateWithSource = await client.query(`
@@ -616,6 +662,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
             actingUserId,
             actingUserName
           );
+          console.log('Headcount assigned successfully');
         }
       } catch (headcountError) {
         console.error('Error assigning headcount:', headcountError);
@@ -663,7 +710,13 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         if (transitionResult.rows.length > 0) {
           const newTransition = transitionResult.rows[0];
           // Broadcast the new transition
-          broadcastCandidateUpdate({ id, transition: newTransition }, actingUserId);
+          try {
+            broadcastCandidateUpdate({ id, transition: newTransition }, actingUserId);
+            console.log('Transition record broadcasted successfully');
+          } catch (broadcastError) {
+            console.error('Failed to broadcast transition record:', broadcastError);
+            // Don't fail the entire operation if broadcasting fails
+          }
         }
 
         // Send notification to recruiter about status change
@@ -689,6 +742,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
               candidateWithRecruiter.recruiterId,
               actingUserId
             );
+            console.log('Candidate status change notification sent successfully');
           } catch (notificationError) {
             console.error('Failed to send candidate status change notification:', notificationError);
             // Don't fail the entire operation if notification fails
@@ -735,7 +789,13 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         const transitionResult = await client.query(getTransitionQuery, [newTransitionId]);
         if (transitionResult.rows.length > 0) {
           const newTransition = transitionResult.rows[0];
-          broadcastCandidateUpdate({ id, transition: newTransition }, actingUserId);
+          try {
+            broadcastCandidateUpdate({ id, transition: newTransition }, actingUserId);
+            console.log('Recruiter change transition record broadcasted successfully');
+          } catch (broadcastError) {
+            console.error('Failed to broadcast recruiter change transition record:', broadcastError);
+            // Don't fail the entire operation if broadcasting fails
+          }
         }
       } catch (transitionError) {
         console.error('Error creating recruiter change transition record:', transitionError);
@@ -755,6 +815,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         );
         if (syncSuccess) {
           syncResult = { synced: true, message: 'Recruiter auto-assigned from position' };
+          console.log('Recruiter auto-assigned successfully');
         }
       } catch (syncError) {
         console.error('Failed to assign recruiter after position assignment:', syncError);
@@ -768,7 +829,13 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     await client.query('COMMIT');
-    await logAudit('AUDIT', `Candidate '${existingCandidate.name}' updated by ${actingUserName}.`, 'API:Candidates:Update', actingUserId, { candidateId: id, oldStatus, newStatus: status ?? existingCandidate.status });
+    console.log('Database transaction committed successfully');
+    try {
+      await logAudit('AUDIT', `Candidate '${existingCandidate.name}' updated by ${actingUserName}.`, 'API:Candidates:Update', actingUserId, { candidateId: id, oldStatus, newStatus: status ?? existingCandidate.status });
+    } catch (auditError) {
+      console.error('Failed to log audit entry:', auditError);
+      // Don't fail the request if audit logging fails
+    }
     
          // After update, re-fetch the candidate using the same logic as GET to ensure response structure is identical
      const candidateResult = await client.query(`
@@ -837,14 +904,21 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     // Check for warnings after candidate update using automation system
     try {
       const { WarningAutomation } = await import('@/lib/warningAutomation');
-      WarningAutomation.triggerEntityCheckWithRetry('candidate', id, actingUserId);
+      await WarningAutomation.triggerEntityCheckWithRetry('candidate', id, actingUserId);
+      console.log('Warning automation triggered successfully');
     } catch (warningError) {
       console.error('Failed to trigger warning check for updated candidate:', warningError);
       // Don't fail the request if warning check fails
     }
     
     // Broadcast update with safe candidate data
-    broadcastCandidateUpdate({ ...candidate, customAttributes }, actingUserId);
+    try {
+      broadcastCandidateUpdate({ ...candidate, customAttributes }, actingUserId);
+      console.log('Candidate update broadcasted successfully');
+    } catch (broadcastError) {
+      console.error('Failed to broadcast candidate update:', broadcastError);
+      // Don't fail the request if broadcasting fails
+    }
   
     return NextResponse.json({
       ...candidate,
@@ -867,7 +941,14 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       headcountAssignment: headcountAssignmentResult
     });
   } catch (error: any) {
-    await client.query('ROLLBACK');
+    if (client) {
+      try {
+        await client.query('ROLLBACK');
+        console.log('Database transaction rolled back successfully');
+      } catch (rollbackError) {
+        console.error('Failed to rollback transaction:', rollbackError);
+      }
+    }
     console.error('Error updating candidate:', id, error);
     console.error('Error details:', {
       code: error.code,
@@ -876,7 +957,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       hint: error.hint,
       where: error.where
     });
-    await logAudit('ERROR', `Failed to update candidate. Error: ${error.message}`, 'API:Candidates:Update', actingUserId, { candidateId: id, input: body });
+    try {
+      await logAudit('ERROR', `Failed to update candidate. Error: ${error.message}`, 'API:Candidates:Update', actingUserId, { candidateId: id, input: body });
+    } catch (auditError) {
+      console.error('Failed to log audit entry:', auditError);
+    }
     // Note: Currently no unique constraint on email exists in database schema
     // if (error.code === '23505' && error.constraint === 'Candidate_email_key') {
     //   return NextResponse.json({ message: `A candidate with the email "${email}" already exists.` }, { status: 409 });
@@ -893,7 +978,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
     return NextResponse.json({ message: 'Error updating candidate', error: error.message }, { status: 500 });
   } finally {
-    client.release();
+    if (client) {
+      client.release();
+    }
   }
 }
 

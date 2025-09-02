@@ -16,7 +16,7 @@ const reorderSchema = z.object({
  * /api/settings/recruitment-stages/reorder:
  *   post:
  *     summary: Reorder recruitment stages
- *     description: Reorders the recruitment stages by the given array of stage IDs. Requires authentication and Admin or RECRUITMENT_STAGES_MANAGE permission.
+ *     description: Reorders the recruitment stages by the given array of stage IDs. Requires authentication and Admin or RECRUITMENT_STAGES_EDIT permission.
  *     requestBody:
  *       required: true
  *       content:
@@ -63,12 +63,12 @@ export async function POST(request: NextRequest) {
   if (!actingUserId) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
-  // Optional: Add permission check for RECRUITMENT_STAGES_MANAGE
+  // Check permissions for RECRUITMENT_STAGES_EDIT
   if (
     session.user.role !== 'Admin' &&
-    !session.user.modulePermissions?.includes('RECRUITMENT_STAGES_MANAGE')
+    !session.user.modulePermissions?.includes('RECRUITMENT_STAGES_EDIT')
   ) {
-    return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
+    return NextResponse.json({ message: 'Forbidden: Insufficient permissions' }, { status: 403 });
   }
 
   let body;

@@ -26,10 +26,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Check if user has permission to view headcount type options
-    // Users should be able to view these options if they can view positions or manage headcount
+    // Users should be able to view these options if they can view positions
     if (session.user.role !== 'Admin' && 
-        !session.user.modulePermissions?.includes('POSITIONS_VIEW') &&
-        !session.user.modulePermissions?.includes('HEADCOUNT_MANAGE')) {
+        !session.user.modulePermissions?.includes('POSITIONS_VIEW')) {
       return NextResponse.json({ error: 'Forbidden: Insufficient permissions to view headcount type options' }, { status: 403 });
     }
 

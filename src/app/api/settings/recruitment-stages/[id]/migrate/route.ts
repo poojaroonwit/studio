@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     if (!actingUserId) return new NextResponse('Unauthorized', { status: 401 });
     
     // Check permissions
-    if (session.user.role !== 'Admin' &&  !session.user.modulePermissions?.includes('RECRUITMENT_STAGES_MANAGE')) {
+    if (session.user.role !== 'Admin' &&  !session.user.modulePermissions?.includes('RECRUITMENT_STAGES_EDIT')) {
         await logAudit('WARN', `Forbidden attempt to migrate recruitment stage by ${session.user.name || session.user.email}.`, 'API:RecruitmentStages:Migrate', actingUserId);
         return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
     }

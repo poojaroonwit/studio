@@ -19,7 +19,8 @@ import {
   AlertCircle,
   Users,
   User,
-  Building
+  Building,
+  ShieldAlert
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -68,6 +69,7 @@ import { PositionLevelsTab } from '@/components/settings/PositionLevelsTab';
 
 // Custom Fields Tab Component
 function CustomFieldsTab() {
+  const { data: session } = useSession();
   const [definitions, setDefinitions] = useState<CustomFieldDefinition[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -75,6 +77,10 @@ function CustomFieldsTab() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingDefinition, setEditingDefinition] = useState<CustomFieldDefinition | null>(null);
   const [definitionToDelete, setDefinitionToDelete] = useState<CustomFieldDefinition | null>(null);
+
+  // Check permissions for custom fields management
+  const canManageCustomFields = session?.user?.role === 'Admin' || 
+    session?.user?.modulePermissions?.includes('CUSTOM_FIELDS_EDIT');
 
   const fetchDefinitions = useCallback(async () => {
     setIsLoading(true);
@@ -96,8 +102,26 @@ function CustomFieldsTab() {
   }, []);
 
   useEffect(() => {
-    fetchDefinitions();
-  }, [fetchDefinitions]);
+    if (canManageCustomFields) {
+      fetchDefinitions();
+    }
+  }, [fetchDefinitions, canManageCustomFields]);
+
+  // Show permission error if user can't manage custom fields
+  if (!canManageCustomFields) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-6">
+        <div className="text-center">
+          <ShieldAlert className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-foreground mb-2">Insufficient Permissions</h3>
+          <p className="text-muted-foreground mb-4">
+            You don't have permission to manage custom fields. 
+            Contact your administrator to request the CUSTOM_FIELDS_EDIT permission.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const handleOpenDrawer = (definition: CustomFieldDefinition) => {
     setEditingDefinition(definition);
@@ -158,7 +182,7 @@ function CustomFieldsTab() {
         <ServerCrash className="w-16 h-16 text-destructive mb-4" />
         <h2 className="text-xl font-semibold text-foreground mb-2">Error Loading Data</h2>
         <p className="text-sm text-muted-foreground mb-4 max-w-md">{fetchError}</p>
-        <Button onClick={fetchDefinitions} className="btn-hover-primary-gradient">Try Again</Button>
+        {null}
       </div>
     );
   }
@@ -232,6 +256,7 @@ function CustomFieldsTab() {
 
 // Recruitment Stages Tab Component
 function RecruitmentStagesTab() {
+  const { data: session } = useSession();
   const [stages, setStages] = useState<RecruitmentStage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -240,6 +265,10 @@ function RecruitmentStagesTab() {
   const [stageToDelete, setStageToDelete] = useState<RecruitmentStage | null>(null);
   const [isReplacementModalOpen, setIsReplacementModalOpen] = useState(false);
   const [replacementStageName, setReplacementStageName] = useState<string>('');
+
+  // Check permissions for recruitment stages management
+  const canManageStages = session?.user?.role === 'Admin' || 
+    session?.user?.modulePermissions?.includes('RECRUITMENT_STAGES_EDIT');
 
   const fetchStages = useCallback(async () => {
     setIsLoading(true);
@@ -266,8 +295,26 @@ function RecruitmentStagesTab() {
   }, []);
 
   useEffect(() => {
-    fetchStages();
-  }, [fetchStages]);
+    if (canManageStages) {
+      fetchStages();
+    }
+  }, [fetchStages, canManageStages]);
+
+  // Show permission error if user can't manage stages
+  if (!canManageStages) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-6">
+        <div className="text-center">
+          <ShieldAlert className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-foreground mb-2">Insufficient Permissions</h3>
+          <p className="text-muted-foreground mb-4">
+            You don't have permission to manage recruitment stages. 
+            Contact your administrator to request the RECRUITMENT_STAGES_EDIT permission.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const handleOpenModal = (stage?: RecruitmentStage) => {
     setEditingStage(stage || null);
@@ -419,7 +466,7 @@ function RecruitmentStagesTab() {
         <ServerCrash className="w-16 h-16 text-destructive mb-4" />
         <h2 className="text-xl font-semibold text-foreground mb-2">Error Loading Data</h2>
         <p className="text-sm text-muted-foreground mb-4 max-w-md">{fetchError}</p>
-        <Button onClick={fetchStages} className="btn-hover-primary-gradient">Try Again</Button>
+        {null}
       </div>
     );
   }
@@ -831,7 +878,7 @@ function CandidateSourcesTab() {
         <ServerCrash className="w-16 h-16 text-destructive mb-4" />
         <h2 className="text-xl font-semibold text-foreground mb-2">Error Loading Data</h2>
         <p className="text-sm text-muted-foreground mb-4 max-w-md">{fetchError}</p>
-        <Button onClick={fetchSources} className="btn-hover-primary-gradient">Try Again</Button>
+        {null}
       </div>
     );
   }
@@ -982,6 +1029,24 @@ export default function DataConfigurationPage() {
   const [candidateSubTab, setCandidateSubTab] = useState('candidate-stages');
   const [positionSubTab, setPositionSubTab] = useState('position-headcount');
 
+  // Check permissions for different tabs
+  const canManageStages = session?.user?.role === 'Admin' || 
+    session?.user?.modulePermissions?.includes('RECRUITMENT_STAGES_EDIT');
+  const canManageCustomFields = session?.user?.role === 'Admin' || 
+    session?.user?.modulePermissions?.includes('CUSTOM_FIELDS_EDIT');
+
+  // Set default sub-tab based on permissions
+  useEffect(() => {
+    if (activeTab === 'candidate' && candidateSubTab === 'candidate-stages' && !canManageStages) {
+      // If user can't manage stages, default to sources tab
+      setCandidateSubTab('candidate-sources');
+    }
+    if (activeTab === 'candidate' && candidateSubTab === 'candidate-fields' && !canManageCustomFields) {
+      // If user can't manage custom fields, default to sources tab
+      setCandidateSubTab('candidate-sources');
+    }
+  }, [activeTab, candidateSubTab, canManageStages, canManageCustomFields]);
+
   useEffect(() => {
     if (sessionStatus === 'unauthenticated') {
       signIn(undefined, { callbackUrl: pathname });
@@ -1045,6 +1110,24 @@ export default function DataConfigurationPage() {
         </div>
       </div>
 
+      {/* Permission Warning Banner */}
+      {(!canManageStages || !canManageCustomFields) && (
+        <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+            <div className="text-sm">
+              <h4 className="font-medium text-amber-800 mb-1">Limited Access</h4>
+              <p className="text-amber-700">
+                {!canManageStages && !canManageCustomFields && "You don't have permission to manage recruitment stages or custom fields. "}
+                {!canManageStages && canManageCustomFields && "You don't have permission to manage recruitment stages. "}
+                {canManageStages && !canManageCustomFields && "You don't have permission to manage custom fields. "}
+                Contact your administrator to request the necessary permissions.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Content */}
       <div className="flex-1 overflow-hidden">
         <div className="h-full flex gap-6">
@@ -1086,18 +1169,20 @@ export default function DataConfigurationPage() {
               <div className="h-full flex flex-col">
                 {/* Candidate Sub-tabs */}
                 <div className="flex w-full border-b border-border/50 mb-6">
-                  <div
-                    onClick={() => setCandidateSubTab('candidate-stages')}
-                    className={cn(
-                      "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
-                      candidateSubTab === 'candidate-stages'
-                        ? "text-primary border-b-2 border-primary"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-                    )}
-                  >
-                    <KanbanSquare className="h-4 w-4" />
-                    Recruitment Stages
-                  </div>
+                  {canManageStages && (
+                    <div
+                      onClick={() => setCandidateSubTab('candidate-stages')}
+                      className={cn(
+                        "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                        candidateSubTab === 'candidate-stages'
+                          ? "text-primary border-b-2 border-primary"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                      )}
+                    >
+                      <KanbanSquare className="h-4 w-4" />
+                      Recruitment Stages
+                    </div>
+                  )}
                   <div
                     onClick={() => setCandidateSubTab('candidate-sources')}
                     className={cn(
@@ -1110,25 +1195,27 @@ export default function DataConfigurationPage() {
                     <MapPin className="h-4 w-4" />
                     Candidate Sources
                   </div>
-                  <div
-                    onClick={() => setCandidateSubTab('candidate-fields')}
-                    className={cn(
-                      "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
-                      candidateSubTab === 'candidate-fields'
-                        ? "text-primary border-b-2 border-primary"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-                    )}
-                  >
-                    <Settings2 className="h-4 w-4" />
-                    Custom Fields
-                  </div>
+                  {canManageCustomFields && (
+                    <div
+                      onClick={() => setCandidateSubTab('candidate-fields')}
+                      className={cn(
+                        "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                        candidateSubTab === 'candidate-fields'
+                          ? "text-primary border-b-2 border-primary"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                      )}
+                    >
+                      <Settings2 className="h-4 w-4" />
+                      Custom Fields
+                    </div>
+                  )}
                 </div>
 
                 {/* Candidate Tab Content */}
                 <div className="flex-1 overflow-hidden">
-                  {candidateSubTab === 'candidate-stages' && <RecruitmentStagesTab />}
+                  {candidateSubTab === 'candidate-stages' && canManageStages && <RecruitmentStagesTab />}
                   {candidateSubTab === 'candidate-sources' && <CandidateSourcesTab />}
-                  {candidateSubTab === 'candidate-fields' && <CustomFieldsTab />}
+                  {candidateSubTab === 'candidate-fields' && canManageCustomFields && <CustomFieldsTab />}
                 </div>
               </div>
             )}

@@ -2561,7 +2561,7 @@ export function CandidatesPageClient({
             <p className="mt-2">Please refer to the troubleshooting steps in the `README.md` for guidance on how to resolve this, typically involving a clean Docker volume reset.</p> 
           </div> 
         )}
-        <Button onClick={() => fetchTableData(filters, page, pageSize)} className="btn-primary-gradient">Try Again</Button>
+        {null}
       </div>
     );
   }

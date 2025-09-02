@@ -875,25 +875,7 @@ export default function ProcessQueueAnalytics() {
                         },
                         ...(isDataLabelsAvailable() ? {
                           datalabels: {
-                            display: true,
-                            color: '#374151',
-                            font: {
-                              weight: 'bold',
-                              size: 10
-                            },
-                            formatter: function(value: any, context: any) {
-                              if (!context || typeof context.dataIndex === 'undefined') {
-                                return '';
-                              }
-                              const dataIndex = context.dataIndex;
-                              const item = (data?.scatterData || [])[dataIndex];
-                              if (!item) return '';
-                              return `${item.y.toFixed(1)}m`;
-                            },
-                            anchor: 'end',
-                            align: 'top',
-                            offset: 4,
-                            rotation: -45
+                            display: false
                           }
                         } : {})
                       },

@@ -22,7 +22,7 @@ function extractIdFromUrl(request: NextRequest): string | null {
  * /api/settings/recruitment-stages/{id}/move:
  *   post:
  *     summary: Move a recruitment stage up or down
- *     description: Moves a recruitment stage up or down in the order. Requires authentication and Admin or RECRUITMENT_STAGES_MANAGE permission.
+ *     description: Moves a recruitment stage up or down in the order. Requires authentication and Admin or RECRUITMENT_STAGES_EDIT permission.
  *     parameters:
  *       - in: path
  *         name: id
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Check permissions
-    if (session.user.role !== 'Admin' &&  !session.user.modulePermissions?.includes('RECRUITMENT_STAGES_MANAGE')) {
+    if (session.user.role !== 'Admin' &&  !session.user.modulePermissions?.includes('RECRUITMENT_STAGES_EDIT')) {
         await logAudit('WARN', `Forbidden attempt to move recruitment stage by ${session.user.name || session.user.email}.`, 'API:RecruitmentStages:Move', actingUserId);
         return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
     }

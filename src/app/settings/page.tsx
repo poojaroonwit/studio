@@ -113,7 +113,7 @@ const settingsItems = [
     label: "Data Configuration", 
     icon: Database, 
     description: "Manage custom fields, recruitment stages, and candidate sources.", 
-    permissionId: 'SYSTEM_SETTINGS_VIEW' as PlatformModuleId, 
+    permissionId: 'RECRUITMENT_STAGES_VIEW' as PlatformModuleId, 
     adminOnlyOrPermission: true
   },
   { 

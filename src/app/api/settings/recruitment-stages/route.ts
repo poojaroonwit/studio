@@ -38,7 +38,7 @@ const recruitmentStageSchema = z.object({
  *         description: Server error
  *   post:
  *     summary: Create a new recruitment stage
- *     description: Creates a new recruitment stage. Requires authentication and Admin or RECRUITMENT_STAGES_MANAGE permission.
+ *     description: Creates a new recruitment stage. Requires authentication and Admin or RECRUITMENT_STAGES_EDIT permission.
  *     requestBody:
  *       required: true
  *       content:
@@ -90,7 +90,7 @@ export async function GET(request: NextRequest) {
     if (!session?.user?.id) return new NextResponse('Unauthorized', { status: 401 });
     
     // Check permissions
-    if (session.user.role !== 'Admin' &&  !session.user.modulePermissions?.includes('RECRUITMENT_STAGES_MANAGE')) {
+    if (session.user.role !== 'Admin' &&  !session.user.modulePermissions?.includes('RECRUITMENT_STAGES_EDIT')) {
         return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
     }
 
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
     if (!actingUserId) return new NextResponse('Unauthorized', { status: 401 });
     
     // Check permissions
-    if (session.user.role !== 'Admin' &&  !session.user.modulePermissions?.includes('RECRUITMENT_STAGES_MANAGE')) {
+    if (session.user.role !== 'Admin' &&  !session.user.modulePermissions?.includes('RECRUITMENT_STAGES_EDIT')) {
         await logAudit('WARN', `Forbidden attempt to create recruitment stage by ${session.user.name || session.user.email}.`, 'API:RecruitmentStages:Create', actingUserId);
         return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
     }

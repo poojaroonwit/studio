@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { handleSSEConnection } from '@/lib/simple-sse';
+import { handleUnifiedSSEConnection } from '@/lib/unified-connection-manager';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,5 +17,5 @@ export async function OPTIONS() {
 }
 
 export async function GET(request: NextRequest) {
-  return handleSSEConnection(request);
+  return handleUnifiedSSEConnection(request);
 }

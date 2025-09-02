@@ -780,9 +780,7 @@ export default function DashboardPageClient({
         <p className="text-muted-foreground mb-6 max-w-md">
           Could not load dashboard data: {fetchError}
         </p>
-        <Button onClick={fetchDataClientSide} className="btn-hover-primary-gradient">
-          Try Again
-        </Button>
+        {null}
       </div>
     );
   }

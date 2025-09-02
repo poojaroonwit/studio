@@ -187,9 +187,7 @@ export function HeadcountTypesTab() {
         <div className="text-center">
           <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
           <p className="text-red-600">{error}</p>
-          <Button onClick={fetchHeadcountTypes} className="mt-2">
-            Try Again
-          </Button>
+          {null}
         </div>
       </div>
     );

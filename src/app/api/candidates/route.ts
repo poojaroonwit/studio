@@ -555,27 +555,35 @@ export async function GET(request: NextRequest) {
       queryParams.push(value);
     }
 
-    // Handle status filter
+    // Handle status filter with case-insensitive matching
     if (filters.status) {
       const statuses = filters.status.split(',').map(s => s.trim()).filter(s => s !== '');
       const nullStatuses = statuses.filter(s => s === 'null' || s === '');
       const regularStatuses = statuses.filter(s => s !== 'null' && s !== '');
       
       if (nullStatuses.length > 0 && regularStatuses.length > 0) {
-        // Mixed null and regular statuses
-        whereClauses.push(`(c.status = ANY($${paramIndex++}) OR c.status = '' OR c.status = 'null')`);
-        queryParams.push(regularStatuses);
+        // Mixed null and regular statuses - use case-insensitive matching
+        const caseInsensitiveConditions = regularStatuses.map((_, index) => 
+          `LOWER(c.status) = LOWER($${paramIndex + index})`
+        ).join(' OR ');
+        whereClauses.push(`(${caseInsensitiveConditions} OR c.status = '' OR c.status = 'null')`);
+        queryParams.push(...regularStatuses);
+        paramIndex += regularStatuses.length;
       } else if (nullStatuses.length > 0) {
         // Only null statuses
         whereClauses.push(`(c.status = '' OR c.status = 'null' OR c.status IS NULL)`);
       } else {
-        // Only regular statuses selected
+        // Only regular statuses selected - use case-insensitive matching
         if (regularStatuses.length === 1) {
-          whereClauses.push(`c.status = $${paramIndex++}`);
+          whereClauses.push(`LOWER(c.status) = LOWER($${paramIndex++})`);
           queryParams.push(regularStatuses[0]);
         } else {
-          whereClauses.push(`c.status = ANY($${paramIndex++})`);
-          queryParams.push(regularStatuses);
+          const caseInsensitiveConditions = regularStatuses.map((_, index) => 
+            `LOWER(c.status) = LOWER($${paramIndex + index})`
+          ).join(' OR ');
+          whereClauses.push(`(${caseInsensitiveConditions})`);
+          queryParams.push(...regularStatuses);
+          paramIndex += regularStatuses.length;
         }
       }
     }

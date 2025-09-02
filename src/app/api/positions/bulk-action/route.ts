@@ -20,7 +20,7 @@ const bulkPositionActionSchema = z.object({
  * /api/positions/bulk-action:
  *   post:
  *     summary: Perform a bulk action on positions
- *     description: Perform bulk delete or status change on multiple positions. Requires authentication and POSITIONS_MANAGE permission.
+ *     description: Perform bulk delete or status change on multiple positions. Requires authentication and POSITIONS_DELETE permission.
  *     requestBody:
  *       required: true
  *       content:

@@ -106,12 +106,7 @@ class SafeComponentWrapper extends Component<Props, State> {
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center space-y-3">
-            {showRetry && (
-              <Button onClick={this.handleRetry} variant="outline" className="w-full">
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Try Again ({this.maxRetries - this.state.retryCount} attempts left)
-              </Button>
-            )}
+            {null}
             <Button onClick={this.handleReload} className="w-full">
               <RefreshCw className="w-4 h-4 mr-2" />
               Reload Page

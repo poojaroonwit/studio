@@ -43,12 +43,53 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
   const [selectedPositionId, setSelectedPositionId] = useState<string | null>(null);
   const [isPositionDrawerOpen, setIsPositionDrawerOpen] = useState(false);
   const [visibleCount, setVisibleCount] = useState(3);
+  const sseRef = React.useRef<EventSource | null>(null);
+  const refreshTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (session?.user?.id) {
       fetchAssignedPositions();
     }
   }, [session?.user?.id, session?.user?.role]);
+
+  // Subscribe to SSE position updates and debounce-refresh list
+  useEffect(() => {
+    if (!session?.user?.id) return;
+
+    try {
+      const es = new EventSource('/api/sse');
+      sseRef.current = es;
+
+      const handlePositionUpdate = (event: MessageEvent) => {
+        try {
+          const payload = JSON.parse(event.data || '{}');
+          // If event carries a position and it's open or recruiter changed, refresh list
+          if (payload && (payload.position || payload.data?.position)) {
+            if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+            refreshTimerRef.current = setTimeout(() => {
+              fetchAssignedPositions();
+            }, 500);
+          }
+        } catch {
+          // ignore malformed sse payloads
+        }
+      };
+
+      es.addEventListener('position_update', handlePositionUpdate);
+
+      return () => {
+        es.removeEventListener('position_update', handlePositionUpdate as any);
+        es.close();
+        sseRef.current = null;
+        if (refreshTimerRef.current) {
+          clearTimeout(refreshTimerRef.current);
+          refreshTimerRef.current = null;
+        }
+      };
+    } catch {
+      // If SSE fails, silently skip; manual refresh still works
+    }
+  }, [session?.user?.id]);
 
   const fetchAssignedPositions = async () => {
     if (!session?.user?.id) return;
@@ -164,7 +205,7 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
                       <span
                         className={cn(
                           "inline-flex items-center justify-center h-5 min-w-[24px] px-1 rounded border text-[10px] tabular-nums z-10",
-                          "bg-background border-border text-muted-foreground group-hover:text-foreground group-hover:border-foreground/60"
+                          "backdrop-blur-sm bg-white/50 border-border text-muted-foreground group-hover:text-foreground group-hover:border-foreground/60"
                         )}
                       >
                         {position.headcount.filled}/{position.headcount.total}
@@ -195,7 +236,7 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
               <Button
                 variant="ghost"
                 size="sm"
-                className={cn("h-6 px-2 text-xs", variant === 'compact' ? "text-foreground/80 hover:underline" : "text-primary hover:underline")}
+                className={cn("h-6 px-2 text-xs text-sidebar-foreground hover:underline")}
                 onClick={() => setVisibleCount((c) => Math.min(c + 3, positions.length))}
               >
                 Load more

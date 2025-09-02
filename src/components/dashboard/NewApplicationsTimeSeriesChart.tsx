@@ -543,7 +543,19 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
                      ticks: { 
                        color: 'rgb(100, 116, 139)', 
                        font: { size: 11 },
-                       stepSize: 1
+                       callback: function(value) {
+                         // Only show ticks for reasonable intervals to prevent too many ticks
+                         const maxValue = Math.max(...chartData.datasets.flatMap(dataset => dataset.data));
+                         if (maxValue <= 20) {
+                           return value; // Show all ticks for small ranges
+                         } else if (maxValue <= 100) {
+                           return value % 5 === 0 ? value : ''; // Show every 5th tick
+                         } else if (maxValue <= 500) {
+                           return value % 10 === 0 ? value : ''; // Show every 10th tick
+                         } else {
+                           return value % Math.ceil(maxValue / 50) === 0 ? value : ''; // Show max ~50 ticks
+                         }
+                       }
                      },
                      suggestedMax: (() => {
                        const maxValue = Math.max(...chartData.datasets.flatMap(dataset => dataset.data));

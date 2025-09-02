@@ -79,7 +79,7 @@ const settingsNavItems: SettingsNavigationItem[] = [
   { href: "/settings/system-settings", label: "System Settings", icon: Database, description: "System-wide configuration and integrations.", permissionId: 'SYSTEM_SETTINGS_VIEW' as PlatformModuleId, adminOnlyOrPermission: true },
   { href: "/settings/system-preferences", label: "Branding & Theme", icon: Palette, description: "Global branding, theme, and logo settings.", permissionId: 'SYSTEM_SETTINGS_VIEW' as PlatformModuleId, adminOnlyOrPermission: true },
   { href: "/settings/system-prompts", label: "System Prompts & Categories", icon: BrainCircuit, description: "Manage AI system prompts and their categories.", permissionId: 'SYSTEM_SETTINGS_VIEW' as PlatformModuleId, adminOnlyOrPermission: true },
-  { href: "/settings/data-configuration", label: "Data Configuration", icon: Database, description: "Manage custom fields, recruitment stages, and candidate sources.", permissionId: 'SYSTEM_SETTINGS_VIEW' as PlatformModuleId, adminOnlyOrPermission: true },
+  { href: "/settings/data-configuration", label: "Data Configuration", icon: Database, description: "Manage custom fields, recruitment stages, and candidate sources.", permissionId: 'RECRUITMENT_STAGES_VIEW' as PlatformModuleId, adminOnlyOrPermission: true },
 
   { href: "/settings/webhooks", label: "Webhook Management", icon: Webhook, description: "Create and manage outgoing webhooks.", permissionId: 'WEBHOOKS_EDIT' as PlatformModuleId, adminOnlyOrPermission: true },
 

@@ -7,8 +7,7 @@
 -- AlterTable
 ALTER TABLE "User" DROP COLUMN IF EXISTS "modulePermissions";
 
--- CreateTable
-CREATE TABLE "UserTeam" (
+CREATE TABLE IF NOT EXISTS "UserTeam" (
     "id" UUID NOT NULL,
     "name" TEXT NOT NULL,
     "description" TEXT,
@@ -20,28 +19,37 @@ CREATE TABLE "UserTeam" (
     CONSTRAINT "UserTeam_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
-CREATE TABLE "User_UserTeam" (
+CREATE TABLE IF NOT EXISTS "User_UserTeam" (
     "userId" UUID NOT NULL,
     "teamId" UUID NOT NULL,
 
     CONSTRAINT "User_UserTeam_pkey" PRIMARY KEY ("userId","teamId")
 );
 
--- CreateIndex
-CREATE UNIQUE INDEX "UserTeam_name_key" ON "UserTeam"("name");
+CREATE UNIQUE INDEX IF NOT EXISTS "UserTeam_name_key" ON "UserTeam"("name");
 
--- CreateIndex
-CREATE INDEX "UserTeam_is_active_idx" ON "UserTeam"("is_active");
+CREATE INDEX IF NOT EXISTS "UserTeam_is_active_idx" ON "UserTeam"("is_active");
 
--- CreateIndex
-CREATE INDEX "User_UserTeam_userId_idx" ON "User_UserTeam"("userId");
+CREATE INDEX IF NOT EXISTS "User_UserTeam_userId_idx" ON "User_UserTeam"("userId");
 
--- CreateIndex
-CREATE INDEX "User_UserTeam_teamId_idx" ON "User_UserTeam"("teamId");
+CREATE INDEX IF NOT EXISTS "User_UserTeam_teamId_idx" ON "User_UserTeam"("teamId");
 
--- AddForeignKey
-ALTER TABLE "User_UserTeam" ADD CONSTRAINT "User_UserTeam_teamId_fkey" FOREIGN KEY ("teamId") REFERENCES "UserTeam"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints tc
+    WHERE tc.table_schema = 'public' AND tc.table_name = 'User_UserTeam' AND tc.constraint_name = 'User_UserTeam_teamId_fkey'
+  ) THEN
+    ALTER TABLE "User_UserTeam" ADD CONSTRAINT "User_UserTeam_teamId_fkey" FOREIGN KEY ("teamId") REFERENCES "UserTeam"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+  END IF;
+END$$;
 
--- AddForeignKey
-ALTER TABLE "User_UserTeam" ADD CONSTRAINT "User_UserTeam_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints tc
+    WHERE tc.table_schema = 'public' AND tc.table_name = 'User_UserTeam' AND tc.constraint_name = 'User_UserTeam_userId_fkey'
+  ) THEN
+    ALTER TABLE "User_UserTeam" ADD CONSTRAINT "User_UserTeam_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+  END IF;
+END$$;

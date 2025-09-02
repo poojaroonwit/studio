@@ -1,9 +1,9 @@
 -- AlterTable
-ALTER TABLE "Attachment" ADD COLUMN     "headcountId" UUID,
-ALTER COLUMN "candidateId" DROP NOT NULL;
+ALTER TABLE "Attachment" ADD COLUMN IF NOT EXISTS "headcountId" UUID;
+ALTER TABLE "Attachment" ALTER COLUMN "candidateId" DROP NOT NULL;
 
 -- CreateTable
-CREATE TABLE "Headcount" (
+CREATE TABLE IF NOT EXISTS "Headcount" (
     "id" UUID NOT NULL,
     "positionId" UUID NOT NULL,
     "type" TEXT NOT NULL DEFAULT 'new',
@@ -20,25 +20,49 @@ CREATE TABLE "Headcount" (
 );
 
 -- CreateIndex
-CREATE INDEX "Headcount_positionId_idx" ON "Headcount"("positionId");
+CREATE INDEX IF NOT EXISTS "Headcount_positionId_idx" ON "Headcount"("positionId");
 
 -- CreateIndex
-CREATE INDEX "Headcount_candidateId_idx" ON "Headcount"("candidateId");
+CREATE INDEX IF NOT EXISTS "Headcount_candidateId_idx" ON "Headcount"("candidateId");
 
 -- CreateIndex
-CREATE INDEX "Headcount_type_idx" ON "Headcount"("type");
+CREATE INDEX IF NOT EXISTS "Headcount_type_idx" ON "Headcount"("type");
 
 -- CreateIndex
-CREATE INDEX "Headcount_status_idx" ON "Headcount"("status");
+CREATE INDEX IF NOT EXISTS "Headcount_status_idx" ON "Headcount"("status");
 
 -- CreateIndex
-CREATE INDEX "Attachment_headcountId_idx" ON "Attachment"("headcountId");
+CREATE INDEX IF NOT EXISTS "Attachment_headcountId_idx" ON "Attachment"("headcountId");
 
 -- AddForeignKey
-ALTER TABLE "Attachment" ADD CONSTRAINT "Attachment_headcountId_fkey" FOREIGN KEY ("headcountId") REFERENCES "Headcount"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints tc
+    WHERE tc.table_schema = 'public' AND tc.table_name = 'Attachment' AND tc.constraint_name = 'Attachment_headcountId_fkey'
+  ) THEN
+    ALTER TABLE "Attachment" ADD CONSTRAINT "Attachment_headcountId_fkey" FOREIGN KEY ("headcountId") REFERENCES "Headcount"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+  END IF;
+END$$;
 
 -- AddForeignKey
-ALTER TABLE "Headcount" ADD CONSTRAINT "Headcount_positionId_fkey" FOREIGN KEY ("positionId") REFERENCES "Position"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints tc
+    WHERE tc.table_schema = 'public' AND tc.table_name = 'Headcount' AND tc.constraint_name = 'Headcount_positionId_fkey'
+  ) THEN
+    ALTER TABLE "Headcount" ADD CONSTRAINT "Headcount_positionId_fkey" FOREIGN KEY ("positionId") REFERENCES "Position"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+  END IF;
+END$$;
 
 -- AddForeignKey
-ALTER TABLE "Headcount" ADD CONSTRAINT "Headcount_candidateId_fkey" FOREIGN KEY ("candidateId") REFERENCES "Candidate"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints tc
+    WHERE tc.table_schema = 'public' AND tc.table_name = 'Headcount' AND tc.constraint_name = 'Headcount_candidateId_fkey'
+  ) THEN
+    ALTER TABLE "Headcount" ADD CONSTRAINT "Headcount_candidateId_fkey" FOREIGN KEY ("candidateId") REFERENCES "Candidate"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+  END IF;
+END$$;

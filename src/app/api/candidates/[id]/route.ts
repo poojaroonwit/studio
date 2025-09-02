@@ -502,23 +502,52 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       console.log(`Source validation passed - sourceId: ${sourceId}`);
     }
 
-    // Validate headcount availability if changing status to "Hired"
-    if (status === 'Hired' && status !== oldStatus && existingCandidate.positionId) {
+    // Validate status is a valid UUID that references a RecruitmentStage
+    if (status !== undefined) {
       try {
-        const validation = await validateCandidateHiringStatus(id, existingCandidate.positionId);
-        if (!validation.canHire) {
+        const statusCheck = await client.query('SELECT id FROM "RecruitmentStage" WHERE id = $1::uuid', [status]);
+        if (statusCheck.rows.length === 0) {
           await client.query('ROLLBACK');
-          return NextResponse.json({ 
-            message: validation.message,
-            reason: validation.reason,
-            headcountStatus: validation.headcountStatus
-          }, { status: 400 });
+          return NextResponse.json({ message: 'Invalid status: Status must reference a valid recruitment stage' }, { status: 400 });
         }
-        console.log('Headcount validation passed');
+        console.log(`Status validation passed - status: ${status}`);
       } catch (error) {
         await client.query('ROLLBACK');
-        console.error('Error validating headcount for hiring:', error);
-        return NextResponse.json({ message: 'Error validating headcount availability' }, { status: 500 });
+        console.error('Error validating status:', error);
+        return NextResponse.json({ message: 'Error validating status' }, { status: 500 });
+      }
+    }
+
+        // Validate headcount availability if changing status to "Hired"
+    if (status !== undefined && status !== oldStatus && existingCandidate.positionId) {
+      // Get the stage name for comparison
+      try {
+        const stageResult = await client.query('SELECT name FROM "RecruitmentStage" WHERE id = $1::uuid', [status]);
+        if (stageResult.rows.length > 0) {
+          const stageName = stageResult.rows[0].name;
+          if (stageName === 'Hired') {
+            try {
+              const validation = await validateCandidateHiringStatus(id, existingCandidate.positionId);
+              if (!validation.canHire) {
+                await client.query('ROLLBACK');
+                return NextResponse.json({ 
+                  message: validation.message,
+                  reason: validation.reason,
+                  headcountStatus: validation.headcountStatus
+                }, { status: 400 });
+              }
+              console.log('Headcount validation passed');
+            } catch (error) {
+              await client.query('ROLLBACK');
+              console.error('Error validating headcount for hiring:', error);
+              return NextResponse.json({ message: 'Error validating headcount availability' }, { status: 500 });
+            }
+          }
+        }
+      } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Error getting stage name for headcount validation:', error);
+        return NextResponse.json({ message: 'Error validating status for headcount assignment' }, { status: 500 });
       }
     }
     
@@ -652,21 +681,33 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     // Handle headcount assignment if status changed to "Hired"
     let headcountAssignmentResult = null;
-    if (status === 'Hired' && status !== oldStatus && existingCandidate.positionId) {
+    if (status !== undefined && status !== oldStatus && existingCandidate.positionId) {
+      // Get the stage name for comparison
       try {
-        const validation = await validateCandidateHiringStatus(id, existingCandidate.positionId);
-        if (validation.canHire && validation.reason === 'VACANT_HEADCOUNT_AVAILABLE') {
-          headcountAssignmentResult = await assignCandidateToHeadcount(
-            id,
-            existingCandidate.positionId,
-            actingUserId,
-            actingUserName
-          );
-          console.log('Headcount assigned successfully');
+        const stageResult = await client.query('SELECT name FROM "RecruitmentStage" WHERE id = $1::uuid', [status]);
+        if (stageResult.rows.length > 0) {
+          const stageName = stageResult.rows[0].name;
+                    if (stageName === 'Hired') {
+            try {
+              const validation = await validateCandidateHiringStatus(id, existingCandidate.positionId);
+              if (validation.canHire && validation.reason === 'VACANT_HEADCOUNT_AVAILABLE') {
+                headcountAssignmentResult = await assignCandidateToHeadcount(
+                  id,
+                  existingCandidate.positionId,
+                  actingUserId,
+                  actingUserName
+                );
+                console.log('Headcount assigned successfully');
+              }
+            } catch (headcountError) {
+              console.error('Error assigning headcount:', headcountError);
+              // Don't fail the status update if headcount assignment fails
+            }
+          }
         }
-      } catch (headcountError) {
-        console.error('Error assigning headcount:', headcountError);
-        // Don't fail the status update if headcount assignment fails
+      } catch (error) {
+        console.error('Error getting stage name for headcount assignment:', error);
+        // Don't fail the status update if stage name lookup fails
       }
     }
 

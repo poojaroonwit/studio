@@ -10,6 +10,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from "./CandidateKanbanView";
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
@@ -98,26 +99,7 @@ interface CandidateTableProps {
   onBulkAssignRecruiter?: (candidateIds: string[], recruiterId: string | null) => Promise<void>;
 }
 
-const getStatusBadgeVariant = (status: CandidateStatus): "default" | "secondary" | "destructive" | "outline" => {
-  switch (status) {
-    case 'Hired':
-    case 'Offer Accepted':
-      return 'default';
-    case 'Interview Scheduled':
-    case 'Interviewing':
-    case 'Offer Extended':
-      return 'secondary';
-    case 'Rejected':
-      return 'destructive';
-    case 'Applied':
-    case 'Screening':
-    case 'Shortlisted':
-    case 'On Hold':
-      return 'outline';
-    default:
-      return 'outline';
-  }
-};
+
 
 // Utility for displaying fitScore as a percentage and grade
 function displayFitScoreWithGrade(score: number | undefined | null) {
@@ -689,7 +671,7 @@ export function CandidateTable({
               }
 
               // Find the index of the candidate's current stage
-              const currentStageIndex = availableStages.findIndex(s => s.name === candidate.status);
+                              const currentStageIndex = availableStages.findIndex(s => s.id === candidate.status);
 
                   const row = (
                 <TableRow key={candidate.id} onClick={(e) => handleRowClick(candidate, e)} className="cursor-pointer hover:bg-muted/40" data-state={safeSelectedCandidateIds.has(candidate.id) ? 'selected' : ''}>
@@ -823,19 +805,7 @@ export function CandidateTable({
                   )}
                   {(!settings || settings.showStatusColumn !== false) && (
                     <TableCell key={`${candidate.id}-status`} className="max-w-[150px]">
-                      {(() => {
-                        const stage = availableStages.find(s => s.name === candidate.status);
-                        const badgeColor = stage?.color_badge;
-                        return (
-                          <Badge
-                            variant={getStatusBadgeVariant(candidate.status)}
-                            className="capitalize"
-                            style={badgeColor ? { backgroundColor: badgeColor, color: '#fff', borderColor: badgeColor } : undefined}
-                          >
-                            {candidate.status}
-                          </Badge>
-                        );
-                      })()}
+                      <StatusBadge statusId={candidate.status} className="capitalize" />
                     </TableCell>
                   )}
                   {(!settings || settings.showAppliedDateColumn !== false) && (
@@ -1037,19 +1007,7 @@ export function CandidateTable({
                             )}
                             {(!settings || settings.showStatusColumn !== false) && (
                               <TableCell key={`${candidate.id}-status`} className="max-w-[150px]">
-                                {(() => {
-                                  const stage = availableStages.find(s => s.name === candidate.status);
-                                  const badgeColor = stage?.color_badge;
-                                  return (
-                                    <Badge
-                                      variant={getStatusBadgeVariant(candidate.status)}
-                                      className="capitalize"
-                                      style={badgeColor ? { backgroundColor: badgeColor, color: '#fff', borderColor: badgeColor } : undefined}
-                                    >
-                                      {candidate.status}
-                                    </Badge>
-                                  );
-                                })()}
+                                <StatusBadge statusId={candidate.status} className="capitalize" />
                               </TableCell>
                             )}
                             {(!settings || settings.showAppliedDateColumn !== false) && (

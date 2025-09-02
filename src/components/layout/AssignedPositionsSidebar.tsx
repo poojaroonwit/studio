@@ -42,7 +42,7 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
   const [error, setError] = useState<string | null>(null);
   const [selectedPositionId, setSelectedPositionId] = useState<string | null>(null);
   const [isPositionDrawerOpen, setIsPositionDrawerOpen] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(3);
+  const [visibleCount, setVisibleCount] = useState(5);
   const sseRef = React.useRef<EventSource | null>(null);
   const refreshTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -75,10 +75,44 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
         }
       };
 
+      const handlePositionListUpdate = (event: MessageEvent) => {
+        try {
+          const payload = JSON.parse(event.data || '{}');
+          // Refresh when position list is updated (includes headcount changes)
+          if (payload && payload.type === 'position_list_update') {
+            if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+            refreshTimerRef.current = setTimeout(() => {
+              fetchAssignedPositions();
+            }, 500);
+          }
+        } catch {
+          // ignore malformed sse payloads
+        }
+      };
+
+      const handleDashboardUpdate = (event: MessageEvent) => {
+        try {
+          const payload = JSON.parse(event.data || '{}');
+          // Refresh when dashboard updates occur (includes statistics and headcount changes)
+          if (payload && payload.type === 'dashboard_update') {
+            if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+            refreshTimerRef.current = setTimeout(() => {
+              fetchAssignedPositions();
+            }, 500);
+          }
+        } catch {
+          // ignore malformed sse payloads
+        }
+      };
+
       es.addEventListener('position_update', handlePositionUpdate);
+      es.addEventListener('position_list_update', handlePositionListUpdate);
+      es.addEventListener('dashboard_update', handleDashboardUpdate);
 
       return () => {
         es.removeEventListener('position_update', handlePositionUpdate as any);
+        es.removeEventListener('position_list_update', handlePositionListUpdate as any);
+        es.removeEventListener('dashboard_update', handleDashboardUpdate as any);
         es.close();
         sseRef.current = null;
         if (refreshTimerRef.current) {
@@ -117,7 +151,7 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
       
       const data = await response.json();
       setPositions(data.data || []);
-      setVisibleCount(3);
+      setVisibleCount(5);
     } catch (err) {
       setError((err as Error).message);
       console.error('Error fetching assigned positions:', err);
@@ -237,7 +271,7 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
                 variant="ghost"
                 size="sm"
                 className={cn("h-6 px-2 text-xs text-sidebar-foreground hover:underline")}
-                onClick={() => setVisibleCount((c) => Math.min(c + 3, positions.length))}
+                onClick={() => setVisibleCount((c) => Math.min(c + 5, positions.length))}
               >
                 Load more
               </Button>

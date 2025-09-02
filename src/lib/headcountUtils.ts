@@ -2,6 +2,7 @@ import prisma from '@/lib/prisma';
 import { logAudit } from '@/lib/auditLog';
 import { broadcastPositionUpdate, broadcastPositionListUpdated, broadcastPositionStatisticsUpdated } from '@/lib/simple-broadcaster';
 import { v4 as uuidv4 } from 'uuid';
+import { getRecruitmentStageByName } from './recruitmentStageUtils';
 
 /**
  * Check if all headcounts for a position are filled
@@ -379,7 +380,8 @@ export async function checkHeadcountUnassignWarning(headcountId: string) {
     }
 
     // Check if candidate status is "Hired" and this is their only headcount assignment
-    if (headcount.candidate.status === 'Hired') {
+    const hiredStageId = await getRecruitmentStageByName('Hired');
+    if (hiredStageId && headcount.candidate.status === hiredStageId) {
       const candidateHeadcounts = await prisma.headcount.findMany({
         where: {
           candidateId: headcount.candidate.id,
@@ -525,7 +527,8 @@ export async function unassignCandidateFromHeadcount(
     }
 
     const candidateId = headcount.candidate.id;
-    const wasHired = headcount.candidate.status === 'Hired';
+    const hiredStageId = await getRecruitmentStageByName('Hired');
+    const wasHired = hiredStageId && headcount.candidate.status === hiredStageId;
 
     // Update the headcount to remove candidate assignment
     await prisma.headcount.update({
@@ -547,10 +550,12 @@ export async function unassignCandidateFromHeadcount(
     let statusUpdateResult = null;
     // If candidate was "Hired" and has no other headcount assignments, change status to "Applied"
     if (wasHired && remainingHeadcounts.length === 0) {
-      await prisma.candidate.update({
-        where: { id: candidateId },
-        data: { status: 'Applied' },
-      });
+      const appliedStageId = await getRecruitmentStageByName('Applied');
+      if (appliedStageId) {
+        await prisma.candidate.update({
+          where: { id: candidateId },
+          data: { status: appliedStageId },
+        });
 
       // Create transition record for status change
       const newTransitionId = uuidv4();
@@ -559,7 +564,7 @@ export async function unassignCandidateFromHeadcount(
           id: newTransitionId,
           candidateId,
           positionId: headcount.position.id,
-          stage: 'Applied',
+          stage: appliedStageId,
           notes: 'Status automatically changed from "Hired" to "Applied" due to headcount unassignment',
           actingUserId,
           date: new Date(),
@@ -572,6 +577,9 @@ export async function unassignCandidateFromHeadcount(
         newStatus: 'Applied',
         transitionId: newTransitionId,
       };
+      } else {
+        console.error('Could not find Applied stage for status update');
+      }
     }
 
     // Log the unassignment

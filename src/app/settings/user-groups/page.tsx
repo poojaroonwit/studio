@@ -116,8 +116,8 @@ export default function RolesPermissionsPage() {
     if (sessionStatus === 'unauthenticated') {
       signIn(undefined, { callbackUrl: pathname });
     } else if (sessionStatus === 'authenticated') {
-      if (session.user.role !== 'Admin') {
-        setFetchError("You do not have permission to manage roles & permissions.");
+      if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('USER_GROUPS_VIEW')) {
+        setFetchError("You do not have permission to manage user groups.");
         setIsLoading(false);
       } else {
         fetchRoles();
@@ -213,7 +213,7 @@ export default function RolesPermissionsPage() {
   }
 
   if (fetchError && !isLoading) {
-    const isPermissionError = fetchError === "You do not have permission to manage roles & permissions.";
+    const isPermissionError = fetchError === "You do not have permission to manage user groups.";
      return (
       <div className="flex flex-col items-center justify-center h-full text-center p-4">
         <ServerCrash className="w-16 h-16 text-destructive mb-4" />

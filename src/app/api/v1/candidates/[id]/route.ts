@@ -25,7 +25,8 @@ const updateCandidateSchema = z.object({
   positionId: z.string().uuid().nullable().optional(),
   recruiterId: z.string().uuid().nullable().optional(),
   fitScore: z.number().min(0).max(1).optional(),
-  status: z.string().min(1).optional(),
+  // Status must be a stage UUID in v1 as well
+  status: z.string().uuid('Invalid status: must be a stage UUID').optional(),
   parsedData: z.record(z.any()).optional().nullable(),
   custom_attributes: z.record(z.any()).optional().nullable(),
   resumePath: z.string().optional().nullable(),
@@ -53,7 +54,8 @@ const updateCandidateSchema = z.object({
     skills: z.array(z.any()).optional(),
     job_suitable: z.array(z.any()).optional(),
     cv_language: z.string().optional().nullable(),
-    status: z.string().optional(),
+    // Status must be a stage UUID
+    status: z.string().uuid('Invalid status: must be a stage UUID').optional(),
     fitScore: z.number().min(0).max(1).optional(), // Fixed: Added min/max validation
   }).optional(),
   

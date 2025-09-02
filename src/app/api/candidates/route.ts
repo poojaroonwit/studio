@@ -555,35 +555,32 @@ export async function GET(request: NextRequest) {
       queryParams.push(value);
     }
 
-    // Handle status filter with case-insensitive matching
+    // Handle status filter with UUID matching
     if (filters.status) {
       const statuses = filters.status.split(',').map(s => s.trim()).filter(s => s !== '');
       const nullStatuses = statuses.filter(s => s === 'null' || s === '');
       const regularStatuses = statuses.filter(s => s !== 'null' && s !== '');
       
       if (nullStatuses.length > 0 && regularStatuses.length > 0) {
-        // Mixed null and regular statuses - use case-insensitive matching
-        const caseInsensitiveConditions = regularStatuses.map((_, index) => 
-          `LOWER(c.status) = LOWER($${paramIndex + index})`
+        // Mixed null and regular statuses
+        const statusConditions = regularStatuses.map((_, index) => 
+          `c.status = $${paramIndex + index}`
         ).join(' OR ');
-        whereClauses.push(`(${caseInsensitiveConditions} OR c.status = '' OR c.status = 'null')`);
+        whereClauses.push(`(${statusConditions} OR c.status IS NULL)`);
         queryParams.push(...regularStatuses);
         paramIndex += regularStatuses.length;
       } else if (nullStatuses.length > 0) {
         // Only null statuses
-        whereClauses.push(`(c.status = '' OR c.status = 'null' OR c.status IS NULL)`);
+        whereClauses.push(`c.status IS NULL`);
       } else {
-        // Only regular statuses selected - use case-insensitive matching
+        // Only regular statuses selected - use direct UUID matching
         if (regularStatuses.length === 1) {
-          whereClauses.push(`LOWER(c.status) = LOWER($${paramIndex++})`);
+          whereClauses.push(`c.status = $${paramIndex++}`);
           queryParams.push(regularStatuses[0]);
         } else {
-          const caseInsensitiveConditions = regularStatuses.map((_, index) => 
-            `LOWER(c.status) = LOWER($${paramIndex + index})`
-          ).join(' OR ');
-          whereClauses.push(`(${caseInsensitiveConditions})`);
-          queryParams.push(...regularStatuses);
-          paramIndex += regularStatuses.length;
+          whereClauses.push(`c.status = ANY($${paramIndex++})`);
+          queryParams.push(regularStatuses);
+          paramIndex += 1;
         }
       }
     }

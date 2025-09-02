@@ -39,8 +39,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
-  // Check if user has admin role or specific permission
-  if (session.user.role !== 'Admin') {
+  // Check if user has admin role or SYSTEM_SETTINGS_VIEW permission
+  if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('SYSTEM_SETTINGS_VIEW')) {
     return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
   }
 
@@ -90,8 +90,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
-  // Check if user has admin role or specific permission
-  if (session.user.role !== 'Admin') {
+  // Check if user has admin role or SYSTEM_SETTINGS_EDIT permission
+  if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('SYSTEM_SETTINGS_EDIT')) {
     return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
   }
 

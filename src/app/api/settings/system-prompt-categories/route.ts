@@ -38,8 +38,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
-  // Check if user has admin role or specific permission
-  if (session.user.role !== 'Admin') {
+  // Check if user has admin role or SYSTEM_SETTINGS_VIEW permission
+  if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('SYSTEM_SETTINGS_VIEW')) {
     return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
   }
 
@@ -71,8 +71,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
-  // Check if user has admin role or specific permission
-  if (session.user.role !== 'Admin') {
+  // Check if user has admin role or SYSTEM_SETTINGS_EDIT permission
+  if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('SYSTEM_SETTINGS_EDIT')) {
     return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
   }
 
@@ -94,13 +94,16 @@ export async function POST(request: NextRequest) {
   const { name, description, color, isActive } = validationResult.data;
 
   try {
-    // Check if category name already exists
+    // Check if category with this name already exists
     const existingCategory = await prisma.systemPromptCategory.findUnique({
       where: { name },
     });
 
     if (existingCategory) {
-      return NextResponse.json({ message: 'Category name already exists' }, { status: 409 });
+      return NextResponse.json({ 
+        message: 'A category with this name already exists.',
+        error: 'Duplicate category name'
+      }, { status: 400 });
     }
 
     // Create new category
@@ -108,7 +111,7 @@ export async function POST(request: NextRequest) {
       data: {
         name,
         description,
-        color: color || '#3B82F6',
+        color,
         isActive,
       },
     });
@@ -116,16 +119,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(newCategory, { status: 201 });
   } catch (error) {
     console.error('Error creating system prompt category:', error);
-    
-    // Check for specific Prisma errors
-    if (error instanceof Error) {
-      if (error.message.includes('Unique constraint failed')) {
-        return NextResponse.json({ 
-          message: 'A category with this name already exists.',
-          error: error.message 
-        }, { status: 400 });
-      }
-    }
     
     return NextResponse.json({ 
       message: 'Internal server error', 

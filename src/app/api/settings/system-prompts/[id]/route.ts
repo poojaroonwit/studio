@@ -22,8 +22,8 @@ export async function GET(
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
-  // Check if user has admin role or specific permission
-  if (session.user.role !== 'Admin') {
+  // Check if user has admin role or SYSTEM_SETTINGS_VIEW permission
+  if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('SYSTEM_SETTINGS_VIEW')) {
     return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
   }
 
@@ -55,8 +55,8 @@ export async function PUT(
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
-  // Check if user has admin role or specific permission
-  if (session.user.role !== 'Admin') {
+  // Check if user has admin role or SYSTEM_SETTINGS_EDIT permission
+  if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('SYSTEM_SETTINGS_EDIT')) {
     return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
   }
 
@@ -101,6 +101,7 @@ export async function PUT(
       }, { status: 400 });
     }
 
+    // Update the system prompt
     const updatedSystemPrompt = await prisma.systemPrompt.update({
       where: { id },
       data: {
@@ -118,7 +119,7 @@ export async function PUT(
     
     // Check for specific Prisma errors
     if (error instanceof Error) {
-      if (error.message.includes('Record to update not found')) {
+      if (error.message.includes('Record to update was not found')) {
         return NextResponse.json({ message: 'System prompt not found' }, { status: 404 });
       }
       if (error.message.includes('Foreign key constraint failed')) {
@@ -152,8 +153,8 @@ export async function DELETE(
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
-  // Check if user has admin role or specific permission
-  if (session.user.role !== 'Admin') {
+  // Check if user has admin role or SYSTEM_SETTINGS_EDIT permission
+  if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('SYSTEM_SETTINGS_EDIT')) {
     return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
   }
 

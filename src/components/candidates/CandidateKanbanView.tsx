@@ -19,6 +19,8 @@ import { getCandidatePersonalColor, getCandidateCardStyles } from "@/lib/persona
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
+import { getRecruitmentStageName } from '@/lib/recruitmentStageUtils';
+import { getStatusColorByStageId } from "@/lib/statusMapping";
 
 // Helper function to extract parsed data properties (similar to FullCandidateDetail)
 const getParsedDataProperty = (candidate: Candidate, propertyName: string) => {
@@ -37,6 +39,47 @@ const getParsedDataProperty = (candidate: Candidate, propertyName: string) => {
   
   return undefined;
 };
+
+// Renders a status badge showing the human-readable stage name for a given stage ID
+export function StatusBadge({ statusId, className = '' }: { statusId?: string | null; className?: string }) {
+  const [stageName, setStageName] = React.useState<string | null>(null);
+  const [colorClass, setColorClass] = React.useState<string>('bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-800');
+
+  useEffect(() => {
+    let isMounted = true;
+    async function load() {
+      if (!statusId) { setStageName(null); return; }
+      try {
+        const name = await getRecruitmentStageName(statusId);
+        if (isMounted) setStageName(name);
+      } catch {
+        if (isMounted) setStageName(null);
+      }
+    }
+    load();
+    return () => { isMounted = false; };
+  }, [statusId]);
+  
+  useEffect(() => {
+    let isMounted = true;
+    async function loadColor() {
+      try {
+        const cls = await getStatusColorByStageId(String(statusId || ''));
+        if (isMounted) setColorClass(cls);
+      } catch {
+        if (isMounted) setColorClass('bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-800');
+      }
+    }
+    loadColor();
+    return () => { isMounted = false; };
+  }, [statusId]);
+
+  return (
+    <Badge className={cn("text-xs px-2 py-1 flex-shrink-0", className, colorClass)}>
+      {stageName || statusId || 'Unknown'}
+    </Badge>
+  );
+}
 
 // Helper function to get education data
 const getEducation = (candidate: Candidate) => {
@@ -581,22 +624,6 @@ export function CandidateRowKanbanView({
       });
       setIsModalOpen(true);
     }
-  };
-
-  // Get status color for YouTrack-style badges
-  const getStatusColor = (status: string) => {
-    const statusColors: Record<string, string> = {
-      'Applied': 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800',
-      'Screening': 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-800',
-      'Interview Scheduled': 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800',
-      'Interviewing': 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/20 dark:text-orange-300 dark:border-orange-800',
-      'Offer Sent': 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800',
-      'Offer Accepted': 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800',
-      'Hired': 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800',
-      'Rejected': 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800',
-      'Withdrawn': 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-800',
-    };
-    return statusColors[status] || 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-800';
   };
 
   return (
@@ -1344,22 +1371,6 @@ export function SingleRowCandidateView({
     };
   }, []);
 
-  // Get status color for YouTrack-style badges
-  const getStatusColor = (status: string) => {
-    const statusColors: Record<string, string> = {
-      'Applied': 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800',
-      'Screening': 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-800',
-      'Interview Scheduled': 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800',
-      'Interviewing': 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/20 dark:text-orange-300 dark:border-orange-800',
-      'Offer Sent': 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800',
-      'Offer Accepted': 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800',
-      'Hired': 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800',
-      'Rejected': 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800',
-      'Withdrawn': 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-800',
-    };
-    return statusColors[status] || 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-800';
-  };
-
   if (candidates.length === 0) {
     return (
       <div className="flex items-center justify-center w-full py-8">
@@ -1476,12 +1487,7 @@ export function SingleRowCandidateView({
                     )}
                   </div>
                   {/* Status Badge */}
-                  <Badge className={cn(
-                    "text-xs px-2 py-1 flex-shrink-0",
-                    getStatusColor(candidate.status)
-                  )}>
-                    {candidate.status || 'Unknown'}
-                  </Badge>
+                  <StatusBadge statusId={candidate.status} className="text-xs px-2 py-1 flex-shrink-0" />
                 </div>
 
                 {/* Contact Information */}
@@ -1706,22 +1712,6 @@ export function SingleRowKanbanView({
     setCurrentIndex(0);
   }, [filteredCandidates.length]);
 
-  // Get status color for YouTrack-style badges
-  const getStatusColor = (status: string) => {
-    const statusColors: Record<string, string> = {
-      'Applied': 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800',
-      'Screening': 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-800',
-      'Interview Scheduled': 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800',
-      'Interviewing': 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/20 dark:text-orange-300 dark:border-orange-800',
-      'Offer Sent': 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800',
-      'Offer Accepted': 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800',
-      'Hired': 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800',
-      'Rejected': 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800',
-      'Withdrawn': 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-800',
-    };
-    return statusColors[status] || 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-800';
-  };
-
   if (filteredCandidates.length === 0) {
     return (
       <>
@@ -1817,12 +1807,7 @@ export function SingleRowKanbanView({
                     </div>
                     
                     {/* Status Badge */}
-                    <Badge className={cn(
-                      "text-sm px-3 py-1",
-                      getStatusColor(currentCandidate.status)
-                    )}>
-                      {currentCandidate.status || 'Unknown'}
-                    </Badge>
+                    <StatusBadge statusId={currentCandidate.status} className="text-sm px-3 py-1" />
                   </div>
 
                   {/* Contact Information */}
@@ -1966,21 +1951,7 @@ export function MultiRecruiterKanbanView({ candidates, stages, recruiters, onMov
     }
   };
 
-  // Get status color for YouTrack-style badges
-  const getStatusColor = (status: string) => {
-    const statusColors: Record<string, string> = {
-      'Applied': 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800',
-      'Screening': 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-800',
-      'Interview Scheduled': 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800',
-      'Interviewing': 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/20 dark:text-orange-300 dark:border-orange-800',
-      'Offer Sent': 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800',
-      'Offer Accepted': 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800',
-      'Hired': 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800',
-      'Rejected': 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800',
-      'Withdrawn': 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-800',
-    };
-    return statusColors[status] || 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-800';
-  };
+
 
   return (
     <div className="w-full h-[calc(100vh-200px)] bg-muted/30 rounded-lg p-4 flex gap-4">

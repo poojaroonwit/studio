@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/candidates/CandidateKanbanView';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -1286,7 +1287,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                               )}
                             </TableCell>
                             <TableCell>
-                              <Badge variant="outline">{candidate.status || 'New'}</Badge>
+                              <StatusBadge statusId={candidate.status} />
                             </TableCell>
                             <TableCell>
                               <Button

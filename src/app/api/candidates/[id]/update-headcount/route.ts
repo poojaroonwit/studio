@@ -33,8 +33,29 @@ export async function POST(
       return NextResponse.json({ error: 'Candidate not found' }, { status: 404 });
     }
 
+    // Validate that newStatus is a valid UUID that references a RecruitmentStage
+    try {
+      const statusCheck = await prisma.recruitmentStage.findUnique({
+        where: { id: newStatus },
+      });
+      if (!statusCheck) {
+        return NextResponse.json({ error: 'Invalid status: Status must reference a valid recruitment stage' }, { status: 400 });
+      }
+      console.log(`Status validation passed - status: ${newStatus}`);
+    } catch (error) {
+      console.error('Error validating status:', error);
+      return NextResponse.json({ error: 'Error validating status' }, { status: 500 });
+    }
+
+    // Get the stage name for comparison
+    const stage = await prisma.recruitmentStage.findUnique({
+      where: { id: newStatus },
+      select: { name: true },
+    });
+    const stageName = stage?.name;
+
     // If candidate status is being changed to "Hired", update headcount
-    if (newStatus === 'Hired' && candidate.positionId) {
+    if (stageName === 'Hired' && candidate.positionId) {
       // Find vacant headcount for this position (status is vacant OR no candidate assigned)
       const vacantHeadcount = await prisma.headcount.findFirst({
         where: {
@@ -84,8 +105,15 @@ export async function POST(
       }
     }
 
+    // Get the current candidate's stage name for comparison
+    const currentStage = await prisma.recruitmentStage.findUnique({
+      where: { id: candidate.status },
+      select: { name: true },
+    });
+    const currentStageName = currentStage?.name;
+
     // If candidate status is being changed from "Hired" to something else, free up the headcount
-    if (candidate.status === 'Hired' && newStatus !== 'Hired') {
+    if (currentStageName === 'Hired' && stageName !== 'Hired') {
       // Find headcount assigned to this candidate
       const assignedHeadcount = await prisma.headcount.findFirst({
         where: {

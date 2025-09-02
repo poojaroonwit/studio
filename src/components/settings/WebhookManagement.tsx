@@ -207,11 +207,17 @@ export default function WebhookManagement() {
   const [bulkAction, setBulkAction] = useState<string>('');
   const [bulkLoading, setBulkLoading] = useState(false);
   const [customizingWebhook, setCustomizingWebhook] = useState<Webhook | null>(null);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [activeTab, setActiveTab] = useState('overview');
   const { error: showError, success: showSuccess } = useToast();
+  const [globalWebhookLogs, setGlobalWebhookLogs] = useState<any[]>([]);
+  const [globalLogsLoading, setGlobalLogsLoading] = useState(false);
+  const [globalLogsFilter, setGlobalLogsFilter] = useState<'all' | 'success' | 'failed'>('all');
+  const [globalLogsSearch, setGlobalLogsSearch] = useState('');
+  const [globalLogsPage, setGlobalLogsPage] = useState(1);
+  const [globalLogsTotal, setGlobalLogsTotal] = useState(0);
 
   const fetchWebhooks = async () => {
     try {
@@ -533,6 +539,47 @@ export default function WebhookManagement() {
     }
   };
 
+  const fetchGlobalWebhookLogs = async (page: number = 1, filter: 'all' | 'success' | 'failed' = 'all', search: string = '') => {
+    try {
+      setGlobalLogsLoading(true);
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: '20',
+        filter,
+        search
+      });
+      const response = await fetch(`/api/settings/webhooks/logs?${params.toString()}`);
+      if (response.ok) {
+        const data = await response.json();
+        setGlobalWebhookLogs(Array.isArray(data.logs) ? data.logs : []);
+        setGlobalLogsTotal(Number(data.total || 0));
+      } else {
+        showError('Failed to fetch webhook logs');
+      }
+    } catch (error) {
+      showError('Failed to fetch webhook logs');
+    } finally {
+      setGlobalLogsLoading(false);
+    }
+  };
+
+  const handleGlobalLogsFilterChange = (value: 'all' | 'success' | 'failed') => {
+    setGlobalLogsFilter(value);
+    setGlobalLogsPage(1);
+    fetchGlobalWebhookLogs(1, value, globalLogsSearch);
+  };
+
+  const handleGlobalLogsSearch = (value: string) => {
+    setGlobalLogsSearch(value);
+    setGlobalLogsPage(1);
+    fetchGlobalWebhookLogs(1, globalLogsFilter, value);
+  };
+
+  const handleGlobalLogsPageChange = (nextPage: number) => {
+    setGlobalLogsPage(nextPage);
+    fetchGlobalWebhookLogs(nextPage, globalLogsFilter, globalLogsSearch);
+  };
+
   const testWebhook = async () => {
     if (!selectedWebhookForTest) return;
     
@@ -699,6 +746,8 @@ export default function WebhookManagement() {
       setWebhooks([]);
       setCustomHeaders([]);
       fetchWebhooks();
+      fetchWebhookAnalytics();
+      fetchGlobalWebhookLogs();
     } catch (err) {
       console.error('Error initializing WebhookManagement:', err);
       setError(err instanceof Error ? err.message : 'Failed to initialize component');
@@ -1752,14 +1801,128 @@ export default function WebhookManagement() {
                           Webhook Analytics
                         </CardTitle>
                         <CardDescription>
-                          Monitor webhook performance and delivery statistics
+                          Monitor webhook performance and delivery statistics (last 24 hours)
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
-                        <div className="text-center py-12 text-muted-foreground">
-                          <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                          <p>Analytics dashboard coming soon...</p>
-                        </div>
+                        {analyticsLoading ? (
+                          <div className="text-center py-12">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                            <p className="text-muted-foreground">Loading analytics...</p>
+                          </div>
+                        ) : webhookAnalytics ? (
+                          <div className="space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                              <Card>
+                                <CardContent className="p-4">
+                                  <div className="flex items-center space-x-2">
+                                    <Zap className="h-4 w-4 text-blue-500" />
+                                    <span className="text-sm text-muted-foreground">Total Webhooks</span>
+                                  </div>
+                                  <p className="text-2xl font-bold">{webhookAnalytics.totalWebhooks}</p>
+                                  <p className="text-xs text-muted-foreground">{webhookAnalytics.activeWebhooks} active</p>
+                                </CardContent>
+                              </Card>
+                              <Card>
+                                <CardContent className="p-4">
+                                  <div className="flex items-center space-x-2">
+                                    <Send className="h-4 w-4 text-green-500" />
+                                    <span className="text-sm text-muted-foreground">Total Deliveries</span>
+                                  </div>
+                                  <p className="text-2xl font-bold">{webhookAnalytics.totalDeliveries}</p>
+                                  <p className="text-xs text-muted-foreground">Last 24 hours</p>
+                                </CardContent>
+                              </Card>
+                              <Card>
+                                <CardContent className="p-4">
+                                  <div className="flex items-center space-x-2">
+                                    <CheckCircle className="h-4 w-4 text-green-500" />
+                                    <span className="text-sm text-muted-foreground">Success Rate</span>
+                                  </div>
+                                  <p className="text-2xl font-bold">{webhookAnalytics.successRate?.toFixed ? webhookAnalytics.successRate.toFixed(1) : webhookAnalytics.successRate}%</p>
+                                  <p className="text-xs text-muted-foreground">Success percentage</p>
+                                </CardContent>
+                              </Card>
+                              <Card>
+                                <CardContent className="p-4">
+                                  <div className="flex items-center space-x-2">
+                                    <Clock className="h-4 w-4 text-orange-500" />
+                                    <span className="text-sm text-muted-foreground">Avg Response</span>
+                                  </div>
+                                  <p className="text-2xl font-bold">{Math.round(webhookAnalytics.avgResponseTime || 0)}ms</p>
+                                  <p className="text-xs text-muted-foreground">Average duration</p>
+                                </CardContent>
+                              </Card>
+                            </div>
+
+                            <Card>
+                              <CardHeader>
+                                <CardTitle className="text-lg">Recent Activity</CardTitle>
+                                <CardDescription>Latest webhook delivery attempts</CardDescription>
+                              </CardHeader>
+                              <CardContent>
+                                {Array.isArray(webhookAnalytics.recentActivity) && webhookAnalytics.recentActivity.length > 0 ? (
+                                  <div className="space-y-3">
+                                    {webhookAnalytics.recentActivity.map((item: any) => (
+                                      <div key={item.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                                        <div className="flex items-center gap-3">
+                                          <Badge variant={item.success ? 'default' : 'destructive'} className="text-xs">
+                                            {item.success ? 'Success' : 'Failed'}
+                                          </Badge>
+                                          <div>
+                                            <div className="text-sm font-medium">{item.webhook?.name || 'Unknown'}</div>
+                                            <div className="text-xs text-muted-foreground">{item.event_type}</div>
+                                          </div>
+                                        </div>
+                                        <div className="text-right">
+                                          <div className="text-xs text-muted-foreground">{new Date(item.createdAt).toLocaleTimeString()}</div>
+                                          {item.response_status && (
+                                            <div className="text-xs font-mono">{item.response_status}</div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <div className="text-center py-6 text-muted-foreground">No recent activity</div>
+                                )}
+                              </CardContent>
+                            </Card>
+
+                            {Array.isArray(webhookAnalytics.topFailingWebhooks) && webhookAnalytics.topFailingWebhooks.length > 0 && (
+                              <Card>
+                                <CardHeader>
+                                  <CardTitle className="text-lg">Top Failing Webhooks</CardTitle>
+                                  <CardDescription>Most failures in the last 24 hours</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                  <div className="space-y-3">
+                                    {webhookAnalytics.topFailingWebhooks.map((w: any) => (
+                                      <div key={w.webhook_id} className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-950/20 rounded-lg">
+                                        <div className="flex items-center gap-3">
+                                          <AlertTriangle className="h-4 w-4 text-red-500" />
+                                          <div>
+                                            <div className="text-sm font-medium">{w.name}</div>
+                                            <div className="text-xs text-muted-foreground">{w.failure_count} failures</div>
+                                          </div>
+                                        </div>
+                                        <Button variant="outline" size="sm" onClick={() => {
+                                          const found = webhooks.find(x => x.id === w.webhook_id);
+                                          if (found) handleLogsDialogOpen(found);
+                                        }}>View Logs</Button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="text-center py-12 text-muted-foreground">
+                            <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                            <p>No analytics data available</p>
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   </div>
@@ -1776,14 +1939,123 @@ export default function WebhookManagement() {
                           Recent Webhook Logs
                         </CardTitle>
                         <CardDescription>
-                          View recent webhook delivery attempts and responses
+                          View recent webhook delivery attempts and responses across all webhooks
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
-                        <div className="text-center py-12 text-muted-foreground">
-                          <History className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                          <p>Select a webhook to view its logs</p>
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-3">
+                            <Select value={globalLogsFilter} onValueChange={(v) => handleGlobalLogsFilterChange(v as any)}>
+                              <SelectTrigger className="w-32">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">All Logs</SelectItem>
+                                <SelectItem value="success">Success</SelectItem>
+                                <SelectItem value="failed">Failed</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <div className="relative">
+                              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                              <Input
+                                placeholder="Search logs..."
+                                value={globalLogsSearch}
+                                onChange={(e) => handleGlobalLogsSearch(e.target.value)}
+                                className="pl-10 w-64"
+                              />
+                            </div>
+                          </div>
+                          <Button variant="outline" size="sm" onClick={() => fetchGlobalWebhookLogs(globalLogsPage, globalLogsFilter, globalLogsSearch)} disabled={globalLogsLoading}>
+                            {globalLogsLoading ? (
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+                            ) : (
+                              <RefreshCw className="h-4 w-4" />
+                            )}
+                          </Button>
                         </div>
+
+                        <div className="border rounded-lg overflow-hidden">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Webhook</TableHead>
+                                <TableHead>Event</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead>Response</TableHead>
+                                <TableHead>Duration</TableHead>
+                                <TableHead>Time</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {globalLogsLoading ? (
+                                <TableRow>
+                                  <TableCell colSpan={6} className="text-center py-8">
+                                    <div className="flex items-center justify-center gap-2">
+                                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                                      <span className="text-muted-foreground">Loading logs...</span>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              ) : globalWebhookLogs.length === 0 ? (
+                                <TableRow>
+                                  <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
+                                    No webhook logs found
+                                  </TableCell>
+                                </TableRow>
+                              ) : (
+                                globalWebhookLogs.map((log: any) => (
+                                  <TableRow key={log.id}>
+                                    <TableCell>
+                                      <div className="text-sm font-medium">{log.webhook_name}</div>
+                                      <div className="text-xs text-muted-foreground truncate max-w-[240px]">{log.webhook_url}</div>
+                                    </TableCell>
+                                    <TableCell>
+                                      <Badge variant="outline" className="text-xs">{log.event_type}</Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                      <Badge variant={log.success ? 'default' : 'destructive'}>{log.success ? 'Success' : 'Failed'}</Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                      <div className="text-xs">
+                                        {log.response_status && <span className="font-mono mr-2">{log.response_status}</span>}
+                                        {log.response_message && <span className="text-muted-foreground truncate inline-block max-w-[200px] align-bottom">{log.response_message}</span>}
+                                      </div>
+                                    </TableCell>
+                                    <TableCell className="text-sm">{log.duration_ms ? `${log.duration_ms}ms` : '-'}</TableCell>
+                                    <TableCell className="text-sm">{new Date(log.created_at || log.createdAt).toLocaleString()}</TableCell>
+                                  </TableRow>
+                                ))
+                              )}
+                            </TableBody>
+                          </Table>
+                        </div>
+
+                        {globalLogsTotal > 20 && (
+                          <div className="flex items-center justify-between mt-4">
+                            <div className="text-sm text-muted-foreground">
+                              Showing {((globalLogsPage - 1) * 20) + 1} to {Math.min(globalLogsPage * 20, globalLogsTotal)} of {globalLogsTotal} logs
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleGlobalLogsPageChange(globalLogsPage - 1)}
+                                disabled={globalLogsPage <= 1}
+                              >
+                                Previous
+                              </Button>
+                              <span className="text-sm">Page {globalLogsPage}</span>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleGlobalLogsPageChange(globalLogsPage + 1)}
+                                disabled={globalLogsPage >= Math.ceil(globalLogsTotal / 20)}
+                              >
+                                Next
+                              </Button>
+                            </div>
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   </div>

@@ -9,7 +9,7 @@ import { Label } from '../ui/label';
 
 export interface StageSelectProps {
   value: string;
-  onChange: (stageName: string) => void;
+  onChange: (stageId: string) => void;
   availableStages: { id: string; name: string }[];
   label?: string;
   error?: string;
@@ -33,7 +33,7 @@ export function StageSelect({ value, onChange, availableStages, label, error, lo
     : availableStages;
 
   // Find the current stage
-  const currentStage = availableStages.find((stage) => stage.name === value);
+  const currentStage = availableStages.find((stage) => stage.id === value);
 
   return (
     <div>
@@ -57,7 +57,7 @@ export function StageSelect({ value, onChange, availableStages, label, error, lo
                 </span>
               </>
             ) : value ? (
-              availableStages.find((stage) => stage.name === value)?.name
+              availableStages.find((stage) => stage.id === value)?.name
             ) : (
               "Select new stage"
             )}
@@ -105,27 +105,27 @@ export function StageSelect({ value, onChange, availableStages, label, error, lo
                   variant="ghost"
                   className={cn(
                     "w-full justify-start px-2 py-1 text-sm font-normal h-auto rounded",
-                    value === stage.name && "bg-accent text-accent-foreground",
-                    currentStage && stage.name === currentStage.name && "border border-primary/40"
+                    value === stage.id && "bg-accent text-accent-foreground",
+                    currentStage && stage.id === currentStage.id && "border border-primary/40"
                   )}
                   onClick={() => {
-                    if (stage.name !== value) {
-                      onChange(stage.name);
+                    if (stage.id !== value) {
+                      onChange(stage.id);
                     }
                     setSearchOpen(false);
                     setSearchQuery('');
                   }}
-                  disabled={stage.name === value}
-                  aria-current={stage.name === value ? 'true' : undefined}
+                  disabled={stage.id === value}
+                  aria-current={stage.id === value ? 'true' : undefined}
                 >
                   <Check
                     className={cn(
                       "mr-2 h-4 w-4",
-                      value === stage.name ? "opacity-100" : "opacity-0"
+                      value === stage.id ? "opacity-100" : "opacity-0"
                     )}
                   />
                   {stage.name}
-                  {stage.name === value && <span className="ml-2 text-xs text-primary font-semibold">(Current)</span>}
+                  {stage.id === value && <span className="ml-2 text-xs text-primary font-semibold">(Current)</span>}
                 </Button>
               ))
             )}

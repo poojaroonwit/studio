@@ -271,15 +271,33 @@ export async function POST(request: NextRequest) {
         break;
 
       case 'change_status':
+        // Validate that newStatus is a valid UUID that references a RecruitmentStage
+        try {
+          const statusCheck = await client.query('SELECT id, name FROM "RecruitmentStage" WHERE id = $1::uuid', [newStatus]);
+          if (statusCheck.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return NextResponse.json({ message: 'Invalid status: Status must reference a valid recruitment stage' }, { status: 400 });
+          }
+          console.log(`Status validation passed - status: ${newStatus}`);
+        } catch (error) {
+          await client.query('ROLLBACK');
+          console.error('Error validating status:', error);
+          return NextResponse.json({ message: 'Error validating status' }, { status: 500 });
+        }
+
         const oldStatusesResult = await client.query('SELECT id, status, "positionId" FROM "Candidate" WHERE id = ANY($1::uuid[])', [candidateIds]);
         const oldStatuses = oldStatusesResult.rows;
+        
+        // Get the stage name for comparison
+        const stageResult = await client.query('SELECT name FROM "RecruitmentStage" WHERE id = $1::uuid', [newStatus]);
+        const stageName = stageResult.rows[0]?.name;
         
         // If changing to "Hired" status, validate headcount availability for each candidate
         const headcountValidationResults = [];
         const candidatesToUpdate = [];
         const candidatesToReject = [];
         
-        if (newStatus === 'Hired') {
+        if (stageName === 'Hired') {
           for (const candidate of oldStatuses) {
             if (candidate.status !== newStatus && candidate.positionId) {
               try {
@@ -357,7 +375,7 @@ export async function POST(request: NextRequest) {
         // Handle headcount assignments for candidates changing to "Hired" status
         const headcountAssignmentResults = [];
         const autoCloseResults = [];
-        if (newStatus === 'Hired') {
+        if (stageName === 'Hired') {
           for (const result of headcountValidationResults) {
             if (result.willAutoAssign) {
               try {

@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from "@/components/candidates/CandidateKanbanView";
 import { CandidateAvatarCompact } from '@/components/ui/candidate-avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -85,23 +86,6 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   const router = useRouter();
   const [metadataLoaded, setMetadataLoaded] = useState(false);
     const [totalCandidates, setTotalCandidates] = useState(0);
-  
-  // Get status color for YouTrack-style badges
-  const getStatusColor = (status: string) => {
-    const statusColors: Record<string, string> = {
-      'Applied': 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800',
-      'Screening': 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-800',
-      'Shortlisted': 'bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-900/20 dark:text-indigo-300 dark:border-indigo-800',
-      'Interview Scheduled': 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800',
-      'Interviewing': 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/20 dark:text-orange-300 dark:border-orange-800',
-      'Offer Sent': 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800',
-      'Offer Accepted': 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800',
-      'Hired': 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800',
-      'Rejected': 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800',
-      'Withdrawn': 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-800',
-    };
-    return statusColors[status] || 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-800';
-  };
   
   // Admin users can access my-tasks page - no automatic redirect
   
@@ -462,10 +446,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     return stages.map((stage, index) => ({
       id: stage,
       name: stage,
-      color: getStatusColor(stage).includes('blue') ? '#3b82f6' : 
-             getStatusColor(stage).includes('green') ? '#10b981' : 
-             getStatusColor(stage).includes('yellow') ? '#f59e0b' : 
-             getStatusColor(stage).includes('red') ? '#ef4444' : '#6b7280',
+      color: '#6b7280', // Default color - will be overridden by StatusBadge component
       description: `Candidates in ${stage} stage`,
       sortOrder: index
     }));
@@ -1038,11 +1019,9 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell>
-                          <Badge className={`${getStatusColor(candidate.status)} text-xs font-medium px-2.5 py-0.5 rounded-full`}>
-                            {candidate.status}
-                          </Badge>
-                        </TableCell>
+                                                  <TableCell>
+                            <StatusBadge statusId={candidate.status} className="text-xs font-medium px-2.5 py-0.5 rounded-full" />
+                          </TableCell>
                         <TableCell className="text-foreground">{candidate.position?.title || candidate.positionId}</TableCell>
                         <TableCell className="text-foreground">{candidate.recruiter?.name || candidate.recruiterId}</TableCell>
                         <TableCell className="hidden sm:table-cell text-foreground">{formatScoreWithGrade(candidate.fitScore)}</TableCell>

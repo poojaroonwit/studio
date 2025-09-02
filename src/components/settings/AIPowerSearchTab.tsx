@@ -228,10 +228,6 @@ export default function AIPowerSearchTab() {
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4" />
-                Admin Access
-              </Badge>
               {!isEditing ? (
                 <Button
                   onClick={() => setIsEditing(true)}

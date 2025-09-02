@@ -1,4 +1,4 @@
-// OpenAPI schemas for Studio API
+// OpenAPI schemas for FitScan API
 
 export const schemas = {
   Candidate: {

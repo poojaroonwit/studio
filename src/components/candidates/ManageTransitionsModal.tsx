@@ -93,7 +93,7 @@ export function ManageTransitionsModal({
   const form = useForm<TransitionFormValues>({
     resolver: zodResolver(transitionFormSchema),
     defaultValues: {
-      newStatus: candidate?.status || (stages[0]?.name || 'Applied'),
+      newStatus: candidate?.status || (stages[0]?.id || ''),
       notes: '',
     },
   });

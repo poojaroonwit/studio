@@ -21,7 +21,7 @@ const candidateDataSchema = z.object({
   name: z.string(),
   email: z.string().email(),
   phone: z.string().optional().nullable(),
-  status: z.string().optional().default('New'),
+  status: z.string().uuid().optional(),
   avatarUrl: z.string().url().optional().nullable(),
   positionId: z.string().uuid().optional().nullable(),
   recruiterId: z.string().uuid().optional().nullable(),
@@ -111,6 +111,20 @@ export async function POST(request: NextRequest) {
       delete candidate.parsedData.job_matches;
     }
 
+    // Resolve status to a valid stage ID (default to 'Applied' if not provided)
+    let resolvedStatusId: string | null = candidate.status || null;
+    if (!resolvedStatusId) {
+      const appliedStageRes = await client.query(
+        'SELECT id FROM "RecruitmentStage" WHERE LOWER(name) = $1 LIMIT 1',
+        ['applied']
+      );
+      resolvedStatusId = appliedStageRes.rows[0]?.id || null;
+    }
+
+    if (!resolvedStatusId) {
+      throw new Error('Could not resolve a valid recruitment stage ID for candidate status');
+    }
+
     const insertCandidateQuery = `
       INSERT INTO "Candidate" (id, name, email, phone, status, "avatarUrl", "positionId", "recruiterId", "parsedData", "fitScore", "dataAiHint", "applicationDate", "createdAt", "updatedAt")
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())
@@ -121,7 +135,7 @@ export async function POST(request: NextRequest) {
       candidate.name,
       candidate.email,
       candidate.phone,
-      candidate.status,
+      resolvedStatusId,
       candidate.avatarUrl,
       candidate.positionId,
       candidate.recruiterId,

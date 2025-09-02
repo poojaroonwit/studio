@@ -769,8 +769,8 @@ export interface RecruitmentStage {
   id: string;
   name: string;
   description?: string | null;
-  is_system: boolean;
-  sort_order?: number | null;
+  isSystem: boolean;
+  sortOrder?: number | null;
   createdAt?: string;
   updatedAt?: string;
   color_complete?: string | null; // Custom color for completed stage node
@@ -1035,7 +1035,8 @@ export interface Candidate {
   positionId: string | null;
   position?: Position | null;
   fitScore: number;
-  status: CandidateStatus;
+  status: string; // Now references RecruitmentStage.id
+  recruitmentStage?: RecruitmentStage | null;
   applicationDate: string;
   recruiterId?: string | null;
   recruiter?: Pick<UserProfile, 'id' | 'name' | 'email'> | null;

@@ -202,7 +202,8 @@ export default function ManageUsersPage() {
     if (sessionStatus === 'unauthenticated') {
       signIn(undefined, { callbackUrl: pathname });
     } else if (sessionStatus === 'authenticated') {
-      if (session.user.role !== 'Admin') {
+      // Check if user has admin role or USERS_VIEW permission
+      if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('USERS_VIEW')) {
         setFetchError("You do not have permission to manage users.");
         setIsLoading(false);
       } else {

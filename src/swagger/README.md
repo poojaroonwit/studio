@@ -1,6 +1,6 @@
 # Swagger Documentation Structure
 
-This directory contains the modular OpenAPI 3.0 specification for the Studio API.
+This directory contains the modular OpenAPI 3.0 specification for the FitScan API.
 
 ## Structure
 

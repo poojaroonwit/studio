@@ -37,6 +37,7 @@ export const candidateInfoSchema = z.union([
     cv_language: z.string().optional(),
     skills: z.array(skillsEntrySchema).optional(),
     job_suitable: z.array(jobSuitableEntrySchema).optional(),
+    // Accept both UUID or name; will be resolved at runtime
     status: z.string().optional(),
     job_applied: z.any().optional(),
     job_matches: z.array(z.any()).optional(),

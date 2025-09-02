@@ -147,23 +147,42 @@ export async function POST(request: NextRequest) {
     ? `${personalInfo.firstname} ${personalInfo.lastname}` 
     : 'Unknown Candidate';
   const email = contactInfo.email || 'no-email@example.com';
-  const status = candidateInfo.status || 'new';
-
-
-
-  // Fetch the first recruitment stage (by sortOrder ASC)
-  let appliedStage = 'Applied';
-  try {
-    const firstStage = await prisma.recruitmentStage.findFirst({
-      orderBy: { sortOrder: 'asc' },
-    });
-    if (firstStage && firstStage.name) {
-      appliedStage = firstStage.name;
+  
+  // Resolve the desired status (UUID). If payload provides a status UUID, use it; if a name, resolve by name;
+  // otherwise default to the first stage by sortOrder (commonly 'Applied').
+  let resolvedStageId: string | null = null;
+  const inputStatus = typeof candidateInfo.status === 'string' ? candidateInfo.status.trim() : '';
+  if (inputStatus) {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (uuidRegex.test(inputStatus)) {
+      resolvedStageId = inputStatus;
+    } else {
+      try {
+        const byName = await prisma.recruitmentStage.findFirst({
+          where: { name: { equals: inputStatus, mode: 'insensitive' } },
+          select: { id: true }
+        });
+        if (byName?.id) {
+          resolvedStageId = byName.id;
+        }
+      } catch {}
     }
-  } catch (e) {
-    // fallback to default 'Applied'
   }
-
+  if (!resolvedStageId) {
+    try {
+      const firstStage = await prisma.recruitmentStage.findFirst({
+        orderBy: { sortOrder: 'asc' },
+        select: { id: true }
+      });
+      resolvedStageId = firstStage?.id || null;
+    } catch {
+      resolvedStageId = null;
+    }
+  }
+  if (!resolvedStageId) {
+    return handleApiError(request, createValidationError('Unable to resolve a valid recruitment stage ID'));
+  }
+  
   // Flatten parsedData structure to match UI expectations
   const parsedData = {
     ...candidate_info,
@@ -219,7 +238,7 @@ export async function POST(request: NextRequest) {
         email: email.toLowerCase(),
         phone: contactInfo.phone || null,
         positionId: positionId, // Store positionId in database
-        status: appliedStage,
+        status: resolvedStageId,
         fitScore: fitScore, // <-- always set top-level fitScore if present
         parsedData: parsedData,
         sourceId: validationResult.data.sourceId || null,
@@ -235,13 +254,13 @@ export async function POST(request: NextRequest) {
       data: {
         id: uuidv4(),
         candidateId: newCandidateId,
-        stage: appliedStage,
+        stage: resolvedStageId,
         notes: 'Initial creation via API',
         actingUserId: user.id,
         date: createDateInTimezone(),
       },
     });
-    await logAudit('AUDIT', `Candidate '${name}' created by ${user.name}.`, 'API:V1:Candidates:Create', user.id, { candidateId: newCandidateId, name, email, status: appliedStage });
+    await logAudit('AUDIT', `Candidate '${name}' created by ${user.name}.`, 'API:V1:Candidates:Create', user.id, { candidateId: newCandidateId, name, email, status: resolvedStageId });
     
     // Check for warnings after candidate creation
     try {
@@ -298,7 +317,7 @@ export async function POST(request: NextRequest) {
               id: uuidv4(),
               candidateId: newCandidateId,
               positionId: positionId,
-              stage: appliedStage,
+              stage: resolvedStageId,
               notes: `Recruiter auto-assigned from position: ${position.recruiter.name}`,
               actingUserId: user.id,
               date: createDateInTimezone(),

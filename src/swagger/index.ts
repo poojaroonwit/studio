@@ -1,4 +1,4 @@
-// Comprehensive OpenAPI 3.0 specification for Studio API
+// Comprehensive OpenAPI 3.0 specification for FitScan API
 // This file contains all API endpoints in a single location for better reliability
 
 export function getSwaggerSpec() {
@@ -7,12 +7,12 @@ export function getSwaggerSpec() {
   return {
     openapi: '3.0.0',
     info: {
-      title: 'Studio API',
+      title: 'FitScan API',
       version: '1.0.0',
       description: 'Comprehensive API documentation for the Studio recruitment management system',
       contact: {
-        name: 'Studio API Support',
-        email: 'support@studio.com'
+        name: 'FitScan API Support',
+        email: 'itdhelpdesk@qsncc.com'
       },
       license: {
         name: 'MIT',
@@ -22,7 +22,7 @@ export function getSwaggerSpec() {
     servers: [
       {
         url: serverUrl,
-        description: 'Studio API Server',
+        description: 'FitScan API Server',
       },
     ],
     security: [

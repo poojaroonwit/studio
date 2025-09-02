@@ -160,15 +160,9 @@ export default function UploadQueueSettingsPage() {
     );
   }
 
-  if (session?.user?.role !== 'Admin') {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
-          <p className="text-muted-foreground">Admin role required to access upload queue settings.</p>
-        </div>
-      </div>
-    );
+  if (session?.user?.role !== 'Admin' && !session?.user?.modulePermissions?.includes('UPLOAD_QUEUE_MANAGE')) {
+    setFetchError("You do not have permission to manage upload queue settings.");
+    setIsLoading(false);
   }
 
   return (

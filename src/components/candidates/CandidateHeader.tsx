@@ -35,15 +35,7 @@ interface CandidateHeaderProps {
   realtimeConnected?: boolean;
 }
 
-const getStatusBadgeVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
-  switch (status) {
-    case 'Hired': case 'Offer Accepted': return 'default';
-    case 'Applied': case 'Screening': case 'Shortlisted': case 'On Hold': return 'secondary';
-    case 'Interview Scheduled': case 'Interviewing': case 'Offer Extended': return 'secondary';
-    case 'Rejected': return 'destructive';
-    default: return 'outline';
-  }
-};
+
 
 export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
   candidate,

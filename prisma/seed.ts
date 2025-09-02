@@ -130,16 +130,16 @@ console.log(`Password: ${adminPassword}`);
     // Create basic system settings
     console.log('Creating system settings...');
     
-    // Create a simple SVG logo for FitScan as a data URL
-    const defaultLogoSvg = `<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    // Create a smaller simple SVG logo for FitScan as a data URL (reduced size)
+    const defaultLogoSvg = `<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" style="stop-color:#3B82F6;stop-opacity:1" />
           <stop offset="100%" style="stop-color:#1D4ED8;stop-opacity:1" />
         </linearGradient>
       </defs>
-      <rect width="100" height="100" rx="20" fill="url(#logoGradient)"/>
-      <text x="50" y="65" font-family="Arial, sans-serif" font-size="32" font-weight="bold" text-anchor="middle" fill="white">FS</text>
+      <rect width="64" height="64" rx="12" fill="url(#logoGradient)"/>
+      <text x="32" y="42" font-family="Arial, sans-serif" font-size="22" font-weight="bold" text-anchor="middle" fill="white">FS</text>
     </svg>`;
     
     const defaultLogoDataUrl = `data:image/svg+xml;base64,${Buffer.from(defaultLogoSvg).toString('base64')}`;
@@ -158,7 +158,23 @@ console.log(`Password: ${adminPassword}`);
       }
     ];
     
+    // Preserve existing logo: only set default if missing
+    const existingSettings = await prisma.systemSetting.findMany({
+      where: { key: { in: systemSettings.map(s => s.key) } }
+    });
+    const existingByKey = new Map(existingSettings.map(s => [s.key, s]));
+
     for (const setting of systemSettings) {
+      const existing = existingByKey.get(setting.key as any);
+
+      if (setting.key === 'appLogoDataUrl') {
+        // If a logo already exists and is non-empty, skip overwrite
+        if (existing && existing.value && String(existing.value).trim() !== '') {
+          console.log('🖼️  Existing application logo detected. Preserving current logo.');
+          continue;
+        }
+      }
+
       await prisma.systemSetting.upsert({
         where: { key: setting.key },
         update: { value: setting.value },

@@ -191,8 +191,8 @@ export const authOptions: NextAuthOptions = {
             }
           }
           
-          // Only fetch fresh permissions and user data if we don't have them or if this is a new sign-in
-          if (typeof token.id === 'string' && validateUuid(token.id as string) && (!token.modulePermissions || token.modulePermissions.length === 0 || !token.role || account)) {
+          // Always fetch fresh permissions and user data to ensure they're up to date
+          if (typeof token.id === 'string' && validateUuid(token.id as string)) {
             try {
               const freshPermissions = await getUserPermissions(token.id as string);
               
@@ -201,6 +201,9 @@ export const authOptions: NextAuthOptions = {
                 ? (freshPermissions as PlatformModuleId[])
                 : [];
               token.modulePermissions = modulePermissions;
+              
+              // Debug log for permission updates
+              console.log(`[JWT CALLBACK] Updated permissions for user ${token.id}:`, modulePermissions);
               
               // Also fetch fresh user data to ensure role is up to date
               const userData = await getUserSessionData(token.id as string);
@@ -266,6 +269,9 @@ export const authOptions: NextAuthOptions = {
             ? (token.modulePermissions as PlatformModuleId[])
             : [];
           session.user.modulePermissions = modulePermissions;
+          
+          // Debug log for session permissions
+          console.log(`[SESSION CALLBACK] Session permissions for user ${session.user.id}:`, modulePermissions);
           
           // Removed session logging to reduce container logs
           

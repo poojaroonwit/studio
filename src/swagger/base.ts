@@ -1,13 +1,13 @@
-// Base OpenAPI 3.0 configuration for Studio API
+// Base OpenAPI 3.0 configuration for FitScan API
 
 export const baseSwaggerConfig = {
   openapi: '3.0.0',
   info: {
-    title: 'Studio API',
+    title: 'FitScan API',
     version: '1.0.0',
     description: 'Comprehensive API documentation for the Studio recruitment management system',
     contact: {
-      name: 'Studio API Support',
+      name: 'FitScan API Support',
       email: 'support@studio.com'
     },
     license: {
@@ -18,7 +18,7 @@ export const baseSwaggerConfig = {
   servers: [
     {
       url: process.env.PRODUCTION_HOST || process.env.API_BASE_URL || 'http://8021_fitscan_app:8021',
-      description: 'Studio API Server',
+      description: 'FitScan API Server',
     },
   ],
   security: [

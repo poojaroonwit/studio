@@ -19,6 +19,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from "react-hot-toast";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/candidates/CandidateKanbanView";
 import { Pie, Bar, Line } from 'react-chartjs-2';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { NewApplicationsTimeSeriesChart } from './NewApplicationsTimeSeriesChart';
@@ -30,6 +31,7 @@ import { useEnhancedSSE } from '@/hooks/use-enhanced-sse';
 import { cn } from '@/lib/utils';
 import { useChartSetup } from '@/hooks/use-chart-setup';
 import { isDataLabelsAvailable } from '@/lib/chartjs-setup';
+import { getCommonStageIds } from '@/lib/recruitmentStageUtils';
 
 import '../../app/dashboard/dashboard.css';
 
@@ -43,8 +45,8 @@ interface DashboardPageClientProps {
   permissionError?: boolean; // Added from server
 }
 
-const BACKLOG_EXCLUSION_STATUSES: CandidateStatus[] = ['Hired', 'Rejected', 'Offer Accepted'];
-const INTERVIEW_STATUSES: CandidateStatus[] = ['Interview Scheduled', 'Interviewing'];
+const BACKLOG_EXCLUSION_STATUSES: CandidateStatus[] = []; // Will be populated with stage IDs
+const INTERVIEW_STATUSES: CandidateStatus[] = []; // Will be populated with stage IDs
 
 export default function DashboardPageClient({
   initialCandidates,
@@ -54,6 +56,30 @@ export default function DashboardPageClient({
   authError: serverAuthError = false,
   permissionError: serverPermissionError = false,
 }: DashboardPageClientProps) {
+  // Get common stage IDs for status comparisons
+  const [stageIds, setStageIds] = useState<Record<string, string | undefined>>({});
+  
+  useEffect(() => {
+    const fetchStageIds = async () => {
+      try {
+        const ids = await getCommonStageIds();
+        setStageIds(ids);
+        
+        // Populate status arrays with stage IDs
+        if (ids.hired && ids.rejected && ids.offerExtended) {
+          BACKLOG_EXCLUSION_STATUSES.length = 0;
+          BACKLOG_EXCLUSION_STATUSES.push(ids.hired, ids.rejected, ids.offerExtended);
+        }
+        if (ids.interviewScheduled && ids.interviewing) {
+          INTERVIEW_STATUSES.length = 0;
+          INTERVIEW_STATUSES.push(ids.interviewScheduled, ids.interviewing);
+        }
+      } catch (error) {
+        console.error('Error fetching stage IDs:', error);
+      }
+    };
+    fetchStageIds();
+  }, []);
   // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -181,7 +207,7 @@ export default function DashboardPageClient({
             
             return backlogData.filter(c => {
               try {
-                return c && !BACKLOG_EXCLUSION_STATUSES.includes(c.status);
+                return c && !(stageIds.hired && c.status === stageIds.hired) && !(stageIds.rejected && c.status === stageIds.rejected);
               } catch (error) {
                 console.warn('DashboardPageClient: Error filtering backlog candidate:', error, c);
                 return false;
@@ -262,7 +288,10 @@ export default function DashboardPageClient({
     if (!canViewAllCandidates) {
       // User can only see their assigned candidates
       setMyAssignedCandidates(initialCandidates || []);
-      setMyBacklogCandidates((initialCandidates || []).filter(c => !BACKLOG_EXCLUSION_STATUSES.includes(c.status)));
+      setMyBacklogCandidates((initialCandidates || []).filter(c => 
+      !(stageIds.hired && c.status === stageIds.hired) && 
+      !(stageIds.rejected && c.status === stageIds.rejected)
+    ));
     }
     setAllPositions(initialPositions || []);
     setAllUsers(initialUsers || []);
@@ -341,7 +370,10 @@ export default function DashboardPageClient({
     const now = new Date();
     
     // Combined candidate statistics
-    const totalActiveCandidates = safeAllCandidates.filter((c: Candidate) => !BACKLOG_EXCLUSION_STATUSES.includes(c.status)).length;
+    const totalActiveCandidates = safeAllCandidates.filter((c: Candidate) => 
+      !(stageIds.hired && c.status === stageIds.hired) && 
+      !(stageIds.rejected && c.status === stageIds.rejected)
+    ).length;
     
     // Combined position statistics
     const openPositions = safeAllPositions.filter((p: Position) => p.isOpen);
@@ -349,7 +381,7 @@ export default function DashboardPageClient({
     
     // Combined monthly statistics
     const hiredThisMonthAdmin = safeAllCandidates.filter((c: Candidate) => {
-      if (c.status !== 'Hired' || !c.applicationDate || typeof c.applicationDate !== 'string') return false;
+      if (!stageIds.hired || c.status !== stageIds.hired || !c.applicationDate || typeof c.applicationDate !== 'string') return false;
       try {
         const appDate = parseISO(c.applicationDate);
         return appDate.getMonth() === now.getMonth() && appDate.getFullYear() === now.getFullYear();
@@ -357,7 +389,7 @@ export default function DashboardPageClient({
     }).length;
     
     const rejectedThisMonthAdmin = safeAllCandidates.filter((c: Candidate) => {
-      if (c.status !== 'Rejected' || !c.applicationDate || typeof c.applicationDate !== 'string') return false;
+      if (!stageIds.rejected || c.status !== stageIds.rejected || !c.applicationDate || typeof c.applicationDate !== 'string') return false;
       try {
         const appDate = parseISO(c.applicationDate);
         return appDate.getMonth() === now.getMonth() && appDate.getFullYear() === now.getFullYear();
@@ -386,7 +418,10 @@ export default function DashboardPageClient({
     });
     
     // Combined my candidates statistics
-    const myActiveCandidatesList = safeMyAssignedCandidates.filter((c: Candidate) => !BACKLOG_EXCLUSION_STATUSES.includes(c.status));
+    const myActiveCandidatesList = safeMyAssignedCandidates.filter((c: Candidate) => 
+      !(stageIds.hired && c.status === stageIds.hired) && 
+      !(stageIds.rejected && c.status === stageIds.rejected)
+    );
     const myCandidatesInInterviewCount = myActiveCandidatesList.filter((c: Candidate) => INTERVIEW_STATUSES.includes(c.status)).length;
     
     const newCandidatesAssignedToMeTodayList = myActiveCandidatesList.filter((c: Candidate) => {
@@ -445,7 +480,7 @@ export default function DashboardPageClient({
     const scoreRangeCounts: { [key: string]: number } = {};
     
     safeAllCandidates.forEach((candidate: Candidate) => {
-      if (!BACKLOG_EXCLUSION_STATUSES.includes(candidate.status)) {
+      if (!(stageIds.hired && candidate.status === stageIds.hired) && !(stageIds.rejected && candidate.status === stageIds.rejected)) {
         scoreRanges.forEach(range => {
           if (typeof candidate.fitScore === 'number' && candidate.fitScore >= range.min && candidate.fitScore <= range.max) {
             scoreRangeCounts[range.label] = (scoreRangeCounts[range.label] || 0) + 1;
@@ -464,14 +499,18 @@ export default function DashboardPageClient({
   const unassignedCandidatesCount = useMemo(() => {
     const safeAllCandidates = Array.isArray(filteredCandidates)? filteredCandidates : [];
     return safeAllCandidates.filter((c: Candidate) => 
-      !BACKLOG_EXCLUSION_STATUSES.includes(c.status) && !c.recruiterId
+      !(stageIds.hired && c.status === stageIds.hired) && 
+      !(stageIds.rejected && c.status === stageIds.rejected) && 
+      !c.recruiterId
     ).length;
   }, [filteredCandidates]);
 
   const unassignedCandidatesList = useMemo(() => {
     const safeAllCandidates = Array.isArray(filteredCandidates)? filteredCandidates : [];
     return safeAllCandidates.filter((c: Candidate) => 
-      !BACKLOG_EXCLUSION_STATUSES.includes(c.status) && !c.recruiterId
+      !(stageIds.hired && c.status === stageIds.hired) && 
+      !(stageIds.rejected && c.status === stageIds.rejected) && 
+      !c.recruiterId
     );
   }, [filteredCandidates]);
 
@@ -479,7 +518,7 @@ export default function DashboardPageClient({
   const averageTimeToHire = useMemo(() => {
     const safeAllCandidates = Array.isArray(filteredCandidates)? filteredCandidates : [];
     const hiredCandidates = safeAllCandidates.filter((c: Candidate) => 
-      c.status === 'Hired' && c.applicationDate && typeof c.applicationDate === 'string'
+      stageIds.hired && c.status === stageIds.hired && c.applicationDate && typeof c.applicationDate === 'string'
     );
 
     if (hiredCandidates.length === 0) return 0;
@@ -489,7 +528,7 @@ export default function DashboardPageClient({
         const applicationDate = parseISO(candidate.applicationDate);
         // Find the last transition to 'Hired'
         const hiredTransition = candidate.transitionHistory
-          .filter(transition => transition.stage === 'Hired')
+          .filter(transition => stageIds.hired && transition.stage === stageIds.hired)
           .sort((itemA, itemB) => new Date(itemB.date).getTime() - new Date(itemA.date).getTime())[0];
         const hireDate = hiredTransition ? parseISO(hiredTransition.date) : null;
         if (!hireDate) return total;
@@ -507,7 +546,9 @@ export default function DashboardPageClient({
   const highPriorityCandidates = useMemo(() => {
     const safeAllCandidates = Array.isArray(filteredCandidates)? filteredCandidates : [];
     return safeAllCandidates.filter((c: Candidate) => {
-      if (BACKLOG_EXCLUSION_STATUSES.includes(c.status)) return false;
+      if (stageIds.hired && c.status === stageIds.hired) return false;
+      if (stageIds.rejected && c.status === stageIds.rejected) return false;
+      // Note: 'Offer Accepted' stage needs to be added to RecruitmentStage table
       let appliedFitScore: number | undefined = undefined;
       // Check if parsedData is CandidateDetails and has job_applied
               const parsedData = c.parsedData as any;
@@ -544,7 +585,7 @@ export default function DashboardPageClient({
     const stageCounts: { [key: string]: number } = {};
     
     safeAllCandidates.forEach((candidate: Candidate) => {
-      if (!BACKLOG_EXCLUSION_STATUSES.includes(candidate.status)) {
+      if (!(stageIds.hired && candidate.status === stageIds.hired) && !(stageIds.rejected && candidate.status === stageIds.rejected)) {
         const status = candidate.status;
         stageCounts[status] = (stageCounts[status] || 0) + 1;
       }
@@ -574,13 +615,13 @@ export default function DashboardPageClient({
     });
   }, [myAssignedCandidates]);
 
-  // On-process candidates (not in BACKLOG_EXCLUSION_STATUSES)
+  // On-process candidates (not in excluded statuses)
   const onProcessCandidates = useMemo(() => {
     const safeAllCandidates = Array.isArray(filteredCandidates)? filteredCandidates : [];
     return safeAllCandidates.filter(
-      (c) => !BACKLOG_EXCLUSION_STATUSES.includes(c.status)
+      (c) => !(stageIds.hired && c.status === stageIds.hired) && !(stageIds.rejected && c.status === stageIds.rejected)
     );
-  }, [filteredCandidates]);
+  }, [filteredCandidates, stageIds]);
 
   // Pie chart: On-process by stage
   const onProcessByStage = useMemo(() => {
@@ -1587,7 +1628,7 @@ export default function DashboardPageClient({
                       </TableCell>
                       <TableCell>{candidate.position?.title || 'N/A'}</TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="capitalize">{candidate.status}</Badge>
+                        <StatusBadge statusId={candidate.status} className="capitalize" />
                       </TableCell>
                       <TableCell className={getScoreColor(candidate.fitScore)}>{formatScoreWithGrade(candidate.fitScore)}</TableCell>
                     </TableRow>
@@ -1724,7 +1765,7 @@ export default function DashboardPageClient({
                           </TableCell>
                           <TableCell>{candidate.position?.title || 'N/A'}</TableCell>
                           <TableCell>
-                            <Badge variant="outline" className="capitalize">{candidate.status}</Badge>
+                            <StatusBadge statusId={candidate.status} className="capitalize" />
                           </TableCell>
                           <TableCell className={getScoreColor(candidate.fitScore)}>{formatScoreWithGrade(candidate.fitScore)}</TableCell>
                           <TableCell>{candidate.applicationDate ? new Date(candidate.applicationDate).toLocaleDateString() : 'N/A'}</TableCell>
@@ -1789,7 +1830,7 @@ export default function DashboardPageClient({
                           </TableCell>
                           <TableCell>{candidate.position?.title || 'N/A'}</TableCell>
                           <TableCell>
-                            <Badge variant="outline" className="capitalize">{candidate.status}</Badge>
+                            <StatusBadge statusId={candidate.status} className="capitalize" />
                           </TableCell>
                           <TableCell>{formatScoreWithGrade(candidate.fitScore)}</TableCell>
                         </TableRow>

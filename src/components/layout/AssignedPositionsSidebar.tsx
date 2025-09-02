@@ -156,10 +156,10 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
               {positions.slice(0, visibleCount).map((position, idx) => (
                 <li key={position.id} className="relative">
                   <div
-                    className={cn("flex items-stretch gap-2")}
+                    className={cn("flex items-stretch gap-1")}
                   >
                     {/* Timeline column (smaller center point + continuous vertical line) */}
-                    <div className="relative flex flex-col items-center justify-center w-7 h-7">
+                    <div className="relative flex flex-col items-center justify-center w-6 h-7">
                       <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-px bg-border/70" />
                       <span
                         className={cn(
@@ -173,30 +173,15 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
  
                     {/* Content row */}
                     <SidebarMenuButton
-                      className="w-full justify-start h-7 pr-2"
+                      className="w-full justify-start h-7 pr-1"
                       size="default"
                       onClick={() => handlePositionClick(position.id)}
                       title={position.title}
                     >
-                      {/* SLA subtle date (left) */}
-                      <span className="mr-2 text-[11px] text-muted-foreground shrink-0">
-                        {(() => {
-                          try {
-                            if (position.gradeSlaDays && position.createdAt) {
-                              const base = new Date(position.createdAt);
-                              const due = new Date(base.getTime() + position.gradeSlaDays * 24 * 60 * 60 * 1000);
-                              const mm = String(due.getMonth() + 1).padStart(2, '0');
-                              const dd = String(due.getDate()).padStart(2, '0');
-                              return `${mm}/${dd}`;
-                            }
-                          } catch {}
-                          return '';
-                        })()}
-                      </span>
-                      <span className="flex-1 min-w-0 text-sm line-clamp-2 pr-2">
+                      <span className="flex-1 min-w-0 text-sm overflow-hidden text-ellipsis whitespace-nowrap">
                         {position.title}
                       </span>
-                      <span className="mx-1 select-none">...</span>
+                      
                       {/* trailing badge removed since it is shown at the timeline node */}
                     </SidebarMenuButton>
                   </div>

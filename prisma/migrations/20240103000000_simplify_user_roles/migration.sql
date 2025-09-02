@@ -79,7 +79,7 @@ ALTER TABLE "User" ADD CONSTRAINT "User_userTeamId_fkey"
 -- =====================================================
 -- STEP 8: Remove the unused module_permissions column
 -- =====================================================
-ALTER TABLE "User" DROP COLUMN "module_permissions";
+ALTER TABLE "User" DROP COLUMN "modulePermissions";
 
 -- =====================================================
 -- STEP 9: Verify the migration results

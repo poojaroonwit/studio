@@ -1,55 +1,59 @@
 #!/usr/bin/env node
 
 /**
- * Update Components to Use statusId Instead of status
+ * Update Components to Use statusId Instead of status for Candidates Only
  * 
- * This script updates all component files to use the new statusId field name
- * instead of the old status field name for candidates.
+ * This script updates component files to use the new statusId field name
+ * instead of the old status field name ONLY for Candidate-related operations.
+ * It preserves status fields in other models like UploadQueue and Headcount.
  */
 
 const fs = require('fs');
 const path = require('path');
 const { glob } = require('glob');
 
-// Patterns to search for and replace
+// Patterns to search for and replace - ONLY for Candidate-related operations
 const patterns = [
-  // Direct field access
+  // Direct field access on candidate objects
   { from: /candidate\.status/g, to: 'candidate.statusId' },
   { from: /c\.status/g, to: 'c.statusId' },
   { from: /existing\.status/g, to: 'existing.statusId' },
   { from: /updatedCandidate\.status/g, to: 'updatedCandidate.statusId' },
+  { from: /newCandidate\.status/g, to: 'newCandidate.statusId' },
+  { from: /candidateData\.status/g, to: 'candidateData.statusId' },
   
-  // In object destructuring
+  // In object destructuring for candidates
   { from: /status:\s*candidate\.status/g, to: 'status: candidate.statusId' },
   { from: /status:\s*existing\.status/g, to: 'status: existing.statusId' },
   { from: /status:\s*updatedCandidate\.status/g, to: 'status: updatedCandidate.statusId' },
+  { from: /status:\s*newCandidate\.status/g, to: 'status: newCandidate.statusId' },
   
-  // In object literals
+  // In object literals for candidates
   { from: /status:\s*candidate\.status/g, to: 'status: candidate.statusId' },
   { from: /status:\s*existing\.status/g, to: 'status: existing.statusId' },
   { from: /status:\s*updatedCandidate\.status/g, to: 'status: updatedCandidate.statusId' },
+  { from: /status:\s*newCandidate\.status/g, to: 'status: newCandidate.statusId' },
   
-  // In filter conditions
+  // In filter conditions for candidates
   { from: /candidate\.status\s*===/g, to: 'candidate.statusId ===' },
   { from: /candidate\.status\s*!==/g, to: 'candidate.statusId !==' },
   { from: /candidate\.status\s*&&/g, to: 'candidate.statusId &&' },
   { from: /candidate\.status\s*\|\|/g, to: 'candidate.statusId ||' },
+  { from: /c\.status\s*===/g, to: 'c.statusId ===' },
+  { from: /c\.status\s*!==/g, to: 'c.statusId !==' },
   
-  // In SQL queries (string literals)
-  { from: /c\.status/g, to: 'c."statusId"' },
-  { from: /WHERE\s+status\s*=/g, to: 'WHERE "statusId" =' },
-  { from: /WHERE\s+status\s*IN/g, to: 'WHERE "statusId" IN' },
-  { from: /WHERE\s+status\s*IS/g, to: 'WHERE "statusId" IS' },
-  { from: /ORDER\s+BY\s+status/g, to: 'ORDER BY "statusId"' },
-  { from: /GROUP\s+BY\s+status/g, to: 'GROUP BY "statusId"' },
+  // In SQL queries specifically for candidate tables (be more specific)
+  { from: /c\.status\s*=/g, to: 'c."statusId" =' },
+  { from: /c\.status\s*IN/g, to: 'c."statusId" IN' },
+  { from: /c\.status\s*IS/g, to: 'c."statusId" IS' },
   
-  // In comments
-  { from: /\/\/\s*status\s*UUID/g, to: '// statusId UUID' },
-  { from: /\/\/\s*status\s*field/g, to: '// statusId field' },
+  // In comments specifically about candidate status
+  { from: /\/\/\s*candidate.*status.*UUID/g, to: '// candidate statusId UUID' },
+  { from: /\/\/\s*candidate.*status.*field/g, to: '// candidate statusId field' },
   
-  // In variable names (be careful with this one)
-  { from: /\bstatusColumn\b/g, to: 'statusIdColumn' },
-  { from: /\bstatusField\b/g, to: 'statusIdField' },
+  // In variable names specifically for candidate status
+  { from: /\bcandidateStatusColumn\b/g, to: 'candidateStatusIdColumn' },
+  { from: /\bcandidateStatusField\b/g, to: 'candidateStatusIdField' },
 ];
 
 // Files to process
@@ -102,7 +106,9 @@ async function updateFile(filePath) {
 }
 
 async function main() {
-  console.log('🚀 Starting component update to statusId...\n');
+  console.log('🚀 Starting targeted component update to statusId (Candidates only)...\n');
+  console.log('📝 This migration will ONLY update Candidate-related status references');
+  console.log('📝 Preserving status fields in UploadQueue, Headcount, and other models\n');
   
   try {
     // Find all matching files
@@ -123,7 +129,7 @@ async function main() {
       }
     }
     
-    console.log(`\n🎉 Component update completed!`);
+    console.log(`\n🎉 Targeted component update completed!`);
     console.log(`📊 Summary:`);
     console.log(`✅ Files updated: ${updatedCount}`);
     console.log(`❌ Errors: ${errorCount}`);
@@ -133,8 +139,8 @@ async function main() {
       console.log(`\n📝 Next steps:`);
       console.log(`1. Review the changes in the updated files`);
       console.log(`2. Test the application to ensure everything works`);
-      console.log(`3. Run the database migration: npm run fix:candidate-status`);
-      console.log(`4. Verify that candidate statuses now display as names instead of UUIDs`);
+      console.log(`3. Verify that UploadQueue and Headcount status fields are preserved`);
+      console.log(`4. Verify that Candidate statusId references are working correctly`);
     }
     
   } catch (error) {

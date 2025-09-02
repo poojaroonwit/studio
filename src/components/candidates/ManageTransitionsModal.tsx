@@ -39,7 +39,7 @@ import { cn } from "@/lib/utils";
 
 import CandidateCommentsSection from './CandidateCommentsSection';
 import { StageSelect } from './StageSelect';
-import { getRecruitmentStageName } from '@/lib/utils';
+import { getRecruitmentStageName } from '@/lib/recruitmentStageUtils';
 
 const transitionFormSchema = z.object({
   newStatus: z.string().min(1, "New status is required"),

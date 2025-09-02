@@ -2,7 +2,7 @@ import { useToastManager } from '@/hooks/use-toast-manager';
 import { useSession } from 'next-auth/react';
 import { useEnhancedSSE } from './use-enhanced-sse';
 import { useEffect, useCallback, useRef } from 'react';
-import { getRecruitmentStageName } from '@/lib/utils';
+import { getRecruitmentStageName } from '@/lib/recruitmentStageUtils';
 
 interface RealtimeCollaborationOptions {
   onCandidateUpdate?: (candidate: any) => void;

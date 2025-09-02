@@ -46,7 +46,7 @@ import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useJobMatchFeature } from '@/hooks/useJobMatchFeature';
-import { useStageColors } from '@/hooks/useStageColors';
+import { useStageColors } from '@/hooks/use-stage-colors';
 
 
 interface CandidateTableProps {
@@ -1111,7 +1111,7 @@ export function CandidateTable({
           }}
         />
       )}
-      <AlertDialog open={!!candidateToDelete} onOpenChange={(open) => { if(!open) setCandidateToDelete(null); }}>
+              <AlertDialog open={!!candidateToDelete} onOpenChange={(open: boolean) => { if(!open) setCandidateToDelete(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>

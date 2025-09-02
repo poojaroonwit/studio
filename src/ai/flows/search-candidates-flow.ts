@@ -11,7 +11,7 @@ import { getPool } from '@/lib/db';
 import { logAudit } from '@/lib/auditLog';
 import { executeWithApiKeyFallback } from '@/lib/aiApiKeyManager';
 import type { Candidate, CandidateDetails, EducationEntry, ExperienceEntry, SkillEntry, JobSuitableEntry, TransitionRecord } from '@/lib/types';
-import { getRecruitmentStageName } from '@/lib/utils';
+import { getRecruitmentStageName } from '@/lib/recruitmentStageUtils';
 
 // Input Schema
 const SearchCandidatesInputSchema = z.object({
@@ -28,7 +28,7 @@ const SearchCandidatesOutputSchema = z.object({
 export type SearchCandidatesOutput = z.infer<typeof SearchCandidatesOutputSchema>;
 
 // Enhanced helper to create a more comprehensive summary for a candidate
-function createCandidateSummary(candidate: Candidate): string {
+async function createCandidateSummary(candidate: Candidate): Promise<string> {
   const { id, name, email, phone, status, fitScore, position, parsedData, customAttributes, applicationDate, recruiter, transitionHistory } = candidate;
   const details = parsedData as CandidateDetails | null;
 
@@ -249,9 +249,9 @@ export async function searchCandidatesAIChat(input: SearchCandidatesInput): Prom
     return { matchedCandidateIds: [], aiReasoning: "Failed to retrieve candidate data for searching.", recordCount: 0 };
   }
 
-  const candidateSummariesText = filteredCandidates
-    .map(c => `CANDIDATE_START\n${createCandidateSummary(c)}\nCANDIDATE_END`)
-    .join('\n\n---\n\n');
+  const candidateSummariesText = await Promise.all(
+    filteredCandidates.map(async c => `CANDIDATE_START\n${await createCandidateSummary(c)}\nCANDIDATE_END`)
+  ).then(summaries => summaries.join('\n\n---\n\n'));
   
 
   

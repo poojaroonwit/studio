@@ -11,7 +11,7 @@
 const fs = require('fs');
 const path = require('path');
 
-// Simple patterns to search for and replace - ONLY for Candidate-related operations
+// Patterns to search for and replace - convert statusId to status for candidates
 const patterns = [
   // Direct field access on candidate objects
   { from: /candidate\.statusId/g, to: 'candidate.status' },
@@ -20,6 +20,44 @@ const patterns = [
   { from: /updatedCandidate\.statusId/g, to: 'updatedCandidate.status' },
   { from: /newCandidate\.statusId/g, to: 'newCandidate.status' },
   { from: /candidateData\.statusId/g, to: 'candidateData.status' },
+  
+  // Function parameters and variable names
+  { from: /statusId:\s*string/g, to: 'status: string' },
+  { from: /statusId:\s*string\?/g, to: 'status?: string' },
+  { from: /\bstatusId\b/g, to: 'status' },
+  
+  // In object destructuring and assignments
+  { from: /statusId:\s*candidate\.statusId/g, to: 'status: candidate.status' },
+  { from: /statusId:\s*existing\.statusId/g, to: 'status: existing.status' },
+  { from: /statusId:\s*updatedCandidate\.statusId/g, to: 'status: updatedCandidate.status' },
+  { from: /statusId:\s*newCandidate\.statusId/g, to: 'status: newCandidate.status' },
+  
+  // In object literals
+  { from: /statusId:\s*candidate\.statusId/g, to: 'status: candidate.status' },
+  { from: /statusId:\s*existing\.statusId/g, to: 'status: existing.status' },
+  { from: /statusId:\s*updatedCandidate\.statusId/g, to: 'status: updatedCandidate.status' },
+  { from: /statusId:\s*newCandidate\.statusId/g, to: 'status: newCandidate.status' },
+  
+  // In filter conditions
+  { from: /candidate\.statusId\s*===/g, to: 'candidate.status ===' },
+  { from: /candidate\.statusId\s*!==/g, to: 'candidate.status !==' },
+  { from: /candidate\.statusId\s*&&/g, to: 'candidate.status &&' },
+  { from: /candidate\.statusId\s*\|\|/g, to: 'candidate.status ||' },
+  { from: /c\.statusId\s*===/g, to: 'c.status ===' },
+  { from: /c\.statusId\s*!==/g, to: 'c.status !==' },
+  
+  // In SQL queries specifically for candidate tables
+  { from: /c\.statusId\s*=/g, to: 'c."status" =' },
+  { from: /c\.statusId\s*IN/g, to: 'c."status" IN' },
+  { from: /c\.statusId\s*IS/g, to: 'c."status" IS' },
+  
+  // In comments specifically about candidate status
+  { from: /\/\/\s*candidate.*statusId.*UUID/g, to: '// candidate status UUID' },
+  { from: /\/\/\s*candidate.*statusId.*field/g, to: '// candidate status field' },
+  
+  // In variable names specifically for candidate status
+  { from: /\bcandidateStatusIdColumn\b/g, to: 'candidateStatusColumn' },
+  { from: /\bcandidateStatusIdField\b/g, to: 'candidateStatusField' },
 ];
 
 // Only process essential files to avoid build issues
@@ -29,6 +67,9 @@ const essentialFiles = [
   'src/app/api/candidates/**/*.ts',
   'src/app/api/v1/candidates/**/*.ts',
   'src/lib/candidateUtils.ts',
+  'src/lib/recruitmentStageUtils.ts',
+  'src/lib/statusMapping.ts',
+  'src/lib/types.ts',
   'src/hooks/use-candidate-*.ts',
   'src/hooks/use-candidate-*.tsx'
 ];

@@ -820,7 +820,7 @@ export function CandidateTable({
                   )}
                   {(!settings || settings.showStatusColumn !== false) && (
                     <TableCell key={`${candidate.id}-status`} className="max-w-[150px]">
-                      <StatusBadge statusId={candidate.status} className="capitalize" />
+                      <StatusBadge status={candidate.status} className="capitalize" />
                     </TableCell>
                   )}
                   {(!settings || settings.showAppliedDateColumn !== false) && (
@@ -1022,7 +1022,7 @@ export function CandidateTable({
                             )}
                             {(!settings || settings.showStatusColumn !== false) && (
                               <TableCell key={`${candidate.id}-status`} className="max-w-[150px]">
-                                <StatusBadge statusId={candidate.status} className="capitalize" />
+                                <StatusBadge status={candidate.status} className="capitalize" />
                               </TableCell>
                             )}
                             {(!settings || settings.showAppliedDateColumn !== false) && (

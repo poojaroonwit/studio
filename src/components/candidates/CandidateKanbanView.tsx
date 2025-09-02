@@ -42,12 +42,12 @@ const getParsedDataProperty = (candidate: Candidate, propertyName: string) => {
 
 // Renders a status badge showing the human-readable stage name for a given stage ID
 export function StatusBadge({ 
-  statusId, 
+  status, 
   className = '', 
   stageNames = {},
   stageColors = {}
 }: { 
-  statusId?: string | null; 
+  status?: string | null; 
   className?: string;
   stageNames?: Record<string, string>;
   stageColors?: Record<string, string>;
@@ -58,15 +58,15 @@ export function StatusBadge({
 
   // Fetch stage colors if not provided
   React.useEffect(() => {
-    if (Object.keys(stageColors).length === 0 && statusId) {
+    if (Object.keys(stageColors).length === 0 && status) {
       const fetchStageColor = async () => {
         try {
-          const response = await fetch(`/api/settings/recruitment-stages?ids=${statusId}`);
+          const response = await fetch(`/api/settings/recruitment-stages?ids=${status}`);
           if (response.ok) {
             const stages = await response.json();
-            const stage = stages.find((s: any) => s.id === statusId);
+            const stage = stages.find((s: any) => s.id === status);
             if (stage?.color_badge) {
-              setLocalStageColors({ [statusId]: stage.color_badge });
+              setLocalStageColors({ [status]: stage.color_badge });
             }
           }
         } catch (error) {
@@ -77,26 +77,26 @@ export function StatusBadge({
     } else {
       setLocalStageColors(stageColors);
     }
-  }, [statusId, stageColors]);
+  }, [status, stageColors]);
 
   useEffect(() => {
-    if (!statusId) { 
+    if (!status) { 
       setStageName(null); 
       return; 
     }
     
     // Use stage names from props
-    if (stageNames && stageNames[statusId]) {
-      setStageName(stageNames[statusId]);
+    if (stageNames && stageNames[status]) {
+      setStageName(stageNames[status]);
     } else {
       setStageName(null);
     }
-  }, [statusId, stageNames]);
+  }, [status, stageNames]);
   
   useEffect(() => {
-    if (statusId && localStageColors[statusId]) {
+    if (status && localStageColors[status]) {
       // Use the color from the database
-      const stageColor = localStageColors[statusId];
+      const stageColor = localStageColors[status];
       // Convert hex color to appropriate Tailwind classes
       const colorClass = `bg-[${stageColor}]/10 text-[${stageColor}] border-[${stageColor}]/20 dark:bg-[${stageColor}]/20 dark:text-[${stageColor}] dark:border-[${stageColor}]/40`;
       setColorClass(colorClass);
@@ -123,11 +123,11 @@ export function StatusBadge({
     } else {
       setColorClass('bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-800');
     }
-  }, [statusId, stageName, localStageColors]);
+  }, [status, stageName, localStageColors]);
 
   return (
     <Badge className={cn("text-xs px-2 py-1 flex-shrink-0", className, colorClass)}>
-      {stageName || statusId || 'Unknown'}
+      {stageName || status || 'Unknown'}
     </Badge>
   );
 }
@@ -1538,7 +1538,7 @@ export function SingleRowCandidateView({
                     )}
                   </div>
                   {/* Status Badge */}
-                  <StatusBadge statusId={candidate.status} className="text-xs px-2 py-1 flex-shrink-0" />
+                  <StatusBadge status={candidate.status} className="text-xs px-2 py-1 flex-shrink-0" />
                 </div>
 
                 {/* Contact Information */}
@@ -1858,7 +1858,7 @@ export function SingleRowKanbanView({
                     </div>
                     
                     {/* Status Badge */}
-                    <StatusBadge statusId={currentCandidate.status} className="text-sm px-3 py-1" />
+                    <StatusBadge status={currentCandidate.status} className="text-sm px-3 py-1" />
                   </div>
 
                   {/* Contact Information */}

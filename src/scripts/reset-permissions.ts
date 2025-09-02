@@ -169,10 +169,7 @@ async function verifyPermissions() {
         const usersWithoutPermissionsResult = await client.query(`
             SELECT u.id, u.email
             FROM "User" u
-            WHERE NOT EXISTS (
-                SELECT 1 FROM "User_UserGroup" uug 
-                WHERE uug."userId" = u.id
-            )
+            WHERE u."userGroupId" IS NULL
         `);
         
         const usersWithoutPermissions = usersWithoutPermissionsResult.rows;

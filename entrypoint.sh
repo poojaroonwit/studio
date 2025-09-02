@@ -17,12 +17,8 @@ fi
 
 echo "📊 Using DATABASE_URL: $(echo \"$DATABASE_URL\" | cut -c1-30)..."
 
-# Generate Prisma client
-echo "🔧 Generating Prisma client..."
-if ! npx prisma generate --schema=prisma/schema.prisma; then
-    echo "❌ ERROR: Failed to generate Prisma client"
-    exit 1
-fi
+# Generate Prisma client (will be done after database is ready and migrations are applied)
+echo "⏳ Prisma client generation will be done after database setup..."
 
 # Wait for database to be ready
 echo "🔍 Waiting for database to be ready..."
@@ -207,6 +203,14 @@ else
 fi
 
 echo "✅ Comprehensive permission setup completed"
+
+# Now generate Prisma client after database is ready
+echo "🔧 Generating Prisma client..."
+if ! npx prisma generate --schema=prisma/schema.prisma; then
+    echo "❌ ERROR: Failed to generate Prisma client"
+    exit 1
+fi
+echo "✅ Prisma client generated successfully"
 
 echo "✅ Database and permission setup complete!"
 

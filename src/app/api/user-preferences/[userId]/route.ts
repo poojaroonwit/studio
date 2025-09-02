@@ -52,6 +52,9 @@ export async function GET(
       appearance: {
         personalColor: string;
       };
+      sidebar: {
+        showAssignedPositions: boolean;
+      };
     } = {
       taskBoard: {
         searchTerm: '',
@@ -71,6 +74,9 @@ export async function GET(
       },
       appearance: {
         personalColor: '#3B82F6',
+      },
+      sidebar: {
+        showAssignedPositions: false,
       }
     };
 
@@ -124,6 +130,12 @@ export async function GET(
         switch (pref.attributeKey) {
           case 'personalColor':
             transformedPreferences.appearance.personalColor = value;
+            break;
+        }
+      } else if (pref.modelType === 'sidebar') {
+        switch (pref.attributeKey) {
+          case 'showAssignedPositions':
+            transformedPreferences.sidebar.showAssignedPositions = value === 'true';
             break;
         }
       }
@@ -242,6 +254,34 @@ export async function POST(
         });
       });
       await Promise.all(appearancePromises);
+    }
+
+    // Process sidebar preferences
+    if (body.sidebar) {
+      const sidebarPromises = Object.entries(body.sidebar).map(async ([key, value]) => {
+        const stringValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
+        
+        return prisma.userUIDisplayPreference.upsert({
+          where: {
+            userId_modelType_attributeKey: {
+              userId,
+              modelType: 'sidebar',
+              attributeKey: key,
+            }
+          },
+          update: {
+            uiPreference: stringValue,
+            updatedAt: new Date(),
+          },
+          create: {
+            userId,
+            modelType: 'sidebar',
+            attributeKey: key,
+            uiPreference: stringValue,
+          }
+        });
+      });
+      await Promise.all(sidebarPromises);
     }
 
     return NextResponse.json({ success: true });

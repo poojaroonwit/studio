@@ -301,9 +301,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate modelType
-    if (!['taskBoard', 'positions', 'appearance', 'candidates'].includes(modelType)) {
+    if (!['taskBoard', 'positions', 'appearance', 'candidates', 'sidebar'].includes(modelType)) {
       return NextResponse.json(
-        { error: 'Invalid modelType. Must be "taskBoard", "positions", "appearance", or "candidates"' },
+        { error: 'Invalid modelType. Must be "taskBoard", "positions", "appearance", "candidates", or "sidebar"' },
         { status: 400 }
       );
     }

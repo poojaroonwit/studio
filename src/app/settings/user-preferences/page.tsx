@@ -40,9 +40,11 @@ export default function UserPreferencesPage() {
     updateTaskBoardPreferences,
     updatePositionsPreferences,
     updateAppearancePreferences,
+    updateSidebarPreferences,
     resetTaskBoardPreferences,
     resetPositionsPreferences,
     resetAppearancePreferences,
+    resetSidebarPreferences,
     resetAllPreferences,
     isLoaded,
     isLoading,
@@ -104,6 +106,15 @@ export default function UserPreferencesPage() {
       toast.success('Appearance preferences reset to defaults');
     } catch (error) {
       toast.error('Failed to reset appearance preferences');
+    }
+  };
+
+  const handleResetSidebar = async () => {
+    try {
+      await resetSidebarPreferences();
+      toast.success('Sidebar preferences reset to defaults');
+    } catch (error) {
+      toast.error('Failed to reset sidebar preferences');
     }
   };
 
@@ -219,6 +230,18 @@ export default function UserPreferencesPage() {
           >
             <Filter className="w-4 h-4" />
             Positions
+          </div>
+          <div
+            onClick={() => setActiveTab('sidebar')}
+            className={cn(
+              "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+              activeTab === 'sidebar'
+                ? "text-primary border-b-2 border-primary"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+            )}
+          >
+            <Layout className="w-4 h-4" />
+            Sidebar
           </div>
         </div>
 
@@ -526,6 +549,53 @@ export default function UserPreferencesPage() {
                     className="w-full"
                   >
                     Reset Positions Preferences
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Sidebar Preferences Tab */}
+        {activeTab === 'sidebar' && (
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Layout className="h-5 w-5" />
+                  Sidebar Preferences
+                </CardTitle>
+                <CardDescription>
+                  Customize how your sidebar displays information
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Show Assigned Positions Switch */}
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <Label htmlFor="showAssignedPositions" className="text-sm font-medium">
+                      Show Assigned Positions
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Display your assigned open positions in the main sidebar with headcount information
+                    </p>
+                  </div>
+                  <Switch
+                    id="showAssignedPositions"
+                    checked={preferences.sidebar.showAssignedPositions}
+                    onCheckedChange={(checked) => updateSidebarPreferences({ showAssignedPositions: checked })}
+                  />
+                </div>
+
+                {/* Reset Button */}
+                <div className="flex justify-end">
+                  <Button 
+                    variant="outline" 
+                    onClick={handleResetSidebar}
+                    className="flex items-center gap-2"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    Reset Sidebar Preferences
                   </Button>
                 </div>
               </CardContent>

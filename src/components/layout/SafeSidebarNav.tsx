@@ -19,6 +19,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useSession } from "next-auth/react";
+import { useUserPreferences } from "@/hooks/use-user-preferences";
+import { AssignedPositionsSidebar } from "./AssignedPositionsSidebar";
 
 // Completely isolated navigation items - no external dependencies
 const NAV_ITEMS = {
@@ -26,7 +28,7 @@ const NAV_ITEMS = {
   myTasks: { href: "/my-tasks", label: "My Task Board", icon: ListTodo },
   candidates: { href: "/candidates", label: "Candidates", icon: Users },
   positions: { href: "/positions", label: "Positions", icon: Briefcase },
-  bulkUpload: { href: "/process-queue", label: "Process queue", icon: UploadCloud },
+  processQueue: { href: "/process-queue", label: "Process queue", icon: UploadCloud },
   settings: { href: "/settings", label: "Settings", icon: Settings }
 };
 
@@ -130,22 +132,30 @@ const FallbackNav = React.memo(() => {
             </Link>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <Link href="/my-tasks" className="w-full">
-              <SidebarMenuButton className="w-full justify-center" size="default">
-                <Kanban className="h-5 w-5" />
-              </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
             <Link href="/positions" className="w-full">
               <SidebarMenuButton className="w-full justify-center" size="default">
                 <Briefcase className="h-5 w-5" />
               </SidebarMenuButton>
             </Link>
           </SidebarMenuItem>
+          <SidebarMenuItem>
+            <Link href="/process-queue" className="w-full">
+              <SidebarMenuButton className="w-full justify-center" size="default">
+                <UploadCloud className="h-5 w-5" />
+              </SidebarMenuButton>
+            </Link>
+          </SidebarMenuItem>
         </SidebarMenu>
         <div className="mt-auto">
+          <SidebarSeparator className="my-2 bg-border/50" />
           <SidebarMenu>
+            <SidebarMenuItem>
+              <Link href="/process-queue" className="w-full">
+                <SidebarMenuButton className="w-full justify-center" size="default">
+                  <UploadCloud className="h-5 w-5" />
+                </SidebarMenuButton>
+              </Link>
+            </SidebarMenuItem>
             <SidebarMenuItem>
               <Link href="/settings" className="w-full">
                 <SidebarMenuButton className="w-full justify-center" size="default">
@@ -196,18 +206,27 @@ const FallbackNav = React.memo(() => {
           </Link>
         </SidebarMenuItem>
       </SidebarMenu>
-      <div className="mt-auto">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <Link href="/settings" className="w-full">
-              <SidebarMenuButton className="w-full justify-start" size="default">
-                <Settings className="h-5 w-5" />
-                <span className="truncate">Settings</span>
-              </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </div>
+              <div className="mt-auto">
+          <SidebarSeparator className="my-2 bg-border/50" />
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <Link href="/process-queue" className="w-full">
+                <SidebarMenuButton className="w-full justify-start" size="default">
+                  <UploadCloud className="h-5 w-5" />
+                  <span className="truncate">Process queue</span>
+                </SidebarMenuButton>
+              </Link>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <Link href="/settings" className="w-full">
+                <SidebarMenuButton className="w-full justify-start" size="default">
+                  <Settings className="h-5 w-5" />
+                  <span className="truncate">Settings</span>
+                </SidebarMenuButton>
+              </Link>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </div>
     </div>
   );
 });
@@ -332,6 +351,7 @@ const SafeSidebarNavComponent = React.memo(() => {
     const { data: session, status } = useSession();
     const { open } = useSidebar();
     const { pendingCount, isLoading } = usePendingCount();
+    const { sidebar: sidebarPreferences } = useUserPreferences();
 
     // Get safe session info
     const { canAccessMyTasks } = getSafeSessionInfo(session);
@@ -355,41 +375,51 @@ const SafeSidebarNavComponent = React.memo(() => {
       return (
         <div className="flex flex-col h-full">
           <SidebarMenu className="flex-1">
-            {navigationItems.map((item) => (
-              <SidebarMenuItem key={item.href}>
-                <MenuItemWithTooltip label={item.label}>
-                  <OptimizedLink href={item.href} className="w-full">
-                    <SidebarMenuButton
-                      isActive={pathname === item.href}
-                      className="w-full justify-center"
-                      size="default"
-                    >
-                      <item.icon className="h-5 w-5" />
-                    </SidebarMenuButton>
-                  </OptimizedLink>
-                </MenuItemWithTooltip>
-              </SidebarMenuItem>
+            {navigationItems.map((item, index) => (
+              <React.Fragment key={item.href}>
+                <SidebarMenuItem>
+                  <MenuItemWithTooltip label={item.label}>
+                    <OptimizedLink href={item.href} className="w-full">
+                      <SidebarMenuButton
+                        isActive={pathname === item.href}
+                        className="w-full justify-center"
+                        size="default"
+                      >
+                        <item.icon className="h-5 w-5" />
+                      </SidebarMenuButton>
+                    </OptimizedLink>
+                  </MenuItemWithTooltip>
+                </SidebarMenuItem>
+                {/* Add separator between My Task Board and Candidates */}
+                {canAccessMyTasks && item.href === '/my-tasks' && (
+                  <SidebarSeparator className="my-2 bg-border/50" />
+                )}
+              </React.Fragment>
             ))}
           </SidebarMenu>
           
+          {/* Show assigned positions section if enabled and user is recruiter */}
+          {sidebarPreferences?.showAssignedPositions && session?.user?.role === 'Recruiter' && (
+            <div className="mt-auto mb-4">
+              <AssignedPositionsSidebar />
+            </div>
+          )}
+          
           <div className="mt-auto">
+            <SidebarSeparator className="my-2 bg-border/50" />
             <SidebarMenu>
               <SidebarMenuItem>
-                <MenuItemWithTooltip label={NAV_ITEMS.bulkUpload.label}>
-                  <OptimizedLink href={NAV_ITEMS.bulkUpload.href} className="w-full">
+                <MenuItemWithTooltip label="Process queue">
+                  <OptimizedLink href="/process-queue" className="w-full">
                     <SidebarMenuButton
-                      isActive={pathname === NAV_ITEMS.bulkUpload.href}
-                      className="w-full justify-center relative"
+                      isActive={pathname === '/process-queue'}
+                      className="w-full justify-center"
                       size="default"
                     >
-                      <NAV_ITEMS.bulkUpload.icon className="h-5 w-5" />
-                      {pendingCount !== null && (
-                        <Badge className="absolute -top-1 -right-1 h-5 min-w-5 px-1 text-xs flex items-center justify-center group-data-[collapsible=icon]:-top-0.5 group-data-[collapsible=icon]:-right-0.5">
-                          {isLoading ? (
-                            <div className="h-3 w-3 animate-spin rounded-full border border-current border-t-transparent" />
-                          ) : (
-                            pendingCount
-                          )}
+                      <UploadCloud className="h-5 w-5" />
+                      {pendingCount !== null && pendingCount > 0 && (
+                        <Badge variant="destructive" className="ml-1 h-5 w-5 p-0 text-xs">
+                          {pendingCount > 99 ? '99+' : pendingCount}
                         </Badge>
                       )}
                     </SidebarMenuButton>
@@ -397,14 +427,14 @@ const SafeSidebarNavComponent = React.memo(() => {
                 </MenuItemWithTooltip>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <MenuItemWithTooltip label={NAV_ITEMS.settings.label}>
-                  <OptimizedLink href={NAV_ITEMS.settings.href} className="w-full">
+                <MenuItemWithTooltip label="Settings">
+                  <OptimizedLink href="/settings" className="w-full">
                     <SidebarMenuButton
-                      isActive={pathname.startsWith(NAV_ITEMS.settings.href)}
+                      isActive={pathname === '/settings'}
                       className="w-full justify-center"
                       size="default"
                     >
-                      <NAV_ITEMS.settings.icon className="h-5 w-5" />
+                      <Settings className="h-5 w-5" />
                     </SidebarMenuButton>
                   </OptimizedLink>
                 </MenuItemWithTooltip>
@@ -445,45 +475,45 @@ const SafeSidebarNavComponent = React.memo(() => {
           ))}
         </SidebarMenu>
         
+        {/* Show assigned positions section if enabled and user is recruiter */}
+        {sidebarPreferences?.showAssignedPositions && session?.user?.role === 'Recruiter' && (
+          <div className="mt-auto mb-4">
+            <AssignedPositionsSidebar />
+          </div>
+        )}
+        
         <div className="mt-auto">
+          <SidebarSeparator className="my-2 bg-border/50" />
           <SidebarMenu>
-            <SidebarSeparator className="my-2 bg-border/50" />
-            <SidebarGroupLabel>System</SidebarGroupLabel>
             <SidebarMenuItem>
-              <MenuItemWithTooltip label={NAV_ITEMS.bulkUpload.label}>
-                <OptimizedLink href={NAV_ITEMS.bulkUpload.href} className="w-full">
+              <MenuItemWithTooltip label="Process queue">
+                <OptimizedLink href="/process-queue" className="w-full">
                   <SidebarMenuButton
-                    isActive={pathname === NAV_ITEMS.bulkUpload.href}
+                    isActive={pathname === '/process-queue'}
                     className="w-full justify-start"
                     size="default"
                   >
-                    <NAV_ITEMS.bulkUpload.icon className="h-5 w-5" />
-                    <span className="truncate">{NAV_ITEMS.bulkUpload.label}</span>
-                                         {pendingCount !== null && (
-                       <div className="ml-auto flex items-center">
-                         <Badge className="h-5 min-w-5 px-1 text-xs flex items-center justify-center bg-primary text-primary-foreground">
-                           {isLoading ? (
-                             <div className="h-3 w-3 animate-spin rounded-full border border-current border-t-transparent" />
-                           ) : (
-                             pendingCount
-                           )}
-                         </Badge>
-                       </div>
-                     )}
+                    <UploadCloud className="h-5 w-5" />
+                    <span className="truncate">Process queue</span>
+                    {pendingCount !== null && pendingCount > 0 && (
+                      <Badge variant="destructive" className="ml-auto h-5 px-2 text-xs">
+                        {pendingCount > 99 ? '99+' : pendingCount}
+                      </Badge>
+                    )}
                   </SidebarMenuButton>
                 </OptimizedLink>
               </MenuItemWithTooltip>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <MenuItemWithTooltip label={NAV_ITEMS.settings.label}>
-                <OptimizedLink href={NAV_ITEMS.settings.href} className="w-full">
+              <MenuItemWithTooltip label="Settings">
+                <OptimizedLink href="/settings" className="w-full">
                   <SidebarMenuButton
-                    isActive={pathname.startsWith(NAV_ITEMS.settings.href)}
+                    isActive={pathname === '/settings'}
                     className="w-full justify-start"
                     size="default"
                   >
-                    <NAV_ITEMS.settings.icon className="h-5 w-5" />
-                    <span className="truncate">{NAV_ITEMS.settings.label}</span>
+                    <Settings className="h-5 w-5" />
+                    <span className="truncate">Settings</span>
                   </SidebarMenuButton>
                 </OptimizedLink>
               </MenuItemWithTooltip>
@@ -493,7 +523,7 @@ const SafeSidebarNavComponent = React.memo(() => {
       </div>
     );
   } catch (error) {
-    console.error('Error in SafeSidebarNavComponent:', error);
+    console.error('SafeSidebarNav error:', error);
     setHasError(true);
     return <FallbackNav />;
   }

@@ -59,10 +59,15 @@ interface AppearancePreferences {
   personalColor: string;
 }
 
+interface SidebarPreferences {
+  showAssignedPositions: boolean;
+}
+
 interface UserPreferences {
   taskBoard: TaskBoardPreferences;
   positions: PositionsPreferences;
   appearance: AppearancePreferences;
+  sidebar: SidebarPreferences;
 }
 
 interface UserPreferencesModalProps {
@@ -122,6 +127,9 @@ export function UserPreferencesModal({ isOpen, onOpenChange, user }: UserPrefere
           appearance: {
             personalColor: '#3B82F6',
           },
+          sidebar: {
+            showAssignedPositions: true,
+          },
         });
       }
     } catch (error) {
@@ -158,6 +166,16 @@ export function UserPreferencesModal({ isOpen, onOpenChange, user }: UserPrefere
     setPreferences(prev => ({
       ...prev!,
       appearance: { ...prev!.appearance, ...updates }
+    }));
+    setHasChanges(true);
+  };
+
+  const updateSidebarPreferences = (updates: Partial<SidebarPreferences>) => {
+    if (!preferences) return;
+    
+    setPreferences(prev => ({
+      ...prev!,
+      sidebar: { ...prev!.sidebar, ...updates }
     }));
     setHasChanges(true);
   };
@@ -223,20 +241,12 @@ export function UserPreferencesModal({ isOpen, onOpenChange, user }: UserPrefere
           </div>
         ) : preferences ? (
           <div className="flex flex-col h-full">
-            <Tabs defaultValue="appearance" className="flex-1 flex flex-col">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="appearance" className="flex items-center gap-2">
-                  <Palette className="w-4 h-4" />
-                  Appearance
-                </TabsTrigger>
-                <TabsTrigger value="taskboard" className="flex items-center gap-2">
-                  <Layout className="w-4 h-4" />
-                  Task Board
-                </TabsTrigger>
-                <TabsTrigger value="positions" className="flex items-center gap-2">
-                  <Filter className="w-4 h-4" />
-                  Positions
-                </TabsTrigger>
+            <Tabs defaultValue="appearance" className="w-full">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="appearance">Appearance</TabsTrigger>
+                <TabsTrigger value="taskBoard">Task Board</TabsTrigger>
+                <TabsTrigger value="positions">Positions</TabsTrigger>
+                <TabsTrigger value="sidebar">Sidebar</TabsTrigger>
               </TabsList>
 
               <div className="flex-1 overflow-y-auto mt-6">
@@ -272,7 +282,7 @@ export function UserPreferencesModal({ isOpen, onOpenChange, user }: UserPrefere
                 </TabsContent>
 
                 {/* Task Board Tab */}
-                <TabsContent value="taskboard" className="space-y-6">
+                <TabsContent value="taskBoard" className="space-y-6">
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
@@ -387,6 +397,39 @@ export function UserPreferencesModal({ isOpen, onOpenChange, user }: UserPrefere
                             <option value="asc">Ascending</option>
                           </select>
                         </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                {/* Sidebar Tab */}
+                <TabsContent value="sidebar" className="space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Layout className="h-4 w-4" />
+                        Sidebar Preferences
+                      </CardTitle>
+                      <CardDescription>
+                        Customize how the sidebar displays information
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {/* Show Assigned Positions Switch */}
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-1">
+                          <Label htmlFor="modal-showAssignedPositions" className="text-sm font-medium">
+                            Show Assigned Positions
+                          </Label>
+                          <p className="text-sm text-muted-foreground">
+                            Display assigned open positions in the main sidebar
+                          </p>
+                        </div>
+                        <Switch
+                          id="modal-showAssignedPositions"
+                          checked={preferences?.sidebar?.showAssignedPositions || false}
+                          onCheckedChange={(checked) => updateSidebarPreferences({ showAssignedPositions: checked })}
+                        />
                       </div>
                     </CardContent>
                   </Card>

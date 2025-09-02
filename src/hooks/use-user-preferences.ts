@@ -39,10 +39,15 @@ export interface AppearancePreferences {
   themePreference: 'light' | 'dark' | 'system';
 }
 
+export interface SidebarPreferences {
+  showAssignedPositions: boolean;
+}
+
 export interface UserPreferences {
   taskBoard: TaskBoardPreferences;
   positions: PositionsPreferences;
   appearance: AppearancePreferences;
+  sidebar: SidebarPreferences;
 }
 
 const defaultTaskBoardPreferences: TaskBoardPreferences = {
@@ -83,10 +88,15 @@ const defaultAppearancePreferences: AppearancePreferences = {
   themePreference: 'system',
 };
 
+const defaultSidebarPreferences: SidebarPreferences = {
+  showAssignedPositions: false,
+};
+
 const defaultPreferences: UserPreferences = {
   taskBoard: defaultTaskBoardPreferences,
   positions: defaultPositionsPreferences,
   appearance: defaultAppearancePreferences,
+  sidebar: defaultSidebarPreferences,
 };
 
 export function useUserPreferences() {
@@ -143,6 +153,7 @@ export function useUserPreferences() {
           taskBoard: { ...defaultTaskBoardPreferences, ...data.taskBoard },
           positions: { ...defaultPositionsPreferences, ...data.positions },
           appearance: { ...defaultAppearancePreferences, ...data.appearance },
+          sidebar: { ...defaultSidebarPreferences, ...data.sidebar },
         };
         setPreferences(mergedPreferences);
       } else {
@@ -158,7 +169,7 @@ export function useUserPreferences() {
     }
   }, [session?.user?.id]);
 
-  const savePreferences = useCallback(async (modelType: 'taskBoard' | 'positions' | 'appearance', updates: any) => {
+  const savePreferences = useCallback(async (modelType: 'taskBoard' | 'positions' | 'appearance' | 'sidebar', updates: any) => {
     if (!session?.user?.id) return;
 
     // Clear any existing timeout
@@ -275,6 +286,17 @@ export function useUserPreferences() {
     savePreferences('appearance', updates);
   }, [savePreferences]);
 
+  // Update sidebar preferences
+  const updateSidebarPreferences = useCallback((updates: Partial<SidebarPreferences>) => {
+    setPreferences(prev => ({
+      ...prev,
+      sidebar: { ...prev.sidebar, ...updates }
+    }));
+
+    // Save to database
+    savePreferences('sidebar', updates);
+  }, [savePreferences]);
+
   // Reset task board preferences to defaults
   const resetTaskBoardPreferences = useCallback(async () => {
     if (!session?.user?.id) {
@@ -362,6 +384,35 @@ export function useUserPreferences() {
     }
   }, [session?.user?.id]);
 
+  // Reset sidebar preferences to defaults
+  const resetSidebarPreferences = useCallback(async () => {
+    if (!session?.user?.id) {
+      setPreferences(prev => ({
+        ...prev,
+        sidebar: defaultSidebarPreferences
+      }));
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/user-preferences?modelType=sidebar', {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+        setPreferences(prev => ({
+          ...prev,
+          sidebar: defaultSidebarPreferences
+        }));
+      } else {
+        console.warn('Failed to reset sidebar preferences in database');
+      }
+    } catch (error) {
+      console.warn('Error resetting sidebar preferences:', error);
+    }
+  }, [session?.user?.id]);
+
   // Reset all preferences to defaults
   const resetAllPreferences = useCallback(async () => {
     if (!session?.user?.id) {
@@ -390,12 +441,15 @@ export function useUserPreferences() {
     taskBoard: preferences.taskBoard,
     positions: preferences.positions,
     appearance: preferences.appearance,
+    sidebar: preferences.sidebar,
     updateTaskBoardPreferences,
     updatePositionsPreferences,
     updateAppearancePreferences,
+    updateSidebarPreferences,
     resetTaskBoardPreferences,
     resetPositionsPreferences,
     resetAppearancePreferences,
+    resetSidebarPreferences,
     resetAllPreferences,
     isLoaded,
     isLoading,

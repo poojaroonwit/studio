@@ -793,7 +793,7 @@ export function CandidatesPageClient({
     return paginatedCandidates;
   }, [isAiSearchActive, aiMatchedCandidateIds, mappedCandidates, filteredCandidates, page, pageSize, total, paginatedCandidates, isLoading, tableLoading]);
 
-  // Apply horizontal filters when selections change (ULTRA-RESPONSIVE)
+  // Apply horizontal filters when selections change (SIMPLIFIED)
   useEffect(() => {
     // Skip if we're currently clearing filters to prevent conflicts
     if (isClearingFilters) {
@@ -810,7 +810,7 @@ export function CandidatesPageClient({
       clearTimeout(filterChangeTimeoutRef.current);
     }
     
-    // Ultra-responsive filter application with immediate feedback
+    // Simple debounced filter application
     filterChangeTimeoutRef.current = setTimeout(() => {
       // Only apply horizontal filters if there are selections
       if (horizontalSelectedFitScoreGrades.size > 0 || horizontalSelectedMatchingFitScoreGrades.size > 0) {
@@ -820,31 +820,11 @@ export function CandidatesPageClient({
         const hasValidFilters = Object.values(horizontalFilters).some(value => value !== undefined);
         
         if (hasValidFilters) {
-          // Apply the filters immediately for instant feedback
+          // Apply the filters
           setFilters(prev => ({ ...prev, ...horizontalFilters }));
-          
-          // Add instant visual feedback
-          const feedbackElement = document.createElement('div');
-          feedbackElement.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg transform transition-all duration-300 z-50';
-          feedbackElement.textContent = 'Filters applied!';
-          feedbackElement.style.transform = 'translateX(100%)';
-          document.body.appendChild(feedbackElement);
-          
-          // Animate in
-          setTimeout(() => {
-            feedbackElement.style.transform = 'translateX(0)';
-          }, 10);
-          
-          // Animate out and remove
-          setTimeout(() => {
-            feedbackElement.style.transform = 'translateX(100%)';
-            setTimeout(() => {
-              document.body.removeChild(feedbackElement);
-            }, 300);
-          }, 2000);
         }
       }
-    }, 50); // Ultra-fast 50ms debounce for instant feel
+    }, 300);
     
     return () => {
       if (filterChangeTimeoutRef.current) {
@@ -1450,7 +1430,7 @@ export function CandidatesPageClient({
                       onClearAllFilters={handleClearAllFilters}
                       isLoading={isLoading || isFilterDataLoading}
                       isAiSearching={isAiSearching}
-                      candidateScoreCounts={candidateScoreCounts?.applied || []}
+                                              candidateScoreCounts={memoizedCandidateScoreCounts}
                       advancedQuery={advancedQuery}
                     />
                   );
@@ -1496,16 +1476,6 @@ export function CandidatesPageClient({
                           isAiSearchActive={isAiSearchActive}
                           isLoading={isFitScoreCountsLoadingState}
                         />
-                      )}
-                      
-                      {/* Simple loading indicator for fitscore counts */}
-                      {isFitScoreCountsLoadingState && (
-                        <div className="flex items-center justify-center py-2 mt-2">
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <div className="w-3 h-3 bg-muted-foreground/20 rounded-full animate-pulse"></div>
-                            <span>Updating counts...</span>
-                          </div>
-                        </div>
                       )}
                     </div>
                     

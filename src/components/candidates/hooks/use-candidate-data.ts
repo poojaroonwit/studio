@@ -204,18 +204,6 @@ export function useCandidateData({
       return;
     }
 
-    // Much more responsive debouncing for smoother experience
-    if (!forceRefresh && fitScoreCountsDebounceRef.current) {
-      clearTimeout(fitScoreCountsDebounceRef.current);
-    }
-
-    if (!forceRefresh) {
-      fitScoreCountsDebounceRef.current = setTimeout(() => {
-        fetchFitScoreCounts(true);
-      }, 100); // Reduced to 100ms for ultra-responsive feel
-      return;
-    }
-
     isFetchingFitScoreCountsRef.current = true;
     setIsFitScoreCountsLoading(true);
 
@@ -255,17 +243,38 @@ export function useCandidateData({
       
       if (response.ok) {
         const data = await response.json();
-        const newCounts = {
-          applied: (data.applied || []).map((item: any) => ({
-            letter: item.letter,
-            count: item.count
-          })),
-          matching: (data.matching || []).map((item: any) => ({
-            letter: item.letter,
-            count: item.count
-          }))
-        };
-        setDatabaseFitScoreCounts(newCounts);
+        
+        // Smooth update: only change the numbers, not the entire object structure
+        setDatabaseFitScoreCounts(prevCounts => {
+          if (!prevCounts) {
+            return {
+              applied: (data.applied || []).map((item: any) => ({
+                letter: item.letter,
+                count: item.count
+              })),
+              matching: (data.matching || []).map((item: any) => ({
+                letter: item.letter,
+                count: item.count
+              }))
+            };
+          }
+
+          // Update existing counts smoothly
+          const newApplied = prevCounts.applied.map(prevItem => {
+            const newItem = data.applied?.find((item: any) => item.letter === prevItem.letter);
+            return newItem ? { ...prevItem, count: newItem.count } : prevItem;
+          });
+
+          const newMatching = prevCounts.matching.map(prevItem => {
+            const newItem = data.matching?.find((item: any) => item.letter === prevItem.letter);
+            return newItem ? { ...prevItem, count: newItem.count } : prevItem;
+          });
+
+          return {
+            applied: newApplied,
+            matching: newMatching
+          };
+        });
       } else {
         console.error('Failed to fetch fit score counts:', response.status);
         setDatabaseFitScoreCounts(null);

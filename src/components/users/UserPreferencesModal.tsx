@@ -104,7 +104,16 @@ export function UserPreferencesModal({ isOpen, onOpenChange, user }: UserPrefere
 
       if (response.ok) {
         const data = await response.json();
-        setPreferences(data);
+        // Ensure sidebar preferences exist even if not in database
+        const preferencesWithSidebar = {
+          ...data,
+          sidebar: {
+            showAssignedPositions: false,
+            ...data.sidebar
+          }
+        };
+        console.log('Loaded preferences:', preferencesWithSidebar);
+        setPreferences(preferencesWithSidebar);
       } else {
         // Use default preferences if none exist
         setPreferences({
@@ -250,6 +259,12 @@ export function UserPreferencesModal({ isOpen, onOpenChange, user }: UserPrefere
               </TabsList>
 
               <div className="flex-1 overflow-y-auto mt-6">
+                {/* Debug info */}
+                <div className="p-2 bg-blue-100 border border-blue-300 rounded mb-4">
+                  <p>Current tab: <span id="current-tab">appearance</span></p>
+                  <p>Preferences loaded: {preferences ? 'Yes' : 'No'}</p>
+                  <p>Sidebar preferences: {JSON.stringify(preferences?.sidebar)}</p>
+                </div>
                 <TabsContent value="appearance" className="space-y-6">
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <PersonalColorPicker 

@@ -135,7 +135,7 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
         )}
 
         <ScrollArea className={cn("h-[300px] overflow-x-hidden", variant === 'compact' ? "px-0" : "px-3") }>
-          <div className="relative">
+          <div className="relative text-foreground">
             {/* CodeHim-like tree: vertical branches via li:before and elbows via node:after */}
             <ul className={cn("ap-tree mt-2 space-y-1 pl-0 relative", variant === 'compact' ? "mt-1" : "") }>
               {positions.slice(0, visibleCount).map((position) => (
@@ -143,28 +143,26 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
                   key={position.id}
                   className={cn(
                     "ap-item group relative flex items-center gap-2 py-1 cursor-pointer w-full max-w-full pl-4",
-                    variant === 'compact' ? "text-foreground hover:opacity-80" : "hover:text-foreground"
+                    "hover:opacity-90"
                   )}
                   onClick={() => handlePositionClick(position.id)}
                   title={position.title}
                 >
                   <span
                     className={cn(
-                      "ap-node relative flex-1 min-w-0 text-sm overflow-hidden text-ellipsis whitespace-nowrap pr-2",
-                      variant === 'compact' ? "text-foreground" : "text-muted-foreground"
+                      "ap-node relative flex-1 min-w-0 text-sm overflow-hidden text-ellipsis whitespace-nowrap pr-2 text-inherit"
                     )}
                   >
                     {position.title}
                   </span>
 
                   <div className="ml-1 flex items-center gap-1 shrink-0">
-                    <span className={cn("select-none leading-none", variant === 'compact' ? "text-foreground/60" : "text-muted-foreground/70")}>...</span>
+                    <span className="select-none leading-none text-foreground/60">...</span>
                     {position.isOpen === false ? null : (
                       <Badge
                         variant="outline"
                         className={cn(
-                          "shrink-0 text-xs h-5 px-1.5 tabular-nums",
-                          variant === 'compact' ? "border-foreground/30 text-foreground" : "border-border text-muted-foreground"
+                          "shrink-0 text-xs h-5 px-1.5 tabular-nums border-border text-foreground/80"
                         )}
                       >
                         {position.headcount.filled}/{position.headcount.total}

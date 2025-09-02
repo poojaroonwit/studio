@@ -13,8 +13,19 @@ ALTER TABLE "CustomFieldDefinition"
 ALTER COLUMN "field_code" SET NOT NULL;
 
 -- Add unique constraint on model_name and field_code
-ALTER TABLE "CustomFieldDefinition" 
-ADD CONSTRAINT "CustomFieldDefinition_model_name_field_code_key" 
-UNIQUE ("model_name", "field_code");
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint c
+    JOIN pg_class t ON t.oid = c.conrelid
+    JOIN pg_namespace n ON n.oid = t.relnamespace
+    WHERE c.conname = 'CustomFieldDefinition_model_name_field_code_key'
+      AND n.nspname = 'public' AND t.relname = 'CustomFieldDefinition'
+  ) THEN
+    ALTER TABLE "CustomFieldDefinition" 
+    ADD CONSTRAINT "CustomFieldDefinition_model_name_field_code_key" 
+    UNIQUE ("model_name", "field_code");
+  END IF;
+END$$;
 
 

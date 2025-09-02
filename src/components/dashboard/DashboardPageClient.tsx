@@ -58,6 +58,7 @@ export default function DashboardPageClient({
 }: DashboardPageClientProps) {
   // Get common stage IDs for status comparisons
   const [stageIds, setStageIds] = useState<Record<string, string | undefined>>({});
+  const [stageNames, setStageNames] = useState<Record<string, string>>({});
   
   useEffect(() => {
     const fetchStageIds = async () => {
@@ -78,8 +79,12 @@ export default function DashboardPageClient({
         console.error('Error fetching stage IDs:', error);
       }
     };
+    
     fetchStageIds();
   }, []);
+  
+
+  
   // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -106,6 +111,31 @@ export default function DashboardPageClient({
 
   // Use the new chart setup hook
   const { chartReady, isLoading: chartLoading, error: chartError } = useChartSetup();
+  
+  // Fetch stage names when filteredCandidates changes
+  useEffect(() => {
+    const fetchStageNames = async () => {
+      try {
+        // Get all unique stage IDs from candidates
+        const uniqueStageIds = [...new Set(filteredCandidates.map(c => c.status))];
+        if (uniqueStageIds.length > 0) {
+          const response = await fetch(`/api/settings/recruitment-stages?ids=${uniqueStageIds.join(',')}`);
+          if (response.ok) {
+            const stages = await response.json();
+            const stageMap: Record<string, string> = {};
+            stages.forEach((stage: { id: string; name: string }) => {
+              stageMap[stage.id] = stage.name;
+            });
+            setStageNames(stageMap);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching stage names:', error);
+      }
+    };
+    
+    fetchStageNames();
+  }, [filteredCandidates]);
   
   // Placeholder for removed performance monitoring hooks
 
@@ -591,11 +621,18 @@ export default function DashboardPageClient({
       }
     });
     
-    return Object.entries(stageCounts).map(([stageName, count]) => ({
-      stage: stageName,
-      count
-    })).sort((itemA, itemB) => itemB.count - itemA.count);
-  }, [filteredCandidates]);
+    // Map stage IDs to names for display
+    return Object.entries(stageCounts).map(([stageId, count]) => {
+      // Use stageNames mapping to get readable names
+      const stageName = stageNames[stageId] || stageId; // Fallback to ID if name not found
+      
+      return {
+        stage: stageName,
+        stageId: stageId,
+        count
+      };
+    }).sort((itemA, itemB) => itemB.count - itemA.count);
+  }, [filteredCandidates, stageIds, stageNames]);
 
   // New candidates assigned to me today (for recruiter) - optimized
   const newCandidatesAssignedToMeToday = useMemo(() => {
@@ -629,8 +666,17 @@ export default function DashboardPageClient({
     onProcessCandidates.forEach((c) => {
       stageCounts[c.status] = (stageCounts[c.status] || 0) + 1;
     });
-    return stageCounts;
-  }, [onProcessCandidates]);
+    
+    // Map stage IDs to names for display
+    const stageCountsWithNames: Record<string, number> = {};
+    Object.entries(stageCounts).forEach(([stageId, count]) => {
+      // Use stageNames mapping to get readable names
+      const stageName = stageNames[stageId] || stageId; // Fallback to ID if name not found
+      stageCountsWithNames[stageName] = count;
+    });
+    
+    return stageCountsWithNames;
+  }, [onProcessCandidates, stageNames]);
 
   // Bar chart: On-process by recruiter
   const onProcessByRecruiter = useMemo(() => {

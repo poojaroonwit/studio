@@ -32,6 +32,14 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       include: { actingUser: true },
     });
 
+    // Fetch recruitment stages to map stage IDs to names
+    const recruitmentStages = await prisma.recruitmentStage.findMany({
+      select: { id: true, name: true }
+    });
+    
+    // Create a map of stage ID to stage name
+    const stageIdToName = new Map(recruitmentStages.map(stage => [stage.id, stage.name]));
+
     // Fetch comments for the candidate
     const comments = await prisma.candidateComment.findMany({
       where: { candidateId: id },
@@ -50,11 +58,14 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     // Show simplified stage change messages without redundant details
     const transitionsWithPrev = transitions.map((tr: any, idx: number, arr: any[]) => {
       const prevStage = arr[idx + 1]?.stage;
+      const currentStageName = stageIdToName.get(tr.stage) || tr.stage; // Use stage name or fallback to ID
+      const prevStageName = prevStage ? (stageIdToName.get(prevStage) || prevStage) : null;
+      
       let moveNote = '';
       if (prevStage && prevStage !== tr.stage) {
-        moveNote = `Moved from ${prevStage} to ${tr.stage} stage.`;
+        moveNote = `Moved from ${prevStageName} to ${currentStageName} stage.`;
       } else {
-        moveNote = `Entered ${tr.stage} stage.`;
+        moveNote = `Entered ${currentStageName} stage.`;
       }
       // Only include custom notes if they exist
       if (tr.notes && tr.notes.trim().length > 0) {

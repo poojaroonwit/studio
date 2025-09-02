@@ -111,9 +111,9 @@ export function RecruitmentPipelineCard({
   }, [onNoteEdit]);
 
   // Enhanced stage click handler with visual feedback
-  const handleStageClick = useCallback((stageName: string) => {
+  const handleStageClick = useCallback((stageId: string) => {
     // Show loading state if clicking on a different stage
-    if (stageName !== localCurrentStatus) {
+    if (stageId !== localCurrentStatus) {
       setIsTransitioning(true);
       // Hide loading state after a reasonable timeout (in case the transition fails)
       const timeoutId = setTimeout(() => setIsTransitioning(false), 10000);
@@ -124,7 +124,7 @@ export function RecruitmentPipelineCard({
       }
       transitioningTimeoutRef.current = timeoutId;
     }
-    onStageClick(stageName);
+    onStageClick(stageId);
   }, [onStageClick, localCurrentStatus]);
 
   // Rebuild stage to records mapping when transition history changes
@@ -135,9 +135,10 @@ export function RecruitmentPipelineCard({
     currentStageToRecords[record.stage].push(record);
   });
 
-  const currentStageIndex = localStages && localStages.length > 0 ? localStages.findIndex(s => s.name === localCurrentStatus) : -1;
+  // Fix: Use stage ID for comparison since currentStatus is now a UUID
+  const currentStageIndex = localStages && localStages.length > 0 ? localStages.findIndex(s => s.id === localCurrentStatus) : -1;
   const isCompleted = currentStageIndex > -1 && localStages && currentStageIndex < localStages.length - 1;
-  const isCurrent = localCurrentStatus === localStages[currentStageIndex]?.name;
+  const isCurrent = localCurrentStatus === localStages[currentStageIndex]?.id;
   const latestRecord = currentStageToRecords[localCurrentStatus]?.length > 0 ? currentStageToRecords[localCurrentStatus][currentStageToRecords[localCurrentStatus].length - 1] : null;
 
   return (
@@ -221,7 +222,7 @@ export function RecruitmentPipelineCard({
                     {/* Stage Circle */}
                                          <div 
                        className={`relative flex flex-col items-center cursor-pointer hover:bg-muted/30 rounded-lg p-1 transition-colors ${isSkipped ? 'opacity-60' : ''}`}
-                       onClick={() => handleStageClick(stage.name)}
+                       onClick={() => handleStageClick(stage.id)}
                        title={`${stage.name} - ${isSkipped ? 'Skipped' : isCompleted ? 'Completed' : isCurrent ? 'Current' : 'Future'} stage${records.length > 0 ? ` (${records.length} update${records.length > 1 ? 's' : ''})` : ''}`}
                      >
                        <div className={`

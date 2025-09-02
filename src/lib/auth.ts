@@ -270,8 +270,7 @@ export const authOptions: NextAuthOptions = {
             : [];
           session.user.modulePermissions = modulePermissions;
           
-          // Debug log for session permissions
-          console.log(`[SESSION CALLBACK] Session permissions for user ${session.user.id}:`, modulePermissions);
+          // Debug log for session permissions removed
           
           // Removed session logging to reduce container logs
           

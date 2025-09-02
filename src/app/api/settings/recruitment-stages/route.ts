@@ -86,24 +86,53 @@ const recruitmentStageSchema = z.object({
  *         description: Server error
  */
 export async function GET(request: NextRequest) {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) return new NextResponse('Unauthorized', { status: 401 });
-    
-    // Check permissions
-    if (session.user.role !== 'Admin' &&  !session.user.modulePermissions?.includes('RECRUITMENT_STAGES_EDIT')) {
-        return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
-    }
-
-    const client = await getPool().connect();
-    try {
-        const result = await client.query('SELECT id, name, description, sort_order, color_complete, color_badge, is_system FROM "RecruitmentStage" ORDER BY sort_order ASC, name ASC');
+  const { searchParams } = new URL(request.url);
+  const stageIds = searchParams.get('ids'); // New parameter for getting specific stage names
+  
+  try {
+    if (stageIds) {
+      // Get specific stage names by IDs (no authentication required for this use case)
+      const ids = stageIds.split(',').filter(id => id.trim());
+      if (ids.length === 0) {
+        return NextResponse.json({ error: 'No valid stage IDs provided' }, { status: 400 });
+      }
+      
+      const client = await getPool().connect();
+      try {
+        const query = `
+          SELECT id, name 
+          FROM "RecruitmentStage" 
+          WHERE id = ANY($1::uuid[])
+          ORDER BY "sort_order", name
+        `;
+        const result = await client.query(query, [ids]);
+        
         return NextResponse.json(result.rows);
-    } catch (error: any) {
-        console.error("Failed to fetch recruitment stages:", error);
-        return NextResponse.json({ message: "Error fetching recruitment stages", error: error.message }, { status: 500 });
-    } finally {
+      } finally {
         client.release();
+      }
+    } else {
+      // Get all recruitment stages (existing functionality with authentication)
+      const session = await getServerSession(authOptions);
+      if (!session?.user?.id) return new NextResponse('Unauthorized', { status: 401 });
+      
+      // Check permissions
+      if (session.user.role !== 'Admin' &&  !session.user.modulePermissions?.includes('RECRUITMENT_STAGES_EDIT')) {
+          return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
+      }
+
+      const client = await getPool().connect();
+      try {
+          const result = await client.query('SELECT id, name, description, sort_order, color_complete, color_badge, is_system FROM "RecruitmentStage" ORDER BY sort_order ASC, name ASC');
+          return NextResponse.json(result.rows);
+      } finally {
+          client.release();
+      }
     }
+  } catch (error: any) {
+    console.error('Error fetching recruitment stages:', error);
+    return NextResponse.json({ error: 'Failed to fetch recruitment stages' }, { status: 500 });
+  }
 }
 
 

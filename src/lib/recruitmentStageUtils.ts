@@ -1,4 +1,4 @@
-import { prisma } from './prisma';
+import prisma from './prisma';
 
 /**
  * Get recruitment stage ID by name (case-insensitive)

@@ -1452,30 +1452,28 @@ export function CandidatesPageClient({
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       {candidateSettings.fitScoreType === 'applied' && (
-                        <FitScoreFilterTabs
-                          selectedGrades={horizontalSelectedFitScoreGrades}
-                          onGradeToggle={memoizedHandleHorizontalFitScoreGradeToggle}
-                          onClearAll={memoizedClearAllHorizontalFitScoreFilters}
-                          candidateCounts={memoizedCandidateScoreCounts?.applied || []}
-                          className=""
-                          filterMode={candidateSettings.fitScoreFilterMode}
-                          aiMatchedCount={aiRecordCount}
-                          isAiSearchActive={isAiSearchActive}
-                          isLoading={isFitScoreCountsLoadingState}
-                        />
+                                                  <FitScoreFilterTabs
+                            selectedGrades={horizontalSelectedFitScoreGrades}
+                            onGradeToggle={memoizedHandleHorizontalFitScoreGradeToggle}
+                            onClearAll={memoizedClearAllHorizontalFitScoreFilters}
+                            candidateCounts={memoizedCandidateScoreCounts?.applied || []}
+                            className=""
+                            filterMode={candidateSettings.fitScoreFilterMode}
+                            aiMatchedCount={aiRecordCount}
+                            isAiSearchActive={isAiSearchActive}
+                          />
                       )}
                       {candidateSettings.fitScoreType === 'matching' && (
-                        <FitScoreFilterTabs
-                          selectedGrades={horizontalSelectedMatchingFitScoreGrades}
-                          onGradeToggle={memoizedHandleHorizontalMatchingFitScoreGradeToggle}
-                          onClearAll={memoizedClearAllHorizontalFitScoreFilters}
-                          candidateCounts={memoizedCandidateScoreCounts?.matching || []}
-                          className=""
-                          filterMode={candidateSettings.fitScoreFilterMode}
-                          aiMatchedCount={aiRecordCount}
-                          isAiSearchActive={isAiSearchActive}
-                          isLoading={isFitScoreCountsLoadingState}
-                        />
+                                                  <FitScoreFilterTabs
+                            selectedGrades={horizontalSelectedMatchingFitScoreGrades}
+                            onGradeToggle={memoizedHandleHorizontalMatchingFitScoreGradeToggle}
+                            onClearAll={memoizedClearAllHorizontalFitScoreFilters}
+                            candidateCounts={memoizedCandidateScoreCounts?.matching || []}
+                            className=""
+                            filterMode={candidateSettings.fitScoreFilterMode}
+                            aiMatchedCount={aiRecordCount}
+                            isAiSearchActive={isAiSearchActive}
+                          />
                       )}
                     </div>
                     

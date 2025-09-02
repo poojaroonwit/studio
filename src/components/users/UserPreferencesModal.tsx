@@ -228,6 +228,8 @@ export function UserPreferencesModal({ isOpen, onOpenChange, user }: UserPrefere
     return null;
   }
 
+  const isRecruiter = user.role === 'Recruiter';
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
@@ -251,20 +253,14 @@ export function UserPreferencesModal({ isOpen, onOpenChange, user }: UserPrefere
         ) : preferences ? (
           <div className="flex flex-col h-full">
             <Tabs defaultValue="appearance" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className={`grid w-full ${isRecruiter ? 'grid-cols-4' : 'grid-cols-3'}`}>
                 <TabsTrigger value="appearance">Appearance</TabsTrigger>
                 <TabsTrigger value="taskBoard">Task Board</TabsTrigger>
                 <TabsTrigger value="positions">Positions</TabsTrigger>
-                <TabsTrigger value="sidebar">Sidebar</TabsTrigger>
+                {isRecruiter && <TabsTrigger value="sidebar">Sidebar</TabsTrigger>}
               </TabsList>
 
               <div className="flex-1 overflow-y-auto mt-6">
-                {/* Debug info */}
-                <div className="p-2 bg-blue-100 border border-blue-300 rounded mb-4">
-                  <p>Current tab: <span id="current-tab">appearance</span></p>
-                  <p>Preferences loaded: {preferences ? 'Yes' : 'No'}</p>
-                  <p>Sidebar preferences: {JSON.stringify(preferences?.sidebar)}</p>
-                </div>
                 <TabsContent value="appearance" className="space-y-6">
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <PersonalColorPicker 
@@ -417,38 +413,40 @@ export function UserPreferencesModal({ isOpen, onOpenChange, user }: UserPrefere
                   </Card>
                 </TabsContent>
 
-                {/* Sidebar Tab */}
-                <TabsContent value="sidebar" className="space-y-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Layout className="w-5 h-5" />
-                        Sidebar Preferences
-                      </CardTitle>
-                      <CardDescription>
-                        Configure sidebar display and information preferences
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                      {/* Show Assigned Positions Switch */}
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-1">
-                          <Label htmlFor="modal-showAssignedPositions" className="text-sm font-medium">
-                            Show Assigned Positions
-                          </Label>
-                          <p className="text-sm text-muted-foreground">
-                            Display assigned open positions in the main sidebar with headcount information
-                          </p>
+                {/* Sidebar Tab - Only for Recruiters */}
+                {isRecruiter && (
+                  <TabsContent value="sidebar" className="space-y-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Layout className="w-5 h-5" />
+                          Sidebar Preferences
+                        </CardTitle>
+                        <CardDescription>
+                          Configure sidebar display and information preferences
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-6">
+                        {/* Show Assigned Positions Switch */}
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-1">
+                            <Label htmlFor="modal-showAssignedPositions" className="text-sm font-medium">
+                              Show Assigned Positions
+                            </Label>
+                            <p className="text-sm text-muted-foreground">
+                              Display assigned open positions in the main sidebar with headcount information
+                            </p>
+                          </div>
+                          <Switch
+                            id="modal-showAssignedPositions"
+                            checked={preferences?.sidebar?.showAssignedPositions || false}
+                            onCheckedChange={(checked) => updateSidebarPreferences({ showAssignedPositions: checked })}
+                          />
                         </div>
-                        <Switch
-                          id="modal-showAssignedPositions"
-                          checked={preferences?.sidebar?.showAssignedPositions || false}
-                          onCheckedChange={(checked) => updateSidebarPreferences({ showAssignedPositions: checked })}
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                )}
               </div>
             </Tabs>
 

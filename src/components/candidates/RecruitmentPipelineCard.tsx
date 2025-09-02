@@ -452,7 +452,7 @@ export function RecruitmentPipelineCard({
                                 } else {
                                   // For passed stages, find the next stage record to calculate duration
                                   const nextStageRecord = localTransitionHistory
-                                    .filter(record => record.stage !== stage.name)
+                                    .filter(record => record.stage !== stage.id)
                                     .find(record => {
                                       const recordDate = new Date(record.date);
                                       return recordDate > stageDate;

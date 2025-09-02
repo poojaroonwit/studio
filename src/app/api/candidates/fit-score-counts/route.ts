@@ -50,15 +50,17 @@ export async function GET(request: NextRequest) {
       const placeholders: string[] = [];
       for (const v of values) {
         placeholders.push(`$${paramIndex++}`);
+        // Treat UUIDs and text values as strings; only cast to number when explicitly needed
         queryParams.push(cast === 'int' ? Number(v) : v);
       }
       whereClauses.push(`${column} IN (${placeholders.join(', ')})`);
     };
 
-    appendInClause('c."positionId"', searchParams.get('positionId'), 'int');
+    // All these IDs are UUIDs in the schema; pass as text parameters
+    appendInClause('c."positionId"', searchParams.get('positionId'), 'text');
     appendInClause('c.status', searchParams.get('status'), 'text');
-    appendInClause('c."recruiterId"', searchParams.get('recruiterId'), 'int');
-    appendInClause('c."sourceId"', searchParams.get('sourceId'), 'int');
+    appendInClause('c."recruiterId"', searchParams.get('recruiterId'), 'text');
+    appendInClause('c."sourceId"', searchParams.get('sourceId'), 'text');
 
     const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
 

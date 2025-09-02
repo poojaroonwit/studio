@@ -149,6 +149,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   const session = await getServerSession(authOptions);
   const actingUserId = session?.user?.id;
   const actingUserName = session?.user?.name || session?.user?.email || 'System';
+  const actingUserRole = session?.user?.role;
+  const modulePermissions: string[] = session?.user?.modulePermissions || [];
 
   if (!actingUserId) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
@@ -184,6 +186,21 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     const existingPosition = existingResult.rows[0];
     const oldRecruiterId = existingPosition.recruiterId;
+
+    // Authorization: allow Admin, or users with POSITIONS_* module permissions.
+    // Additionally, allow the assigned recruiter to edit non-recruiter fields of their own positions.
+    const isAdmin = actingUserRole === 'Admin';
+    const isAssignedRecruiter = existingPosition.recruiterId && existingPosition.recruiterId === actingUserId;
+    const modulePermissions: string[] = session?.user?.modulePermissions || [];
+    const wantsToChangeRecruiter = Object.prototype.hasOwnProperty.call(updateData, 'recruiterId');
+
+    const canEditBasic = isAdmin || modulePermissions.includes('POSITIONS_EDIT_BASIC') || isAssignedRecruiter;
+    const canAssignRecruiter = isAdmin || modulePermissions.includes('POSITIONS_RECRUITER_ASSIGN');
+
+    if (wantsToChangeRecruiter && !canAssignRecruiter) {
+      await client.query('ROLLBACK');
+      return NextResponse.json({ message: 'Forbidden: insufficient permissions to assign recruiter' }, { status: 403 });
+    }
 
     // If recruiterId is provided, validate that the user exists and is a recruiter
     if (updateData.recruiterId) {
@@ -267,6 +284,24 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       RETURNING *;
     `;
     updateValues.push(id);
+
+    // If the user is only the assigned recruiter (not admin/module), prevent them from changing restricted fields
+    if (!canAssignRecruiter && wantsToChangeRecruiter) {
+      await client.query('ROLLBACK');
+      return NextResponse.json({ message: 'Forbidden: insufficient permissions to assign recruiter' }, { status: 403 });
+    }
+    if (!isAdmin && isAssignedRecruiter) {
+      const restrictedKeys = ['title', 'department', 'gradeId', 'hiringDate', 'positionAttribute', 'positionLevel', 'isOpen', 'matchCriteria', 'description'];
+      const tryingRestricted = Object.keys(updateData).some((k) => restrictedKeys.includes(k));
+      if (tryingRestricted) {
+        // Assigned recruiters can edit only custom attributes on their positions, not structural fields
+        const onlyCustomAttributes = Object.keys(updateData).every((k) => k === 'custom_attributes');
+        if (!onlyCustomAttributes) {
+          await client.query('ROLLBACK');
+          return NextResponse.json({ message: 'Forbidden: assigned recruiter may only edit custom attributes' }, { status: 403 });
+        }
+      }
+    }
 
     const updateResult = await client.query(updateQuery, updateValues);
     

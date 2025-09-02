@@ -10,9 +10,8 @@
 
 const fs = require('fs');
 const path = require('path');
-const { glob } = require('glob');
 
-// Patterns to search for and replace - ONLY for Candidate-related operations
+// Simple patterns to search for and replace - ONLY for Candidate-related operations
 const patterns = [
   // Direct field access on candidate objects
   { from: /candidate\.statusId/g, to: 'candidate.status' },
@@ -21,60 +20,17 @@ const patterns = [
   { from: /updatedCandidate\.statusId/g, to: 'updatedCandidate.status' },
   { from: /newCandidate\.statusId/g, to: 'newCandidate.status' },
   { from: /candidateData\.statusId/g, to: 'candidateData.status' },
-  
-  // In object destructuring for candidates
-  { from: /statusId:\s*candidate\.statusId/g, to: 'status: candidate.status' },
-  { from: /statusId:\s*existing\.statusId/g, to: 'status: existing.status' },
-  { from: /statusId:\s*updatedCandidate\.statusId/g, to: 'status: updatedCandidate.status' },
-  { from: /statusId:\s*newCandidate\.statusId/g, to: 'status: newCandidate.status' },
-  
-  // In object literals for candidates
-  { from: /statusId:\s*candidate\.statusId/g, to: 'status: candidate.status' },
-  { from: /statusId:\s*existing\.statusId/g, to: 'status: existing.status' },
-  { from: /statusId:\s*updatedCandidate\.statusId/g, to: 'status: updatedCandidate.status' },
-  { from: /statusId:\s*newCandidate\.statusId/g, to: 'status: newCandidate.status' },
-  
-  // In filter conditions for candidates
-  { from: /candidate\.statusId\s*===/g, to: 'candidate.status ===' },
-  { from: /candidate\.statusId\s*!==/g, to: 'candidate.status !==' },
-  { from: /candidate\.statusId\s*&&/g, to: 'candidate.status &&' },
-  { from: /candidate\.statusId\s*\|\|/g, to: 'candidate.status ||' },
-  { from: /c\.statusId\s*===/g, to: 'c.status ===' },
-  { from: /c\.statusId\s*!==/g, to: 'c.status !==' },
-  
-  // In SQL queries specifically for candidate tables (be more specific)
-  { from: /c\.statusId\s*=/g, to: 'c."status" =' },
-  { from: /c\.statusId\s*IN/g, to: 'c."status" IN' },
-  { from: /c\.statusId\s*IS/g, to: 'c."status" IS' },
-  
-  // In comments specifically about candidate status
-  { from: /\/\/\s*candidate.*statusId.*UUID/g, to: '// candidate status UUID' },
-  { from: /\/\/\s*candidate.*statusId.*field/g, to: '// candidate status field' },
-  
-  // In variable names specifically for candidate status
-  { from: /\bcandidateStatusIdColumn\b/g, to: 'candidateStatusColumn' },
-  { from: /\bcandidateStatusIdField\b/g, to: 'candidateStatusField' },
 ];
 
-// Files to process
-const filePatterns = [
-  'src/components/**/*.tsx',
-  'src/components/**/*.ts',
-  'src/app/**/*.ts',
-  'src/app/**/*.tsx',
-  'src/lib/**/*.ts',
-  'src/hooks/**/*.ts',
-  'src/hooks/**/*.tsx'
-];
-
-// Files to exclude
-const excludePatterns = [
-  '**/node_modules/**',
-  '**/dist/**',
-  '**/.next/**',
-  '**/*.d.ts',
-  '**/types.ts', // Already updated
-  '**/fix-candidate-status-uuid.js' // Already updated
+// Only process essential files to avoid build issues
+const essentialFiles = [
+  'src/components/candidates/**/*.tsx',
+  'src/components/candidates/**/*.ts',
+  'src/app/api/candidates/**/*.ts',
+  'src/app/api/v1/candidates/**/*.ts',
+  'src/lib/candidateUtils.ts',
+  'src/hooks/use-candidate-*.ts',
+  'src/hooks/use-candidate-*.tsx'
 ];
 
 async function updateFile(filePath) {
@@ -96,7 +52,6 @@ async function updateFile(filePath) {
       console.log(`✅ Updated: ${filePath}`);
       return true;
     } else {
-      console.log(`ℹ️  No changes needed: ${filePath}`);
       return false;
     }
   } catch (error) {
@@ -106,26 +61,29 @@ async function updateFile(filePath) {
 }
 
 async function main() {
-  console.log('🚀 Starting component update to use status field (Candidates)...\n');
-  console.log('📝 This migration will update Candidate-related statusId references to status');
-  console.log('📝 Preserving status fields in UploadQueue, Headcount, and other models\n');
+  console.log('🚀 Starting targeted component update to use status field...\n');
   
   try {
-    // Find all matching files
-    const files = await glob(filePatterns, { ignore: excludePatterns });
-    console.log(`📁 Found ${files.length} files to process\n`);
-    
     let updatedCount = 0;
     let errorCount = 0;
     
-    // Process each file
-    for (const file of files) {
-      const result = await updateFile(file);
-      if (result === true) {
-        updatedCount++;
-      } else if (result === false && file.includes('status')) {
-        // Check if file might need manual review
-        console.log(`🔍 Manual review recommended: ${file}`);
+    // Process only essential candidate-related files
+    for (const filePattern of essentialFiles) {
+      try {
+        const files = await glob(filePattern, { 
+          ignore: ['**/node_modules/**', '**/dist/**', '**/.next/**'] 
+        });
+        
+        for (const file of files) {
+          if (fs.existsSync(file)) {
+            const result = await updateFile(file);
+            if (result === true) {
+              updatedCount++;
+            }
+          }
+        }
+      } catch (error) {
+        console.log(`⚠️  Skipping pattern ${filePattern}: ${error.message}`);
       }
     }
     
@@ -133,19 +91,39 @@ async function main() {
     console.log(`📊 Summary:`);
     console.log(`✅ Files updated: ${updatedCount}`);
     console.log(`❌ Errors: ${errorCount}`);
-    console.log(`📁 Total files processed: ${files.length}`);
-    
-    if (updatedCount > 0) {
-      console.log(`\n📝 Next steps:`);
-      console.log(`1. Review the changes in the updated files`);
-      console.log(`2. Test the application to ensure everything works`);
-      console.log(`3. Verify that UploadQueue and Headcount status fields are preserved`);
-      console.log(`4. Verify that Candidate status references are working correctly`);
-    }
     
   } catch (error) {
     console.error('❌ Fatal error:', error);
+    process.exit(1);
   }
+}
+
+// Simple glob implementation to avoid dependency issues
+async function glob(pattern, options = {}) {
+  const { ignore = [] } = options;
+  const files = [];
+  
+  function walkDir(dir, pattern) {
+    if (!fs.existsSync(dir)) return;
+    
+    const items = fs.readdirSync(dir);
+    for (const item of items) {
+      const fullPath = path.join(dir, item);
+      const stat = fs.statSync(fullPath);
+      
+      if (stat.isDirectory()) {
+        walkDir(fullPath, pattern);
+      } else if (stat.isFile() && pattern.includes('**')) {
+        const relativePath = path.relative('.', fullPath);
+        if (relativePath.includes('candidates') && (relativePath.endsWith('.ts') || relativePath.endsWith('.tsx'))) {
+          files.push(relativePath);
+        }
+      }
+    }
+  }
+  
+  walkDir('src', pattern);
+  return files;
 }
 
 if (require.main === module) {

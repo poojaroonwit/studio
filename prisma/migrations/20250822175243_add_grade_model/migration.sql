@@ -22,8 +22,7 @@ ADD COLUMN     "gradeId" UUID,
 ADD COLUMN     "hiringDate" TIMESTAMP(3),
 ADD COLUMN     "positionAttribute" TEXT;
 
--- CreateTable
-CREATE TABLE "Grade" (
+CREATE TABLE IF NOT EXISTS "Grade" (
     "id" UUID NOT NULL,
     "name" TEXT NOT NULL,
     "label" TEXT,
@@ -35,25 +34,27 @@ CREATE TABLE "Grade" (
     "is_active" BOOLEAN NOT NULL DEFAULT true,
     "sort_order" INTEGER NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "Grade_pkey" PRIMARY KEY ("id")
 );
 
--- CreateIndex
-CREATE UNIQUE INDEX "Grade_name_key" ON "Grade"("name");
+CREATE UNIQUE INDEX IF NOT EXISTS "Grade_name_key" ON "Grade"("name");
 
--- CreateIndex
-CREATE INDEX "Grade_min_level_idx" ON "Grade"("min_level");
+CREATE INDEX IF NOT EXISTS "Grade_min_level_idx" ON "Grade"("min_level");
 
--- CreateIndex
-CREATE INDEX "Grade_max_level_idx" ON "Grade"("max_level");
+CREATE INDEX IF NOT EXISTS "Grade_max_level_idx" ON "Grade"("max_level");
 
--- CreateIndex
-CREATE INDEX "Grade_is_active_idx" ON "Grade"("is_active");
+CREATE INDEX IF NOT EXISTS "Grade_is_active_idx" ON "Grade"("is_active");
 
--- CreateIndex
-CREATE INDEX "Grade_sort_order_idx" ON "Grade"("sort_order");
+CREATE INDEX IF NOT EXISTS "Grade_sort_order_idx" ON "Grade"("sort_order");
 
--- AddForeignKey
-ALTER TABLE "Position" ADD CONSTRAINT "Position_gradeId_fkey" FOREIGN KEY ("gradeId") REFERENCES "Grade"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints tc
+    WHERE tc.table_schema = 'public' AND tc.table_name = 'Position' AND tc.constraint_name = 'Position_gradeId_fkey'
+  ) THEN
+    ALTER TABLE "Position" ADD CONSTRAINT "Position_gradeId_fkey" FOREIGN KEY ("gradeId") REFERENCES "Grade"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+  END IF;
+END$$;

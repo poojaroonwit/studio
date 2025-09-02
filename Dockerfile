@@ -30,14 +30,7 @@ RUN dos2unix ./entrypoint.sh ./entrypoint-processor.sh 2>/dev/null || true
 # Debug: check if src/lib/db.ts exists
 RUN ls -l src/lib/db.ts || (echo 'src/lib/db.ts not found!' && exit 1)
 
-# Run database rename script before Prisma generate
-RUN echo "🔧 Running database rename script..." && \
-    echo "#!/bin/sh" > /app/rename-status-column.sh && \
-    echo "echo 'Renaming status column to statusId...'" >> /app/rename-status-column.sh && \
-    echo "echo 'ALTER TABLE \"Candidate\" RENAME COLUMN \"status\" TO \"statusId\";' | npx prisma db execute --stdin --schema=prisma/schema.prisma || echo 'Column rename completed or not needed'" >> /app/rename-status-column.sh && \
-    chmod +x /app/rename-status-column.sh
-
-# Generate Prisma client (after column rename)
+# Generate Prisma client
 RUN npx prisma generate
 
 # Build the application (removed memory limit - let Docker manage memory)

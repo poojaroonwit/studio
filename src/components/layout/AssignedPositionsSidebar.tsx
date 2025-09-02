@@ -8,6 +8,7 @@ import { Briefcase, Loader2 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { PositionDetailDrawer } from '@/components/positions/PositionDetailDrawer';
 import { cn } from '@/lib/utils';
+import { useUserPreferences } from '@/hooks/use-user-preferences';
  
 
 interface AssignedPosition {
@@ -15,6 +16,7 @@ interface AssignedPosition {
   title: string;
   department: string;
   positionLevel?: string;
+  isOpen?: boolean;
   headcount: {
     total: number;
     vacant: number;
@@ -33,6 +35,7 @@ interface AssignedPositionsSidebarProps {
 
 export function AssignedPositionsSidebar({ className, variant = 'default' }: AssignedPositionsSidebarProps) {
   const { data: session } = useSession();
+  const { appearance } = useUserPreferences();
   const [positions, setPositions] = useState<AssignedPosition[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -135,28 +138,40 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
 
         <ScrollArea className={cn("h-[300px]", variant === 'compact' ? "px-0" : "px-3") }>
           <div className="relative">
-            <div className="pointer-events-none absolute left-1.5 top-1 bottom-6 w-px bg-border/60 rounded-full" />
-            <ul className={cn("mt-2 space-y-1 pl-4", variant === 'compact' ? "mt-1" : "")}>
+            <div className="pointer-events-none absolute left-2 top-0 bottom-0 w-[2px] bg-border/70 rounded-full" />
+            <ul className={cn("mt-2 space-y-1 pl-7", variant === 'compact' ? "mt-1" : "") }>
               {positions.slice(0, visibleCount).map((position) => (
                 <li
                   key={position.id}
-                  className={cn("flex items-center gap-2 py-1 cursor-pointer", variant === 'compact' ? "text-foreground hover:opacity-80" : "hover:text-foreground")}
+                  className={cn(
+                    "relative flex items-center gap-2 py-1 cursor-pointer before:absolute before:left-2 before:top-1/2 before:-translate-y-1/2 before:h-[2px] before:w-5 before:bg-border/70 before:rounded-full",
+                    variant === 'compact' ? "text-foreground hover:opacity-80" : "hover:text-foreground"
+                  )}
                   onClick={() => handlePositionClick(position.id)}
                   title={position.title}
                 >
-                  <span className="w-3 h-px bg-border/60 rounded-full" />
-                  <span className={cn("flex-1 min-w-0 text-sm truncate", variant === 'compact' ? "text-foreground" : "text-muted-foreground") }>
+                  <span
+                    className={cn("flex-1 min-w-0 text-sm overflow-hidden text-ellipsis whitespace-nowrap pr-2")}
+                    style={{ color: appearance?.personalColor || undefined }}
+                  >
                     {position.title}
                   </span>
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      "text-xs h-5 px-1.5 tabular-nums",
-                      variant === 'compact' ? "border-foreground/30 text-foreground" : "border-border text-muted-foreground"
-                    )}
-                  >
-                    {position.headcount.filled}/{position.headcount.total}
-                  </Badge>
+                  <span className={cn("mx-1 select-none", variant === 'compact' ? "text-foreground/60" : "text-muted-foreground/70")}>...</span>
+                  {position.isOpen === false ? null : (
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        "shrink-0 text-xs h-5 px-1.5 tabular-nums",
+                        variant === 'compact' ? "border-foreground/30" : "border-border"
+                      )}
+                      style={{
+                        borderColor: appearance?.personalColor || undefined,
+                        color: appearance?.personalColor || undefined,
+                      }}
+                    >
+                      {position.headcount.filled}/{position.headcount.total}
+                    </Badge>
+                  )}
                 </li>
               ))}
             </ul>

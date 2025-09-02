@@ -1478,7 +1478,7 @@ export default function PositionsPageClient() {
                                               >
                           {position.title}
                           {/* SLA badges inline with title */}
-                          {(() => {
+                          {position.isOpen && (() => {
                             const slaResult = checkSLAViolation(position);
                             const remaining = getSLARemainingDays(position);
                             if (slaResult && slaResult.isViolated) {

@@ -466,14 +466,16 @@ const SafeSidebarNavComponent = React.memo(() => {
               )}
             </React.Fragment>
           ))}
+          {/* Assigned positions inside the SidebarMenu list */}
+          {sidebarPreferences?.showAssignedPositions && session?.user?.role === 'Recruiter' && (
+            <SidebarMenuItem>
+              <div className="px-2">
+                <AssignedPositionsSidebar variant="compact" />
+              </div>
+            </SidebarMenuItem>
+          )}
         </SidebarMenu>
         
-        {/* Show assigned positions under Positions menu without header, matching menu style */}
-        {sidebarPreferences?.showAssignedPositions && session?.user?.role === 'Recruiter' && (
-          <div className="mt-2 mb-4 px-2">
-            <AssignedPositionsSidebar variant="compact" />
-          </div>
-        )}
         
         <div className="mt-auto">
           <SidebarSeparator className="my-2 bg-border/50" />

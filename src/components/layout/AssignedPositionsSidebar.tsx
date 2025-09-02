@@ -8,6 +8,7 @@ import { Briefcase, Loader2 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { PositionDetailDrawer } from '@/components/positions/PositionDetailDrawer';
 import { cn } from '@/lib/utils';
+import { SidebarMenuButton } from '@/components/ui/sidebar';
  
 
 interface AssignedPosition {
@@ -141,46 +142,34 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
               {positions.slice(0, visibleCount).map((position, idx) => (
                 <li key={position.id} className="relative">
                   <div
-                    className={cn(
-                      "flex items-start gap-2 cursor-pointer",
-                      variant === 'compact' ? "text-foreground hover:opacity-80" : "hover:text-foreground"
-                    )}
-                    onClick={() => handlePositionClick(position.id)}
-                    title={position.title}
+                    className={cn("flex items-start gap-2")}
                   >
-                    {/* Timeline column (node + connector) */}
-                    <div className="flex flex-col items-center w-4">
-                      <div className="w-2.5 h-2.5 rounded-full bg-background border border-border" />
-                      {idx < Math.min(visibleCount, positions.length) - 1 ? (
-                        <div className="w-px bg-border flex-1" />
-                      ) : (
-                        <div className="flex-1" />
-                      )}
-                    </div>
-
-                    {/* Content row */}
-                    <div className="flex-1 min-w-0 flex items-center">
+                    {/* Timeline column (smaller center point + continuous vertical line) */}
+                    <div className="relative flex flex-col items-center justify-center w-7">
+                      <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-px bg-border/70" />
                       <span
                         className={cn(
-                          "flex-1 min-w-0 text-sm overflow-hidden text-ellipsis whitespace-nowrap pr-2",
-                          variant === 'compact' ? "text-foreground" : "text-muted-foreground"
+                          "inline-flex items-center justify-center h-5 min-w-[24px] px-1 rounded-sm border text-[10px] tabular-nums z-10",
+                          "bg-background border-border text-muted-foreground group-hover:text-foreground group-hover:border-foreground/60"
                         )}
                       >
+                        {position.headcount.filled}/{position.headcount.total}
+                      </span>
+                    </div>
+ 
+                    {/* Content row */}
+                    <SidebarMenuButton
+                      className="w-full justify-start h-7 pr-2"
+                      size="default"
+                      onClick={() => handlePositionClick(position.id)}
+                      title={position.title}
+                    >
+                      <span className="flex-1 min-w-0 text-sm overflow-hidden text-ellipsis whitespace-nowrap pr-2">
                         {position.title}
                       </span>
-                      <span className={cn("mx-1 select-none", variant === 'compact' ? "text-foreground/60" : "text-muted-foreground/70")}>...</span>
-                      {position.isOpen === false ? null : (
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            "shrink-0 text-xs h-5 px-1.5 tabular-nums",
-                            variant === 'compact' ? "border-foreground/30 text-foreground" : "border-border text-muted-foreground"
-                          )}
-                        >
-                          {position.headcount.filled}/{position.headcount.total}
-                        </Badge>
-                      )}
-                    </div>
+                      <span className="mx-1 select-none">...</span>
+                      {/* trailing badge removed since it is shown at the timeline node */}
+                    </SidebarMenuButton>
                   </div>
                 </li>
               ))}

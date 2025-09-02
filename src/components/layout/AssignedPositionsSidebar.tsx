@@ -134,45 +134,71 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
           </>
         )}
 
-        <ScrollArea className={cn("h-[300px] overflow-x-hidden", variant === 'compact' ? "px-0" : "px-3") }>
-          <div className="relative text-foreground">
-            {/* CodeHim-like tree: vertical branches via li:before and elbows via node:after */}
-            <ul className={cn("ap-tree mt-2 space-y-1 pl-0 relative", variant === 'compact' ? "mt-1" : "") }>
-              {positions.slice(0, visibleCount).map((position) => (
-                <li
-                  key={position.id}
-                  className={cn(
-                    "ap-item group relative flex items-center gap-2 py-1 cursor-pointer w-full max-w-full pl-4",
-                    "hover:opacity-90"
-                  )}
-                  onClick={() => handlePositionClick(position.id)}
-                  title={position.title}
-                >
-                  <span
+        <ScrollArea className={cn("h-[300px]", variant === 'compact' ? "px-0" : "px-3") }>
+          <div className="relative">
+            {/* Common tree pattern: subtle vertical rail + node dots */}
+            <ul className={cn("mt-2 space-y-1 pl-0", variant === 'compact' ? "mt-1" : "") }>
+              {positions.slice(0, visibleCount).map((position, idx) => (
+                <li key={position.id} className="relative">
+                  <div
                     className={cn(
-                      "ap-node relative flex-1 min-w-0 text-sm overflow-hidden text-ellipsis whitespace-nowrap pr-2 text-inherit"
+                      "flex items-start gap-2 cursor-pointer",
+                      variant === 'compact' ? "text-foreground hover:opacity-80" : "hover:text-foreground"
                     )}
+                    onClick={() => handlePositionClick(position.id)}
+                    title={position.title}
                   >
-                    {position.title}
-                  </span>
+                    {/* Timeline column (node + connector) */}
+                    <div className="flex flex-col items-center w-4">
+                      <div className="w-2.5 h-2.5 rounded-full bg-background border border-border" />
+                      {idx < Math.min(visibleCount, positions.length) - 1 ? (
+                        <div className="w-px bg-border flex-1" />
+                      ) : (
+                        <div className="flex-1" />
+                      )}
+                    </div>
 
-                  <div className="ml-1 flex items-center gap-1 shrink-0">
-                    <span className="select-none leading-none text-foreground/60">...</span>
-                    {position.isOpen === false ? null : (
-                      <Badge
-                        variant="outline"
+                    {/* Content row */}
+                    <div className="flex-1 min-w-0 flex items-center">
+                      <span
                         className={cn(
-                          "shrink-0 text-xs h-5 px-1.5 tabular-nums border-border text-foreground/80"
+                          "flex-1 min-w-0 text-sm overflow-hidden text-ellipsis whitespace-nowrap pr-2",
+                          variant === 'compact' ? "text-foreground" : "text-muted-foreground"
                         )}
                       >
-                        {position.headcount.filled}/{position.headcount.total}
-                      </Badge>
-                    )}
+                        {position.title}
+                      </span>
+                      <span className={cn("mx-1 select-none", variant === 'compact' ? "text-foreground/60" : "text-muted-foreground/70")}>...</span>
+                      {position.isOpen === false ? null : (
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "shrink-0 text-xs h-5 px-1.5 tabular-nums",
+                            variant === 'compact' ? "border-foreground/30 text-foreground" : "border-border text-muted-foreground"
+                          )}
+                        >
+                          {position.headcount.filled}/{position.headcount.total}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 </li>
               ))}
             </ul>
           </div>
+
+          {visibleCount < positions.length && (
+            <div className="pt-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className={cn("h-6 px-2 text-xs", variant === 'compact' ? "text-foreground/80 hover:underline" : "text-primary hover:underline")}
+                onClick={() => setVisibleCount((c) => Math.min(c + 3, positions.length))}
+              >
+                Load more
+              </Button>
+            </div>
+          )}
         </ScrollArea>
       </div>
 
@@ -181,39 +207,6 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
         onOpenChange={setIsPositionDrawerOpen}
         positionId={selectedPositionId}
       />
-      <style jsx>{`
-        /* Tree core */
-        .ap-tree { position: relative; }
-        .ap-tree .ap-item { padding-bottom: 0.25rem; }
-        .ap-tree .ap-item:last-child { padding-bottom: 0; }
-        /* Vertical branch */
-        .ap-tree .ap-item:before {
-          content: '';
-          position: absolute;
-          top: 0;
-          bottom: 0;
-          left: 0.75rem; /* aligns with pl-4 */
-          border-left: 1px solid hsl(var(--border));
-        }
-        .ap-tree .ap-item:last-child:before {
-          height: 0.9rem; /* stop at last row */
-          bottom: auto;
-        }
-        /* Elbow connector */
-        .ap-tree .ap-node:after {
-          content: '';
-          position: absolute;
-          top: 0.5em;
-          left: -1.25rem; /* meets the vertical line */
-          width: 1rem;
-          height: 0.6em;
-          border-bottom: 1px solid hsl(var(--border));
-          border-left: 1px solid hsl(var(--border));
-          border-bottom-left-radius: 0.3rem;
-        }
-        /* Hover emphasis without breaking theme */
-        .ap-tree .ap-item:hover .ap-node { color: hsl(var(--foreground)); }
-      `}</style>
     </>
   );
 }

@@ -14,14 +14,14 @@ const originalConsoleInfo = console.info;
 console.log = (...args) => {
   const message = args.join(' ');
   if (!message.includes('[Fast Refresh]')) {
-    originalConsoleLog(args);
+    originalConsoleLog(...args);
   }
 };
 
 console.info = (...args) => {
   const message = args.join(' ');
   if (!message.includes('[Fast Refresh]')) {
-    originalConsoleInfo(args);
+    originalConsoleInfo(...args);
   }
 };
 

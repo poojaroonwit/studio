@@ -87,11 +87,3 @@ next-env.d.ts
 firebase-debug.log
 firestore-debug.log
 /src/generated/prisma
-
-# Keep these files for build process
-!src/**/*.ts
-!src/**/*.tsx
-!tsconfig.json
-!next.config.js
-!tailwind.config.ts
-!postcss.config.mjs

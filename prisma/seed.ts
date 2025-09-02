@@ -120,11 +120,42 @@ console.log(`Password: ${adminPassword}`);
     console.log('Assigning admin user to Admin group...');
     const adminUser = await prisma.user.findUnique({ where: { email: adminEmail } });
     if (adminUser) {
-      await prisma.user.update({
-        where: { id: adminUser.id },
-        data: { userGroupId: '00000000-0000-0000-0000-000000000001' }
+      // First, ensure the Admin group exists
+      const adminGroup = await prisma.userGroup.upsert({
+        where: { name: 'Administrators' },
+        update: {},
+        create: {
+          id: '00000000-0000-0000-0000-000000000001',
+          name: 'Administrators',
+          description: 'Full system access and management',
+          permissions: [
+            'USERS_PERMISSIONS_MANAGE', 'USER_GROUPS_EDIT', 'SYSTEM_SETTINGS_VIEW', 
+            'SYSTEM_SETTINGS_EDIT', 'LOGS_VIEW', 'UPLOAD_QUEUE_MANAGE', 
+            'CANDIDATES_VIEW', 'CANDIDATES_CREATE', 'CANDIDATES_EDIT_BASIC', 
+            'CANDIDATES_EDIT_ADVANCED', 'POSITIONS_VIEW', 'POSITIONS_CREATE', 
+            'POSITIONS_EDIT_BASIC', 'POSITIONS_EDIT_ADVANCED', 'TASK_BOARD_VIEW', 
+            'TASK_BOARD_MANAGE_OWN', 'TASK_BOARD_MANAGE_ALL'
+          ],
+          isDefault: true,
+          isSystemRole: true
+        }
       });
-      console.log('✅ Admin user assigned to Admin group');
+
+      // Assign user to the Admin group using the junction table
+      await prisma.user_UserGroup.upsert({
+        where: {
+          userId_groupId: {
+            userId: adminUser.id,
+            groupId: adminGroup.id
+          }
+        },
+        update: {},
+        create: {
+          userId: adminUser.id,
+          groupId: adminGroup.id
+        }
+      });
+      console.log('✅ Admin user assigned to Administrators group');
     }
 
     // Create basic system settings

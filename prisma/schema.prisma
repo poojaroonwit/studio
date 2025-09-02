@@ -38,6 +38,7 @@ model User {
   warningConfigurations      WarningConfiguration[]      @relation("UserWarningConfiguration")
   warningConfigurationShares WarningConfigurationShare[]
   uploadQueue                UploadQueue[]               @relation("UserUploadQueue")
+  userGroups                 User_UserGroup[]           @relation("UserUserGroups")
 
   @@index([email])
   @@index([role])
@@ -230,6 +231,7 @@ model UserGroup {
   isSystemRole Boolean  @default(false) @map("is_system_role")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  users        User_UserGroup[] @relation("UserGroupUsers")
 
   @@index([isDefault])
   @@index([isSystemRole])
@@ -721,6 +723,9 @@ model WarningSystemStatus {
 model User_UserGroup {
   userId  String @db.Uuid
   groupId String @db.Uuid
+  
+  user   User     @relation("UserUserGroups", fields: [userId], references: [id], onDelete: Cascade)
+  group  UserGroup @relation("UserGroupUsers", fields: [groupId], references: [id], onDelete: Cascade)
 
   @@id([userId, groupId])
   @@index([groupId])

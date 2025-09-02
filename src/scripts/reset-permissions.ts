@@ -167,9 +167,12 @@ async function verifyPermissions() {
         
         // Check for users without any permissions
         const usersWithoutPermissionsResult = await client.query(`
-            SELECT u.id, u.email, u."userGroupId"
+            SELECT u.id, u.email
             FROM "User" u
-            WHERE u."userGroupId" IS NULL
+            WHERE NOT EXISTS (
+                SELECT 1 FROM "User_UserGroup" uug 
+                WHERE uug."userId" = u.id
+            )
         `);
         
         const usersWithoutPermissions = usersWithoutPermissionsResult.rows;
@@ -178,6 +181,8 @@ async function verifyPermissions() {
             for (const user of usersWithoutPermissions) {
                 logWarning(`  - ${user.email} (ID: ${user.id})`);
             }
+        } else {
+            logInfo('All users have proper group assignments');
         }
         
         return true;

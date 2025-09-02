@@ -8,7 +8,6 @@ import { Briefcase, Loader2 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { PositionDetailDrawer } from '@/components/positions/PositionDetailDrawer';
 import { cn } from '@/lib/utils';
-import { useUserPreferences } from '@/hooks/use-user-preferences';
  
 
 interface AssignedPosition {
@@ -35,7 +34,6 @@ interface AssignedPositionsSidebarProps {
 
 export function AssignedPositionsSidebar({ className, variant = 'default' }: AssignedPositionsSidebarProps) {
   const { data: session } = useSession();
-  const { appearance } = useUserPreferences();
   const [positions, setPositions] = useState<AssignedPosition[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -136,42 +134,46 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
           </>
         )}
 
-        <ScrollArea className={cn("h-[300px]", variant === 'compact' ? "px-0" : "px-3") }>
+        <ScrollArea className={cn("h-[300px] overflow-x-hidden", variant === 'compact' ? "px-0" : "px-3") }>
           <div className="relative">
-            <div className="pointer-events-none absolute left-2 top-0 bottom-0 w-[2px] bg-border/70 rounded-full" />
-            <ul className={cn("mt-2 space-y-1 pl-7", variant === 'compact' ? "mt-1" : "") }>
+            {/* Common tree pattern: subtle vertical rail + node dots */}
+            <ul className={cn("mt-2 space-y-1 pl-4 border-l border-border/60 relative", variant === 'compact' ? "mt-1" : "") }>
               {positions.slice(0, visibleCount).map((position) => (
                 <li
                   key={position.id}
                   className={cn(
-                    "relative flex items-center gap-2 py-1 cursor-pointer before:absolute before:left-2 before:top-1/2 before:-translate-y-1/2 before:h-[2px] before:w-5 before:bg-border/70 before:rounded-full",
+                    "group relative flex items-center gap-2 py-1 cursor-pointer w-full max-w-full",
                     variant === 'compact' ? "text-foreground hover:opacity-80" : "hover:text-foreground"
                   )}
                   onClick={() => handlePositionClick(position.id)}
                   title={position.title}
                 >
+                  {/* Node dot sitting on the rail */}
+                  <span className="absolute -left-[5px] top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-muted-foreground/70 ring-1 ring-border group-hover:bg-foreground/70" />
+
                   <span
-                    className={cn("flex-1 min-w-0 text-sm overflow-hidden text-ellipsis whitespace-nowrap pr-2")}
-                    style={{ color: appearance?.personalColor || undefined }}
+                    className={cn(
+                      "flex-1 min-w-0 text-sm overflow-hidden text-ellipsis whitespace-nowrap pr-2",
+                      variant === 'compact' ? "text-foreground" : "text-muted-foreground"
+                    )}
                   >
                     {position.title}
                   </span>
-                  <span className={cn("mx-1 select-none", variant === 'compact' ? "text-foreground/60" : "text-muted-foreground/70")}>...</span>
-                  {position.isOpen === false ? null : (
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        "shrink-0 text-xs h-5 px-1.5 tabular-nums",
-                        variant === 'compact' ? "border-foreground/30" : "border-border"
-                      )}
-                      style={{
-                        borderColor: appearance?.personalColor || undefined,
-                        color: appearance?.personalColor || undefined,
-                      }}
-                    >
-                      {position.headcount.filled}/{position.headcount.total}
-                    </Badge>
-                  )}
+
+                  <div className="ml-1 flex items-center gap-1 shrink-0">
+                    <span className={cn("select-none leading-none", variant === 'compact' ? "text-foreground/60" : "text-muted-foreground/70")}>...</span>
+                    {position.isOpen === false ? null : (
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "shrink-0 text-xs h-5 px-1.5 tabular-nums",
+                          variant === 'compact' ? "border-foreground/30 text-foreground" : "border-border text-muted-foreground"
+                        )}
+                      >
+                        {position.headcount.filled}/{position.headcount.total}
+                      </Badge>
+                    )}
+                  </div>
                 </li>
               ))}
             </ul>

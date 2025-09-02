@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     // Check if user has permission to create position levels
     // Users should be able to create levels if they can manage positions or system settings
     if (session.user.role !== 'Admin' && 
-        !session.user.modulePermissions?.includes('POSITIONS_MANAGE') &&
+        !(session.user.modulePermissions?.includes('POSITIONS_CREATE') || session.user.modulePermissions?.includes('POSITIONS_EDIT_BASIC') || session.user.modulePermissions?.includes('POSITIONS_EDIT_DETAILED')) &&
         !session.user.modulePermissions?.includes('SYSTEM_SETTINGS_EDIT')) {
       return NextResponse.json({ message: 'Forbidden: Insufficient permissions to create position levels' }, { status: 403 });
     }

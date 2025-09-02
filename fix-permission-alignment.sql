@@ -30,8 +30,8 @@ JOIN "User_UserGroup" uug ON u.id = uug."userId"
 JOIN "UserGroup" ug ON uug."groupId" = ug.id
 LEFT JOIN LATERAL unnest(ug.permissions) AS perm ON true
 WHERE (
-    'USERS_MANAGE' = ANY(ug.permissions) OR
-    'USER_GROUPS_MANAGE' = ANY(ug.permissions) OR
+    'USERS_PERMISSIONS_MANAGE' = ANY(ug.permissions) OR
+    'USER_GROUPS_EDIT' = ANY(ug.permissions) OR
     'SYSTEM_SETTINGS_VIEW' = ANY(ug.permissions) OR
     'SYSTEM_SETTINGS_EDIT' = ANY(ug.permissions) OR
     'LOGS_VIEW' = ANY(ug.permissions) OR
@@ -48,8 +48,8 @@ WHERE id IN (
     JOIN "User_UserGroup" uug ON u.id = uug."userId"
     JOIN "UserGroup" ug ON uug."groupId" = ug.id
     WHERE (
-        'USERS_MANAGE' = ANY(ug.permissions) OR
-        'USER_GROUPS_MANAGE' = ANY(ug.permissions) OR
+        'USERS_PERMISSIONS_MANAGE' = ANY(ug.permissions) OR
+        'USER_GROUPS_EDIT' = ANY(ug.permissions) OR
         'SYSTEM_SETTINGS_VIEW' = ANY(ug.permissions) OR
         'SYSTEM_SETTINGS_EDIT' = ANY(ug.permissions) OR
         'LOGS_VIEW' = ANY(ug.permissions) OR

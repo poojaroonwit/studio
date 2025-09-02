@@ -150,15 +150,16 @@ export async function PUT(request: NextRequest) {
 
     // Check if the acting user has permission to modify the target user
     const isAdmin = session?.user?.role === 'Admin';
-    const hasUserManagePermission = session?.user?.modulePermissions?.includes('USERS_MANAGE');
+    const hasUsersEditPermission = session?.user?.modulePermissions?.includes('USERS_EDIT');
+    const hasUsersPermissionsManage = session?.user?.modulePermissions?.includes('USERS_PERMISSIONS_MANAGE');
     const isModifyingSelf = actingUserId === id;
     
     // Allow access if:
     // 1. User is Admin, OR
-    // 2. User has USERS_MANAGE permission, OR  
+    // 2. User has USERS_EDIT permission, OR  
     // 3. User is modifying their own profile (for basic fields)
-    if (!isAdmin && !hasUserManagePermission && !isModifyingSelf) {
-        await logAudit('WARN', `Forbidden attempt to update user ${id} by ${session?.user?.email || 'Unknown'} (ID: ${actingUserId}). Required: Admin role or USERS_MANAGE permission.`, 'API:Users:Update', actingUserId);
+    if (!isAdmin && !hasUsersEditPermission && !isModifyingSelf) {
+        await logAudit('WARN', `Forbidden attempt to update user ${id} by ${session?.user?.email || 'Unknown'} (ID: ${actingUserId}). Required: Admin role or USERS_EDIT permission.`, 'API:Users:Update', actingUserId);
         return NextResponse.json({ message: "Forbidden: You don't have permission to modify this user." }, { status: 403 });
     }
 
@@ -182,12 +183,10 @@ export async function PUT(request: NextRequest) {
         return NextResponse.json({ message: "No fields to update." }, { status: 400 });
     }
 
-    // Prevent non-admin users from modifying role
-    if (!isAdmin && role !== undefined) {
+    // Prevent users without proper permission from modifying role
+    if (!isAdmin && !hasUsersPermissionsManage && role !== undefined) {
         await logAudit('WARN', `Non-admin user ${session?.user?.email} attempted to modify role`, 'API:Users:Update', actingUserId);
-        return NextResponse.json({ 
-            message: "Only admin users can modify roles." 
-        }, { status: 403 });
+        return NextResponse.json({ message: "Forbidden: insufficient permissions to modify roles." }, { status: 403 });
     }
     
     try {

@@ -39,7 +39,7 @@ export function AssignedPositionsSidebar({ className }: AssignedPositionsSidebar
   const [isPositionDrawerOpen, setIsPositionDrawerOpen] = useState(false);
 
   useEffect(() => {
-    if (session?.user?.id && session.user.role === 'Recruiter') {
+    if (session?.user?.id) {
       fetchAssignedPositions();
     }
   }, [session?.user?.id, session?.user?.role]);
@@ -71,7 +71,7 @@ export function AssignedPositionsSidebar({ className }: AssignedPositionsSidebar
     setIsPositionDrawerOpen(true);
   };
 
-  if (!session?.user || session.user.role !== 'Recruiter') {
+  if (!session?.user) {
     return null;
   }
 

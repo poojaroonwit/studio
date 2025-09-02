@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
   const pageSize = parseInt(searchParams.get('pageSize') || '10');
   const skip = (page - 1) * pageSize;
 
-  const canManageUsers = userRole === 'Admin' || (session.user.modulePermissions?.includes('USERS_MANAGE') ?? false);
+  const canManageUsers = userRole === 'Admin' || (session.user.modulePermissions?.includes('USERS_VIEW') ?? false);
   const isRecruiter = userRole === 'Recruiter';
 
   // Allow all authenticated users to fetch recruiters for filtering purposes
@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
     if (filterRoleInput && filterRoleInput !== "ALL_ROLES") {
       whereConditions.role = filterRoleInput;
     } else if (!canManageUsers) {
-      // For non-admin users without USERS_MANAGE, default to showing only recruiters
+      // For non-admin users without USERS_VIEW, default to showing only recruiters
       // This allows them to use recruiter filters while maintaining security
       whereConditions.role = 'Recruiter';
     }
@@ -210,12 +210,12 @@ export async function POST(request: NextRequest) {
   }
 
   const isAdmin = session.user?.role === 'Admin';
-  const hasUserManagePermission = session.user?.modulePermissions?.includes('USERS_MANAGE');
+  const hasUserCreatePermission = session.user?.modulePermissions?.includes('USERS_CREATE');
   
-  if (!isAdmin && !hasUserManagePermission) {
-    await logAudit('WARN', `Forbidden attempt to create user by ${session?.user?.email || 'Unknown'} (ID: ${session?.user?.id || 'N/A'}). Required: Admin role or USERS_MANAGE permission.`, 'API:Users:Create', session?.user?.id);
+  if (!isAdmin && !hasUserCreatePermission) {
+    await logAudit('WARN', `Forbidden attempt to create user by ${session?.user?.email || 'Unknown'} (ID: ${session?.user?.id || 'N/A'}). Required: Admin role or USERS_CREATE permission.`, 'API:Users:Create', session?.user?.id);
     return NextResponse.json(
-      { message: "Forbidden: You must be an Admin or have USERS_MANAGE permission to create users." },
+      { message: "Forbidden: You must be an Admin or have USERS_CREATE permission to create users." },
       { status: 403 }
     );
   }

@@ -587,11 +587,11 @@ export function RedesignedUserModal({
   // Check permissions
   const modulePermissions = session?.user?.modulePermissions || [];
   const canManageUsers = Boolean(session?.user?.role === 'Admin' || 
-    modulePermissions.includes('USERS_MANAGE'));
+    modulePermissions.includes('USERS_EDIT'));
   const canForcePasswordChange = Boolean(session?.user?.role === 'Admin' || 
-    modulePermissions.includes('USERS_MANAGE'));
+    modulePermissions.includes('USERS_EDIT'));
   const canManageAuthentication = Boolean(session?.user?.role === 'Admin' || 
-    modulePermissions.includes('USERS_MANAGE'));
+    modulePermissions.includes('USERS_EDIT'));
 
   // Load user data when modal opens
   useEffect(() => {

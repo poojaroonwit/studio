@@ -232,8 +232,8 @@ export function useEnhancedCandidateUpdates() {
   
   return {
     isConnected,
-    hasMainSSE: connectionStatus.endpoints.some(e => e.id === 'main-sse' && e.isConnected),
-    hasUploadQueueSSE: connectionStatus.endpoints.some(e => e.id === 'upload-queue-sse' && e.isConnected)
+    hasMainSSE: connectionStatus.endpoints.some(e => e.id === 'main-sse' && e.isConnected)
+    // Note: upload-queue-sse endpoint has been deprecated in favor of unified SSE
   };
 }
 
@@ -251,8 +251,8 @@ export function useEnhancedUploadQueueUpdates() {
   
   return {
     isConnected,
-    hasMainSSE: connectionStatus.endpoints.some(e => e.id === 'main-sse' && e.isConnected),
-    hasUploadQueueSSE: connectionStatus.endpoints.some(e => e.id === 'upload-queue-sse' && e.isConnected)
+    hasMainSSE: connectionStatus.endpoints.some(e => e.id === 'main-sse' && e.isConnected)
+    // Note: upload-queue-sse endpoint has been deprecated in favor of unified SSE
   };
 }
 
@@ -261,8 +261,8 @@ export function useEnhancedDashboardUpdates() {
   
   return {
     isConnected,
-    hasMainSSE: connectionStatus.endpoints.some(e => e.id === 'main-sse' && e.isConnected),
-    hasDashboardStream: connectionStatus.endpoints.some(e => e.id === 'dashboard-stream' && e.isConnected)
+    hasMainSSE: connectionStatus.endpoints.some(e => e.id === 'main-sse' && e.isConnected)
+    // Note: dashboard-stream endpoint has been deprecated in favor of unified SSE
   };
 }
 

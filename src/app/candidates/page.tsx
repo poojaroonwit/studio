@@ -87,7 +87,7 @@ export default async function CandidatesPageServer() {
         
         try {
           // Fetch recruitment stages for filters
-          stagesResult = await client.query('SELECT * FROM "RecruitmentStage" ORDER BY "sort_order" ASC;');
+          stagesResult = await client.query('SELECT * FROM "RecruitmentStage" ORDER BY sort_order ASC;');
         } catch (error) {
           console.error('Error fetching recruitment stages:', error);
           throw error;

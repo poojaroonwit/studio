@@ -43,7 +43,7 @@ async function testStageFilterFix() {
     console.log('==============================');
     
     const stagesResult = await pool.query(`
-      SELECT * FROM "RecruitmentStage" ORDER BY "sortOrder"
+      SELECT * FROM "RecruitmentStage" ORDER BY "sort_order"
     `);
     
     console.log('Recruitment stages defined:');

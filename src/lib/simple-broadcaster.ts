@@ -1,7 +1,8 @@
 // Simple Broadcasting Utility
 // Easy way to send SSE events from anywhere in your application
 
-import { broadcastToAll, broadcastToUser, SSEEventType } from './simple-sse';
+import { broadcastToAll, broadcastToUser } from './unified-connection-manager';
+import type { UnifiedEventType } from './unified-connection-manager';
 
 // Candidate-related broadcasts
 export function broadcastCandidateUpdate(candidate: any, actingUserId?: string) {

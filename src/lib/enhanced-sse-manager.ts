@@ -62,6 +62,8 @@ export class EnhancedSSEManager {
 
   private initializeEndpoints() {
     // Initialize all SSE endpoints with priority order
+    // Note: Only main-sse is now active; other endpoints have been deprecated
+    // in favor of the unified SSE system
     const endpointConfigs = [
       {
         id: 'main-sse',
@@ -70,23 +72,9 @@ export class EnhancedSSEManager {
         priority: 1,
         enabled: true,
         maxRetries: 3
-      },
-      {
-        id: 'upload-queue-sse',
-        url: '/api/upload-queue/sse',
-        name: 'Upload Queue SSE',
-        priority: 2,
-        enabled: true,
-        maxRetries: 2
-      },
-      {
-        id: 'dashboard-stream',
-        url: '/api/dashboard/stream',
-        name: 'Dashboard Stream',
-        priority: 3,
-        enabled: true,
-        maxRetries: 2
       }
+      // upload-queue-sse and dashboard-stream endpoints have been deprecated
+      // and now redirect to the unified SSE endpoint at /api/sse
     ];
 
     endpointConfigs.forEach(config => {

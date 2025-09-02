@@ -58,7 +58,7 @@ BEGIN
     AND ("Candidate".status IS DISTINCT FROM sm.new_status);
 
     -- Ensure recruitment stages exist for any standardized statuses
-    INSERT INTO "RecruitmentStage" (id, name, description, "sortOrder", color_complete, color_badge)
+    INSERT INTO "RecruitmentStage" (id, name, description, "sort_order", color_complete, color_badge)
     SELECT 
       gen_random_uuid(),
       status,

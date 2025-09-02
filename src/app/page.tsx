@@ -136,7 +136,7 @@ export default async function DashboardPageServer() {
       }));
 
       // Fetch recruitment stages for stage IDs
-      const stagesQuery = 'SELECT id, name FROM "RecruitmentStage" ORDER BY "sortOrder" ASC;';
+      const stagesQuery = 'SELECT id, name FROM "RecruitmentStage" ORDER BY "sort_order" ASC;';
       const stagesResult = await client.query(stagesQuery);
       
       // Create stage IDs mapping

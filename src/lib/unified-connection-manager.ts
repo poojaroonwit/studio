@@ -106,6 +106,24 @@ export function broadcastUnifiedEvent(event: UnifiedEvent) {
   }
 }
 
+// Convenience functions for common event types
+export function broadcastToAll(eventType: UnifiedEventType, data: any) {
+  broadcastUnifiedEvent({
+    type: eventType,
+    data,
+    timestamp: new Date().toISOString()
+  });
+}
+
+export function broadcastToUser(userId: string, eventType: UnifiedEventType, data: any) {
+  broadcastUnifiedEvent({
+    type: eventType,
+    data,
+    timestamp: new Date().toISOString(),
+    targetUserId: userId
+  });
+}
+
 // Convenience functions
 export function broadcastToUser(userId: string, eventType: UnifiedEventType, data: any) {
   broadcastUnifiedEvent({

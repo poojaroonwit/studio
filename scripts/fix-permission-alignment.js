@@ -37,10 +37,13 @@ async function main() {
   console.log('🔧 Starting Permission Alignment Fix...\n');
 
   try {
-    // Get all users with their current roles and group memberships
+    // Get all users with their current roles
     const users = await prisma.user.findMany({
-      include: {
-        userGroup: true
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true
       }
     });
 
@@ -53,11 +56,29 @@ async function main() {
       console.log(`👤 Checking user: ${user.name} (${user.email})`);
       console.log(`   Current role: ${user.role}`);
 
-      // Get permissions from user group
-      const userPermissions = user.userGroup?.permissions || [];
-      const userGroupName = user.userGroup?.name || 'No group assigned';
+      // Get user's permissions through the junction table
+      const userGroupMemberships = await prisma.user_UserGroup.findMany({
+        where: { userId: user.id },
+        include: {
+          group: {
+            select: {
+              name: true,
+              permissions: true
+            }
+          }
+        }
+      });
 
-      console.log(`   User group: ${userGroupName}`);
+      // Flatten all permissions from all groups the user belongs to
+      const userPermissions = userGroupMemberships.flatMap(membership => 
+        membership.group?.permissions || []
+      );
+      
+      const userGroupNames = userGroupMemberships.map(membership => 
+        membership.group?.name || 'Unknown group'
+      ).join(', ');
+
+      console.log(`   User groups: ${userGroupNames || 'No groups assigned'}`);
       console.log(`   Total permissions: ${userPermissions.length}`);
 
       // Determine the appropriate role based on permissions

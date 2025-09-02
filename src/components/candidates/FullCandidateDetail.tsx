@@ -31,6 +31,7 @@ import { useCandidateDetail } from './hooks/useCandidateDetail';
 import { formatScoreWithGrade } from "@/lib/scoreUtils";
 import { updateCandidateStatusWithNotes } from '@/lib/candidateTransitionUtils';
 import { Badge } from '@/components/ui/badge';
+import { ScoreBadge } from '@/components/ui/score-color';
 
 // Types
 import type { Candidate, Position } from '@/lib/types';
@@ -372,9 +373,9 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
       appliedJobBadge = (
         <div className="flex items-center gap-2">
           {hasFitScore && (
-            <div className="text-sm font-medium text-primary">
+            <ScoreBadge score={appliedFitScore} className="text-sm">
               {formatScoreWithGrade(appliedFitScore)}
-            </div>
+            </ScoreBadge>
           )}
           {hasGrade && appliedPosition?.grade && (
             <Badge

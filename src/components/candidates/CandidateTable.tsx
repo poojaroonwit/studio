@@ -46,6 +46,7 @@ import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useJobMatchFeature } from '@/hooks/useJobMatchFeature';
+import { useStageColors } from '@/hooks/useStageColors';
 
 
 interface CandidateTableProps {
@@ -197,6 +198,20 @@ export function CandidateTable({
 }: CandidateTableProps) {
   const router = useRouter();
   const { isJobMatchEnabled } = useJobMatchFeature();
+  
+  // Extract unique stage IDs from candidates for color fetching
+  const uniqueStageIds = useMemo(() => {
+    const stageIds = new Set<string>();
+    candidates.forEach(candidate => {
+      if (candidate.status) {
+        stageIds.add(candidate.status);
+      }
+    });
+    return Array.from(stageIds);
+  }, [candidates]);
+
+  // Fetch stage colors using the custom hook
+  const { stageColors } = useStageColors(uniqueStageIds);
   // Ensure selectedCandidateIds is always a Set
   const safeSelectedCandidateIds = selectedCandidateIds || new Set<string>();
   const [candidateToDelete, setCandidateToDelete] = useState<Candidate | null>(null);

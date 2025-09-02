@@ -11,6 +11,7 @@ import { getPool } from '@/lib/db';
 import { logAudit } from '@/lib/auditLog';
 import { executeWithApiKeyFallback } from '@/lib/aiApiKeyManager';
 import type { Candidate, CandidateDetails, EducationEntry, ExperienceEntry, SkillEntry, JobSuitableEntry, TransitionRecord } from '@/lib/types';
+import { getRecruitmentStageName } from '@/lib/utils';
 
 // Input Schema
 const SearchCandidatesInputSchema = z.object({
@@ -37,15 +38,16 @@ function createCandidateSummary(candidate: Candidate): string {
   if (email) summaryParts.push(`Email: ${email}`);
   if (phone) summaryParts.push(`Phone: ${phone}`);
   
-  if (position?.title) summaryParts.push(`Applied for Position: ${position.title} (Fit Score: ${fitScore < 1 ? Math.round(fitScore * 100) : fitScore}%, Status: ${status})`);
-  else summaryParts.push(`General Application (Status: ${status}, Overall Fit Score: ${fitScore < 1 ? Math.round(fitScore * 100) : fitScore}%)`);
+  if (position?.title) summaryParts.push(`Applied for Position: ${position.title} (Fit Score: ${fitScore < 1 ? Math.round(fitScore * 100) : fitScore}%, Status: ${await getRecruitmentStageName(status) || status})`);
+  else summaryParts.push(`General Application (Status: ${await getRecruitmentStageName(status) || status}, Overall Fit Score: ${fitScore < 1 ? Math.round(fitScore * 100) : fitScore}%)`);
   
   if (applicationDate) summaryParts.push(`Application Date: ${new Date(applicationDate).toLocaleDateString()}`);
   if (recruiter?.name) summaryParts.push(`Assigned Recruiter: ${recruiter.name}`);
   
   const latestTransition = transitionHistory?.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
   if (latestTransition) {
-    summaryParts.push(`Last Status Update: ${latestTransition.stage} on ${new Date(latestTransition.date).toLocaleDateString()}`);
+    const stageName = await getRecruitmentStageName(latestTransition.stage) || latestTransition.stage;
+    summaryParts.push(`Last Status Update: ${stageName} on ${new Date(latestTransition.date).toLocaleDateString()}`);
   }
 
 

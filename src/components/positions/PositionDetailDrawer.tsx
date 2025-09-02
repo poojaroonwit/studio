@@ -872,7 +872,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                 )}
               </TableCell>
               <TableCell>
-                <Badge variant="outline">{candidate.status || 'New'}</Badge>
+                <StatusBadge statusId={candidate.status} />
               </TableCell>
               <TableCell>
                 <Button 
@@ -1035,7 +1035,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                 )}
               </TableCell>
               <TableCell>
-                <Badge variant="outline">{candidate.status || 'New'}</Badge>
+                <StatusBadge statusId={candidate.status} />
               </TableCell>
               <TableCell>
                 <Button 
@@ -1229,7 +1229,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                           )}
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline">{candidate.status || 'New'}</Badge>
+                          <StatusBadge statusId={candidate.status} />
                         </TableCell>
                         <TableCell>
                           <Button

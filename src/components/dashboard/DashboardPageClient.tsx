@@ -31,7 +31,7 @@ import { useEnhancedSSE } from '@/hooks/use-enhanced-sse';
 import { cn } from '@/lib/utils';
 import { useChartSetup } from '@/hooks/use-chart-setup';
 import { isDataLabelsAvailable } from '@/lib/chartjs-setup';
-import { getCommonStageIds } from '@/lib/recruitmentStageUtils';
+
 
 import '../../app/dashboard/dashboard.css';
 
@@ -43,6 +43,8 @@ interface DashboardPageClientProps {
   initialFetchError?: string;
   authError?: boolean; // Added from server
   permissionError?: boolean; // Added from server
+  initialStageIds: Record<string, string | undefined>;
+  initialStageNames: Record<string, string>;
 }
 
 const BACKLOG_EXCLUSION_STATUSES: CandidateStatus[] = []; // Will be populated with stage IDs
@@ -55,33 +57,28 @@ export default function DashboardPageClient({
   initialFetchError,
   authError: serverAuthError = false,
   permissionError: serverPermissionError = false,
+  initialStageIds,
+  initialStageNames,
 }: DashboardPageClientProps) {
-  // Get common stage IDs for status comparisons
-  const [stageIds, setStageIds] = useState<Record<string, string | undefined>>({});
-  const [stageNames, setStageNames] = useState<Record<string, string>>({});
+  // Use stage IDs from props instead of fetching them
+  const [stageIds, setStageIds] = useState<Record<string, string | undefined>>(initialStageIds);
+  const [stageNames, setStageNames] = useState<Record<string, string>>(initialStageNames);
   
   useEffect(() => {
-    const fetchStageIds = async () => {
-      try {
-        const ids = await getCommonStageIds();
-        setStageIds(ids);
-        
-        // Populate status arrays with stage IDs
-        if (ids.hired && ids.rejected && ids.offerExtended) {
-          BACKLOG_EXCLUSION_STATUSES.length = 0;
-          BACKLOG_EXCLUSION_STATUSES.push(ids.hired, ids.rejected, ids.offerExtended);
-        }
-        if (ids.interviewScheduled && ids.interviewing) {
-          INTERVIEW_STATUSES.length = 0;
-          INTERVIEW_STATUSES.push(ids.interviewScheduled, ids.interviewing);
-        }
-      } catch (error) {
-        console.error('Error fetching stage IDs:', error);
-      }
-    };
+    // Update stage IDs when props change
+    setStageIds(initialStageIds);
+    setStageNames(initialStageNames);
     
-    fetchStageIds();
-  }, []);
+    // Populate status arrays with stage IDs
+    if (initialStageIds.hired && initialStageIds.rejected && initialStageIds.offerExtended) {
+      BACKLOG_EXCLUSION_STATUSES.length = 0;
+      BACKLOG_EXCLUSION_STATUSES.push(initialStageIds.hired, initialStageIds.rejected, initialStageIds.offerExtended);
+    }
+    if (initialStageIds.interviewScheduled && initialStageIds.interviewing) {
+      INTERVIEW_STATUSES.length = 0;
+      INTERVIEW_STATUSES.push(initialStageIds.interviewScheduled, initialStageIds.interviewing);
+    }
+  }, [initialStageIds, initialStageNames]);
   
 
   
@@ -1674,7 +1671,7 @@ export default function DashboardPageClient({
                       </TableCell>
                       <TableCell>{candidate.position?.title || 'N/A'}</TableCell>
                       <TableCell>
-                        <StatusBadge statusId={candidate.status} className="capitalize" />
+                        <StatusBadge statusId={candidate.status} className="capitalize" stageNames={stageNames} />
                       </TableCell>
                       <TableCell className={getScoreColor(candidate.fitScore)}>{formatScoreWithGrade(candidate.fitScore)}</TableCell>
                     </TableRow>
@@ -1811,7 +1808,7 @@ export default function DashboardPageClient({
                           </TableCell>
                           <TableCell>{candidate.position?.title || 'N/A'}</TableCell>
                           <TableCell>
-                            <StatusBadge statusId={candidate.status} className="capitalize" />
+                            <StatusBadge statusId={candidate.status} className="capitalize" stageNames={stageNames} />
                           </TableCell>
                           <TableCell className={getScoreColor(candidate.fitScore)}>{formatScoreWithGrade(candidate.fitScore)}</TableCell>
                           <TableCell>{candidate.applicationDate ? new Date(candidate.applicationDate).toLocaleDateString() : 'N/A'}</TableCell>
@@ -1876,7 +1873,7 @@ export default function DashboardPageClient({
                           </TableCell>
                           <TableCell>{candidate.position?.title || 'N/A'}</TableCell>
                           <TableCell>
-                            <StatusBadge statusId={candidate.status} className="capitalize" />
+                            <StatusBadge statusId={candidate.status} className="capitalize" stageNames={stageNames} />
                           </TableCell>
                           <TableCell>{formatScoreWithGrade(candidate.fitScore)}</TableCell>
                         </TableRow>

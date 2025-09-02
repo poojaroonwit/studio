@@ -39,6 +39,7 @@ import { cn } from "@/lib/utils";
 
 import CandidateCommentsSection from './CandidateCommentsSection';
 import { StageSelect } from './StageSelect';
+import { getRecruitmentStageName } from '@/lib/utils';
 
 const transitionFormSchema = z.object({
   newStatus: z.string().min(1, "New status is required"),
@@ -77,6 +78,8 @@ export function ManageTransitionsModal({
   const [statusSearchQuery, setStatusSearchQuery] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [stages, setStages] = useState<RecruitmentStage[]>(initialAvailableStages || []);
+  const [currentStageName, setCurrentStageName] = useState<string>('');
+  const [deletingStageName, setDeletingStageName] = useState<string>('');
 
   // Refs for cleanup and preventing memory leaks
   const modalCloseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -89,6 +92,39 @@ export function ManageTransitionsModal({
       setStages(initialAvailableStages);
     }
   }, [initialAvailableStages]);
+
+  // Fetch current stage name when modal opens
+  useEffect(() => {
+    const fetchStageName = async () => {
+      if (candidate?.status) {
+        try {
+          const name = await getRecruitmentStageName(candidate.status);
+          setCurrentStageName(name);
+        } catch (error) {
+          console.error('Error fetching stage name:', error);
+          setCurrentStageName(candidate.status);
+        }
+      }
+    };
+    
+    if (isOpen && candidate) {
+      fetchStageName();
+    }
+  }, [isOpen, candidate]);
+
+  // Fetch stage name when setting transition to delete
+  const handleSetTransitionToDelete = useCallback(async (transition: TransitionRecord | null) => {
+    setTransitionToDelete(transition);
+    if (transition?.stage) {
+      try {
+        const name = await getRecruitmentStageName(transition.stage);
+        setDeletingStageName(name);
+      } catch (error) {
+        console.error('Error fetching stage name for deletion:', error);
+        setDeletingStageName(transition.stage);
+      }
+    }
+  }, []);
 
   const form = useForm<TransitionFormValues>({
     resolver: zodResolver(transitionFormSchema),
@@ -387,7 +423,7 @@ export function ManageTransitionsModal({
           <DialogHeader>
             <DialogTitle>Manage Transitions for {candidate.name}</DialogTitle>
             <DialogDescription>
-              Track and update the candidate&apos;s progress. Current status: <strong>{candidate.status}</strong>
+              Track and update the candidate&apos;s progress. Current status: <strong>{currentStageName}</strong>
             </DialogDescription>
           </DialogHeader>
 
@@ -451,7 +487,7 @@ export function ManageTransitionsModal({
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. Deleting this transition for stage &quot;<strong>{transitionToDelete?.stage}</strong>&quot; (dated {transitionToDelete ? format(parseISO(transitionToDelete.date), "MMM d, yyyy") : 'N/A'}) will permanently remove it.
+              This action cannot be undone. Deleting this transition for stage &quot;<strong>{deletingStageName}</strong>&quot; (dated {transitionToDelete ? format(parseISO(transitionToDelete.date), "MMM d, yyyy") : 'N/A'}) will permanently remove it.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

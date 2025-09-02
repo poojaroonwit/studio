@@ -16,6 +16,8 @@ export default async function DashboardPageServer() {
   let initialPositions: Position[] = [];
   let initialUsers: UserProfile[] = [];
   let fetchError: string | undefined = undefined;
+  let stageIds: Record<string, string | undefined> = {};
+  let stageNames: Record<string, string> = {};
 
   try {
     // Only fetch session on the server side, not during build
@@ -26,6 +28,8 @@ export default async function DashboardPageServer() {
                initialPositions={[]} 
                initialUsers={[]} 
                authError={true} 
+               initialStageIds={{}}
+               initialStageNames={{}}
              />;
     }
     
@@ -131,6 +135,28 @@ export default async function DashboardPageServer() {
         updatedAt: row.updatedAt ? row.updatedAt.toISOString() : new Date().toISOString(),
       }));
 
+      // Fetch recruitment stages for stage IDs
+      const stagesQuery = 'SELECT id, name FROM "RecruitmentStage" ORDER BY "sortOrder" ASC;';
+      const stagesResult = await client.query(stagesQuery);
+      
+      // Create stage IDs mapping
+      stagesResult.rows.forEach(row => {
+        const name = row.name.toLowerCase();
+        stageIds[name] = row.id;
+        stageNames[row.id] = row.name;
+        
+        // Map specific stage names to their IDs
+        if (name === 'applied') stageIds.applied = row.id;
+        if (name === 'screening') stageIds.screening = row.id;
+        if (name === 'shortlisted') stageIds.shortlisted = row.id;
+        if (name === 'interview scheduled') stageIds.interviewScheduled = row.id;
+        if (name === 'interviewing') stageIds.interviewing = row.id;
+        if (name === 'offer extended') stageIds.offerExtended = row.id;
+        if (name === 'hired') stageIds.hired = row.id;
+        if (name === 'on hold') stageIds.onHold = row.id;
+        if (name === 'rejected') stageIds.rejected = row.id;
+      });
+
     } finally {
       client.release();
     }
@@ -140,6 +166,8 @@ export default async function DashboardPageServer() {
              initialPositions={initialPositions} 
              initialUsers={initialUsers} 
              initialFetchError={undefined}
+             initialStageIds={stageIds}
+             initialStageNames={stageNames}
            />;
            
   } catch (error) {
@@ -149,6 +177,8 @@ export default async function DashboardPageServer() {
              initialPositions={[]} 
              initialUsers={[]} 
              initialFetchError={fetchError}
+             initialStageIds={{}}
+             initialStageNames={{}}
            />;
   }
 }

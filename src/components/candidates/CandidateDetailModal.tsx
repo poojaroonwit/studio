@@ -87,7 +87,7 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
 
   const modalContent = (
     <div
-      className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[10000] flex items-center justify-center p-4 pointer-events-auto"
+      className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[10002] flex items-center justify-center p-4 pointer-events-auto"
       onClick={handleBackdropClick}
     >
       <div

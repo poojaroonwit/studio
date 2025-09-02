@@ -2,6 +2,7 @@ import { useToastManager } from '@/hooks/use-toast-manager';
 import { useSession } from 'next-auth/react';
 import { useEnhancedSSE } from './use-enhanced-sse';
 import { useEffect, useCallback, useRef } from 'react';
+import { getRecruitmentStageName } from '@/lib/utils';
 
 interface RealtimeCollaborationOptions {
   onCandidateUpdate?: (candidate: any) => void;
@@ -101,7 +102,15 @@ export function useRealtimeCollaboration(options: RealtimeCollaborationOptions =
         
         // Show notification (but not for user's own actions)
         if (updatedCandidate.status && (!eventData.actingUserId || eventData.actingUserId !== session?.user?.id)) {
-          showNotification(`Candidate ${updatedCandidate.name} moved to ${updatedCandidate.status}`, '🔄');
+          // Fetch stage name for display
+          getRecruitmentStageName(updatedCandidate.status)
+            .then(stageName => {
+              showNotification(`Candidate ${updatedCandidate.name} moved to ${stageName}`, '🔄');
+            })
+            .catch(() => {
+              // Fallback to showing the status ID if name fetch fails
+              showNotification(`Candidate ${updatedCandidate.name} status updated`, '🔄');
+            });
         }
       }
       

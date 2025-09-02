@@ -19,8 +19,8 @@ import { getCandidatePersonalColor, getCandidateCardStyles } from "@/lib/persona
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
-import { getRecruitmentStageName } from '@/lib/recruitmentStageUtils';
-import { getStatusColorByStageId } from "@/lib/statusMapping";
+
+
 
 // Helper function to extract parsed data properties (similar to FullCandidateDetail)
 const getParsedDataProperty = (candidate: Candidate, propertyName: string) => {
@@ -41,38 +41,89 @@ const getParsedDataProperty = (candidate: Candidate, propertyName: string) => {
 };
 
 // Renders a status badge showing the human-readable stage name for a given stage ID
-export function StatusBadge({ statusId, className = '' }: { statusId?: string | null; className?: string }) {
+export function StatusBadge({ 
+  statusId, 
+  className = '', 
+  stageNames = {},
+  stageColors = {}
+}: { 
+  statusId?: string | null; 
+  className?: string;
+  stageNames?: Record<string, string>;
+  stageColors?: Record<string, string>;
+}) {
   const [stageName, setStageName] = React.useState<string | null>(null);
   const [colorClass, setColorClass] = React.useState<string>('bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-800');
+  const [localStageColors, setLocalStageColors] = React.useState<Record<string, string>>(stageColors);
+
+  // Fetch stage colors if not provided
+  React.useEffect(() => {
+    if (Object.keys(stageColors).length === 0 && statusId) {
+      const fetchStageColor = async () => {
+        try {
+          const response = await fetch(`/api/settings/recruitment-stages?ids=${statusId}`);
+          if (response.ok) {
+            const stages = await response.json();
+            const stage = stages.find((s: any) => s.id === statusId);
+            if (stage?.color_badge) {
+              setLocalStageColors({ [statusId]: stage.color_badge });
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching stage color:', error);
+        }
+      };
+      fetchStageColor();
+    } else {
+      setLocalStageColors(stageColors);
+    }
+  }, [statusId, stageColors]);
 
   useEffect(() => {
-    let isMounted = true;
-    async function load() {
-      if (!statusId) { setStageName(null); return; }
-      try {
-        const name = await getRecruitmentStageName(statusId);
-        if (isMounted) setStageName(name);
-      } catch {
-        if (isMounted) setStageName(null);
-      }
+    if (!statusId) { 
+      setStageName(null); 
+      return; 
     }
-    load();
-    return () => { isMounted = false; };
-  }, [statusId]);
+    
+    // Use stage names from props
+    if (stageNames && stageNames[statusId]) {
+      setStageName(stageNames[statusId]);
+    } else {
+      setStageName(null);
+    }
+  }, [statusId, stageNames]);
   
   useEffect(() => {
-    let isMounted = true;
-    async function loadColor() {
-      try {
-        const cls = await getStatusColorByStageId(String(statusId || ''));
-        if (isMounted) setColorClass(cls);
-      } catch {
-        if (isMounted) setColorClass('bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-800');
+    if (statusId && localStageColors[statusId]) {
+      // Use the color from the database
+      const stageColor = localStageColors[statusId];
+      // Convert hex color to appropriate Tailwind classes
+      const colorClass = `bg-[${stageColor}]/10 text-[${stageColor}] border-[${stageColor}]/20 dark:bg-[${stageColor}]/20 dark:text-[${stageColor}] dark:border-[${stageColor}]/40`;
+      setColorClass(colorClass);
+    } else if (stageName) {
+      // Fallback to hardcoded colors if no database color is found
+      const lowerStageName = stageName.toLowerCase();
+      if (lowerStageName.includes('hired') || lowerStageName.includes('offer accepted')) {
+        setColorClass('bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800');
+      } else if (lowerStageName.includes('rejected') || lowerStageName.includes('withdrawn')) {
+        setColorClass('bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800');
+      } else if (lowerStageName.includes('interview')) {
+        setColorClass('bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/20 dark:text-orange-300 dark:border-orange-800');
+      } else if (lowerStageName.includes('offer extended')) {
+        setColorClass('bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800');
+      } else if (lowerStageName.includes('shortlisted')) {
+        setColorClass('bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-900/20 dark:text-indigo-300 dark:border-indigo-800');
+      } else if (lowerStageName.includes('screening')) {
+        setColorClass('bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-800');
+      } else if (lowerStageName.includes('on hold')) {
+        setColorClass('bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800');
+      } else {
+        setColorClass('bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800');
       }
+    } else {
+      setColorClass('bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-800');
     }
-    loadColor();
-    return () => { isMounted = false; };
-  }, [statusId]);
+  }, [statusId, stageName, localStageColors]);
 
   return (
     <Badge className={cn("text-xs px-2 py-1 flex-shrink-0", className, colorClass)}>

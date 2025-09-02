@@ -986,7 +986,7 @@ export function CandidatesPageClient({
       if (filters.phone) params.append('phone', filters.phone);
       if (filters.location) params.append('location', filters.location);
       if (filters.selectedPositionIds) params.append('positionIds', filters.selectedPositionIds.join(','));
-      if (filters.selectedStatuses) params.append('statuses', filters.selectedStatuses.join(','));
+      if (filters.selectedStatuses) params.append('status', filters.selectedStatuses.join(','));
       if (filters.selectedSourceIds) params.append('sourceIds', filters.selectedSourceIds.join(','));
       if (filters.selectedRecruiterIds) params.append('recruiterIds', filters.selectedRecruiterIds.join(','));
       if (filters.skills) params.append('skills', filters.skills);

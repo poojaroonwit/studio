@@ -71,7 +71,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban'); // Default to kanban
   const [filters, setFilters] = useState<any>({});
   const [candidates, setCandidates] = useState<any[]>([]);
-  const [stages, setStages] = useState<any[]>([]);
+  const [stages, setStages] = useState<Array<{id: string, name: string, description?: string, sortOrder?: number, colorComplete?: string, colorBadge?: string, isSystem?: boolean}>>([]);
   const [recruiters, setRecruiters] = useState<any[]>([]);
   const [positions, setPositions] = useState<any[]>([]);
 
@@ -267,8 +267,17 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
           fetch('/api/positions'),
         ]);
         const stagesData = await stagesRes.json();
-        const stageNames = Array.isArray(stagesData) ? stagesData.map((s: any) => s.name) : [];
-        setStages(stageNames);
+        // Store stages with both ID and name for proper filtering
+        const stageData = Array.isArray(stagesData) ? stagesData.map((s: any) => ({
+          id: s.id,
+          name: s.name,
+          description: s.description,
+          sortOrder: s.sort_order,
+          colorComplete: s.color_complete,
+          colorBadge: s.color_badge,
+          isSystem: s.is_system
+        })) : [];
+        setStages(stageData);
         const recruitersData = await recruitersRes.json();
         // Handle the correct API response structure: { users: [...], pagination: {...} }
         const recruitersArray = recruitersData?.users || [];
@@ -356,6 +365,18 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     };
   }, [filters]);
 
+  // Update filters when selectedStages changes
+  useEffect(() => {
+    if (selectedStages.length > 0) {
+      setFilters((prev: any) => ({ ...prev, stage: selectedStages.join(',') }));
+    } else {
+      setFilters((prev: any) => {
+        const { stage, ...rest } = prev;
+        return rest;
+      });
+    }
+  }, [selectedStages]);
+
   // Filter candidates based on user role and permissions
   const filteredCandidates = useMemo(() => {
     // Defensive check to prevent temporal dead zone issues
@@ -442,13 +463,15 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   };
 
   // Convert stages to task stages
-  const convertStagesToTaskStages = (stages: string[]): TaskStage[] => {
+  const convertStagesToTaskStages = (stages: Array<{id: string, name: string, description?: string, sortOrder?: number, colorComplete?: string, colorBadge?: string, isSystem?: boolean}>): TaskStage[] => {
     return stages.map((stage, index) => ({
-      id: stage,
-      name: stage,
-      color: '#6b7280', // Default color - will be overridden by StatusBadge component
-      description: `Candidates in ${stage} stage`,
-      sortOrder: index
+      id: stage.id,
+      name: stage.name,
+      color: stage.colorBadge || '#6b7280', // Use colorBadge if available, otherwise default
+      description: stage.description || `Candidates in ${stage.name} stage`,
+      sortOrder: stage.sortOrder || index, // Use sortOrder if available, otherwise default
+      colorComplete: stage.colorComplete,
+      isSystem: stage.isSystem
     }));
   };
 
@@ -516,7 +539,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
 
   // Stage filter functions
   const handleSelectAllStages = () => {
-    setSelectedStages(stages);
+    setSelectedStages(stages.map(stage => stage.id));
   };
 
   const handleClearAllStages = () => {
@@ -548,7 +571,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       
       return stages.filter(stage => {
         try {
-          return selectedStages.includes(stage);
+          return selectedStages.includes(stage.id);
         } catch (error) {
           console.warn('MyTasksPageClient: Error filtering stage:', error, stage);
           return false;
@@ -816,15 +839,15 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                      
                      <div className="max-h-48 overflow-y-auto">
                        {stages.map((stage) => {
-                         const isSelected = selectedStages.includes(stage);
+                         const isSelected = selectedStages.includes(stage.id);
                          return (
                            <div
-                             key={stage}
+                             key={stage.id}
                              className={cn(
                                "flex items-center px-3 py-2 cursor-pointer hover:bg-accent transition-colors",
                                isSelected && "bg-accent"
                              )}
-                             onClick={() => toggleStageSelection(stage)}
+                             onClick={() => toggleStageSelection(stage.id)}
                            >
                              <div className={cn(
                                "w-4 h-4 rounded border-2 mr-3 flex items-center justify-center transition-colors",
@@ -842,7 +865,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                                "text-sm",
                                isSelected && "font-medium"
                              )}>
-                               {stage}
+                               {stage.name}
                              </span>
                            </div>
                          );

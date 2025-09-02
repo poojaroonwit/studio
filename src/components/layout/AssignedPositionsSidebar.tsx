@@ -57,9 +57,21 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
     setError(null);
     
     try {
-      const response = await fetch(`/api/positions/recruiter-assigned?recruiterId=${session.user.id}`);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 20000);
+      const response = await fetch(`/api/positions/recruiter-assigned?recruiterId=${session.user.id}` , {
+        credentials: 'include',
+        signal: controller.signal,
+        headers: { 'Accept': 'application/json' }
+      });
+      clearTimeout(timeout);
       if (!response.ok) {
-        throw new Error('Failed to fetch assigned positions');
+        let details = '';
+        try {
+          const txt = await response.text();
+          details = txt || '';
+        } catch {}
+        throw new Error(`Failed to fetch assigned positions (${response.status}) ${details}`.trim());
       }
       
       const data = await response.json();

@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
         LEFT JOIN "Headcount" h ON p.id = h."positionId"
         WHERE p."recruiterId" = $1 
           AND p."isOpen" = true
-        GROUP BY p.id, p.title, p.department, p.description, p."positionLevel", p."isOpen", p."createdAt", p."updatedAt", g.name, g.color
+        GROUP BY p.id, p.title, p.department, p.description, p."positionLevel", p."isOpen", p."createdAt", p."updatedAt", g.name, g.color, g."sla_days"
         ORDER BY p."createdAt" DESC
       `;
 

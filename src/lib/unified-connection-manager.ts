@@ -124,23 +124,7 @@ export function broadcastToUser(userId: string, eventType: UnifiedEventType, dat
   });
 }
 
-// Convenience functions
-export function broadcastToUser(userId: string, eventType: UnifiedEventType, data: any) {
-  broadcastUnifiedEvent({
-    type: eventType,
-    data,
-    timestamp: new Date().toISOString(),
-    targetUserId: userId
-  });
-}
 
-export function broadcastToAll(eventType: UnifiedEventType, data: any) {
-  broadcastUnifiedEvent({
-    type: eventType,
-    data,
-    timestamp: new Date().toISOString()
-  });
-}
 
 // Connection management
 function addUserConnection(userId: string, controller: ReadableStreamDefaultController) {

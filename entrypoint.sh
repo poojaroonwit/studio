@@ -179,6 +179,14 @@ else
     # Don't exit on warning conditions failure as it might be due to existing data
 fi
 
+# Run migration to convert status to statusId if needed
+echo "🔄 Running status to statusId migration..."
+if npm run fix:status-rename; then
+    echo "✅ Status migration completed successfully"
+else
+    echo "⚠️  Status migration failed or already completed"
+fi
+
 # Comprehensive permission setup and validation
 echo "🔐 Setting up comprehensive permission system..."
 echo "  📋 Step 1: Fixing permission alignment..."

@@ -37,6 +37,7 @@ export async function GET(request: NextRequest) {
           p."updatedAt",
           g.name as "gradeName",
           g.color as "gradeColor",
+          g."sla_days" as "gradeSlaDays",
           COUNT(h.id) as "totalHeadcount",
           COUNT(CASE WHEN h.status = 'vacant' OR h."candidateId" IS NULL THEN 1 END) as "vacantHeadcount",
           COUNT(CASE WHEN h.status != 'vacant' AND h."candidateId" IS NOT NULL THEN 1 END) as "filledHeadcount"
@@ -64,6 +65,7 @@ export async function GET(request: NextRequest) {
           name: row.gradeName,
           color: row.gradeColor
         } : null,
+        gradeSlaDays: row.gradeSlaDays ? parseInt(row.gradeSlaDays) : null,
         headcount: {
           total: parseInt(row.totalHeadcount) || 0,
           vacant: parseInt(row.vacantHeadcount) || 0,

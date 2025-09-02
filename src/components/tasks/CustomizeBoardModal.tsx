@@ -248,7 +248,7 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
   // State for actual data
   const [recruiters, setRecruiters] = useState<any[]>([]);
   const [positions, setPositions] = useState<any[]>([]);
-  const [stages, setStages] = useState<string[]>([]);
+  const [stages, setStages] = useState<Array<{id: string, name: string}>>([]);
   const [candidates, setCandidates] = useState<any[]>([]);
 
   // Fetch actual data when modal opens
@@ -273,7 +273,7 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
         const stagesRes = await fetch('/api/recruitment-stages');
         if (!stagesRes.ok) throw new Error('Failed to fetch stages');
         const stagesData = await stagesRes.json();
-        setStages(Array.isArray(stagesData) ? stagesData.map((s: any) => s.name) : []);
+        setStages(Array.isArray(stagesData) ? stagesData.map((s: any) => ({ id: s.id, name: s.name })) : []);
         // Fetch candidates to get unique values
         const candidatesRes = await fetch('/api/candidates?limit=1000');
         if (!candidatesRes.ok) throw new Error('Failed to fetch candidates');
@@ -312,7 +312,7 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
       case 'none':
         return ['No grouping'];
       case 'status':
-        return stages.length > 0 ? stages : ['Applied', 'Screening', 'Interview Scheduled', 'Interviewing', 'Offer Sent', 'Offer Accepted', 'Hired', 'Rejected', 'Withdrawn'];
+        return stages.length > 0 ? stages.map(s => s.name) : ['Applied', 'Screening', 'Interview Scheduled', 'Interviewing', 'Offer Sent', 'Offer Accepted', 'Hired', 'Rejected', 'Withdrawn'];
       case 'recruiterId':
         return recruiters.length > 0 ? recruiters.map(r => r.name || r.id) : ['No recruiters available'];
       case 'positionId':

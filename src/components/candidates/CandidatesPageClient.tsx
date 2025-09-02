@@ -1862,7 +1862,7 @@ export function CandidatesPageClient({
                 </SelectTrigger>
                 <SelectContent className="z-[100003]">
                   {availableStages.map((stage) => (
-                    <SelectItem key={stage.name} value={stage.name}>
+                    <SelectItem key={stage.id} value={stage.id}>
                       {stage.name}
                     </SelectItem>
                   ))}

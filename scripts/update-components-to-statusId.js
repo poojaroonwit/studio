@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
 /**
- * Update Components to Use statusId Instead of status for Candidates Only
+ * Update Components to Use status Instead of statusId for Candidates
  * 
- * This script updates component files to use the new statusId field name
- * instead of the old status field name ONLY for Candidate-related operations.
+ * This script updates component files to use the status field name
+ * for Candidate-related operations, maintaining consistency with the Prisma schema.
  * It preserves status fields in other models like UploadQueue and Headcount.
  */
 
@@ -15,45 +15,45 @@ const { glob } = require('glob');
 // Patterns to search for and replace - ONLY for Candidate-related operations
 const patterns = [
   // Direct field access on candidate objects
-  { from: /candidate\.status/g, to: 'candidate.statusId' },
-  { from: /c\.status/g, to: 'c.statusId' },
-  { from: /existing\.status/g, to: 'existing.statusId' },
-  { from: /updatedCandidate\.status/g, to: 'updatedCandidate.statusId' },
-  { from: /newCandidate\.status/g, to: 'newCandidate.statusId' },
-  { from: /candidateData\.status/g, to: 'candidateData.statusId' },
+  { from: /candidate\.statusId/g, to: 'candidate.status' },
+  { from: /c\.statusId/g, to: 'c.status' },
+  { from: /existing\.statusId/g, to: 'existing.status' },
+  { from: /updatedCandidate\.statusId/g, to: 'updatedCandidate.status' },
+  { from: /newCandidate\.statusId/g, to: 'newCandidate.status' },
+  { from: /candidateData\.statusId/g, to: 'candidateData.status' },
   
   // In object destructuring for candidates
-  { from: /status:\s*candidate\.status/g, to: 'status: candidate.statusId' },
-  { from: /status:\s*existing\.status/g, to: 'status: existing.statusId' },
-  { from: /status:\s*updatedCandidate\.status/g, to: 'status: updatedCandidate.statusId' },
-  { from: /status:\s*newCandidate\.status/g, to: 'status: newCandidate.statusId' },
+  { from: /statusId:\s*candidate\.statusId/g, to: 'status: candidate.status' },
+  { from: /statusId:\s*existing\.statusId/g, to: 'status: existing.status' },
+  { from: /statusId:\s*updatedCandidate\.statusId/g, to: 'status: updatedCandidate.status' },
+  { from: /statusId:\s*newCandidate\.statusId/g, to: 'status: newCandidate.status' },
   
   // In object literals for candidates
-  { from: /status:\s*candidate\.status/g, to: 'status: candidate.statusId' },
-  { from: /status:\s*existing\.status/g, to: 'status: existing.statusId' },
-  { from: /status:\s*updatedCandidate\.status/g, to: 'status: updatedCandidate.statusId' },
-  { from: /status:\s*newCandidate\.status/g, to: 'status: newCandidate.statusId' },
+  { from: /statusId:\s*candidate\.statusId/g, to: 'status: candidate.status' },
+  { from: /statusId:\s*existing\.statusId/g, to: 'status: existing.status' },
+  { from: /statusId:\s*updatedCandidate\.statusId/g, to: 'status: updatedCandidate.status' },
+  { from: /statusId:\s*newCandidate\.statusId/g, to: 'status: newCandidate.status' },
   
   // In filter conditions for candidates
-  { from: /candidate\.status\s*===/g, to: 'candidate.statusId ===' },
-  { from: /candidate\.status\s*!==/g, to: 'candidate.statusId !==' },
-  { from: /candidate\.status\s*&&/g, to: 'candidate.statusId &&' },
-  { from: /candidate\.status\s*\|\|/g, to: 'candidate.statusId ||' },
-  { from: /c\.status\s*===/g, to: 'c.statusId ===' },
-  { from: /c\.status\s*!==/g, to: 'c.statusId !==' },
+  { from: /candidate\.statusId\s*===/g, to: 'candidate.status ===' },
+  { from: /candidate\.statusId\s*!==/g, to: 'candidate.status !==' },
+  { from: /candidate\.statusId\s*&&/g, to: 'candidate.status &&' },
+  { from: /candidate\.statusId\s*\|\|/g, to: 'candidate.status ||' },
+  { from: /c\.statusId\s*===/g, to: 'c.status ===' },
+  { from: /c\.statusId\s*!==/g, to: 'c.status !==' },
   
   // In SQL queries specifically for candidate tables (be more specific)
-  { from: /c\.status\s*=/g, to: 'c."statusId" =' },
-  { from: /c\.status\s*IN/g, to: 'c."statusId" IN' },
-  { from: /c\.status\s*IS/g, to: 'c."statusId" IS' },
+  { from: /c\.statusId\s*=/g, to: 'c."status" =' },
+  { from: /c\.statusId\s*IN/g, to: 'c."status" IN' },
+  { from: /c\.statusId\s*IS/g, to: 'c."status" IS' },
   
   // In comments specifically about candidate status
-  { from: /\/\/\s*candidate.*status.*UUID/g, to: '// candidate statusId UUID' },
-  { from: /\/\/\s*candidate.*status.*field/g, to: '// candidate statusId field' },
+  { from: /\/\/\s*candidate.*statusId.*UUID/g, to: '// candidate status UUID' },
+  { from: /\/\/\s*candidate.*statusId.*field/g, to: '// candidate status field' },
   
   // In variable names specifically for candidate status
-  { from: /\bcandidateStatusColumn\b/g, to: 'candidateStatusIdColumn' },
-  { from: /\bcandidateStatusField\b/g, to: 'candidateStatusIdField' },
+  { from: /\bcandidateStatusIdColumn\b/g, to: 'candidateStatusColumn' },
+  { from: /\bcandidateStatusIdField\b/g, to: 'candidateStatusField' },
 ];
 
 // Files to process
@@ -106,8 +106,8 @@ async function updateFile(filePath) {
 }
 
 async function main() {
-  console.log('🚀 Starting targeted component update to statusId (Candidates only)...\n');
-  console.log('📝 This migration will ONLY update Candidate-related status references');
+  console.log('🚀 Starting component update to use status field (Candidates)...\n');
+  console.log('📝 This migration will update Candidate-related statusId references to status');
   console.log('📝 Preserving status fields in UploadQueue, Headcount, and other models\n');
   
   try {
@@ -129,7 +129,7 @@ async function main() {
       }
     }
     
-    console.log(`\n🎉 Targeted component update completed!`);
+    console.log(`\n🎉 Component update completed!`);
     console.log(`📊 Summary:`);
     console.log(`✅ Files updated: ${updatedCount}`);
     console.log(`❌ Errors: ${errorCount}`);
@@ -140,7 +140,7 @@ async function main() {
       console.log(`1. Review the changes in the updated files`);
       console.log(`2. Test the application to ensure everything works`);
       console.log(`3. Verify that UploadQueue and Headcount status fields are preserved`);
-      console.log(`4. Verify that Candidate statusId references are working correctly`);
+      console.log(`4. Verify that Candidate status references are working correctly`);
     }
     
   } catch (error) {

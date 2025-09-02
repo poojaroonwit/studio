@@ -139,19 +139,19 @@ model Candidate {
   sourceId                String?            @db.Uuid
   subSource               String?
   companyId               String?            @db.Uuid
-  statusId                String?            @db.Uuid
+  status                  String?            @db.Uuid
   attachments             Attachment[]
   position                Position?          @relation(fields: [positionId], references: [id])
   recruiter               User?              @relation("RecruiterCandidates", fields: [recruiterId], references: [id])
   source                  CandidateSource?   @relation(fields: [sourceId], references: [id])
-  recruitmentStage        RecruitmentStage   @relation("RecruitmentStageCandidates", fields: [statusId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  recruitmentStage        RecruitmentStage   @relation("RecruitmentStageCandidates", fields: [status], references: [id], onDelete: SetNull, onUpdate: NoAction)
   candidateComments       CandidateComment[]
   headcounts              Headcount[]        @relation("CandidateHeadcount")
   jobMatches              JobMatch[]
   transitionRecords       TransitionRecord[]
 
   @@index([email])
-  @@index([statusId])
+  @@index([status])
   @@index([positionId])
   @@index([recruiterId])
   @@index([applicationDate])

@@ -204,21 +204,10 @@ fi
 
 echo "✅ Comprehensive permission setup completed"
 
-# Run migration to convert status to statusId if needed
-echo "🔄 Running status to statusId migration..."
-if npm run fix:status-rename; then
-    echo "✅ Status migration completed successfully"
-else
-    echo "⚠️  Status migration failed or already completed"
-fi
 
-# Now generate Prisma client after database is ready
-echo "🔧 Generating Prisma client..."
-if ! npx prisma generate --schema=prisma/schema.prisma; then
-    echo "❌ ERROR: Failed to generate Prisma client"
-    exit 1
-fi
-echo "✅ Prisma client generated successfully"
+
+# Prisma client already generated during build
+echo "✅ Prisma client already generated during build"
 
 echo "✅ Database and permission setup complete!"
 

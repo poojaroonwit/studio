@@ -38,20 +38,6 @@ BEGIN
   END IF;
 END$$;
 
-INSERT INTO "Grade" ("id", "name", "label", "description", "min_level", "max_level", "sla_days", "color", "sort_order", "updatedAt")
-SELECT gen_random_uuid(), 'Grade 8+', NULL, 'ระดับเกรด 8 ขึ้นไป', 8, 999, 60, '#EF4444', 1, NOW()
-WHERE NOT EXISTS (SELECT 1 FROM "Grade" WHERE "name" = 'Grade 8+');
-
-INSERT INTO "Grade" ("id", "name", "label", "description", "min_level", "max_level", "sla_days", "color", "sort_order", "updatedAt")
-SELECT gen_random_uuid(), 'Grade 6-7', NULL, 'ระดับเกรด 6-7', 6, 7, 45, '#F59E0B', 2, NOW()
-WHERE NOT EXISTS (SELECT 1 FROM "Grade" WHERE "name" = 'Grade 6-7');
-
-INSERT INTO "Grade" ("id", "name", "label", "description", "min_level", "max_level", "sla_days", "color", "sort_order", "updatedAt")
-SELECT gen_random_uuid(), 'Grade 3-5', NULL, 'ระดับเกรด 3-5', 3, 5, 30, '#10B981', 3, NOW()
-WHERE NOT EXISTS (SELECT 1 FROM "Grade" WHERE "name" = 'Grade 3-5');
-
-INSERT INTO "Grade" ("id", "name", "label", "description", "min_level", "max_level", "sla_days", "color", "sort_order", "updatedAt")
-SELECT gen_random_uuid(), 'Grade 1-2 & Contract', NULL, 'ระดับเกรด 1-2 และพนักงานสัญญาจ้าง/รายวัน', 1, 2, 15, '#3B82F6', 4, NOW()
-WHERE NOT EXISTS (SELECT 1 FROM "Grade" WHERE "name" = 'Grade 1-2 & Contract');
+-- Seed moved to prisma/seed.ts to avoid DML in migrations that can confuse shadow DB
 
 

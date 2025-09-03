@@ -65,7 +65,12 @@ export async function GET(request: NextRequest) {
       }
       
       const whereSQL = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
-      values.push(limit, offset);
+      
+      // Validate pagination parameters (no upper limit on records)
+      const safeLimit = Math.max(limit, 1); // Minimum 1, no maximum limit
+      const safeOffset = Math.max(offset, 0);
+      
+      values.push(safeLimit, safeOffset);
       
       // Get upload queue data
       const res = await client.query(
@@ -89,10 +94,10 @@ export async function GET(request: NextRequest) {
       const summaryRes = await client.query(
         `SELECT 
           COUNT(*) as total,
-                  COUNT(*) FILTER (WHERE uq.status = 'queued') as queued,
-        COUNT(*) FILTER (WHERE uq.status = 'inprocess') as inprocess,
-        COUNT(*) FILTER (WHERE uq.status = 'success') as success,
-        COUNT(*) FILTER (WHERE uq.status = 'failed') as error
+          COUNT(*) FILTER (WHERE uq.status = 'queued') as queued,
+          COUNT(*) FILTER (WHERE uq.status = 'inprocess') as inprocess,
+          COUNT(*) FILTER (WHERE uq.status = 'success') as success,
+          COUNT(*) FILTER (WHERE uq.status = 'failed') as error
         FROM upload_queue uq 
         LEFT JOIN "Position" p ON uq.position_id = p.id 
         ${whereSQL}`,
@@ -115,10 +120,14 @@ export async function GET(request: NextRequest) {
         total,
         summary: safeSummary,
         statusSummary: safeSummary,
-        page,
-        limit,
-        offset,
-        totalPages: Math.ceil(total / limit)
+        pagination: {
+          page: Math.floor(safeOffset / safeLimit) + 1,
+          limit: safeLimit,
+          offset: safeOffset,
+          totalPages: Math.ceil(total / safeLimit),
+          hasNextPage: safeOffset + safeLimit < total,
+          hasPrevPage: safeOffset > 0
+        }
       });
       
     } finally {

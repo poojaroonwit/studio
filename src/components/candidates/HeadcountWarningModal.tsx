@@ -95,22 +95,25 @@ export function HeadcountWarningModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-amber-500" />
-            Headcount Constraint Warning
+            Status Change Blocked - Headcount Constraint
           </DialogTitle>
           <DialogDescription>
-            Cannot proceed with this action due to headcount limitations.
+            The status change to "Hired" has been blocked due to insufficient headcount availability.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="rounded-lg bg-amber-50 p-4 border border-amber-200">
+          <div className="rounded-lg bg-red-50 p-4 border border-red-200">
             <div className="flex items-start gap-3">
-              <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+              <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
               <div className="space-y-2">
-                <p className="text-sm font-medium text-amber-800">
-                  {candidateName} cannot be hired for {positionTitle || 'this position'}
+                <p className="text-sm font-medium text-red-800">
+                  Status Change Blocked
                 </p>
-                <p className="text-sm text-amber-700">
+                <p className="text-sm text-red-700">
+                  {candidateName} cannot be hired for {positionTitle || 'this position'} because there are no available headcounts.
+                </p>
+                <p className="text-sm text-red-600">
                   {errorMessage}
                 </p>
               </div>
@@ -150,6 +153,20 @@ export function HeadcountWarningModal({
               </div>
             </div>
           )}
+
+          <div className="rounded-lg bg-amber-50 p-4 border border-amber-200">
+            <div className="flex items-start gap-3">
+              <Info className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-amber-800">What You Can Do</p>
+                <ul className="text-sm text-amber-700 mt-2 space-y-1">
+                  <li>• Add more headcounts to this position</li>
+                  <li>• Assign the candidate to a different position with available headcounts</li>
+                  <li>• Wait for existing headcounts to become available</li>
+                </ul>
+              </div>
+            </div>
+          </div>
         </div>
 
         <DialogFooter className="flex gap-2">
@@ -165,7 +182,7 @@ export function HeadcountWarningModal({
                 onClose();
               }}
             >
-              Proceed Anyway
+              Proceed Anyway (Not Recommended)
             </Button>
           )}
         </DialogFooter>

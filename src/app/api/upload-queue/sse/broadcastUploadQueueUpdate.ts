@@ -35,16 +35,24 @@ export async function sendUploadQueueUpdate(controller: ReadableStreamDefaultCon
       values.push(dateEnd);
     }
     const whereSQL = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
-    values.push(limit);
-    values.push(offset);
+    
+    // Validate pagination parameters (no upper limit on records)
+    const safeLimit = Math.max(limit, 1); // Minimum 1, no maximum limit
+    const safeOffset = Math.max(offset, 0);
+    
+    values.push(safeLimit);
+    values.push(safeOffset);
+    
     const res = await client.query(
       `SELECT * FROM upload_queue ${whereSQL} ORDER BY upload_date DESC LIMIT $${paramIdx++} OFFSET $${paramIdx++}`,
       values
     );
+    
     const countRes = await client.query(
       `SELECT COUNT(*) FROM upload_queue ${whereSQL}`,
       values.slice(0, values.length - 2)
     );
+    
     // Add summary counts by status
     const summaryRes = await client.query(
       `SELECT 
@@ -57,6 +65,7 @@ export async function sendUploadQueueUpdate(controller: ReadableStreamDefaultCon
       ${whereSQL}`,
       values.slice(0, values.length - 2)
     );
+    
     const summary = summaryRes.rows[0];
     const safeSummary = {
       total: Number(summary.total) || 0,
@@ -65,10 +74,24 @@ export async function sendUploadQueueUpdate(controller: ReadableStreamDefaultCon
       success: Number(summary.success) || 0,
       error: Number(summary.error) || 0,
     };
+    
     // Fix: define total from countRes
     const total = Number(countRes.rows[0]?.count) || 0;
     
-    const data = JSON.stringify({ type: 'queue', data: res.rows, total, summary: safeSummary });
+    const data = JSON.stringify({ 
+      type: 'queue', 
+      data: res.rows, 
+      total, 
+      summary: safeSummary,
+      pagination: {
+        page: Math.floor(safeOffset / safeLimit) + 1,
+        limit: safeLimit,
+        offset: safeOffset,
+        totalPages: Math.ceil(total / safeLimit),
+        hasNextPage: safeOffset + safeLimit < total,
+        hasPrevPage: safeOffset > 0
+      }
+    });
     // console.log(`[Broadcast] Sending update with summary:`, safeSummary);
     controller.enqueue(encoder.encode(`data: ${data}\n\n`));
   } catch (error) {

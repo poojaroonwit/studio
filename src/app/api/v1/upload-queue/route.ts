@@ -236,7 +236,7 @@ export async function GET(request: NextRequest) {
     const whereSQL = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
 
     // Validate and cap limit to prevent performance issues
-    const safeLimit = Math.min(Math.max(limit, 1), 1000); // Up to 1000 for all requests
+    const safeLimit = Math.max(limit, 1); // Minimum 1, no maximum limit
     const safeOffset = Math.max(offset, 0);
 
     // Add pagination
@@ -268,10 +268,10 @@ export async function GET(request: NextRequest) {
       const summaryRes = await client.query(
         `SELECT 
           COUNT(*) as total,
-                  COUNT(*) FILTER (WHERE uq.status = 'queued') as queued,
-        COUNT(*) FILTER (WHERE uq.status = 'inprocess') as inprocess,
-        COUNT(*) FILTER (WHERE uq.status = 'success') as success,
-        COUNT(*) FILTER (WHERE uq.status = 'failed') as error
+          COUNT(*) FILTER (WHERE uq.status = 'queued') as queued,
+          COUNT(*) FILTER (WHERE uq.status = 'inprocess') as inprocess,
+          COUNT(*) FILTER (WHERE uq.status = 'success') as success,
+          COUNT(*) FILTER (WHERE uq.status = 'failed') as error
         FROM upload_queue uq 
         LEFT JOIN "Position" p ON uq.position_id = p.id 
         ${whereSQL}`,
@@ -287,23 +287,26 @@ export async function GET(request: NextRequest) {
         error: Number(summary.error) || 0,
       };
 
+      const total = Number(countRes.rows[0]?.count) || 0;
+
       // Add url field to each job
       const jobsWithUrl = dataRes.rows.map(job => ({
         ...job,
         url: job.file_path ? `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${job.file_path}` : null,
       }));
 
-  
-
-      return NextResponse.json({
-        success: true,
-        data: jobsWithUrl,
-        total: parseInt(countRes.rows[0].count, 10),
+      return NextResponse.json({ 
+        data: jobsWithUrl, 
+        total, 
         summary: safeSummary,
-        timestamp: new Date().toISOString(),
-        path: request.nextUrl.pathname,
-        method: request.method,
-        statusCode: 200
+        pagination: {
+          page: Math.floor(safeOffset / safeLimit) + 1,
+          limit: safeLimit,
+          offset: safeOffset,
+          totalPages: Math.ceil(total / safeLimit),
+          hasNextPage: safeOffset + safeLimit < total,
+          hasPrevPage: safeOffset > 0
+        }
       });
 
     } finally {

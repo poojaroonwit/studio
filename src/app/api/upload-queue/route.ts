@@ -134,8 +134,8 @@ export async function GET(request: NextRequest) {
   const dateEnd = url.searchParams.get('date_end');
   const positionId = url.searchParams.get('position_id');
 
-  // Validate and cap limit to prevent performance issues
-  const safeLimit = Math.min(Math.max(limit, 1), 1000); // Up to 1000 for all requests
+  // Validate pagination parameters (no upper limit on records)
+  const safeLimit = Math.max(limit, 1); // Minimum 1, no maximum limit
   const safeOffset = Math.max(offset, 0);
 
   // Build dynamic WHERE clause
@@ -185,53 +185,29 @@ export async function GET(request: NextRequest) {
       values
     );
 
-    // Get total count for pagination (only if needed)
-    let totalCount = 0;
-    let safeSummary = {
-      total: 0,
-      queued: 0,
-      inprocess: 0,
-      success: 0,
-      error: 0,
-    };
-
-    // For first page, get both count and summary in one query
-    if (safeOffset === 0) {
-      const summaryRes = await client.query(
-        `SELECT 
-          COUNT(*) as total,
-                  COUNT(*) FILTER (WHERE uq.status = 'queued') as queued,
+    // Get total count and summary for pagination (always get aggregate counts)
+    const summaryRes = await client.query(
+      `SELECT 
+        COUNT(*) as total,
+        COUNT(*) FILTER (WHERE uq.status = 'queued') as queued,
         COUNT(*) FILTER (WHERE uq.status = 'inprocess') as inprocess,
         COUNT(*) FILTER (WHERE uq.status = 'success') as success,
         COUNT(*) FILTER (WHERE uq.status = 'failed') as error
         FROM upload_queue uq 
+        LEFT JOIN "Position" p ON uq.position_id = p.id 
         ${whereSQL}`,
-        values.slice(0, values.length - 2)
-      );
-      const summary = summaryRes.rows[0];
-      totalCount = parseInt(summary.total, 10);
-      safeSummary = {
-        total: totalCount,
-        queued: Number(summary.queued) || 0,
-        inprocess: Number(summary.inprocess) || 0,
-        success: Number(summary.success) || 0,
-        error: Number(summary.error) || 0,
-      };
-    } else {
-      // For non-first pages, only get count if we have results
-      if (dataRes.rows.length > 0) {
-        const countRes = await client.query(
-          `SELECT COUNT(*) 
-           FROM upload_queue uq 
-           ${whereSQL}`,
-          values.slice(0, values.length - 2)
-        );
-        totalCount = parseInt(countRes.rows[0].count, 10);
-      }
-      safeSummary.total = totalCount;
-    }
-
-
+      values.slice(0, values.length - 2)
+    );
+    
+    const summary = summaryRes.rows[0];
+    const totalCount = parseInt(summary.total, 10);
+    const safeSummary = {
+      total: totalCount,
+      queued: Number(summary.queued) || 0,
+      inprocess: Number(summary.inprocess) || 0,
+      success: Number(summary.success) || 0,
+      error: Number(summary.error) || 0,
+    };
 
     // Add url field to each job
     const jobsWithUrl = dataRes.rows.map(job => ({
@@ -242,7 +218,15 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ 
       data: jobsWithUrl, 
       total: totalCount, 
-      summary: safeSummary 
+      summary: safeSummary,
+      pagination: {
+        page: Math.floor(safeOffset / safeLimit) + 1,
+        limit: safeLimit,
+        offset: safeOffset,
+        totalPages: Math.ceil(totalCount / safeLimit),
+        hasNextPage: safeOffset + safeLimit < totalCount,
+        hasPrevPage: safeOffset > 0
+      }
     });
   } catch (error) {
     console.error('Upload queue API error:', error);

@@ -104,6 +104,21 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
       console.trace('Modal state set to false');
     }
   }, [isHeadcountWarningModalOpen, headcountWarningData]);
+
+  // Ensure modal stays open when it should be open
+  useEffect(() => {
+    if (headcountWarningData && !isHeadcountWarningModalOpen) {
+      console.log('FullCandidateDetail - Modal should be open but is closed, reopening...');
+      setIsHeadcountWarningModalOpen(true);
+    }
+  }, [headcountWarningData, isHeadcountWarningModalOpen]);
+
+  // Prevent modal from being closed unexpectedly
+  const closeHeadcountWarningModal = useCallback(() => {
+    console.log('FullCandidateDetail - closeHeadcountWarningModal called - user explicitly closing modal');
+    setIsHeadcountWarningModalOpen(false);
+    setHeadcountWarningDataWithDebug(null);
+  }, []);
   
   // Selection states
   const [preselectedStage, setPreselectedStage] = useState<string | null>(null);
@@ -676,6 +691,52 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
           const originalTransitionHistory = transitionHistory;
           
           try {
+            // Check if this is a status change to "Hired" or similar hiring status
+            const isHiringStatus = status.toLowerCase().includes('hired') || 
+                                 status.toLowerCase().includes('hiring') ||
+                                 status.toLowerCase().includes('employed');
+            
+            if (isHiringStatus && candidate?.positionId) {
+              console.log('FullCandidateDetail - Attempting to update to hiring status, checking headcount availability first');
+              
+              // Check headcount availability before proceeding
+              try {
+                const response = await fetch(`/api/headcount/validate-hiring?candidateId=${candidateId}&positionId=${candidate.positionId}`);
+                const validationResult = await response.json();
+                
+                if (!validationResult.canHire) {
+                  console.log('FullCandidateDetail - Headcount not available, showing warning modal and blocking status change');
+                  
+                  // Get position title for the warning
+                  const positionTitle = allDbPositions.find(p => p.id === candidate.positionId)?.title;
+                  
+                  // Set warning data and show modal
+                  setHeadcountWarningDataWithDebug({
+                    candidateName: candidate?.name || 'Unknown Candidate',
+                    positionTitle,
+                    errorMessage: validationResult.message
+                  });
+                  
+                  // Open modal to block the status change
+                  setIsHeadcountWarningModalOpen(true);
+                  
+                  // IMPORTANT: Return early to prevent status update
+                  console.log('FullCandidateDetail - Status change blocked - returning early');
+                  return;
+                } else {
+                  console.log('FullCandidateDetail - Headcount available, proceeding with status update');
+                }
+              } catch (validationError) {
+                console.error('Error validating headcount availability:', validationError);
+                // If validation fails, show error and don't proceed
+                toast.error('Failed to validate headcount availability. Please try again.');
+                return;
+              }
+            }
+            
+            // If we reach here, either it's not a hiring status or headcount is available
+            // Proceed with normal status update logic
+            
             // Apply optimistic update immediately
             if (candidate) {
               // Optimistically update the candidate status
@@ -710,9 +771,9 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
           } catch (error: any) {
             console.error('Error updating candidate status:', error);
             
-            // Check if it's a headcount constraint error
+            // Check if it's a headcount constraint error (fallback for API-level validation)
             if (error.message && error.message.includes('Headcount constraint:')) {
-              console.log('Headcount constraint error detected, showing warning modal');
+              console.log('FullCandidateDetail - Headcount constraint error detected, showing warning modal and blocking status change');
               
               // Get position title for the warning
               const positionTitle = candidate?.positionId 
@@ -726,30 +787,28 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                 errorMessage: error.message.replace('Headcount constraint: ', '')
               });
               
-                        // Add a small delay to ensure state is properly set before opening modal
-          setTimeout(() => {
-            console.log('FullCandidateDetail - Setting modal open after delay');
-            console.log('FullCandidateDetail - Current headcountWarningData:', headcountWarningData);
-            setIsHeadcountWarningModalOpen(true);
-            console.log('FullCandidateDetail - Modal state set to true');
-          }, 100);
+              // Open modal immediately to block the status change
+              console.log('FullCandidateDetail - Opening headcount warning modal to block status change');
+              setIsHeadcountWarningModalOpen(true);
               
-              console.log('Headcount warning modal state set to true');
-            }
-            
-            // Revert optimistic updates on error
-            if (originalCandidate) {
-              // Revert candidate status to original
-              setCandidate(originalCandidate);
+              // IMPORTANT: Don't revert optimistic updates for headcount constraint errors
+              // The modal should stay open and block the change until user decides
+              console.log('FullCandidateDetail - Status change blocked by headcount constraint - modal will stay open');
+            } else {
+              // For non-headcount errors, revert optimistic updates
+              if (originalCandidate) {
+                // Revert candidate status to original
+                setCandidate(originalCandidate);
 
-              // Revert transition history to original
-              setTransitionHistory(originalTransitionHistory);
+                // Revert transition history to original
+                setTransitionHistory(originalTransitionHistory);
+              }
+              
+              // Show error toast for non-headcount errors
+              if (!suppressToast) {
+                toast.error(error?.message || 'Failed to update status.');
+              }
             }
-            
-                         // Don't show toast for headcount constraint errors - the warning modal handles this
-             if (!suppressToast && !error.message?.includes('Headcount constraint:')) {
-               toast.error(error?.message || 'Failed to update status.');
-             }
           }
         }}
         onRefreshCandidateData={async (candidateId: string) => {
@@ -828,11 +887,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
       {candidate && headcountWarningData && (
         <HeadcountWarningModal
           isOpen={isHeadcountWarningModalOpen}
-          onClose={() => {
-            console.log('HeadcountWarningModal - onClose called, closing modal and clearing data');
-            setIsHeadcountWarningModalOpen(false);
-            setHeadcountWarningDataWithDebug(null);
-          }}
+          onClose={closeHeadcountWarningModal}
           candidateName={headcountWarningData.candidateName}
           positionTitle={headcountWarningData.positionTitle}
           errorMessage={headcountWarningData.errorMessage}

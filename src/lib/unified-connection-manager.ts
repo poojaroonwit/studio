@@ -177,7 +177,12 @@ export async function getUploadQueueDataForUser(userId: string, queryParams?: an
     }
     
     const whereSQL = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
-    values.push(limit, offset);
+    
+    // Validate pagination parameters (no upper limit on records)
+    const safeLimit = Math.max(limit, 1); // Minimum 1, no maximum limit
+    const safeOffset = Math.max(offset, 0);
+    
+    values.push(safeLimit, safeOffset);
     
     // Get upload queue data
     const res = await client.query(
@@ -226,7 +231,15 @@ export async function getUploadQueueDataForUser(userId: string, queryParams?: an
       jobs: res.rows,
       total,
       summary: safeSummary,
-      statusSummary: safeSummary
+      statusSummary: safeSummary,
+      pagination: {
+        page: Math.floor(safeOffset / safeLimit) + 1,
+        limit: safeLimit,
+        offset: safeOffset,
+        totalPages: Math.ceil(total / safeLimit),
+        hasNextPage: safeOffset + safeLimit < total,
+        hasPrevPage: safeOffset > 0
+      }
     };
   });
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Move, Activity, Database, HardDrive, Cpu, Memory, Wifi, WifiOff, RefreshCw, Minimize2, Maximize2, Pin, PinOff, Copy, Check } from 'lucide-react';
+import { X, Move, Activity, Database, HardDrive, Cpu, MemoryStick, Wifi, WifiOff, RefreshCw, Minimize2, Maximize2, Pin, PinOff, Copy, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -328,169 +328,171 @@ Platform: ${metrics.system.platform}, Uptime: ${Math.round(metrics.system.uptime
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
                 </div>
               ) : metrics ? (
-            <>
-              {/* Database Connections */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="flex items-center gap-1 text-muted-foreground">
-                    <Database className="h-3 w-3" />
-                    Connections
-                  </span>
-                  <Badge 
-                    variant={metrics.connections.usagePercent > 80 ? 'destructive' : 
-                           metrics.connections.usagePercent > 60 ? 'secondary' : 'default'}
-                    className="text-xs"
-                  >
-                    {metrics.connections.usagePercent}%
-                  </Badge>
-                </div>
-                <div className="grid grid-cols-3 gap-2 text-xs">
-                  <div className="text-center p-1 rounded bg-blue-50 dark:bg-blue-950/20">
-                    <div className="font-semibold text-blue-700 dark:text-blue-300">{metrics.connections.total}</div>
-                    <div className="text-muted-foreground">Total</div>
+                <>
+                  {/* Database Connections */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="flex items-center gap-1 text-muted-foreground">
+                        <Database className="h-3 w-3" />
+                        Connections
+                      </span>
+                      <Badge 
+                        variant={metrics.connections.usagePercent > 80 ? 'destructive' : 
+                               metrics.connections.usagePercent > 60 ? 'secondary' : 'default'}
+                        className="text-xs"
+                      >
+                        {metrics.connections.usagePercent}%
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 text-xs">
+                      <div className="text-center p-1 rounded bg-blue-50 dark:bg-blue-950/20">
+                        <div className="font-semibold text-blue-700 dark:text-blue-300">{metrics.connections.total}</div>
+                        <div className="text-muted-foreground">Total</div>
+                      </div>
+                      <div className="text-center p-1 rounded bg-green-50 dark:bg-green-950/20">
+                        <div className="font-semibold text-green-700 dark:text-green-300">{metrics.connections.active}</div>
+                        <div className="text-muted-foreground">Active</div>
+                      </div>
+                      <div className="text-center p-1 rounded bg-yellow-50 dark:bg-yellow-950/20">
+                        <div className="font-semibold text-yellow-700 dark:text-yellow-300">{metrics.connections.idle}</div>
+                        <div className="text-muted-foreground">Idle</div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-center p-1 rounded bg-green-50 dark:bg-green-950/20">
-                    <div className="font-semibold text-green-700 dark:text-green-300">{metrics.connections.active}</div>
-                    <div className="text-muted-foreground">Active</div>
-                  </div>
-                  <div className="text-center p-1 rounded bg-yellow-50 dark:bg-yellow-950/20">
-                    <div className="font-semibold text-yellow-700 dark:text-yellow-300">{metrics.connections.idle}</div>
-                    <div className="text-muted-foreground">Idle</div>
-                  </div>
-                </div>
-              </div>
 
-              {/* Memory Usage */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="flex items-center gap-1 text-muted-foreground">
-                    <Memory className="h-3 w-3" />
-                    Memory
-                  </span>
-                  <Badge 
-                    variant={metrics.memory.percentage > 80 ? 'destructive' : 
-                           metrics.memory.percentage > 60 ? 'secondary' : 'default'}
-                    className="text-xs"
-                  >
-                    {metrics.memory.percentage}%
-                  </Badge>
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="text-center p-1 rounded bg-orange-50 dark:bg-orange-950/20">
-                    <div className="font-semibold text-orange-700 dark:text-orange-300">{metrics.memory.used}MB</div>
-                    <div className="text-muted-foreground">Used</div>
+                  {/* Memory Usage */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="flex items-center gap-1 text-muted-foreground">
+                        <MemoryStick className="h-3 w-3" />
+                        Memory
+                      </span>
+                      <Badge 
+                        variant={metrics.memory.percentage > 80 ? 'destructive' : 
+                               metrics.memory.percentage > 60 ? 'secondary' : 'default'}
+                        className="text-xs"
+                      >
+                        {metrics.memory.percentage}%
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="text-center p-1 rounded bg-orange-50 dark:bg-orange-950/20">
+                        <div className="font-semibold text-orange-700 dark:text-orange-300">{metrics.memory.used}MB</div>
+                        <div className="text-muted-foreground">Used</div>
+                      </div>
+                      <div className="text-center p-1 rounded bg-blue-50 dark:bg-blue-950/20">
+                        <div className="font-semibold text-blue-700 dark:text-blue-300">{metrics.memory.total}MB</div>
+                        <div className="text-muted-foreground">Total</div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-center p-1 rounded bg-blue-50 dark:bg-blue-950/20">
-                    <div className="font-semibold text-blue-700 dark:text-blue-300">{metrics.memory.total}MB</div>
-                    <div className="text-muted-foreground">Total</div>
-                  </div>
-                </div>
-              </div>
 
-              {/* CPU Usage */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="flex items-center gap-1 text-muted-foreground">
-                    <Cpu className="h-3 w-3" />
-                    CPU Load
-                  </span>
-                  <Badge 
-                    variant={metrics.cpu.load > 2 ? 'destructive' : 
-                           metrics.cpu.load > 1 ? 'secondary' : 'default'}
-                    className="text-xs"
-                  >
-                    {metrics.cpu.load.toFixed(2)}
-                  </Badge>
-                </div>
-                <div className="text-xs text-center text-muted-foreground">
-                  {metrics.cpu.cores} cores
-                </div>
-              </div>
+                  {/* CPU Usage */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="flex items-center gap-1 text-muted-foreground">
+                        <Cpu className="h-3 w-3" />
+                        CPU Load
+                      </span>
+                      <Badge 
+                        variant={metrics.cpu.load > 2 ? 'destructive' : 
+                               metrics.cpu.load > 1 ? 'secondary' : 'default'}
+                        className="text-xs"
+                      >
+                        {metrics.cpu.load.toFixed(2)}
+                      </Badge>
+                    </div>
+                    <div className="text-xs text-center text-muted-foreground">
+                      {metrics.cpu.cores} cores
+                    </div>
+                  </div>
 
-              {/* SSE Status */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="flex items-center gap-1 text-muted-foreground">
-                    {metrics.sse.status === 'connected' ? 
-                      <Wifi className="h-3 w-3 text-green-500" /> : 
-                      <WifiOff className="h-3 w-3 text-red-500" />
-                    }
-                    SSE Status
-                  </span>
-                  <Badge 
-                    variant={metrics.sse.status === 'connected' ? 'default' : 'destructive'}
-                    className="text-xs"
-                  >
-                    {metrics.sse.status}
-                  </Badge>
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="text-center p-1 rounded bg-purple-50 dark:bg-purple-950/20">
-                    <div className="font-semibold text-purple-700 dark:text-purple-300">{metrics.sse.eventCount}</div>
-                    <div className="text-muted-foreground">Events</div>
+                  {/* SSE Status */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="flex items-center gap-1 text-muted-foreground">
+                        {metrics.sse.status === 'connected' ? 
+                          <Wifi className="h-3 w-3 text-green-500" /> : 
+                          <WifiOff className="h-3 w-3 text-red-500" />
+                        }
+                        SSE Status
+                      </span>
+                      <Badge 
+                        variant={metrics.sse.status === 'connected' ? 'default' : 'destructive'}
+                        className="text-xs"
+                      >
+                        {metrics.sse.status}
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="text-center p-1 rounded bg-purple-50 dark:bg-purple-950/20">
+                        <div className="font-semibold text-purple-700 dark:text-purple-300">{metrics.sse.eventCount}</div>
+                        <div className="text-muted-foreground">Events</div>
+                      </div>
+                      <div className="text-center p-1 rounded bg-gray-50 dark:bg-gray-950/20">
+                        <div className="font-semibold text-gray-700 dark:text-gray-300">{metrics.sse.lastUpdate}</div>
+                        <div className="text-muted-foreground">Last Update</div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-center p-1 rounded bg-gray-50 dark:bg-gray-950/20">
-                    <div className="font-semibold text-gray-700 dark:text-gray-300">{metrics.sse.lastUpdate}</div>
-                    <div className="text-muted-foreground">Last Update</div>
-                  </div>
-                </div>
-              </div>
 
-              {/* Disk Usage */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="flex items-center gap-1 text-muted-foreground">
-                    <HardDrive className="h-3 w-3" />
-                    Disk
-                  </span>
-                  <Badge 
-                    variant={metrics.disk.percentage > 80 ? 'destructive' : 
-                           metrics.disk.percentage > 60 ? 'secondary' : 'default'}
-                    className="text-xs"
-                  >
-                    {metrics.disk.percentage}%
-                  </Badge>
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="text-center p-1 rounded bg-red-50 dark:bg-red-950/20">
-                    <div className="font-semibold text-red-700 dark:text-red-300">{metrics.disk.used}GB</div>
-                    <div className="text-muted-foreground">Used</div>
+                  {/* Disk Usage */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="flex items-center gap-1 text-muted-foreground">
+                        <HardDrive className="h-3 w-3" />
+                        Disk
+                      </span>
+                      <Badge 
+                        variant={metrics.disk.percentage > 80 ? 'destructive' : 
+                               metrics.disk.percentage > 60 ? 'secondary' : 'default'}
+                        className="text-xs"
+                      >
+                        {metrics.disk.percentage}%
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="text-center p-1 rounded bg-red-50 dark:bg-red-950/20">
+                        <div className="font-semibold text-red-700 dark:text-red-300">{metrics.disk.used}GB</div>
+                        <div className="text-muted-foreground">Used</div>
+                      </div>
+                      <div className="text-center p-1 rounded bg-blue-50 dark:bg-blue-950/20">
+                        <div className="font-semibold text-blue-700 dark:text-blue-300">{metrics.disk.total}GB</div>
+                        <div className="text-muted-foreground">Total</div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-center p-1 rounded bg-blue-50 dark:bg-blue-950/20">
-                    <div className="font-semibold text-blue-700 dark:text-blue-300">{metrics.disk.total}GB</div>
-                    <div className="text-muted-foreground">Total</div>
-                  </div>
-                </div>
-              </div>
 
-              {/* System Info */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="flex items-center gap-1 text-muted-foreground">
-                    <Activity className="h-3 w-3" />
-                    System
-                  </span>
+                  {/* System Info */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="flex items-center gap-1 text-muted-foreground">
+                        <Activity className="h-3 w-3" />
+                        System
+                      </span>
+                    </div>
+                    <div className="space-y-1 text-xs">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Platform:</span>
+                        <span className="font-mono">{metrics.system.platform}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Uptime:</span>
+                        <span className="font-mono">{Math.round(metrics.system.uptime / 3600)}h</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Node:</span>
+                        <span className="font-mono">{metrics.system.nodeVersion}</span>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-4 text-sm text-muted-foreground">
+                  Failed to load metrics
                 </div>
-                <div className="space-y-1 text-xs">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Platform:</span>
-                    <span className="font-mono">{metrics.system.platform}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Uptime:</span>
-                    <span className="font-mono">{Math.round(metrics.system.uptime / 3600)}h</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Node:</span>
-                    <span className="font-mono">{metrics.system.nodeVersion}</span>
-                  </div>
-                </div>
-              </div>
+              )}
             </>
-          ) : (
-            <div className="text-center py-4 text-sm text-muted-foreground">
-              Failed to load metrics
-            </div>
           )}
           
           {/* Minimized view - show key metrics only */}

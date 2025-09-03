@@ -269,35 +269,44 @@ export default function DashboardPageClient({
     } finally {
       setIsLoading(false);
     }
-  }, [status, session?.user?.id, session?.user?.role]);
+  }, [status, session?.user?.id, session?.user?.role, modulePermissions, stageIds.hired, stageIds.rejected]);
 
   // FIXED: Stabilize callback functions to prevent infinite loops and temporal dead zone issues
   const handleCandidateUpdate = useCallback((updatedCandidate: any) => {
     // Refresh dashboard data when candidates are updated
-    if (typeof fetchDataClientSide === 'function') {
-      fetchDataClientSide();
-    }
-  }, [fetchDataClientSide]);
+    // Use setTimeout to prevent rapid successive calls
+    setTimeout(() => {
+      if (status === 'authenticated' && session?.user?.id) {
+        fetchDataClientSide();
+      }
+    }, 100);
+  }, [status, session?.user?.id]);
 
   const handlePositionUpdate = useCallback((updatedPosition: any) => {
     // Refresh dashboard data when positions are updated
-    if (typeof fetchDataClientSide === 'function') {
-      fetchDataClientSide();
-    }
-  }, [fetchDataClientSide]);
+    // Use setTimeout to prevent rapid successive calls
+    setTimeout(() => {
+      if (status === 'authenticated' && session?.user?.id) {
+        fetchDataClientSide();
+      }
+    }, 100);
+  }, [status, session?.user?.id]);
 
   const handleDashboardUpdate = useCallback((dashboardData: any) => {
     // Handle specific dashboard updates
-    if (typeof fetchDataClientSide === 'function') {
-      if (dashboardData.type === 'metrics') {
-        // Refresh all data when metrics update
-        fetchDataClientSide();
-      } else if (dashboardData.type === 'chart_update') {
-        // Handle specific chart updates
-        fetchDataClientSide();
+    // Use setTimeout to prevent rapid successive calls
+    setTimeout(() => {
+      if (status === 'authenticated' && session?.user?.id) {
+        if (dashboardData.type === 'metrics') {
+          // Refresh all data when metrics update
+          fetchDataClientSide();
+        } else if (dashboardData.type === 'chart_update') {
+          // Handle specific chart updates
+          fetchDataClientSide();
+        }
       }
-    }
-  }, [fetchDataClientSide]);
+    }, 100);
+  }, [status, session?.user?.id]);
 
   const handleNotificationUpdate = useCallback((notification: any) => {
     // Handle dashboard-related notifications
@@ -339,7 +348,7 @@ export default function DashboardPageClient({
     if (initialFetchError) {
       toast.error(initialFetchError);
     }
-  }, [initialCandidates, initialPositions, initialUsers, initialFetchError, serverAuthError, serverPermissionError, status, session?.user?.role, session?.user?.modulePermissions]);
+  }, [initialCandidates, initialPositions, initialUsers, initialFetchError, serverAuthError, serverPermissionError, status, session?.user?.role, modulePermissions, stageIds.hired, stageIds.rejected]);
 
   // REMOVED: Automatic permission refresh - this was causing the loop
   // Users can manually refresh permissions if needed using the button in the UI
@@ -369,13 +378,17 @@ export default function DashboardPageClient({
                      (initialUsers && initialUsers.length > 0);
       
       if (!hasData) {
-        fetchDataClientSide();
+        // Use setTimeout to prevent rapid successive calls
+        setTimeout(() => {
+          fetchDataClientSide();
+        }, 100);
       }
     }
-  }, [status, session?.user?.id, initialCandidates, initialPositions, initialUsers, fetchDataClientSide]);
+  }, [status, session?.user?.id, initialCandidates, initialPositions, initialUsers]);
 
   useEffect(() => {
     let mounted = true;
+    let refreshTimeout: NodeJS.Timeout;
     
     // Re-enabled EventSource for real-time dashboard updates
     const eventSource = createEventSource('/api/sse');
@@ -386,16 +399,18 @@ export default function DashboardPageClient({
           const data = JSON.parse(event.data);
           console.log('[Dashboard] Received SSE event:', data);
           
-          // Handle different event types
-          if (data.type === 'candidate_update') {
-            console.log('[Dashboard] Candidate update received, refreshing data...');
-            fetchDataClientSide();
-          } else if (data.type === 'position_update') {
-            console.log('[Dashboard] Position update received, refreshing data...');
-            fetchDataClientSide();
-          } else if (data.type === 'dashboard_update') {
-            console.log('[Dashboard] Dashboard update received, refreshing data...');
-            fetchDataClientSide();
+          // Handle different event types with debouncing
+          if (data.type === 'candidate_update' || data.type === 'position_update' || data.type === 'dashboard_update') {
+            console.log('[Dashboard] Update received, scheduling data refresh...');
+            // Clear existing timeout and set new one to prevent rapid successive calls
+            if (refreshTimeout) {
+              clearTimeout(refreshTimeout);
+            }
+            refreshTimeout = setTimeout(() => {
+              if (mounted && status === 'authenticated' && session?.user?.id) {
+                fetchDataClientSide();
+              }
+            }, 500); // Debounce to 500ms
           }
         } catch (error) {
           console.error('[Dashboard] Error parsing SSE event:', error);
@@ -414,9 +429,12 @@ export default function DashboardPageClient({
     
     return () => {
       mounted = false;
+      if (refreshTimeout) {
+        clearTimeout(refreshTimeout);
+      }
       closeEventSource(eventSource);
     };
-  }, [fetchDataClientSide]);
+  }, [status, session?.user?.id]);
 
   // Optimized dashboard computations - combined related calculations to reduce render overhead
   const dashboardStats = useMemo(() => {
@@ -928,7 +946,7 @@ export default function DashboardPageClient({
             {/* Section 1: Key Statics - Row 1 */}
       <div className="space-y-6">
         <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-4">
-        {[ // Row 1 KPI cards array
+          {[ // Row 1 KPI cards array
             { // This Week's Applications
               title: "This Week's Applications",
               value: recentApplications.length,
@@ -1015,16 +1033,16 @@ export default function DashboardPageClient({
                 <div className={`p-3 rounded-xl ${stat.bgColor} group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm`}>
                   <stat.icon className={`h-6 w-6 ${stat.color} group-hover:drop-shadow-sm`} />
                 </div>
-            </CardHeader>
+              </CardHeader>
               <CardContent className="relative">
                 <div className="flex items-baseline space-x-2 justify-between">
                   <div className="flex items-baseline space-x-2">
                     <div className="text-3xl font-bold text-foreground group-hover:text-foreground transition-colors">
                       {isLoading ? (
-        <div className="flex items-center space-x-2">
+                        <div className="flex items-center space-x-2">
                           <Loader2 className="h-6 w-6 animate-spin text-primary" />
                           <span className="text-lg">...</span>
-        </div>
+                        </div>
                       ) : (
                         stat.value.toLocaleString()
                       )}
@@ -1047,13 +1065,10 @@ export default function DashboardPageClient({
                   )}
                 </div>
               </CardContent>
-          </Card>
-        ))}
-        </div>
+            </Card>
+          ))}
         </div>
       </div>
-
-
 
       {/* Section 2: Recruiter Metrics - Row 2 */}
       <div className="space-y-6">
@@ -1136,7 +1151,7 @@ export default function DashboardPageClient({
                 <div className={`p-3 rounded-xl ${stat.bgColor} group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm`}>
                   <stat.icon className={`h-6 w-6 ${stat.color} group-hover:drop-shadow-sm`} />
                 </div>
-            </CardHeader>
+              </CardHeader>
               <CardContent className="relative">
                 <div className="flex items-baseline space-x-2 justify-between">
                   <div className="flex items-baseline space-x-2">
@@ -1168,8 +1183,8 @@ export default function DashboardPageClient({
                   )}
                 </div>
               </CardContent>
-          </Card>
-        ))}
+            </Card>
+          ))}
         </div>
 
         {/* Separator */}
@@ -1356,11 +1371,11 @@ export default function DashboardPageClient({
                 <p className="text-sm text-muted-foreground mt-1">Personal recruitment metrics</p>
               </div>
             </div>
-          <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2">
               <div className="h-2 w-2 bg-purple-500 rounded-full animate-pulse"></div>
               <span className="text-xs text-muted-foreground">Personal</span>
+            </div>
           </div>
-                </div>
           
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {[
@@ -1424,11 +1439,11 @@ export default function DashboardPageClient({
                       {stat.title}
                     </CardTitle>
                     <p className="text-xs text-muted-foreground/70">{stat.description}</p>
-                </div>
+                  </div>
                   <div className={`p-3 rounded-xl ${stat.bgColor} group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm`}>
                     <stat.icon className={`h-6 w-6 ${stat.color} group-hover:drop-shadow-sm`} />
-                </div>
-              </CardHeader>
+                  </div>
+                </CardHeader>
                 <CardContent className="relative">
                   <div className="flex items-baseline space-x-2 justify-between">
                     <div className="flex items-baseline space-x-2">

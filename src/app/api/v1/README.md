@@ -78,6 +78,43 @@ Check the health status of the API and database.
 }
 ```
 
+### Job Match Status
+
+#### GET `/api/v1/job-match-status`
+Check whether the job match function is enabled or disabled.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "isJobMatchEnabled": true,
+    "settingValue": "true",
+    "defaultBehavior": "Feature is enabled by default unless explicitly set to 'false'"
+  },
+  "timestamp": "2024-01-01T00:00:00.000Z",
+  "path": "/api/v1/job-match-status",
+  "method": "GET",
+  "statusCode": 200
+}
+```
+
+**Response when disabled:**
+```json
+{
+  "success": true,
+  "data": {
+    "isJobMatchEnabled": false,
+    "settingValue": "false",
+    "defaultBehavior": "Feature is enabled by default unless explicitly set to 'false'"
+  },
+  "timestamp": "2024-01-01T00:00:00.000Z",
+  "path": "/api/v1/job-match-status",
+  "method": "GET",
+  "statusCode": 200
+}
+```
+
 ### Candidates
 
 #### GET `/api/v1/candidates`

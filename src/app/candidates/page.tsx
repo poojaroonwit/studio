@@ -54,7 +54,7 @@ export default async function CandidatesPageServer() {
             LEFT JOIN "User" r ON c."recruiterId" = r.id
             LEFT JOIN "CandidateSource" cs ON c."sourceId" = cs.id
             LEFT JOIN "RecruitmentStage" rs ON c."statusId" = rs.id
-            ORDER BY c."updatedAt" DESC
+            ORDER BY c."applicationDate" DESC
             LIMIT 50; -- Only fetch first 50 for initial display
           `);
         } catch (error) {

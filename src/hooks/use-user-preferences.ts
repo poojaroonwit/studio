@@ -143,7 +143,7 @@ export function useUserPreferences() {
         },
         credentials: 'include',
         // Increase timeout to prevent hanging requests
-        signal: AbortSignal.timeout(30000), // 30 second timeout instead of 10
+        signal: AbortSignal.timeout(5000), // 5 second timeout
       });
 
       if (response.ok) {
@@ -199,7 +199,7 @@ export function useUserPreferences() {
             }),
             credentials: 'include',
             // Increase timeout to prevent hanging requests
-            signal: AbortSignal.timeout(30000), // 30 second timeout instead of 10
+            signal: AbortSignal.timeout(5000), // 5 second timeout
           });
 
           if (!response.ok) {
@@ -208,7 +208,7 @@ export function useUserPreferences() {
               // Server error, retry
               retryCount++;
               if (retryCount < maxRetries) {
-                await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)); // Exponential backoff
+                await new Promise(resolve => setTimeout(resolve, 5000)); // 5 second delay
                 continue;
               }
             }
@@ -224,7 +224,7 @@ export function useUserPreferences() {
             console.warn('User preferences save timed out, will retry...');
             retryCount++;
             if (retryCount < maxRetries) {
-              await new Promise(resolve => setTimeout(resolve, 2000 * retryCount)); // Longer backoff for timeouts
+                              await new Promise(resolve => setTimeout(resolve, 5000)); // 5 second delay
               continue;
             }
           }
@@ -233,7 +233,7 @@ export function useUserPreferences() {
           if (error instanceof TypeError && error.message.includes('fetch')) {
             retryCount++;
             if (retryCount < maxRetries) {
-              await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)); // Exponential backoff
+                              await new Promise(resolve => setTimeout(resolve, 5000)); // 5 second delay
               continue;
             }
           }

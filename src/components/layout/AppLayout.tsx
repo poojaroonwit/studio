@@ -118,7 +118,7 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
       const timeoutPromise = new Promise<never>((_, reject) => {
         fetchTimeoutRef.current = setTimeout(() => {
           reject(new Error('Settings fetch timeout'));
-        }, 15000); // 15 second timeout
+        }, 5000); // 5 second timeout
       });
 
       const fetchPromise = fetch('/api/settings/system-settings');

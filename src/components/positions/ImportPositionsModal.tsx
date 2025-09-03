@@ -109,7 +109,7 @@ export function ImportPositionsModal({ isOpen, onOpenChange, onImportSuccess }: 
     try {
       // Create AbortController for timeout handling
       const controller = new AbortController();
-      importTimeoutRef.current = setTimeout(() => controller.abort(), 300000); // 5 minutes timeout
+      importTimeoutRef.current = setTimeout(() => controller.abort(), 5000); // 5 seconds timeout
 
       setImportStatus('processing');
       setProgress(30);

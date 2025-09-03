@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
 import { syncAllRecruiters, syncRecruitersForPosition } from '@/lib/recruiterSync';
 import { z } from 'zod';
 
@@ -49,7 +50,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Check if user has admin permissions
-  if (session?.user?.role !== 'Admin') {
+  if (!hasPermission(session.user, 'SYSTEM_SETTINGS_EDIT')) {
     return NextResponse.json({ message: 'Insufficient permissions. Admin access required.' }, { status: 403 });
   }
 

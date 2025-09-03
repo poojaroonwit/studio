@@ -32,7 +32,7 @@ export function RealTimeStatus({ onDataUpdate }: RealTimeStatusProps) {
       // Set initial timestamp when connected
       setLastUpdate(new Date().toLocaleTimeString());
       
-      // Set up fallback interval to update timestamp every minute when connected
+      // Set up fallback interval to update timestamp every 5 seconds when connected
       fallbackInterval = setInterval(() => {
         if (mounted && isConnected) {
           if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
@@ -41,7 +41,7 @@ export function RealTimeStatus({ onDataUpdate }: RealTimeStatusProps) {
           }
           setLastUpdate(new Date().toLocaleTimeString());
         }
-      }, 10000); // Update every 10 seconds for more responsive timestamp
+      }, 5000); // Update every 5 seconds for more responsive timestamp
     };
     
     eventSource.onmessage = (event) => {

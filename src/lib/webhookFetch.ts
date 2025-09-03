@@ -42,7 +42,7 @@ export async function webhookFetch(options: WebhookFetchOptions): Promise<Webhoo
     method = 'POST',
     headers = {},
     body,
-    timeoutMs = 30000, // Default 30 seconds
+    timeoutMs = 5000, // Default 5 seconds
     retries = 0,
     retryDelayMs = 1000
   } = options;

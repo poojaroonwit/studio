@@ -119,7 +119,7 @@ export default function SystemSettingsPage() {
     ];
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
       
       const response = await fetch('/api/settings/system-settings', {
         method: 'POST',

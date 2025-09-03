@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
 import prisma from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
@@ -19,7 +20,7 @@ export async function GET(
     }
 
     // Check if user is admin
-    if (session.user.role !== 'Admin') {
+    if (!hasPermission(session.user, 'USERS_MANAGE')) {
       return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
     }
 
@@ -164,7 +165,7 @@ export async function POST(
     }
 
     // Check if user is admin
-    if (session.user.role !== 'Admin') {
+    if (!hasPermission(session.user, 'USERS_MANAGE')) {
       return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
     }
 

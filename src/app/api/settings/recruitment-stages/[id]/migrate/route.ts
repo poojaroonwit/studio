@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { getPool } from '../../../../../../lib/db';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
 import { logAudit } from '@/lib/auditLog';
 
 function extractIdFromUrl(request: NextRequest): string | null {
@@ -17,7 +18,7 @@ export async function POST(request: NextRequest) {
     if (!actingUserId) return new NextResponse('Unauthorized', { status: 401 });
     
     // Check permissions
-    if (session.user.role !== 'Admin' &&  !session.user.modulePermissions?.includes('RECRUITMENT_STAGES_EDIT')) {
+    if (!hasPermission(session.user, 'RECRUITMENT_STAGES_EDIT')) {
         await logAudit('WARN', `Forbidden attempt to migrate recruitment stage by ${session.user.name || session.user.email}.`, 'API:RecruitmentStages:Migrate', actingUserId);
         return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
     }

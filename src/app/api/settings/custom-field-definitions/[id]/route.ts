@@ -5,6 +5,7 @@ import { getPool } from '@/lib/db';
 import { logAudit } from '@/lib/auditLog';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
 
 const customFieldOptionSchema = z.object({
   value: z.string(),
@@ -160,7 +161,7 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
-  if (session.user.role !== 'Admin' &&  !session.user.modulePermissions?.includes('CUSTOM_FIELDS_EDIT')) {
+  if (!hasPermission(session.user, 'CUSTOM_FIELDS_EDIT')) {
     await logAudit('WARN', `Forbidden attempt to update custom field by ${session.user.name}.`, 'API:CustomFields:Update', session.user.id);
     return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
   }
@@ -285,7 +286,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
-  if (session.user.role !== 'Admin' &&  !session.user.modulePermissions?.includes('CUSTOM_FIELDS_EDIT')) {
+  if (!hasPermission(session.user, 'CUSTOM_FIELDS_EDIT')) {
     await logAudit('WARN', `Forbidden attempt to delete custom field by ${session.user.name}.`, 'API:CustomFields:Delete', session.user.id);
     return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
   }

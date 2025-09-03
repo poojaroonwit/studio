@@ -222,7 +222,7 @@ export const createLoopGuard = (
  */
 export const useRetryGuard = (
   maxRetries: number = 3,
-  maxTotalTime: number = 30000, // 30 seconds
+      maxTotalTime: number = 5000, // 5 seconds
   name: string = 'Retry'
 ) => {
   const startTime = useRef<number>(0);

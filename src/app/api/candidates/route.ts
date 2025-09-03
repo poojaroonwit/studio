@@ -295,11 +295,11 @@ export async function GET(request: NextRequest) {
       lastUpdate: 'c."updatedAt"',
       source: 'cs.name',
     };
-    const sortColumnParam = searchParams.get('sortColumn') || 'lastUpdate';
+    const sortColumnParam = searchParams.get('sortColumn') || 'applicationDate';
     const sortDirectionParam = searchParams.get('sortDirection');
     
     // Handle sorting: 'asc' = ascending, 'desc' = descending, null/empty = default (desc)
-    let sortColumn = allowedSortColumns[sortColumnParam as keyof typeof allowedSortColumns] || 'c."updatedAt"';
+    let sortColumn = allowedSortColumns[sortColumnParam as keyof typeof allowedSortColumns] || 'c."applicationDate"';
     let sortDirection = 'DESC'; // default
     
     if (sortDirectionParam && sortDirectionParam.toLowerCase() === 'asc') {
@@ -307,12 +307,12 @@ export async function GET(request: NextRequest) {
     } else if (sortDirectionParam && sortDirectionParam.toLowerCase() === 'desc') {
       sortDirection = 'DESC';
     } else if (sortDirectionParam === '') {
-      // Empty string means clear sort - use default sort (lastUpdate desc)
-      sortColumn = 'c."updatedAt"';
+      // Empty string means clear sort - use default sort (applicationDate desc)
+      sortColumn = 'c."applicationDate"';
       sortDirection = 'DESC';
     } else {
-      // sortDirectionParam is null or invalid - use default sort (lastUpdate desc)
-      sortColumn = 'c."updatedAt"';
+      // sortDirectionParam is null or invalid - use default sort (applicationDate desc)
+      sortColumn = 'c."applicationDate"';
       sortDirection = 'DESC';
     }
     

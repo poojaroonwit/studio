@@ -526,7 +526,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
         setCandidates((prev) =>
           prev.map((c) =>
             c.id === candidate.id
-              ? { ...c, status: newStatus }
+              ? { ...c, statusId: newStatus }
               : c
           )
         );

@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth/next';
 import { logAudit } from '@/lib/auditLog';
 import { getPool } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
 
 const preferenceSchema = z.object({
   themePreference: z.enum(["light", "dark", "system"]).optional(),
@@ -64,7 +65,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (session?.user?.role !== 'Admin' && !session?.user?.modulePermissions?.includes('SYSTEM_SETTINGS_EDIT')) {
+  if (!hasPermission(session.user, 'SYSTEM_SETTINGS_EDIT')) {
     await logAudit('WARN', `Forbidden attempt to update system preferences by user ${session?.user?.email || 'Unknown'}.`, 'API:SystemPreferences:Update', session?.user?.id);
     return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
   }

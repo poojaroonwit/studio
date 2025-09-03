@@ -239,7 +239,7 @@ export const getCachedAvatarUrl = async (
   const now = Date.now();
 
   // Clean up expired cache entries periodically
-  if (now % 30000 === 0) { // Every 30 seconds
+      if (now % 5000 === 0) { // Every 5 seconds
     cleanupCache();
   }
 

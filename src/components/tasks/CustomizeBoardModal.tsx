@@ -525,7 +525,7 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
       
       // Add timeout to prevent hanging
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
       
       const res = await fetch('/api/settings/user-preferences', {
         method: 'POST',

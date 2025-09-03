@@ -4,6 +4,7 @@ import { getPool } from '@/lib/db';
 import { logAudit } from '@/lib/auditLog';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
 
 const updateCandidateSourceSchema = z.object({
   name: z.string().min(1, "Source name is required").optional(),
@@ -145,7 +146,7 @@ export async function PUT(
   }
 
   // Check permissions
-  if (session?.user?.role !== 'Admin' && !session?.user?.modulePermissions?.includes('SYSTEM_SETTINGS_EDIT')) {
+  if (!hasPermission(session.user, 'SYSTEM_SETTINGS_EDIT')) {
     return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
   }
 
@@ -251,7 +252,7 @@ export async function DELETE(
   }
 
   // Check permissions
-  if (session?.user?.role !== 'Admin' && !session?.user?.modulePermissions?.includes('SYSTEM_SETTINGS_EDIT')) {
+  if (!hasPermission(session.user, 'SYSTEM_SETTINGS_EDIT')) {
     return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
   }
 

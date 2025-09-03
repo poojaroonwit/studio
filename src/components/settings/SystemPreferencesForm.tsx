@@ -126,7 +126,7 @@ export function SystemPreferencesForm({ onSave, onCancel }: SystemPreferencesFor
 
       // Add timeout to prevent hanging
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
       
       const res = await fetch('/api/settings/system-settings', {
         method: 'POST',

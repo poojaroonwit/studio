@@ -94,7 +94,7 @@ export function CandidatesPageClient({
   const [page, setPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(50); // Use reasonable limit for efficiency
   const [total, setTotal] = useState<number>(0);
-  const [sortColumn, setSortColumn] = useState<string>('lastUpdate');
+  const [sortColumn, setSortColumn] = useState<string>('applicationDate');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc' | null>('desc');
   
 
@@ -1002,7 +1002,7 @@ export function CandidatesPageClient({
       // Add format parameter (XLSX by default)
       params.append('format', 'excel');
       
-      console.log('Starting export with params:', params.toString());
+
       
       const response = await fetch(`/api/candidates/export?${params.toString()}`, {
         method: 'GET',
@@ -1011,7 +1011,7 @@ export function CandidatesPageClient({
         },
       });
       
-      console.log('Export response status:', response.status);
+
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -1219,23 +1219,10 @@ export function CandidatesPageClient({
     // Check if we have an advanced query from URL that's being processed
     const advancedQueryFromUrl = searchParams.get('query');
     if (advancedQueryFromUrl) {
-      console.log('🔍 CandidatesPageClient: Advanced query detected:', advancedQueryFromUrl);
-      console.log('🔍 CandidatesPageClient: Current filters:', filters);
-      console.log('🔍 CandidatesPageClient: Filter checks:', {
-        hasName: !!filters.name,
-        hasEmail: !!filters.email,
-        hasPhone: !!filters.phone,
-        hasPositionIds: !!filters.selectedPositionIds?.length,
-        hasStatuses: !!filters.selectedStatuses?.length,
-        hasMinAppliedJobFitScore: !!filters.minAppliedJobFitScore,
-        hasMaxAppliedJobFitScore: !!filters.maxAppliedJobFitScore,
-        hasMinMatchingJobFitScore: !!filters.minMatchingJobFitScore,
-        hasMaxMatchingJobFitScore: !!filters.maxMatchingJobFitScore
-      });
+
     }
     if (advancedQueryFromUrl && !filters.name && !filters.email && !filters.phone && !filters.selectedPositionIds?.length && !filters.selectedStatuses?.length && !filters.minAppliedJobFitScore && !filters.maxAppliedJobFitScore && !filters.minMatchingJobFitScore && !filters.maxMatchingJobFitScore) {
       // Advanced query is being processed, don't fetch yet
-      console.log('🔍 CandidatesPageClient: Skipping fetch - advanced query being processed');
       return;
     }
     
@@ -1248,7 +1235,7 @@ export function CandidatesPageClient({
     );
     
     // Only skip fetch if we have initial candidates, no active filters, page is 1, and sort is default
-    if (initialCandidates.length > 0 && !hasActiveFilters && page === 1 && sortColumn === 'lastUpdate' && sortDirection === 'desc') {
+            if (initialCandidates.length > 0 && !hasActiveFilters && page === 1 && sortColumn === 'applicationDate' && sortDirection === 'desc') {
       return;
     }
     
@@ -1278,7 +1265,7 @@ export function CandidatesPageClient({
           fetchTableData(filters, page, pageSize);
         }
         fetchAllCandidatesForCounts();
-      }, 30000); // Refresh every 30 seconds when SSE is connected
+      }, 5000); // Refresh every 5 seconds when SSE is connected
       
       return () => clearInterval(interval);
     }
@@ -1592,7 +1579,7 @@ export function CandidatesPageClient({
                     }
                   } else {
                     // Set new column and direction (always update even if same values)
-                    setSortColumn(column || 'lastUpdate');
+                    setSortColumn(column || 'applicationDate');
                     setSortDirection(direction || 'desc');
                   }
                 }}

@@ -42,6 +42,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { UnifiedRoleDrawer } from '@/components/settings/UnifiedRoleDrawer';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { hasAnyPermission } from '@/lib/permissions';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -170,7 +171,7 @@ export function UserGroupsTab() {
     if (sessionStatus === 'unauthenticated') {
       signIn(undefined, { callbackUrl: pathname });
     } else if (sessionStatus === 'authenticated') {
-      if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('USER_GROUPS_VIEW')) {
+      if (!hasAnyPermission(session.user, ['USER_GROUPS_VIEW'])) {
         setFetchError("You do not have permission to manage roles & permissions.");
         setIsLoading(false);
       } else {

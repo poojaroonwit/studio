@@ -116,7 +116,7 @@ export function RecruitmentPipelineCard({
     if (stageId !== localCurrentStatus) {
       setIsTransitioning(true);
       // Hide loading state after a reasonable timeout (in case the transition fails)
-      const timeoutId = setTimeout(() => setIsTransitioning(false), 10000);
+      const timeoutId = setTimeout(() => setIsTransitioning(false), 5000);
       
       // Store timeout ID for cleanup
       if (transitioningTimeoutRef.current) {

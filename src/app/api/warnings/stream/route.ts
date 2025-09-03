@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
             interval = null;
           }
         }
-      }, 30000);
+      }, 5000);
 
       // Clean up on close
       request.signal.addEventListener('abort', () => {

@@ -955,7 +955,7 @@ export default function SystemPreferencesPage() {
     try {
       // Upload to MinIO with timeout
       uploadController = new AbortController();
-      const uploadTimeout = setTimeout(() => uploadController?.abort(), 30000); // 30 second timeout
+      const uploadTimeout = setTimeout(() => uploadController?.abort(), 5000); // 5 second timeout
       
       const formData = new FormData();
       formData.append('file', file);

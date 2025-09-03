@@ -214,7 +214,7 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
       const controller = new AbortController();
       const timeoutId = setTimeout(() => {
         controller.abort();
-      }, 300000); // 5 minutes timeout
+      }, 5000); // 5 seconds timeout
 
       try {
         // Upload all files in one request

@@ -36,47 +36,12 @@ export interface UnifiedEvent {
 // Global connection store - one connection per user
 const userConnections = new Map<string, UserConnection>();
 
-// Database connection pool per user (reused)
-const userDbClients = new Map<string, any>();
-
-// Get or create database client for user
-async function getUserDbClient(userId: string) {
-  if (userDbClients.has(userId)) {
-    const client = userDbClients.get(userId);
-    // Check if client is still valid
-    try {
-      await client.query('SELECT 1');
-      return client;
-    } catch (error) {
-      // Client is dead, remove and create new one
-      userDbClients.delete(userId);
-    }
-  }
-  
-  // Create new database client for user
-  const pool = getPool();
-  const client = await pool.connect();
-  userDbClients.set(userId, client);
-  
-  return client;
-}
-
-// Release database client for user
-function releaseUserDbClient(userId: string) {
-  const client = userDbClients.get(userId);
-  if (client) {
-    try {
-      client.release();
-    } catch (error) {
-      console.error(`[UNIFIED] Error releasing DB client for user ${userId}:`, error);
-    }
-    userDbClients.delete(userId);
-  }
-}
+// ✅ REMOVED: No more persistent database connections per user
+// Database operations now use withDbClient wrapper for proper connection management
 
 // Unified broadcast function
 export function broadcastUnifiedEvent(event: UnifiedEvent) {
-  console.log('[Unified] Broadcasting event:', event.type, 'to', userConnections.size, 'users');
+
   const encoder = new TextEncoder();
   const message = `event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`;
   const encodedMessage = encoder.encode(message);
@@ -88,7 +53,7 @@ export function broadcastUnifiedEvent(event: UnifiedEvent) {
       try {
         connection.controller.enqueue(encodedMessage);
         connection.lastActivity = Date.now();
-        console.log(`[Unified] Sent ${event.type} to user ${event.targetUserId}`);
+
       } catch (error) {
         console.error(`[UNIFIED] Failed to send ${event.type} to user ${event.targetUserId}:`, error);
         removeUserConnection(event.targetUserId);
@@ -150,8 +115,7 @@ function removeUserConnection(userId: string) {
       clearInterval(connection.keepaliveInterval);
     }
     
-    // Release database client
-    releaseUserDbClient(userId);
+    // No more explicit release here as withDbClient handles it
     
     // Remove connection
     userConnections.delete(userId);
@@ -163,22 +127,15 @@ function removeUserConnection(userId: string) {
 export function getUnifiedConnectionStats() {
   return {
     totalConnections: userConnections.size,
-    connectedUsers: Array.from(userConnections.keys()),
-    dbClients: userDbClients.size
+    connectedUsers: Array.from(userConnections.keys())
   };
 }
 
 // Database operations with user connection
 export async function withUserDbClient<T>(userId: string, operation: (client: any) => Promise<T>): Promise<T> {
-  const client = await getUserDbClient(userId);
-  try {
-    return await operation(client);
-  } catch (error) {
-    // If operation fails, release the client and try again
-    releaseUserDbClient(userId);
-    const newClient = await getUserDbClient(userId);
-    return await operation(newClient);
-  }
+  // ✅ FIXED: Use the existing withDbClient wrapper for proper connection management
+  const { withDbClient } = await import('@/lib/db');
+  return withDbClient(operation);
 }
 
 // Upload queue data fetcher using user's database connection
@@ -366,7 +323,7 @@ export async function handleUnifiedSSEConnection(request: Request) {
             clearInterval(keepaliveInterval);
             removeUserConnection(userId);
           }
-        }, 30000);
+        }, 5000);
 
         // Store keepalive interval reference
         const connection = userConnections.get(userId);
@@ -414,10 +371,10 @@ export async function handleUnifiedSSEConnection(request: Request) {
   }
 }
 
-// Cleanup inactive connections (run periodically)
+// Cleanup inactive connections (run every 5 seconds)
 export function cleanupInactiveConnections() {
   const now = Date.now();
-  const inactiveTimeout = 5 * 60 * 1000; // 5 minutes
+  const inactiveTimeout = 5 * 1000; // 5 seconds
   
   for (const [userId, connection] of userConnections.entries()) {
     if (now - connection.lastActivity > inactiveTimeout) {
@@ -427,10 +384,10 @@ export function cleanupInactiveConnections() {
   }
 }
 
-// Start cleanup interval
-setInterval(cleanupInactiveConnections, 60000); // Every minute
+// Start cleanup interval (every 5 seconds)
+setInterval(cleanupInactiveConnections, 5000); // Every 5 seconds
 
-// Start periodic cleanup (every 2 minutes)
+// Start periodic cleanup (every 5 seconds)
 let cleanupInterval: NodeJS.Timeout | null = null;
 
 export function startPeriodicCleanup() {
@@ -444,9 +401,9 @@ export function startPeriodicCleanup() {
     } catch (error) {
       console.error('[UNIFIED] Error in periodic cleanup:', error);
     }
-  }, 2 * 60 * 1000); // Every 2 minutes
+  }, 5000); // Every 5 seconds
   
-  console.log('[UNIFIED] Periodic cleanup started (every 2 minutes)');
+  console.log('[UNIFIED] Periodic cleanup started (every 5 seconds)');
 }
 
 export function stopPeriodicCleanup() {
@@ -471,15 +428,10 @@ export function getConnectionDebugInfo() {
     connectionAge: Math.round((now - conn.connectionStartTime) / 1000)
   }));
 
-  const dbClients = Array.from(userDbClients.keys());
-
   return {
     timestamp: new Date().toISOString(),
     totalConnections: userConnections.size,
-    totalDbClients: userDbClients.size,
-    connections,
-    dbClients,
-    orphanedDbClients: dbClients.filter(userId => !userConnections.has(userId))
+    connections
   };
 }
 
@@ -498,15 +450,7 @@ export function emergencyConnectionReset() {
   }
   userConnections.clear();
   
-  // Release all database clients
-  for (const [userId, client] of userDbClients.entries()) {
-    try {
-      client.release();
-    } catch (error) {
-      console.error(`[UNIFIED] Error releasing DB client for user ${userId}:`, error);
-    }
-  }
-  userDbClients.clear();
+  // No more explicit release here as withDbClient handles it
   
   console.log('[UNIFIED] Emergency reset completed');
   

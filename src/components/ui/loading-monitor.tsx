@@ -84,7 +84,7 @@ export const LoadingMonitor: React.FC<LoadingMonitorProps> = ({
           </div>
         )}
 
-        {elapsedTime > 10000 && isLoading && (
+        {elapsedTime > 5000 && isLoading && (
           <div className="flex items-start gap-2 p-3 bg-warning/10 border border-warning/20 rounded-md">
             <AlertTriangle className="h-4 w-4 text-warning mt-0.5 flex-shrink-0" />
             <div className="flex-1">

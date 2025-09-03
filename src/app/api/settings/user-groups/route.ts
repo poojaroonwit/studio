@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
 import type { UserGroup, PlatformModuleId } from '@/lib/types';
 import { PLATFORM_MODULES } from '@/lib/types';
 import { logAudit } from '@/lib/auditLog';
@@ -85,7 +86,11 @@ const userGroupSchema = z.object({
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
 
-  if (session?.user?.role !== 'Admin' &&  !session?.user?.modulePermissions?.includes('USER_GROUPS_VIEW')) {
+  if (!session?.user?.id) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
+
+  if (!hasPermission(session.user, 'USER_GROUPS_VIEW')) {
     await logAudit('WARN', `Forbidden attempt to GET user groups by user ${session?.user?.email || 'Unknown'}.`, 'API:UserGroups:GetAll', session?.user?.id);
     return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
   }
@@ -139,7 +144,7 @@ export async function POST(request: NextRequest) {
     if (!actingUserId) return new NextResponse('Unauthorized', { status: 401 });
 
     // Check permissions - only Admin or users with USER_GROUPS_CREATE can create user groups
-    if (session?.user?.role !== 'Admin' &&  !session?.user?.modulePermissions?.includes('USER_GROUPS_CREATE')) {
+    if (!hasPermission(session.user, 'USER_GROUPS_CREATE')) {
         await logAudit('WARN', `Forbidden attempt to CREATE user group by user ${session?.user?.email || 'Unknown'}.`, 'API:UserGroups:Create', session?.user?.id);
         return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
     }

@@ -34,7 +34,7 @@ export default function UploadQueueSettingsPage() {
   
   const [settings, setSettings] = useState<UploadQueueSettings>({
     maxConcurrentProcessors: 1,
-    processorIntervalMs: 30000,
+    processorIntervalMs: 5000,
     processorBatchLimit: 1,
     processorQuietMode: false,
     processorConnectionTimeoutMs: 60000,
@@ -63,7 +63,7 @@ export default function UploadQueueSettingsPage() {
       // Extract upload queue related settings
       setSettings({
         maxConcurrentProcessors: parseInt(systemSettings.maxConcurrentProcessors || '1', 10),
-        processorIntervalMs: parseInt(systemSettings.processorIntervalMs || '30000', 10),
+        processorIntervalMs: parseInt(systemSettings.processorIntervalMs || '5000', 10),
         processorBatchLimit: parseInt(systemSettings.processorBatchLimit || '1', 10),
         processorQuietMode: systemSettings.processorQuietMode === 'true',
         processorConnectionTimeoutMs: parseInt(systemSettings.processorConnectionTimeoutMs || '60000', 10),
@@ -298,9 +298,9 @@ export default function UploadQueueSettingsPage() {
                   value={settings.processorIntervalMs}
                   onChange={(e) => setSettings(prev => ({
                     ...prev,
-                    processorIntervalMs: parseInt(e.target.value) || 30000
+                                          processorIntervalMs: parseInt(e.target.value) || 5000
                   }))}
-                  placeholder="30000"
+                  placeholder="5000"
                 />
                 <p className="text-sm text-muted-foreground">
                   How often to check for new jobs (5s - 5m)

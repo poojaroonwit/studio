@@ -104,11 +104,11 @@ export function useUserPresence() {
     // Fetch initial presence data
     fetchPresence();
 
-    // Update presence every 30 seconds
-    presenceIntervalRef.current = setInterval(updatePresence, 30000);
+    // Update presence every 5 seconds
+    presenceIntervalRef.current = setInterval(updatePresence, 5000);
     
-    // Fetch presence data every 10 seconds
-    updateIntervalRef.current = setInterval(fetchPresence, 10000);
+    // Fetch presence data every 5 seconds
+    updateIntervalRef.current = setInterval(fetchPresence, 5000);
 
     // Cleanup on unmount
     return () => {

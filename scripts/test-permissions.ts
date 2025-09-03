@@ -42,7 +42,7 @@ async function testPermissions() {
       const hasCandidatesView = permissions.includes('CANDIDATES_VIEW');
       console.log(`   Has TASK_BOARD_VIEW: ${hasTaskBoardView}`);
       console.log(`   Has CANDIDATES_VIEW: ${hasCandidatesView}`);
-      console.log(`   Can access task board: ${hasTaskBoardView || hasCandidatesView || testUser.role === 'Admin'}\n`);
+      console.log(`   Can access task board: ${hasTaskBoardView || hasCandidatesView}\n`);
     }
     
     // Test 3: Check old vs new approach

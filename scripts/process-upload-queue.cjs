@@ -23,7 +23,7 @@ const os = require('os');
 let dynamicConfig = {
   baseUrl: process.env.PROCESSOR_URL || 'http://localhost:8021',
   apiKey: process.env.PROCESSOR_API_KEY || 'dev-key',
-  intervalMs: parseInt(process.env.PROCESSOR_INTERVAL_MS) || 30000, // ✅ Increased from 5000 to 30000 (30 seconds)
+  intervalMs: parseInt(process.env.PROCESSOR_INTERVAL_MS) || 5000, // ✅ Reduced to 5000 (5 seconds)
   logIntervalMs: parseInt(process.env.LOG_INTERVAL_MS) || 60000,
   batchLimit: parseInt(process.env.PROCESSOR_BATCH_LIMIT) || 1, // ✅ Reduced from 3 to 1
   maxRetries: 3,
@@ -38,7 +38,7 @@ let dynamicConfig = {
   // Dynamic adjustment factors
   cpuThreshold: 80, // CPU usage threshold for scaling down
   memoryThreshold: 85, // Memory usage threshold for scaling down
-  healthCheckInterval: 30000, // How often to check system health
+  healthCheckInterval: 5000, // How often to check system health
   
   // Concurrent processing settings
   maxConcurrentProcessors: parseInt(process.env.MAX_CONCURRENT_PROCESSORS) || 1, // Default to 1 for connection optimization
@@ -156,7 +156,7 @@ function calculateResourcePressure(metrics) {
 }
 
 function adjustConfiguration(pressure) {
-  const baseInterval = parseInt(process.env.PROCESSOR_INTERVAL_MS) || 30000;
+  const baseInterval = parseInt(process.env.PROCESSOR_INTERVAL_MS) || 5000;
   const baseBatchSize = dynamicConfig.maxConcurrentProcessors; // Use system setting as base
   
   // Adjustment multipliers based on pressure

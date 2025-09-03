@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
 
     // Fetch the file from the URL with timeout
     const controller = new AbortController();
-    timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+          timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
 
     const response = await fetch(fileUrl, {
       signal: controller.signal,

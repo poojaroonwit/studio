@@ -79,7 +79,7 @@ export function useCandidateAiSearch({
         setIsAiSearchActive(false);
         toast.error("AI search timed out. Please try again with a more specific query.");
       }
-    }, 30000); // 30 second timeout
+    }, 5000); // 5 second timeout
     
     try {
       abortControllerRef.current = new AbortController();
@@ -87,7 +87,7 @@ export function useCandidateAiSearch({
       if (abortTimeoutRef.current) {
         clearTimeout(abortTimeoutRef.current);
       }
-      abortTimeoutRef.current = setTimeout(() => abortControllerRef.current?.abort(), 25000); // 25 second timeout for fetch
+      abortTimeoutRef.current = setTimeout(() => abortControllerRef.current?.abort(), 5000); // 5 second timeout for fetch
       
       const response = await fetch('/api/ai/search-candidates', {
         method: 'POST',

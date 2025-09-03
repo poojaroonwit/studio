@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
 import { 
   checkAndNotifySLAViolations, 
   getSLAViolationsForRecruiter,
@@ -18,9 +19,8 @@ export async function GET(request: NextRequest) {
 
   // Check if user has permission to view SLA violations
   // Users should be able to view SLA data if they can view candidates or have SLA-specific permissions
-  if (session.user.role !== 'Admin' && 
-      !session.user.modulePermissions?.includes('CANDIDATES_VIEW') &&
-      !session.user.modulePermissions?.includes('SLA_MONITORING_VIEW')) {
+  if (!hasPermission(session.user, 'CANDIDATES_VIEW') &&
+      !hasPermission(session.user, 'SLA_MONITORING_VIEW')) {
     return NextResponse.json({ message: 'Forbidden: Insufficient permissions to view SLA violations' }, { status: 403 });
   }
 

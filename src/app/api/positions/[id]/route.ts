@@ -323,7 +323,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         const syncPromise = syncRecruitersForPosition(id, actingUserId, actingUserName);
         let syncTimeoutId: NodeJS.Timeout | null = null;
         const timeoutPromise = new Promise((_, reject) => {
-          syncTimeoutId = setTimeout(() => reject(new Error('Sync operation timed out')), 15000);
+          syncTimeoutId = setTimeout(() => reject(new Error('Sync operation timed out')), 5000);
         });
         
         syncResult = await Promise.race([syncPromise, timeoutPromise]);
@@ -345,7 +345,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
             );
             let notificationTimeoutId: NodeJS.Timeout | null = null;
             const notificationTimeoutPromise = new Promise((_, reject) => {
-              notificationTimeoutId = setTimeout(() => reject(new Error('Notification timed out')), 10000);
+              notificationTimeoutId = setTimeout(() => reject(new Error('Notification timed out')), 5000);
             });
             
             await Promise.race([notificationPromise, notificationTimeoutPromise]);

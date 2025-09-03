@@ -20,6 +20,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { formatScoreWithGrade } from '@/lib/scoreUtils';
+import { hasAnyPermission } from '@/lib/permissions';
 
 interface JobMatchModalProps {
   isOpen: boolean;
@@ -63,11 +64,8 @@ export default function JobMatchModal({ isOpen, onClose, jobMatch }: JobMatchMod
   const routerTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Check permissions
-  const modulePermissions = session?.user?.modulePermissions || [];
-  const canViewJobMatches = session?.user?.role === 'Admin' || 
-    modulePermissions.includes('JOB_MATCH_VIEW');
-  const canManageJobMatches = session?.user?.role === 'Admin' || 
-    modulePermissions.includes('JOB_MATCH_MANAGE');
+  const canViewJobMatches = hasAnyPermission(session?.user, ['JOB_MATCH_VIEW']);
+  const canManageJobMatches = hasAnyPermission(session?.user, ['JOB_MATCH_MANAGE']);
 
   useEffect(() => {
     if (isOpen && jobMatch?.jobId) {

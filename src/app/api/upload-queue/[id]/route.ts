@@ -131,32 +131,32 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ error: 'Forbidden: Insufficient permissions' }, { status: 403 });
   }
   const { id } = await params;
-  console.log(`Processing/retrying job ${id}...`);
+
   
   const client = await getPool().connect();
   try {
     // Fetch the job by ID
     const res = await client.query('SELECT * FROM upload_queue WHERE id = $1', [id]);
     if (res.rows.length === 0) {
-      console.log(`Job ${id} not found`);
+
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
     const job = res.rows[0];
-    console.log(`Job ${id} current status: ${job.status}`);
+
     
     // Check if this is a retry operation (job is in error or fail state)
     const isRetry = ['error', 'fail'].includes(job.status);
-    console.log(`Is retry operation: ${isRetry}`);
+
     
     // Only allow processing if job is queued, error, or fail state
     if (!['queued', 'error', 'fail'].includes(job.status)) {
-      console.log(`Job ${id} is not in a processable state: ${job.status}`);
+
       return NextResponse.json({ error: 'Job is not in a processable state' }, { status: 400 });
     }
     
     // If this is a retry, reset the job status to queued and clear error fields
     if (isRetry) {
-      console.log(`Resetting job ${id} status from ${job.status} to queued`);
+
       
       // Check if there's already a queued job with the same file path
       const existingQueuedJob = await client.query(
@@ -165,7 +165,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       );
       
       if (existingQueuedJob.rows.length > 0) {
-        console.log(`Cannot retry job ${id}: there's already a queued job with the same file path`);
+
         return NextResponse.json({ 
           error: 'Cannot retry job: there is already a queued job with the same file path' 
         }, { status: 400 });
@@ -181,14 +181,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         job.status = 'queued';
         job.error = null;
         job.error_details = null;
-        console.log(`Job ${id} status reset successfully`);
+
       }
     }
     
     // Process the job (send to webhook)
-    console.log(`Processing job ${id} with status: ${job.status}`);
+
     const result = await processSingleUploadQueueJob(job, client);
-    console.log(`Job ${id} processing result:`, result);
+
     
     try {
       await broadcastUploadQueueUpdate();

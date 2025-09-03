@@ -53,7 +53,7 @@ export function useCandidateSettings() {
             'Content-Type': 'application/json',
           },
           // Increase timeout to prevent hanging requests
-          signal: AbortSignal.timeout(30000), // Increased from 10s to 30s
+          signal: AbortSignal.timeout(5000), // Reduced to 5s
         });
         
         if (!response.ok) {
@@ -92,7 +92,7 @@ export function useCandidateSettings() {
           setSettings(defaultSettings);
         } else {
           // Wait before retry with exponential backoff
-          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+          await new Promise(resolve => setTimeout(resolve, 5000));
         }
       } finally {
         if (retryCount >= maxRetries) {

@@ -26,7 +26,7 @@ export class SSEDebugUtility {
   private static instance: SSEDebugUtility;
   private connections: Map<string, EventSourceDebugInfo> = new Map();
   private debugMode: boolean = false;
-  private hangingThreshold: number = 30000; // 30 seconds
+  private hangingThreshold: number = 5000; // 5 seconds
   private messageThreshold: number = 1000; // 1 second between messages
 
   private constructor() {

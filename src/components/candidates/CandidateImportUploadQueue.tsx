@@ -202,7 +202,7 @@ export default function CandidateImportUploadQueue() {
       const interval = setInterval(() => {
         fetchQueue(page, pageSize);
         setLastUpdate(new Date());
-      }, 30000);
+      }, 5000);
       
       return () => clearInterval(interval);
     }

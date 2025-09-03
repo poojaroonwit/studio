@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { logAudit } from '@/lib/auditLog';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
 import { broadcastCandidateUpdate } from '@/lib/simple-broadcaster';
 import { fetchAllRecruitmentStagesDb } from '@/lib/apiUtils';
 
@@ -81,7 +82,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Check permissions
-    if (session.user.role !== 'Admin' &&  !session.user.modulePermissions?.includes('RECRUITMENT_STAGES_EDIT')) {
+    if (!hasPermission(session.user, 'RECRUITMENT_STAGES_EDIT')) {
         await logAudit('WARN', `Forbidden attempt to move recruitment stage by ${session.user.name || session.user.email}.`, 'API:RecruitmentStages:Move', actingUserId);
         return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
     }

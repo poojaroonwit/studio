@@ -128,7 +128,7 @@ export async function handleSSEConnection(request: Request) {
         });
         controller.enqueue(encoder.encode(`data: ${initialData}\n\n`));
 
-        // Send keepalive every 30 seconds
+        // Send keepalive every 5 seconds
         keepaliveInterval = setInterval(() => {
           try {
             const keepaliveData = JSON.stringify({
@@ -143,7 +143,7 @@ export async function handleSSEConnection(request: Request) {
             clearInterval(keepaliveInterval);
             removeConnection(userId);
           }
-        }, 30000);
+        }, 5000);
 
         // Cleanup on connection close
         request.signal.addEventListener('abort', () => {

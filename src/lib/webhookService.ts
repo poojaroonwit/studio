@@ -166,7 +166,7 @@ export class WebhookService {
    * Retry failed webhook delivery
    */
   private static async retryWebhook(webhook: any, event: string, data: any, retryCount: number): Promise<void> {
-    const retryDelays = [1000, 5000, 15000, 30000, 60000]; // Exponential backoff
+    const retryDelays = [1000, 5000, 5000, 5000, 5000]; // All 5 seconds
     
     for (let attempt = 0; attempt < Math.min(retryCount, retryDelays.length); attempt++) {
       await new Promise(resolve => setTimeout(resolve, retryDelays[attempt]));

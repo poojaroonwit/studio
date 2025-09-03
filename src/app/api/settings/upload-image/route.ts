@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import { logAudit } from '@/lib/auditLog';
 import { getPool } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
 import { minioClient, MINIO_BUCKET, ensureBucketExists, MINIO_PUBLIC_BASE_URL } from '@/lib/minio';
 import { Buffer } from 'buffer';
 
@@ -14,7 +15,7 @@ export async function PUT(request: NextRequest) {
   
   try {
     // Only allow Admin or SYSTEM_SETTINGS_EDIT
-    if (session?.user?.role !== 'Admin' && !session?.user?.modulePermissions?.includes('SYSTEM_SETTINGS_EDIT')) {
+    if (!hasPermission(session.user, 'SYSTEM_SETTINGS_EDIT')) {
       await logAudit('WARN', `Forbidden attempt to upload settings image by user ${session?.user?.email || 'Unknown'}.`, 'API:SystemSettings:UploadImage', session?.user?.id);
       return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
     }

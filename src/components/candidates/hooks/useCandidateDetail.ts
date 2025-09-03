@@ -195,7 +195,7 @@ export const useCandidateDetail = (candidateId: string) => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
-    }, 25000); // 25 second timeout
+    }, 5000); // 5 second timeout
 
     try {
       const res = await fetch(`/api/candidates/${candidateId}`, {
@@ -614,7 +614,7 @@ export const useCandidateDetail = (candidateId: string) => {
     
     // Add timeout to prevent hanging requests
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
     
     try {
       const response = await fetch(`/api/candidates/${candidateId}`, {

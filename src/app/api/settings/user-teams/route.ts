@@ -6,6 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { logAudit } from '@/lib/auditLog';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
 
 const userTeamSchema = z.object({
   name: z.string().min(1, 'Team name cannot be empty.'),
@@ -118,7 +119,7 @@ export async function POST(request: NextRequest) {
     if (!actingUserId) return new NextResponse('Unauthorized', { status: 401 });
 
     // Check permissions
-    if (session?.user?.role !== 'Admin' &&  !session?.user?.modulePermissions?.includes('USERS_MANAGE')) {
+    if (!hasPermission(session.user, 'USERS_MANAGE')) {
         return new NextResponse('Forbidden: Insufficient permissions', { status: 403 });
     }
 

@@ -310,7 +310,7 @@ export default function PositionsPageClient() {
     try {
       // Add timeout to prevent hanging requests
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
       
       const response = await fetch(`/api/positions/${positionId}`, {
         method: 'PUT',
@@ -432,7 +432,7 @@ export default function PositionsPageClient() {
       // Set a timeout to auto-reset search state after 10 seconds
       searchStuckTimeoutRef.current = setTimeout(() => {
         setIsSearching(false);
-      }, 10000); // 10 seconds
+      }, 5000); // 5 seconds
     } else {
       // Clear timeout if search is not stuck
       if (searchStuckTimeoutRef.current) {
@@ -472,7 +472,7 @@ export default function PositionsPageClient() {
         setIsLoadingDepartments(false);
         setAssigningRecruiter(null);
       }
-    }, 30000); // 30 seconds
+    }, 5000); // 5 seconds
 
     return () => clearTimeout(globalTimeout);
   }, [isLoading, isTableLoading, isSearching, isLoadingDepartments]);

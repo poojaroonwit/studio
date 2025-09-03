@@ -50,9 +50,7 @@ ENV DB_PUSH_FALLBACK=true
 
 EXPOSE 8021
 
-# Health check to ensure the application is running
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:8021/api/health || exit 1
+
 
 # Start the application using the entrypoint script
 CMD ["/bin/sh", "/app/entrypoint.sh"]

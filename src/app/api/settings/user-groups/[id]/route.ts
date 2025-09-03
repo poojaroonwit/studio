@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
 import type { UserGroup, PlatformModuleId } from '@/lib/types';
 import { PLATFORM_MODULES } from '@/lib/types';
 import { logAudit } from '@/lib/auditLog';
@@ -72,7 +73,11 @@ export async function GET(request: NextRequest) {
   const id = extractIdFromUrl(request);
   const session = await getServerSession(authOptions);
 
-  if (session?.user?.role !== 'Admin' &&  !session?.user?.modulePermissions?.includes('USER_GROUPS_VIEW')) {
+  if (!session?.user?.id) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
+
+  if (!hasPermission(session.user, 'USER_GROUPS_VIEW')) {
     await logAudit('WARN', `Forbidden attempt to GET user group (ID: ${id}) by user ${session?.user?.email || 'Unknown'}.`, 'API:UserGroups:GetById', session?.user?.id, { targetGroupId: id });
     return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
   }
@@ -154,7 +159,7 @@ export async function PUT(request: NextRequest) {
     if (!actingUserId) return new NextResponse('Unauthorized', { status: 401 });
 
     // Check permissions - only Admin or users with USER_GROUPS_EDIT can update user groups
-    if (session?.user?.role !== 'Admin' &&  !session?.user?.modulePermissions?.includes('USER_GROUPS_EDIT')) {
+    if (!hasPermission(session.user, 'USER_GROUPS_EDIT')) {
         await logAudit('WARN', `Forbidden attempt to UPDATE user group (ID: ${id}) by user ${session?.user?.email || 'Unknown'}.`, 'API:UserGroups:Update', session?.user?.id, { targetGroupId: id });
         return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
     }
@@ -271,7 +276,7 @@ export async function DELETE(request: NextRequest) {
     if (!actingUserId) return new NextResponse('Unauthorized', { status: 401 });
     
     // Check permissions - only Admin or users with USER_GROUPS_DELETE can delete user groups
-    if (session?.user?.role !== 'Admin' &&  !session?.user?.modulePermissions?.includes('USER_GROUPS_DELETE')) {
+    if (!hasPermission(session.user, 'USER_GROUPS_DELETE')) {
         await logAudit('WARN', `Forbidden attempt to DELETE user group (ID: ${id}) by user ${session?.user?.email || 'Unknown'}.`, 'API:UserGroups:Delete', session?.user?.id, { targetGroupId: id });
         return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
     }

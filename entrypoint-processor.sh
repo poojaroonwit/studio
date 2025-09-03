@@ -29,7 +29,7 @@ echo "  DATABASE_URL: [configured]"
 echo "  PROCESSOR_URL: $PROCESSOR_URL"
 echo "  PROCESSOR_API_KEY: [configured]"
 echo "  PROCESSOR_INTERVAL_MS: ${PROCESSOR_INTERVAL_MS:-5000}"
-echo "  LOG_INTERVAL_MS: ${LOG_INTERVAL_MS:-30000}"
+echo "  LOG_INTERVAL_MS: ${LOG_INTERVAL_MS:-5000}"
 
 # Generate Prisma client
 echo "🔧 Generating Prisma client..."

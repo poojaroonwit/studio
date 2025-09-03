@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { logAudit } from '@/lib/auditLog';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
 
 const userTeamUpdateSchema = z.object({
   name: z.string().min(1, 'Team name cannot be empty.'),
@@ -139,7 +140,7 @@ export async function PUT(
   if (!actingUserId) return new NextResponse('Unauthorized', { status: 401 });
 
   // Check permissions
-  if (session?.user?.role !== 'Admin' &&  !session?.user?.modulePermissions?.includes('USERS_MANAGE')) {
+  if (!hasPermission(session.user, 'USERS_MANAGE')) {
     return new NextResponse('Forbidden: Insufficient permissions', { status: 403 });
   }
 
@@ -191,7 +192,7 @@ export async function DELETE(
   if (!actingUserId) return new NextResponse('Unauthorized', { status: 401 });
 
   // Check permissions
-  if (session?.user?.role !== 'Admin' &&  !session?.user?.modulePermissions?.includes('USERS_MANAGE')) {
+  if (!hasPermission(session.user, 'USERS_MANAGE')) {
     return new NextResponse('Forbidden: Insufficient permissions', { status: 403 });
   }
 

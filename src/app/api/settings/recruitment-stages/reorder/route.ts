@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { getPool } from '../../../../../lib/db';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
 import { logAudit } from '@/lib/auditLog';
 import { z } from 'zod';
 import { broadcastCandidateUpdate } from '@/lib/simple-broadcaster';
@@ -64,10 +65,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
   // Check permissions for RECRUITMENT_STAGES_EDIT
-  if (
-    session.user.role !== 'Admin' &&
-    !session.user.modulePermissions?.includes('RECRUITMENT_STAGES_EDIT')
-  ) {
+  if (!hasPermission(session.user, 'RECRUITMENT_STAGES_EDIT')) {
     return NextResponse.json({ message: 'Forbidden: Insufficient permissions' }, { status: 403 });
   }
 

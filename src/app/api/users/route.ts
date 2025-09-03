@@ -138,21 +138,7 @@ export async function GET(request: NextRequest) {
           forcePasswordChange: true,
           createdAt: true,
           updatedAt: true,
-          userGroups: {
-            select: {
-              id: true,
-              name: true,
-              permissions: true
-            }
-          },
-          userTeams: {
-            select: {
-              id: true,
-              name: true,
-              color: true
-            }
-          }
-        } as any,
+        },
         orderBy: {
           name: 'asc'
         },
@@ -173,10 +159,41 @@ export async function GET(request: NextRequest) {
       }, { status: 200 });
     }
 
-    const usersToReturn = users.map((user: any) => ({
-      ...user,
-      teams: user.userTeams ? user.userTeams : [],
-      modulePermissions: user.userGroups && user.userGroups.length > 0 ? user.userGroups[0].permissions : []
+    // Fetch user groups and teams separately using junction tables
+    const usersToReturn = await Promise.all(users.map(async (user: any) => {
+      // Get user groups
+      const userGroups = await prisma.userUserGroup.findMany({
+        where: { userId: user.id },
+        include: {
+          group: {
+            select: {
+              id: true,
+              name: true,
+              permissions: true
+            }
+          }
+        }
+      });
+
+      // Get user teams
+      const userTeams = await prisma.userUserTeam.findMany({
+        where: { userId: user.id },
+        include: {
+          team: {
+            select: {
+              id: true,
+              name: true,
+              color: true
+            }
+          }
+        }
+      });
+
+      return {
+        ...user,
+        teams: userTeams.map((ut: any) => ut.team),
+        modulePermissions: userGroups.length > 0 ? userGroups[0].group.permissions : []
+      };
     }));
 
     const totalPages = Math.ceil(totalCount / pageSize);
@@ -323,21 +340,30 @@ export async function POST(request: NextRequest) {
          authenticationMethod,
          forcePasswordChange,
          personalColor,
-         // Assign user to the appropriate group based on userGroupIds or role
-         userGroupId: targetUserGroupId,
-         // Temporarily comment out team assignment to isolate the issue
-         // userTeamId: userTeamIds && userTeamIds.length > 0 ? userTeamIds[0] : null
-       },
-       include: {
-         userGroup: {
-           select: {
-             id: true,
-             name: true,
-             permissions: true
-           }
-         }
        }
      });
+
+     // Assign user to the appropriate group using junction table
+     if (targetUserGroupId) {
+       await prisma.userUserGroup.create({
+         data: {
+           userId: newUser.id,
+           groupId: targetUserGroupId
+         }
+       });
+     }
+
+     // Assign user to teams using junction table
+     if (userTeamIds && userTeamIds.length > 0) {
+       for (const teamId of userTeamIds) {
+         await prisma.userUserTeam.create({
+           data: {
+             userId: newUser.id,
+             teamId: teamId
+           }
+         });
+       }
+     }
 
     // Create default warning configurations for the new user
     try {
@@ -349,11 +375,25 @@ export async function POST(request: NextRequest) {
       await logAudit('WARN', `Failed to create default warning configurations for user ${newUser.id}. Error: ${(warningError as Error).message}`, 'API:Users:Create', session.user.id);
     }
 
-         const userToReturn = {
+     // Fetch the user's group to get permissions
+     const userGroup = targetUserGroupId ? await prisma.userUserGroup.findFirst({
+       where: { userId: newUser.id, groupId: targetUserGroupId },
+       include: {
+         group: {
+           select: {
+             id: true,
+             name: true,
+             permissions: true
+           }
+         }
+       }
+     }) : null;
+
+     const userToReturn = {
        ...newUser,
-       teams: [],
+       teams: userTeamIds || [],
        // Get permissions from UserGroup, not from direct field
-       modulePermissions: newUser.userGroup?.permissions || []
+       modulePermissions: userGroup?.group?.permissions || []
      };
 
     // Clear user validation cache for the new user

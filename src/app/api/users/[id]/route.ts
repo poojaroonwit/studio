@@ -76,14 +76,31 @@ export async function GET(request: NextRequest) {
                 forcePasswordChange: true,
                 createdAt: true,
                 updatedAt: true,
-                userGroups: {
+            }
+        });
+
+        if (!user) {
+            return NextResponse.json({ message: "User not found" }, { status: 404 });
+        }
+
+        // Fetch user groups and teams separately using junction tables
+        const userGroups = await prisma.userUserGroup.findMany({
+            where: { userId: user.id },
+            include: {
+                group: {
                     select: {
                         id: true,
                         name: true,
                         permissions: true
                     }
-                },
-                userTeams: {
+                }
+            }
+        });
+
+        const userTeams = await prisma.userUserTeam.findMany({
+            where: { userId: user.id },
+            include: {
+                team: {
                     select: {
                         id: true,
                         name: true,
@@ -93,14 +110,10 @@ export async function GET(request: NextRequest) {
             }
         });
 
-        if (!user) {
-            return NextResponse.json({ message: "User not found" }, { status: 404 });
-        }
-
         const userToReturn = {
             ...user,
-            teams: user.userTeams ? user.userTeams : [],
-            modulePermissions: user.userGroups && user.userGroups.length > 0 ? user.userGroups[0].permissions : [],
+            teams: userTeams.map((ut: any) => ut.team),
+            modulePermissions: userGroups.length > 0 ? userGroups[0].group.permissions : [],
         };
 
         return NextResponse.json(userToReturn, { status: 200 });

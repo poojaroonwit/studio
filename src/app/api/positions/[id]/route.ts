@@ -142,6 +142,18 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
+  
+  // Debug session information
+  console.log('[POSITION UPDATE] Session debug:', {
+    hasSession: !!session,
+    hasUser: !!session?.user,
+    userId: session?.user?.id,
+    userRole: session?.user?.role,
+    modulePermissions: session?.user?.modulePermissions,
+    modulePermissionsType: typeof session?.user?.modulePermissions,
+    isArray: Array.isArray(session?.user?.modulePermissions)
+  });
+  
   const actingUserId = session?.user?.id;
   const actingUserName = session?.user?.name || session?.user?.email || 'System';
   const actingUserRole = session?.user?.role;
@@ -186,13 +198,33 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     // Additionally, allow the assigned recruiter to edit non-recruiter fields of their own positions.
     const isAdmin = actingUserRole === 'Admin';
     const isAssignedRecruiter = existingPosition.recruiterId && existingPosition.recruiterId === actingUserId;
-    const modulePermissions: string[] = session?.user?.modulePermissions || [];
     const wantsToChangeRecruiter = Object.prototype.hasOwnProperty.call(updateData, 'recruiterId');
 
     // Debug logging for permission check
+    console.log('[POSITION UPDATE] Permission check debug:', {
+      actingUserId,
+      actingUserRole,
+      modulePermissions,
+      isAdmin,
+      isAssignedRecruiter,
+      existingPositionRecruiterId: existingPosition.recruiterId,
+      wantsToChangeRecruiter
+    });
 
     const canEditBasic = isAdmin || modulePermissions.includes('POSITIONS_EDIT_BASIC') || isAssignedRecruiter;
     const canAssignRecruiter = isAdmin || modulePermissions.includes('POSITIONS_RECRUITER_ASSIGN');
+    
+    // Additional safety check - ensure modulePermissions is an array
+    if (!Array.isArray(modulePermissions)) {
+      console.error('[POSITION UPDATE] modulePermissions is not an array:', modulePermissions);
+      await client.query('ROLLBACK');
+      return NextResponse.json({ message: 'Internal server error: invalid permission structure' }, { status: 500 });
+    }
+    
+    console.log('[POSITION UPDATE] Permission results:', {
+      canEditBasic,
+      canAssignRecruiter
+    });
 
     if (wantsToChangeRecruiter && !canAssignRecruiter) {
       await client.query('ROLLBACK');
@@ -281,6 +313,14 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       RETURNING *;
     `;
     updateValues.push(id);
+
+    // Check if user has basic edit permissions for any field updates
+    console.log('[POSITION UPDATE] Checking basic edit permissions:', { canEditBasic });
+    if (!canEditBasic) {
+      console.log('[POSITION UPDATE] Permission denied - user lacks basic edit permissions');
+      await client.query('ROLLBACK');
+      return NextResponse.json({ message: 'Forbidden: insufficient permissions to edit positions' }, { status: 403 });
+    }
 
     // If the user is only the assigned recruiter (not admin/module), prevent them from changing restricted fields
     if (!canAssignRecruiter && wantsToChangeRecruiter) {

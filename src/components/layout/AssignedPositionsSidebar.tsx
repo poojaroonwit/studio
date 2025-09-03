@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Briefcase, Loader2 } from 'lucide-react';
+import { Briefcase, Loader2, RotateCcw } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { PositionDetailDrawer } from '@/components/positions/PositionDetailDrawer';
 import { cn } from '@/lib/utils';
@@ -43,6 +43,7 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
   const [selectedPositionId, setSelectedPositionId] = useState<string | null>(null);
   const [isPositionDrawerOpen, setIsPositionDrawerOpen] = useState(false);
   const [visibleCount, setVisibleCount] = useState(5);
+  const [sseConnected, setSseConnected] = useState(false);
   const sseRef = React.useRef<EventSource | null>(null);
   const refreshTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -57,14 +58,27 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
     if (!session?.user?.id) return;
 
     try {
+      console.log('[AssignedPositionsSidebar] Establishing SSE connection...');
       const es = new EventSource('/api/sse');
       sseRef.current = es;
 
+      es.onopen = () => {
+        console.log('[AssignedPositionsSidebar] SSE connection established successfully');
+        setSseConnected(true);
+      };
+
+      es.onerror = (error) => {
+        console.error('[AssignedPositionsSidebar] SSE connection error:', error);
+        setSseConnected(false);
+      };
+
       const handlePositionUpdate = (event: MessageEvent) => {
         try {
+          console.log('[AssignedPositionsSidebar] Received position_update event:', event.data);
           const payload = JSON.parse(event.data || '{}');
           // If event carries a position and it's open or recruiter changed, refresh list
           if (payload && (payload.position || payload.data?.position)) {
+            console.log('[AssignedPositionsSidebar] Refreshing due to position update');
             if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
             refreshTimerRef.current = setTimeout(() => {
               fetchAssignedPositions();
@@ -72,33 +86,41 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
           }
           // Also refresh when position list is updated (includes deletions and headcount changes)
           if (payload && (payload.action === 'list_updated' || payload.action === 'deleted')) {
+            console.log('[AssignedPositionsSidebar] Refreshing due to list update:', payload.action);
             if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
             refreshTimerRef.current = setTimeout(() => {
               fetchAssignedPositions();
             }, 500);
           }
-        } catch {
-          // ignore malformed sse payloads
+        } catch (error) {
+          console.error('[AssignedPositionsSidebar] Error parsing position_update event:', error);
         }
       };
 
       const handleDashboardUpdate = (event: MessageEvent) => {
         try {
+          console.log('[AssignedPositionsSidebar] Received dashboard_update event:', event.data);
           const payload = JSON.parse(event.data || '{}');
           // Refresh when dashboard updates occur (includes statistics and headcount changes)
           if (payload && payload.type === 'dashboard_update') {
+            console.log('[AssignedPositionsSidebar] Refreshing due to dashboard update');
             if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
             refreshTimerRef.current = setTimeout(() => {
               fetchAssignedPositions();
             }, 500);
           }
-        } catch {
-          // ignore malformed sse payloads
+        } catch (error) {
+          console.error('[AssignedPositionsSidebar] Error parsing dashboard_update event:', error);
         }
       };
 
       es.addEventListener('position_update', handlePositionUpdate);
       es.addEventListener('dashboard_update', handleDashboardUpdate);
+      
+      // Add general message listener to catch any events
+      es.onmessage = (event) => {
+        console.log('[AssignedPositionsSidebar] Received general message:', event.data);
+      };
 
       return () => {
         es.removeEventListener('position_update', handlePositionUpdate as any);
@@ -118,6 +140,7 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
   const fetchAssignedPositions = async () => {
     if (!session?.user?.id) return;
     
+    console.log('[AssignedPositionsSidebar] Fetching assigned positions for user:', session.user.id);
     setIsLoading(true);
     setError(null);
     
@@ -140,6 +163,7 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
       }
       
       const data = await response.json();
+      console.log('[AssignedPositionsSidebar] Received positions data:', data);
       setPositions(data.data || []);
       setVisibleCount(5);
     } catch (err) {
@@ -204,9 +228,27 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
             <div className="flex items-center gap-2 px-3">
               <Briefcase className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm font-medium text-muted-foreground">Positions</span>
-              <Badge variant="secondary" className="ml-auto text-xs">
-                {positions.length}
-              </Badge>
+              <div className="ml-auto flex items-center gap-2">
+                <div 
+                  className={cn(
+                    "h-2 w-2 rounded-full",
+                    sseConnected ? "bg-green-500" : "bg-yellow-500"
+                  )}
+                  title={sseConnected ? "Real-time updates active" : "Real-time updates inactive"}
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0 hover:bg-sidebar-accent"
+                  onClick={fetchAssignedPositions}
+                  title="Refresh positions"
+                >
+                  <RotateCcw className="h-3 w-3" />
+                </Button>
+                <Badge variant="secondary" className="text-xs">
+                  {positions.length}
+                </Badge>
+              </div>
             </div>
             <div className="px-3">
               <div className="border-t" />

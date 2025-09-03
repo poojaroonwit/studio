@@ -222,7 +222,8 @@ export async function PUT(request: NextRequest) {
         }
 
         // Handle user group assignment using direct foreign key
-        if (targetUserGroupId !== undefined) {
+        // Only update if explicitly provided to prevent setting to null
+        if (userGroupIds !== undefined || role !== undefined) {
             updateData.userGroupId = targetUserGroupId;
         }
 

@@ -62,9 +62,9 @@ const nextConfig = {
   experimental: {
     optimizeCss: false, // Disabled to reduce memory usage during build
     // optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'], // Disabled due to self reference issue
-    serverActions: {
-      bodySizeLimit: '500mb',
-    },
+    // serverActions: {
+    //   bodySizeLimit: '500mb',
+    // },
   },
   
   // Allow cross-origin requests in development

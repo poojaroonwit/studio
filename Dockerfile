@@ -27,6 +27,9 @@ COPY . .
 # Fix line endings for shell scripts (important for Windows development)
 RUN dos2unix ./entrypoint.sh ./entrypoint-processor.sh 2>/dev/null || true
 
+# Generate Prisma client
+RUN npx prisma generate
+
 # Debug: check if src/lib/db.ts exists
 RUN ls -l src/lib/db.ts || (echo 'src/lib/db.ts not found!' && exit 1)
 

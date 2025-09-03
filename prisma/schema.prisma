@@ -25,6 +25,10 @@ model User {
   personalColor              String?                     @default("#3B82F6") @map("personal_color")
   module_permissions         String[]                    @default([])
   
+  // Direct foreign keys for user groups and teams
+  userGroupId                String?                     @db.Uuid @map("userGroupId")
+  userTeamId                 String?                     @db.Uuid @map("userTeamId")
+  
   // Relations
   accounts                   Account[]
   attachments                Attachment[]                @relation("UserAttachments")
@@ -40,10 +44,16 @@ model User {
   warningConfigurations      WarningConfiguration[]      @relation("UserWarningConfiguration")
   warningConfigurationShares WarningConfigurationShare[]
   uploadQueue                UploadQueue[]               @relation("UserUploadQueue")
+  
+  // Direct relations to UserGroup and UserTeam
+  userGroup                  UserGroup?                  @relation("UserUserGroup", fields: [userGroupId], references: [id], onDelete: SetNull)
+  userTeam                   UserTeam?                  @relation("UserUserTeam", fields: [userTeamId], references: [id], onDelete: SetNull)
 
   @@index([email])
   @@index([role])
   @@index([authenticationMethod])
+  @@index([userGroupId])
+  @@index([userTeamId])
 }
 
 model Position {
@@ -232,6 +242,9 @@ model UserGroup {
   isSystemRole Boolean  @default(false) @map("is_system_role")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  
+  // Direct relation to users
+  users        User[]   @relation("UserUserGroup")
 
   @@index([isDefault])
   @@index([isSystemRole])
@@ -245,6 +258,9 @@ model UserTeam {
   isActive    Boolean  @default(true) @map("is_active")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @default(now())
+  
+  // Direct relation to users
+  users       User[]   @relation("UserUserTeam")
 
   @@index([isActive])
 }
@@ -720,19 +736,4 @@ model WarningSystemStatus {
   @@index([initialized])
 }
 
-// Junction table models to match existing database structure
-model UserUserGroup {
-  userId    String   @db.Uuid
-  groupId   String   @db.Uuid
 
-  @@id([userId, groupId])
-  @@map("User_UserGroup")
-}
-
-model UserUserTeam {
-  userId  String   @db.Uuid
-  teamId  String   @db.Uuid
-
-  @@id([userId, teamId])
-  @@map("User_UserTeam")
-}

@@ -90,8 +90,7 @@ export async function GET(request: NextRequest) {
         ug."updatedAt",
         COUNT(u.id)::int as user_count
       FROM "UserGroup" ug
-      LEFT JOIN "User_UserGroup" uug ON ug.id = uug."groupId"
-      LEFT JOIN "User" u ON uug."userId" = u.id
+      LEFT JOIN "User" u ON ug.id = u."userGroupId"
       WHERE ug.id = $1
       GROUP BY ug.id, ug.name, ug.description, ug.permissions, ug."is_default", ug."is_system_role", ug."createdAt", ug."updatedAt"
     `, [id]);
@@ -280,7 +279,7 @@ export async function DELETE(request: NextRequest) {
     const client = await getPool().connect();
     try {
         await client.query('BEGIN');
-        // Remove users from this group by setting their userGroupId to NULL
+        // Remove users from this group by setting userGroupId to NULL
         await client.query('UPDATE "User" SET "userGroupId" = NULL WHERE "userGroupId" = $1', [id]);
         const result = await client.query('DELETE FROM "UserGroup" WHERE id = $1 RETURNING name', [id]);
         

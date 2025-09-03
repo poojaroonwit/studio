@@ -85,31 +85,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ message: "User group not found" }, { status: 404 });
     }
 
-    // Build the query to get users not in the group
-    let query = `
+    // Get users not currently in this group using direct foreign key
+    const result = await client.query(`
       SELECT 
         u.id,
         u.name,
         u.email,
         u.role,
+        u."avatarUrl",
+        u."personalColor",
         u."createdAt"
       FROM "User" u
       WHERE u."userGroupId" IS NULL OR u."userGroupId" != $1
-    `;
-    
-    const queryParams = [groupId];
-    let paramIndex = 2;
-
-    // Add search filter if provided
-    if (searchTerm) {
-      query += ` AND (u.name ILIKE $${paramIndex} OR u.email ILIKE $${paramIndex})`;
-      queryParams.push(`%${searchTerm}%`);
-      paramIndex++;
-    }
-
-    query += ' ORDER BY u.name ASC';
-
-    const result = await client.query(query, queryParams);
+      ORDER BY u.name ASC
+    `, [groupId]);
 
     return NextResponse.json({ 
       users: result.rows,

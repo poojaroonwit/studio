@@ -76,6 +76,8 @@ export async function GET(request: NextRequest) {
                 forcePasswordChange: true,
                 createdAt: true,
                 updatedAt: true,
+                userGroupId: true,
+                userTeamId: true,
             }
         });
 
@@ -83,37 +85,21 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ message: "User not found" }, { status: 404 });
         }
 
-        // Fetch user groups and teams separately using junction tables
-        const userGroups = await prisma.userUserGroup.findMany({
-            where: { userId: user.id },
-            include: {
-                group: {
-                    select: {
-                        id: true,
-                        name: true,
-                        permissions: true
-                    }
-                }
-            }
-        });
-
-        const userTeams = await prisma.userUserTeam.findMany({
-            where: { userId: user.id },
-            include: {
-                team: {
-                    select: {
-                        id: true,
-                        name: true,
-                        color: true
-                    }
-                }
-            }
-        });
+        // Fetch user groups and teams using direct foreign keys
+        const userGroup = user.userGroupId ? await prisma.userGroup.findUnique({
+          where: { id: user.userGroupId },
+          select: { id: true, name: true, permissions: true }
+        }) : null;
+        
+        const userTeam = user.userTeamId ? await prisma.userTeam.findUnique({
+          where: { id: user.userTeamId },
+          select: { id: true, name: true, color: true }
+        }) : null;
 
         const userToReturn = {
-            ...user,
-            teams: userTeams.map((ut: any) => ut.team),
-            modulePermissions: userGroups.length > 0 ? userGroups[0].group.permissions : [],
+          ...user,
+          teams: userTeam ? [userTeam] : [],
+          modulePermissions: userGroup?.permissions || [],
         };
 
         return NextResponse.json(userToReturn, { status: 200 });
@@ -222,9 +208,10 @@ export async function PUT(request: NextRequest) {
         }
 
         // Handle user group assignment based on userGroupIds or role
+        let targetUserGroupId = null;
         if (userGroupIds !== undefined && userGroupIds.length > 0) {
             // Use the first selected user group
-            updateData.userGroupId = userGroupIds[0];
+            targetUserGroupId = userGroupIds[0];
         } else if (role !== undefined) {
             // Fall back to role-based mapping for backward compatibility
             const roleToGroupId = {
@@ -232,53 +219,42 @@ export async function PUT(request: NextRequest) {
                 'Recruiter': '00000000-0000-0000-0000-000000000002',
                 'Hiring Manager': '00000000-0000-0000-0000-000000000003'
             };
-            updateData.userGroupId = roleToGroupId[role] || null;
+            targetUserGroupId = roleToGroupId[role] || null;
         }
 
-        // Handle user teams update (direct foreign key)
+        // Handle user group assignment using direct foreign key
+        if (targetUserGroupId !== undefined) {
+            updateData.userGroupId = targetUserGroupId;
+        }
+
+        // Handle user team assignment using direct foreign key (only one team per user)
         if (userTeamIds !== undefined) {
-            // For direct foreign key, just use the first team ID
-            updateData.userTeamId = userTeamIds.length > 0 ? userTeamIds[0] : null;
+            updateData.userTeamId = userTeamIds && userTeamIds.length > 0 ? userTeamIds[0] : null;
         }
 
         const updatedUser = await prisma.user.update({
             where: { id },
-            data: updateData,
-            select: {
-                id: true,
-                name: true,
-                email: true,
-                role: true,
-                avatarUrl: true,
-                personalColor: true,
-                authenticationMethod: true,
-                forcePasswordChange: true,
-                createdAt: true,
-                updatedAt: true,
-                userGroup: {
-                    select: {
-                        id: true,
-                        name: true,
-                        permissions: true
-                    }
-                },
-                userTeam: {
-                    select: {
-                        id: true,
-                        name: true,
-                        color: true
-                    }
-                }
-            }
+            data: updateData
         });
 
         // Clear user validation cache for the updated user
         clearUserValidationCache(id);
 
+        // Fetch updated user data with groups and teams using direct foreign keys
+        const userGroup = updatedUser.userGroupId ? await prisma.userGroup.findUnique({
+            where: { id: updatedUser.userGroupId },
+            select: { id: true, name: true, permissions: true }
+        }) : null;
+        
+        const userTeam = updatedUser.userTeamId ? await prisma.userTeam.findUnique({
+            where: { id: updatedUser.userTeamId },
+            select: { id: true, name: true, color: true }
+        }) : null;
+
         const userToReturn = {
             ...updatedUser,
-            teams: updatedUser.userTeam ? [updatedUser.userTeam] : [],
-            modulePermissions: updatedUser.userGroup?.permissions || [],
+            teams: userTeam ? [userTeam] : [],
+            modulePermissions: userGroup?.permissions || [],
         };
 
         await logAudit('AUDIT', `User '${updatedUser.name}' (ID: ${id}) was updated.`, 'API:Users:Update', actingUserId, { targetUserId: id, changes: validationResult.data });

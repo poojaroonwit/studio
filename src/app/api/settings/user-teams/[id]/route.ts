@@ -100,20 +100,21 @@ export async function GET(
   const { id } = await params;
   const client = await getPool().connect();
   try {
+    // Get user count for this team using direct foreign key
     const result = await client.query(`
       SELECT 
-        ut.id, 
-        ut.name, 
-        ut.description, 
+        ut.id,
+        ut.name,
+        ut.description,
         ut.color,
-        ut."is_active" as "isActive", 
-        ut."createdAt", 
+        ut."isActive",
+        ut."createdAt",
         ut."updatedAt",
-        COUNT(u.id)::int as member_count
+        COUNT(u.id) as user_count
       FROM "UserTeam" ut
       LEFT JOIN "User" u ON ut.id = u."userTeamId"
       WHERE ut.id = $1
-      GROUP BY ut.id, ut.name, ut.description, ut.color, ut."is_active", ut."createdAt", ut."updatedAt"
+      GROUP BY ut.id, ut.name, ut.description, ut.color, ut."isActive", ut."createdAt", ut."updatedAt"
     `, [id]);
 
     if (result.rows.length === 0) {

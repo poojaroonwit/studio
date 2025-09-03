@@ -134,19 +134,25 @@ export async function withDbTransaction<T>(
 
 // Returns permissions for a user from their assigned groups only
 export async function getMergedUserPermissions(userId: string): Promise<string[]> {
-  return withDbClient(async (client) => {
-    // Get group permissions using the User_UserGroup junction table
-    const groupRes = await client.query(`
-      SELECT DISTINCT unnest(ug.permissions) AS permission
+  const client = await getPool().connect();
+  try {
+    // Get user permissions using direct foreign key
+    const result = await client.query(`
+      SELECT ug.permissions
       FROM "User" u
-      JOIN "User_UserGroup" uug ON u.id = uug."userId"
-      JOIN "UserGroup" ug ON uug."groupId" = ug.id
+      JOIN "UserGroup" ug ON u."userGroupId" = ug.id
       WHERE u.id = $1
     `, [userId]);
     
-    const permissions = groupRes.rows.map(row => row.permission) as string[];
-
-    // Return only group permissions (no direct permissions)
-    return permissions || [];
-  });
+    if (result.rows.length === 0) {
+      return [];
+    }
+    
+    return result.rows[0].permissions || [];
+  } catch (error) {
+    console.error('Error getting merged user permissions:', error);
+    return [];
+  } finally {
+    client.release();
+  }
 }

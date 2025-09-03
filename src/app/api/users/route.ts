@@ -138,6 +138,8 @@ export async function GET(request: NextRequest) {
           forcePasswordChange: true,
           createdAt: true,
           updatedAt: true,
+          userGroupId: true, // Added for fetching user group
+          userTeamId: true, // Added for fetching user team
         },
         orderBy: {
           name: 'asc'
@@ -159,40 +161,22 @@ export async function GET(request: NextRequest) {
       }, { status: 200 });
     }
 
-    // Fetch user groups and teams separately using junction tables
+    // Fetch user groups and teams using direct foreign keys
     const usersToReturn = await Promise.all(users.map(async (user: any) => {
-      // Get user groups
-      const userGroups = await prisma.userUserGroup.findMany({
-        where: { userId: user.id },
-        include: {
-          group: {
-            select: {
-              id: true,
-              name: true,
-              permissions: true
-            }
-          }
-        }
-      });
-
-      // Get user teams
-      const userTeams = await prisma.userUserTeam.findMany({
-        where: { userId: user.id },
-        include: {
-          team: {
-            select: {
-              id: true,
-              name: true,
-              color: true
-            }
-          }
-        }
-      });
+      const userGroup = user.userGroupId ? await prisma.userGroup.findUnique({
+        where: { id: user.userGroupId },
+        select: { id: true, name: true, permissions: true }
+      }) : null;
+      
+      const userTeam = user.userTeamId ? await prisma.userTeam.findUnique({
+        where: { id: user.userTeamId },
+        select: { id: true, name: true, color: true }
+      }) : null;
 
       return {
         ...user,
-        teams: userTeams.map((ut: any) => ut.team),
-        modulePermissions: userGroups.length > 0 ? userGroups[0].group.permissions : []
+        teams: userTeam ? [userTeam] : [],
+        modulePermissions: userGroup?.permissions || []
       };
     }));
 
@@ -340,30 +324,14 @@ export async function POST(request: NextRequest) {
          authenticationMethod,
          forcePasswordChange,
          personalColor,
+         userGroupId: targetUserGroupId, // Assign user group
+         userTeamId: userTeamIds && userTeamIds.length > 0 ? userTeamIds[0] : null, // Assign user team
        }
      });
 
-     // Assign user to the appropriate group using junction table
-     if (targetUserGroupId) {
-       await prisma.userUserGroup.create({
-         data: {
-           userId: newUser.id,
-           groupId: targetUserGroupId
-         }
-       });
-     }
-
-     // Assign user to teams using junction table
-     if (userTeamIds && userTeamIds.length > 0) {
-       for (const teamId of userTeamIds) {
-         await prisma.userUserTeam.create({
-           data: {
-             userId: newUser.id,
-             teamId: teamId
-           }
-         });
-       }
-     }
+           // Note: With direct foreign keys, we can only assign one team per user
+      // If multiple teams are provided, we'll use the first one
+      // For multiple team support, you would need to implement a different approach
 
     // Create default warning configurations for the new user
     try {
@@ -376,24 +344,16 @@ export async function POST(request: NextRequest) {
     }
 
      // Fetch the user's group to get permissions
-     const userGroup = targetUserGroupId ? await prisma.userUserGroup.findFirst({
-       where: { userId: newUser.id, groupId: targetUserGroupId },
-       include: {
-         group: {
-           select: {
-             id: true,
-             name: true,
-             permissions: true
-           }
-         }
-       }
+     const userGroup = targetUserGroupId ? await prisma.userGroup.findUnique({
+       where: { id: targetUserGroupId },
+       select: { id: true, name: true, permissions: true }
      }) : null;
 
      const userToReturn = {
        ...newUser,
        teams: userTeamIds || [],
        // Get permissions from UserGroup, not from direct field
-       modulePermissions: userGroup?.group?.permissions || []
+       modulePermissions: userGroup?.permissions || []
      };
 
     // Clear user validation cache for the new user

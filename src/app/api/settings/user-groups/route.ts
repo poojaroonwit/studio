@@ -103,8 +103,7 @@ export async function GET(request: NextRequest) {
         ug."updatedAt",
         COUNT(u.id)::int as user_count
       FROM "UserGroup" ug
-      LEFT JOIN "User_UserGroup" uug ON ug.id = uug."groupId"
-      LEFT JOIN "User" u ON uug."userId" = u.id
+      LEFT JOIN "User" u ON ug.id = u."userGroupId"
       GROUP BY ug.id, ug.name, ug.description, ug.permissions, ug."is_default", ug."is_system_role", ug."createdAt", ug."updatedAt"
       ORDER BY ug."is_system_role" DESC, ug.name ASC
     `);

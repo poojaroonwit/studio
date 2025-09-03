@@ -29,16 +29,15 @@ export async function authenticateUser(email: string, password: string) {
       return null;
     }
 
-    // Get user permissions using the User_UserGroup junction table
+    // Get user permissions using direct foreign key
     const permissionsResult = await client.query(`
-      SELECT DISTINCT unnest(ug.permissions) AS permission
+      SELECT ug.permissions
       FROM "User" u
-      JOIN "User_UserGroup" uug ON u.id = uug."userId"
-      JOIN "UserGroup" ug ON uug."groupId" = ug.id
+      JOIN "UserGroup" ug ON u."userGroupId" = ug.id
       WHERE u.id = $1
     `, [user.id]);
 
-    const permissions = permissionsResult.rows.map(row => row.permission) as PlatformModuleId[];
+    const permissions = permissionsResult.rows[0]?.permissions || [];
 
     return {
       id: user.id,

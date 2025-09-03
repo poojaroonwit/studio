@@ -23,15 +23,7 @@ model User {
   updatedAt                  DateTime                    @updatedAt
   azure_oid                  String?                     @unique
   personalColor              String?                     @default("#3B82F6") @map("personal_color")
-  // Direct foreign keys instead of many-to-many
-  userGroupId                String?                     @db.Uuid
-  userTeamId                 String?                     @db.Uuid
-  
-  // Relations
-  userGroup                  UserGroup?                  @relation(fields: [userGroupId], references: [id], onDelete: SetNull)
-  userTeam                   UserTeam?                   @relation(fields: [userTeamId], references: [id], onDelete: SetNull)
-  
-  // Other relations
+  module_permissions         String[]                    @default([])
   accounts                   Account[]
   attachments                Attachment[]                @relation("UserAttachments")
   candidates                 Candidate[]                 @relation("RecruiterCandidates")
@@ -50,8 +42,6 @@ model User {
   @@index([email])
   @@index([role])
   @@index([authenticationMethod])
-  @@index([userGroupId])
-  @@index([userTeamId])
 }
 
 model Position {
@@ -139,12 +129,12 @@ model Candidate {
   sourceId                String?            @db.Uuid
   subSource               String?
   companyId               String?            @db.Uuid
-  statusId                String?            @db.Uuid @map("status")
+  statusId                String             @map("status") @db.Uuid
   attachments             Attachment[]
   position                Position?          @relation(fields: [positionId], references: [id])
   recruiter               User?              @relation("RecruiterCandidates", fields: [recruiterId], references: [id])
   source                  CandidateSource?   @relation(fields: [sourceId], references: [id])
-  recruitmentStage        RecruitmentStage?  @relation("RecruitmentStageCandidates", fields: [statusId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  recruitmentStage        RecruitmentStage   @relation("RecruitmentStageCandidates", fields: [statusId], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "Candidate_statusId_fkey")
   candidateComments       CandidateComment[]
   headcounts              Headcount[]        @relation("CandidateHeadcount")
   jobMatches              JobMatch[]
@@ -240,7 +230,6 @@ model UserGroup {
   isSystemRole Boolean  @default(false) @map("is_system_role")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-  users        User[]
 
   @@index([isDefault])
   @@index([isSystemRole])
@@ -254,9 +243,6 @@ model UserTeam {
   isActive    Boolean  @default(true) @map("is_active")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @default(now())
-  
-  // Direct relation to users
-  users       User[]
 
   @@index([isActive])
 }
@@ -732,4 +718,20 @@ model WarningSystemStatus {
   @@index([initialized])
 }
 
+model User_UserGroup {
+  userId  String @db.Uuid
+  groupId String @db.Uuid
 
+  @@id([userId, groupId])
+  @@index([groupId])
+  @@index([userId])
+}
+
+model User_UserTeam {
+  userId String @db.Uuid
+  teamId String @db.Uuid
+
+  @@id([userId, teamId])
+  @@index([teamId])
+  @@index([userId])
+}

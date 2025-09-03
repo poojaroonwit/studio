@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
 
     const client = await getPool().connect();
     try {
-      // Get user data directly from database using the correct User_UserGroup junction table
+      // Get user data directly from database using the User_UserGroup junction table
       const userResult = await client.query(`
         SELECT 
           u.id, u.name, u.email, u.role,

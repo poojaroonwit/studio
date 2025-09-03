@@ -671,9 +671,21 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
           
           try {
             // Check if this is a status change to "Hired" or similar hiring status
-            const isHiringStatus = status.toLowerCase().includes('hired') || 
-                                 status.toLowerCase().includes('hiring') ||
-                                 status.toLowerCase().includes('employed');
+            // First, find the stage name for the given status ID
+            const selectedStage = availableStages.find(stage => stage.id === status);
+            const stageName = selectedStage?.name || status;
+            
+            const isHiringStatus = stageName.toLowerCase().includes('hired') || 
+                                 stageName.toLowerCase().includes('hiring') ||
+                                 stageName.toLowerCase().includes('employed');
+            
+            console.log('FullCandidateDetail - Status update requested:', {
+              status,
+              stageName,
+              isHiringStatus,
+              candidatePositionId: candidate?.positionId,
+              candidateName: candidate?.name
+            });
             
             if (isHiringStatus && candidate?.positionId) {
               console.log('FullCandidateDetail - Attempting to update to hiring status, checking headcount availability first');
@@ -682,6 +694,8 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
               try {
                 const response = await fetch(`/api/headcount/validate-hiring?candidateId=${candidateId}&positionId=${candidate.positionId}`);
                 const validationResult = await response.json();
+                
+                console.log('FullCandidateDetail - Headcount validation result:', validationResult);
                 
                 if (!validationResult.canHire) {
                   console.log('FullCandidateDetail - Headcount not available, showing warning modal and blocking status change');
@@ -701,6 +715,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                   
                   // IMPORTANT: Return early to prevent status update
                   console.log('FullCandidateDetail - Status change blocked - returning early');
+                  console.log('FullCandidateDetail - Status update blocked, modal should be open');
                   return;
                 } else {
                   console.log('FullCandidateDetail - Headcount available, proceeding with status update');

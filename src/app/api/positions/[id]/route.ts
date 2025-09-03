@@ -212,6 +212,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       actingUserId,
       actingUserRole,
       modulePermissions,
+      modulePermissionsType: typeof modulePermissions,
+      modulePermissionsIsArray: Array.isArray(modulePermissions),
+      modulePermissionsLength: modulePermissions?.length || 0,
       isAdmin,
       isAssignedRecruiter,
       existingPositionRecruiterId: existingPosition.recruiterId,
@@ -230,7 +233,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     
     console.log('[POSITION UPDATE] Permission results:', {
       canEditBasic,
-      canAssignRecruiter
+      canAssignRecruiter,
+      hasPositionsEditBasic: modulePermissions.includes('POSITIONS_EDIT_BASIC'),
+      hasPositionsEditDetailed: modulePermissions.includes('POSITIONS_EDIT_DETAILED'),
+      hasPositionsRecruiterAssign: modulePermissions.includes('POSITIONS_RECRUITER_ASSIGN'),
+      allPermissions: modulePermissions
     });
 
     if (wantsToChangeRecruiter && !canAssignRecruiter) {

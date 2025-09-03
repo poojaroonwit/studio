@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
 const candidateFields = [
   { key: 'none', label: 'None', icon: '🚫' },
   { key: 'status', label: 'Status', icon: '📊' },
-  { key: 'recruiterId', label: 'Recruiter', icon: '👤' },
+  { key: 'recruiterId', label: 'Recruiters', icon: '👤' },
   { key: 'positionId', label: 'Position', icon: '💼' },
   { key: 'fitScore', label: 'Fit Score', icon: '🎯' },
 ];

@@ -492,7 +492,7 @@ export async function POST(request: NextRequest) {
       case 'assign_recruiter':
         // If newRecruiterId is provided, verify it exists and has recruiter role
         if (newRecruiterId !== null && newRecruiterId !== undefined) {
-          const recruiterCheck = await client.query('SELECT id FROM "User" WHERE id = $1 AND role = $2', [newRecruiterId, 'Recruiter']);
+          const recruiterCheck = await client.query('SELECT id FROM "User" WHERE id = $1 AND role = $2', [newRecruiterId, 'Recruiters']);
           if (recruiterCheck.rows.length === 0) {
             throw new Error('Invalid recruiter ID or user is not a recruiter');
           }

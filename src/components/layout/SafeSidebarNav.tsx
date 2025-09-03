@@ -524,7 +524,7 @@ const SafeSidebarNavComponent = React.memo(() => {
             </React.Fragment>
           ))}
           {/* Assigned positions inside the SidebarMenu list */}
-          {sidebarPreferences?.showAssignedPositions && session?.user?.role === 'Recruiter' && (
+          {sidebarPreferences?.showAssignedPositions && (
             <SidebarMenuItem>
               <div className="px-2">
                 <AssignedPositionsSidebar variant="compact" />

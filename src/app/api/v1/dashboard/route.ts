@@ -193,7 +193,7 @@ export async function GET(req: NextRequest) {
           COUNT(*) as total,
           COUNT(CASE WHEN "isActive" = true THEN 1 END) as active
         FROM "User"
-        WHERE role = 'Recruiter'
+        WHERE role = 'Recruiters'
       `);
 
       // Get recent activity (last 10 activities)

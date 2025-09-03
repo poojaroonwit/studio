@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -76,6 +76,12 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
     errorMessage: string;
   } | null>(null);
   
+  // Add debugging for modal state changes
+  useEffect(() => {
+    console.log('FullCandidateDetail - isHeadcountWarningModalOpen changed:', isHeadcountWarningModalOpen);
+    console.log('FullCandidateDetail - headcountWarningData:', headcountWarningData);
+  }, [isHeadcountWarningModalOpen, headcountWarningData]);
+  
   // Selection states
   const [preselectedStage, setPreselectedStage] = useState<string | null>(null);
   const [selectedJobMatch, setSelectedJobMatch] = useState<any>(null);
@@ -134,25 +140,23 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
     removeJobMatch,
     setCandidate,
     setTransitionHistory,
+    // Actions
+    setIsEditing,
+    setCopiedJobApplied,
+    setCopiedJobMatchIndex,
+    setIsSaving,
+    setIsAssigningRecruiter,
+    setIsAssigningSource,
     // Functions
     calculateTotalExperienceDuration,
     calculateAverageDurationPerCompany,
     handleAssignRecruiter,
     handleAssignSource,
     handleAvatarUpload,
+    handleEnterEditMode,
   } = useCandidateDetail(candidateId);
 
-  // Debug logging for taskboard modal issue
-  console.log(`[FullCandidateDetail] Component rendered with:`, {
-    candidateId,
-    isModal,
-    candidate: candidate?.id,
-    loading,
-    error,
-    avatarUploading,
-    avatarError,
-    avatarForceRefresh
-  });
+
 
   // UUID validation removed
 
@@ -212,9 +216,6 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
   }
 
   // Event handlers
-  const handleEnterEditMode = () => {
-    setIsEditing(true);
-  };
 
   const openManageTransitionsModal = (stageName?: string) => {
     setPreselectedStage(stageName || candidate?.status || availableStages[0]?.name || null);
@@ -657,7 +658,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
               // Optimistically update the candidate status
               setCandidate(prev => prev ? {
                 ...prev,
-                status: status,
+                statusId: status,
                 updatedAt: new Date().toISOString()
               } : null);
 
@@ -667,8 +668,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                 candidateId: candidateId,
                 stage: status,
                 notes: notes || undefined,
-                actingUserId: session?.user?.id || '',
-                actingUserName: session?.user?.name || session?.user?.email || 'Unknown',
+                actingUserId: session?.user?.id || null,
                 date: new Date().toISOString(),
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString()
@@ -689,6 +689,8 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
             
             // Check if it's a headcount constraint error
             if (error.message && error.message.includes('Headcount constraint:')) {
+              console.log('Headcount constraint error detected, showing warning modal');
+              
               // Get position title for the warning
               const positionTitle = candidate?.positionId 
                 ? allDbPositions.find(p => p.id === candidate.positionId)?.title 
@@ -700,7 +702,11 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                 positionTitle,
                 errorMessage: error.message.replace('Headcount constraint: ', '')
               });
+              
+              // Ensure modal stays open
               setIsHeadcountWarningModalOpen(true);
+              
+              console.log('Headcount warning modal state set to true');
             }
             
             // Revert optimistic updates on error
@@ -725,6 +731,8 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
         comments={comments}
         onCommentsChange={handleCommentsChange}
         onHeadcountConstraintError={(error: Error) => {
+          console.log('onHeadcountConstraintError callback triggered');
+          
           // Get position title for the warning
           const positionTitle = candidate?.positionId 
             ? allDbPositions.find(p => p.id === candidate.positionId)?.title 
@@ -736,7 +744,11 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
             positionTitle,
             errorMessage: error.message.replace('Headcount constraint: ', '')
           });
+          
+          // Ensure modal stays open
           setIsHeadcountWarningModalOpen(true);
+          
+          console.log('Headcount warning modal state set to true via callback');
         }}
       />
  

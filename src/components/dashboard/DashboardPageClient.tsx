@@ -529,7 +529,7 @@ export default function DashboardPageClient({
     
     // Combined recruiter statistics
     const totalActiveRecruiters = safeAllUsers.filter((u: UserProfile) => 
-      u.role === 'Recruiter' || 
+      u.role === 'Recruiters' || 
       (u.modulePermissions || []).includes('CANDIDATES_VIEW') ||
       (u.modulePermissions || []).includes('CANDIDATES_CREATE') ||
       (u.modulePermissions || []).includes('CANDIDATES_EDIT_BASIC') ||

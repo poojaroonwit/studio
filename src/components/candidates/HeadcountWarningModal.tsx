@@ -30,6 +30,16 @@ export function HeadcountWarningModal({
   errorMessage,
   onProceed
 }: HeadcountWarningModalProps) {
+  // Add debugging to track modal state changes
+  React.useEffect(() => {
+    console.log('HeadcountWarningModal - isOpen changed:', isOpen);
+    if (isOpen) {
+      console.log('HeadcountWarningModal - Modal opened');
+    } else {
+      console.log('HeadcountWarningModal - Modal closed');
+    }
+  }, [isOpen]);
+
   // Parse headcount status from error message
   const headcountMatch = errorMessage.match(/\(Total: (\d+), Vacant: (\d+), Filled: (\d+)\)/);
   const headcountStatus = headcountMatch ? {
@@ -119,9 +129,36 @@ export function HeadcountWarningModal({
 
   const guidance = getSpecificGuidance();
 
+  // Prevent automatic closing by handling onOpenChange properly
+  const handleOpenChange = (open: boolean) => {
+    console.log('HeadcountWarningModal - handleOpenChange called with:', open);
+    
+    // Only allow closing if the user explicitly wants to close
+    if (!open) {
+      console.log('HeadcountWarningModal - User requested to close modal');
+      onClose();
+    }
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+    <Dialog 
+      open={isOpen} 
+      onOpenChange={handleOpenChange}
+      modal={true}
+    >
+      <DialogContent 
+        className="sm:max-w-md"
+        onEscapeKeyDown={(e) => {
+          console.log('HeadcountWarningModal - Escape key pressed, preventing default');
+          // Prevent escape key from closing the modal automatically
+          e.preventDefault();
+        }}
+        onOpenAutoFocus={(e) => {
+          console.log('HeadcountWarningModal - Auto-focus event, preventing default');
+          // Prevent auto-focus issues
+          e.preventDefault();
+        }}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-destructive">
             <AlertTriangle className="h-5 w-5" />
@@ -194,13 +231,17 @@ export function HeadcountWarningModal({
         </div>
 
         <DialogFooter className="flex gap-2">
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={() => {
+            console.log('HeadcountWarningModal - Close button clicked');
+            onClose();
+          }}>
             Close
           </Button>
           {onProceed && !isNoPosition && (
             <Button 
               variant="destructive" 
               onClick={() => {
+                console.log('HeadcountWarningModal - Proceed button clicked');
                 onProceed();
                 onClose();
               }}

@@ -487,7 +487,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       console.log(`Position validation passed - positionId: ${positionId}`);
     }
     if (recruiterId) {
-      const recCheck = await client.query('SELECT id FROM "User" WHERE id = $1::uuid AND role = $2', [recruiterId, 'Recruiter']);
+      const recCheck = await client.query('SELECT id FROM "User" WHERE id = $1::uuid AND role = $2', [recruiterId, 'Recruiters']);
       if (recCheck.rows.length === 0) {
         await client.query('ROLLBACK');
         console.error('Recruiter not found or user is not a recruiter:', recruiterId);

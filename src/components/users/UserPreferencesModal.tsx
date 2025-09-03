@@ -228,7 +228,7 @@ export function UserPreferencesModal({ isOpen, onOpenChange, user }: UserPrefere
     return null;
   }
 
-  const isRecruiter = user.role === 'Recruiter';
+  const isRecruiter = user.role === 'Recruiters';
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -413,9 +413,8 @@ export function UserPreferencesModal({ isOpen, onOpenChange, user }: UserPrefere
                   </Card>
                 </TabsContent>
 
-                {/* Sidebar Tab - Only for Recruiters */}
-                {isRecruiter && (
-                  <TabsContent value="sidebar" className="space-y-6">
+                {/* Sidebar Tab - Available for all users */}
+                <TabsContent value="sidebar" className="space-y-6">
                     <Card>
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2">
@@ -446,7 +445,6 @@ export function UserPreferencesModal({ isOpen, onOpenChange, user }: UserPrefere
                       </CardContent>
                     </Card>
                   </TabsContent>
-                )}
               </div>
             </Tabs>
 

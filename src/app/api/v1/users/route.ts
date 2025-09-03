@@ -18,7 +18,7 @@ import { logAudit } from '@/lib/auditLog';
 const createUserSchema = z.object({
   name: z.string().min(1),
   email: z.string().email(),
-  role: z.enum(['Admin', 'Recruiter', 'User']),
+  role: z.enum(['Admin', 'Recruiters', 'User']),
 
   password: z.string().min(8).optional(),
 });

@@ -100,7 +100,7 @@ WHERE role = 'Admin' AND "userGroupId" IS NULL;
 -- Assign Recruiter users to Recruiters group
 UPDATE "User" 
 SET "userGroupId" = (SELECT id FROM "UserGroup" WHERE name = 'Recruiters')
-WHERE role = 'Recruiter' AND "userGroupId" IS NULL;
+WHERE role = 'Recruiters' AND "userGroupId" IS NULL;
 
 -- Assign other users to Hiring Managers group if they don't have a group
 UPDATE "User" 

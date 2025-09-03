@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic';
 const updateUserSchema = z.object({
   name: z.string().min(1, "Name is required").optional(),
   email: z.string().email("A valid email is required").optional(),
-  role: z.enum(['Admin', 'Recruiter', 'Hiring Manager']).optional(),
+  role: z.enum(['Admin', 'Recruiters', 'Hiring Manager']).optional(),
   password: z.string().min(8, "Password must be at least 8 characters").optional(),
   authenticationMethod: z.enum(['basic', 'azure']).optional(),
   forcePasswordChange: z.boolean().optional(),
@@ -215,7 +215,7 @@ export async function PUT(request: NextRequest) {
             // Fall back to role-based mapping for backward compatibility
             const roleToGroupId = {
                 'Admin': '00000000-0000-0000-0000-000000000001',
-                'Recruiter': '00000000-0000-0000-0000-000000000002',
+                'Recruiters': '00000000-0000-0000-0000-000000000002',
                 'Hiring Manager': '00000000-0000-0000-0000-000000000003'
             };
             targetUserGroupId = roleToGroupId[role] || null;

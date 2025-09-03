@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
             email,
             "avatarUrl"
           FROM "User" 
-          WHERE role = 'Recruiter' OR role = 'Admin'
+          WHERE role = 'Recruiters' OR role = 'Admin'
           ORDER BY name ASC
         `),
         

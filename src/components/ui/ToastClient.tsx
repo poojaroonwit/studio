@@ -28,7 +28,7 @@ export default function ToastClient() {
       position="top-right"
       gutter={16}
       containerStyle={{
-        zIndex: 10002, // Higher z-index to appear above drawers
+        zIndex: 100004, // Higher z-index to appear above all modals and select dropdowns
       }}
       toastOptions={{
         duration: 4000,

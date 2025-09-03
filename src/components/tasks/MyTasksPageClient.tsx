@@ -166,7 +166,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
 
   // Permission check: If user is a recruiter (not Admin and doesn't have CANDIDATES_VIEW permission), 
   // only show their assigned candidates
-  const isRecruiter = userSession?.role === 'Recruiter' && 
+  const isRecruiter = userSession?.role === 'Recruiters' && 
     !userSession?.modulePermissions?.includes('CANDIDATES_VIEW');
 
   // Check if user can see all recruiters (has USERS_VIEW or CANDIDATES_VIEW permission)

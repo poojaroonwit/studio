@@ -207,7 +207,7 @@ const getSkills = (candidate: Candidate) => {
 // Field label mapping (should match CustomizeBoardModal)
 const fieldLabelMap: Record<string, string> = {
   status: 'Status',
-  recruiterId: 'Recruiter',
+  recruiterId: 'Recruiters',
   positionId: 'Position',
   fitScore: 'Fit Score',
   applicationDate: 'Application Date',
@@ -2549,7 +2549,7 @@ export function HorizontalStageKanbanView({
                           </CardTitle>
                           <p className="text-xs text-muted-foreground">
                             {columnField === 'status' ? 'Recruitment Stage' : 
-                             columnField === 'recruiterId' ? 'Recruiter' :
+                             columnField === 'recruiterId' ? 'Recruiters' :
                              columnField === 'positionId' ? 'Position' :
                              columnField === 'fitScore' ? 'Fit Score Range' :
                              'Custom Field'}

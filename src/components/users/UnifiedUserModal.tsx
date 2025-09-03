@@ -140,13 +140,13 @@ export function UnifiedUserModal({
       if (defaultGroup) {
         form.setValue('userGroupIds', [defaultGroup.id]);
         // Map user group to role for API compatibility
-        let roleString = 'Recruiter'; // default fallback
+        let roleString = 'Recruiters'; // default fallback
         if (defaultGroup.name.toLowerCase().includes('admin')) {
           roleString = 'Admin';
         } else if (defaultGroup.name.toLowerCase().includes('hiring') || defaultGroup.name.toLowerCase().includes('manager')) {
           roleString = 'Hiring Manager';
         } else if (defaultGroup.name.toLowerCase().includes('recruiter')) {
-          roleString = 'Recruiter';
+          roleString = 'Recruiters';
         }
         form.setValue('role', roleString);
         
@@ -162,13 +162,13 @@ export function UnifiedUserModal({
       const selectedGroup = userGroups.find(g => g.id === watchedUserGroupIds[0]);
       if (selectedGroup) {
         // Map user group to role string for API compatibility
-        let roleString = 'Recruiter'; // default
+        let roleString = 'Recruiters'; // default
         if (selectedGroup.name.toLowerCase().includes('admin')) {
           roleString = 'Admin';
         } else if (selectedGroup.name.toLowerCase().includes('hiring') || selectedGroup.name.toLowerCase().includes('manager')) {
           roleString = 'Hiring Manager';
         } else if (selectedGroup.name.toLowerCase().includes('recruiter')) {
-          roleString = 'Recruiter';
+          roleString = 'Recruiters';
         }
         form.setValue('role', roleString);
       }
@@ -232,7 +232,7 @@ export function UnifiedUserModal({
           name: '',
           email: '',
           password: '',
-          role: 'Recruiter', // Use valid role value, not user group name
+          role: 'Recruiters', // Use valid role value, not user group name
           newPassword: '',
           forcePasswordChange: false,
           authenticationMethod: 'basic',
@@ -722,7 +722,28 @@ export function UnifiedUserModal({
                                     </FormLabel>
                                     {mode === 'profile' ? (
                                       <div className="h-10 px-3 py-2 border border-input rounded-md bg-muted text-foreground flex items-center transition-all duration-200">
-                                        {userGroups.find(g => g.id === field.value?.[0])?.name || 'No role assigned'}
+                                        {(() => {
+                                          // Try to find the user's group by ID first
+                                          const userGroup = userGroups.find(g => g.id === field.value?.[0]);
+                                          if (userGroup) {
+                                            return userGroup.name;
+                                          }
+                                          
+                                          // Fallback: try to find by role name if userGroupId is not set
+                                          const currentRole = form.getValues('role');
+                                          if (currentRole) {
+                                            const roleBasedGroup = userGroups.find(g => 
+                                              g.name.toLowerCase().includes(currentRole.toLowerCase()) ||
+                                              currentRole.toLowerCase().includes(g.name.toLowerCase())
+                                            );
+                                            if (roleBasedGroup) {
+                                              return roleBasedGroup.name;
+                                            }
+                                            return currentRole; // Show the role string if no matching group found
+                                          }
+                                          
+                                          return 'No role assigned';
+                                        })()}
                                       </div>
                                     ) : (
                                       <Select
@@ -797,11 +818,9 @@ export function UnifiedUserModal({
                               />
                             </div>
 
-                            {/* Sidebar preferences (Recruiter only) */}
+                            {/* Sidebar preferences (Available for all users) */}
                             {(() => {
-                              const selectedRole = userGroups.find(g => g.id === form.watch('userGroupIds')?.[0]);
-                              const isRecruiter = selectedRole?.name === 'Recruiters' || selectedRole?.name === 'Recruiter';
-                              return isRecruiter && (
+                              return (
                                 <div className="rounded-md border p-4">
                                   <div className="flex items-center justify-between">
                                     <div className="space-y-1">

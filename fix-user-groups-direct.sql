@@ -51,7 +51,7 @@ ON CONFLICT (id) DO UPDATE SET
 -- Step 5: Handle any existing groups with old names (rename them to match the expected names)
 UPDATE "UserGroup" 
 SET name = 'Recruiters', "updatedAt" = NOW()
-WHERE name = 'Recruiter' AND id != '00000000-0000-0000-0000-000000000002';
+WHERE name = 'Recruiters' AND id != '00000000-0000-0000-0000-000000000002';
 
 UPDATE "UserGroup" 
 SET name = 'Administrators', "updatedAt" = NOW()

@@ -1098,7 +1098,7 @@ export interface UserProfile {
   avatarUrl?: string;
   dataAiHint?: string;
   personalColor?: string;
-  role: 'Admin' | 'Recruiter' | 'Hiring Manager';
+  role: 'Admin' | 'Recruiters' | 'Hiring Manager';
   password?: string;
   authenticationMethod?: 'basic' | 'azure';
   userTeamId?: string | null; // Direct foreign key to UserTeam

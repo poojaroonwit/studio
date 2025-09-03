@@ -42,7 +42,7 @@ import { cn } from "@/lib/utils";
 import { Pagination } from "@/components/ui/pagination";
 import { hasPermission } from '@/lib/permissions';
 
-const userRoleOptionsFilter: (UserProfile['role'] | "ALL_ROLES")[] = ['ALL_ROLES', 'Admin', 'Recruiter', 'Hiring Manager'];
+const userRoleOptionsFilter: (UserProfile['role'] | "ALL_ROLES")[] = ['ALL_ROLES', 'Admin', 'Recruiters', 'Hiring Manager'];
 
 // Error boundary component for tab content
 class TabErrorBoundary extends React.Component<

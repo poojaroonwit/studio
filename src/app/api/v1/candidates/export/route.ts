@@ -75,7 +75,7 @@ export async function GET(req: NextRequest) {
     // Convert to CSV format
     const headers = [
       'ID', 'Name', 'Email', 'Phone', 'Status', 'Position', 'Department', 
-      'Recruiter', 'Fit Score', 'Application Date', 'Updated At',
+      'Recruiters', 'Fit Score', 'Application Date', 'Updated At',
       'Applied Job', 'Applied Job Justification', 'Job Matches'
     ];
     

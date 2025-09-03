@@ -210,7 +210,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       }
       
       const recruiter = recruiterResult.rows[0];
-      if (recruiter.role !== 'Recruiter' && recruiter.role !== 'Admin') {
+      if (recruiter.role !== 'Recruiters' && recruiter.role !== 'Admin') {
         await client.query('ROLLBACK');
         return NextResponse.json({ message: 'User is not a recruiter' }, { status: 400 });
       }

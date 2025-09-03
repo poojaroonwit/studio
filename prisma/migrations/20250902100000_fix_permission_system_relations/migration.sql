@@ -56,7 +56,7 @@ WHERE id IN (
 );
 
 UPDATE "User" 
-SET role = 'Recruiter'
+SET role = 'Recruiters'
 WHERE id IN (
     SELECT DISTINCT u.id
     FROM "User" u
@@ -71,7 +71,7 @@ WHERE id IN (
         'POSITIONS_EDIT_BASIC' = ANY(ug.permissions) OR
         'TASK_BOARD_VIEW' = ANY(ug.permissions) OR
         'TASK_BOARD_MANAGE_OWN' = ANY(ug.permissions)
-    ) AND u.role != 'Recruiter' AND u.role != 'Admin'
+    ) AND u.role != 'Recruiters' AND u.role != 'Admin'
 );
 
 UPDATE "User" 
@@ -85,12 +85,12 @@ WHERE id IN (
         'CANDIDATES_VIEW' = ANY(ug.permissions) OR
         'POSITIONS_VIEW' = ANY(ug.permissions) OR
         'TASK_BOARD_VIEW' = ANY(ug.permissions)
-    ) AND u.role != 'Hiring Manager' AND u.role != 'Recruiter' AND u.role != 'Admin'
+    ) AND u.role != 'Hiring Manager' AND u.role != 'Recruiters' AND u.role != 'Admin'
 );
 
 -- Step 7: Set default role for users without any group assignments
 UPDATE "User" 
-SET role = 'Recruiter'
+SET role = 'Recruiters'
 WHERE role IS NULL OR role = '';
 
 -- Step 8: Ensure all system groups have proper permissions

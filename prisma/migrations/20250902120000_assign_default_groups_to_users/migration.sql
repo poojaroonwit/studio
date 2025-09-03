@@ -42,7 +42,7 @@ SELECT u.id, ug.id
 FROM "User" u
 CROSS JOIN "UserGroup" ug
 WHERE ug.name = 'Recruiters'
-  AND u.role = 'Recruiter'
+  AND u.role = 'Recruiters'
   AND NOT EXISTS (
     SELECT 1 FROM "User_UserGroup" uug 
     WHERE uug."userId" = u.id AND uug."groupId" = ug.id

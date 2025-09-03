@@ -21,7 +21,7 @@ function testSessionStructure() {
     if (!session?.user) return false;
     
     // Ensure user has a valid role
-    const userRole = session.user.role || 'Recruiter';
+    const userRole = session.user.role || 'Recruiters';
     
     // Admin has access to everything
     if (userRole === 'Admin') return true;

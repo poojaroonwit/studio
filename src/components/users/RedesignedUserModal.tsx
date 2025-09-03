@@ -172,13 +172,13 @@ function PersonalInfoContent({ form, user, mode, userTeams }: PersonalInfoConten
       const selectedGroup = userGroups.find(g => g.id === watchedUserGroupIds[0]);
       if (selectedGroup) {
         // Map user group to role string for API compatibility
-        let roleString = 'Recruiter'; // default
+        let roleString = 'Recruiters'; // default
         if (selectedGroup.name.toLowerCase().includes('admin')) {
           roleString = 'Admin';
         } else if (selectedGroup.name.toLowerCase().includes('hiring') || selectedGroup.name.toLowerCase().includes('manager')) {
           roleString = 'Hiring Manager';
         } else if (selectedGroup.name.toLowerCase().includes('recruiter')) {
-          roleString = 'Recruiter';
+          roleString = 'Recruiters';
         }
         form.setValue('role', roleString);
       }
@@ -458,7 +458,47 @@ function AccountSettingsContent({ form, mode, canManageAuthentication, canForceP
               </FormLabel>
               {mode === 'profile' ? (
                 <div className="h-11 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center">
-                  {userGroups.find(g => g.id === field.value?.[0])?.name || 'No role assigned'}
+                  {isLoadingGroups ? (
+                    <div className="flex items-center gap-2 text-slate-500">
+                      <div className="w-4 h-4 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin"></div>
+                      <span>Loading role...</span>
+                    </div>
+                  ) : userGroups.length === 0 ? (
+                    <div className="text-slate-500">
+                      Unable to load roles
+                    </div>
+                  ) : (() => {
+                    // Debug logging
+                    console.log('Profile mode - field value:', field.value);
+                    console.log('Available user groups:', userGroups);
+                    console.log('Current form role:', form.getValues('role'));
+                    
+                    // Try to find the user's group by ID first
+                    const userGroup = userGroups.find(g => g.id === field.value?.[0]);
+                    if (userGroup) {
+                      console.log('Found user group by ID:', userGroup);
+                      return userGroup.name;
+                    }
+                    
+                    // Fallback: try to find by role name if userGroupId is not set
+                    const currentRole = form.getValues('role');
+                    if (currentRole) {
+                      console.log('Looking for role-based group match for:', currentRole);
+                      const roleBasedGroup = userGroups.find(g => 
+                        g.name.toLowerCase().includes(currentRole.toLowerCase()) ||
+                        currentRole.toLowerCase().includes(g.name.toLowerCase())
+                      );
+                      if (roleBasedGroup) {
+                        console.log('Found role-based group match:', roleBasedGroup);
+                        return roleBasedGroup.name;
+                      }
+                      console.log('No role-based group match found, showing role string');
+                      return currentRole; // Show the role string if no matching group found
+                    }
+                    
+                    console.log('No role information available');
+                    return 'No role assigned';
+                  })()}
                 </div>
               ) : (
                 <Select
@@ -508,11 +548,9 @@ function AccountSettingsContent({ form, mode, canManageAuthentication, canForceP
           )}
         />
         
-        {/* Sidebar preferences (Recruiter only) */}
+        {/* Sidebar preferences (Available for all users) */}
         {(() => {
-          const selectedRole = userGroups.find(g => g.id === form.watch('userGroupIds')?.[0]);
-          const isRecruiter = selectedRole?.name === 'Recruiters' || selectedRole?.name === 'Recruiter';
-          return isRecruiter && (
+          return (
             <div className="rounded-md border p-4">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
@@ -682,7 +720,7 @@ export function RedesignedUserModal({
       name: '', 
       email: '', 
       password: '',
-      role: 'Recruiter', 
+      role: 'Recruiters', 
       newPassword: '', 
       forcePasswordChange: false, 
       authenticationMethod: 'basic', 
@@ -742,7 +780,7 @@ export function RedesignedUserModal({
           name: '',
           email: '',
           password: '',
-          role: 'Recruiter', // Set default role for new users
+          role: 'Recruiters', // Set default role for new users
           newPassword: '',
           forcePasswordChange: false,
           authenticationMethod: 'basic',

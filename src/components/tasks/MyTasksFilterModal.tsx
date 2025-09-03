@@ -360,7 +360,7 @@ export function MyTasksFilterModal({
                 } else if (key === 'recruiterId') {
                   const recruiter = recruiters.find(r => r.id === value);
                   displayValue = recruiter?.name || value;
-                  label = 'Recruiter';
+                  label = 'Recruiters';
                 } else if (key === 'stage') {
                   label = 'Stage';
                 } else if (key === 'name') {

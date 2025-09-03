@@ -694,6 +694,26 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
             try {
               const validation = await validateCandidateHiringStatus(id, existingCandidate.positionId);
               if (validation.canHire && validation.reason === 'VACANT_HEADCOUNT_AVAILABLE') {
+                // Double-check headcount availability right before assignment to prevent race conditions
+                const revalidation = await validateCandidateHiringStatus(id, existingCandidate.positionId);
+                
+                if (!revalidation.canHire) {
+                  // Headcount became unavailable between validation and assignment
+                  console.warn(`Race condition detected: Headcount became unavailable for candidate ${id} during assignment. Cannot proceed with status update.`, {
+                    candidateId: id,
+                    positionId: existingCandidate.positionId,
+                    originalValidation: validation,
+                    revalidation,
+                    timestamp: new Date().toISOString()
+                  });
+                  await client.query('ROLLBACK');
+                  return NextResponse.json({ 
+                    message: `Headcount became unavailable: ${revalidation.message}`,
+                    reason: revalidation.reason,
+                    headcountStatus: revalidation.headcountStatus
+                  }, { status: 400 });
+                }
+                
                 headcountAssignmentResult = await assignCandidateToHeadcount(
                   id,
                   existingCandidate.positionId,

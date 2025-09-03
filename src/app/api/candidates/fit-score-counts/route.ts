@@ -56,7 +56,77 @@ export async function GET(request: NextRequest) {
 
     // All these IDs are UUIDs in the schema; pass as text parameters
     appendInClause('c."positionId"', searchParams.get('positionId'), 'text');
-    appendInClause('c."statusId"', searchParams.get('status'), 'text');
+    
+    // Handle status filter - support both status names and status IDs
+    const statusParam = searchParams.get('status');
+    if (statusParam) {
+      const statuses = statusParam.split(',').map(s => s.trim()).filter(s => s !== '');
+      
+      if (statuses.length > 0) {
+        // Check if these look like UUIDs or status names
+        const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+        
+        const uuidStatuses = statuses.filter(s => isUUID(s));
+        const nameStatuses = statuses.filter(s => !isUUID(s));
+        
+        if (uuidStatuses.length > 0 && nameStatuses.length > 0) {
+          // Mixed UUIDs and names - need to look up names
+          const client = await getPool().connect();
+          try {
+            // Look up status IDs for the name statuses
+            const nameStatusIds = await client.query(
+              'SELECT id FROM "RecruitmentStage" WHERE name = ANY($1)',
+              [nameStatuses]
+            );
+            
+            const allStatusIds = [
+              ...uuidStatuses,
+              ...nameStatusIds.rows.map(row => row.id)
+            ];
+            
+            if (allStatusIds.length === 1) {
+              whereClauses.push(`c."statusId" = $${paramIndex++}`);
+              queryParams.push(allStatusIds[0]);
+            } else {
+              whereClauses.push(`c."statusId" = ANY($${paramIndex++})`);
+              queryParams.push(allStatusIds);
+            }
+          } finally {
+            client.release();
+          }
+        } else if (uuidStatuses.length > 0) {
+          // Only UUIDs - use directly
+          if (uuidStatuses.length === 1) {
+            whereClauses.push(`c."statusId" = $${paramIndex++}`);
+            queryParams.push(uuidStatuses[0]);
+          } else {
+            whereClauses.push(`c."statusId" = ANY($${paramIndex++})`);
+            queryParams.push(uuidStatuses);
+          }
+        } else if (nameStatuses.length > 0) {
+          // Only names - need to look up IDs
+          const client = await getPool().connect();
+          try {
+            const result = await client.query(
+              'SELECT id FROM "RecruitmentStage" WHERE name = ANY($1)',
+              [nameStatuses]
+            );
+            
+            const statusIds = result.rows.map(row => row.id);
+            
+            if (statusIds.length === 1) {
+              whereClauses.push(`c."statusId" = $${paramIndex++}`);
+              queryParams.push(statusIds[0]);
+            } else if (statusIds.length > 1) {
+              whereClauses.push(`c."statusId" = ANY($${paramIndex++})`);
+              queryParams.push(statusIds);
+            }
+          } finally {
+            client.release();
+          }
+        }
+      }
+    }
     
     // Handle recruiter filter (supports multiple recruiters, 'unassigned', and 'select-all')
     const recruiterIdParam = searchParams.get('recruiterId');

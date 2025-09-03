@@ -377,11 +377,40 @@ export async function POST(request: NextRequest) {
           for (const result of headcountValidationResults) {
             if (result.willAutoAssign) {
               try {
+                // Double-check headcount availability right before assignment to prevent race conditions
+                const positionId = candidatesToUpdate.find(c => c.id === result.candidateId)?.positionId!;
+                const revalidation = await validateCandidateHiringStatusWithClient(client, result.candidateId, positionId);
+                
+                if (!revalidation.canHire) {
+                  // Headcount became unavailable between validation and assignment
+                  console.warn(`Race condition detected: Headcount became unavailable for candidate ${result.candidateId} during assignment. Rejecting candidate.`, {
+                    candidateId: result.candidateId,
+                    positionId,
+                    originalValidation: result.validation,
+                    revalidation,
+                    timestamp: new Date().toISOString()
+                  });
+                  candidatesToReject.push({
+                    candidateId: result.candidateId,
+                    reason: revalidation.reason,
+                    message: `Headcount became unavailable: ${revalidation.message}`,
+                    headcountStatus: revalidation.headcountStatus
+                  });
+                  
+                  // Remove from candidatesToUpdate since we can't proceed
+                  const rejectIndex = candidatesToUpdate.findIndex(c => c.id === result.candidateId);
+                  if (rejectIndex !== -1) {
+                    candidatesToUpdate.splice(rejectIndex, 1);
+                  }
+                  
+                  continue;
+                }
+                
                 // OPTIMIZED: Use inline assignment with same connection
                 const assignmentResult = await assignCandidateToHeadcountWithClient(
                   client,
                   result.candidateId,
-                  candidatesToUpdate.find(c => c.id === result.candidateId)?.positionId!,
+                  positionId,
                   actingUserId,
                   actingUserName
                 );
@@ -412,9 +441,13 @@ export async function POST(request: NextRequest) {
           }
         }
 
+        // Update counts after potential race condition rejections
+        const finalUpdatedCount = candidatesToUpdate.length;
+        const finalRejectedCount = candidatesToReject.length;
+        
         result = { 
-          updatedCount: candidatesToUpdate.length,
-          rejectedCount: candidatesToReject.length,
+          updatedCount: finalUpdatedCount,
+          rejectedCount: finalRejectedCount,
           headcountAssignments: headcountAssignmentResults,
           autoCloseResults: autoCloseResults,
           rejectedCandidates: candidatesToReject

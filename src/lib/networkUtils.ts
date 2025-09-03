@@ -263,7 +263,7 @@ export function getErrorMessage(error: any): string {
   }
   
   if (status === 403) {
-    return 'Permission denied. You may not have permission to perform this action.';
+    return 'No permission';
   }
   
   if (status === 404) {
@@ -289,4 +289,39 @@ export function getErrorMessage(error: any): string {
   
   // Default
   return errorMessage || 'An unexpected error occurred. Please try again.';
+}
+
+/**
+ * Handle API response and throw appropriate error with user-friendly message
+ */
+export function handleApiResponse(response: Response, defaultMessage: string = 'Request failed'): Response {
+  if (!response.ok) {
+    const status = response.status;
+    let errorMessage = defaultMessage;
+    
+    // Handle specific HTTP status codes
+    if (status === 401) {
+      errorMessage = 'Authentication required. Please refresh the page and try again.';
+    } else if (status === 403) {
+      errorMessage = 'No permission';
+    } else if (status === 404) {
+      errorMessage = 'Resource not found. The requested item may have been deleted or moved.';
+    } else if (status === 500) {
+      errorMessage = 'Server error. Please try again or contact support if the problem persists.';
+    } else if (status >= 500) {
+      errorMessage = 'Server error. Please try again later.';
+    }
+    
+    throw new Error(errorMessage);
+  }
+  
+  return response;
+}
+
+/**
+ * Handle API response with JSON parsing and error handling
+ */
+export async function handleApiResponseJson<T>(response: Response, defaultMessage: string = 'Request failed'): Promise<T> {
+  const handledResponse = handleApiResponse(response, defaultMessage);
+  return handledResponse.json();
 }

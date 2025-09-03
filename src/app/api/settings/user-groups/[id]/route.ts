@@ -89,8 +89,8 @@ export async function GET(request: NextRequest) {
         ug.name, 
         ug.description, 
         ug.permissions,
-        ug."is_default", 
-        ug."is_system_role",
+        ug."is_default" as "isDefault", 
+        ug."is_system_role" as "isSystemRole",
         ug."createdAt", 
         ug."updatedAt",
         COUNT(u.id)::int as user_count
@@ -212,11 +212,17 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ message: "No fields to update provided." }, { status: 400 });
     }
 
-    const setClauses = Object.keys(fields).map((key, index) => `"${key}" = $${index + 1}`);
-    const queryParams = Object.values(fields);
-    
     const client = await getPool().connect();
     try {
+        // If setting this role as default, first reset all other roles' is_default to false
+        if (fields.is_default === true) {
+            console.log('PUT /api/settings/user-groups/[id] - Setting role as default, resetting other roles...');
+            await client.query('UPDATE "UserGroup" SET "is_default" = false, "updatedAt" = NOW() WHERE id != $1', [id]);
+        }
+
+        const setClauses = Object.keys(fields).map((key, index) => `"${key}" = $${index + 1}`);
+        const queryParams = Object.values(fields);
+        
         const query = `
             UPDATE "UserGroup" 
             SET ${setClauses.join(', ')}, "updatedAt" = NOW() 

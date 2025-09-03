@@ -131,13 +131,16 @@ export function UnifiedUserModal({
 
   // Update form default values when user groups are loaded
   useEffect(() => {
-    if (userGroups.length > 0 && mode === 'create') {
-      // Set default user group selection
-      const defaultGroup = userGroups.find(g => g.name.toLowerCase().includes('recruiter')) || userGroups[0];
+    if (userGroups.length > 0 && mode === 'create' && isOpen) {
+      // First try to find a group marked as default, then fall back to name-based selection
+      const defaultGroup = userGroups.find(g => g.isDefault) || 
+                          userGroups.find(g => g.name.toLowerCase().includes('recruiter')) || 
+                          userGroups[0];
+      
       if (defaultGroup) {
         form.setValue('userGroupIds', [defaultGroup.id]);
         // Map user group to role for API compatibility
-        let roleString = 'Recruiter'; // default
+        let roleString = 'Recruiter'; // default fallback
         if (defaultGroup.name.toLowerCase().includes('admin')) {
           roleString = 'Admin';
         } else if (defaultGroup.name.toLowerCase().includes('hiring') || defaultGroup.name.toLowerCase().includes('manager')) {
@@ -146,9 +149,11 @@ export function UnifiedUserModal({
           roleString = 'Recruiter';
         }
         form.setValue('role', roleString);
+        
+        console.log('Set default user group:', defaultGroup.name, 'ID:', defaultGroup.id, 'Role:', roleString);
       }
     }
-  }, [userGroups, mode, form]);
+  }, [userGroups, mode, form, isOpen]);
 
   // Watch userGroupIds to update role field
   useEffect(() => {
@@ -232,7 +237,7 @@ export function UnifiedUserModal({
           forcePasswordChange: false,
           authenticationMethod: 'basic',
           userTeamIds: [],
-          userGroupIds: [],
+          userGroupIds: [], // Will be set by the userGroups useEffect
           avatarUrl: '',
           personalColor: '#3B82F6',
         });
@@ -254,7 +259,7 @@ export function UnifiedUserModal({
         fetchTeams();
       }
     }
-  }, [isOpen, user, mode, form, canManageTeams, userGroups]);
+  }, [isOpen, user, mode, form, canManageTeams]);
 
   // Load sidebar preference when modal opens and when role/user changes
   useEffect(() => {
@@ -311,6 +316,7 @@ export function UnifiedUserModal({
   };
 
   const onSubmit = async (data: UnifiedUserFormValues) => {
+    console.log('Form submission data:', data);
     await handleProtectedAsyncClick(async () => {
       setIsLoading(true);
       try {

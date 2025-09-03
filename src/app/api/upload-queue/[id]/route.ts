@@ -148,8 +148,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const isRetry = ['failed'].includes(job.status);
 
     
-    // Only allow processing if job is queued, error, or fail state
-    if (!['queued', 'error', 'fail'].includes(job.status)) {
+    // Only allow processing if job is queued, error, or failed state
+    if (!['queued', 'error', 'failed'].includes(job.status)) {
 
       return NextResponse.json({ error: 'Job is not in a processable state' }, { status: 400 });
     }

@@ -711,7 +711,7 @@ export default function ProcessQueueAnalytics() {
               <SelectItem value="inprocess">In Process</SelectItem>
               <SelectItem value="success">Success</SelectItem>
               <SelectItem value="error">Error</SelectItem>
-              <SelectItem value="fail">Failed</SelectItem>
+              <SelectItem value="failed">Failed</SelectItem>
             </SelectContent>
           </Select>
         </div>

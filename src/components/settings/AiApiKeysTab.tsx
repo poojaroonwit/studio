@@ -188,7 +188,7 @@ export default function AiApiKeysTab() {
         
         let errorMessage = 'Failed to update API key order';
         if (response.status === 403) {
-          errorMessage = 'Permission denied. You need SYSTEM_SETTINGS_MANAGE permission or Admin role.';
+          errorMessage = 'No permission';
         } else if (response.status === 400) {
           errorMessage = errorData.error || errorData.message || 'Invalid request data';
         } else if (response.status === 500) {

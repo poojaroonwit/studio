@@ -554,7 +554,7 @@ export async function GET(request: NextRequest) {
       queryParams.push(value);
     }
 
-    // Handle status filter with UUID matching
+    // Handle status filter - support both status names and status IDs
     if (filters.status) {
       const statuses = filters.status.split(',').map(s => s.trim()).filter(s => s !== '');
       const nullStatuses = statuses.filter(s => s === 'null' || s === '');
@@ -562,24 +562,114 @@ export async function GET(request: NextRequest) {
       
       if (nullStatuses.length > 0 && regularStatuses.length > 0) {
         // Mixed null and regular statuses
-        const statusConditions = regularStatuses.map((_, index) => 
-          `c."statusId" = $${paramIndex + index}`
-        ).join(' OR ');
-        whereClauses.push(`(${statusConditions} OR c."statusId" IS NULL)`);
-        queryParams.push(...regularStatuses);
-        paramIndex += regularStatuses.length;
+        if (regularStatuses.length > 0) {
+          // Check if these look like UUIDs or status names
+          const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+          
+          const uuidStatuses = regularStatuses.filter(s => isUUID(s));
+          const nameStatuses = regularStatuses.filter(s => !isUUID(s));
+          
+          let allStatusIds: string[] = [];
+          
+          if (uuidStatuses.length > 0) {
+            allStatusIds.push(...uuidStatuses);
+          }
+          
+          if (nameStatuses.length > 0) {
+            // Look up status IDs for the name statuses
+            const client = await getPool().connect();
+            try {
+              const result = await client.query(
+                'SELECT id FROM "RecruitmentStage" WHERE name = ANY($1)',
+                [nameStatuses]
+              );
+              allStatusIds.push(...result.rows.map(row => row.id));
+            } finally {
+              client.release();
+            }
+          }
+          
+          if (allStatusIds.length > 0) {
+            const statusConditions = allStatusIds.map((_, index) => 
+              `c."statusId" = $${paramIndex + index}`
+            ).join(' OR ');
+            whereClauses.push(`(${statusConditions} OR c."statusId" IS NULL)`);
+            queryParams.push(...allStatusIds);
+            paramIndex += allStatusIds.length;
+          } else {
+            whereClauses.push(`c."statusId" IS NULL`);
+          }
+        } else {
+          whereClauses.push(`c."statusId" IS NULL`);
+        }
       } else if (nullStatuses.length > 0) {
         // Only null statuses
         whereClauses.push(`c."statusId" IS NULL`);
       } else {
-        // Only regular statuses selected - use direct UUID matching
-        if (regularStatuses.length === 1) {
-          whereClauses.push(`c."statusId" = $${paramIndex++}`);
-          queryParams.push(regularStatuses[0]);
-        } else {
-          whereClauses.push(`c."statusId" = ANY($${paramIndex++})`);
-          queryParams.push(regularStatuses);
-          paramIndex += 1;
+        // Only regular statuses selected - check if they're UUIDs or names
+        const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+        
+        const uuidStatuses = regularStatuses.filter(s => isUUID(s));
+        const nameStatuses = regularStatuses.filter(s => !isUUID(s));
+        
+        if (uuidStatuses.length > 0 && nameStatuses.length > 0) {
+          // Mixed UUIDs and names - need to look up names
+          const client = await getPool().connect();
+          try {
+            // Look up status IDs for the name statuses
+            const nameStatusIds = await client.query(
+              'SELECT id FROM "RecruitmentStage" WHERE name = ANY($1)',
+              [nameStatuses]
+            );
+            
+            const allStatusIds = [
+              ...uuidStatuses,
+              ...nameStatusIds.rows.map(row => row.id)
+            ];
+            
+            if (allStatusIds.length === 1) {
+              whereClauses.push(`c."statusId" = $${paramIndex++}`);
+              queryParams.push(allStatusIds[0]);
+            } else {
+              whereClauses.push(`c."statusId" = ANY($${paramIndex++})`);
+              queryParams.push(allStatusIds);
+              paramIndex += 1;
+            }
+          } finally {
+            client.release();
+          }
+        } else if (uuidStatuses.length > 0) {
+          // Only UUIDs - use directly
+          if (uuidStatuses.length === 1) {
+            whereClauses.push(`c."statusId" = $${paramIndex++}`);
+            queryParams.push(uuidStatuses[0]);
+          } else {
+            whereClauses.push(`c."statusId" = ANY($${paramIndex++})`);
+            queryParams.push(uuidStatuses);
+            paramIndex += 1;
+          }
+        } else if (nameStatuses.length > 0) {
+          // Only names - need to look up IDs
+          const client = await getPool().connect();
+          try {
+            const result = await client.query(
+              'SELECT id FROM "RecruitmentStage" WHERE name = ANY($1)',
+              [nameStatuses]
+            );
+            
+            const statusIds = result.rows.map(row => row.id);
+            
+            if (statusIds.length === 1) {
+              whereClauses.push(`c."statusId" = $${paramIndex++}`);
+              queryParams.push(statusIds[0]);
+            } else if (statusIds.length > 1) {
+              whereClauses.push(`c."statusId" = ANY($${paramIndex++})`);
+              queryParams.push(statusIds);
+              paramIndex += 1;
+            }
+          } finally {
+            client.release();
+          }
         }
       }
     }

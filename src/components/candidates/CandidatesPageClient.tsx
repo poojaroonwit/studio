@@ -1022,7 +1022,7 @@ export function CandidatesPageClient({
         if (response.status === 401) {
           errorMessage = 'Authentication required. Please refresh the page and try again.';
         } else if (response.status === 403) {
-          errorMessage = 'Permission denied. You may not have permission to export candidates.';
+          errorMessage = 'No permission';
         } else if (response.status === 500) {
           errorMessage = 'Server error. Please try again or contact support if the problem persists.';
         } else if (response.status === 504) {

@@ -307,7 +307,7 @@ export async function POST(request: NextRequest) {
       const alreadyProcessedCheck = await client.query(
         `SELECT COUNT(*) as count FROM upload_queue 
          WHERE file_path = $1 
-         AND status IN ('success', 'fail', 'error')
+         AND status IN ('success', 'failed', 'error')
          AND id != $2`,
         [job.file_path, job.id]
       );

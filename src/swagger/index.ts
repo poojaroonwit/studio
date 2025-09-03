@@ -941,7 +941,7 @@ export function getSwaggerSpec() {
             { name: 'limit', in: 'query', description: 'Number of items per page', schema: { type: 'integer', default: 20, maximum: 1000 } },
             { name: 'offset', in: 'query', description: 'Offset for pagination', schema: { type: 'integer', default: 0 } },
             { name: 'file_name', in: 'query', description: 'Filter by filename (partial match)', schema: { type: 'string' } },
-            { name: 'status', in: 'query', description: 'Filter by status', schema: { type: 'string', enum: ['queued', 'inprocess', 'success', 'error', 'fail'] } },
+            { name: 'status', in: 'query', description: 'Filter by status', schema: { type: 'string', enum: ['queued', 'inprocess', 'success', 'error', 'failed'] } },
             { name: 'date_start', in: 'query', description: 'Filter by start date (YYYY-MM-DD)', schema: { type: 'string', format: 'date' } },
             { name: 'date_end', in: 'query', description: 'Filter by end date (YYYY-MM-DD)', schema: { type: 'string', format: 'date' } },
             { name: 'position_id', in: 'query', description: 'Filter by position ID', schema: { type: 'string', format: 'uuid' } }
@@ -963,7 +963,7 @@ export function getSwaggerSpec() {
                             id: { type: 'string', format: 'uuid' },
                             file_name: { type: 'string' },
                             file_size: { type: 'integer' },
-                            status: { type: 'string', enum: ['queued', 'inprocess', 'success', 'error', 'fail'] },
+                            status: { type: 'string', enum: ['queued', 'inprocess', 'success', 'error', 'failed'] },
                             source: { type: 'string' },
                             upload_id: { type: 'string', format: 'uuid' },
                             created_by: { type: 'string', format: 'uuid' },

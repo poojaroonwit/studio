@@ -113,8 +113,11 @@ export default function ApplicationLogsPage() {
         try { errorJson = await response.json(); errorMessageFromServer = errorJson.message; }
         catch (e) { errorMessageFromServer = `Failed to fetch logs: ${response.statusText || `Status ${response.status}`}`; }
 
-        if (response.status === 401 || response.status === 403) {
-            setFetchError(errorMessageFromServer || `You do not have permission to view logs.`);
+        if (response.status === 401) {
+            setFetchError(errorMessageFromServer || `Authentication required. Please refresh the page and try again.`);
+            setLogs([]); setTotalLogs(0); return;
+        } else if (response.status === 403) {
+            setFetchError('No permission');
             setLogs([]); setTotalLogs(0); return;
         }
         setFetchError(errorMessageFromServer || `An unknown error occurred. Status: ${response.status}`);

@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
         SELECT 
           AVG(EXTRACT(EPOCH FROM (completed_date - process_date))) as avg_seconds
         FROM upload_queue 
-        WHERE status IN ('success', 'fail', 'error')
+        WHERE status IN ('success', 'failed', 'error')
         AND process_date IS NOT NULL 
         AND completed_date IS NOT NULL
         AND completed_date > process_date
@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
         SELECT COUNT(*) as count
         FROM upload_queue 
         WHERE completed_date > NOW() - INTERVAL '1 hour'
-        AND status IN ('success', 'fail', 'error')
+        AND status IN ('success', 'failed', 'error')
       `);
       
       // Get high retry jobs
@@ -106,7 +106,7 @@ export async function GET(request: NextRequest) {
         inprocess_jobs: 0,
         success_jobs: 0,
         error_jobs: 0,
-        fail_jobs: 0,
+        failed_jobs: 0,
         stuck_jobs: stuckJobs.rows[0]?.count || 0,
         avg_processing_time_seconds: parseFloat(avgProcessingTime.rows[0]?.avg_seconds || '0'),
         jobs_per_hour: jobsPerHour.rows[0]?.count || 0,
@@ -134,8 +134,8 @@ export async function GET(request: NextRequest) {
           case 'error':
             stats.error_jobs = count;
             break;
-          case 'fail':
-            stats.fail_jobs = count;
+          case 'failed':
+            stats.failed_jobs = count;
             break;
         }
       });

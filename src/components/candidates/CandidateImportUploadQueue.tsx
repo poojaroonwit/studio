@@ -763,7 +763,7 @@ export default function CandidateImportUploadQueue() {
         if (error.error && error.error.includes('already a queued job with the same file path')) {
           toast.error('Cannot retry: there is already a queued job with the same file. Please wait for the existing job to complete or delete it first.');
         } else if (error.error && error.error.includes('Forbidden')) {
-          toast.error('Permission denied: You do not have permission to retry jobs.');
+          toast.error('No permission');
         } else {
           toast.error(error.error || 'Failed to retry job');
         }
@@ -917,68 +917,7 @@ export default function CandidateImportUploadQueue() {
                 >
                   <RefreshCw className="h-3 w-3" />
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    console.log('[Process Queue] Testing simple SSE endpoint...');
-                    // Test the simple SSE endpoint
-                    const testEventSource = new EventSource('/api/sse/test-simple');
-                    testEventSource.onmessage = (event) => {
-                      try {
-                        const data = JSON.parse(event.data);
-                        console.log('[Process Queue] Simple SSE test message:', data);
-                        if (data.type === 'connected') {
-                          toast.success('Simple SSE connection successful!');
-                        }
-                      } catch (error) {
-                        console.error('[Process Queue] Error parsing test SSE message:', error);
-                      }
-                    };
-                    testEventSource.onerror = (error) => {
-                      console.error('[Process Queue] Simple SSE test failed:', error);
-                      toast.error('Simple SSE test failed');
-                    };
-                    // Close after 5 seconds
-                    setTimeout(() => testEventSource.close(), 5000);
-                  }}
-                  className="h-6 px-2 text-xs"
-                  title="Test simple SSE endpoint"
-                >
-                  Test SSE
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    console.log('[Process Queue] Testing main SSE connection...');
-                    // Test if the main SSE connection is working by checking the connection state
-                    if (sseConnected) {
-                      toast.success(`SSE Connected! Events received: ${sseEventCount}`);
-                    } else {
-                      toast.error(`SSE Disconnected! Error: ${sseError || 'Unknown'}`);
-                    }
-                  }}
-                  className="h-6 px-2 text-xs"
-                  title="Test main SSE connection status"
-                >
-                  Test Main
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    console.log('[Process Queue] Manual queue refresh test...');
-                    // Manually refresh the queue to test if data fetching works
-                    fetchQueue(page, pageSize);
-                    setLastUpdate(new Date());
-                    toast.success('Manual refresh completed');
-                  }}
-                  className="h-6 px-2 text-xs"
-                  title="Test manual queue refresh"
-                >
-                  Test Refresh
-                </Button>
+
               </div>
               <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                 <span>Events: {sseEventCount}</span>
@@ -1258,21 +1197,7 @@ export default function CandidateImportUploadQueue() {
               </div>
             </div>
 
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Actions</Label>
-              <div className="flex flex-wrap gap-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleRefresh}
-                  disabled={loading}
-                  className="h-6 px-2 text-xs"
-                >
-                  <RefreshCw className={`h-3 w-3 mr-1 ${loading ? 'animate-spin' : ''}`} />
-                  Refresh
-                </Button>
-              </div>
-            </div>
+
           </div>
         </div>
 
@@ -1356,7 +1281,7 @@ export default function CandidateImportUploadQueue() {
                 <SortableHeader field="process_date">Process Date</SortableHeader>
                 <SortableHeader field="completed_date">Complete Date</SortableHeader>
                 <SortableHeader field="duration">Duration</SortableHeader>
-                <TableHead className="w-12 text-right">Actions</TableHead>
+
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -1426,7 +1351,7 @@ export default function CandidateImportUploadQueue() {
                             className="h-7 w-7 p-0 hover:bg-muted/50 transition-colors duration-200"
                           >
                             <MoreHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
-                            <span className="sr-only">Actions</span>
+
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">

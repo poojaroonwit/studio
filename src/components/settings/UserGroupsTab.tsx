@@ -156,9 +156,11 @@ export function UserGroupsTab() {
       const response = await fetch('/api/settings/user-groups');
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: 'Failed to fetch roles' }));
-        if (response.status === 401 || response.status === 403) {
+        if (response.status === 401) {
           signIn(undefined, { callbackUrl: pathname });
           return;
+        } else if (response.status === 403) {
+          throw new Error('No permission');
         }
         throw new Error(errorData.message);
       }

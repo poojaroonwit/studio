@@ -31,7 +31,7 @@ export async function updateCandidatesStatusBulk(candidateIds: string[], status:
     }
     
     if (!suppressToast) {
-      toast.success(`${result.successCount || candidateIds.length} candidate(s) updated. ${result.failCount > 0 ? `${result.failCount} failed.` : ''}`);
+      toast.success(`${result.updatedCount || candidateIds.length} candidate(s) updated. ${result.rejectedCount > 0 ? `${result.rejectedCount} failed.` : ''}`);
     }
     return result;
   } catch (error: any) {

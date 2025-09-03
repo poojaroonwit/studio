@@ -45,6 +45,7 @@ export function HeadcountWarningModal({
   const isNoHeadcount = cleanErrorMessage.includes('no headcount defined');
   const isHeadcountFull = cleanErrorMessage.includes('already filled');
   const isValidationError = cleanErrorMessage.includes('Error validating headcount');
+  const isRaceCondition = cleanErrorMessage.includes('Headcount became unavailable');
 
   const getSpecificGuidance = () => {
     if (isNoPosition) {
@@ -66,6 +67,17 @@ export function HeadcountWarningModal({
           "Check if there are other similar positions with available headcount",
           "Review current hiring pipeline to see if any positions can be reallocated",
           "Consider creating a new position or department if needed"
+        ]
+      };
+    } else if (isRaceCondition) {
+      return {
+        title: "Headcount No Longer Available",
+        description: "The headcount was available when you started, but became unavailable during the update process. This usually happens when another user assigned a candidate to the same headcount.",
+        solutions: [
+          "Try the operation again - the headcount might be available now",
+          "Check if another user has recently hired a candidate for this position",
+          "Contact the hiring manager to see if headcount allocation has changed",
+          "Consider assigning the candidate to a different position with available headcount"
         ]
       };
     } else if (isValidationError) {

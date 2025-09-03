@@ -63,6 +63,7 @@ import type { UserGroup, PlatformModuleId } from '@/lib/types';
 import { PLATFORM_MODULES, PLATFORM_MODULE_CATEGORIES } from '@/lib/types';
 import { RolePermissionSelector } from './RolePermissionSelector';
 import { cn } from '@/lib/utils';
+import { handleApiResponse, handleApiResponseJson } from '@/lib/networkUtils';
 
 // Error boundary component for UnifiedRoleDrawer
 class UnifiedRoleDrawerErrorBoundary extends React.Component<
@@ -473,7 +474,7 @@ export function UnifiedRoleDrawer({
     }
     lastPermissionUpdateRef.current = permissionString;
 
-    console.log('Permission update triggered:', permissions);
+
     
     // Update local state immediately for better UX
     setCurrentPermissions(permissions);
@@ -497,7 +498,7 @@ export function UnifiedRoleDrawer({
     permissionUpdateTimeoutRef.current = setTimeout(async () => {
       if (!role) return;
       
-      console.log('Sending permission update to API...');
+
       setIsUpdatingPermissions(true);
       
       // Ensure Admin role always has all permissions
@@ -518,12 +519,9 @@ export function UnifiedRoleDrawer({
           signal: abortControllerRef.current?.signal,
         });
         
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ message: 'Failed to update permissions' }));
-          throw new Error(errorData.message || 'Failed to update permissions');
-        }
+        handleApiResponse(response, 'Failed to update permissions');
         
-        console.log('Permission update successful');
+
         
         // Update the role object locally to avoid reload
         if (role) {
@@ -566,10 +564,7 @@ export function UnifiedRoleDrawer({
         body: JSON.stringify({ userId: selectedUserId }),
       });
       
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Failed to add user to group' }));
-        throw new Error(errorData.message || 'Failed to add user to group');
-      }
+      handleApiResponse(response, 'Failed to add user to group');
       
       toast.success('User added to group successfully');
       setIsAddUserModalOpen(false);
@@ -593,10 +588,7 @@ export function UnifiedRoleDrawer({
         method: 'DELETE',
       });
       
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Failed to remove user from group' }));
-        throw new Error(errorData.message || 'Failed to remove user from group');
-      }
+      handleApiResponse(response, 'Failed to remove user from group');
       
       toast.success(`User ${userName} removed from group successfully`);
       loadGroupMembers();
@@ -630,7 +622,6 @@ export function UnifiedRoleDrawer({
   return (
     <>
       <Sheet open={isOpen} onOpenChange={onOpenChange}>
-        {console.log('UnifiedRoleDrawer: Sheet component rendering with isOpen:', isOpen)}
         <SheetContent className="w-full max-w-[85vw] sm:max-w-[80vw] md:max-w-[75vw] lg:max-w-[70vw] xl:max-w-[900px] h-screen flex flex-col p-0">
           <UnifiedRoleDrawerErrorBoundary>
             <SheetHeader className="flex-shrink-0 p-6 pb-4">

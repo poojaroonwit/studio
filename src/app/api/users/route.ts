@@ -302,11 +302,11 @@ export async function POST(request: NextRequest) {
     const defaultAvatarUrl = `https://placehold.co/100x100.png?text=${name?.charAt(0)?.toUpperCase() || 'U'}`;
     const defaultDataAiHint = "profile person";
 
-    // Use provided userGroupIds or fall back to role-based mapping
+    // Use provided userGroupIds or the default group ID from default role logic
     let targetUserGroupId = null;
     
     if (finalUserGroupIds && finalUserGroupIds.length > 0) {
-      // Use the first selected user group
+      // Use the first selected user group (either from user input or from default role logic)
       targetUserGroupId = finalUserGroupIds[0];
       
       // Verify that the target user group exists
@@ -322,8 +322,9 @@ export async function POST(request: NextRequest) {
           error: "Missing user group"
         }, { status: 500 });
       }
-    } else {
-      // Fall back to role-based mapping for backward compatibility
+    } else if (finalRole) {
+      // Only fall back to role-based mapping if we have a role but no user group IDs
+      // This handles the case where a role is explicitly specified but no user group is selected
       const roleToGroupId = {
         'Admin': '00000000-0000-0000-0000-000000000001',
         'Recruiter': '00000000-0000-0000-0000-000000000002',
@@ -346,6 +347,16 @@ export async function POST(request: NextRequest) {
           }, { status: 500 });
         }
       }
+    }
+    
+    // Ensure we have a valid user group ID before proceeding
+    if (!targetUserGroupId) {
+      console.error(`No valid user group ID found for user ${email}`);
+      await logAudit('ERROR', `Failed to create user ${email} - No valid user group ID found.`, 'API:Users:Create', session.user.id);
+      return NextResponse.json({ 
+        message: `Unable to determine user group for role '${finalRole}'. Please contact your system administrator.`,
+        error: "No valid user group"
+      }, { status: 500 });
     }
 
          const newUser = await prisma.user.create({

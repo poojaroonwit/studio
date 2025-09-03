@@ -14,6 +14,7 @@ const userGroupSchema = z.object({
   name: z.string().min(1, 'Group name cannot be empty.'),
   description: z.string().optional().nullable(),
   permissions: z.array(z.string()).optional(),
+  is_default: z.boolean().optional(),
 });
 
 /**
@@ -102,8 +103,8 @@ export async function GET(request: NextRequest) {
         ug.name, 
         ug.description, 
         ug.permissions,
-        ug."is_default", 
-        ug."is_system_role",
+        ug."is_default" as "isDefault", 
+        ug."is_system_role" as "isSystemRole",
         ug."createdAt", 
         ug."updatedAt",
         COUNT(u.id)::int as user_count
@@ -161,7 +162,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ message: 'Invalid input', errors: validation.error.flatten().fieldErrors }, { status: 400 });
     }
 
-    const { name, description, permissions } = validation.data;
+    const { name, description, permissions, is_default } = validation.data;
     
     // Validate permissions if provided
     if (permissions && Array.isArray(permissions)) {
@@ -193,9 +194,15 @@ export async function POST(request: NextRequest) {
             }, { status: 409 });
         }
 
+        // If setting this role as default, first reset all other roles' is_default to false
+        if (is_default === true) {
+            console.log('POST /api/settings/user-groups - Setting new role as default, resetting other roles...');
+            await client.query('UPDATE "UserGroup" SET "is_default" = false, "updatedAt" = NOW()');
+        }
+
         const result = await client.query(
-            'INSERT INTO "UserGroup" (id, name, description, permissions) VALUES ($1, $2, $3, $4) RETURNING *',
-            [newId, name, description, permissions ?? []]
+            'INSERT INTO "UserGroup" (id, name, description, permissions, "is_default") VALUES ($1, $2, $3, $4, $5) RETURNING *',
+            [newId, name, description, permissions ?? [], is_default ?? false]
         );
         await logAudit('AUDIT', `User group '${name}' created.`, 'API:UserGroups:Create', actingUserId, { groupId: newId });
         return NextResponse.json(result.rows[0], { status: 201 });

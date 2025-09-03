@@ -171,6 +171,41 @@ export function AdvancedQuerySyntaxModal({ isOpen, onOpenChange }: AdvancedQuery
             </div>
           </div>
 
+          {/* Special Values & Status Handling */}
+          <div className="bg-green-50 dark:bg-green-950/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
+            <h3 className="font-semibold text-green-900 dark:text-green-100 mb-2">🔑 Special Values & Status Handling</h3>
+            <div className="space-y-3">
+              <div>
+                <h4 className="font-medium text-green-800 dark:text-green-200 mb-1">Status Field</h4>
+                <p className="text-sm text-green-700 dark:text-green-300 mb-2">
+                  Status names are automatically converted to UUIDs. Use these common status names:
+                </p>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  {['Applied', 'Screening', 'Shortlisted', 'Interviewing', 'On Hold', 'Hired', 'Rejected', 'Withdrawn'].map(status => (
+                    <Badge key={status} variant="outline" className="text-xs bg-green-100 dark:bg-green-900/30 border-green-300 dark:border-green-700">
+                      {status}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+              
+              <div>
+                <h4 className="font-medium text-green-800 dark:text-green-200 mb-1">Special Values</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <div className="text-sm">
+                    <code className="bg-green-100 dark:bg-green-900 px-1 rounded">unassigned</code> - Find records without assignment
+                  </div>
+                  <div className="text-sm">
+                    <code className="bg-green-100 dark:bg-green-900 px-1 rounded">select-all</code> - Show all options (no filter)
+                  </div>
+                  <div className="text-sm">
+                    <code className="bg-green-100 dark:bg-green-900 px-1 rounded">not-applied</code> - Find candidates without positions
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <Separator />
 
           {/* Examples */}

@@ -128,6 +128,9 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   // Sorting state for all candidates table
   const [allCandidatesOpenMenu, setFilteredCandidatesOpenMenu] = useState<string | null>(null);
 
+  // State for recruitment stages
+  const [recruitmentStages, setRecruitmentStages] = useState<any[]>([]);
+
   // Tab states
   const [activeTab, setActiveTab] = useState('details');
   const [activeCandidateTab, setActiveCandidateTab] = useState('applied');
@@ -218,6 +221,17 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
     appliedCandidatesTotal,
     [appliedCandidatesTotal]
   );
+
+  // Create stageNames mapping for StatusBadge components
+  const stageNames = useMemo(() => {
+    const mapping: Record<string, string> = {};
+    recruitmentStages.forEach(stage => {
+      if (stage.id && stage.name) {
+        mapping[stage.id] = stage.name;
+      }
+    });
+    return mapping;
+  }, [recruitmentStages]);
 
   // Sorted candidates - use server-side sorting for fitScore, client-side for others
   const sortedAppliedCandidates = useMemo(() => {
@@ -457,6 +471,21 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
     }
   }, [positionId]);
 
+  // Fetch recruitment stages for status display
+  const fetchRecruitmentStages = useCallback(async () => {
+    if (sessionStatus !== 'authenticated') return;
+    
+    try {
+      const response = await fetch('/api/recruitment-stages');
+      if (!response.ok) throw new Error('Failed to fetch recruitment stages');
+      
+      const stages = await response.json();
+      setRecruitmentStages(Array.isArray(stages) ? stages : []);
+    } catch (error) {
+      console.error('Error fetching recruitment stages:', error);
+    }
+  }, [sessionStatus]);
+
   // Handle candidate click
   const handleCandidateClick = (candidateId: string) => {
     setSelectedCandidateId(candidateId);
@@ -644,8 +673,9 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       fetchAllCandidates();
       fetchPotentialCandidates();
       fetchHeadcountCount();
+      fetchRecruitmentStages();
     }
-  }, [isOpen, positionId, sessionStatus, fetchPosition, fetchGrades, fetchAppliedCandidates, fetchAllCandidates, fetchPotentialCandidates, fetchHeadcountCount]);
+  }, [isOpen, positionId, sessionStatus, fetchPosition, fetchGrades, fetchAppliedCandidates, fetchAllCandidates, fetchPotentialCandidates, fetchHeadcountCount, fetchRecruitmentStages]);
 
   // Reset state when drawer closes
   useEffect(() => {
@@ -667,6 +697,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       setPotentialCandidatesPage(1);
       setIsEditMode(false);
       setIsDrawerReady(false);
+      setRecruitmentStages([]);
       form.reset();
       
       // Reset sorting state
@@ -872,7 +903,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                 )}
               </TableCell>
               <TableCell>
-                <StatusBadge statusId={candidate.statusId} />
+                <StatusBadge statusId={candidate.statusId} stageNames={stageNames} />
               </TableCell>
               <TableCell>
                 <Button 
@@ -1035,7 +1066,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                 )}
               </TableCell>
               <TableCell>
-                <StatusBadge statusId={candidate.statusId} />
+                <StatusBadge statusId={candidate.statusId} stageNames={stageNames} />
               </TableCell>
               <TableCell>
                 <Button 
@@ -1229,7 +1260,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                           )}
                         </TableCell>
                         <TableCell>
-                          <StatusBadge statusId={candidate.statusId} />
+                          <StatusBadge statusId={candidate.statusId} stageNames={stageNames} />
                         </TableCell>
                         <TableCell>
                           <Button
@@ -1287,7 +1318,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                               )}
                             </TableCell>
                             <TableCell>
-                              <StatusBadge statusId={candidate.statusId} />
+                              <StatusBadge statusId={candidate.statusId} stageNames={stageNames} />
                             </TableCell>
                             <TableCell>
                               <Button

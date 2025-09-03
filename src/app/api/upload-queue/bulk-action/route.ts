@@ -151,7 +151,7 @@ async function processSingleItem(
 
         case 'delete':
           // Only allow delete if job is in a final state
-          if (!['success', 'error', 'fail', 'cancelled'].includes(job.status)) {
+          if (!['success', 'error', 'failed', 'cancelled'].includes(job.status)) {
             await client.query('ROLLBACK');
             return { success: false, reason: 'Job is not in a deletable state' };
           }

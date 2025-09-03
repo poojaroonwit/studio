@@ -53,10 +53,18 @@ export function HeadcountWarningModal({
   // Prevent automatic closing by handling onOpenChange properly
   const handleOpenChange = (open: boolean) => {
     console.log('HeadcountWarningModal - handleOpenChange called with:', open);
+    // Only allow closing if the user explicitly wants to close
+    // Prevent any automatic closing behavior
     if (!open) {
       console.log('HeadcountWarningModal - User requested to close modal');
       onClose();
     }
+  };
+
+  // Prevent any automatic closing behavior
+  const handleClose = () => {
+    console.log('HeadcountWarningModal - handleClose called');
+    onClose();
   };
 
   return (
@@ -145,10 +153,7 @@ export function HeadcountWarningModal({
         </div>
 
         <DialogFooter className="flex gap-2">
-          <Button variant="outline" onClick={() => {
-            console.log('HeadcountWarningModal - Close button clicked');
-            onClose();
-          }}>
+          <Button variant="outline" onClick={handleClose}>
             Close
           </Button>
           {onProceed && !isNoPosition && (

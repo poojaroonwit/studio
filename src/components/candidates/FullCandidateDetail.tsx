@@ -75,6 +75,15 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
     positionTitle?: string;
     errorMessage: string;
   } | null>(null);
+
+  // Wrap setHeadcountWarningData to add debugging
+  const setHeadcountWarningDataWithDebug = (data: typeof headcountWarningData) => {
+    console.log('FullCandidateDetail - setHeadcountWarningData called with:', data);
+    if (data === null) {
+      console.trace('FullCandidateDetail - headcountWarningData being set to null');
+    }
+    setHeadcountWarningData(data);
+  };
   
   // Add debugging for modal state changes
   useEffect(() => {
@@ -711,7 +720,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                 : undefined;
               
               // Set warning data first
-              setHeadcountWarningData({
+              setHeadcountWarningDataWithDebug({
                 candidateName: candidate?.name || 'Unknown Candidate',
                 positionTitle,
                 errorMessage: error.message.replace('Headcount constraint: ', '')
@@ -759,7 +768,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
             : undefined;
           
           // Set warning data first
-          setHeadcountWarningData({
+          setHeadcountWarningDataWithDebug({
             candidateName: candidate?.name || 'Unknown Candidate',
             positionTitle,
             errorMessage: error.message.replace('Headcount constraint: ', '')
@@ -820,8 +829,9 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
         <HeadcountWarningModal
           isOpen={isHeadcountWarningModalOpen}
           onClose={() => {
+            console.log('HeadcountWarningModal - onClose called, closing modal and clearing data');
             setIsHeadcountWarningModalOpen(false);
-            setHeadcountWarningData(null);
+            setHeadcountWarningDataWithDebug(null);
           }}
           candidateName={headcountWarningData.candidateName}
           positionTitle={headcountWarningData.positionTitle}
@@ -831,7 +841,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
             // Here you could implement logic to force hire the candidate
             // For now, just close the modal
             setIsHeadcountWarningModalOpen(false);
-            setHeadcountWarningData(null);
+            setHeadcountWarningDataWithDebug(null);
           }}
         />
       )}

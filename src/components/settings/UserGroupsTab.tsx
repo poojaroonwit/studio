@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSession, signIn } from 'next-auth/react';
 import { toast } from 'react-hot-toast';
 import type { UserGroup, PlatformModuleId } from '@/lib/types';
@@ -50,19 +50,6 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
-
-const platformModuleIds = (() => {
-  try {
-    if (!Array.isArray(PLATFORM_MODULES)) {
-      console.warn('UserGroupsTab: PLATFORM_MODULES is not an array at module level:', PLATFORM_MODULES);
-      return [];
-    }
-    return PLATFORM_MODULES.map(m => m?.id).filter(Boolean);
-  } catch (error) {
-    console.error('UserGroupsTab: Error creating platformModuleIds:', error);
-    return [];
-  }
-})();
 
 const roleFormSchema = z.object({
   name: z.string().min(1, "Role name is required").max(100),
@@ -132,17 +119,34 @@ export function UserGroupsTab() {
   const [editingRole, setEditingRole] = useState<UserGroup | null>(null);
   const [roleToDelete, setRoleToDelete] = useState<UserGroup | null>(null);
 
+  // Convert IIFE to useMemo to prevent initialization errors
+  const platformModuleIds = useMemo(() => {
+    try {
+      if (!Array.isArray(PLATFORM_MODULES)) {
+        console.warn('UserGroupsTab: PLATFORM_MODULES is not an array at module level:', PLATFORM_MODULES);
+        return [];
+      }
+      return PLATFORM_MODULES.map(m => m?.id).filter(Boolean);
+    } catch (error) {
+      console.error('UserGroupsTab: Error creating platformModuleIds:', error);
+      return [];
+    }
+  }, []);
+
   const form = useForm<RoleFormValues>({
     resolver: zodResolver(roleFormSchema),
     defaultValues: { name: '', description: '', permissions: [], is_default: false },
   });
 
   // Check if user has permission to manage roles
-  const canManageRoles = modulePermissions.includes('USERS_PERMISSIONS_MANAGE') || 
-    (Array.isArray(session?.user?.modulePermissions) && 
-     (session.user.modulePermissions.includes('USER_GROUPS_CREATE') ||
-      session.user.modulePermissions.includes('USER_GROUPS_EDIT') ||
-      session.user.modulePermissions.includes('USER_GROUPS_DELETE')));
+  const canManageRoles = useMemo(() => {
+    const userPermissions = session?.user?.modulePermissions || [];
+    return Array.isArray(userPermissions) && 
+     (userPermissions.includes('USERS_PERMISSIONS_MANAGE') ||
+      userPermissions.includes('USER_GROUPS_CREATE') ||
+      userPermissions.includes('USER_GROUPS_EDIT') ||
+      userPermissions.includes('USER_GROUPS_DELETE'));
+  }, [session?.user?.modulePermissions]);
 
   const fetchRoles = useCallback(async () => {
     if (sessionStatus !== 'authenticated') return;

@@ -32,12 +32,12 @@ const NAV_ITEMS = {
   settings: { href: "/settings", label: "Settings", icon: Settings }
 };
 
-// Optimized pending count hook with reduced frequency
+// Real-time pending count hook with SSE integration
 const usePendingCount = () => {
   const [pendingCount, setPendingCount] = React.useState<number | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
-  const lastFetchTime = React.useRef<number>(0);
-  const fetchTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  const eventSourceRef = React.useRef<EventSource | null>(null);
+  const fallbackTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
   React.useEffect(() => {
     const fetchPendingCount = async () => {
@@ -53,7 +53,6 @@ const usePendingCount = () => {
         if (response.ok) {
           const data = await response.json();
           setPendingCount(data.count || 0);
-          lastFetchTime.current = Date.now();
         } else {
           console.warn('Failed to fetch pending count:', response.status);
           setPendingCount(null);
@@ -66,18 +65,63 @@ const usePendingCount = () => {
       }
     };
 
-    // Only fetch if we haven't fetched recently (within 60 seconds - increased from 30)
-    const now = Date.now();
-    if (now - lastFetchTime.current > 60000) {
-      fetchPendingCount();
+    // Initial fetch
+    fetchPendingCount();
+
+    // Set up SSE connection for real-time updates
+    try {
+      const eventSource = new EventSource('/api/sse');
+      eventSourceRef.current = eventSource;
+
+      eventSource.onopen = () => {
+        console.log('[Sidebar] SSE connection established for pending count');
+      };
+
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          
+          // Listen for upload queue updates
+          if (data.type === 'upload_queue_update' && data.summary) {
+            const { queued, inprocess } = data.summary;
+            const newPendingCount = Number(queued || 0) + Number(inprocess || 0);
+            setPendingCount(newPendingCount);
+            console.log('[Sidebar] Pending count updated via SSE:', newPendingCount);
+          }
+          
+          // Listen for general queue updates
+          if (data.type === 'queue' && data.summary) {
+            const { queued, inprocess } = data.summary;
+            const newPendingCount = Number(queued || 0) + Number(inprocess || 0);
+            setPendingCount(newPendingCount);
+            console.log('[Sidebar] Pending count updated via SSE:', newPendingCount);
+          }
+        } catch (error) {
+          console.error('[Sidebar] Error parsing SSE message:', error);
+        }
+      };
+
+      eventSource.onerror = (error) => {
+        console.warn('[Sidebar] SSE connection error, falling back to polling:', error);
+        // Fallback to periodic polling if SSE fails
+        fallbackTimeoutRef.current = setInterval(fetchPendingCount, 10000); // 10 second fallback
+      };
+
+    } catch (error) {
+      console.error('[Sidebar] Failed to establish SSE connection:', error);
+      // Fallback to periodic polling if SSE is not available
+      fallbackTimeoutRef.current = setInterval(fetchPendingCount, 10000); // 10 second fallback
     }
 
-    // Set up periodic refresh every 60 seconds (increased from 30)
-    fetchTimeoutRef.current = setTimeout(fetchPendingCount, 60000);
-
+    // Cleanup function
     return () => {
-      if (fetchTimeoutRef.current) {
-        clearTimeout(fetchTimeoutRef.current);
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
+      if (fallbackTimeoutRef.current) {
+        clearInterval(fallbackTimeoutRef.current);
+        fallbackTimeoutRef.current = null;
       }
     };
   }, []);

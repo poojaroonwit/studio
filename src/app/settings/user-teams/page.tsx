@@ -229,7 +229,7 @@ export default function UserTeamsPage() {
       name: team.name,
       description: team.description || '',
       color: team.color || '#3B82F6',
-      isActive: team.isActive
+      isActive: team.isActive ?? true
     });
   };
 
@@ -247,7 +247,7 @@ export default function UserTeamsPage() {
         name: team.name,
         description: team.description || '',
         color: team.color || '#3B82F6',
-        isActive: team.isActive
+        isActive: team.isActive ?? true
       });
     } else {
       // For creating new team, open the modal

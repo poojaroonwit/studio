@@ -92,8 +92,12 @@ export default function CandidateImportUploadQueue() {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [positionSearchTerm, setPositionSearchTerm] = useState<string>('');
 
-  // Centralized realtime hook
-  const { isConnected: isRealtimeActive, lastMessage } = useEnhancedUploadQueueUpdates();
+  // Simplified SSE state
+  const [sseConnected, setSseConnected] = useState(false);
+  const [sseError, setSseError] = useState<string | null>(null);
+  const [sseEventCount, setSseEventCount] = useState(0);
+
+  // SSE connection status display
 
   const fetchPositions = useCallback(async () => {
     try {
@@ -174,64 +178,163 @@ export default function CandidateImportUploadQueue() {
     }
   }, [selectedItems, queueData?.data]);
 
-  // Refresh queue when we receive SSE updates for real-time updates
+  // Simplified SSE connection
   useEffect(() => {
-    if (isRealtimeActive && lastMessage) {
-      console.log('[Process Queue] SSE message received:', {
-        type: lastMessage.type,
-        data: lastMessage.data,
-        summary: lastMessage.summary
-      });
-      
-      // Check if the message is related to upload queue updates
-      if (lastMessage.type === 'upload_queue_update' || lastMessage.type === 'queue') {
-        console.log('[Process Queue] Queue refresh triggered by SSE update');
-        fetchQueue(page, pageSize);
-        setLastUpdate(new Date());
-        
-        // Show a subtle toast notification for real-time updates
-        if (lastMessage.summary) {
-          const { queued, inprocess, success, error } = lastMessage.summary;
-          toast.success(`Queue updated: ${queued} queued, ${inprocess} processing, ${success} completed, ${error} errors`, {
-            duration: 2000,
-            position: 'top-right',
-            style: {
-              background: '#10b981',
-              color: 'white',
-              fontSize: '12px',
-            }
-          });
-        }
-      }
-    }
-  }, [isRealtimeActive, lastMessage, fetchQueue, page, pageSize]);
+    let eventSource: EventSource | null = null;
+    let reconnectTimeout: NodeJS.Timeout | null = null;
+    let keepaliveInterval: NodeJS.Timeout | null = null;
 
-  // Fallback periodic refresh when real-time updates are not working
+    const connectSSE = () => {
+      try {
+        console.log('[Process Queue] Attempting SSE connection...');
+        eventSource = new EventSource('/api/sse');
+        
+        eventSource.onopen = () => {
+          console.log('[Process Queue] SSE connection established');
+          setSseConnected(true);
+          setSseError(null);
+          
+          // Set up keepalive to detect connection issues
+          keepaliveInterval = setInterval(() => {
+            if (eventSource?.readyState === EventSource.OPEN) {
+              console.log('[Process Queue] SSE keepalive - connection healthy');
+            } else {
+              console.log('[Process Queue] SSE keepalive - connection lost, reconnecting...');
+              reconnectSSE();
+            }
+          }, 10000); // Check every 10 seconds
+        };
+
+        eventSource.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            console.log('[Process Queue] SSE message received:', data);
+            setSseEventCount(prev => prev + 1);
+            
+            // Handle upload queue updates
+            if (data.type === 'upload_queue_update' || data.type === 'queue') {
+              console.log('[Process Queue] Queue update received, refreshing data...');
+              fetchQueue(page, pageSize);
+              setLastUpdate(new Date());
+              
+              // Show toast notification
+              if (data.summary) {
+                const { queued, inprocess, success, error } = data.summary;
+                toast.success(`Queue updated: ${queued} queued, ${inprocess} processing, ${success} completed, ${error} errors`, {
+                  duration: 2000,
+                  position: 'top-right',
+                  style: {
+                    background: '#10b981',
+                    color: 'white',
+                    fontSize: '12px',
+                  }
+                });
+              }
+            }
+          } catch (error) {
+            console.error('[Process Queue] Error parsing SSE message:', error);
+          }
+        };
+
+        eventSource.onerror = (error) => {
+          console.error('[Process Queue] SSE connection error:', error);
+          setSseConnected(false);
+          
+          // Provide more specific error messages
+          if (eventSource && eventSource.readyState === EventSource.CONNECTING) {
+            setSseError('Connecting...');
+          } else if (eventSource && eventSource.readyState === EventSource.CLOSED) {
+            setSseError('Connection closed');
+          } else {
+            setSseError('Connection failed');
+          }
+          
+          // Attempt to reconnect after 5 seconds
+          if (reconnectTimeout) clearTimeout(reconnectTimeout);
+          reconnectTimeout = setTimeout(() => {
+            console.log('[Process Queue] Attempting SSE reconnection...');
+            connectSSE();
+          }, 5000);
+        };
+
+      } catch (error) {
+        console.error('[Process Queue] Failed to create SSE connection:', error);
+        setSseError('Failed to create SSE connection');
+      }
+    };
+
+    const reconnectSSE = () => {
+      if (eventSource) {
+        eventSource.close();
+        eventSource = null;
+      }
+      if (keepaliveInterval) {
+        clearInterval(keepaliveInterval);
+        keepaliveInterval = null;
+      }
+      connectSSE();
+    };
+
+    // Initial connection
+    connectSSE();
+
+    // Cleanup
+    return () => {
+      if (eventSource) {
+        eventSource.close();
+      }
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
+      if (keepaliveInterval) {
+        clearInterval(keepaliveInterval);
+      }
+    };
+  }, []);
+
+  // Fallback polling when SSE is not connected
   useEffect(() => {
-    if (!isRealtimeActive) {
-      console.log('[Process Queue] SSE not active, using fallback polling every 5 seconds');
-      // If real-time updates are not working, refresh every 30 seconds
+    if (!sseConnected) {
+      console.log('[Process Queue] SSE not connected, using fallback polling every 10 seconds');
       const interval = setInterval(() => {
-        console.log('[Process Queue] Fallback polling refresh triggered');
+        console.log('[Process Queue] Fallback polling refresh');
         fetchQueue(page, pageSize);
         setLastUpdate(new Date());
-      }, 5000);
+      }, 10000); // Poll every 10 seconds when SSE is down
       
       return () => clearInterval(interval);
     } else {
-      console.log('[Process Queue] SSE active, fallback polling disabled');
+      console.log('[Process Queue] SSE connected, fallback polling disabled');
     }
-  }, [isRealtimeActive, fetchQueue, page, pageSize]);
+  }, [sseConnected, fetchQueue, page, pageSize]);
 
   // Debug SSE connection status
   useEffect(() => {
     console.log('[Process Queue] SSE Status:', {
-      isRealtimeActive,
-      hasLastMessage: !!lastMessage,
-      messageType: lastMessage?.type,
+      sseConnected,
+      sseError,
+      sseEventCount,
       timestamp: new Date().toISOString()
     });
-  }, [isRealtimeActive, lastMessage]);
+  }, [sseConnected, sseError, sseEventCount]);
+
+  // Debug queue data to help troubleshoot retry button visibility
+  useEffect(() => {
+    if (queueData?.data) {
+      console.log('[Process Queue] Queue data loaded:', {
+        totalItems: queueData.data.length,
+        statusCounts: queueData.data.reduce((acc, item) => {
+          acc[item.status] = (acc[item.status] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>),
+        failedItems: queueData.data.filter(item => item.status === 'failed').map(item => ({
+          id: item.id,
+          fileName: item.file_name,
+          status: item.status
+        }))
+      });
+    }
+  }, [queueData]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -725,22 +828,82 @@ export default function CandidateImportUploadQueue() {
 
           <div className="flex-1 overflow-y-auto space-y-4">
             {/* Real-time Connection Status */}
-            {/* <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg border">
+            <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg border">
               <div className="flex items-center space-x-2">
-                <div className={`w-2 h-2 rounded-full ${isRealtimeActive ? 'bg-green-500' : 'bg-red-500'}`} />
+                <div className={`w-2 h-2 rounded-full ${sseConnected ? 'bg-green-500' : 'bg-red-500'}`} />
                 <span className="text-sm font-medium">
-                  {isRealtimeActive ? 'Live Updates Active' : 'Real-time Updates Offline'}
+                  {sseConnected ? 'Real-time Updates Active' : 'Real-time Updates Offline'}
                 </span>
-                {!isRealtimeActive && (
+                {!sseConnected && (
                   <span className="text-xs text-muted-foreground">
-                    (Auto-refresh every 30s)
+                    (SSE: {sseError || 'Disconnected'})
                   </span>
                 )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    console.log('[Process Queue] Testing SSE connection...');
+                    // Force a test by refreshing the queue
+                    fetchQueue(page, pageSize);
+                    setLastUpdate(new Date());
+                  }}
+                  className="h-6 px-2 text-xs"
+                  title="Test connection by refreshing data"
+                >
+                  <RefreshCw className="h-3 w-3" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    console.log('[Process Queue] Testing simple SSE endpoint...');
+                    // Test the simple SSE endpoint
+                    const testEventSource = new EventSource('/api/sse/test-simple');
+                    testEventSource.onmessage = (event) => {
+                      try {
+                        const data = JSON.parse(event.data);
+                        console.log('[Process Queue] Simple SSE test message:', data);
+                        if (data.type === 'connected') {
+                          toast.success('Simple SSE connection successful!');
+                        }
+                      } catch (error) {
+                        console.error('[Process Queue] Error parsing test SSE message:', error);
+                      }
+                    };
+                    testEventSource.onerror = (error) => {
+                      console.error('[Process Queue] Simple SSE test failed:', error);
+                      toast.error('Simple SSE test failed');
+                    };
+                    // Close after 5 seconds
+                    setTimeout(() => testEventSource.close(), 5000);
+                  }}
+                  className="h-6 px-2 text-xs"
+                  title="Test simple SSE endpoint"
+                >
+                  Test SSE
+                </Button>
               </div>
-              <div className="text-sm text-muted-foreground">
-                Last updated: {lastUpdate ? formatDate(lastUpdate.toISOString()) : 'Never'}
+              <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                <span>Events: {sseEventCount}</span>
+                <span>Last updated: {lastUpdate ? formatDate(lastUpdate.toISOString()) : 'Never'}</span>
+                {!sseConnected && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      console.log('[Process Queue] Manual refresh requested');
+                      fetchQueue(page, pageSize);
+                      setLastUpdate(new Date());
+                    }}
+                    className="h-6 px-2 text-xs"
+                  >
+                    <RefreshCw className="h-3 w-3 mr-1" />
+                    Refresh Now
+                  </Button>
+                )}
               </div>
-            </div> */}
+            </div>
 
       {/* Summary Cards */}
       {queueData?.summary && (

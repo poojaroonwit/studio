@@ -20,7 +20,7 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
     if (!job.file_path) {
       console.error(`Job ${job.id} has invalid file_path:`, job.file_path);
       await client.query(
-        `UPDATE upload_queue SET status = 'error', error = $1, error_details = $2, completed_date = now(), updated_at = now() WHERE id = $3`,
+        `UPDATE upload_queue SET status = 'failed', error = $1, error_details = $2, completed_date = now(), updated_at = now() WHERE id = $3`,
         ['Invalid file_path (null or empty) in job', `file_path: ${job.file_path}`, job.id]
       );
       console.error(`Upload queue job failed - invalid file_path for job ${job.id}`, {
@@ -44,7 +44,7 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       if (fileSize > maxFileSize) {
         console.warn(`File too large (${fileSize} bytes), skipping processing for job ${job.id}`);
         await client.query(
-          `UPDATE upload_queue SET status = 'error', error = $1, error_details = $2, completed_date = now(), updated_at = now() WHERE id = $3`,
+          `UPDATE upload_queue SET status = 'failed', error = $1, error_details = $2, completed_date = now(), updated_at = now() WHERE id = $3`,
           ['File too large for processing', `File size: ${fileSize} bytes, max allowed: ${maxFileSize} bytes`, job.id]
         );
         return { error: 'File too large for processing', job };
@@ -63,7 +63,7 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
         if (totalSize > maxFileSize) {
           console.error(`File download exceeded size limit during streaming for job ${job.id}`);
           await client.query(
-            `UPDATE upload_queue SET status = 'error', error = $1, error_details = $2, completed_date = now(), updated_at = now() WHERE id = $3`,
+            `UPDATE upload_queue SET status = 'failed', error = $1, error_details = $2, completed_date = now(), updated_at = now() WHERE id = $3`,
             ['File download exceeded size limit', `Downloaded size: ${totalSize} bytes`, job.id]
           );
           return { error: 'File download exceeded size limit', job };
@@ -79,7 +79,7 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
     } catch (minioError) {
       console.error(`[Webhook] Failed to download file from MinIO:`, minioError);
       await client.query(
-        `UPDATE upload_queue SET status = 'error', error = $1, error_details = $2, completed_date = now(), updated_at = now() WHERE id = $3`,
+        `UPDATE upload_queue SET status = 'failed', error = $1, error_details = $2, completed_date = now(), updated_at = now() WHERE id = $3`,
         ['Failed to download file from MinIO', `MinIO error: ${minioError instanceof Error ? minioError.message : String(minioError)}`, job.id]
       );
       return { error: 'Failed to download file from MinIO', job };
@@ -237,7 +237,7 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
           
         } else {
           // Any non-200 status is considered a failure
-          status = 'fail';
+          status = 'failed';
           error = `Webhook responded with status ${webhookResStatus}`;
           // Truncate response text if it's too long (likely HTML error page)
         const truncatedResponse = webhookResponseText && webhookResponseText.length > 200 
@@ -256,7 +256,7 @@ Response: ${truncatedResponse || 'No response body'}`;
         }
         
       } catch (fetchError) {
-        status = 'fail';
+        status = 'failed';
         
         if (fetchError instanceof WebhookFetchError) {
           error = fetchError.isTimeout ? 'Webhook timeout error' : 'Webhook fetch error';
@@ -284,13 +284,13 @@ This appears to be a timeout issue. Consider reducing the webhook timeout settin
         // Webhook response information
         webhookResStatus,
         webhookResponseText,
-        webhookError: status === 'fail' ? error : undefined,
+        webhookError: status === 'failed' ? error : undefined,
         // Original payload information
         originalPayload: payloadWithIdempotency,
       };
     } else {
-      // Webhook not set, set status to error
-      status = 'error';
+      // Webhook not set, set status to failed
+      status = 'failed';
       webhookError = 'Webhook URL not set or invalid, skipping webhook file send.';
       error = webhookError;
       error_details = webhookError;
@@ -328,7 +328,7 @@ This appears to be a timeout issue. Consider reducing the webhook timeout settin
       const errorStack = (err as Error).stack || errorMessage;
       
       await client.query(
-        `UPDATE upload_queue SET status = 'error', error = $1, error_details = $2, completed_date = now(), updated_at = now(), webhook_payload = $3 WHERE id = $4`,
+        `UPDATE upload_queue SET status = 'failed', error = $1, error_details = $2, completed_date = now(), updated_at = now(), webhook_payload = $3 WHERE id = $4`,
         [errorMessage, errorStack, payload, job.id]
       );
       

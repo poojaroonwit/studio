@@ -149,54 +149,32 @@ export async function POST(request: NextRequest) {
     : 'Unknown Candidate';
   const email = contactInfo.email || 'no-email@example.com';
   
-  // Resolve the desired status (UUID). If payload provides a status UUID, use it; if a name, resolve by name;
-  // otherwise default to "Applied" stage.
+  // Always default to "Applied" stage regardless of input
   let resolvedStageId: string | null = null;
-  const inputStatus = typeof candidateInfo.status === 'string' ? candidateInfo.status.trim() : '';
   
-  if (inputStatus) {
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    if (uuidRegex.test(inputStatus)) {
-      resolvedStageId = inputStatus;
+  try {
+    const appliedStage = await prisma.recruitmentStage.findFirst({
+      where: { 
+        OR: [
+          { name: { equals: 'Applied', mode: 'insensitive' } },
+          { name: { equals: 'applied', mode: 'insensitive' } }
+        ]
+      },
+      select: { id: true }
+    });
+    
+    if (appliedStage?.id) {
+      resolvedStageId = appliedStage.id;
     } else {
-      try {
-        const byName = await prisma.recruitmentStage.findFirst({
-          where: { name: { equals: inputStatus, mode: 'insensitive' } },
-          select: { id: true }
-        });
-        if (byName?.id) {
-          resolvedStageId = byName.id;
-        }
-      } catch {}
-    }
-  }
-  
-  // If no status provided or resolved, default to "Applied" stage
-  if (!resolvedStageId) {
-    try {
-      const appliedStage = await prisma.recruitmentStage.findFirst({
-        where: { 
-          OR: [
-            { name: { equals: 'Applied', mode: 'insensitive' } },
-            { name: { equals: 'applied', mode: 'insensitive' } }
-          ]
-        },
+      // Fallback to first stage by sortOrder if "Applied" not found
+      const firstStage = await prisma.recruitmentStage.findFirst({
+        orderBy: { sortOrder: 'asc' },
         select: { id: true }
       });
-      
-      if (appliedStage?.id) {
-        resolvedStageId = appliedStage.id;
-      } else {
-        // Fallback to first stage by sortOrder if "Applied" not found
-        const firstStage = await prisma.recruitmentStage.findFirst({
-          orderBy: { sortOrder: 'asc' },
-          select: { id: true }
-        });
-        resolvedStageId = firstStage?.id || null;
-      }
-    } catch {
-      resolvedStageId = null;
+      resolvedStageId = firstStage?.id || null;
     }
+  } catch {
+    resolvedStageId = null;
   }
   
   if (!resolvedStageId) {
@@ -258,10 +236,10 @@ export async function POST(request: NextRequest) {
         email: email.toLowerCase(),
         phone: contactInfo.phone || null,
         position: positionId ? { connect: { id: positionId } } : undefined,
-        recruitmentStage: { connect: { id: resolvedStageId } },
+        statusId: resolvedStageId,
         fitScore: fitScore, // <-- always set top-level fitScore if present
         parsedData: parsedData,
-        source: validationResult.data.sourceId ? { connect: { id: validationResult.data.sourceId } } : null,
+        source: validationResult.data.sourceId ? { connect: { id: validationResult.data.sourceId } } : undefined,
         subSource: validationResult.data.subSource || null,
         applicationDate: createDateInTimezone(),
         createdAt: createDateInTimezone(),

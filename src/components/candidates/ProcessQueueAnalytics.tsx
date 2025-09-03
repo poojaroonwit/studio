@@ -267,7 +267,8 @@ export default function ProcessQueueAnalytics() {
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case 'success': return 'text-green-600';
-      case 'fail': return 'text-red-600';
+      case 'fail':
+      case 'failed':
       case 'error': return 'text-red-600';
       case 'inprocess': return 'text-yellow-600';
       case 'queued': return 'text-blue-600';

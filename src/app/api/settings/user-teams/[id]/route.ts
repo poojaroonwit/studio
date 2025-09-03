@@ -11,7 +11,7 @@ const userTeamUpdateSchema = z.object({
   name: z.string().min(1, 'Team name cannot be empty.'),
   description: z.string().optional().nullable(),
   color: z.string().optional().nullable(),
-  isActive: z.boolean().optional(),
+  isActive: z.boolean().optional().default(true),
 });
 
 /**
@@ -167,9 +167,12 @@ export async function PUT(
       return new NextResponse('Team not found', { status: 404 });
     }
 
+    // Ensure isActive has a default value
+    const activeValue = isActive ?? true;
+
     const result = await client.query(
       'UPDATE "UserTeam" SET name = $1, description = $2, color = $3, "is_active" = $4, "updatedAt" = NOW() WHERE id = $5 RETURNING *',
-      [name, description, color, isActive, id]
+      [name, description, color, activeValue, id]
     );
 
     await logAudit('AUDIT', `User team '${name}' updated.`, 'API:UserTeams:Update', actingUserId, { teamId: id });

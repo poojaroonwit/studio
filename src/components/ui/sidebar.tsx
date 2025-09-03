@@ -13,6 +13,35 @@ import { Separator } from "@/components/ui/separator"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
 import { Skeleton } from "@/components/ui/skeleton"
 
+// Custom hook to prevent aria-hidden accessibility issues
+const usePreventAriaHidden = (ref: React.RefObject<HTMLElement>, isCollapsed: boolean) => {
+  React.useEffect(() => {
+    const element = ref.current
+    if (!element) return
+
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'aria-hidden') {
+          const target = mutation.target as HTMLElement
+          if (target.getAttribute('aria-hidden') === 'true') {
+            // Check if the element contains focusable content
+            const focusableElements = target.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
+            if (focusableElements.length > 0) {
+              // Remove aria-hidden and use inert instead
+              target.removeAttribute('aria-hidden')
+              target.setAttribute('inert', '')
+            }
+          }
+        }
+      })
+    })
+
+    observer.observe(element, { attributes: true, subtree: true })
+
+    return () => observer.disconnect()
+  }, [ref, isCollapsed])
+}
+
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
 const SIDEBAR_WIDTH = "16rem"
@@ -162,6 +191,8 @@ const SidebarProvider = React.forwardRef<
             className
           )}
           ref={ref}
+          role="complementary"
+          aria-label="Main navigation sidebar"
           {...props}
         >
           {children}
@@ -192,6 +223,21 @@ const Sidebar = React.forwardRef<
     ref
   ) => {
     const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
+    const sidebarRef = React.useRef<HTMLDivElement>(null)
+    
+    // Use the custom hook to prevent aria-hidden accessibility issues
+    usePreventAriaHidden(sidebarRef, state === "collapsed")
+    
+    // Handle focus management when sidebar is collapsed
+    React.useEffect(() => {
+      if (sidebarRef.current && state === "collapsed" && collapsible === "offcanvas") {
+        // Remove focus from any focused elements inside the collapsed sidebar
+        const focusedElement = sidebarRef.current.querySelector(':focus')
+        if (focusedElement && focusedElement instanceof HTMLElement) {
+          focusedElement.blur()
+        }
+      }
+    }, [state, collapsible])
 
     if (collapsible === "none") {
       return (
@@ -230,12 +276,13 @@ const Sidebar = React.forwardRef<
 
     return (
       <div
-        ref={ref}
+        ref={sidebarRef}
         className="group peer hidden md:block text-sidebar-foreground"
         data-state={state}
         data-collapsible={state === "collapsed" ? collapsible : ""}
         data-variant={variant}
         data-side={side}
+        inert={state === "collapsed" && collapsible === "offcanvas" ? "" : undefined}
       >
         {/* This is what handles the sidebar gap on desktop */}
         <div
@@ -265,6 +312,7 @@ const Sidebar = React.forwardRef<
           <div
             data-sidebar="sidebar"
             className="p-4 flex h-full w-full flex-col bg-sidebar group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border group-data-[variant=floating]:shadow group-data-[collapsible=icon]:p-0"
+            tabIndex={state === "collapsed" && collapsible === "offcanvas" ? -1 : undefined}
           >
             {children}
           </div>

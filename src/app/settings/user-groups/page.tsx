@@ -1,10 +1,10 @@
 "use client";
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo, ErrorInfo } from 'react';
 import { useSession, signIn } from 'next-auth/react';
 import { toast } from 'react-hot-toast';
 import type { UserGroup, PlatformModuleId } from '@/lib/types';
 import { PLATFORM_MODULES } from '@/lib/types';
-import { PlusCircle, Edit3, Trash2, Save, Loader2, ServerCrash, ShieldAlert, Users, ShieldCheck, Settings2, X, MoreHorizontal } from 'lucide-react';
+import { PlusCircle, Edit3, Trash2, Save, Loader2, ServerCrash, ShieldAlert, Users, ShieldCheck, Settings2, X, MoreHorizontal, AlertTriangle } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -45,18 +45,92 @@ import {
   DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
 
-const platformModuleIds = (() => {
-  try {
-    if (!Array.isArray(PLATFORM_MODULES)) {
-      console.warn('RolesPermissionsPage: PLATFORM_MODULES is not an array at module level:', PLATFORM_MODULES);
-      return [];
-    }
-    return PLATFORM_MODULES.map(m => m.id);
-  } catch (error) {
-    console.error('RolesPermissionsPage: Error creating platformModuleIds:', error);
-    return [];
+// Error boundary component for role permissions page
+class RolePermissionsErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error?: Error }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
   }
-})();
+
+  static getDerivedStateFromError(error: Error) {
+    // Check if it's the specific 'ee' initialization error
+    const isEeInitializationError = error.message.includes('Cannot access') && 
+                                   error.message.includes('before initialization');
+    
+    if (isEeInitializationError) {
+      console.error('Detected "ee" variable initialization error:', error);
+    }
+    
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('RolePermissions page error:', error, errorInfo);
+    
+    // Check for the specific 'ee' variable error
+    const isEeVariableError = error.message.includes('ee') && 
+                              (error.message.includes('Cannot access') || 
+                               error.message.includes('before initialization'));
+    
+    if (isEeVariableError) {
+      console.error('EE Variable Error Context:', {
+        errorType: 'Temporal Dead Zone',
+        likelyCause: 'Variable accessed before initialization in minified bundle',
+        recommendation: 'Component initialization order issue',
+        componentStack: errorInfo.componentStack
+      });
+    }
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex h-full items-center justify-center p-8">
+          <div className="text-center max-w-md">
+            <div className="p-4 rounded-full bg-destructive/10 mb-4">
+              <AlertTriangle className="h-8 w-8 text-destructive mx-auto" />
+            </div>
+            <h3 className="text-lg font-semibold mb-2">Component Initialization Error</h3>
+            <p className="text-muted-foreground mb-4">
+              There was an issue loading the Roles & Permissions page. This is typically caused by a component initialization order issue.
+            </p>
+            <div className="space-y-2">
+              <button
+                onClick={() => {
+                  this.setState({ hasError: false, error: undefined });
+                }}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 mr-2"
+              >
+                Try Again
+              </button>
+              <button
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/90"
+              >
+                Refresh Page
+              </button>
+            </div>
+            {process.env.NODE_ENV === 'development' && this.state.error && (
+              <details className="text-left mt-4">
+                <summary className="cursor-pointer text-sm text-muted-foreground">
+                  Error Details
+                </summary>
+                <pre className="text-xs mt-2 p-2 bg-muted rounded overflow-auto">
+                  {this.state.error.stack}
+                </pre>
+              </details>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 const roleFormSchema = z.object({
   name: z.string().min(1, "Role name is required").max(100),
@@ -66,9 +140,7 @@ const roleFormSchema = z.object({
 });
 type RoleFormValues = z.infer<typeof roleFormSchema>;
 
-
-
-export default function RolesPermissionsPage() {
+function RolesPermissionsPageContent() {
   const { data: session, status: sessionStatus } = useSession();
   const router = useRouter();
   const pathname = usePathname();
@@ -83,6 +155,20 @@ export default function RolesPermissionsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<UserGroup | null>(null);
   const [roleToDelete, setRoleToDelete] = useState<UserGroup | null>(null);
+
+  // Convert IIFE to useMemo to prevent initialization errors
+  const platformModuleIds = useMemo(() => {
+    try {
+      if (!Array.isArray(PLATFORM_MODULES)) {
+        console.warn('RolesPermissionsPage: PLATFORM_MODULES is not an array at module level:', PLATFORM_MODULES);
+        return [];
+      }
+      return PLATFORM_MODULES.map(m => m.id);
+    } catch (error) {
+      console.error('RolesPermissionsPage: Error creating platformModuleIds:', error);
+      return [];
+    }
+  }, []);
 
   const form = useForm<RoleFormValues>({
     resolver: zodResolver(roleFormSchema),
@@ -430,6 +516,15 @@ export default function RolesPermissionsPage() {
         />
       )}
     </div>
+  );
+}
+
+
+export default function RolesPermissionsPage() {
+  return (
+    <RolePermissionsErrorBoundary>
+      <RolesPermissionsPageContent />
+    </RolePermissionsErrorBoundary>
   );
 }
 

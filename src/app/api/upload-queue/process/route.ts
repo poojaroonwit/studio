@@ -346,7 +346,7 @@ export async function POST(request: NextRequest) {
         webhookResults = result.webhook_response || null;
         payload = result.job || null;
       } catch (err) {
-        status = 'fail';
+        status = 'failed';
         error = 'Resume processing webhook error';
         error_details = err instanceof Error ? err.message : String(err);
       }
@@ -354,9 +354,9 @@ export async function POST(request: NextRequest) {
 
 
     // Validate status before database update
-    if (!['success', 'fail', 'error'].includes(status)) {
-      console.error(`[Database] Invalid status detected: ${status}, defaulting to 'error'`);
-      status = 'error';
+    if (!['success', 'failed'].includes(status)) {
+      console.error(`[Database] Invalid status detected: ${status}, defaulting to 'failed'`);
+      status = 'failed';
       error = 'Invalid status detected during processing';
       error_details = `Status was set to invalid value: ${status}`;
     }
@@ -402,7 +402,7 @@ export async function POST(request: NextRequest) {
       const errorStack = (err as Error).stack || errorMessage;
       
       await client.query(
-        `UPDATE upload_queue SET status = 'error', error = $1, error_details = $2, completed_date = now(), updated_at = now(), webhook_payload = $3 WHERE id = $4`,
+        `UPDATE upload_queue SET status = 'failed', error = $1, error_details = $2, completed_date = now(), updated_at = now(), webhook_payload = $3 WHERE id = $4`,
         [errorMessage, errorStack, payload, job.id]
       );
       console.error(`Upload queue job '${job.file_name}' failed with exception`, {

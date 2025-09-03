@@ -208,23 +208,30 @@ export function UserTeamsTab() {
     loadTeamMembers(team.id);
     
     // Populate the form with team data
-    form.reset({
+    const formData = {
       name: team.name,
       description: team.description || '',
       color: team.color || '#3B82F6',
-      isActive: team.isActive
-    });
+      isActive: team.isActive ?? true
+    };
+    console.log('Setting form data for editing:', { team, formData });
+    form.reset(formData);
   };
 
   const handleOpenModal = (team: UserTeam | null = null) => {
     setEditingTeam(team);
-    form.reset(team ? { name: team.name, description: team.description || '', color: team.color || '#3B82F6', isActive: team.isActive } : { name: '', description: '', color: '#3B82F6', isActive: true });
+    form.reset(team ? { name: team.name, description: team.description || '', color: team.color || '#3B82F6', isActive: team.isActive ?? true } : { name: '', description: '', color: '#3B82F6', isActive: true });
     setIsModalOpen(true);
   };
 
   const handleTeamFormSubmit = async (data: TeamFormValues) => {
-    const url = editingTeam ? `/api/settings/user-teams/${editingTeam.id}` : '/api/settings/user-teams';
-    const method = editingTeam ? 'PUT' : 'POST';
+    // Check if we're editing (either in modal with editingTeam or in drawer with selectedTeam)
+    const isEditing = editingTeam || selectedTeam;
+    const teamId = editingTeam?.id || selectedTeam?.id;
+    const url = isEditing ? `/api/settings/user-teams/${teamId}` : '/api/settings/user-teams';
+    const method = isEditing ? 'PUT' : 'POST';
+
+    console.log('Form submission:', { isEditing, teamId, url, method, data });
 
     try {
       const response = await fetch(url, {
@@ -233,13 +240,24 @@ export function UserTeamsTab() {
         body: JSON.stringify(data),
       });
       const result = await response.json();
-      if (!response.ok) throw new Error(result.message || `Failed to ${editingTeam ? 'update' : 'create'} team`);
+      console.log('API response:', { status: response.status, result });
       
-      toast.success(`Team "${result.name}" was successfully ${editingTeam ? 'updated' : 'created'}.`);
-      setIsModalOpen(false);
+      if (!response.ok) throw new Error(result.message || `Failed to ${isEditing ? 'update' : 'create'} team`);
+      
+      toast.success(`Team "${result.name}" was successfully ${isEditing ? 'updated' : 'created'}.`);
+      
+      // Close the appropriate modal/drawer
+      if (editingTeam) {
+        setIsModalOpen(false);
+      } else if (selectedTeam) {
+        setIsTeamDrawerOpen(false);
+        setSelectedTeam(null);
+      }
+      
       fetchTeams(); // Refresh list
 
     } catch (error) {
+      console.error('Form submission error:', error);
       toast.error((error as Error).message);
     }
   };
@@ -467,7 +485,12 @@ export function UserTeamsTab() {
                 {activeTab === 'details' && (
                   <ScrollArea className="flex-1">
                     <Form {...form}>
-                      <form onSubmit={form.handleSubmit(handleTeamFormSubmit)} className="space-y-6">
+                      <form onSubmit={(e) => {
+                        console.log('Form submit event triggered');
+                        console.log('Form values:', form.getValues());
+                        console.log('Form errors:', form.formState.errors);
+                        form.handleSubmit(handleTeamFormSubmit)(e);
+                      }} className="space-y-6">
                         <FormField
                           control={form.control}
                           name="name"
@@ -544,6 +567,18 @@ export function UserTeamsTab() {
                           <Button type="submit" className="flex-1">
                             <Save className="mr-2 h-4 w-4" />
                             Save Changes
+                          </Button>
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            onClick={() => {
+                              const formData = form.getValues();
+                              console.log('Manual update test:', formData);
+                              handleTeamFormSubmit(formData);
+                            }}
+                            className="flex-1"
+                          >
+                            Test Update
                           </Button>
                         </div>
                       </form>

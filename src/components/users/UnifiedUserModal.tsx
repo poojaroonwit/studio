@@ -131,10 +131,24 @@ export function UnifiedUserModal({
 
   // Update form default values when user groups are loaded
   useEffect(() => {
-    if (userGroups.length > 0) {
-      form.setValue('role', userGroups[0].name);
+    if (userGroups.length > 0 && mode === 'create') {
+      // Set default user group selection
+      const defaultGroup = userGroups.find(g => g.name.toLowerCase().includes('recruiter')) || userGroups[0];
+      if (defaultGroup) {
+        form.setValue('userGroupIds', [defaultGroup.id]);
+        // Map user group to role for API compatibility
+        let roleString = 'Recruiter'; // default
+        if (defaultGroup.name.toLowerCase().includes('admin')) {
+          roleString = 'Admin';
+        } else if (defaultGroup.name.toLowerCase().includes('hiring') || defaultGroup.name.toLowerCase().includes('manager')) {
+          roleString = 'Hiring Manager';
+        } else if (defaultGroup.name.toLowerCase().includes('recruiter')) {
+          roleString = 'Recruiter';
+        }
+        form.setValue('role', roleString);
+      }
     }
-  }, [userGroups, form]);
+  }, [userGroups, mode, form]);
 
   // Watch userGroupIds to update role field
   useEffect(() => {
@@ -142,8 +156,16 @@ export function UnifiedUserModal({
     if (watchedUserGroupIds && watchedUserGroupIds.length > 0) {
       const selectedGroup = userGroups.find(g => g.id === watchedUserGroupIds[0]);
       if (selectedGroup) {
-        // Set role to match the user group name directly
-        form.setValue('role', selectedGroup.name);
+        // Map user group to role string for API compatibility
+        let roleString = 'Recruiter'; // default
+        if (selectedGroup.name.toLowerCase().includes('admin')) {
+          roleString = 'Admin';
+        } else if (selectedGroup.name.toLowerCase().includes('hiring') || selectedGroup.name.toLowerCase().includes('manager')) {
+          roleString = 'Hiring Manager';
+        } else if (selectedGroup.name.toLowerCase().includes('recruiter')) {
+          roleString = 'Recruiter';
+        }
+        form.setValue('role', roleString);
       }
     }
   }, [form.watch('userGroupIds'), userGroups, form]);
@@ -205,7 +227,7 @@ export function UnifiedUserModal({
           name: '',
           email: '',
           password: '',
-          role: userGroups.length > 0 ? userGroups[0].name : 'Recruiter', // Use first available group or fallback
+          role: 'Recruiter', // Use valid role value, not user group name
           newPassword: '',
           forcePasswordChange: false,
           authenticationMethod: 'basic',

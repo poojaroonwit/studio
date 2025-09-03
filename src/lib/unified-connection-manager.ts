@@ -295,7 +295,7 @@ export async function getDashboardDataForUser(userId: string) {
 
 // Unified SSE connection handler
 export async function handleUnifiedSSEConnection(request: Request) {
-  console.log('[UNIFIED] New connection request received');
+  // console.log('[UNIFIED] New connection request received');
   
   try {
     // Authenticate user with better error handling
@@ -316,22 +316,22 @@ export async function handleUnifiedSSEConnection(request: Request) {
 
     // Check if user already has a connection
     if (userConnections.has(userId)) {
-      console.log(`[UNIFIED] User ${userId} already has a connection, replacing old one`);
+      // console.log(`[UNIFIED] User ${userId} already has a connection, replacing old one`);
       removeUserConnection(userId);
     }
 
-    console.log(`[UNIFIED] User ${userId} authenticated successfully`);
+    // console.log(`[UNIFIED] User ${userId} authenticated successfully`);
 
     const encoder = new TextEncoder();
     let keepaliveInterval: NodeJS.Timeout;
 
     const stream = new ReadableStream({
       start(controller) {
-        console.log(`[UNIFIED] Starting unified stream for user ${userId}`);
+        // console.log(`[UNIFIED] Starting unified stream for user ${userId}`);
         
         // Add connection
         addUserConnection(userId, controller);
-        console.log(`[UNIFIED] User ${userId} SSE connection established`);
+        // console.log(`[UNIFIED] User ${userId} SSE connection established`);
 
         // Send initial connection confirmation
         const initialData = JSON.stringify({
@@ -360,7 +360,7 @@ export async function handleUnifiedSSEConnection(request: Request) {
               connection.lastActivity = Date.now();
             }
             
-            console.log(`[UNIFIED] Keepalive sent to user ${userId}`);
+            // console.log(`[UNIFIED] Keepalive sent to user ${userId}`);
           } catch (error) {
             console.error(`[UNIFIED] Keepalive failed for user ${userId}:`, error);
             clearInterval(keepaliveInterval);
@@ -376,7 +376,7 @@ export async function handleUnifiedSSEConnection(request: Request) {
 
         // Cleanup on connection close
         request.signal.addEventListener('abort', () => {
-          console.log(`[UNIFIED] Connection aborted for user ${userId}`);
+          // console.log(`[UNIFIED] Connection aborted for user ${userId}`);
           clearInterval(keepaliveInterval);
           removeUserConnection(userId);
           try { controller.close(); } catch (e) {
@@ -385,13 +385,13 @@ export async function handleUnifiedSSEConnection(request: Request) {
         });
       },
       cancel() {
-        console.log(`[UNIFIED] Stream cancelled for user ${userId}`);
+        // console.log(`[UNIFIED] Stream cancelled for user ${userId}`);
         clearInterval(keepaliveInterval);
         removeUserConnection(userId);
       }
     });
 
-    console.log(`[UNIFIED] Returning unified response for user ${userId}`);
+    // console.log(`[UNIFIED] Returning unified response for user ${userId}`);
 
     return new Response(stream, {
       headers: {

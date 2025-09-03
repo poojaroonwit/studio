@@ -3,7 +3,7 @@ import { Inter } from 'next/font/google';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { SessionProvider } from '@/components/auth/SessionProvider';
+import { SessionProvider } from 'next-auth/react';
 import { RamdaPolyfillInitializer } from '@/components/ui/RamdaPolyfillInitializer';
 import { initializeServices } from '@/lib/startup';
 import './globals.css';

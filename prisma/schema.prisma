@@ -22,10 +22,10 @@ model User {
   createdAt                  DateTime                    @default(now())
   updatedAt                  DateTime                    @updatedAt
   azure_oid                  String?                     @unique
-  personalColor              String?                     @default("#3B82F6") @map("personal_color")
-  module_permissions         String[]                    @default([])
   userGroupId                String?                     @map("userGroupId") @db.Uuid
   userTeamId                 String?                     @map("userTeamId") @db.Uuid
+  module_permissions         String[]                    @default([])
+  personalColor              String?                     @default("#3B82F6") @map("personal_color")
   accounts                   Account[]
   attachments                Attachment[]                @relation("UserAttachments")
   candidates                 Candidate[]                 @relation("RecruiterCandidates")
@@ -132,15 +132,15 @@ model Candidate {
   assignmentJustification String?
   educationData           Json?              @default("[]")
   experienceData          Json?              @default("[]")
+  companyId               String?            @db.Uuid
   sourceId                String?            @db.Uuid
   subSource               String?
-  companyId               String?            @db.Uuid
-  status                  String             @db.Uuid
+  statusId                String             @map("status") @db.Uuid
   attachments             Attachment[]
   position                Position?          @relation(fields: [positionId], references: [id])
   recruiter               User?              @relation("RecruiterCandidates", fields: [recruiterId], references: [id])
   source                  CandidateSource?   @relation(fields: [sourceId], references: [id])
-  RecruitmentStage        RecruitmentStage   @relation(fields: [status], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "Candidate_statusId_fkey")
+  recruitmentStage        RecruitmentStage   @relation("RecruitmentStageCandidates", fields: [statusId], references: [id], onDelete: SetNull, onUpdate: NoAction)
   candidateComments       CandidateComment[]
   headcounts              Headcount[]        @relation("CandidateHeadcount")
   jobMatches              JobMatch[]
@@ -152,7 +152,7 @@ model Candidate {
   @@index([applicationDate])
   @@index([fitScore])
   @@index([sourceId])
-  @@index([status])
+  @@index([statusId])
 }
 
 model RecruitmentStage {
@@ -163,7 +163,7 @@ model RecruitmentStage {
   sortOrder      Int         @map("sort_order")
   color_complete String?
   color_badge    String?
-  Candidate      Candidate[]
+  candidates     Candidate[] @relation("RecruitmentStageCandidates")
 
   @@index([sortOrder])
   @@index([isSystem])
@@ -279,14 +279,14 @@ model CustomFieldDefinition {
   attributeCode             String?             @map("attribute_code")
   attributeLabel            String?             @map("attribute_label")
   editRoles                 String[]            @default([]) @map("edit_roles")
+  fieldCode                 String              @map("field_code")
   showInCandidateDetail     Boolean             @default(false) @map("show_in_candidate_detail")
   showInFilter              Boolean             @default(false) @map("show_in_filter")
   showInFullCandidateDetail Boolean             @default(false) @map("show_in_full_candidate_detail")
+  showInHeadcountDetail     Boolean             @default(false) @map("show_in_headcount_detail")
   showInPositionSettings    Boolean             @default(false) @map("show_in_position_settings")
   showInTaskBoardFilter     Boolean             @default(false) @map("show_in_task_board_filter")
   viewRoles                 String[]            @default([]) @map("view_roles")
-  fieldCode                 String              @map("field_code")
-  showInHeadcountDetail     Boolean             @default(false) @map("show_in_headcount_detail")
   customFieldOptions        CustomFieldOption[]
 
   @@unique([modelName, fieldKey])

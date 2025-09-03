@@ -66,19 +66,31 @@ export default function DashboardPageClient({
   const [stageIds, setStageIds] = useState<Record<string, string | undefined>>(initialStageIds);
   const [stageNames, setStageNames] = useState<Record<string, string>>(initialStageNames);
   
+  // Helper function to safely get stage name
+  const getStageName = useCallback((stageId: string | undefined): string | null => {
+    if (!stageId) return null;
+    return stageNames[stageId] || null;
+  }, [stageNames]);
+  
   useEffect(() => {
     // Update stage IDs when props change
     setStageIds(initialStageIds);
     setStageNames(initialStageNames);
     
-    // Populate status arrays with stage IDs
-    if (initialStageIds.hired && initialStageIds.rejected && initialStageIds.offerExtended) {
+    // Populate status arrays with stage names for comparison
+    const hiredStageName = initialStageIds.hired ? initialStageNames[initialStageIds.hired] : null;
+    const rejectedStageName = initialStageIds.rejected ? initialStageNames[initialStageIds.rejected] : null;
+    const offerExtendedStageName = initialStageIds.offerExtended ? initialStageNames[initialStageIds.offerExtended] : null;
+    const interviewScheduledStageName = initialStageIds.interviewScheduled ? initialStageNames[initialStageIds.interviewScheduled] : null;
+    const interviewingStageName = initialStageIds.interviewing ? initialStageNames[initialStageIds.interviewing] : null;
+    
+    if (hiredStageName && rejectedStageName && offerExtendedStageName) {
       BACKLOG_EXCLUSION_STATUSES.length = 0;
-      BACKLOG_EXCLUSION_STATUSES.push(initialStageIds.hired, initialStageIds.rejected, initialStageIds.offerExtended);
+      BACKLOG_EXCLUSION_STATUSES.push(hiredStageName, rejectedStageName, offerExtendedStageName);
     }
-    if (initialStageIds.interviewScheduled && initialStageIds.interviewing) {
+    if (interviewScheduledStageName && interviewingStageName) {
       INTERVIEW_STATUSES.length = 0;
-      INTERVIEW_STATUSES.push(initialStageIds.interviewScheduled, initialStageIds.interviewing);
+      INTERVIEW_STATUSES.push(interviewScheduledStageName, interviewingStageName);
     }
   }, [initialStageIds, initialStageNames]);
   
@@ -496,8 +508,8 @@ export default function DashboardPageClient({
     
     // Combined my candidates statistics
     const myActiveCandidatesList = safeMyAssignedCandidates.filter((c: Candidate) => 
-      !(stageIds.hired && c.status === stageIds.hired) && 
-      !(stageIds.rejected && c.status === stageIds.rejected)
+      !(stageIds.hired && c.status === getStageName(stageIds.hired)) && 
+      !(stageIds.rejected && c.status === getStageName(stageIds.rejected))
     );
     const myCandidatesInInterviewCount = myActiveCandidatesList.filter((c: Candidate) => INTERVIEW_STATUSES.includes(c.status)).length;
     

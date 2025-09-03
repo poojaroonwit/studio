@@ -167,6 +167,7 @@ export async function GET(
             WITH applied_candidates AS (
               SELECT 
                 c.*, 
+                rs.name as "status",
                 p.id as "positionId", 
                 p.title as "positionTitle", 
                 p.department as "positionDepartment", 
@@ -179,6 +180,7 @@ export async function GET(
               FROM "Candidate" c
               LEFT JOIN "Position" p ON c."positionId" = p.id
               LEFT JOIN "User" r ON c."recruiterId" = r.id
+              LEFT JOIN "RecruitmentStage" rs ON c."statusId" = rs.id
               LEFT JOIN LATERAL (
                 SELECT json_agg(
                   json_build_object(
@@ -205,6 +207,7 @@ export async function GET(
             matched_candidates AS (
               SELECT 
                 c.*, 
+                rs.name as "status",
                 p.id as "positionId", 
                 p.title as "positionTitle", 
                 p.department as "positionDepartment", 
@@ -217,6 +220,7 @@ export async function GET(
               FROM "Candidate" c
               LEFT JOIN "Position" p ON c."positionId" = p.id
               LEFT JOIN "User" r ON c."recruiterId" = r.id
+              LEFT JOIN "RecruitmentStage" rs ON c."statusId" = rs.id
               LEFT JOIN LATERAL (
                 SELECT json_agg(
                   json_build_object(

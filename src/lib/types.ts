@@ -1036,6 +1036,7 @@ export interface Candidate {
   position?: Position | null;
   fitScore: number;
   statusId: string; // Now references RecruitmentStage.id
+  status?: string | null; // For backward compatibility - the actual status name
   recruitmentStage?: RecruitmentStage | null;
   applicationDate: string;
   recruiterId?: string | null;

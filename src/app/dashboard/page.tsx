@@ -50,10 +50,12 @@ export default async function DashboardPageServer() {
       const candidatesQuery = `
         SELECT c.*, p.id as "positionId", p.title as "positionTitle", p.department as "positionDepartment", p."positionLevel" as "positionLevel", p."isOpen" as "positionIsOpen",
                r.id as "recruiterId", r.name as "recruiterName", r.email as "recruiterEmail", r."avatarUrl" as "recruiterAvatarUrl",
+               rs.id as "statusId", rs.name as "statusName",
                COALESCE(th_data.history, '[]'::json) as "transitionHistory"
         FROM "Candidate" c
         LEFT JOIN "Position" p ON c."positionId" = p.id
         LEFT JOIN "User" r ON c."recruiterId" = r.id
+        LEFT JOIN "RecruitmentStage" rs ON c."statusId" = rs.id
         LEFT JOIN LATERAL (
           SELECT json_agg(
             json_build_object(
@@ -106,7 +108,8 @@ export default async function DashboardPageServer() {
           if (score >= 0 && score <= 100) return Math.round(score);
           return Math.max(0, Math.min(100, Math.round(score)));
         })(),
-        status: row.status,
+        statusId: row.statusId || null,
+        status: row.statusName || 'Unknown', // Ensure status is never null for backward compatibility
         applicationDate: row.applicationDate ? row.applicationDate.toISOString() : new Date().toISOString(),
         recruiterId: row.recruiterId || null,
         recruiter: row.recruiterId ? {

@@ -91,21 +91,53 @@ export async function GET(request: NextRequest) {
   
   try {
     if (stageIds) {
-      // Get specific stage names by IDs (no authentication required for this use case)
+      // Get specific stages by IDs or names (no authentication required for this use case)
       const ids = stageIds.split(',').filter(id => id.trim());
       if (ids.length === 0) {
-        return NextResponse.json({ error: 'No valid stage IDs provided' }, { status: 400 });
+        return NextResponse.json({ error: 'No valid stage IDs or names provided' }, { status: 400 });
       }
       
       const client = await getPool().connect();
       try {
-        const query = `
-          SELECT id, name 
-          FROM "RecruitmentStage" 
-          WHERE id = ANY($1::uuid[])
-          ORDER BY "sort_order", name
-        `;
-        const result = await client.query(query, [ids]);
+        // Check if the provided values are UUIDs or stage names
+        const isUuid = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+        
+        const uuidIds = ids.filter(id => isUuid(id));
+        const nameIds = ids.filter(id => !isUuid(id));
+        
+        let query: string;
+        let params: any[];
+        
+        if (uuidIds.length > 0 && nameIds.length > 0) {
+          // Mixed case: some UUIDs, some names
+          query = `
+            SELECT id, name 
+            FROM "RecruitmentStage" 
+            WHERE id = ANY($1::uuid[]) OR name = ANY($2)
+            ORDER BY "sort_order", name
+          `;
+          params = [uuidIds, nameIds];
+        } else if (uuidIds.length > 0) {
+          // All UUIDs
+          query = `
+            SELECT id, name 
+            FROM "RecruitmentStage" 
+            WHERE id = ANY($1::uuid[])
+            ORDER BY "sort_order", name
+          `;
+          params = [uuidIds];
+        } else {
+          // All names
+          query = `
+            SELECT id, name 
+            FROM "RecruitmentStage" 
+            WHERE name = ANY($1)
+            ORDER BY "sort_order", name
+          `;
+          params = [nameIds];
+        }
+        
+        const result = await client.query(query, params);
         
         return NextResponse.json(result.rows);
       } finally {

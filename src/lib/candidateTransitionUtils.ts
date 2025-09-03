@@ -30,18 +30,11 @@ export async function updateCandidatesStatusBulk(candidateIds: string[], status:
       throw new Error(result.message || 'status update failed');
     }
     
-    // Check for rejected candidates due to headcount constraints
+    // Check for rejected candidates (this should not happen with our new upfront validation)
     if (result.rejectedCandidates && result.rejectedCandidates.length > 0) {
-      const rejectedCandidate = result.rejectedCandidates[0]; // For single candidate updates
-      const headcountInfo = rejectedCandidate.headcountStatus 
-        ? ` (Total: ${rejectedCandidate.headcountStatus.totalHeadcounts}, Vacant: ${rejectedCandidate.headcountStatus.vacantHeadcounts}, Filled: ${rejectedCandidate.headcountStatus.filledHeadcounts})`
-        : '';
-      
-      // Include original error details if available
-      const originalErrorInfo = rejectedCandidate.originalError ? ` - Original error: ${rejectedCandidate.originalError}` : '';
-      const errorMessage = `Headcount constraint: ${rejectedCandidate.message || 'Cannot update status due to headcount limitations'}${headcountInfo}${originalErrorInfo}`;
-      console.error('Headcount constraint error:', errorMessage);
-      throw new Error(errorMessage);
+      const rejectedCandidate = result.rejectedCandidates[0];
+      console.warn('Candidate rejected during status update:', rejectedCandidate);
+      throw new Error(rejectedCandidate.message || 'Candidate status update was rejected');
     }
     
     if (!suppressToast) {
@@ -50,8 +43,7 @@ export async function updateCandidatesStatusBulk(candidateIds: string[], status:
     return result;
   } catch (error: any) {
     console.error('Error in updateCandidatesStatusBulk:', error);
-    // Don't show toast for headcount constraint errors - they should be handled by warning modals
-    if (!suppressToast && !error.message?.includes('Headcount constraint:')) {
+    if (!suppressToast) {
       toast.error(error.message || 'Failed to update candidate(s).');
     }
     throw error;

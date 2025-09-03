@@ -1,7 +1,8 @@
-import { NextResponse, type NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getPool } from '@/lib/db';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
 
 // Force this route to be dynamic (not statically generated)
 export const dynamic = 'force-dynamic';
@@ -154,14 +155,13 @@ function mapPositionRow(row: any): Position {
 async function validateSession(): Promise<{ userId: string; userName: string }> {
   const session = await getServerSession(authOptions);
   
-  // For the positions/all endpoint, we'll be more lenient with session validation
-  // since this is used for filtering and doesn't modify data
   if (!session?.user?.id) {
-    // Return a default user for read-only operations
-    return {
-      userId: 'anonymous',
-      userName: 'Anonymous User'
-    };
+    throw new Error('Unauthorized');
+  }
+
+  // Check if user has permission to view positions
+  if (!hasPermission(session.user, 'POSITIONS_VIEW')) {
+    throw new Error('Forbidden: Insufficient permissions to view positions');
   }
 
   return {

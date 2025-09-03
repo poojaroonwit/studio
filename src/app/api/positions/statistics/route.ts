@@ -42,11 +42,24 @@
  *                   type: number
  */
 import { NextResponse, type NextRequest } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
 import { getPool } from '@/lib/db';
 import { handleCors } from '@/lib/cors';
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Check if user has permission to view positions
+    if (!hasPermission(session.user, 'POSITIONS_VIEW')) {
+      return NextResponse.json({ error: 'Forbidden: Insufficient permissions to view positions' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     const titleFilter = searchParams.get('title');
     const departmentFilter = searchParams.get('department');

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { logAudit } from '@/lib/auditLog';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
 import { getPool } from '@/lib/db';
 import { dispatchWebhooks } from '@/lib/webhookDispatcher';
 import { syncRecruiterForPosition } from '@/lib/recruiterSync';
@@ -92,6 +93,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   if (!session?.user?.id) {
     console.error('[Positions API] Unauthorized access attempt');
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Check if user has permission to view positions
+  if (!hasPermission(session.user, 'POSITIONS_VIEW')) {
+    console.error(`[Positions API] Forbidden access attempt by user ${session.user.id} - missing POSITIONS_VIEW permission`);
+    return NextResponse.json({ message: 'Forbidden: Insufficient permissions to view positions' }, { status: 403 });
   }
 
   const { id } = await params;

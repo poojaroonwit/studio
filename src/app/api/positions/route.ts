@@ -50,10 +50,14 @@ export const runtime = 'nodejs';
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
   
-  // Publicly viewable, but actions (POST, PUT, DELETE) might be restricted
-  // if (!session?.user) {
-  //   return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  // }
+  if (!session?.user?.id) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
+
+  // Check if user has permission to view positions
+  if (!hasPermission(session.user, 'POSITIONS_VIEW')) {
+    return NextResponse.json({ message: "Forbidden: Insufficient permissions to view positions" }, { status: 403 });
+  }
 
   try {
     const { searchParams } = new URL(request.url);

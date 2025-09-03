@@ -85,33 +85,12 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
     setHeadcountWarningData(data);
   };
   
-  // Add debugging for modal state changes
+  // Simple debugging for modal state changes
   useEffect(() => {
-    console.log('FullCandidateDetail - isHeadcountWarningModalOpen changed:', isHeadcountWarningModalOpen);
-    console.log('FullCandidateDetail - headcountWarningData:', headcountWarningData);
-    
-    // Additional debugging to track when modal should be open
-    if (isHeadcountWarningModalOpen && headcountWarningData) {
-      console.log('FullCandidateDetail - Modal should be open with data:', headcountWarningData);
-    } else if (!isHeadcountWarningModalOpen && headcountWarningData) {
-      console.log('FullCandidateDetail - WARNING: Modal closed but data still exists');
-    }
-    
-    // Track when modal state is being set to false
-    if (!isHeadcountWarningModalOpen) {
-      console.log('FullCandidateDetail - Modal state set to false - checking if this was intentional');
-      // Add a stack trace to see where this is being called from
-      console.trace('Modal state set to false');
-    }
+    console.log('FullCandidateDetail - Modal state changed:', { isOpen: isHeadcountWarningModalOpen, hasData: !!headcountWarningData });
   }, [isHeadcountWarningModalOpen, headcountWarningData]);
 
-  // Ensure modal stays open when it should be open
-  useEffect(() => {
-    if (headcountWarningData && !isHeadcountWarningModalOpen) {
-      console.log('FullCandidateDetail - Modal should be open but is closed, reopening...');
-      setIsHeadcountWarningModalOpen(true);
-    }
-  }, [headcountWarningData, isHeadcountWarningModalOpen]);
+
 
   // Prevent modal from being closed unexpectedly
   const closeHeadcountWarningModal = useCallback(() => {
@@ -768,48 +747,23 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
             if (!suppressToast) {
               toast.success(`Candidate status updated to "${status}".`);
             }
-          } catch (error: any) {
-            console.error('Error updating candidate status:', error);
-            
-            // Check if it's a headcount constraint error (fallback for API-level validation)
-            if (error.message && error.message.includes('Headcount constraint:')) {
-              console.log('FullCandidateDetail - Headcount constraint error detected, showing warning modal and blocking status change');
-              
-              // Get position title for the warning
-              const positionTitle = candidate?.positionId 
-                ? allDbPositions.find(p => p.id === candidate.positionId)?.title 
-                : undefined;
-              
-              // Set warning data first
-              setHeadcountWarningDataWithDebug({
-                candidateName: candidate?.name || 'Unknown Candidate',
-                positionTitle,
-                errorMessage: error.message.replace('Headcount constraint: ', '')
-              });
-              
-              // Open modal immediately to block the status change
-              console.log('FullCandidateDetail - Opening headcount warning modal to block status change');
-              setIsHeadcountWarningModalOpen(true);
-              
-              // IMPORTANT: Don't revert optimistic updates for headcount constraint errors
-              // The modal should stay open and block the change until user decides
-              console.log('FullCandidateDetail - Status change blocked by headcount constraint - modal will stay open');
-            } else {
-              // For non-headcount errors, revert optimistic updates
-              if (originalCandidate) {
-                // Revert candidate status to original
-                setCandidate(originalCandidate);
+                     } catch (error: any) {
+             console.error('Error updating candidate status:', error);
+             
+             // For any errors, revert optimistic updates
+             if (originalCandidate) {
+               // Revert candidate status to original
+               setCandidate(originalCandidate);
 
-                // Revert transition history to original
-                setTransitionHistory(originalTransitionHistory);
-              }
-              
-              // Show error toast for non-headcount errors
-              if (!suppressToast) {
-                toast.error(error?.message || 'Failed to update status.');
-              }
-            }
-          }
+               // Revert transition history to original
+               setTransitionHistory(originalTransitionHistory);
+             }
+             
+             // Show error toast
+             if (!suppressToast) {
+               toast.error(error?.message || 'Failed to update status.');
+             }
+           }
         }}
         onRefreshCandidateData={async (candidateId: string) => {
           // Refresh candidate data
@@ -818,31 +772,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
         preselectedStage={preselectedStage}
         comments={comments}
         onCommentsChange={handleCommentsChange}
-        onHeadcountConstraintError={(error: Error) => {
-          console.log('onHeadcountConstraintError callback triggered');
-          
-          // Get position title for the warning
-          const positionTitle = candidate?.positionId 
-            ? allDbPositions.find(p => p.id === candidate.positionId)?.title 
-            : undefined;
-          
-          // Set warning data first
-          setHeadcountWarningDataWithDebug({
-            candidateName: candidate?.name || 'Unknown Candidate',
-            positionTitle,
-            errorMessage: error.message.replace('Headcount constraint: ', '')
-          });
-          
-          // Add a small delay to ensure state is properly set before opening modal
-          setTimeout(() => {
-            console.log('FullCandidateDetail - Setting modal open after delay via callback');
-            console.log('FullCandidateDetail - Current headcountWarningData via callback:', headcountWarningData);
-            setIsHeadcountWarningModalOpen(true);
-            console.log('FullCandidateDetail - Modal state set to true via callback');
-          }, 100);
-          
-          console.log('Headcount warning modal state set to true via callback');
-        }}
+        
       />
  
       {isJobMatchEnabled && (

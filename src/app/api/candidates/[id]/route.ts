@@ -594,7 +594,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       paramIndex++;
     }
     if (status !== undefined) {
-      updateFields.push(`status = $${paramIndex}`);
+      updateFields.push(`"statusId" = $${paramIndex}`);
       updateValues.push(status);
       paramIndex++;
     }

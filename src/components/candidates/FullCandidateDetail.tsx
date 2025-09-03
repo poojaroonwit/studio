@@ -87,6 +87,13 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
     } else if (!isHeadcountWarningModalOpen && headcountWarningData) {
       console.log('FullCandidateDetail - WARNING: Modal closed but data still exists');
     }
+    
+    // Track when modal state is being set to false
+    if (!isHeadcountWarningModalOpen) {
+      console.log('FullCandidateDetail - Modal state set to false - checking if this was intentional');
+      // Add a stack trace to see where this is being called from
+      console.trace('Modal state set to false');
+    }
   }, [isHeadcountWarningModalOpen, headcountWarningData]);
   
   // Selection states
@@ -710,11 +717,13 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                 errorMessage: error.message.replace('Headcount constraint: ', '')
               });
               
-              // Add a small delay to ensure state is properly set before opening modal
-              setTimeout(() => {
-                console.log('FullCandidateDetail - Setting modal open after delay');
-                setIsHeadcountWarningModalOpen(true);
-              }, 100);
+                        // Add a small delay to ensure state is properly set before opening modal
+          setTimeout(() => {
+            console.log('FullCandidateDetail - Setting modal open after delay');
+            console.log('FullCandidateDetail - Current headcountWarningData:', headcountWarningData);
+            setIsHeadcountWarningModalOpen(true);
+            console.log('FullCandidateDetail - Modal state set to true');
+          }, 100);
               
               console.log('Headcount warning modal state set to true');
             }
@@ -759,7 +768,9 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
           // Add a small delay to ensure state is properly set before opening modal
           setTimeout(() => {
             console.log('FullCandidateDetail - Setting modal open after delay via callback');
+            console.log('FullCandidateDetail - Current headcountWarningData via callback:', headcountWarningData);
             setIsHeadcountWarningModalOpen(true);
+            console.log('FullCandidateDetail - Modal state set to true via callback');
           }, 100);
           
           console.log('Headcount warning modal state set to true via callback');
@@ -815,7 +826,13 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
           candidateName={headcountWarningData.candidateName}
           positionTitle={headcountWarningData.positionTitle}
           errorMessage={headcountWarningData.errorMessage}
-          candidate={candidate}
+          onProceed={() => {
+            console.log('HeadcountWarningModal - Proceed clicked, attempting to force hire');
+            // Here you could implement logic to force hire the candidate
+            // For now, just close the modal
+            setIsHeadcountWarningModalOpen(false);
+            setHeadcountWarningData(null);
+          }}
         />
       )}
  

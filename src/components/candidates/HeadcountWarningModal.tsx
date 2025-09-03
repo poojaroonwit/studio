@@ -48,102 +48,15 @@ export function HeadcountWarningModal({
     filled: parseInt(headcountMatch[3])
   } : null;
 
-  // Clean error message by removing headcount status info
-  const cleanErrorMessage = errorMessage.replace(/\s*\(Total: \d+, Vacant: \d+, Filled: \d+\)/, '');
-
-  // Determine the type of headcount constraint
-  const isNoPosition = cleanErrorMessage.includes('must be assigned to a position');
-  const isNoHeadcount = cleanErrorMessage.includes('no headcount defined');
-  const isHeadcountFull = cleanErrorMessage.includes('already filled');
-  const isValidationError = cleanErrorMessage.includes('Error validating headcount');
-  const isRaceCondition = cleanErrorMessage.includes('Headcount became unavailable');
-
-  const getSpecificGuidance = () => {
-    if (isNoPosition) {
-      return {
-        title: "Position Assignment Required",
-        description: "The candidate must be assigned to a position before they can be hired.",
-        solutions: [
-          "Assign the candidate to a specific position first",
-          "Contact the hiring manager to determine the correct position",
-          "Review the candidate's application for position preferences"
-        ]
-      };
-    } else if (isNoHeadcount) {
-      return {
-        title: "No Headcount Defined",
-        description: "This position has no headcount slots defined. Headcounts must be created before candidates can be hired.",
-        solutions: [
-          "Go to the position's Headcount tab to create headcount slots",
-          "Create at least one headcount with status 'vacant'",
-          "Contact HR to set up headcount allocation for this position",
-          "Headcount types can be: 'new', 'promote', or 'replace'"
-        ]
-      };
-    } else if (isHeadcountFull) {
-      return {
-        title: "All Headcounts Filled",
-        description: "All headcount slots for this position are already filled with other candidates.",
-        solutions: [
-          "Wait for a headcount to become available",
-          "Contact HR to increase headcount allocation",
-          "Consider moving the candidate to a different position",
-          "Check if any existing candidates can be moved to different roles"
-        ]
-      };
-    } else if (isRaceCondition) {
-      return {
-        title: "Headcount No Longer Available",
-        description: "The headcount was available when you started, but became unavailable during the update process. This usually happens when another user assigned a candidate to the same headcount.",
-        solutions: [
-          "Try the operation again - the headcount might be available now",
-          "Check if another user has recently hired a candidate for this position",
-          "Contact the hiring manager to see if headcount allocation has changed",
-          "Consider assigning the candidate to a different position with available headcount"
-        ]
-      };
-    } else if (isValidationError) {
-      return {
-        title: "Headcount Validation Error",
-        description: "There was an error validating the headcount availability.",
-        solutions: [
-          "Contact the system administrator to check headcount configuration",
-          "Verify that the position and headcount data are properly set up",
-          "Try the operation again after a few minutes",
-          "Check if there are any pending headcount changes"
-        ]
-      };
-    } else {
-      return {
-        title: "Headcount Constraint",
-        description: "The status update cannot be completed due to headcount limitations.",
-        solutions: [
-          "Check if there are available headcount slots for this position",
-          "Contact HR to increase headcount allocation",
-          "Consider moving the candidate to a different position",
-          "Review current hiring pipeline for this role"
-        ]
-      };
-    }
-  };
-
-  const guidance = getSpecificGuidance();
+  const isNoPosition = !positionTitle;
 
   // Prevent automatic closing by handling onOpenChange properly
   const handleOpenChange = (open: boolean) => {
     console.log('HeadcountWarningModal - handleOpenChange called with:', open);
-    
-    // Only allow closing if the user explicitly wants to close
     if (!open) {
       console.log('HeadcountWarningModal - User requested to close modal');
       onClose();
     }
-  };
-
-  // Prevent any automatic closing behavior
-  const handleClose = () => {
-    console.log('HeadcountWarningModal - handleClose called');
-    onClose();
   };
 
   return (
@@ -156,98 +69,86 @@ export function HeadcountWarningModal({
         className="sm:max-w-md"
         onEscapeKeyDown={(e) => {
           console.log('HeadcountWarningModal - Escape key pressed, preventing default');
-          // Prevent escape key from closing the modal automatically
           e.preventDefault();
         }}
         onOpenAutoFocus={(e) => {
           console.log('HeadcountWarningModal - Auto-focus event, preventing default');
-          // Prevent auto-focus issues
-          e.preventDefault();
-        }}
-        onInteractOutside={(e) => {
-          console.log('HeadcountWarningModal - Interact outside event, preventing default');
-          // Prevent clicking outside from closing the modal
           e.preventDefault();
         }}
         onPointerDownOutside={(e) => {
-          console.log('HeadcountWarningModal - Pointer down outside event, preventing default');
-          // Prevent pointer events outside from closing the modal
+          console.log('HeadcountWarningModal - Pointer down outside, preventing default');
+          e.preventDefault();
+        }}
+        onInteractOutside={(e) => {
+          console.log('HeadcountWarningModal - Interact outside, preventing default');
           e.preventDefault();
         }}
       >
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-destructive">
-            <AlertTriangle className="h-5 w-5" />
-            {guidance.title}
+          <DialogTitle className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-amber-500" />
+            Headcount Constraint Warning
           </DialogTitle>
-          <DialogDescription className="text-left">
-            The status update for <strong>{candidateName}</strong> cannot be completed.
+          <DialogDescription>
+            Cannot proceed with this action due to headcount limitations.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Position Information */}
-          {positionTitle && (
-            <div className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
-              <Building2 className="h-4 w-4 text-muted-foreground mt-0.5" />
-              <div className="text-sm">
-                <div className="font-medium">Position</div>
-                <div className="text-muted-foreground">{positionTitle}</div>
+          <div className="rounded-lg bg-amber-50 p-4 border border-amber-200">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-amber-800">
+                  {candidateName} cannot be hired for {positionTitle || 'this position'}
+                </p>
+                <p className="text-sm text-amber-700">
+                  {errorMessage}
+                </p>
               </div>
-            </div>
-          )}
-
-          {/* Error Details */}
-          <div className="flex items-start gap-3 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
-            <AlertCircle className="h-4 w-4 text-destructive mt-0.5" />
-            <div className="text-sm">
-              <div className="font-medium text-destructive">Issue</div>
-              <div className="text-muted-foreground">{cleanErrorMessage}</div>
             </div>
           </div>
 
-          {/* Headcount Status */}
           {headcountStatus && (
-            <div className="flex items-start gap-3 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-              <Users className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5" />
-              <div className="text-sm">
-                <div className="font-medium text-amber-600 dark:text-amber-400">Current Headcount Status</div>
-                <div className="text-muted-foreground mt-1">
-                  <div className="grid grid-cols-3 gap-4 text-xs">
-                    <div>
-                      <div className="font-medium">Total</div>
-                      <div className="text-amber-600 dark:text-amber-400">{headcountStatus.total}</div>
-                    </div>
-                    <div>
-                      <div className="font-medium">Vacant</div>
-                      <div className="text-green-600 dark:text-green-400">{headcountStatus.vacant}</div>
-                    </div>
-                    <div>
-                      <div className="font-medium">Filled</div>
-                      <div className="text-red-600 dark:text-red-400">{headcountStatus.filled}</div>
-                    </div>
-                  </div>
+            <div className="rounded-lg bg-gray-50 p-4 border border-gray-200">
+              <h4 className="text-sm font-medium text-gray-900 mb-2">Current Headcount Status</h4>
+              <div className="grid grid-cols-3 gap-4 text-center">
+                <div>
+                  <div className="text-lg font-semibold text-gray-900">{headcountStatus.total}</div>
+                  <div className="text-xs text-gray-500">Total</div>
+                </div>
+                <div>
+                  <div className="text-lg font-semibold text-green-600">{headcountStatus.vacant}</div>
+                  <div className="text-xs text-gray-500">Vacant</div>
+                </div>
+                <div>
+                  <div className="text-lg font-semibold text-red-600">{headcountStatus.filled}</div>
+                  <div className="text-xs text-gray-500">Filled</div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Specific Guidance */}
-          <div className="flex items-start gap-3 p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-            <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5" />
-            <div className="text-sm">
-              <div className="font-medium text-blue-600 dark:text-blue-400">Recommended Actions</div>
-              <ul className="text-muted-foreground mt-1 space-y-1">
-                {guidance.solutions.map((solution, index) => (
-                  <li key={index}>• {solution}</li>
-                ))}
-              </ul>
+          {isNoPosition && (
+            <div className="rounded-lg bg-blue-50 p-4 border border-blue-200">
+              <div className="flex items-start gap-3">
+                <Info className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-blue-800">No Position Assigned</p>
+                  <p className="text-sm text-blue-700">
+                    This candidate is not assigned to any position. Please assign a position first before attempting to hire.
+                  </p>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         <DialogFooter className="flex gap-2">
-          <Button variant="outline" onClick={handleClose}>
+          <Button variant="outline" onClick={() => {
+            console.log('HeadcountWarningModal - Close button clicked');
+            onClose();
+          }}>
             Close
           </Button>
           {onProceed && !isNoPosition && (

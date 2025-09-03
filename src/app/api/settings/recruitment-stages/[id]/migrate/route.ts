@@ -38,31 +38,34 @@ export async function POST(request: NextRequest) {
     const client = await getPool().connect();
     try {
         // Get the stage to be migrated
-        const stageResult = await client.query('SELECT name FROM "RecruitmentStage" WHERE id = $1', [id]);
+        const stageResult = await client.query('SELECT id, name FROM "RecruitmentStage" WHERE id = $1', [id]);
         if (stageResult.rowCount === 0) {
             return NextResponse.json({ message: "Recruitment stage not found" }, { status: 404 });
         }
         
+        const stageId = stageResult.rows[0].id;
         const stageName = stageResult.rows[0].name;
         
-        // Verify the replacement stage exists
-        const replacementStageResult = await client.query('SELECT name FROM "RecruitmentStage" WHERE name = $1', [replacementStageName]);
+        // Verify the replacement stage exists and get its ID
+        const replacementStageResult = await client.query('SELECT id, name FROM "RecruitmentStage" WHERE name = $1', [replacementStageName]);
         if (replacementStageResult.rowCount === 0) {
             return NextResponse.json({ message: `Replacement stage "${replacementStageName}" not found` }, { status: 404 });
         }
         
+        const replacementStageId = replacementStageResult.rows[0].id;
+        
         await client.query('BEGIN');
         
-        // Migrate candidates
+        // Migrate candidates using UUIDs
         const candidateResult = await client.query(
-            'UPDATE "Candidate" SET status = $1 WHERE status = $2 RETURNING id',
-            [replacementStageName, stageName]
+            'UPDATE "Candidate" SET "statusId" = $1 WHERE "statusId" = $2 RETURNING id',
+            [replacementStageId, stageId]
         );
         
-        // Migrate transition records
+        // Migrate transition records using UUIDs
         const transitionResult = await client.query(
             'UPDATE "TransitionRecord" SET stage = $1 WHERE stage = $2 RETURNING id',
-            [replacementStageName, stageName]
+            [replacementStageId, stageId]
         );
         
         const migratedCandidates = candidateResult.rowCount;

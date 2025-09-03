@@ -288,10 +288,13 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
     if (!session?.user) return;
     
     try {
+      // Filter out role field for profile updates to prevent permission issues
+      const { role, userGroupIds, ...profileData } = data;
+      
       const response = await fetch(`/api/users/${session.user.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(profileData),
       });
       
       if (!response.ok) {

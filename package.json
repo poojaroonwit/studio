@@ -54,7 +54,9 @@
     "fix:stages": "node scripts/fix-stage-mismatches.js",
     "fix:stages:dry-run": "node scripts/fix-stage-mismatches.js --dry-run",
     "fix:candidate-status": "node scripts/fix-candidate-status-uuid.js",
-    "fix:status-rename": "node scripts/update-components-to-statusId.js"
+    "fix:status-rename": "node scripts/update-components-to-statusId.js",
+    "migrations:skip-failed": "node scripts/skip-failed-migrations.js",
+    "migrations:skip-failed:dry-run": "node scripts/skip-failed-migrations.js --dry-run"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"

@@ -22,7 +22,7 @@ RUN npm cache clean --force && \
      npm install --no-audit --no-fund --legacy-peer-deps)
 
 # Copy source code
-COPY . .
+COPY . ./
 
 # Fix line endings for shell scripts (important for Windows development)
 RUN dos2unix ./entrypoint.sh ./entrypoint-processor.sh 2>/dev/null || true
@@ -43,8 +43,16 @@ RUN chmod +x ./entrypoint-processor.sh
 
 # Set environment variables
 ENV NODE_ENV=production
+# Migration handling environment variables
+ENV MIGRATION_FAILURE_ACTION=continue
+ENV SKIP_FAILED_MIGRATIONS=true
+ENV DB_PUSH_FALLBACK=true
 
 EXPOSE 8021
+
+# Health check to ensure the application is running
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8021/api/health || exit 1
 
 # Start the application using the entrypoint script
 CMD ["/bin/sh", "/app/entrypoint.sh"]

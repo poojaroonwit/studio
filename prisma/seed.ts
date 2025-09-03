@@ -197,11 +197,22 @@ console.log(`Password: ${adminPassword}`);
     const adminUser = await prisma.user.findUnique({ where: { email: adminEmail } });
     if (adminUser) {
       // Check if the user already has a group assignment
-      if (!adminUser.userGroupId) {
-        // Update the user to assign them to the Administrators group
-        await prisma.user.update({
-          where: { id: adminUser.id },
-          data: { userGroupId: adminGroup.id }
+      const existingAssignment = await prisma.userUserGroup.findUnique({
+        where: { 
+          userId_groupId: {
+            userId: adminUser.id,
+            groupId: adminGroup.id
+          }
+        }
+      });
+      
+      if (!existingAssignment) {
+        // Create the junction table entry to assign the user to the Administrators group
+        await prisma.userUserGroup.create({
+          data: {
+            userId: adminUser.id,
+            groupId: adminGroup.id
+          }
         });
         console.log('✅ Admin user assigned to Administrators group');
       } else {

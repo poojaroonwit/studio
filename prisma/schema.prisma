@@ -24,6 +24,8 @@ model User {
   azure_oid                  String?                     @unique
   personalColor              String?                     @default("#3B82F6") @map("personal_color")
   module_permissions         String[]                    @default([])
+  
+  // Relations
   accounts                   Account[]
   attachments                Attachment[]                @relation("UserAttachments")
   candidates                 Candidate[]                 @relation("RecruiterCandidates")
@@ -38,11 +40,6 @@ model User {
   warningConfigurations      WarningConfiguration[]      @relation("UserWarningConfiguration")
   warningConfigurationShares WarningConfigurationShare[]
   uploadQueue                UploadQueue[]               @relation("UserUploadQueue")
-
-  // Junction table relation for many-to-many with UserGroup
-  userGroups                 UserGroup[]                 @relation("UserUserGroup")
-  // Junction table relation for many-to-many with UserTeam
-  userTeams                  UserTeam[]                  @relation("UserUserTeam")
 
   @@index([email])
   @@index([role])
@@ -235,9 +232,6 @@ model UserGroup {
   isSystemRole Boolean  @default(false) @map("is_system_role")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-  
-  // Junction table relation for many-to-many with User
-  users        User[]   @relation("UserUserGroup")
 
   @@index([isDefault])
   @@index([isSystemRole])
@@ -251,9 +245,6 @@ model UserTeam {
   isActive    Boolean  @default(true) @map("is_active")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @default(now())
-  
-  // Junction table relation for many-to-many with User
-  users       User[]   @relation("UserUserTeam")
 
   @@index([isActive])
 }
@@ -729,20 +720,19 @@ model WarningSystemStatus {
   @@index([initialized])
 }
 
-model User_UserGroup {
-  userId  String @db.Uuid
-  groupId String @db.Uuid
+// Junction table models to match existing database structure
+model UserUserGroup {
+  userId    String   @db.Uuid
+  groupId   String   @db.Uuid
 
   @@id([userId, groupId])
-  @@index([groupId])
-  @@index([userId])
+  @@map("User_UserGroup")
 }
 
-model User_UserTeam {
-  userId String @db.Uuid
-  teamId String @db.Uuid
+model UserUserTeam {
+  userId  String   @db.Uuid
+  teamId  String   @db.Uuid
 
   @@id([userId, teamId])
-  @@index([teamId])
-  @@index([userId])
+  @@map("User_UserTeam")
 }

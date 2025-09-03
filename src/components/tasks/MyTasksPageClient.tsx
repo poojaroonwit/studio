@@ -272,7 +272,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       try {
         const [stagesRes, recruitersRes, positionsRes] = await Promise.all([
           fetch('/api/recruitment-stages'),
-          fetch('/api/users?role=Recruiter'),
+          fetch('/api/users?role=Recruiters'),
           fetch('/api/positions'),
         ]);
         const stagesData = await stagesRes.json();

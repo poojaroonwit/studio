@@ -262,7 +262,7 @@ export const useCandidateDetail = (candidateId: string) => {
 
   const fetchRecruiters = useCallback(async () => {
     try {
-      const res = await fetch('/api/users?role=Recruiter', {
+      const res = await fetch('/api/users?role=Recruiters', {
         headers: { 'Cache-Control': 'no-cache' },
         credentials: 'include' // Include session cookies
       });

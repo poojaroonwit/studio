@@ -652,7 +652,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     console.log(`Executing update query: ${updateQuery}`);
     console.log(`Update values:`, updateValues);
   
+    console.log('About to execute update query with values:', updateValues);
     const updateResult = await client.query(updateQuery, updateValues);
+    console.log('Update query executed successfully, rows affected:', updateResult.rows.length);
     
     if (updateResult.rows.length === 0) {
       throw new Error('Failed to update candidate - no rows returned');
@@ -931,6 +933,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       headcountAssignmentResult = null;
     }
 
+    console.log('About to commit transaction...');
     await client.query('COMMIT');
     console.log('Database transaction committed successfully');
     try {
@@ -1058,8 +1061,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       constraint: error.constraint,
       detail: error.detail,
       hint: error.hint,
-      where: error.where
+      where: error.where,
+      message: error.message,
+      stack: error.stack
     });
+    console.error('Request body that caused the error:', JSON.stringify(body, null, 2));
     try {
       await logAudit('ERROR', `Failed to update candidate. Error: ${error.message}`, 'API:Candidates:Update', actingUserId, { candidateId: id, input: body });
     } catch (auditError) {

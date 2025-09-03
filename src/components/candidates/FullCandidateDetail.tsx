@@ -703,15 +703,18 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                 ? allDbPositions.find(p => p.id === candidate.positionId)?.title 
                 : undefined;
               
-              // Set warning data and show modal
+              // Set warning data first
               setHeadcountWarningData({
                 candidateName: candidate?.name || 'Unknown Candidate',
                 positionTitle,
                 errorMessage: error.message.replace('Headcount constraint: ', '')
               });
               
-              // Ensure modal stays open
-              setIsHeadcountWarningModalOpen(true);
+              // Add a small delay to ensure state is properly set before opening modal
+              setTimeout(() => {
+                console.log('FullCandidateDetail - Setting modal open after delay');
+                setIsHeadcountWarningModalOpen(true);
+              }, 100);
               
               console.log('Headcount warning modal state set to true');
             }
@@ -725,9 +728,10 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
               setTransitionHistory(originalTransitionHistory);
             }
             
-            if (!suppressToast && !error.message?.includes('Headcount constraint:')) {
-              toast.error(error?.message || 'Failed to update status.');
-            }
+                         // Don't show toast for headcount constraint errors - the warning modal handles this
+             if (!suppressToast && !error.message?.includes('Headcount constraint:')) {
+               toast.error(error?.message || 'Failed to update status.');
+             }
           }
         }}
         onRefreshCandidateData={async (candidateId: string) => {
@@ -745,15 +749,18 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
             ? allDbPositions.find(p => p.id === candidate.positionId)?.title 
             : undefined;
           
-          // Set warning data and show modal
+          // Set warning data first
           setHeadcountWarningData({
             candidateName: candidate?.name || 'Unknown Candidate',
             positionTitle,
             errorMessage: error.message.replace('Headcount constraint: ', '')
           });
           
-          // Ensure modal stays open
-          setIsHeadcountWarningModalOpen(true);
+          // Add a small delay to ensure state is properly set before opening modal
+          setTimeout(() => {
+            console.log('FullCandidateDetail - Setting modal open after delay via callback');
+            setIsHeadcountWarningModalOpen(true);
+          }, 100);
           
           console.log('Headcount warning modal state set to true via callback');
         }}

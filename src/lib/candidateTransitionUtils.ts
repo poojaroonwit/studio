@@ -50,7 +50,8 @@ export async function updateCandidatesStatusBulk(candidateIds: string[], status:
     return result;
   } catch (error: any) {
     console.error('Error in updateCandidatesStatusBulk:', error);
-    if (!suppressToast) {
+    // Don't show toast for headcount constraint errors - they should be handled by warning modals
+    if (!suppressToast && !error.message?.includes('Headcount constraint:')) {
       toast.error(error.message || 'Failed to update candidate(s).');
     }
     throw error;

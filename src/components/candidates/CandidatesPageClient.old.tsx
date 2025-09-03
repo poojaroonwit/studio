@@ -502,7 +502,7 @@ export function CandidatesPageClient({
     const retryDelay = 1000 * (retryCount + 1); // Exponential backoff: 1s, 2s, 3s
     
     try {
-      const response = await fetch('/api/users?role=Recruiter');
+      const response = await fetch('/api/users?role=Recruiters');
       if (!response.ok) {
           const errorData = await response.json().catch(() => ({})); // Default to empty object on JSON parse fail
           console.error("API error fetching recruiters:", errorData); // Log the object we got

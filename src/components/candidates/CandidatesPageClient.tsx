@@ -388,9 +388,9 @@ export function CandidatesPageClient({
         }
         
         if (rejectedCount > 0) {
-          // Show detailed error for headcount constraints
-          const firstRejected = result.rejectedCandidates[0];
-          toast.error(`Headcount constraint: ${firstRejected.message} (${rejectedCount} candidate(s) failed)`, { duration: 8000 });
+          // Don't show toast for headcount constraints - they should be handled by warning modals
+          // The error details will be shown in the UI through other means
+          console.log(`${rejectedCount} candidate(s) failed due to headcount constraints:`, result.rejectedCandidates);
         }
       } else {
         toast.success(`${result.updatedCount || candidateIds.length} candidate(s) status updated to ${newStatus}`);

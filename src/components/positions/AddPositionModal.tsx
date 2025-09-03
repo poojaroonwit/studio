@@ -130,7 +130,7 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
 
       const fetchRecruiters = async () => {
         try {
-          const response = await fetch('/api/users?role=Recruiter');
+          const response = await fetch('/api/users?role=Recruiters');
           if (response.ok) {
             const data = await response.json();
             const recruitersArray = data?.users || [];

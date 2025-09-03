@@ -2,18 +2,11 @@ import React, { Suspense } from 'react';
 import { Inter } from 'next/font/google';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { AppLayout } from '@/components/layout/AppLayout';
-import { SessionProvider } from 'next-auth/react';
-import { RamdaPolyfillInitializer } from '@/components/ui/RamdaPolyfillInitializer';
+import { ClientProviders } from '@/components/providers/ClientProviders';
 import { initializeServices } from '@/lib/startup';
 import './globals.css';
-import { LoadingProvider } from '@/contexts/LoadingContext';
-import { NotificationProvider } from '@/contexts/NotificationContext';
-import { WarningProvider } from '@/contexts/WarningContext';
-import { GlobalSettingsProvider } from '@/contexts/GlobalSettingsContext';
 import { FontLoader } from '@/components/ui/FontLoader';
 import { FontPreloader } from '@/components/ui/FontPreloader';
-import ToastClient from '@/components/ui/ToastClient';
 import { ResizeObserverInitializer } from '@/components/ui/ResizeObserverInitializer';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 
@@ -75,7 +68,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&display=swap" crossOrigin="anonymous" />
         <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&display=swap" crossOrigin="anonymous" />
-        <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&display=swap" crossOrigin="anonymous" />
+        <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:ital,wght@0,500;0,600;0,700;1,400;1,500;1,600;1,700&display=swap" crossOrigin="anonymous" />
         {/* Ramda polyfill is now handled by RamdaPolyfillInitializer component */}
       </head>
       <body>
@@ -83,19 +76,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <ResizeObserverInitializer />
           <FontPreloader />
           <FontLoader>
-            <SessionProvider session={session}>
-              <LoadingProvider>
-                <NotificationProvider>
-                  <WarningProvider>
-                    <GlobalSettingsProvider>
-                      <RamdaPolyfillInitializer />
-                      <AppLayout>{children}</AppLayout>
-                      <ToastClient />
-                    </GlobalSettingsProvider>
-                  </WarningProvider>
-                </NotificationProvider>
-              </LoadingProvider>
-            </SessionProvider>
+            <ClientProviders session={session}>
+              {children}
+            </ClientProviders>
           </FontLoader>
         </ErrorBoundary>
       </body>

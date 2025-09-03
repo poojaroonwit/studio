@@ -187,7 +187,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     }
     
     const existingCandidate = existingResult.rows[0];
-    const oldStatus = existingCandidate.status;
+    const oldStatus = existingCandidate.statusId;
     const existingParsedData = existingCandidate.parsedData || {};
     
     // Build dynamic update query based on provided fields
@@ -234,7 +234,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     }
     
     if (updateData.status !== undefined) {
-      updateFields.push(`status = $${paramIndex++}`);
+      updateFields.push(`"statusId" = $${paramIndex++}`);
       updateValues.push(updateData.status);
     }
     
@@ -415,7 +415,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
               id: uuidv4(),
               candidateId: id,
               positionId: newPositionId,
-              stage: updatedCandidate.status || 'Applied',
+              stage: 'Applied', // Use default stage since we don't have the actual stage name
               notes: `Recruiter auto-assigned from position: ${position.recruiter.name}`,
               actingUserId: user.id,
               date: new Date(),

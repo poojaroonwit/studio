@@ -106,9 +106,10 @@ export function useRealtimeCollaboration(options: RealtimeCollaborationOptions =
         }
         
         // Show notification (but not for user's own actions)
-        if (updatedCandidate.status && (!eventData.actingUserId || eventData.actingUserId !== session?.user?.id)) {
+        if ((updatedCandidate.status || updatedCandidate.statusName || updatedCandidate.currentStage) && (!eventData.actingUserId || eventData.actingUserId !== session?.user?.id)) {
           // Fetch stage name for display
-          getRecruitmentStageNameClient(updatedCandidate.status)
+          const statusToCheck = updatedCandidate.status || updatedCandidate.statusName || updatedCandidate.currentStage;
+          getRecruitmentStageNameClient(statusToCheck)
             .then(stageName => {
               showNotification(`Candidate ${updatedCandidate.name} moved to ${stageName}`, '🔄');
             })

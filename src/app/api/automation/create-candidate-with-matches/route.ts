@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Resolve status to a valid stage ID (default to 'Applied' if not provided)
-    let resolvedStatusId: string | null = candidate.status || null;
+    let resolvedStatusId: string | null = candidate.statusId || null;
     if (!resolvedStatusId) {
       const appliedStageRes = await client.query(
         'SELECT id FROM "RecruitmentStage" WHERE LOWER(name) = $1 LIMIT 1',
@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
     }
 
     const insertCandidateQuery = `
-      INSERT INTO "Candidate" (id, name, email, phone, status, "avatarUrl", "positionId", "recruiterId", "parsedData", "fitScore", "dataAiHint", "applicationDate", "createdAt", "updatedAt")
+      INSERT INTO "Candidate" (id, name, email, phone, "statusId", "avatarUrl", "positionId", "recruiterId", "parsedData", "fitScore", "dataAiHint", "applicationDate", "createdAt", "updatedAt")
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())
       RETURNING *;
     `;

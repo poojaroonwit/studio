@@ -175,7 +175,7 @@ export async function POST(req: NextRequest) {
         }
 
         const insertQuery = `
-          INSERT INTO "Candidate" (id, name, email, phone, status, "positionId", "recruiterId", "fitScore", "customAttributes", "parsedData", "resumePath", "applicationDate")
+          INSERT INTO "Candidate" (id, name, email, phone, "statusId", "positionId", "recruiterId", "fitScore", "customAttributes", "parsedData", "resumePath", "applicationDate")
           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
         `;
         await client.query(insertQuery, [

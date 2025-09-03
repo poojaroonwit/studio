@@ -361,7 +361,7 @@ export async function POST(request: NextRequest) {
         name: finalCandidate.name,
         email: finalCandidate.email,
         phone: finalCandidate.phone,
-        status: finalCandidate.status,
+        status: 'Applied', // Use default status since we don't have the actual status name
         parsedData: finalCandidate.parsedData,
         applicationDate: finalCandidate.applicationDate ? new Date(finalCandidate.applicationDate as any).toISOString() : new Date().toISOString(),
         createdAt: finalCandidate.createdAt ? new Date(finalCandidate.createdAt as any).toISOString() : new Date().toISOString(),
@@ -449,7 +449,7 @@ export async function GET(request: NextRequest) {
         sourceId: candidate.sourceId,
         subSource: candidate.subSource,
         fitScore: normalizeFitScore(candidate.fitScore),
-        status: candidate.statusName || candidate.status,
+        status: candidate.statusName || 'Applied',
         applicationDate: candidate.applicationDate,
         createdAt: candidate.createdAt,
         updatedAt: candidate.updatedAt,

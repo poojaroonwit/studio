@@ -6,7 +6,7 @@ import type { UnifiedEventType } from './unified-connection-manager';
 
 // Candidate-related broadcasts
 export function broadcastCandidateUpdate(candidate: any, actingUserId?: string) {
-  console.log('[Broadcaster] Broadcasting candidate update:', candidate.id, 'status:', candidate.status, 'actingUserId:', actingUserId);
+      console.log('[Broadcaster] Broadcasting candidate update:', candidate.id, 'statusId:', candidate.statusId, 'actingUserId:', actingUserId);
   broadcastToAll('candidate_update', {
     candidate,
     actingUserId,

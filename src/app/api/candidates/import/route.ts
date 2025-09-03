@@ -238,7 +238,7 @@ export async function POST(request: NextRequest) {
               candidate.positionId || null,
               candidate.recruiterId || null,
               fitScore,
-              candidate.status,
+              candidate.statusId || 'Applied', // Use statusId if provided, otherwise default to 'Applied'
               applicationDate || new Date(),
               parsedData,
               customAttributes || {},
@@ -256,7 +256,7 @@ export async function POST(request: NextRequest) {
             const insertQuery = `
               INSERT INTO "Candidate" (
                 id, name, email, phone, "positionId", "recruiterId", 
-                "fitScore", status, "applicationDate", "parsedData", 
+                "fitScore", "statusId", "applicationDate", "parsedData", 
                 "customAttributes", "createdAt", "updatedAt"
               )
               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())
@@ -270,7 +270,7 @@ export async function POST(request: NextRequest) {
               candidate.positionId || null,
               candidate.recruiterId || null,
               fitScore,
-              candidate.status,
+              candidate.statusId || 'Applied', // Use statusId if provided, otherwise default to 'Applied'
               applicationDate || new Date(),
               parsedData,
               customAttributes || {}

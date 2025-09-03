@@ -415,7 +415,7 @@ export const useCandidateDetail = (candidateId: string) => {
         positionId: candidate.positionId || null,
         recruiterId: candidate.recruiterId || null,
         fitScore: normalizedFitScore,
-        status: candidate.status || '',
+        status: candidate.status || candidate.statusName || candidate.currentStage || '',
         assignmentJustification: candidate.assignmentJustification
           ? (Array.isArray(candidate.assignmentJustification)
             ? candidate.assignmentJustification

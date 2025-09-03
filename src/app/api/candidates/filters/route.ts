@@ -70,11 +70,12 @@ export async function GET(request: NextRequest) {
       // Get basic candidate counts for filter badges
       const candidateCountsResult = await client.query(`
         SELECT 
-          status,
+          rs.name as status,
           COUNT(*) as count
-        FROM "Candidate" 
-        GROUP BY status
-        ORDER BY status ASC
+        FROM "Candidate" c
+        LEFT JOIN "RecruitmentStage" rs ON c."statusId" = rs.id
+        GROUP BY rs.name
+        ORDER BY rs.name ASC
       `);
 
       const responseTime = Date.now() - startTime;

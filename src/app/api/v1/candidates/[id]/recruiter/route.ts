@@ -123,9 +123,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW(), NOW());
     `;
     
-    const positionResult = await client.query('SELECT "positionId", status FROM "Candidate" WHERE id = $1', [id]);
+    const positionResult = await client.query('SELECT "positionId", "statusId" FROM "Candidate" WHERE id = $1', [id]);
     const positionId = positionResult.rows[0]?.positionId;
-    const status = positionResult.rows[0]?.status || 'Applied';
+    const status = 'Applied'; // Use default status since we don't have the actual status name
     
     let notes = '';
     if (recruiterId && oldRecruiterId !== recruiterId) {
@@ -224,9 +224,9 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     await client.query(updateQuery, [id]);
     
     // Create transition record
-    const positionResult = await client.query('SELECT "positionId", status FROM "Candidate" WHERE id = $1', [id]);
+    const positionResult = await client.query('SELECT "positionId", "statusId" FROM "Candidate" WHERE id = $1', [id]);
     const positionId = positionResult.rows[0]?.positionId;
-    const status = positionResult.rows[0]?.status || 'Applied';
+    const status = 'Applied'; // Use default status since we don't have the actual status name
     
     const transitionQuery = `
       INSERT INTO "TransitionRecord" (id, "candidateId", "positionId", stage, notes, "actingUserId", date, "createdAt", "updatedAt")

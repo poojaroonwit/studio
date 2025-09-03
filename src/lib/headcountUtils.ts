@@ -524,7 +524,7 @@ export async function checkHeadcountUnassignWarning(headcountId: string) {
 
     // Check if candidate status is "Hired" and this is their only headcount assignment
     const hiredStageId = await getRecruitmentStageByName('Hired');
-    if (hiredStageId && headcount.candidate.status === hiredStageId) {
+    if (hiredStageId && headcount.candidate.statusId === hiredStageId) {
       const candidateHeadcounts = await prisma.headcount.findMany({
         where: {
           candidateId: headcount.candidate.id,
@@ -700,7 +700,7 @@ export async function unassignCandidateFromHeadcount(
 
     const candidateId = headcount.candidate.id;
     const hiredStageId = await getRecruitmentStageByName('Hired');
-    const wasHired = hiredStageId && headcount.candidate.status === hiredStageId;
+    const wasHired = hiredStageId && headcount.candidate.statusId === hiredStageId;
 
     // Update the headcount to remove candidate assignment
     await prisma.headcount.update({

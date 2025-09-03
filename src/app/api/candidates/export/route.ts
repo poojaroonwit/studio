@@ -129,7 +129,7 @@ function transformCandidateForExport(candidate: any, isJobMatchEnabled: boolean)
     'Recruiter ID': candidate.recruiterId || '',
     'Recruiter Name': candidate.recruiter_name || '',
     'Fit Score (0-100)': candidate.fitScore ? Math.round((candidate.fitScore * 100)).toString() : '',
-    'Status*': candidate.status_name || candidate.status || '',
+    'Status*': candidate.status_name || 'Unknown',
     'Application Date': formatDateForExport(candidate.applicationDate),
     'Applied Job': candidate.position_title || '',
     'Applied Job Justification': formatAssignmentJustification(candidate.assignmentJustification),

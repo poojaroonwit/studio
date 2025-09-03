@@ -468,8 +468,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     const existingCandidate = existingResult.rows[0];
-    console.log(`Candidate found - name: ${existingCandidate.name}, current status: ${existingCandidate.status}`);
-    const oldStatus = existingCandidate.status;
+    console.log(`Candidate found - name: ${existingCandidate.name}, current statusId: ${existingCandidate.statusId}`);
+    const oldStatus = existingCandidate.statusId;
     const oldRecruiterId = existingCandidate.recruiterId;
     const oldPositionId = existingCandidate.positionId;
 
@@ -860,7 +860,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       `;
       try {
         await client.query(insertTransitionQuery, [
-          newTransitionId, id, safePositionId, status ?? existingCandidate.status, transitionMessage, actingUserId
+          newTransitionId, id, safePositionId, 'Applied', transitionMessage, actingUserId
         ]);
         // Broadcast the new transition
         const getTransitionQuery = 'SELECT * FROM "TransitionRecord" WHERE id = $1';
@@ -909,7 +909,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     await client.query('COMMIT');
     console.log('Database transaction committed successfully');
     try {
-      await logAudit('AUDIT', `Candidate '${existingCandidate.name}' updated by ${actingUserName}.`, 'API:Candidates:Update', actingUserId, { candidateId: id, oldStatus, newStatus: status ?? existingCandidate.status });
+      await logAudit('AUDIT', `Candidate '${existingCandidate.name}' updated by ${actingUserName}.`, 'API:Candidates:Update', actingUserId, { candidateId: id, oldStatus, newStatus: status ?? 'Applied' });
     } catch (auditError) {
       console.error('Failed to log audit entry:', auditError);
       // Don't fail the request if audit logging fails

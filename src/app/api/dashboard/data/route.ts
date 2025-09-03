@@ -34,13 +34,13 @@ export async function GET(request: NextRequest) {
         SELECT 
           'candidate' as type,
           c.id,
-          c.first_name || ' ' || c.last_name as name,
-          c.created_at as timestamp,
+          c.name,
+          c."createdAt" as timestamp,
           p.title as position_title
         FROM "Candidate" c
-        LEFT JOIN "Position" p ON c.position_id = p.id
-        WHERE c.created_at >= NOW() - INTERVAL '24 hours'
-        ORDER BY c.created_at DESC
+        LEFT JOIN "Position" p ON c."positionId" = p.id
+        WHERE c."createdAt" >= NOW() - INTERVAL '24 hours'
+        ORDER BY c."createdAt" DESC
         LIMIT 10
       `);
       

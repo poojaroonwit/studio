@@ -176,7 +176,7 @@ export async function POST(request: NextRequest) {
   try {
     await client.query('BEGIN');
     const insertCandidateQuery = `
-      INSERT INTO "Candidate" (id, name, email, phone, "positionId", "fitScore", status, "parsedData", "applicationDate", "sourceId", "subSource", "updatedAt")
+      INSERT INTO "Candidate" (id, name, email, phone, "positionId", "fitScore", "statusId", "parsedData", "applicationDate", "sourceId", "subSource", "updatedAt")
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
       RETURNING *;
     `;
@@ -191,7 +191,7 @@ export async function POST(request: NextRequest) {
       VALUES ($1, $2, $3, $4, $5, NOW(), NOW(), NOW());
     `;
     await client.query(insertTransitionQuery, [
-      uuidv4(), newCandidateId, status, 'Initial creation', actingUserId
+      uuidv4(), newCandidateId, 'Applied', 'Initial creation', actingUserId
     ]);
     await client.query('COMMIT');
     await logAudit('AUDIT', `New candidate '${name}' created by ${actingUserName}.`, 'API:Candidates:Create', actingUserId, { candidateId: newCandidateId });

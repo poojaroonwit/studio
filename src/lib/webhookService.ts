@@ -213,7 +213,7 @@ export class WebhookService {
         id: candidate.id,
         name: candidate.name,
         email: candidate.email,
-        status: candidate.status,
+        status: candidate.status || candidate.statusName || 'Unknown',
         position_id: candidate.positionId,
         application_date: candidate.applicationDate,
         createdAt: candidate.createdAt,

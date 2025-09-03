@@ -285,7 +285,7 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ message: 'Error validating status' }, { status: 500 });
         }
 
-        const oldStatusesResult = await client.query('SELECT id, status, "positionId" FROM "Candidate" WHERE id = ANY($1::uuid[])', [candidateIds]);
+        const oldStatusesResult = await client.query('SELECT id, "statusId", "positionId" FROM "Candidate" WHERE id = ANY($1::uuid[])', [candidateIds]);
         const oldStatuses = oldStatusesResult.rows;
         
         // Get the stage name for comparison
@@ -299,7 +299,7 @@ export async function POST(request: NextRequest) {
         
         if (stageName === 'Hired') {
           for (const candidate of oldStatuses) {
-            if (candidate.status !== newStatus && candidate.positionId) {
+            if (candidate.statusId !== newStatus && candidate.positionId) {
               try {
                 // OPTIMIZED: Use inline validation with same connection
                 const validation = await validateCandidateHiringStatusWithClient(client, candidate.id, candidate.positionId);
@@ -326,7 +326,7 @@ export async function POST(request: NextRequest) {
                   message: 'Error validating headcount availability'
                 });
               }
-            } else if (candidate.status !== newStatus) {
+            } else if (candidate.statusId !== newStatus) {
               // Candidate has no position, cannot be hired
               candidatesToReject.push({
                 candidateId: candidate.id,
@@ -347,13 +347,13 @@ export async function POST(request: NextRequest) {
         if (candidatesToUpdate.length > 0) {
           const candidateIdsToUpdate = candidatesToUpdate.map(c => c.id);
           const updateStatusResult = await client.query(
-            'UPDATE "Candidate" SET status = $1, "updatedAt" = NOW() WHERE id = ANY($2::uuid[]) RETURNING id',
+            'UPDATE "Candidate" SET "statusId" = $1, "updatedAt" = NOW() WHERE id = ANY($2::uuid[]) RETURNING id',
             [newStatus, candidateIdsToUpdate]
           );
 
           // Create transition records and handle headcount assignments for status changes
           for (const candidate of candidatesToUpdate) {
-            if (candidate.status !== newStatus) {
+            if (candidate.statusId !== newStatus) {
               const newTransitionId = uuidv4();
               await client.query(
                 'INSERT INTO "TransitionRecord" (id, "candidateId", stage, notes, "actingUserId", date, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, NOW(), NOW(), NOW())',
@@ -440,7 +440,7 @@ export async function POST(request: NextRequest) {
 
         // Get current recruiter assignments for transition records
         const currentRecruiterResult = await client.query(
-          'SELECT id, "recruiterId", "positionId", status FROM "Candidate" WHERE id = ANY($1::uuid[])',
+          'SELECT id, "recruiterId", "positionId", "statusId" FROM "Candidate" WHERE id = ANY($1::uuid[])',
           [candidateIds]
         );
         const currentRecruiters = currentRecruiterResult.rows;
@@ -465,7 +465,7 @@ export async function POST(request: NextRequest) {
               newTransitionId,
               candidate.id,
               candidate.positionId,
-              candidate.status || 'Applied',
+              'Applied', // Use default status since we don't have the actual status name
               transitionMessage,
               actingUserId
             ]);

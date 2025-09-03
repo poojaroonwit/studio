@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
           await logAudit('ERROR', `Bulk update_status failed (missing status) by ${user.name}.`, 'API:V1:Candidates:BulkAction', user.id, { candidateIds });
           return new Response(JSON.stringify({ error: 'Status is required for update_status action' }), { status: 400, headers: handleCors(req) });
         }
-        updateQuery = 'UPDATE "Candidate" SET status = $1 WHERE id = ANY($2)';
+        updateQuery = 'UPDATE "Candidate" SET "statusId" = $1 WHERE id = ANY($2)';
         queryParams = [data.status, candidateIds];
         break;
 

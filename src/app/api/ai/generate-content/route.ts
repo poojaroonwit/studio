@@ -222,7 +222,7 @@ export async function POST(request: NextRequest) {
         name: candidate.name,
         email: candidate.email,
         phone: candidate.phone,
-        status: candidate.status,
+        status: candidate.currentStage || 'Unknown',
         applicationDate: candidate.applicationDate,
         fitScore: candidate.fitScore,
         dataAiHint: candidate.dataAiHint,

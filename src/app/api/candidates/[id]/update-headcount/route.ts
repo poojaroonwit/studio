@@ -136,7 +136,7 @@ export async function POST(
 
     // Get the current candidate's stage name for comparison
     const currentStage = await prisma.recruitmentStage.findUnique({
-      where: { id: candidate.status },
+      where: { id: candidate.statusId },
       select: { name: true },
     });
     const currentStageName = currentStage?.name;

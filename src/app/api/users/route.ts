@@ -61,6 +61,7 @@ const createUserSchema = z.object({
   role: userRoleEnum,
   // modulePermissions removed - permissions come from UserGroup based on role
   userTeamIds: z.array(z.string().uuid()).optional().default([]),
+  userGroupIds: z.array(z.string().uuid()).optional().default([]),
   authenticationMethod: z.enum(['basic', 'azure']).optional().default('basic'),
   forcePasswordChange: z.boolean().optional().default(false),
   personalColor: z.string().optional().default('#3B82F6'),
@@ -236,7 +237,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-     const { name, email, password, role, userTeamIds, authenticationMethod, forcePasswordChange, personalColor } = validationResult.data;
+     const { name, email, password, role, userTeamIds, userGroupIds, authenticationMethod, forcePasswordChange, personalColor } = validationResult.data;
    
    // Note: modulePermissions are now handled through UserGroup assignment
    // The role determines which UserGroup the user gets, and the UserGroup contains the permissions
@@ -264,26 +265,49 @@ export async function POST(request: NextRequest) {
     const defaultAvatarUrl = `https://placehold.co/100x100.png?text=${name?.charAt(0)?.toUpperCase() || 'U'}`;
     const defaultDataAiHint = "profile person";
 
-    // Define role to group ID mappings
-    const roleToGroupId = {
-      'Admin': '00000000-0000-0000-0000-000000000001',
-      'Recruiter': '00000000-0000-0000-0000-000000000002',
-      'Hiring Manager': '00000000-0000-0000-0000-000000000003'
-    };
-
-    // Verify that the target user group exists before creating the user
-    if (roleToGroupId[role]) {
+    // Use provided userGroupIds or fall back to role-based mapping
+    let targetUserGroupId = null;
+    
+    if (userGroupIds && userGroupIds.length > 0) {
+      // Use the first selected user group
+      targetUserGroupId = userGroupIds[0];
+      
+      // Verify that the target user group exists
       const groupExists = await prisma.userGroup.findUnique({
-        where: { id: roleToGroupId[role] }
+        where: { id: targetUserGroupId }
       });
       
       if (!groupExists) {
-        console.error(`User group with ID ${roleToGroupId[role]} for role ${role} does not exist`);
-        await logAudit('ERROR', `Failed to create user ${email} - User group for role ${role} does not exist.`, 'API:Users:Create', session.user.id);
+        console.error(`User group with ID ${targetUserGroupId} does not exist`);
+        await logAudit('ERROR', `Failed to create user ${email} - User group with ID ${targetUserGroupId} does not exist.`, 'API:Users:Create', session.user.id);
         return NextResponse.json({ 
-          message: `User group for role '${role}' does not exist. Please contact your system administrator.`,
+          message: `Selected user group does not exist. Please contact your system administrator.`,
           error: "Missing user group"
         }, { status: 500 });
+      }
+    } else {
+      // Fall back to role-based mapping for backward compatibility
+      const roleToGroupId = {
+        'Admin': '00000000-0000-0000-0000-000000000001',
+        'Recruiter': '00000000-0000-0000-0000-000000000002',
+        'Hiring Manager': '00000000-0000-0000-0000-000000000003'
+      };
+      
+      targetUserGroupId = roleToGroupId[role] || null;
+      
+      if (targetUserGroupId) {
+        const groupExists = await prisma.userGroup.findUnique({
+          where: { id: targetUserGroupId }
+        });
+        
+        if (!groupExists) {
+          console.error(`User group with ID ${targetUserGroupId} for role ${role} does not exist`);
+          await logAudit('ERROR', `Failed to create user ${email} - User group for role ${role} does not exist.`, 'API:Users:Create', session.user.id);
+          return NextResponse.json({ 
+            message: `User group for role '${role}' does not exist. Please contact your system administrator.`,
+            error: "Missing user group"
+          }, { status: 500 });
+        }
       }
     }
 
@@ -299,8 +323,8 @@ export async function POST(request: NextRequest) {
          authenticationMethod,
          forcePasswordChange,
          personalColor,
-         // Assign user to the appropriate group based on role
-         userGroupId: roleToGroupId[role] || null,
+         // Assign user to the appropriate group based on userGroupIds or role
+         userGroupId: targetUserGroupId,
          // Temporarily comment out team assignment to isolate the issue
          // userTeamId: userTeamIds && userTeamIds.length > 0 ? userTeamIds[0] : null
        },

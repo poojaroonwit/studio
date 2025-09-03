@@ -287,6 +287,7 @@ export class EnhancedSSEManager {
           // Always try to parse and notify listeners
           try {
             const data = JSON.parse(event.data);
+            console.log(`[Enhanced SSE Manager] ${endpoint.name} parsed message:`, data);
             this.notifyEventListeners(data);
           } catch (error) {
             // Ignore parsing errors for non-JSON messages

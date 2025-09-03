@@ -150,6 +150,35 @@ export async function PUT(
       // Don't fail the headcount update if auto-close fails
     }
 
+    // Broadcast real-time updates for headcount changes
+    try {
+      const { broadcastPositionListUpdated, broadcastPositionStatisticsUpdated } = await import('@/lib/simple-broadcaster');
+      
+      // Broadcast position list update (includes headcount changes)
+      broadcastPositionListUpdated();
+      
+      // Broadcast updated statistics
+      const statsQuery = `
+        SELECT 
+          COUNT(*) as total,
+          COUNT(CASE WHEN "isOpen" = TRUE THEN 1 END) as open,
+          COUNT(CASE WHEN "isOpen" = FALSE THEN 1 END) as closed
+        FROM "Position"
+      `;
+      const { getPool } = await import('@/lib/db');
+      const statsResult = await getPool().query(statsQuery);
+      const stats = statsResult.rows[0];
+      const statistics = { 
+        total: parseInt(stats.total, 10), 
+        open: parseInt(stats.open, 10), 
+        closed: parseInt(stats.closed, 10) 
+      };
+      broadcastPositionStatisticsUpdated(statistics);
+    } catch (broadcastError) {
+      console.error('Failed to broadcast real-time updates:', broadcastError);
+      // Don't fail the request if broadcasting fails
+    }
+
     return NextResponse.json({ 
       headcount,
       autoCloseResult,
@@ -199,6 +228,35 @@ export async function DELETE(
     } catch (autoCloseError) {
       console.error('Error auto-closing position:', autoCloseError);
       // Don't fail the headcount deletion if auto-close fails
+    }
+
+    // Broadcast real-time updates for headcount changes
+    try {
+      const { broadcastPositionListUpdated, broadcastPositionStatisticsUpdated } = await import('@/lib/simple-broadcaster');
+      
+      // Broadcast position list update (includes headcount changes)
+      broadcastPositionListUpdated();
+      
+      // Broadcast updated statistics
+      const statsQuery = `
+        SELECT 
+          COUNT(*) as total,
+          COUNT(CASE WHEN "isOpen" = TRUE THEN 1 END) as open,
+          COUNT(CASE WHEN "isOpen" = FALSE THEN 1 END) as closed
+        FROM "Position"
+      `;
+      const { getPool } = await import('@/lib/db');
+      const statsResult = await getPool().query(statsQuery);
+      const stats = statsResult.rows[0];
+      const statistics = { 
+        total: parseInt(stats.total, 10), 
+        open: parseInt(stats.open, 10), 
+        closed: parseInt(stats.closed, 10) 
+      };
+      broadcastPositionStatisticsUpdated(statistics);
+    } catch (broadcastError) {
+      console.error('Failed to broadcast real-time updates:', broadcastError);
+      // Don't fail the request if broadcasting fails
     }
 
     return NextResponse.json({ 

@@ -139,7 +139,9 @@ export function UserGroupsTab() {
   // Check if user has permission to manage roles
   const canManageRoles = session?.user?.role === 'Admin' || 
     (Array.isArray(session?.user?.modulePermissions) && 
-     session.user.modulePermissions.includes('USER_GROUPS_VIEW'));
+     (session.user.modulePermissions.includes('USER_GROUPS_CREATE') ||
+      session.user.modulePermissions.includes('USER_GROUPS_EDIT') ||
+      session.user.modulePermissions.includes('USER_GROUPS_DELETE')));
 
   const fetchRoles = useCallback(async () => {
     if (sessionStatus !== 'authenticated') return;
@@ -168,7 +170,7 @@ export function UserGroupsTab() {
     if (sessionStatus === 'unauthenticated') {
       signIn(undefined, { callbackUrl: pathname });
     } else if (sessionStatus === 'authenticated') {
-      if (session.user.role !== 'Admin') {
+      if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('USER_GROUPS_VIEW')) {
         setFetchError("You do not have permission to manage roles & permissions.");
         setIsLoading(false);
       } else {
@@ -285,7 +287,7 @@ export function UserGroupsTab() {
   const canCreateUserGroups = session?.user?.role === 'Admin' || modulePermissions.includes('USER_GROUPS_CREATE') || false;
   const canEditUserGroups = session?.user?.role === 'Admin' || modulePermissions.includes('USER_GROUPS_EDIT') || false;
   const canDeleteUserGroups = session?.user?.role === 'Admin' || modulePermissions.includes('USER_GROUPS_DELETE') || false;
-  const canManageUsers = session?.user?.role === 'Admin' || modulePermissions.includes('USER_GROUPS_CREATE') || false;
+
 
   if (isLoading) {
     return (
@@ -314,7 +316,7 @@ export function UserGroupsTab() {
           <h2 className="text-xl font-semibold text-foreground">Roles & Permissions</h2>
           <p className="text-muted-foreground">Manage user roles and their permissions</p>
         </div>
-        {canManageUsers && (
+        {canManageRoles && (
           <Button onClick={() => handleOpenModal()} className="btn-hover-primary-gradient">
             <PlusCircle className="mr-2 h-4 w-4" />
             Create Role
@@ -339,7 +341,7 @@ export function UserGroupsTab() {
              <ShieldCheck className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
              <h3 className="text-lg font-semibold text-foreground mb-2">No Roles Found</h3>
              <p className="text-muted-foreground mb-4">Create your first role to get started</p>
-             {canManageUsers && (
+             {canManageRoles && (
                <Button onClick={() => handleOpenModal()} className="btn-hover-primary-gradient">
                  <PlusCircle className="mr-2 h-4 w-4" />
                  Create First Role
@@ -397,7 +399,7 @@ export function UserGroupsTab() {
                              Manage
                            </Button>
                          )}
-                         {!role.isDefault && (
+                         {!role.isDefault && canManageRoles && (
                            <Button 
                              variant="ghost" 
                              size="sm" 

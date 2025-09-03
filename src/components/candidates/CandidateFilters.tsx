@@ -1210,23 +1210,18 @@ export function CandidateFilters({
                         <h4 className="text-sm font-semibold">AI Power Search</h4>
                         <Lightbulb className={cn("w-4 h-4", isAiSearching ? "text-blue-500 animate-pulse" : "text-muted-foreground")} />
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setAiSearchQueryInput('');
-                          setAiSearchFilters({});
-                          // Call parent's clear function to properly clear AI search state
-                          if (onClearAllFilters) {
-                            onClearAllFilters();
-                          }
-                        }}
-                        disabled={isLoading || isAiSearching}
-                        className="h-6 w-6 p-0 hover:bg-muted/50"
-                      >
-                        <FilterX className="h-3 w-3" />
-                      </Button>
+                                             <Button
+                         variant="ghost"
+                         size="sm"
+                         onClick={(e) => {
+                           e.stopPropagation();
+                           handleResetFilters();
+                         }}
+                         disabled={isLoading || isAiSearching}
+                         className="h-6 w-6 p-0 hover:bg-muted/50"
+                       >
+                         <FilterX className="h-3 w-3" />
+                       </Button>
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="px-4 pb-4">
@@ -1317,18 +1312,7 @@ export function CandidateFilters({
                          size="sm"
                          onClick={(e) => {
                            e.stopPropagation();
-                           // Clear all fields with debouncing to prevent resource leaks
-                           setName('');
-                           setEmail('');
-                           setPhone('');
-                           setSkills(new Set());
-                           setLocation('');
-                           // Apply filters with debouncing
-                           if (autoApplyTimeoutRef.current) {
-                             clearTimeout(autoApplyTimeoutRef.current);
-                             autoApplyTimeoutRef.current = null;
-                           }
-                           autoApplyTimeoutRef.current = setTimeout(() => handleApplyStandardFilters(), 100);
+                           handleResetFilters();
                          }}
                          disabled={isLoading || isAiSearching}
                          className="h-6 w-6 p-0 hover:bg-muted/50"
@@ -1341,10 +1325,10 @@ export function CandidateFilters({
                       <div className="space-y-2">
                     <div className="space-y-2">
                       <Label htmlFor="name-search" className="text-xs font-medium">Name</Label>
-                                           <div className="grid grid-cols-5 gap-2 w-full">
+                                           <div className="grid grid-cols-3 gap-2 w-full">
                         <Select value={nameOperator} onValueChange={v => setNameOperator(v as 'contains' | 'is' | 'startsWith' | 'endsWith')} disabled={false}>
                           <SelectTrigger 
-                            className="h-8 text-xs w-full col-span-2"
+                            className="h-8 text-xs w-full col-span-1"
                           >
                             <SelectValue />
                           </SelectTrigger>
@@ -1366,17 +1350,17 @@ export function CandidateFilters({
                              handleApplyStandardFilters();
                            }
                          }}
-                         className="h-8 text-sm col-span-3" 
+                         className="h-8 text-sm col-span-2" 
                          disabled={false}
                        />
                      </div>
                    </div>
                    <div className="space-y-2">
                                            <Label htmlFor="email-search" className="text-xs font-medium">Email</Label>
-                                           <div className="grid grid-cols-5 gap-2 w-full">
+                                           <div className="grid grid-cols-3 gap-2 w-full">
                         <Select value={emailOperator} onValueChange={v => setEmailOperator(v as 'contains' | 'is' | 'startsWith' | 'endsWith')} disabled={isLoading || isAiSearching}>
                           <SelectTrigger 
-                            className="h-8 text-xs w-full col-span-2"
+                            className="h-8 text-xs w-full col-span-1"
                           >
                             <SelectValue />
                           </SelectTrigger>
@@ -1398,17 +1382,17 @@ export function CandidateFilters({
                              handleApplyStandardFilters();
                            }
                          }}
-                         className="h-8 text-sm col-span-3" 
+                         className="h-8 text-sm col-span-2" 
                          disabled={isLoading || isAiSearching}
                        />
                      </div>
                    </div>
                    <div className="space-y-2">
                                            <Label htmlFor="phone-search" className="text-xs font-medium">Phone</Label>
-                                           <div className="grid grid-cols-5 gap-2 w-full">
+                                           <div className="grid grid-cols-3 gap-2 w-full">
                         <Select value={phoneOperator} onValueChange={v => setPhoneOperator(v as 'contains' | 'is' | 'startsWith' | 'endsWith')} disabled={isLoading || isAiSearching}>
                           <SelectTrigger 
-                            className="h-8 text-xs w-full col-span-2"
+                            className="h-8 text-xs w-full col-span-1"
                           >
                             <SelectValue />
                           </SelectTrigger>
@@ -1430,17 +1414,17 @@ export function CandidateFilters({
                              handleApplyStandardFilters();
                            }
                          }}
-                         className="h-8 text-sm col-span-3" 
+                         className="h-8 text-sm col-span-2" 
                          disabled={isLoading || isAiSearching}
                        />
                      </div>
                    </div>
                    <div className="space-y-2">
                                            <Label htmlFor="location-search" className="text-xs font-medium">Location</Label>
-                                           <div className="grid grid-cols-5 gap-2 w-full">
+                                           <div className="grid grid-cols-3 gap-2 w-full">
                         <Select value={locationOperator} onValueChange={v => setLocationOperator(v as 'contains' | 'is' | 'startsWith' | 'endsWith' | 'other')} disabled={isLoading || isAiSearching}>
                           <SelectTrigger 
-                            className="h-8 text-xs w-full col-span-2"
+                            className="h-8 text-xs w-full col-span-1"
                           >
                             <SelectValue />
                           </SelectTrigger>
@@ -1463,7 +1447,7 @@ export function CandidateFilters({
                              handleApplyStandardFilters();
                            }
                          }}
-                         className="h-8 text-sm col-span-3" 
+                         className="h-8 text-sm col-span-2" 
                          disabled={isLoading || isAiSearching}
                        />
                      </div>
@@ -1600,17 +1584,7 @@ export function CandidateFilters({
                          size="sm"
                          onClick={(e) => {
                            e.stopPropagation();
-                           // Clear all selections with debouncing to prevent resource leaks
-                           setSelectedPositionIds(new Set());
-                           setSelectedStatuses(new Set());
-                           setSelectedRecruiterIds(new Set());
-                           setSelectedSourceIds(new Set());
-                           // Apply filters with debouncing
-                           if (multiselectTimeoutRef.current) {
-                             clearTimeout(multiselectTimeoutRef.current);
-                             multiselectTimeoutRef.current = null;
-                           }
-                           multiselectTimeoutRef.current = setTimeout(() => handleApplyStandardFilters(), 100);
+                           handleResetFilters();
                          }}
                          disabled={isLoading || isAiSearching}
                          className="h-6 w-6 p-0 hover:bg-muted/50"
@@ -1726,15 +1700,7 @@ export function CandidateFilters({
                          size="sm"
                          onClick={(e) => {
                            e.stopPropagation();
-                           // Clear experience filters with debouncing to prevent resource leaks
-                           setExperienceYearsRange([0, 50]);
-                           setApplicationDateRange(undefined);
-                           // Apply filters with debouncing
-                           if (autoApplyTimeoutRef.current) {
-                             clearTimeout(autoApplyTimeoutRef.current);
-                             autoApplyTimeoutRef.current = null;
-                           }
-                           autoApplyTimeoutRef.current = setTimeout(() => handleApplyStandardFilters(), 100);
+                           handleResetFilters();
                          }}
                          disabled={isLoading || isAiSearching}
                          className="h-6 w-6 p-0 hover:bg-muted/50"

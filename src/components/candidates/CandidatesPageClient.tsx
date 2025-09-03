@@ -1413,7 +1413,7 @@ export function CandidatesPageClient({
         <div className="flex-1 flex overflow-hidden">
           {/* Filters Sidebar */}
           {showFilters && (
-            <div className="w-[280px] border-r bg-background overflow-hidden">
+            <div className="responsive-filter-sidebar border-r bg-background overflow-hidden">
               <div className="h-full overflow-y-auto">
                 {(() => {
                   const advancedQuery = searchParams.get('query') || undefined;

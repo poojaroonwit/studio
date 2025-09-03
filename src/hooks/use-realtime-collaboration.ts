@@ -89,14 +89,19 @@ export function useRealtimeCollaboration(options: RealtimeCollaborationOptions =
     if (lastMessage && isConnected) {
       const data = lastMessage;
       
+      // Debug logging
+      console.log('[RealtimeCollaboration] Received message:', data);
+      
       // Handle both direct data structure and nested data structure
       const eventData = data.data || data;
       
       if (data.type === 'candidate_update' && eventData.candidate) {
         const updatedCandidate = eventData.candidate;
+        console.log('[RealtimeCollaboration] Processing candidate update:', updatedCandidate);
         
         // Call the callback if provided
         if (onCandidateUpdate) {
+          console.log('[RealtimeCollaboration] Calling onCandidateUpdate callback');
           onCandidateUpdate(eventData);
         }
         
@@ -116,6 +121,7 @@ export function useRealtimeCollaboration(options: RealtimeCollaborationOptions =
       
       if (data.type === 'position_update' && eventData.position) {
         const position = eventData.position;
+        console.log('[RealtimeCollaboration] Processing position update:', position);
         
         // Call the callback if provided
         if (onPositionUpdate) {

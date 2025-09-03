@@ -129,7 +129,7 @@ function transformCandidateForExport(candidate: any, isJobMatchEnabled: boolean)
     'Recruiter ID': candidate.recruiterId || '',
     'Recruiter Name': candidate.recruiter_name || '',
     'Fit Score (0-100)': candidate.fitScore ? Math.round((candidate.fitScore * 100)).toString() : '',
-    'Status*': candidate.status || '',
+    'Status*': candidate.status_name || candidate.status || '',
     'Application Date': formatDateForExport(candidate.applicationDate),
     'Applied Job': candidate.position_title || '',
     'Applied Job Justification': formatAssignmentJustification(candidate.assignmentJustification),
@@ -266,11 +266,11 @@ export async function GET(request: NextRequest) {
     if (status) {
       const statuses = status.split(',');
       if (statuses.length === 1) {
-        whereConditions.push(`c.status = $${paramIndex}`);
+        whereConditions.push(`c."statusId" = $${paramIndex}`);
         queryParams.push(statuses[0]);
         paramIndex++;
       } else {
-        whereConditions.push(`c.status = ANY($${paramIndex})`);
+        whereConditions.push(`c."statusId" = ANY($${paramIndex})`);
         queryParams.push(statuses);
         paramIndex++;
       }
@@ -325,6 +325,7 @@ export async function GET(request: NextRequest) {
           const query = `
         SELECT 
           c.*,
+          rs.name as status_name,
           p.title as position_title,
           u.name as recruiter_name
           ${isJobMatchEnabled ? `,
@@ -342,9 +343,10 @@ export async function GET(request: NextRequest) {
         FROM "Candidate" c
         LEFT JOIN "Position" p ON c."positionId" = p.id
         LEFT JOIN "User" u ON c."recruiterId" = u.id
+        LEFT JOIN "RecruitmentStage" rs ON c."statusId" = rs.id
         ${isJobMatchEnabled ? 'LEFT JOIN "JobMatch" jm ON c.id = jm."candidateId"' : ''}
         ${whereClause}
-        GROUP BY c.id, p.title, u.name
+        GROUP BY c.id, p.title, u.name, rs.name
         ORDER BY c."applicationDate" DESC
       `;
     

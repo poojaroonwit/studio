@@ -76,7 +76,7 @@ function transformCandidateForExport(candidate: any, jobMatches: any[]): any {
     'Recruiter ID': candidate.recruiterId || '',
     'Recruiter Name': candidate.recruiterName || '',
     'Fit Score (0-100)': candidate.fitScore ? Math.round((candidate.fitScore * 100)).toString() : '',
-    'Status*': candidate.status || '',
+    'Status*': candidate.statusName || candidate.status || '',
     'Application Date': formatDateForExport(candidate.applicationDate),
     'Applied Job': candidate.positionTitle || '',
     'Applied Job Justification': formatAssignmentJustification(candidate.assignmentJustification),
@@ -123,12 +123,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const candidateQuery = `
       SELECT 
         c.*,
+        rs.name as "statusName",
         p.title as "positionTitle",
         p.department as "positionDepartment",
         u.name as "recruiterName"
       FROM "Candidate" c
       LEFT JOIN "Position" p ON c."positionId" = p.id
       LEFT JOIN "User" u ON c."recruiterId" = u.id
+              LEFT JOIN "RecruitmentStage" rs ON c."statusId" = rs.id
       WHERE c.id = $1::uuid
     `;
     

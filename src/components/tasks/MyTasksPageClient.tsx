@@ -101,17 +101,24 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
 
   // Enhanced candidate update handler with conflict resolution
   const handleCandidateUpdate = useCallback((updateData: any) => {
+    console.log('[MyTasksPageClient] handleCandidateUpdate called with:', updateData);
+    
     const updatedCandidate = updateData?.candidate || updateData;
     
     if (!updatedCandidate || !updatedCandidate.id) {
+      console.log('[MyTasksPageClient] No valid candidate data in update');
       return;
     }
+    
+    console.log('[MyTasksPageClient] Processing update for candidate:', updatedCandidate.id, 'status:', updatedCandidate.status);
     
     setCandidates(prevCandidates => {
       const existingIndex = prevCandidates.findIndex(c => c.id === updatedCandidate.id);
       if (existingIndex !== -1) {
         const updated = [...prevCandidates];
         const existing = updated[existingIndex];
+        
+        console.log('[MyTasksPageClient] Found existing candidate:', existing.id, 'old status:', existing.status, 'new status:', updatedCandidate.status);
         
         // Merge updates while preserving any local changes that haven't been confirmed
         const merged = { 
@@ -122,9 +129,11 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
         };
         
         updated[existingIndex] = merged;
+        console.log('[MyTasksPageClient] Updated candidate in state:', merged.id, 'final status:', merged.status);
         return updated;
       } else {
         // Add new candidate if not found
+        console.log('[MyTasksPageClient] Adding new candidate to state:', updatedCandidate.id);
         return [...prevCandidates, updatedCandidate];
       }
     });

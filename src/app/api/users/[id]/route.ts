@@ -20,6 +20,7 @@ const updateUserSchema = z.object({
   newPassword: z.string().min(8, "New password must be at least 8 characters").optional().or(z.literal("")),
   // modulePermissions removed - permissions come from UserGroup based on role
   userTeamIds: z.array(z.string().uuid()).optional(),
+  userGroupIds: z.array(z.string().uuid()).optional(),
   avatarUrl: z.string().optional(),
   personalColor: z.string().optional(),
 });
@@ -177,9 +178,9 @@ export async function PUT(request: NextRequest) {
         return NextResponse.json({ message: "Invalid input", errors: validationResult.error.flatten().fieldErrors }, { status: 400 });
     }
 
-    const { password, newPassword, userTeamIds, role, ...fieldsToUpdate } = validationResult.data;
+    const { password, newPassword, userTeamIds, userGroupIds, role, ...fieldsToUpdate } = validationResult.data;
 
-    if (Object.keys(fieldsToUpdate).length === 0 && !password && (!newPassword || newPassword.trim() === "") && !userTeamIds && role === undefined) {
+    if (Object.keys(fieldsToUpdate).length === 0 && !password && (!newPassword || newPassword.trim() === "") && !userTeamIds && !userGroupIds && role === undefined) {
         return NextResponse.json({ message: "No fields to update." }, { status: 400 });
     }
 
@@ -207,8 +208,12 @@ export async function PUT(request: NextRequest) {
             updateData.password = await bcrypt.hash(newPassword, saltRounds);
         }
 
-        // Handle user group assignment based on role
-        if (role !== undefined) {
+        // Handle user group assignment based on userGroupIds or role
+        if (userGroupIds !== undefined && userGroupIds.length > 0) {
+            // Use the first selected user group
+            updateData.userGroupId = userGroupIds[0];
+        } else if (role !== undefined) {
+            // Fall back to role-based mapping for backward compatibility
             const roleToGroupId = {
                 'Admin': '00000000-0000-0000-0000-000000000001',
                 'Recruiter': '00000000-0000-0000-0000-000000000002',

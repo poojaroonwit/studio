@@ -43,11 +43,13 @@ const getParsedDataProperty = (candidate: Candidate, propertyName: string) => {
 // Renders a status badge showing the human-readable stage name for a given stage ID
 export function StatusBadge({ 
   status, 
+  statusId,
   className = '', 
   stageNames = {},
   stageColors = {}
 }: { 
   status?: string | null; 
+  statusId?: string | null;
   className?: string;
   stageNames?: Record<string, string>;
   stageColors?: Record<string, string>;
@@ -58,15 +60,16 @@ export function StatusBadge({
 
   // Fetch stage colors if not provided
   React.useEffect(() => {
-    if (Object.keys(stageColors).length === 0 && status) {
+    const statusToUse = statusId || status;
+    if (Object.keys(stageColors).length === 0 && statusToUse) {
       const fetchStageColor = async () => {
         try {
-          const response = await fetch(`/api/settings/recruitment-stages?ids=${status}`);
+          const response = await fetch(`/api/settings/recruitment-stages?ids=${statusToUse}`);
           if (response.ok) {
             const stages = await response.json();
-            const stage = stages.find((s: any) => s.id === status);
+            const stage = stages.find((s: any) => s.id === statusToUse);
             if (stage?.color_badge) {
-              setLocalStageColors({ [status]: stage.color_badge });
+              setLocalStageColors({ [statusToUse]: stage.color_badge });
             }
           }
         } catch (error) {
@@ -77,26 +80,28 @@ export function StatusBadge({
     } else {
       setLocalStageColors(stageColors);
     }
-  }, [status, stageColors]);
+  }, [status, statusId, stageColors]);
 
   useEffect(() => {
-    if (!status) { 
+    const statusToUse = statusId || status;
+    if (!statusToUse) { 
       setStageName(null); 
       return; 
     }
     
     // Use stage names from props
-    if (stageNames && stageNames[status]) {
-      setStageName(stageNames[status]);
+    if (stageNames && stageNames[statusToUse]) {
+      setStageName(stageNames[statusToUse]);
     } else {
       setStageName(null);
     }
-  }, [status, stageNames]);
+  }, [status, statusId, stageNames]);
   
   useEffect(() => {
-    if (status && localStageColors[status]) {
+    const statusToUse = statusId || status;
+    if (statusToUse && localStageColors[statusToUse]) {
       // Use the color from the database
-      const stageColor = localStageColors[status];
+      const stageColor = localStageColors[statusToUse];
       // Convert hex color to appropriate Tailwind classes
       const colorClass = `bg-[${stageColor}]/10 text-[${stageColor}] border-[${stageColor}]/20 dark:bg-[${stageColor}]/20 dark:text-[${stageColor}] dark:border-[${stageColor}]/40`;
       setColorClass(colorClass);
@@ -123,11 +128,11 @@ export function StatusBadge({
     } else {
       setColorClass('bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-800');
     }
-  }, [status, stageName, localStageColors]);
+  }, [status, statusId, stageName, localStageColors]);
 
   return (
     <Badge className={cn("text-xs px-2 py-1 flex-shrink-0", className, colorClass)}>
-      {stageName || status || 'Unknown'}
+      {stageName || status || statusId || 'Unknown'}
     </Badge>
   );
 }

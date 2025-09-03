@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
             c.name,
             c.email,
             c.phone,
-            c.status,
+            c."statusId",
             c."applicationDate",
             c."fitScore",
             c."dataAiHint",
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
           FROM "Candidate" c
           LEFT JOIN "Position" p ON c."positionId" = p.id
           LEFT JOIN "User" u ON c."recruiterId" = u.id
-          LEFT JOIN "RecruitmentStage" rs ON c."status" = rs.name
+          LEFT JOIN "RecruitmentStage" rs ON c."statusId" = rs.id
           WHERE c.id = $1
         `;
         

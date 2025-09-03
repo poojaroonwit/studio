@@ -2456,6 +2456,88 @@ audio::-webkit-scrollbar-button {
 /* Responsive Filter Bar Styles */
 .responsive-filter-sidebar {
   transition: all 0.3s ease-in-out;
+  width: 320px;
+  min-width: 280px;
+  max-width: 400px;
+  flex-shrink: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Ensure the filter sidebar content is properly contained */
+.responsive-filter-sidebar > div {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* Ensure the filter sidebar doesn't cause layout issues */
+.responsive-filter-sidebar .h-full {
+  height: 100%;
+  max-height: 100%;
+}
+
+.responsive-filter-sidebar .overflow-y-auto {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Ensure the filter sidebar is properly positioned */
+.responsive-filter-sidebar {
+  position: relative;
+  z-index: 10;
+}
+
+/* Ensure the filter sidebar doesn't interfere with other elements */
+.responsive-filter-sidebar + div {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Ensure the filter sidebar is properly sized on all screen sizes */
+@media (max-width: 1024px) {
+  .responsive-filter-sidebar {
+    width: 280px;
+    min-width: 280px;
+    max-width: 300px;
+  }
+}
+
+@media (max-width: 768px) {
+  .responsive-filter-sidebar {
+    width: 260px;
+    min-width: 260px;
+    max-width: 280px;
+  }
+}
+
+/* Ensure the filter sidebar is properly sized on very small screens */
+@media (max-width: 640px) {
+  .responsive-filter-sidebar {
+    width: 100%;
+    min-width: 100%;
+    max-width: 100%;
+  }
+  
+  /* Ensure the filter content is properly sized on mobile */
+  .candidate-filters {
+    padding: 0.5rem;
+  }
+  
+  .candidate-filters .px-4 {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+  
+  /* Ensure the filter grid is properly sized on mobile */
+  .candidate-filters .grid {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .candidate-filters .col-span-1,
+  .candidate-filters .col-span-2 {
+    grid-column: 1 / -1 !important;
+  }
 }
 
 .filter-bar-container {
@@ -2468,6 +2550,7 @@ audio::-webkit-scrollbar-button {
   .responsive-filter-sidebar {
     width: 100%;
     min-width: 100%;
+    max-width: 100%;
     position: fixed;
     top: 0;
     left: 0;
@@ -2484,8 +2567,9 @@ audio::-webkit-scrollbar-button {
 /* Tablet responsive adjustments */
 @media (min-width: 641px) and (max-width: 1024px) {
   .responsive-filter-sidebar {
-    width: 320px;
+    width: 300px;
     min-width: 280px;
+    max-width: 320px;
   }
   
   .filter-bar-container {
@@ -2498,10 +2582,20 @@ audio::-webkit-scrollbar-button {
   .responsive-filter-sidebar {
     width: 320px;
     min-width: 320px;
+    max-width: 360px;
   }
   
   .filter-bar-container {
     padding: 12px 20px;
+  }
+}
+
+/* Large desktop adjustments */
+@media (min-width: 1440px) {
+  .responsive-filter-sidebar {
+    width: 340px;
+    min-width: 340px;
+    max-width: 380px;
   }
 }
 
@@ -2514,6 +2608,163 @@ audio::-webkit-scrollbar-button {
 .candidate-filters button[role="combobox"] {
   width: 100% !important;
   min-width: 100% !important;
+}
+
+/* Candidate filter sidebar sizing improvements */
+.candidate-filters {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+.candidate-filters .grid {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.candidate-filters input,
+.candidate-filters select,
+.candidate-filters button {
+  max-width: 100%;
+  box-sizing: border-box;
+  font-size: 0.875rem;
+}
+
+/* Ensure select dropdowns don't overflow */
+.candidate-filters [role="combobox"] {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Ensure the filter accordion items are properly sized */
+.candidate-filters .accordion-item {
+  width: 100%;
+  max-width: 100%;
+}
+
+.candidate-filters .accordion-trigger {
+  width: 100%;
+  max-width: 100%;
+  padding: 0.75rem 1rem;
+}
+
+/* Ensure the filter content is properly contained */
+.candidate-filters .px-4 {
+  padding-left: 1rem;
+  padding-right: 1rem;
+  max-width: 100%;
+}
+
+/* Ensure the filter inputs are properly sized */
+.candidate-filters .h-8 {
+  height: 2rem;
+  min-height: 2rem;
+}
+
+.candidate-filters .text-xs {
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.candidate-filters .text-sm {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+/* Ensure the filter inputs don't overflow */
+.candidate-filters input[type="text"],
+.candidate-filters input[type="email"],
+.candidate-filters input[type="tel"] {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Ensure the filter select dropdowns are properly sized */
+.candidate-filters select {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Ensure the filter buttons are properly sized */
+.candidate-filters button {
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Ensure the filter accordion content is properly sized */
+.candidate-filters .accordion-content {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* Ensure the filter accordion triggers are properly sized */
+.candidate-filters .accordion-trigger {
+  max-width: 100%;
+  overflow: hidden;
+}
+
+/* Ensure the filter accordion items are properly sized */
+.candidate-filters .accordion-item {
+  max-width: 100%;
+  overflow: hidden;
+  border-bottom: 1px solid hsl(var(--border) / 0.5);
+}
+
+/* Ensure the filter accordion content is properly sized */
+.candidate-filters .accordion-content {
+  max-width: 100%;
+  overflow-x: hidden;
+  padding: 0 1rem;
+}
+
+/* Ensure the filter accordion triggers are properly sized */
+.candidate-filters .accordion-trigger {
+  max-width: 100%;
+  overflow: hidden;
+  padding: 0.75rem 1rem;
+}
+
+/* Ensure the filter tabs are properly sized */
+.candidate-filters .flex.w-full.border-b {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+/* Ensure accordion state is properly sized */
+.candidate-filters [data-state="open"] {
+  max-width: 100%;
+}
+
+/* Ensure the filter container doesn't cause horizontal scroll */
+.candidate-filters .overflow-visible {
+  overflow-x: hidden !important;
+}
+
+/* Ensure all filter sections are properly sized */
+.candidate-filters .space-y-2,
+.candidate-filters .space-y-3 {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Responsive adjustments for very small screens */
+@media (max-width: 480px) {
+  .candidate-filters {
+    padding: 0.25rem;
+  }
+  
+  .candidate-filters .px-4 {
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
+  }
 }
 
 /* Pagination Styles */

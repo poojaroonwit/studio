@@ -16,14 +16,17 @@ export async function GET(request: NextRequest) {
 
     const client = await getPool().connect();
     try {
-      // Get user data directly from database
+      // Get user data directly from database using the correct User_UserGroup junction table
       const userResult = await client.query(`
         SELECT 
-          u.id, u.name, u.email, u.role, u."userGroupId",
-          ug.name as "groupName", ug.permissions as "groupPermissions"
+          u.id, u.name, u.email, u.role,
+          array_agg(DISTINCT ug.name) as "groupNames",
+          array_agg(DISTINCT unnest(ug.permissions)) as "allPermissions"
         FROM "User" u
-        LEFT JOIN "UserGroup" ug ON u."userGroupId" = ug.id
+        JOIN "User_UserGroup" uug ON u.id = uug."userId"
+        JOIN "UserGroup" ug ON uug."groupId" = ug.id
         WHERE u.id = $1
+        GROUP BY u.id, u.name, u.email, u.role
       `, [session.user.id]);
 
       if (userResult.rows.length === 0) {
@@ -48,15 +51,14 @@ export async function GET(request: NextRequest) {
           name: dbUser.name,
           email: dbUser.email,
           role: dbUser.role,
-          userGroupId: dbUser.userGroupId,
-          groupName: dbUser.groupName,
-          groupPermissions: dbUser.groupPermissions || []
+          groupNames: dbUser.groupNames || [],
+          allPermissions: dbUser.allPermissions || []
         },
         comparison: {
           rolesMatch: session.user.role === dbUser.role,
-          permissionsMatch: JSON.stringify(session.user.modulePermissions || []) === JSON.stringify(dbUser.groupPermissions || []),
+          permissionsMatch: JSON.stringify(session.user.modulePermissions || []) === JSON.stringify(dbUser.allPermissions || []),
           sessionPermissionsLength: session.user.modulePermissions?.length || 0,
-          dbPermissionsLength: dbUser.groupPermissions?.length || 0
+          dbPermissionsLength: dbUser.allPermissions?.length || 0
         }
       });
 

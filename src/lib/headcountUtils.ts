@@ -204,6 +204,149 @@ export async function autoClosePositionIfHeadcountFilled(
 }
 
 /**
+ * Automatically reopen a position if headcount becomes available again
+ * @param positionId - The position ID to potentially reopen
+ * @param actingUserId - The user ID performing the action (for audit logging)
+ * @param actingUserName - The user name performing the action (for audit logging)
+ * @returns Object with success status and details
+ */
+export async function reopenPositionIfHeadcountAvailable(
+  positionId: string,
+  actingUserId: string,
+  actingUserName: string
+) {
+  try {
+    // Check current headcount status
+    const headcountStatus = await checkPositionHeadcountStatus(positionId);
+    
+    if (!headcountStatus.hasHeadcounts) {
+      return {
+        success: false,
+        message: 'Position has no headcounts defined',
+        action: 'none',
+      };
+    }
+
+    if (headcountStatus.isFilled) {
+      return {
+        success: false,
+        message: 'Position still has all headcounts filled',
+        action: 'none',
+        headcountStatus,
+      };
+    }
+
+    // Get current position details
+    const position = await prisma.position.findUnique({
+      where: { id: positionId },
+      select: {
+        id: true,
+        title: true,
+        isOpen: true,
+        department: true,
+        customAttributes: true,
+      },
+    });
+
+    if (!position) {
+      console.error(`Position ${positionId} not found`);
+      return {
+        success: false,
+        message: 'Position not found',
+        action: 'none',
+      };
+    }
+
+    // If position is already open, no action needed
+    if (position.isOpen) {
+      return {
+        success: true,
+        message: 'Position is already open',
+        action: 'none',
+        headcountStatus,
+      };
+    }
+
+    // Reopen the position
+    const updatedPosition = await prisma.position.update({
+      where: { id: positionId },
+      data: { isOpen: true },
+      select: {
+        id: true,
+        title: true,
+        department: true,
+        isOpen: true,
+        customAttributes: true,
+        updatedAt: true,
+      },
+    });
+
+    // Log the automatic reopening
+    await logAudit(
+      'AUDIT',
+      `Position '${position.title}' automatically reopened due to headcount becoming available. Total headcounts: ${headcountStatus.totalHeadcounts}, Vacant: ${headcountStatus.vacantHeadcounts}`,
+      'SYSTEM:AutoReopenPosition',
+      actingUserId,
+      { 
+        positionId, 
+        headcountStatus,
+        previousStatus: 'closed',
+        newStatus: 'open'
+      }
+    );
+
+    // Prepare position data for webhook and broadcast
+    const positionWithCustomAttrs = {
+      ...updatedPosition,
+      custom_attributes: updatedPosition.customAttributes || {},
+    };
+
+    // Broadcast position update to SSE clients
+    broadcastPositionUpdate(positionWithCustomAttrs, actingUserId);
+
+    // Broadcast position list update to SSE clients
+    broadcastPositionListUpdated();
+
+    // Broadcast statistics update to SSE clients
+    const statsQuery = `
+      SELECT 
+        COUNT(*) as total,
+        COUNT(CASE WHEN "isOpen" = TRUE THEN 1 END) as open,
+        COUNT(CASE WHEN "isOpen" = FALSE THEN 1 END) as closed
+      FROM "Position"
+    `;
+    const { getPool } = await import('@/lib/db');
+    const statsResult = await getPool().query(statsQuery);
+    const stats = statsResult.rows[0];
+    const statistics = { 
+      total: parseInt(stats.total, 10), 
+      open: parseInt(stats.open, 10), 
+      closed: parseInt(stats.closed, 10) 
+    };
+    broadcastPositionStatisticsUpdated(statistics);
+
+    return {
+      success: true,
+      message: 'Position automatically reopened successfully',
+      action: 'reopened',
+      headcountStatus,
+      position: positionWithCustomAttrs,
+    };
+
+  } catch (error) {
+    console.error('Error auto-reopening position:', error);
+    await logAudit(
+      'ERROR',
+      `Failed to auto-reopen position ${positionId}. Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      'SYSTEM:AutoReopenPosition',
+      actingUserId,
+      { positionId, error: error instanceof Error ? error.message : 'Unknown error' }
+    );
+    throw error;
+  }
+}
+
+/**
  * Check and auto-close positions that have all headcounts filled
  * This can be used as a background job or manual trigger
  * @param actingUserId - The user ID performing the action (for audit logging)
@@ -474,6 +617,35 @@ export async function assignCandidateToHeadcount(
       // Don't fail the headcount assignment if auto-close fails
     }
 
+    // Broadcast real-time updates for headcount changes
+    try {
+      const { broadcastPositionListUpdated, broadcastPositionStatisticsUpdated } = await import('@/lib/simple-broadcaster');
+      
+      // Broadcast position list update (includes headcount changes)
+      broadcastPositionListUpdated();
+      
+      // Broadcast updated statistics
+      const statsQuery = `
+        SELECT 
+          COUNT(*) as total,
+          COUNT(CASE WHEN "isOpen" = TRUE THEN 1 END) as open,
+          COUNT(CASE WHEN "isOpen" = FALSE THEN 1 END) as closed
+        FROM "Position"
+      `;
+      const { getPool } = await import('@/lib/db');
+      const statsResult = await getPool().query(statsQuery);
+      const stats = statsResult.rows[0];
+      const statistics = { 
+        total: parseInt(stats.total, 10), 
+        open: parseInt(stats.open, 10), 
+        closed: parseInt(stats.closed, 10) 
+      };
+      broadcastPositionStatisticsUpdated(statistics);
+    } catch (broadcastError) {
+      console.error('Failed to broadcast real-time updates:', broadcastError);
+      // Don't fail the request if broadcasting fails
+    }
+
     return {
       success: true,
       message: 'Candidate automatically assigned to headcount',
@@ -589,6 +761,35 @@ export async function unassignCandidateFromHeadcount(
       positionId: headcount.position.id,
       statusUpdateResult,
     });
+
+    // Broadcast real-time updates for headcount changes
+    try {
+      const { broadcastPositionListUpdated, broadcastPositionStatisticsUpdated } = await import('@/lib/simple-broadcaster');
+      
+      // Broadcast position list update (includes headcount changes)
+      broadcastPositionListUpdated();
+      
+      // Broadcast updated statistics
+      const statsQuery = `
+        SELECT 
+          COUNT(*) as total,
+          COUNT(CASE WHEN "isOpen" = TRUE THEN 1 END) as open,
+          COUNT(CASE WHEN "isOpen" = FALSE THEN 1 END) as closed
+        FROM "Position"
+      `;
+      const { getPool } = await import('@/lib/db');
+      const statsResult = await getPool().query(statsQuery);
+      const stats = statsResult.rows[0];
+      const statistics = { 
+        total: parseInt(stats.total, 10), 
+        open: parseInt(stats.open, 10), 
+        closed: parseInt(stats.closed, 10) 
+      };
+      broadcastPositionStatisticsUpdated(statistics);
+    } catch (broadcastError) {
+      console.error('Failed to broadcast real-time updates:', broadcastError);
+      // Don't fail the request if broadcasting fails
+    }
 
     return {
       success: true,

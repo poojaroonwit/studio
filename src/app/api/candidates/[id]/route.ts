@@ -193,7 +193,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         c.name,
         c.email,
         c.phone,
-        c.status,
+        c."statusId",
+        rs.name as "status",
         c."positionId",
         c."recruiterId",
         c."sourceId",
@@ -217,6 +218,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       LEFT JOIN "Position" p ON c."positionId" = p.id
       LEFT JOIN "User" r ON c."recruiterId" = r.id
       LEFT JOIN "CandidateSource" cs ON c."sourceId" = cs.id
+              LEFT JOIN "RecruitmentStage" rs ON c."statusId" = rs.id
       WHERE c.id = $1::uuid
     `;
     
@@ -708,6 +710,41 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       } catch (error) {
         console.error('Error getting stage name for headcount assignment:', error);
         // Don't fail the status update if stage name lookup fails
+      }
+    }
+
+    // Broadcast real-time updates for headcount changes if status changed to/from "Hired"
+    if (status !== undefined && oldStatus !== status) {
+      try {
+        const { getRecruitmentStageByName } = await import('@/lib/recruitmentStageUtils');
+        const hiredStageId = await getRecruitmentStageByName('Hired');
+        
+        if ((hiredStageId && status === hiredStageId) || (hiredStageId && oldStatus === hiredStageId)) {
+          const { broadcastPositionListUpdated, broadcastPositionStatisticsUpdated } = await import('@/lib/simple-broadcaster');
+          
+          // Broadcast position list update (includes headcount changes)
+          broadcastPositionListUpdated();
+          
+          // Broadcast updated statistics
+          const statsQuery = `
+            SELECT 
+              COUNT(*) as total,
+              COUNT(CASE WHEN "isOpen" = TRUE THEN 1 END) as open,
+              COUNT(CASE WHEN "isOpen" = FALSE THEN 1 END) as closed
+            FROM "Position"
+          `;
+          const statsResult = await client.query(statsQuery);
+          const stats = statsResult.rows[0];
+          const statistics = { 
+            total: parseInt(stats.total, 10), 
+            open: parseInt(stats.open, 10), 
+            closed: parseInt(stats.closed, 10) 
+          };
+          broadcastPositionStatisticsUpdated(statistics);
+        }
+      } catch (broadcastError) {
+        console.error('Failed to broadcast real-time updates for headcount changes:', broadcastError);
+        // Don't fail the request if broadcasting fails
       }
     }
 

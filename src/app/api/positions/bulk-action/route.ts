@@ -172,7 +172,30 @@ export async function POST(request: NextRequest) {
         const redisClient = await getPool().connect();
         if (redisClient) {
             await redisClient.query('DELETE FROM "Position" WHERE id = ANY($1::uuid[])', [positionIds]);
+        }
         
+        // Broadcast real-time updates for bulk operations
+        if (action === 'delete' && successCount > 0) {
+          // Broadcast position list update for deletions
+          const { broadcastPositionListUpdated, broadcastPositionStatisticsUpdated } = await import('@/lib/simple-broadcaster');
+          broadcastPositionListUpdated();
+          
+          // Broadcast updated statistics
+          const statsQuery = `
+            SELECT 
+              COUNT(*) as total,
+              COUNT(CASE WHEN "isOpen" = TRUE THEN 1 END) as open,
+              COUNT(CASE WHEN "isOpen" = FALSE THEN 1 END) as closed
+            FROM "Position"
+          `;
+          const statsResult = await getPool().query(statsQuery);
+          const stats = statsResult.rows[0];
+          const statistics = { 
+            total: parseInt(stats.total, 10), 
+            open: parseInt(stats.open, 10), 
+            closed: parseInt(stats.closed, 10) 
+          };
+          broadcastPositionStatisticsUpdated(statistics);
         }
     }
 

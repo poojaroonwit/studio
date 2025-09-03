@@ -21,27 +21,28 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import type { UserProfile } from '@/lib/types';
+import type { UserProfile, UserGroup } from '@/lib/types';
 import { toast } from 'react-hot-toast';
 import { UserAvatarUpload } from '@/components/ui/user-avatar-upload';
 import { PersonalColorPicker } from '@/components/settings/PersonalColorPicker';
 import { Switch } from '@/components/ui/switch';
+import { RoleSelector } from '@/components/settings/RoleSelector';
 
-const userRoleOptions: UserProfile['role'][] = ['Admin', 'Recruiter', 'Hiring Manager'];
+
 
 // Unified form schema that handles all scenarios
 const userFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email address"),
   password: z.string().min(8, "Password must be at least 8 characters long").optional().or(z.literal('')),
-  role: z.enum(userRoleOptions as [UserProfile['role'], ...UserProfile['role'][]], { required_error: "Role is required" }),
+  role: z.string().min(1, "Role is required"),
   newPassword: z.string().min(8, "New password must be at least 8 characters").optional().or(z.literal('')),
   forcePasswordChange: z.boolean().optional().default(false),
   authenticationMethod: z.enum(['basic', 'azure']).optional().default('basic'),
   avatarUrl: z.string().optional(),
   personalColor: z.string().optional(),
   userTeamIds: z.array(z.string()).optional().default([]),
-
+  userGroupIds: z.array(z.string()).optional().default([]),
 });
 
 export type UserFormValues = z.infer<typeof userFormSchema>;
@@ -317,12 +318,33 @@ interface AccountSettingsContentProps {
   mode: ModalMode;
   canManageAuthentication: boolean;
   canForcePasswordChange: boolean;
-  userRoleOptions: UserProfile['role'][];
 }
 
-function AccountSettingsContent({ form, mode, canManageAuthentication, canForcePasswordChange, userRoleOptions }: AccountSettingsContentProps) {
+function AccountSettingsContent({ form, mode, canManageAuthentication, canForcePasswordChange }: AccountSettingsContentProps) {
   const [sidebarShowAssigned, setSidebarShowAssigned] = useState<boolean>(false);
   const [sidebarPrefLoading, setSidebarPrefLoading] = useState<boolean>(false);
+  const [userGroups, setUserGroups] = useState<UserGroup[]>([]);
+  const [isLoadingGroups, setIsLoadingGroups] = useState(false);
+
+  // Fetch user groups
+  useEffect(() => {
+    const fetchUserGroups = async () => {
+      setIsLoadingGroups(true);
+      try {
+        const response = await fetch('/api/settings/user-groups');
+        if (response.ok) {
+          const groups = await response.json();
+          setUserGroups(groups);
+        }
+      } catch (error) {
+        console.error('Failed to fetch user groups:', error);
+      } finally {
+        setIsLoadingGroups(false);
+      }
+    };
+
+    fetchUserGroups();
+  }, []);
 
   useEffect(() => {
     const loadSidebarPref = async () => {
@@ -369,7 +391,7 @@ function AccountSettingsContent({ form, mode, canManageAuthentication, canForceP
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <FormField 
           control={form.control} 
-          name="role" 
+          name="userGroupIds" 
           render={({ field }: any) => (
             <FormItem>
               <FormLabel className="text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -377,21 +399,19 @@ function AccountSettingsContent({ form, mode, canManageAuthentication, canForceP
               </FormLabel>
               {mode === 'profile' ? (
                 <div className="h-11 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center">
-                  {field.value || 'No role assigned'}
+                  {userGroups.find(g => g.id === field.value?.[0])?.name || 'No role assigned'}
                 </div>
               ) : (
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger className="h-11 border-slate-300 dark:border-slate-600 focus:border-blue-500 focus:ring-blue-500">
-                      <SelectValue placeholder="Select a role" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent className="z-[100003]">
-                    {userRoleOptions.map(roleValue => (
-                      <SelectItem key={roleValue} value={roleValue}>{roleValue}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <RoleSelector
+                  availableRoles={userGroups}
+                  selectedRoleIds={field.value || []}
+                  onRolesChange={field.onChange}
+                  title="Select Role"
+                  description="Choose the role for this user"
+                  multiple={false}
+                  noCard={true}
+                  disabled={isLoadingGroups}
+                />
               )}
               <FormMessage />
             </FormItem>
@@ -399,21 +419,25 @@ function AccountSettingsContent({ form, mode, canManageAuthentication, canForceP
         />
         
         {/* Sidebar preferences (Recruiter only) */}
-        {form.watch('role') === 'Recruiter' && (
-          <div className="rounded-md border p-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <FormLabel className="text-sm font-medium">Show Assigned Positions</FormLabel>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Show this user's open assigned positions in the main sidebar.</p>
+        {(() => {
+          const selectedRole = userGroups.find(g => g.id === form.watch('userGroupIds')?.[0]);
+          const isRecruiter = selectedRole?.name === 'Recruiters' || selectedRole?.name === 'Recruiter';
+          return isRecruiter && (
+            <div className="rounded-md border p-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <FormLabel className="text-sm font-medium">Show Assigned Positions</FormLabel>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">Show this user's open assigned positions in the main sidebar.</p>
+                </div>
+                <Switch
+                  checked={sidebarShowAssigned}
+                  onCheckedChange={(c) => saveSidebarPref(Boolean(c))}
+                  disabled={sidebarPrefLoading || mode !== 'profile'}
+                />
               </div>
-              <Switch
-                checked={sidebarShowAssigned}
-                onCheckedChange={(c) => saveSidebarPref(Boolean(c))}
-                disabled={sidebarPrefLoading || mode !== 'profile'}
-              />
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {canManageAuthentication && (
           <FormField 
@@ -575,6 +599,7 @@ export function RedesignedUserModal({
       avatarUrl: '', 
       personalColor: '#3B82F6',
       userTeamIds: [],
+      userGroupIds: [],
       
     },
   });
@@ -612,18 +637,18 @@ export function RedesignedUserModal({
 
       if (mode === 'edit' || mode === 'profile') {
         if (user) {
-          form.reset({
-            name: user.name,
-            email: user.email,
-            role: user.role,
-            newPassword: '',
-            forcePasswordChange: false,
-            authenticationMethod: user.authenticationMethod || 'basic',
-            avatarUrl: user.avatarUrl || '',
-            personalColor: user.personalColor || '#3B82F6',
-            userTeamIds: user.teams?.map(t => t.id) || [],
-
-          });
+                  form.reset({
+          name: user.name,
+          email: user.email,
+          role: user.role, // Keep for backward compatibility
+          newPassword: '',
+          forcePasswordChange: false,
+          authenticationMethod: user.authenticationMethod || 'basic',
+          avatarUrl: user.avatarUrl || '',
+          personalColor: user.personalColor || '#3B82F6',
+          userTeamIds: user.teams?.map(t => t.id) || [],
+          userGroupIds: user.userGroups?.map(g => g.id) || [],
+        });
         }
       } else {
         // Create mode - reset to defaults
@@ -631,14 +656,14 @@ export function RedesignedUserModal({
           name: '',
           email: '',
           password: '',
-          role: 'Recruiter',
+          role: '', // Keep for backward compatibility
           newPassword: '',
           forcePasswordChange: false,
           authenticationMethod: 'basic',
           avatarUrl: '',
           personalColor: '#3B82F6',
           userTeamIds: [],
-          
+          userGroupIds: [],
         });
       }
       setActiveTab('personal');
@@ -699,13 +724,12 @@ export function RedesignedUserModal({
         return <PersonalInfoContent form={form} user={user} mode={mode} userTeams={userTeams} />;
       case 'account':
         return (
-          <AccountSettingsContent 
-            form={form} 
-            mode={mode} 
-            canManageAuthentication={canManageAuthentication}
-            canForcePasswordChange={canForcePasswordChange}
-            userRoleOptions={userRoleOptions}
-          />
+                          <AccountSettingsContent 
+                  form={form} 
+                  mode={mode} 
+                  canManageAuthentication={canManageAuthentication} 
+                  canForcePasswordChange={canForcePasswordChange}
+                />
         );
 
 

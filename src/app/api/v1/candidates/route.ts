@@ -409,7 +409,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (status) {
-      whereClause += ` AND c.status = $${paramIndex}`;
+      whereClause += ` AND c."statusId" = $${paramIndex}`;
       queryParams.push(status);
       paramIndex++;
     }
@@ -424,12 +424,13 @@ export async function GET(request: NextRequest) {
 
       // Get candidates with pagination
       const candidatesQuery = `
-        SELECT c.*, p.title as "positionTitle", p.department as "positionDepartment", r.name as "recruiterName", r."avatarUrl" as "recruiterAvatarUrl",
+        SELECT c.*, rs.name as "statusName", p.title as "positionTitle", p.department as "positionDepartment", r.name as "recruiterName", r."avatarUrl" as "recruiterAvatarUrl",
                cs.name as "sourceName", cs.description as "sourceDescription", cs.email as "sourceEmail", cs.logo as "sourceLogo"
         FROM "Candidate" c
         LEFT JOIN "Position" p ON c."positionId" = p.id
         LEFT JOIN "User" r ON c."recruiterId" = r.id
         LEFT JOIN "CandidateSource" cs ON c."sourceId" = cs.id
+        LEFT JOIN "RecruitmentStage" rs ON c."statusId" = rs.id
         ${whereClause}
         ORDER BY c."createdAt" DESC
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
@@ -448,7 +449,7 @@ export async function GET(request: NextRequest) {
         sourceId: candidate.sourceId,
         subSource: candidate.subSource,
         fitScore: normalizeFitScore(candidate.fitScore),
-        status: candidate.status,
+        status: candidate.statusName || candidate.status,
         applicationDate: candidate.applicationDate,
         createdAt: candidate.createdAt,
         updatedAt: candidate.updatedAt,

@@ -70,16 +70,8 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
               fetchAssignedPositions();
             }, 500);
           }
-        } catch {
-          // ignore malformed sse payloads
-        }
-      };
-
-      const handlePositionListUpdate = (event: MessageEvent) => {
-        try {
-          const payload = JSON.parse(event.data || '{}');
-          // Refresh when position list is updated (includes headcount changes)
-          if (payload && payload.type === 'position_list_update') {
+          // Also refresh when position list is updated (includes deletions and headcount changes)
+          if (payload && (payload.action === 'list_updated' || payload.action === 'deleted')) {
             if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
             refreshTimerRef.current = setTimeout(() => {
               fetchAssignedPositions();
@@ -106,12 +98,10 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
       };
 
       es.addEventListener('position_update', handlePositionUpdate);
-      es.addEventListener('position_list_update', handlePositionListUpdate);
       es.addEventListener('dashboard_update', handleDashboardUpdate);
 
       return () => {
         es.removeEventListener('position_update', handlePositionUpdate as any);
-        es.removeEventListener('position_list_update', handlePositionListUpdate as any);
         es.removeEventListener('dashboard_update', handleDashboardUpdate as any);
         es.close();
         sseRef.current = null;

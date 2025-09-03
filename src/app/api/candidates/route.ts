@@ -293,7 +293,7 @@ export async function GET(request: NextRequest) {
       email: 'c.email',
       fitScore: 'c."fitScore"',
       applicationDate: 'c."applicationDate"',
-      status: 'c.status',
+              status: 'c."statusId"',
       lastUpdate: 'c."updatedAt"',
       source: 'cs.name',
     };
@@ -564,21 +564,21 @@ export async function GET(request: NextRequest) {
       if (nullStatuses.length > 0 && regularStatuses.length > 0) {
         // Mixed null and regular statuses
         const statusConditions = regularStatuses.map((_, index) => 
-          `c.status = $${paramIndex + index}`
+          `c."statusId" = $${paramIndex + index}`
         ).join(' OR ');
-        whereClauses.push(`(${statusConditions} OR c.status IS NULL)`);
+        whereClauses.push(`(${statusConditions} OR c."statusId" IS NULL)`);
         queryParams.push(...regularStatuses);
         paramIndex += regularStatuses.length;
       } else if (nullStatuses.length > 0) {
         // Only null statuses
-        whereClauses.push(`c.status IS NULL`);
+        whereClauses.push(`c."statusId" IS NULL`);
       } else {
         // Only regular statuses selected - use direct UUID matching
         if (regularStatuses.length === 1) {
-          whereClauses.push(`c.status = $${paramIndex++}`);
+          whereClauses.push(`c."statusId" = $${paramIndex++}`);
           queryParams.push(regularStatuses[0]);
         } else {
-          whereClauses.push(`c.status = ANY($${paramIndex++})`);
+          whereClauses.push(`c."statusId" = ANY($${paramIndex++})`);
           queryParams.push(regularStatuses);
           paramIndex += 1;
         }
@@ -937,7 +937,8 @@ export async function GET(request: NextRequest) {
         c.email,
         c.phone,
         c."fitScore",
-        c.status,
+        c."statusId",
+        rs.name as "status",
         c."applicationDate",
         c."updatedAt",
         c."positionId",
@@ -952,6 +953,7 @@ export async function GET(request: NextRequest) {
       LEFT JOIN "Position" p ON c."positionId" = p.id
       LEFT JOIN "User" u ON c."recruiterId" = u.id
       LEFT JOIN "CandidateSource" cs ON c."sourceId" = cs.id
+              LEFT JOIN "RecruitmentStage" rs ON c."statusId" = rs.id
       ${whereClause}
       ORDER BY ${sortClause}
       LIMIT $${paramIndex++} OFFSET $${paramIndex++}
@@ -975,6 +977,7 @@ export async function GET(request: NextRequest) {
       phone: row.phone,
       fitScore: normalizeFitScore(row.fitScore),
       status: row.status,
+      statusId: row.statusId,
       applicationDate: row.applicationDate,
       updatedAt: row.updatedAt,
       positionId: row.positionId,

@@ -76,6 +76,7 @@ function releaseUserDbClient(userId: string) {
 
 // Unified broadcast function
 export function broadcastUnifiedEvent(event: UnifiedEvent) {
+  console.log('[Unified] Broadcasting event:', event.type, 'to', userConnections.size, 'users');
   const encoder = new TextEncoder();
   const message = `event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`;
   const encodedMessage = encoder.encode(message);
@@ -87,6 +88,7 @@ export function broadcastUnifiedEvent(event: UnifiedEvent) {
       try {
         connection.controller.enqueue(encodedMessage);
         connection.lastActivity = Date.now();
+        console.log(`[Unified] Sent ${event.type} to user ${event.targetUserId}`);
       } catch (error) {
         console.error(`[UNIFIED] Failed to send ${event.type} to user ${event.targetUserId}:`, error);
         removeUserConnection(event.targetUserId);
@@ -98,6 +100,7 @@ export function broadcastUnifiedEvent(event: UnifiedEvent) {
       try {
         connection.controller.enqueue(encodedMessage);
         connection.lastActivity = Date.now();
+        console.log(`[Unified] Sent ${event.type} to user ${userId}`);
       } catch (error) {
         console.error(`[UNIFIED] Failed to broadcast ${event.type} to user ${userId}:`, error);
         removeUserConnection(userId);
@@ -321,6 +324,7 @@ export async function handleUnifiedSSEConnection(request: Request) {
         
         // Add connection
         addUserConnection(userId, controller);
+        console.log(`[UNIFIED] User ${userId} SSE connection established`);
 
         // Send initial connection confirmation
         const initialData = JSON.stringify({

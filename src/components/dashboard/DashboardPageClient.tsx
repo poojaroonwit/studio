@@ -31,6 +31,8 @@ import { useEnhancedSSE } from '@/hooks/use-enhanced-sse';
 import { cn } from '@/lib/utils';
 import { useChartSetup } from '@/hooks/use-chart-setup';
 import { isDataLabelsAvailable } from '@/lib/chartjs-setup';
+import { createEventSource, closeEventSource } from '@/lib/event-source-utils';
+import { RealTimeStatus } from './RealTimeStatus';
 
 
 import '../../app/dashboard/dashboard.css';
@@ -303,6 +305,9 @@ export default function DashboardPageClient({
 
   // Enhanced SSE hook
   const { isConnected: realtimeConnected } = useEnhancedSSE();
+  
+  // Local EventSource connection status for dashboard
+  const [dashboardRealtimeConnected, setDashboardRealtimeConnected] = useState(false);
 
   useEffect(() => {
     // Handle initial state passed from server component
@@ -372,17 +377,44 @@ export default function DashboardPageClient({
   useEffect(() => {
     let mounted = true;
     
-    // Temporarily disabled EventSource to fix hook error
-    // const eventSource = createEventSource('/api/dashboard/stream');
-    // eventSource.onmessage = (event) => {
-    //   if (mounted) {
-    //     // Optionally, parse event.data for more granular updates
-    //     fetchDataClientSide(); // Refresh dashboard data on any event
-    //   }
-    // };
+    // Re-enabled EventSource for real-time dashboard updates
+    const eventSource = createEventSource('/api/sse');
+    
+    eventSource.onmessage = (event) => {
+      if (mounted) {
+        try {
+          const data = JSON.parse(event.data);
+          console.log('[Dashboard] Received SSE event:', data);
+          
+          // Handle different event types
+          if (data.type === 'candidate_update') {
+            console.log('[Dashboard] Candidate update received, refreshing data...');
+            fetchDataClientSide();
+          } else if (data.type === 'position_update') {
+            console.log('[Dashboard] Position update received, refreshing data...');
+            fetchDataClientSide();
+          } else if (data.type === 'dashboard_update') {
+            console.log('[Dashboard] Dashboard update received, refreshing data...');
+            fetchDataClientSide();
+          }
+        } catch (error) {
+          console.error('[Dashboard] Error parsing SSE event:', error);
+        }
+      }
+    };
+    
+    eventSource.onerror = (error) => {
+      console.error('[Dashboard] EventSource error:', error);
+    };
+    
+    eventSource.onopen = () => {
+      console.log('[Dashboard] EventSource connected for real-time updates');
+      setDashboardRealtimeConnected(true);
+    };
+    
     return () => {
       mounted = false;
-      // closeEventSource(eventSource);
+      closeEventSource(eventSource);
     };
   }, [fetchDataClientSide]);
 
@@ -881,12 +913,22 @@ export default function DashboardPageClient({
   // Unified Dashboard - Show all metrics to everyone
   return (
     <div className="space-y-8 p-6">
-      {/* Section 1: Key Statics - Row 1 */}
-      <div className="space-y-6">
-   
+      {/* Real-time Status Indicator */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center space-x-3">
+          <div className="h-8 w-1 bg-gradient-to-b from-blue-500 to-blue-400 rounded-full"></div>
+          <div>
+            <h2 className="text-2xl font-bold text-foreground">Dashboard</h2>
+            <p className="text-sm text-muted-foreground mt-1">Real-time recruitment metrics</p>
+          </div>
+        </div>
+        <RealTimeStatus onDataUpdate={fetchDataClientSide} />
+      </div>
 
+            {/* Section 1: Key Statics - Row 1 */}
+      <div className="space-y-6">
         <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-4">
-          {[ // Row 1 KPI cards array
+        {[ // Row 1 KPI cards array
             { // This Week's Applications
               title: "This Week's Applications",
               value: recentApplications.length,
@@ -1007,6 +1049,7 @@ export default function DashboardPageClient({
               </CardContent>
           </Card>
         ))}
+        </div>
         </div>
       </div>
 

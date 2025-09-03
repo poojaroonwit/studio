@@ -8,7 +8,7 @@ import { dispatchWebhooks } from '@/lib/webhookDispatcher';
 import { syncRecruitersForPosition } from '@/lib/recruiterSync';
 import { NotificationService } from '@/lib/notificationService';
 import { SimpleWarningService } from '@/lib/warnings';
-import { broadcastPositionUpdate, broadcastPositionListUpdated, broadcastPositionStatisticsUpdated } from '@/lib/simple-broadcaster';
+import { broadcastPositionUpdate, broadcastPositionListUpdated, broadcastPositionStatisticsUpdated, broadcastPositionDeleted } from '@/lib/simple-broadcaster';
 
 const updatePositionSchema = z.object({
   title: z.string().min(1).optional(),
@@ -509,6 +509,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     }
     
     // Broadcast real-time updates
+    broadcastPositionDeleted(id, actingUserId);
     broadcastPositionListUpdated();
     // Broadcast statistics update
     const statsQuery = `

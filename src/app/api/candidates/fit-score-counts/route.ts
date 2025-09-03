@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
 
     // All these IDs are UUIDs in the schema; pass as text parameters
     appendInClause('c."positionId"', searchParams.get('positionId'), 'text');
-    appendInClause('c.status', searchParams.get('status'), 'text');
+    appendInClause('c."statusId"', searchParams.get('status'), 'text');
     appendInClause('c."recruiterId"', searchParams.get('recruiterId'), 'text');
     appendInClause('c."sourceId"', searchParams.get('sourceId'), 'text');
 

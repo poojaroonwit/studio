@@ -29,15 +29,16 @@ export async function authenticateUser(email: string, password: string) {
       return null;
     }
 
-    // Get user permissions using direct foreign key relationship
+    // Get user permissions using the User_UserGroup junction table
     const permissionsResult = await client.query(`
-      SELECT ug.permissions AS group_permissions
+      SELECT DISTINCT unnest(ug.permissions) AS permission
       FROM "User" u
-      LEFT JOIN "UserGroup" ug ON u."userGroupId" = ug.id
+      JOIN "User_UserGroup" uug ON u.id = uug."userId"
+      JOIN "UserGroup" ug ON uug."groupId" = ug.id
       WHERE u.id = $1
     `, [user.id]);
 
-    const permissions = (permissionsResult.rows[0]?.group_permissions || []) as PlatformModuleId[];
+    const permissions = permissionsResult.rows.map(row => row.permission) as PlatformModuleId[];
 
     return {
       id: user.id,
@@ -101,14 +102,18 @@ export async function getUserSessionData(userId: string) {
 export async function getUserPermissions(userId: string): Promise<PlatformModuleId[]> {
   const client = await getPool().connect();
   try {
+    // Updated to use the User_UserGroup junction table for many-to-many relationship
     const result = await client.query(`
-      SELECT ug.permissions AS group_permissions
+      SELECT DISTINCT unnest(ug.permissions) AS permission
       FROM "User" u
-      LEFT JOIN "UserGroup" ug ON u."userGroupId" = ug.id
+      JOIN "User_UserGroup" uug ON u.id = uug."userId"
+      JOIN "UserGroup" ug ON uug."groupId" = ug.id
       WHERE u.id = $1
     `, [userId]);
 
-    return (result.rows[0]?.group_permissions || []) as PlatformModuleId[];
+    // Extract permissions from the result
+    const permissions = result.rows.map(row => row.permission) as PlatformModuleId[];
+    return permissions;
   } catch (error) {
     console.error('[AUTH UTILS] Get user permissions error:', error);
     return [];

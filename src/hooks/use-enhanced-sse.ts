@@ -137,6 +137,7 @@ export function useEnhancedSSE() {
     
     // Add event listener to receive SSE events
     const handleSSEEvent = (event: any) => {
+      console.log('[Enhanced SSE Hook] Received SSE event:', event);
       setLastMessage(event);
     };
     

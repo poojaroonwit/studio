@@ -55,7 +55,6 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
 
     // Abort any existing request
     if (abortControllerRef.current) {
-      console.log('🛑 Aborting existing request for candidate:', candidateId);
       abortControllerRef.current.abort();
     }
 

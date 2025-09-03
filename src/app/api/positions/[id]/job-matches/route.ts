@@ -51,7 +51,7 @@ export async function GET(
       email: 'c.email',
       matchScore: 'jm."fitScore"',
       applicationDate: 'c."applicationDate"',
-      status: 'c.status',
+      status: 'c."statusId"',
       lastUpdate: 'c."updatedAt"',
     };
     const sortColumnParam = searchParams.get('sortColumn') || 'matchScore';
@@ -100,6 +100,7 @@ export async function GET(
       const candidatesQuery = `
         SELECT 
           c.*, 
+          rs.name as "statusName",
           p.id as "positionId", 
           p.title as "positionTitle", 
           p.department as "positionDepartment", 
@@ -115,6 +116,7 @@ export async function GET(
         INNER JOIN "JobMatch" jm ON c.id = jm."candidateId"
         LEFT JOIN "Position" p ON c."positionId" = p.id
         LEFT JOIN "User" r ON c."recruiterId" = r.id
+        LEFT JOIN "RecruitmentStage" rs ON c."statusId" = rs.id
         LEFT JOIN LATERAL (
           SELECT json_agg(
             json_build_object(

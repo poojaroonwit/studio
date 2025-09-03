@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Checkbox } from "@/components/ui/checkbox";
-import type { UserProfile } from '@/lib/types';
+import type { UserProfile, UserGroup } from '@/lib/types';
 import { toast } from 'react-hot-toast';
 import { RoleSelector } from '@/components/settings/RoleSelector';
 import { UserAvatarUpload } from '@/components/ui/user-avatar-upload';
@@ -34,22 +34,21 @@ import { PersonalColorPicker } from '@/components/settings/PersonalColorPicker';
 import { useClickProtection } from '@/hooks/use-click-protection';
 import { Switch } from '@/components/ui/switch';
 
-const userRoleOptions: UserProfile['role'][] = ['Admin', 'Recruiter', 'Hiring Manager'];
+
 
 // Unified form schema that handles all scenarios
 const unifiedUserFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email address"),
   password: z.string().min(8, "Password must be at least 8 characters long").optional().or(z.literal('')),
-  role: z.enum(userRoleOptions as [UserProfile['role'], ...UserProfile['role'][]], { required_error: "Role is required" }),
+  role: z.string().min(1, "Role is required"),
   newPassword: z.string().min(8, "New password must be at least 8 characters").optional().or(z.literal('')),
   forcePasswordChange: z.boolean().optional().default(false),
   authenticationMethod: z.enum(['basic', 'azure']).optional().default('basic'),
-
   userTeamIds: z.array(z.string()).optional().default([]),
+  userGroupIds: z.array(z.string()).optional().default([]),
   avatarUrl: z.string().optional(),
   personalColor: z.string().optional(),
-
 });
 
 export type UnifiedUserFormValues = z.infer<typeof unifiedUserFormSchema>;
@@ -79,6 +78,8 @@ export function UnifiedUserModal({
   const [activeTab, setActiveTab] = useState('personal');
   const [userTeams, setUserTeams] = useState<Array<{ id: string; name: string; color?: string }>>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [userGroups, setUserGroups] = useState<UserGroup[]>([]);
+  const [isLoadingGroups, setIsLoadingGroups] = useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [sidebarShowAssigned, setSidebarShowAssigned] = useState<boolean>(false);
   const [sidebarPrefLoading, setSidebarPrefLoading] = useState<boolean>(false);
@@ -91,19 +92,40 @@ export function UnifiedUserModal({
 
   const form = useForm<UnifiedUserFormValues>({
     resolver: zodResolver(unifiedUserFormSchema),
-          defaultValues: { 
-        name: '', 
-        email: '', 
-        password: '',
-        role: 'Recruiter', 
-        newPassword: '',  
-        forcePasswordChange: false, 
-        authenticationMethod: 'basic', 
-        userTeamIds: [], 
-        avatarUrl: '', 
-        personalColor: '#3B82F6',
-      },
+    defaultValues: { 
+      name: '', 
+      email: '', 
+      password: '',
+      role: '', 
+      newPassword: '',  
+      forcePasswordChange: false, 
+      authenticationMethod: 'basic', 
+      userTeamIds: [], 
+      userGroupIds: [],
+      avatarUrl: '', 
+      personalColor: '#3B82F6',
+    },
   });
+
+  // Fetch user groups
+  useEffect(() => {
+    const fetchUserGroups = async () => {
+      setIsLoadingGroups(true);
+      try {
+        const response = await fetch('/api/settings/user-groups');
+        if (response.ok) {
+          const groups = await response.json();
+          setUserGroups(groups);
+        }
+      } catch (error) {
+        console.error('Failed to fetch user groups:', error);
+      } finally {
+        setIsLoadingGroups(false);
+      }
+    };
+
+    fetchUserGroups();
+  }, []);
 
   // Cleanup timeout on component unmount
   useEffect(() => {
@@ -146,14 +168,14 @@ export function UnifiedUserModal({
           form.reset({
             name: user.name,
             email: user.email,
-            role: user.role,
+            role: user.role, // Keep for backward compatibility
             newPassword: '',
             forcePasswordChange: false,
             authenticationMethod: user.authenticationMethod || 'basic',
             userTeamIds: user.teams?.map(t => t.id) || [],
+            userGroupIds: user.userGroups?.map(g => g.id) || [],
             avatarUrl: user.avatarUrl || '',
             personalColor: user.personalColor || '#3B82F6',
-
           });
         }
       } else {
@@ -162,14 +184,14 @@ export function UnifiedUserModal({
           name: '',
           email: '',
           password: '',
-          role: 'Recruiter',
+          role: '', // Keep for backward compatibility
           newPassword: '',
           forcePasswordChange: false,
           authenticationMethod: 'basic',
           userTeamIds: [],
+          userGroupIds: [],
           avatarUrl: '',
           personalColor: '#3B82F6',
-          
         });
       }
       setActiveTab('personal');
@@ -628,9 +650,9 @@ export function UnifiedUserModal({
                           </div>
                           <div className="space-y-6">
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                              <FormField 
+                                                            <FormField 
                                 control={form.control} 
-                                name="role" 
+                                name="userGroupIds" 
                                 render={({ field }) => (
                                   <FormItem>
                                     <FormLabel htmlFor="role-edit" className="text-sm font-medium">
@@ -638,21 +660,19 @@ export function UnifiedUserModal({
                                     </FormLabel>
                                     {mode === 'profile' ? (
                                       <div className="h-10 px-3 py-2 border border-input rounded-md bg-muted text-foreground flex items-center transition-all duration-200">
-                                        {field.value || 'No role assigned'}
+                                        {userGroups.find(g => g.id === field.value?.[0])?.name || 'No role assigned'}
                                       </div>
                                     ) : (
-                                      <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
-                                        <FormControl>
-                                          <SelectTrigger id="role-edit" className="h-10 transition-all duration-200 focus:ring-2 focus:ring-primary/20">
-                                            <SelectValue placeholder="Select a role" />
-                                          </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent className="z-[100003]">
-                                          {userRoleOptions.map(roleValue => (
-                                            <SelectItem key={roleValue} value={roleValue}>{roleValue}</SelectItem>
-                                          ))}
-                                        </SelectContent>
-                                      </Select>
+                                      <RoleSelector
+                                        availableRoles={userGroups}
+                                        selectedRoleIds={field.value || []}
+                                        onRolesChange={field.onChange}
+                                        title="Select Role"
+                                        description="Choose the role for this user"
+                                        multiple={false}
+                                        noCard={true}
+                                        disabled={isLoadingGroups}
+                                       />
                                     )}
                                     <FormMessage />
                                   </FormItem>
@@ -685,21 +705,25 @@ export function UnifiedUserModal({
                             </div>
 
                             {/* Sidebar preferences (Recruiter only) */}
-                            {form.watch('role') === 'Recruiter' && (
-                              <div className="rounded-md border p-4">
-                                <div className="flex items-center justify-between">
-                                  <div className="space-y-1">
-                                    <Label className="text-sm font-medium">Show Assigned Positions</Label>
-                                    <p className="text-sm text-muted-foreground">Show this user's open assigned positions in the main sidebar.</p>
+                            {(() => {
+                              const selectedRole = userGroups.find(g => g.id === form.watch('userGroupIds')?.[0]);
+                              const isRecruiter = selectedRole?.name === 'Recruiters' || selectedRole?.name === 'Recruiter';
+                              return isRecruiter && (
+                                <div className="rounded-md border p-4">
+                                  <div className="flex items-center justify-between">
+                                    <div className="space-y-1">
+                                      <Label className="text-sm font-medium">Show Assigned Positions</Label>
+                                      <p className="text-sm text-muted-foreground">Show this user's open assigned positions in the main sidebar.</p>
+                                    </div>
+                                    <Switch
+                                      checked={sidebarShowAssigned}
+                                      onCheckedChange={(c) => saveSidebarPref(Boolean(c))}
+                                      disabled={sidebarPrefLoading || (mode === 'edit' && user && session?.user?.role !== 'Admin')}
+                                    />
                                   </div>
-                                  <Switch
-                                    checked={sidebarShowAssigned}
-                                    onCheckedChange={(c) => saveSidebarPref(Boolean(c))}
-                                    disabled={sidebarPrefLoading || (mode === 'edit' && user && session?.user?.role !== 'Admin')}
-                                  />
                                 </div>
-                              </div>
-                            )}
+                              );
+                            })()}
                           </div>
                         </div>
 

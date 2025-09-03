@@ -19,6 +19,7 @@ interface HeadcountWarningModalProps {
   positionTitle?: string;
   errorMessage: string;
   onProceed?: () => void;
+  candidate?: any; // Add candidate prop for position ID access
 }
 
 export function HeadcountWarningModal({
@@ -58,15 +59,26 @@ export function HeadcountWarningModal({
           "Review the candidate's application for position preferences"
         ]
       };
-    } else if (isNoHeadcount || isHeadcountFull) {
+    } else if (isNoHeadcount) {
       return {
-        title: "Headcount Limit Reached",
-        description: "This position has reached its maximum headcount allocation.",
+        title: "No Headcount Defined",
+        description: "This position has no headcount slots defined. Headcounts must be created before candidates can be hired.",
         solutions: [
-          "Contact HR to increase headcount allocation for this position",
-          "Check if there are other similar positions with available headcount",
-          "Review current hiring pipeline to see if any positions can be reallocated",
-          "Consider creating a new position or department if needed"
+          "Go to the position's Headcount tab to create headcount slots",
+          "Create at least one headcount with status 'vacant'",
+          "Contact HR to set up headcount allocation for this position",
+          "Headcount types can be: 'new', 'promote', or 'replace'"
+        ]
+      };
+    } else if (isHeadcountFull) {
+      return {
+        title: "All Headcounts Filled",
+        description: "All headcount slots for this position are already filled with other candidates.",
+        solutions: [
+          "Wait for a headcount to become available",
+          "Contact HR to increase headcount allocation",
+          "Consider moving the candidate to a different position",
+          "Check if any existing candidates can be moved to different roles"
         ]
       };
     } else if (isRaceCondition) {

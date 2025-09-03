@@ -186,20 +186,17 @@ export default function CandidateImportUploadQueue() {
 
     const connectSSE = () => {
       try {
-        console.log('[Process Queue] Attempting SSE connection...');
         eventSource = new EventSource('/api/sse');
         
         eventSource.onopen = () => {
-          console.log('[Process Queue] SSE connection established');
           setSseConnected(true);
           setSseError(null);
           
                   // Set up keepalive to detect connection issues
         keepaliveInterval = setInterval(() => {
           if (eventSource?.readyState === EventSource.OPEN) {
-            console.log('[Process Queue] SSE keepalive - connection healthy');
+            // Connection healthy
           } else {
-            console.log('[Process Queue] SSE keepalive - connection lost, reconnecting...');
             reconnectSSE();
           }
         }, 10000); // Check every 10 seconds
@@ -209,7 +206,6 @@ export default function CandidateImportUploadQueue() {
           eventSource.addEventListener('upload_queue_update', (event) => {
             try {
               const data = JSON.parse(event.data);
-              console.log('[Process Queue] SSE upload_queue_update event received:', data);
               setSseEventCount(prev => prev + 1);
               
               // Refresh queue data
@@ -230,7 +226,7 @@ export default function CandidateImportUploadQueue() {
                 });
               }
             } catch (error) {
-              console.error('[Process Queue] Error parsing upload_queue_update event:', error);
+              // Error parsing upload_queue_update event
             }
           });
 

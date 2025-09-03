@@ -34,7 +34,7 @@ import { UserAvatarUpload } from '@/components/ui/user-avatar-upload';
 import { PersonalColorPicker } from '@/components/settings/PersonalColorPicker';
 import { useClickProtection } from '@/hooks/use-click-protection';
 import { Switch } from '@/components/ui/switch';
-import { hasAnyPermission } from '@/lib/permissions';
+import { hasAnyPermission, hasPermission } from '@/lib/permissions';
 
 
 
@@ -273,7 +273,7 @@ export function UnifiedUserModal({
             const data = await res.json();
             setSidebarShowAssigned(Boolean(data?.sidebar?.showAssignedPositions));
           }
-        } else if ((mode === 'edit') && user && hasUserManagePermission) {
+        } else if ((mode === 'edit') && user && hasAnyPermission(session?.user, ['USERS_EDIT', 'USERS_VIEW'])) {
           const res = await fetch(`/api/user-preferences/${user.id}`, { credentials: 'include' });
           if (res.ok) {
             const data = await res.json();
@@ -726,9 +726,9 @@ export function UnifiedUserModal({
                                       </div>
                                     ) : (
                                       <Select
-                                        value={field.value?.length ? field.value[0] : ""}
+                                        value={field.value?.length ? field.value[0] : "none"}
                                         onValueChange={(value) => {
-                                          if (value && value.trim() !== "") {
+                                          if (value && value !== "none") {
                                             field.onChange([value]);
                                           } else {
                                             field.onChange([]);
@@ -741,7 +741,7 @@ export function UnifiedUserModal({
                                         </SelectTrigger>
                                         <SelectContent className="z-[100003]">
                                           {/* Clear option */}
-                                          <SelectItem value="">
+                                          <SelectItem value="none">
                                             <div className="flex items-center gap-2 text-muted-foreground">
                                               <span>No role assigned</span>
                                             </div>

@@ -111,7 +111,7 @@ export async function GET(
         ut."is_active" as "isActive",
         ut."createdAt",
         ut."updatedAt",
-        COUNT(u.id) as user_count
+        COUNT(u.id) as member_count
       FROM "UserTeam" ut
       LEFT JOIN "User" u ON ut.id = u."userTeamId"
       WHERE ut.id = $1

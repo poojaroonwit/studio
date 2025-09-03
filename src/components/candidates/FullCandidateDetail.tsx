@@ -715,6 +715,20 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
         preselectedStage={preselectedStage}
         comments={comments}
         onCommentsChange={handleCommentsChange}
+        onHeadcountConstraintError={(error: Error) => {
+          // Get position title for the warning
+          const positionTitle = candidate?.positionId 
+            ? allDbPositions.find(p => p.id === candidate.positionId)?.title 
+            : undefined;
+          
+          // Set warning data and show modal
+          setHeadcountWarningData({
+            candidateName: candidate?.name || 'Unknown Candidate',
+            positionTitle,
+            errorMessage: error.message.replace('Headcount constraint: ', '')
+          });
+          setIsHeadcountWarningModalOpen(true);
+        }}
       />
  
       {isJobMatchEnabled && (
@@ -766,6 +780,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
           candidateName={headcountWarningData.candidateName}
           positionTitle={headcountWarningData.positionTitle}
           errorMessage={headcountWarningData.errorMessage}
+          candidate={candidate}
         />
       )}
  

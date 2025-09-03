@@ -4,6 +4,10 @@ import { authOptions } from '@/lib/auth';
 import { hasAnyPermission } from '@/lib/permissions';
 import { getPool, getConnectionUsageStats } from '@/lib/db';
 import os from 'os';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
 
 export const dynamic = 'force-dynamic';
 
@@ -193,6 +197,32 @@ export async function GET(request: NextRequest) {
       console.warn('[SYSTEM METRICS] Failed to get database connection info:', error);
     }
 
+    // Get container information
+    let containerInfo = null;
+    try {
+      const { stdout: containerCountOutput } = await execAsync('docker ps -q | wc -l');
+      const containerCount = parseInt(containerCountOutput.trim()) || 0;
+      
+      const { stdout: runningContainersOutput } = await execAsync('docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"');
+      const runningContainers = runningContainersOutput.trim().split('\n').slice(1).map(line => {
+        const parts = line.split('\t');
+        return {
+          name: parts[0] || 'Unknown',
+          status: parts[1] || 'Unknown',
+          ports: parts[2] || 'No ports'
+        };
+      });
+
+      containerInfo = {
+        total: containerCount,
+        running: runningContainers.length,
+        containers: runningContainers
+      };
+    } catch (error) {
+      console.warn('[SYSTEM METRICS] Failed to get container info:', error);
+      containerInfo = { error: 'Docker not accessible' };
+    }
+
     const metrics = {
       timestamp: new Date().toISOString(),
       system: {
@@ -219,7 +249,8 @@ export async function GET(request: NextRequest) {
       disk: diskInfo,
       database: {
         connections: dbConnections
-      }
+      },
+      containers: containerInfo
     };
 
     return NextResponse.json(metrics);

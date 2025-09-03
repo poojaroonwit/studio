@@ -462,9 +462,9 @@ function AccountSettingsContent({ form, mode, canManageAuthentication, canForceP
                 </div>
               ) : (
                 <Select
-                  value={field.value?.length ? field.value[0] : ""}
+                  value={field.value?.length ? field.value[0] : "none"}
                   onValueChange={(value) => {
-                    if (value && value.trim() !== "") {
+                    if (value && value !== "none") {
                       field.onChange([value]);
                     } else {
                       field.onChange([]);
@@ -477,7 +477,7 @@ function AccountSettingsContent({ form, mode, canManageAuthentication, canForceP
                   </SelectTrigger>
                   <SelectContent className="z-[100003]">
                     {/* Clear option */}
-                    <SelectItem value="">
+                    <SelectItem value="none">
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <span>No role assigned</span>
                       </div>
@@ -495,7 +495,7 @@ function AccountSettingsContent({ form, mode, canManageAuthentication, canForceP
                             <Badge variant="secondary" className="text-xs bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20">
                               Default
                             </Badge>
-                          )}
+                            )}
                           <span>{role.name}</span>
                         </div>
                       </SelectItem>

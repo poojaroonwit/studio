@@ -251,17 +251,63 @@ export async function POST(request: NextRequest) {
   
   if (!role) {
     // No role specified, try to find a default user group
-    const defaultUserGroup = await prisma.userGroup.findFirst({
+    let defaultUserGroup = await prisma.userGroup.findFirst({
       where: { isDefault: true },
       orderBy: { createdAt: 'asc' } // Use the first default group if multiple exist
     });
     
+    // If no default group exists, try to create or find the Recruiters group
     if (!defaultUserGroup) {
-      await logAudit('ERROR', `Failed to create user ${email} - No default role configured in the system.`, 'API:Users:Create', session.user.id);
-      return NextResponse.json({ 
-        message: "No default role configured. Please specify a role or contact your system administrator to configure a default role.",
-        error: "No default role configured"
-      }, { status: 400 });
+      console.log('No default user group found, attempting to find or create Recruiters group...');
+      
+      // First try to find the Recruiters group
+      defaultUserGroup = await prisma.userGroup.findFirst({
+        where: {
+          OR: [
+            { name: 'Recruiters' },
+            { name: 'Recruiter' }
+          ]
+        }
+      });
+      
+      // If still no group found, create the Recruiters group
+      if (!defaultUserGroup) {
+        console.log('Creating Recruiters group as default...');
+        try {
+          defaultUserGroup = await prisma.userGroup.create({
+            data: {
+              id: '00000000-0000-0000-0000-000000000002',
+              name: 'Recruiters',
+              description: 'Standard recruiter access',
+              permissions: [
+                'CANDIDATES_VIEW', 'CANDIDATES_CREATE', 'CANDIDATES_EDIT_BASIC',
+                'POSITIONS_VIEW', 'POSITIONS_CREATE', 'POSITIONS_EDIT_BASIC',
+                'TASK_BOARD_VIEW', 'TASK_BOARD_MANAGE_OWN', 'DASHBOARD_VIEW',
+                'USER_PREFERENCES_MANAGE_OWN'
+              ],
+              isDefault: true,
+              isSystemRole: true
+            }
+          });
+          console.log('Recruiters group created successfully with ID:', defaultUserGroup.id);
+        } catch (createError) {
+          console.error('Failed to create Recruiters group:', createError);
+          await logAudit('ERROR', `Failed to create user ${email} - Could not create default Recruiters group. Error: ${(createError as Error).message}`, 'API:Users:Create', session.user.id);
+          return NextResponse.json({ 
+            message: "System configuration error. Please contact your system administrator.",
+            error: "Failed to create default user group"
+          }, { status: 500 });
+        }
+      } else {
+        // If group exists but is not marked as default, update it
+        if (!defaultUserGroup.isDefault) {
+          console.log('Updating existing group to be default...');
+          await prisma.userGroup.update({
+            where: { id: defaultUserGroup.id },
+            data: { isDefault: true }
+          });
+        }
+      }
     }
     
     // Map the default group to a role string for API compatibility
@@ -325,26 +371,51 @@ export async function POST(request: NextRequest) {
     } else if (finalRole) {
       // Only fall back to role-based mapping if we have a role but no user group IDs
       // This handles the case where a role is explicitly specified but no user group is selected
-      const roleToGroupId = {
-        'Admin': '00000000-0000-0000-0000-000000000001',
-        'Recruiter': '00000000-0000-0000-0000-000000000002',
-        'Hiring Manager': '00000000-0000-0000-0000-000000000003'
-      };
       
-      targetUserGroupId = roleToGroupId[finalRole] || null;
+      // Try to find the user group by name first (more reliable than hardcoded UUIDs)
+      let targetUserGroup = await prisma.userGroup.findFirst({
+        where: {
+          OR: [
+            // Try exact name matches first
+            { name: finalRole },
+            // Then try partial matches
+            { name: { contains: finalRole, mode: 'insensitive' } },
+            // Handle specific role mappings
+            ...(finalRole === 'Recruiter' ? [{ name: 'Recruiters' }] : []),
+            ...(finalRole === 'Admin' ? [{ name: 'Administrators' }] : []),
+            ...(finalRole === 'Hiring Manager' ? [{ name: 'Hiring Managers' }] : [])
+          ]
+        }
+      });
       
-      if (targetUserGroupId) {
-        const groupExists = await prisma.userGroup.findUnique({
-          where: { id: targetUserGroupId }
-        });
+      if (targetUserGroup) {
+        targetUserGroupId = targetUserGroup.id;
+        console.log(`Found user group '${targetUserGroup.name}' (ID: ${targetUserGroup.id}) for role '${finalRole}'`);
+      } else {
+        // Fallback to hardcoded UUIDs if name-based search fails
+        const roleToGroupId = {
+          'Admin': '00000000-0000-0000-0000-000000000001',
+          'Recruiter': '00000000-0000-0000-0000-000000000002',
+          'Hiring Manager': '00000000-0000-0000-0000-000000000003'
+        };
         
-        if (!groupExists) {
-          console.error(`User group with ID ${targetUserGroupId} for role ${finalRole} does not exist`);
-          await logAudit('ERROR', `Failed to create user ${email} - User group for role ${finalRole} does not exist.`, 'API:Users:Create', session.user.id);
-          return NextResponse.json({ 
-            message: `User group for role '${finalRole}' does not exist. Please contact your system administrator.`,
-            error: "Missing user group"
-          }, { status: 500 });
+        const fallbackGroupId = roleToGroupId[finalRole];
+        if (fallbackGroupId) {
+          const groupExists = await prisma.userGroup.findUnique({
+            where: { id: fallbackGroupId }
+          });
+          
+          if (groupExists) {
+            targetUserGroupId = fallbackGroupId;
+            console.log(`Using fallback UUID ${fallbackGroupId} for role '${finalRole}'`);
+          } else {
+            console.error(`Fallback user group with ID ${fallbackGroupId} for role ${finalRole} does not exist`);
+            await logAudit('ERROR', `Failed to create user ${email} - User group for role ${finalRole} does not exist.`, 'API:Users:Create', session.user.id);
+            return NextResponse.json({ 
+              message: `User group for role '${finalRole}' does not exist. Please contact your system administrator.`,
+              error: "Missing user group"
+            }, { status: 500 });
+          }
         }
       }
     }

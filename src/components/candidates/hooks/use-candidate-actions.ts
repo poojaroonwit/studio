@@ -71,6 +71,14 @@ export function useCandidateActions({
 
       const result = await response.json();
       
+      // Check for rejected candidates due to headcount constraints
+      if (result.rejectedCandidates && result.rejectedCandidates.length > 0) {
+        const rejectedCandidate = result.rejectedCandidates.find((c: any) => c.candidateId === candidateId);
+        if (rejectedCandidate) {
+          throw new Error(`Headcount constraint: ${rejectedCandidate.message}`);
+        }
+      }
+      
       if (!suppressToast) {
         toast.success(`Status updated to ${newStatus}`, { id: candidateId });
       }

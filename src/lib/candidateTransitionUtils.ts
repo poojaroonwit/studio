@@ -37,7 +37,9 @@ export async function updateCandidatesStatusBulk(candidateIds: string[], status:
         ? ` (Total: ${rejectedCandidate.headcountStatus.totalHeadcounts}, Vacant: ${rejectedCandidate.headcountStatus.vacantHeadcounts}, Filled: ${rejectedCandidate.headcountStatus.filledHeadcounts})`
         : '';
       
-      const errorMessage = `Headcount constraint: ${rejectedCandidate.message || 'Cannot update status due to headcount limitations'}${headcountInfo}`;
+      // Include original error details if available
+      const originalErrorInfo = rejectedCandidate.originalError ? ` - Original error: ${rejectedCandidate.originalError}` : '';
+      const errorMessage = `Headcount constraint: ${rejectedCandidate.message || 'Cannot update status due to headcount limitations'}${headcountInfo}${originalErrorInfo}`;
       console.error('Headcount constraint error:', errorMessage);
       throw new Error(errorMessage);
     }

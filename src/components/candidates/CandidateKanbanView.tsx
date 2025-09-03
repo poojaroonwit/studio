@@ -615,10 +615,22 @@ export function CandidateRowKanbanView({
             newStatus: value
           })
         });
+        
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
           throw new Error(data.message || 'Failed to update status');
         }
+        
+        const result = await res.json();
+        
+        // Check for rejected candidates due to headcount constraints
+        if (result.rejectedCandidates && result.rejectedCandidates.length > 0) {
+          const rejectedCandidate = result.rejectedCandidates.find((c: any) => c.candidateId === candidate.id);
+          if (rejectedCandidate) {
+            throw new Error(`Headcount constraint: ${rejectedCandidate.message}`);
+          }
+        }
+        
         toast.success(`Status updated to ${value}`, { id: candidate.id });
       } else if (field === 'recruiterId' || field === 'positionId') {
         toast.loading('Updating candidate...', { id: candidate.id });
@@ -634,7 +646,14 @@ export function CandidateRowKanbanView({
         toast.success('Candidate updated', { id: candidate.id });
       }
     } catch (error: any) {
-      toast.error(error?.message || 'Update failed', { id: candidate.id });
+      // Check if it's a headcount constraint error
+      if (error.message && error.message.includes('Headcount constraint:')) {
+        // For headcount constraint errors, we need to show a more detailed error
+        // since we don't have access to the HeadcountWarningModal here
+        toast.error(error.message, { duration: 8000 });
+      } else {
+        toast.error(error?.message || 'Update failed', { id: candidate.id });
+      }
     }
   };
 
@@ -803,10 +822,22 @@ export function FlexibleKanbanView({
             newStatus: value
           })
         });
+        
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
           throw new Error(data.message || 'Failed to update status');
         }
+        
+        const result = await res.json();
+        
+        // Check for rejected candidates due to headcount constraints
+        if (result.rejectedCandidates && result.rejectedCandidates.length > 0) {
+          const rejectedCandidate = result.rejectedCandidates.find((c: any) => c.candidateId === candidate.id);
+          if (rejectedCandidate) {
+            throw new Error(`Headcount constraint: ${rejectedCandidate.message}`);
+          }
+        }
+        
         toast.success(`Status updated to ${value}`, { id: candidate.id });
       } else if (field === 'recruiterId' || field === 'positionId') {
         toast.loading('Updating candidate...', { id: candidate.id });
@@ -822,7 +853,14 @@ export function FlexibleKanbanView({
         toast.success('Candidate updated', { id: candidate.id });
       }
     } catch (error: any) {
-      toast.error(error?.message || 'Update failed', { id: candidate.id });
+      // Check if it's a headcount constraint error
+      if (error.message && error.message.includes('Headcount constraint:')) {
+        // For headcount constraint errors, we need to show a more detailed error
+        // since we don't have access to the HeadcountWarningModal here
+        toast.error(error.message, { duration: 8000 });
+      } else {
+        toast.error(error?.message || 'Update failed', { id: candidate.id });
+      }
     }
   };
 
@@ -2291,14 +2329,45 @@ export function HorizontalStageKanbanView({
             newStatus: value
           })
         });
+        
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
           throw new Error(data.message || 'Failed to update status');
         }
+        
+        const result = await res.json();
+        
+        // Check for rejected candidates due to headcount constraints
+        if (result.rejectedCandidates && result.rejectedCandidates.length > 0) {
+          const rejectedCandidate = result.rejectedCandidates.find((c: any) => c.candidateId === candidate.id);
+          if (rejectedCandidate) {
+            throw new Error(`Headcount constraint: ${rejectedCandidate.message}`);
+          }
+        }
+        
         toast.success(`Status updated to ${value}`, { id: candidate.id });
+      } else if (field === 'recruiterId' || field === 'positionId') {
+        toast.loading('Updating candidate...', { id: candidate.id });
+        const res = await fetch(`/api/candidates/${candidate.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ [field]: value })
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.message || 'Failed to update candidate');
+        }
+        toast.success('Candidate updated', { id: candidate.id });
       }
     } catch (error: any) {
-      toast.error(error?.message || 'Update failed', { id: candidate.id });
+      // Check if it's a headcount constraint error
+      if (error.message && error.message.includes('Headcount constraint:')) {
+        // For headcount constraint errors, we need to show a more detailed error
+        // since we don't have access to the HeadcountWarningModal here
+        toast.error(error.message, { duration: 8000 });
+      } else {
+        toast.error(error?.message || 'Update failed', { id: candidate.id });
+      }
     }
   };
 

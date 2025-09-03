@@ -324,10 +324,33 @@ export async function POST(request: NextRequest) {
                 }
               } catch (error) {
                 console.error(`Error validating headcount for candidate ${candidate.id}:`, error);
+                
+                // Provide more specific error messages based on the error type
+                let errorMessage = 'Error validating headcount availability';
+                let errorReason = 'VALIDATION_ERROR';
+                
+                if (error instanceof Error) {
+                  if (error.message.includes('connection') || error.message.includes('timeout')) {
+                    errorMessage = 'Database connection error during headcount validation';
+                    errorReason = 'CONNECTION_ERROR';
+                  } else if (error.message.includes('permission') || error.message.includes('access')) {
+                    errorMessage = 'Permission denied during headcount validation';
+                    errorReason = 'PERMISSION_ERROR';
+                  } else if (error.message.includes('constraint') || error.message.includes('foreign key')) {
+                    errorMessage = 'Data integrity error during headcount validation';
+                    errorReason = 'DATA_INTEGRITY_ERROR';
+                  } else {
+                    // Use the actual error message if it's meaningful
+                    errorMessage = `Headcount validation error: ${error.message}`;
+                  }
+                }
+                
                 candidatesToReject.push({
                   candidateId: candidate.id,
-                  reason: 'VALIDATION_ERROR',
-                  message: 'Error validating headcount availability'
+                  reason: errorReason,
+                  message: errorMessage,
+                  headcountStatus: null,
+                  originalError: error instanceof Error ? error.message : String(error)
                 });
               }
             } else if (candidate.statusId !== newStatus) {

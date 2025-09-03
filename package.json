@@ -51,6 +51,7 @@
     "test:enhanced-connections": "node scripts/test-enhanced-connections.js",
     "test:ultra-high-connections": "node scripts/test-ultra-high-connections.js",
     "test:stuck-fix": "node scripts/test-application-stuck-fix.js",
+    "test:container-metrics": "node scripts/test-container-metrics.js",
     "fix:stages": "node scripts/fix-stage-mismatches.js",
     "fix:stages:dry-run": "node scripts/fix-stage-mismatches.js --dry-run",
     "fix:candidate-status": "node scripts/fix-candidate-status-uuid.js",

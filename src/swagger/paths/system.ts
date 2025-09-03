@@ -73,5 +73,85 @@ export const systemPaths = {
         '500': { description: 'Internal server error' }
       }
     }
+  },
+  '/api/system/container-metrics': {
+    get: {
+      summary: 'Get container-specific metrics and information',
+      description: 'Retrieve detailed container information including Docker stats, container status, and resource usage.',
+      tags: ['System', 'Monitoring', 'Containers'],
+      responses: {
+        '200': {
+          description: 'Container metrics retrieved successfully',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  timestamp: { type: 'string' },
+                  containers: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        name: { type: 'string' },
+                        status: { type: 'string' },
+                        image: { type: 'string' },
+                        ports: { type: 'string' },
+                        cpu: {
+                          type: 'object',
+                          properties: {
+                            usage: { type: 'string' },
+                            percentage: { type: 'number' }
+                          }
+                        },
+                        memory: {
+                          type: 'object',
+                          properties: {
+                            usage: { type: 'string' },
+                            percentage: { type: 'number' }
+                          }
+                        },
+                        network: {
+                          type: 'object',
+                          properties: {
+                            rx: { type: 'string' },
+                            tx: { type: 'string' }
+                          }
+                        },
+                        disk: {
+                          type: 'object',
+                          properties: {
+                            io: { type: 'string' }
+                          }
+                        },
+                        processes: { type: 'number' }
+                      }
+                    }
+                  },
+                  dockerInfo: {
+                    type: 'object',
+                    properties: {
+                      version: { type: 'string' },
+                      containers: { type: 'number' },
+                      images: { type: 'number' },
+                      system: {
+                        type: 'object',
+                        properties: {
+                          totalMemory: { type: 'string' },
+                          totalDisk: { type: 'string' }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        '401': { description: 'Unauthorized' },
+        '403': { description: 'Forbidden - Admin access required' },
+        '500': { description: 'Internal server error' }
+      }
+    }
   }
 };

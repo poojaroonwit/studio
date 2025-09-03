@@ -377,7 +377,24 @@ export function CandidatesPageClient({
       }
 
       const result = await response.json();
-      toast.success(`${result.successCount} candidate(s) status updated to ${newStatus}`);
+      
+      // Check for rejected candidates due to headcount constraints
+      if (result.rejectedCandidates && result.rejectedCandidates.length > 0) {
+        const rejectedCount = result.rejectedCandidates.length;
+        const successCount = result.updatedCount || 0;
+        
+        if (successCount > 0) {
+          toast.success(`${successCount} candidate(s) status updated to ${newStatus}`);
+        }
+        
+        if (rejectedCount > 0) {
+          // Show detailed error for headcount constraints
+          const firstRejected = result.rejectedCandidates[0];
+          toast.error(`Headcount constraint: ${firstRejected.message} (${rejectedCount} candidate(s) failed)`, { duration: 8000 });
+        }
+      } else {
+        toast.success(`${result.updatedCount || candidateIds.length} candidate(s) status updated to ${newStatus}`);
+      }
       
       // Clear selection and refresh data
       setSelectedCandidateIds(new Set());

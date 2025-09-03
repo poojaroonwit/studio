@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { hasPermission } from '@/lib/permissions';
+import { hasPermission, hasAnyPermission } from '@/lib/permissions';
 import prisma from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
@@ -19,12 +19,14 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check if user is admin
-    if (!hasPermission(session.user, 'USERS_MANAGE')) {
-      return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
-    }
-
+    // Check if user is admin or accessing their own preferences
     const { userId } = await params;
+    const isOwnPreferences = session.user.id === userId;
+    
+    // Allow access if user has USERS_EDIT permission or is accessing their own preferences
+    if (!hasAnyPermission(session.user, ['USERS_EDIT', 'USERS_VIEW']) && !isOwnPreferences) {
+      return NextResponse.json({ error: 'Forbidden: Insufficient permissions or can only access own preferences' }, { status: 403 });
+    }
 
     // Get all user preferences from database
     const preferences = await prisma.userUIDisplayPreference.findMany({
@@ -164,12 +166,14 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check if user is admin
-    if (!hasPermission(session.user, 'USERS_MANAGE')) {
-      return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
-    }
-
+    // Check if user is admin or updating their own preferences
     const { userId } = await params;
+    const isOwnPreferences = session.user.id === userId;
+    
+    // Allow access if user has USERS_EDIT permission or is updating their own preferences
+    if (!hasAnyPermission(session.user, ['USERS_EDIT']) && !isOwnPreferences) {
+      return NextResponse.json({ error: 'Forbidden: Insufficient permissions or can only update own preferences' }, { status: 403 });
+    }
     const body = await request.json();
     const { taskBoard, positions, appearance } = body;
 

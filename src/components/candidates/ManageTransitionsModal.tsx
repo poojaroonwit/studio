@@ -58,6 +58,7 @@ interface ManageTransitionsModalProps {
   preselectedStage?: string | null;
   comments: any[];
   onCommentsChange: () => void;
+  onHeadcountConstraintError?: (error: Error) => void;
 }
 
 export function ManageTransitionsModal({
@@ -70,6 +71,7 @@ export function ManageTransitionsModal({
   preselectedStage,
   comments,
   onCommentsChange,
+  onHeadcountConstraintError,
 }: ManageTransitionsModalProps) {
   const [editingTransitionId, setEditingTransitionId] = useState<string | null>(null);
   const [editingNotes, setEditingNotes] = useState<string>('');
@@ -227,15 +229,28 @@ export function ManageTransitionsModal({
         if (!isMountedRef.current) return;
         
         console.error('Transition save error:', error);
-        const errorMessage = error instanceof Error ? error.message : 'Failed to save transition. Please try again.';
-        toast.error(errorMessage);
+        
+        // Check if it's a headcount constraint error
+        if (error instanceof Error && error.message.includes('Headcount constraint:')) {
+            // Call the headcount constraint error callback if provided
+            if (onHeadcountConstraintError) {
+                onHeadcountConstraintError(error);
+            } else {
+                // Fallback to showing the error in a toast
+                toast.error(error.message);
+            }
+        } else {
+            // Handle other types of errors
+            const errorMessage = error instanceof Error ? error.message : 'Failed to save transition. Please try again.';
+            toast.error(errorMessage);
+        }
     } finally {
         if (isMountedRef.current) {
             setIsSaving(false);
         }
         abortControllerRef.current = null;
     }
-  }, [candidate, onUpdateCandidate, onRefreshCandidateData, onCommentsChange, onOpenChange, form]);
+  }, [candidate, onUpdateCandidate, onRefreshCandidateData, onCommentsChange, onOpenChange, form, onHeadcountConstraintError]);
 
   const handleEditNotesClick = useCallback((transition: TransitionRecord) => {
     if (!isMountedRef.current) return;

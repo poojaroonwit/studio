@@ -126,12 +126,20 @@ export const JobsTab: React.FC<JobsTabProps> = ({
                 }}
               >
                 <div className="rounded-lg p-4 h-full border shadow-lg bg-card">
-                  <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center justify-between mb-1">
                     <h4 className="font-semibold text-foreground text-lg">
                       {Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === appliedJobId)?.title || 'Unknown Position' : 'Unknown Position'}
                     </h4>
                     {appliedJobBadge}
                   </div>
+                  {(() => {
+                    const position = Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === appliedJobId) : null;
+                    return position?.positionLevel ? (
+                      <div className="text-sm text-muted-foreground mb-2">
+                        {position.positionLevel}
+                      </div>
+                    ) : null;
+                  })()}
                   {appliedJustification.length > 0 && (
                     <div className="mt-3">
                       <h5 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-1">

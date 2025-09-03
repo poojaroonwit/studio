@@ -107,16 +107,25 @@ export function useRealtimeCollaboration(options: RealtimeCollaborationOptions =
         
         // Show notification (but not for user's own actions)
         if ((updatedCandidate.status || updatedCandidate.statusName || updatedCandidate.currentStage) && (!eventData.actingUserId || eventData.actingUserId !== session?.user?.id)) {
-          // Fetch stage name for display
-          const statusToCheck = updatedCandidate.status || updatedCandidate.statusName || updatedCandidate.currentStage;
-          getRecruitmentStageNameClient(statusToCheck)
-            .then(stageName => {
-              showNotification(`Candidate ${updatedCandidate.name} moved to ${stageName}`, '🔄');
-            })
-            .catch(() => {
-              // Fallback to showing the status ID if name fetch fails
-              showNotification(`Candidate ${updatedCandidate.name} status updated`, '🔄');
-            });
+          // Get the status value to check - prioritize statusName or currentStage over status
+          const statusToCheck = updatedCandidate.statusName || updatedCandidate.currentStage || updatedCandidate.status;
+          
+          // Only try to fetch stage name if we have a valid UUID (statusId)
+          if (updatedCandidate.statusId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(updatedCandidate.statusId)) {
+            // We have a valid UUID, fetch the stage name
+            getRecruitmentStageNameClient(updatedCandidate.statusId)
+              .then(stageName => {
+                const displayName = stageName || statusToCheck || 'Unknown Stage';
+                showNotification(`Candidate ${updatedCandidate.name} moved to ${displayName}`, '🔄');
+              })
+              .catch(() => {
+                // Fallback to showing the status name if name fetch fails
+                showNotification(`Candidate ${updatedCandidate.name} moved to ${statusToCheck || 'Unknown Stage'}`, '🔄');
+              });
+          } else {
+            // No valid UUID, just show the status name directly
+            showNotification(`Candidate ${updatedCandidate.name} moved to ${statusToCheck || 'Unknown Stage'}`, '🔄');
+          }
         }
       }
       

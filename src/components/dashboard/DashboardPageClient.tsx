@@ -409,11 +409,17 @@ export default function DashboardPageClient({
       if (mounted) {
         try {
           const data = JSON.parse(event.data);
-          console.log('[Dashboard] Received SSE event:', data);
+          if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+            // eslint-disable-next-line no-console
+            console.log('[Dashboard] Received SSE event:', data);
+          }
           
           // Handle different event types with debouncing
           if (data.type === 'candidate_update' || data.type === 'position_update' || data.type === 'dashboard_update') {
-            console.log('[Dashboard] Update received, scheduling data refresh...');
+            if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+              // eslint-disable-next-line no-console
+              console.log('[Dashboard] Update received, scheduling data refresh...');
+            }
             // Clear existing timeout and set new one to prevent rapid successive calls
             if (refreshTimeout) {
               clearTimeout(refreshTimeout);
@@ -425,17 +431,26 @@ export default function DashboardPageClient({
             }, 500); // Debounce to 500ms
           }
         } catch (error) {
-          console.error('[Dashboard] Error parsing SSE event:', error);
+          if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+            // eslint-disable-next-line no-console
+            console.error('[Dashboard] Error parsing SSE event:', error);
+          }
         }
       }
     };
     
     eventSource.onerror = (error) => {
-      console.error('[Dashboard] EventSource error:', error);
+      if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+        // eslint-disable-next-line no-console
+        console.error('[Dashboard] EventSource error:', error);
+      }
     };
     
     eventSource.onopen = () => {
-      console.log('[Dashboard] EventSource connected for real-time updates');
+      if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+        // eslint-disable-next-line no-console
+        console.log('[Dashboard] EventSource connected for real-time updates');
+      }
       setDashboardRealtimeConnected(true);
     };
     

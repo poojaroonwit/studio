@@ -94,13 +94,13 @@ export async function GET(request: NextRequest) {
             ut.name,
             ut.description,
             ut.color,
-            ut."isActive",
+            ut."is_active" as "isActive",
             ut."createdAt",
             ut."updatedAt",
             COUNT(u.id) as user_count
           FROM "UserTeam" ut
           LEFT JOIN "User" u ON ut.id = u."userTeamId"
-          GROUP BY ut.id, ut.name, ut.description, ut.color, ut."isActive", ut."createdAt", ut."updatedAt"
+          GROUP BY ut.id, ut.name, ut.description, ut.color, ut."is_active", ut."createdAt", ut."updatedAt"
           ORDER BY ut.name
         `);
         return NextResponse.json(result.rows);

@@ -272,22 +272,9 @@ export class EnhancedSSEManager {
         };
 
         eventSource.onmessage = (event) => {
-          if (this.debugMode) {
-            try {
-              const data = JSON.parse(event.data);
-              // eslint-disable-next-line no-console
-              console.log(`[Enhanced SSE Manager] ${endpoint.name} received message:`, data);
-            } catch (error) {
-              endpoint.lastErrorEventType = 'message';
-              endpoint.lastErrorLocation = endpoint.url;
-              this.error(`[Enhanced SSE Manager] ${endpoint.name} error parsing message:`, error);
-            }
-          }
-          
-          // Always try to parse and notify listeners
+          // Parse and notify listeners without noisy logs
           try {
             const data = JSON.parse(event.data);
-            console.log(`[Enhanced SSE Manager] ${endpoint.name} parsed message:`, data);
             this.notifyEventListeners(data);
           } catch (error) {
             // Ignore parsing errors for non-JSON messages
@@ -308,10 +295,6 @@ export class EnhancedSSEManager {
           eventSource.addEventListener(eventType, (event: MessageEvent) => {
             try {
               const data = JSON.parse(event.data);
-              if (this.debugMode) {
-                // eslint-disable-next-line no-console
-                console.log(`[Enhanced SSE Manager] ${endpoint.name} received ${eventType} event:`, data);
-              }
               // Notify all listeners with the parsed data
               this.notifyEventListeners(data);
             } catch (error) {

@@ -16,12 +16,18 @@ export function RealTimeStatus({ onDataUpdate }: RealTimeStatusProps) {
     let mounted = true;
     let fallbackInterval: NodeJS.Timeout;
     
-    console.log('[RealTimeStatus] Setting up EventSource connection...');
+    if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+      // eslint-disable-next-line no-console
+      console.log('[RealTimeStatus] Setting up EventSource connection...');
+    }
     
     const eventSource = createEventSource('/api/sse');
     
     eventSource.onopen = () => {
-      console.log('[RealTimeStatus] EventSource connected');
+      if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+        // eslint-disable-next-line no-console
+        console.log('[RealTimeStatus] EventSource connected');
+      }
       setIsConnected(true);
       // Set initial timestamp when connected
       setLastUpdate(new Date().toLocaleTimeString());
@@ -29,7 +35,10 @@ export function RealTimeStatus({ onDataUpdate }: RealTimeStatusProps) {
       // Set up fallback interval to update timestamp every minute when connected
       fallbackInterval = setInterval(() => {
         if (mounted && isConnected) {
-          console.log('[RealTimeStatus] Fallback update - no events received, updating timestamp');
+          if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+            // eslint-disable-next-line no-console
+            console.log('[RealTimeStatus] Fallback update - no events received, updating timestamp');
+          }
           setLastUpdate(new Date().toLocaleTimeString());
         }
       }, 10000); // Update every 10 seconds for more responsive timestamp
@@ -39,7 +48,10 @@ export function RealTimeStatus({ onDataUpdate }: RealTimeStatusProps) {
       if (mounted) {
         try {
           const data = JSON.parse(event.data);
-          console.log('[RealTimeStatus] Received SSE event:', data);
+          if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+            // eslint-disable-next-line no-console
+            console.log('[RealTimeStatus] Received SSE event:', data);
+          }
           setEventCount(prev => prev + 1);
           
           setLastUpdate(new Date().toLocaleTimeString());
@@ -49,7 +61,10 @@ export function RealTimeStatus({ onDataUpdate }: RealTimeStatusProps) {
             onDataUpdate();
           }
         } catch (error) {
-          console.error('[RealTimeStatus] Error parsing SSE event:', error);
+          if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+            // eslint-disable-next-line no-console
+            console.error('[RealTimeStatus] Error parsing SSE event:', error);
+          }
         }
       }
     };
@@ -59,13 +74,19 @@ export function RealTimeStatus({ onDataUpdate }: RealTimeStatusProps) {
       if (mounted) {
         try {
           const data = JSON.parse(event.data);
-          console.log('[RealTimeStatus] Received keepalive event:', data);
+          if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+            // eslint-disable-next-line no-console
+            console.log('[RealTimeStatus] Received keepalive event:', data);
+          }
           setEventCount(prev => prev + 1);
           
           // Update timestamp on keepalive to show connection is alive
           setLastUpdate(new Date().toLocaleTimeString());
         } catch (error) {
-          console.error('[RealTimeStatus] Error parsing keepalive event:', error);
+          if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+            // eslint-disable-next-line no-console
+            console.error('[RealTimeStatus] Error parsing keepalive event:', error);
+          }
         }
       }
     });
@@ -75,18 +96,27 @@ export function RealTimeStatus({ onDataUpdate }: RealTimeStatusProps) {
       if (mounted) {
         try {
           const data = JSON.parse(event.data);
-          console.log('[RealTimeStatus] Received connected event:', data);
+          if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+            // eslint-disable-next-line no-console
+            console.log('[RealTimeStatus] Received connected event:', data);
+          }
           setEventCount(prev => prev + 1);
           
           setLastUpdate(new Date().toLocaleTimeString());
         } catch (error) {
-          console.error('[RealTimeStatus] Error parsing connected event:', error);
+          if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+            // eslint-disable-next-line no-console
+            console.error('[RealTimeStatus] Error parsing connected event:', error);
+          }
         }
       }
     });
     
     eventSource.onerror = (error) => {
-      console.error('[RealTimeStatus] EventSource error:', error);
+      if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+        // eslint-disable-next-line no-console
+        console.error('[RealTimeStatus] EventSource error:', error);
+      }
       setIsConnected(false);
     };
     

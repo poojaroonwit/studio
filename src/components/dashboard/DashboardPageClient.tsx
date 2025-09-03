@@ -167,6 +167,13 @@ export default function DashboardPageClient({
       setIsLoading(false);
       return;
     }
+    
+    // Prevent multiple simultaneous fetches
+    if (isLoading) {
+      console.log('[Dashboard] Skipping fetch - already loading');
+      return;
+    }
+    
     setIsLoading(true);
     setFetchError(null);
     let accumulatedFetchError = "";
@@ -398,6 +405,13 @@ export default function DashboardPageClient({
   useEffect(() => {
     let mounted = true;
     let refreshTimeout: NodeJS.Timeout;
+    let lastUpdateTime = 0;
+    const MIN_UPDATE_INTERVAL = 2000; // Minimum 2 seconds between updates
+    
+    // Only create EventSource if user is authenticated
+    if (status !== 'authenticated' || !session?.user?.id) {
+      return;
+    }
     
     // Re-enabled EventSource for real-time dashboard updates
     const eventSource = createEventSource('/api/sse');
@@ -408,24 +422,40 @@ export default function DashboardPageClient({
           const data = JSON.parse(event.data);
           if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
             // eslint-disable-next-line no-console
-    
+            console.log('[Dashboard] SSE event received:', data);
           }
           
-          // Handle different event types with debouncing
+          // Handle different event types with improved debouncing and rate limiting
           if (data.type === 'candidate_update' || data.type === 'position_update' || data.type === 'dashboard_update') {
+            const now = Date.now();
+            
+            // Rate limit updates to prevent excessive reloading
+            if (now - lastUpdateTime < MIN_UPDATE_INTERVAL) {
+              if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+                console.log('[Dashboard] Update rate limited, skipping');
+              }
+              return;
+            }
+            
             if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
               // eslint-disable-next-line no-console
-      
+              console.log('[Dashboard] Processing update event:', data.type);
             }
+            
             // Clear existing timeout and set new one to prevent rapid successive calls
             if (refreshTimeout) {
               clearTimeout(refreshTimeout);
             }
+            
             refreshTimeout = setTimeout(() => {
               if (mounted && status === 'authenticated' && session?.user?.id) {
-                fetchDataClientSide();
+                lastUpdateTime = Date.now();
+                // Only fetch if we don't have recent data and not currently loading
+                if (!isLoading) {
+                  fetchDataClientSide();
+                }
               }
-            }, 500); // Debounce to 500ms
+            }, 1000); // Increased debounce to 1 second
           }
         } catch (error) {
           if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
@@ -446,7 +476,7 @@ export default function DashboardPageClient({
     eventSource.onopen = () => {
       if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
         // eslint-disable-next-line no-console
-
+        console.log('[Dashboard] EventSource connected');
       }
       setDashboardRealtimeConnected(true);
     };
@@ -458,7 +488,7 @@ export default function DashboardPageClient({
       }
       closeEventSource(eventSource);
     };
-  }, [status, session?.user?.id]);
+  }, [status, session?.user?.id, isLoading]); // Added isLoading to dependencies
 
   // Optimized dashboard computations - combined related calculations to reduce render overhead
   const dashboardStats = useMemo(() => {

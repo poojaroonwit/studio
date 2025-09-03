@@ -80,8 +80,8 @@ class SafeComponentWrapper extends Component<Props, State> {
         retryCount: this.state.retryCount + 1
       });
     } else {
-      // Force page reload after max retries
-      window.location.reload();
+      // Don't force page reload - just show error
+      console.error('SafeComponentWrapper: Max retries reached, showing error state');
     }
   };
 

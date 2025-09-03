@@ -249,12 +249,12 @@ export function UploadQueueStatus() {
                 )}
               </CardDescription>
             </div>
-            {realtimeConnected && (
+            {/* {realtimeConnected && (
               <Badge variant="secondary" className="flex items-center space-x-1">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                 <span>Live Updates</span>
               </Badge>
-            )}
+            )} */}
           </div>
         </CardHeader>
         <CardContent>

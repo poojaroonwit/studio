@@ -167,7 +167,9 @@ export class ErrorBoundary extends Component<Props, State> {
   };
 
   private handleReload = () => {
-    window.location.reload();
+    // Don't automatically reload - let user decide
+    // window.location.reload();
+    this.handleRetry();
   };
 
   public render() {

@@ -693,7 +693,7 @@ export default function CandidateImportUploadQueue() {
 
           <div className="flex-1 overflow-y-auto space-y-4">
             {/* Real-time Connection Status */}
-            <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg border">
+            {/* <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg border">
               <div className="flex items-center space-x-2">
                 <div className={`w-2 h-2 rounded-full ${isRealtimeActive ? 'bg-green-500' : 'bg-red-500'}`} />
                 <span className="text-sm font-medium">
@@ -708,7 +708,7 @@ export default function CandidateImportUploadQueue() {
               <div className="text-sm text-muted-foreground">
                 Last updated: {lastUpdate ? formatDate(lastUpdate.toISOString()) : 'Never'}
               </div>
-            </div>
+            </div> */}
 
       {/* Summary Cards */}
       {queueData?.summary && (

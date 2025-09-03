@@ -20,3 +20,18 @@ export function hasAllPermissions(user: SessionLikeUser | null | undefined, requ
   const perms = Array.isArray(user.modulePermissions) ? user.modulePermissions : [];
   return required.every(p => perms.includes(p));
 }
+
+// New function to check permissions with role and module permissions
+export function checkPermission(
+  userRole: string, 
+  modulePermissions: PlatformModuleId[], 
+  permissionId: PlatformModuleId
+): boolean {
+  // Admin role has access to everything
+  if (userRole === 'Admin') {
+    return true;
+  }
+  
+  // Check if user has the specific permission
+  return Array.isArray(modulePermissions) && modulePermissions.includes(permissionId);
+}

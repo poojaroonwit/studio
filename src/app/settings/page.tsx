@@ -1,10 +1,10 @@
 // src/app/settings/page.tsx
 "use client";
 
-import { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { hasPermission } from '@/lib/permissions';
+import { hasPermission, checkPermission } from '@/lib/permissions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import './settings.css';
@@ -34,7 +34,6 @@ import {
 
 } from 'lucide-react';
 import type { PlatformModuleId } from '@/lib/types';
-import React from 'react'; // Added missing import for React
 
 // Error boundary component for settings page
 class SettingsErrorBoundary extends React.Component<
@@ -200,14 +199,14 @@ function SettingsPageContent() {
 
     // Check for adminOnlyOrPermission items
     if (item.adminOnlyOrPermission) {
-      if (item.permissionId && hasPermission(userRole, modulePermissions, item.permissionId)) {
+      if (item.permissionId && checkPermission(userRole, modulePermissions, item.permissionId)) {
         return true;
       }
       return false;
     }
 
     // Check for specific permission items
-    if (item.permissionId && !hasPermission(userRole, modulePermissions, item.permissionId)) {
+    if (item.permissionId && !checkPermission(userRole, modulePermissions, item.permissionId)) {
       return false;
     }
 

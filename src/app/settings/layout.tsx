@@ -1,34 +1,17 @@
 // src/app/settings/layout.tsx
 "use client";
 
-import * as React from "react";
-import type { ReactNode } from 'react';
+import React, { ReactNode } from 'react';
+import { useSession } from 'next-auth/react';
+import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation'; // Added useRouter import
 import { cn } from '@/lib/utils';
-import {
-  Settings,
-  Palette,
-  Zap,
-  DatabaseZap,
-  SlidersHorizontal,
-  UsersRound,
-  Users,
-  Code2,
-  ListOrdered,
-  ShieldCheck,
-  Loader2,
-  Webhook,
-  BrainCircuit,
-  Tag,
-  Database,
-  AlertTriangle,
-
-} from 'lucide-react';
-import type { SettingsNavigationItem, PlatformModuleId } from '@/lib/types';
-import { useSession, signIn } from 'next-auth/react';
-import { hasPermission } from '@/lib/permissions';
 import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { Loader2, Database, Palette, BrainCircuit, DatabaseZap, Webhook, UsersRound, Code2, ListOrdered, AlertTriangle } from 'lucide-react';
+import { hasPermission, checkPermission } from '@/lib/permissions';
+import type { PlatformModuleId } from '@/lib/types';
+import type { SettingsNavigationItem } from '@/lib/types';
 
 // Error boundary component for settings layout
 class SettingsLayoutErrorBoundary extends React.Component<
@@ -113,19 +96,16 @@ function SettingsLayoutContent({ children }: { children: ReactNode }) {
     // Check for adminOnly items
     if (item.adminOnly) return false;
 
-    // Check for adminOnly items
-    if (item.adminOnly) return false;
-
     // Check for adminOnlyOrPermission items
     if (item.adminOnlyOrPermission) {
-      if (item.permissionId && hasPermission(userRole, modulePermissions, item.permissionId)) {
+      if (item.permissionId && checkPermission(userRole, modulePermissions, item.permissionId)) {
         return true;
       }
       return false;
     }
 
     // Check for specific permission items
-    if (item.permissionId && !hasPermission(userRole, modulePermissions, item.permissionId)) {
+    if (item.permissionId && !checkPermission(userRole, modulePermissions, item.permissionId)) {
       return false;
     }
 

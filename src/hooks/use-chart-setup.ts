@@ -5,11 +5,12 @@ export function useChartSetup() {
   const [chartReady, setChartReady] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const setupAttempted = useRef(false);
 
   useEffect(() => {
     const initializeChart = async () => {
-      // If already ready, don't do anything
-      if (chartReady) {
+      // If already ready or setup already attempted, don't do anything
+      if (chartReady || setupAttempted.current) {
         return;
       }
 
@@ -21,6 +22,7 @@ export function useChartSetup() {
         return;
       }
 
+      setupAttempted.current = true;
       setIsLoading(true);
       setError(null);
 
@@ -52,6 +54,7 @@ export function useChartSetup() {
     setError(null);
     setChartReady(false);
     setIsLoading(true);
+    setupAttempted.current = false; // Reset attempt flag
     // Reset the Chart.js setup state to force a fresh attempt
     resetChartJSSetup();
     

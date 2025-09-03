@@ -113,6 +113,13 @@ async function processSingleItem(
             return { success: false, reason: 'Job is not in a retryable state' };
           }
           
+          // Check retry count to prevent infinite retries
+          const currentRetryCount = job.webhook_payload?.retry_count || 0;
+          if (currentRetryCount >= 3) { // MAX_RETRY_ATTEMPTS
+            await client.query('ROLLBACK');
+            return { success: false, reason: 'Cannot retry: maximum retry attempts (3) exceeded' };
+          }
+          
           // Check if there's already a queued job with the same file path
           const existingQueuedJob = await client.query(
             'SELECT id FROM upload_queue WHERE file_path = $1 AND status = $2 AND id != $3',
@@ -124,9 +131,19 @@ async function processSingleItem(
             return { success: false, reason: 'Cannot retry: there is already a queued job with the same file path' };
           }
           
-          // Reset job to queued status
+          // Reset job to queued status and clear error fields
           await client.query(
-            'UPDATE upload_queue SET status = $1, error = NULL, error_details = NULL, updated_at = now() WHERE id = $2',
+            `UPDATE upload_queue SET 
+             status = $1, 
+             error = NULL, 
+             error_details = NULL, 
+             updated_at = now(),
+             webhook_payload = jsonb_set(
+               COALESCE(webhook_payload, '{}'::jsonb), 
+               '{retry_count}', 
+               '${currentRetryCount + 1}'::jsonb
+             )
+             WHERE id = $2`,
             ['queued', itemId]
           );
           

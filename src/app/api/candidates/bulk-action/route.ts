@@ -28,12 +28,16 @@ const bulkActionSchema = z.object({
 // OPTIMIZED: Inline headcount validation using single connection
 async function validateCandidateHiringStatusWithClient(client: any, candidateId: string, positionId: string) {
   try {
+    console.log(`Validating headcount for candidate ${candidateId} in position ${positionId}`);
+    
     // Check if position has any headcounts
     const headcountsResult = await client.query(
       'SELECT id, status, "candidateId" FROM headcount WHERE "positionId" = $1',
       [positionId]
     );
     const headcounts = headcountsResult.rows;
+    
+    console.log(`Found ${headcounts.length} headcounts for position ${positionId}:`, headcounts);
 
     if (headcounts.length === 0) {
       return {
@@ -253,8 +257,11 @@ export async function POST(request: NextRequest) {
   }
 
   // OPTIMIZED: Use single database connection for entire operation
-  const client = await getPool().connect();
+  let client;
   try {
+    client = await getPool().connect();
+    // Set transaction isolation level to prevent race conditions
+    await client.query('SET TRANSACTION ISOLATION LEVEL SERIALIZABLE');
     await client.query('BEGIN');
 
     let result;
@@ -559,17 +566,42 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error: any) {
-    await client.query('ROLLBACK');
+    if (client) {
+      try {
+        await client.query('ROLLBACK');
+      } catch (rollbackError) {
+        console.error('Error during rollback:', rollbackError);
+      }
+    }
     
-    // OPTIMIZED: Use inline audit logging with same connection
-    await logAuditWithClient(client, 'ERROR', `Bulk action failed. Error: ${error.message}`, 'API:Candidates:BulkAction', actingUserId, { 
-      action, 
-      candidateIds, 
-      input: body 
+    console.error('Bulk action error details:', {
+      error: error.message,
+      stack: error.stack,
+      action: body?.action,
+      candidateIds: body?.candidateIds
     });
     
-    return NextResponse.json({ message: 'Error performing bulk action', error: error.message }, { status: 500 });
+    // OPTIMIZED: Use inline audit logging with same connection
+    if (actingUserId && client) {
+      try {
+        await logAuditWithClient(client, 'ERROR', `Bulk action failed. Error: ${error.message}`, 'API:Candidates:BulkAction', actingUserId, { 
+          action: body?.action, 
+          candidateIds: body?.candidateIds, 
+          input: body 
+        });
+      } catch (auditError) {
+        console.error('Failed to log audit entry:', auditError);
+      }
+    }
+    
+    return NextResponse.json({ 
+      message: 'Error performing bulk action', 
+      error: error.message,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    }, { status: 500 });
   } finally {
-    client.release();
+    if (client) {
+      client.release();
+    }
   }
 }

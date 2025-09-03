@@ -21,7 +21,7 @@ app.prepare().then(() => {
         res.setHeader('Content-Type', 'text/css; charset=utf-8');
         res.setHeader('X-Content-Type-Options', 'nosniff');
         // Prevent CSS from being executed as script
-        res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';");
+        res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' 'unsafe-hashes'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' ws: wss:;");
       } else if (pathname.startsWith('/_next/static/chunks/') && pathname.endsWith('.js')) {
         res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
         res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -31,7 +31,7 @@ app.prepare().then(() => {
       } else if (pathname.startsWith('/_next/static/') && pathname.endsWith('.css')) {
         res.setHeader('Content-Type', 'text/css; charset=utf-8');
         res.setHeader('X-Content-Type-Options', 'nosniff');
-        res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';");
+        res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' 'unsafe-hashes'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' ws: wss:;");
       }
 
       // Security headers

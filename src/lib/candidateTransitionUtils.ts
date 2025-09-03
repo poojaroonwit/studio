@@ -13,13 +13,22 @@ export async function updateCandidatesStatusBulk(candidateIds: string[], status:
       newStatus: status,
     };
     if (notes) payload.transitionNotes = notes;
+    
+    console.log('Sending bulk status update request:', payload);
+    
     const response = await fetch('/api/candidates/bulk-action', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
+    
     const result = await response.json();
-    if (!response.ok) throw new Error(result.message || 'status update failed');
+    console.log('Bulk action response:', result);
+    
+    if (!response.ok) {
+      console.error('Bulk action failed:', result);
+      throw new Error(result.message || 'status update failed');
+    }
     
     // Check for rejected candidates due to headcount constraints
     if (result.rejectedCandidates && result.rejectedCandidates.length > 0) {
@@ -27,7 +36,10 @@ export async function updateCandidatesStatusBulk(candidateIds: string[], status:
       const headcountInfo = rejectedCandidate.headcountStatus 
         ? ` (Total: ${rejectedCandidate.headcountStatus.totalHeadcounts}, Vacant: ${rejectedCandidate.headcountStatus.vacantHeadcounts}, Filled: ${rejectedCandidate.headcountStatus.filledHeadcounts})`
         : '';
-      throw new Error(`Headcount constraint: ${rejectedCandidate.message || 'Cannot update status due to headcount limitations'}${headcountInfo}`);
+      
+      const errorMessage = `Headcount constraint: ${rejectedCandidate.message || 'Cannot update status due to headcount limitations'}${headcountInfo}`;
+      console.error('Headcount constraint error:', errorMessage);
+      throw new Error(errorMessage);
     }
     
     if (!suppressToast) {
@@ -35,6 +47,7 @@ export async function updateCandidatesStatusBulk(candidateIds: string[], status:
     }
     return result;
   } catch (error: any) {
+    console.error('Error in updateCandidatesStatusBulk:', error);
     if (!suppressToast) {
       toast.error(error.message || 'Failed to update candidate(s).');
     }

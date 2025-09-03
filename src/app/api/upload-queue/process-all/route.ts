@@ -140,6 +140,39 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ processed_count: 0, processed, messages }, { status: 200 });
       }
 
+      // NEW: Reset jobs that have been in 'inprocess' for too long (prevent infinite processing)
+      await selectionClient.query(
+        `UPDATE upload_queue 
+         SET status = 'queued', process_date = NULL, updated_at = now(), error = 'Reset due to long processing time'
+         WHERE status = 'inprocess' 
+         AND process_date < NOW() - INTERVAL '30 minutes'
+         AND process_date > NOW() - INTERVAL '${STUCK_JOB_TIMEOUT_HOURS} hours'`
+      );
+      
+      // NEW: Prevent processing jobs that were recently completed to avoid infinite loops
+      await selectionClient.query(
+        `UPDATE upload_queue 
+         SET status = 'queued', process_date = NULL, updated_at = now(), error = 'Reset due to recent processing'
+         WHERE status = 'inprocess' 
+         AND completed_date IS NOT NULL
+         AND completed_date > NOW() - INTERVAL '${RECENT_PROCESSING_TIMEOUT_MINUTES} minutes'`
+      );
+
+      // NEW: Auto-retry failed jobs that haven't exceeded retry limit
+      await selectionClient.query(
+        `UPDATE upload_queue 
+         SET status = 'queued', process_date = NULL, updated_at = now(), error = NULL, error_details = NULL
+         WHERE status = 'failed' 
+         AND (
+           webhook_payload->>'retry_count' IS NULL 
+           OR (webhook_payload->>'retry_count')::int < ${MAX_RETRY_ATTEMPTS}
+         )
+         AND (
+           completed_date IS NULL
+           OR completed_date < NOW() - INTERVAL '${RECENT_PROCESSING_TIMEOUT_MINUTES} minutes'
+         )`
+      );
+
       // NEW: Enhanced job selection with better duplicate prevention and retry limits
       const claimRes = await selectionClient.query(
         `UPDATE upload_queue
@@ -253,15 +286,22 @@ export async function POST(request: NextRequest) {
         
         // NEW: Increment retry count for tracking
         const currentRetryCount = (job.webhook_payload?.retry_count || 0) + 1;
+        
+        // Update the webhook_payload with the new retry count
+        const updatedWebhookPayload = {
+          ...(job.webhook_payload || {}),
+          retry_count: currentRetryCount,
+          last_retry_attempt: new Date().toISOString()
+        };
+        
         await processingClient.query(
-          `UPDATE upload_queue SET webhook_payload = jsonb_set(
-            COALESCE(webhook_payload, '{}'::jsonb), 
-            '{retry_count}', 
-            '${currentRetryCount}'::jsonb
-          ) WHERE id = $1`,
-          [job.id]
+          `UPDATE upload_queue SET webhook_payload = $1 WHERE id = $2`,
+          [JSON.stringify(updatedWebhookPayload), job.id]
         );
         
+        // Update the job object with the new retry count
+        job.webhook_payload = updatedWebhookPayload;
+
         const result = await processSingleUploadQueueJob(job, processingClient);
 
         // Normalize result structure for response

@@ -728,7 +728,7 @@ export function UnifiedUserModal({
                                       <Select
                                         value={field.value?.length ? field.value[0] : ""}
                                         onValueChange={(value) => {
-                                          if (value) {
+                                          if (value && value.trim() !== "") {
                                             field.onChange([value]);
                                           } else {
                                             field.onChange([]);
@@ -740,6 +740,13 @@ export function UnifiedUserModal({
                                           <SelectValue placeholder="Select a role" />
                                         </SelectTrigger>
                                         <SelectContent className="z-[100003]">
+                                          {/* Clear option */}
+                                          <SelectItem value="">
+                                            <div className="flex items-center gap-2 text-muted-foreground">
+                                              <span>No role assigned</span>
+                                            </div>
+                                          </SelectItem>
+                                          <div className="h-px bg-border my-1" />
                                           {userGroups.map((role) => (
                                             <SelectItem key={role.id} value={role.id}>
                                               <div className="flex items-center gap-2">

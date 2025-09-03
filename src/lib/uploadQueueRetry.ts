@@ -275,3 +275,93 @@ export async function retryWithErrorChecking<T>(
     totalTime: Date.now() - startTime
   };
 } 
+
+/**
+ * Upload Queue specific retry utilities
+ */
+export interface UploadQueueRetryConfig {
+  maxRetries: number;
+  retryDelayMs: number;
+  backoffMultiplier: number;
+  maxDelayMs: number;
+}
+
+export const DEFAULT_UPLOAD_QUEUE_RETRY_CONFIG: UploadQueueRetryConfig = {
+  maxRetries: 3,
+  retryDelayMs: 5000, // 5 seconds
+  backoffMultiplier: 2,
+  maxDelayMs: 60000 // 1 minute
+};
+
+/**
+ * Check if a job can be retried based on its current retry count
+ */
+export function canRetryJob(job: any, maxRetries: number = 3): boolean {
+  const currentRetryCount = job.webhook_payload?.retry_count || 0;
+  return currentRetryCount < maxRetries;
+}
+
+/**
+ * Get the next retry count for a job
+ */
+export function getNextRetryCount(job: any): number {
+  return (job.webhook_payload?.retry_count || 0) + 1;
+}
+
+/**
+ * Create updated webhook payload with retry information
+ */
+export function createRetryWebhookPayload(job: any): any {
+  const currentRetryCount = getNextRetryCount(job);
+  return {
+    ...(job.webhook_payload || {}),
+    retry_count: currentRetryCount,
+    last_retry_attempt: new Date().toISOString(),
+    retry_history: [
+      ...(job.webhook_payload?.retry_history || []),
+      {
+        attempt: currentRetryCount,
+        timestamp: new Date().toISOString(),
+        previous_status: job.status,
+        previous_error: job.error
+      }
+    ]
+  };
+}
+
+/**
+ * Calculate retry delay for upload queue jobs
+ */
+export function calculateUploadQueueRetryDelay(attempt: number, config: UploadQueueRetryConfig): number {
+  const delay = config.retryDelayMs * Math.pow(config.backoffMultiplier, attempt);
+  return Math.min(delay, config.maxDelayMs);
+}
+
+/**
+ * Process a failed job with retry logic
+ */
+export async function processFailedJobWithRetry(
+  job: any, 
+  processFunction: (job: any, client: any) => Promise<any>,
+  client: any,
+  config: Partial<UploadQueueRetryConfig> = {}
+): Promise<any> {
+  const finalConfig = { ...DEFAULT_UPLOAD_QUEUE_RETRY_CONFIG, ...config };
+  
+  if (!canRetryJob(job, finalConfig.maxRetries)) {
+    throw new Error(`Job ${job.id} has exceeded maximum retry attempts (${finalConfig.maxRetries})`);
+  }
+  
+  // Update retry count and history
+  const updatedWebhookPayload = createRetryWebhookPayload(job);
+  await client.query(
+    `UPDATE upload_queue SET webhook_payload = $1 WHERE id = $2`,
+    [JSON.stringify(updatedWebhookPayload), job.id]
+  );
+  
+  // Update job object
+  job.webhook_payload = updatedWebhookPayload;
+  
+  // Process the job
+  return await processFunction(job, client);
+} 

@@ -543,7 +543,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
             } catch (error) {
               await client.query('ROLLBACK');
               console.error('Error validating headcount for hiring:', error);
-              return NextResponse.json({ message: 'Error validating headcount availability' }, { status: 500 });
+              return NextResponse.json({ 
+                message: error instanceof Error ? error.message : 'Error validating headcount availability',
+                reason: 'VALIDATION_ERROR',
+                headcountStatus: null
+              }, { status: 500 });
             }
           }
         }

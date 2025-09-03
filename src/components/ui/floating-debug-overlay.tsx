@@ -322,12 +322,12 @@ Platform: ${metrics.system.platform}, Uptime: ${Math.round(metrics.system.uptime
                   Last updated: {new Date().toLocaleTimeString()}
                 </div>
               )}
-          
-          {isLoading ? (
-            <div className="flex items-center justify-center py-4">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
-            </div>
-          ) : metrics ? (
+              
+              {isLoading ? (
+                <div className="flex items-center justify-center py-4">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+                </div>
+              ) : metrics ? (
             <>
               {/* Database Connections */}
               <div className="space-y-2">
@@ -491,8 +491,6 @@ Platform: ${metrics.system.platform}, Uptime: ${Math.round(metrics.system.uptime
             <div className="text-center py-4 text-sm text-muted-foreground">
               Failed to load metrics
             </div>
-          )}
-            </>
           )}
           
           {/* Minimized view - show key metrics only */}

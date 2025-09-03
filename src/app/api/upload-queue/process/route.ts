@@ -116,6 +116,28 @@ export async function POST(request: NextRequest) {
        AND completed_date IS NOT NULL
        AND completed_date > NOW() - INTERVAL '${RECENT_PROCESSING_TIMEOUT_MINUTES} minutes'`
     );
+
+    // NEW: Auto-retry failed jobs that haven't exceeded retry limit
+    const autoRetryResult = await client.query(
+      `UPDATE upload_queue 
+       SET status = 'queued', process_date = NULL, updated_at = now(), error = NULL, error_details = NULL
+       WHERE status = 'failed' 
+       AND (
+         webhook_payload->>'retry_count' IS NULL 
+         OR (webhook_payload->>'retry_count')::int < ${MAX_RETRY_ATTEMPTS}
+       )
+       AND (
+         completed_date IS NULL
+         OR completed_date < NOW() - INTERVAL '${RECENT_PROCESSING_TIMEOUT_MINUTES} minutes'
+       )
+       RETURNING id, webhook_payload->>'retry_count' as retry_count`
+    );
+    
+    if (autoRetryResult.rowCount > 0) {
+      console.log(`[RETRY] Auto-retried ${autoRetryResult.rowCount} failed jobs:`, 
+        autoRetryResult.rows.map(row => ({ id: row.id, retry_count: row.retry_count }))
+      );
+    }
     
     // NEW: Enhanced job selection with better duplicate prevention and retry limits
     const res = await client.query(

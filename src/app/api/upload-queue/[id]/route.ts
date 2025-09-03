@@ -156,7 +156,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     
     // If this is a retry, reset the job status to queued and clear error fields
     if (isRetry) {
-
       
       // Check if there's already a queued job with the same file path
       const existingQueuedJob = await client.query(
@@ -165,23 +164,44 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       );
       
       if (existingQueuedJob.rows.length > 0) {
-
+        await client.query('ROLLBACK');
         return NextResponse.json({ 
           error: 'Cannot retry job: there is already a queued job with the same file path' 
         }, { status: 400 });
       }
       
+      // Check retry count to prevent infinite retries
+      const currentRetryCount = job.webhook_payload?.retry_count || 0;
+      if (currentRetryCount >= 3) { // MAX_RETRY_ATTEMPTS
+        await client.query('ROLLBACK');
+        return NextResponse.json({ 
+          error: 'Cannot retry job: maximum retry attempts (3) exceeded' 
+        }, { status: 400 });
+      }
+      
+      // Reset job to queued status and clear error fields
       await client.query(
-        'UPDATE upload_queue SET status = $1, error = NULL, error_details = NULL, updated_at = now() WHERE id = $2',
+        `UPDATE upload_queue SET 
+         status = $1, 
+         error = NULL, 
+         error_details = NULL, 
+         updated_at = now(),
+         webhook_payload = jsonb_set(
+           COALESCE(webhook_payload, '{}'::jsonb), 
+           '{retry_count}', 
+           '${currentRetryCount + 1}'::jsonb
+         )
+         WHERE id = $2`,
         ['queued', id]
       );
+      
       // Fetch the updated job
       const updatedRes = await client.query('SELECT * FROM upload_queue WHERE id = $1', [id]);
       if (updatedRes.rows.length > 0) {
         job.status = 'queued';
         job.error = null;
         job.error_details = null;
-
+        job.webhook_payload = updatedRes.rows[0].webhook_payload;
       }
     }
     

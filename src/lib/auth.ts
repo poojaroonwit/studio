@@ -202,8 +202,7 @@ export const authOptions: NextAuthOptions = {
                 : [];
               token.modulePermissions = modulePermissions;
               
-              // Debug log for permission updates
-              console.log(`[JWT CALLBACK] Updated permissions for user ${token.id}:`, modulePermissions);
+              // Debug log for permission updates removed to reduce log noise
               
               // Also fetch fresh user data to ensure role is up to date
               const userData = await getUserSessionData(token.id as string);

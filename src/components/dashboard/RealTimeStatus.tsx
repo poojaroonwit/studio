@@ -10,9 +10,11 @@ interface RealTimeStatusProps {
 export function RealTimeStatus({ onDataUpdate }: RealTimeStatusProps) {
   const [isConnected, setIsConnected] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<string>('Never');
+  const [eventCount, setEventCount] = useState(0);
 
   useEffect(() => {
     let mounted = true;
+    let fallbackInterval: NodeJS.Timeout;
     
     console.log('[RealTimeStatus] Setting up EventSource connection...');
     
@@ -21,6 +23,16 @@ export function RealTimeStatus({ onDataUpdate }: RealTimeStatusProps) {
     eventSource.onopen = () => {
       console.log('[RealTimeStatus] EventSource connected');
       setIsConnected(true);
+      // Set initial timestamp when connected
+      setLastUpdate(new Date().toLocaleTimeString());
+      
+      // Set up fallback interval to update timestamp every minute when connected
+      fallbackInterval = setInterval(() => {
+        if (mounted && isConnected) {
+          console.log('[RealTimeStatus] Fallback update - no events received, updating timestamp');
+          setLastUpdate(new Date().toLocaleTimeString());
+        }
+      }, 10000); // Update every 10 seconds for more responsive timestamp
     };
     
     eventSource.onmessage = (event) => {
@@ -28,6 +40,7 @@ export function RealTimeStatus({ onDataUpdate }: RealTimeStatusProps) {
         try {
           const data = JSON.parse(event.data);
           console.log('[RealTimeStatus] Received SSE event:', data);
+          setEventCount(prev => prev + 1);
           
           setLastUpdate(new Date().toLocaleTimeString());
           
@@ -40,6 +53,37 @@ export function RealTimeStatus({ onDataUpdate }: RealTimeStatusProps) {
         }
       }
     };
+
+    // Listen for keepalive events specifically
+    eventSource.addEventListener('keepalive', (event) => {
+      if (mounted) {
+        try {
+          const data = JSON.parse(event.data);
+          console.log('[RealTimeStatus] Received keepalive event:', data);
+          setEventCount(prev => prev + 1);
+          
+          // Update timestamp on keepalive to show connection is alive
+          setLastUpdate(new Date().toLocaleTimeString());
+        } catch (error) {
+          console.error('[RealTimeStatus] Error parsing keepalive event:', error);
+        }
+      }
+    });
+
+    // Listen for connected events
+    eventSource.addEventListener('connected', (event) => {
+      if (mounted) {
+        try {
+          const data = JSON.parse(event.data);
+          console.log('[RealTimeStatus] Received connected event:', data);
+          setEventCount(prev => prev + 1);
+          
+          setLastUpdate(new Date().toLocaleTimeString());
+        } catch (error) {
+          console.error('[RealTimeStatus] Error parsing connected event:', error);
+        }
+      }
+    });
     
     eventSource.onerror = (error) => {
       console.error('[RealTimeStatus] EventSource error:', error);
@@ -48,6 +92,9 @@ export function RealTimeStatus({ onDataUpdate }: RealTimeStatusProps) {
     
     return () => {
       mounted = false;
+      if (fallbackInterval) {
+        clearInterval(fallbackInterval);
+      }
       closeEventSource(eventSource);
     };
   }, [onDataUpdate]);
@@ -61,6 +108,12 @@ export function RealTimeStatus({ onDataUpdate }: RealTimeStatusProps) {
       {isConnected && (
         <span className="text-xs text-muted-foreground">
           • Last update: {lastUpdate}
+        </span>
+      )}
+      {/* Debug info - remove in production */}
+      {process.env.NODE_ENV === 'development' && (
+        <span className="text-xs text-muted-foreground">
+          • Events: {eventCount}
         </span>
       )}
     </div>

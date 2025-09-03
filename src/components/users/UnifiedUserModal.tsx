@@ -26,9 +26,10 @@ import {
 } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import type { UserProfile, UserGroup } from '@/lib/types';
 import { toast } from 'react-hot-toast';
-import { RoleSelector } from '@/components/settings/RoleSelector';
+
 import { UserAvatarUpload } from '@/components/ui/user-avatar-upload';
 import { PersonalColorPicker } from '@/components/settings/PersonalColorPicker';
 import { useClickProtection } from '@/hooks/use-click-protection';
@@ -663,16 +664,40 @@ export function UnifiedUserModal({
                                         {userGroups.find(g => g.id === field.value?.[0])?.name || 'No role assigned'}
                                       </div>
                                     ) : (
-                                      <RoleSelector
-                                        availableRoles={userGroups}
-                                        selectedRoleIds={field.value || []}
-                                        onRolesChange={field.onChange}
-                                        title="Select Role"
-                                        description="Choose the role for this user"
-                                        multiple={false}
-                                        noCard={true}
+                                      <Select
+                                        value={field.value?.length ? field.value[0] : ""}
+                                        onValueChange={(value) => {
+                                          if (value) {
+                                            field.onChange([value]);
+                                          } else {
+                                            field.onChange([]);
+                                          }
+                                        }}
                                         disabled={isLoadingGroups}
-                                       />
+                                      >
+                                        <SelectTrigger className="h-10 transition-all duration-200 focus:ring-2 focus:ring-primary/20">
+                                          <SelectValue placeholder="Select a role" />
+                                        </SelectTrigger>
+                                        <SelectContent className="z-[100003]">
+                                          {userGroups.map((role) => (
+                                            <SelectItem key={role.id} value={role.id}>
+                                              <div className="flex items-center gap-2">
+                                                {role.isSystemRole && (
+                                                  <Badge variant="secondary" className="text-xs bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20">
+                                                    System
+                                                  </Badge>
+                                                )}
+                                                {role.isDefault && (
+                                                  <Badge variant="secondary" className="text-xs bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20">
+                                                    Default
+                                                  </Badge>
+                                                )}
+                                                <span>{role.name}</span>
+                                              </div>
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
                                     )}
                                     <FormMessage />
                                   </FormItem>

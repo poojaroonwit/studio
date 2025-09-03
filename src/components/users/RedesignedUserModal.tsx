@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -26,7 +27,7 @@ import { toast } from 'react-hot-toast';
 import { UserAvatarUpload } from '@/components/ui/user-avatar-upload';
 import { PersonalColorPicker } from '@/components/settings/PersonalColorPicker';
 import { Switch } from '@/components/ui/switch';
-import { RoleSelector } from '@/components/settings/RoleSelector';
+
 
 
 
@@ -402,16 +403,40 @@ function AccountSettingsContent({ form, mode, canManageAuthentication, canForceP
                   {userGroups.find(g => g.id === field.value?.[0])?.name || 'No role assigned'}
                 </div>
               ) : (
-                <RoleSelector
-                  availableRoles={userGroups}
-                  selectedRoleIds={field.value || []}
-                  onRolesChange={field.onChange}
-                  title="Select Role"
-                  description="Choose the role for this user"
-                  multiple={false}
-                  noCard={true}
+                <Select
+                  value={field.value?.length ? field.value[0] : ""}
+                  onValueChange={(value) => {
+                    if (value) {
+                      field.onChange([value]);
+                    } else {
+                      field.onChange([]);
+                    }
+                  }}
                   disabled={isLoadingGroups}
-                />
+                >
+                  <SelectTrigger className="h-11 border-slate-300 dark:border-slate-600 focus:border-blue-500 focus:ring-blue-500">
+                    <SelectValue placeholder="Select a role" />
+                  </SelectTrigger>
+                  <SelectContent className="z-[100003]">
+                    {userGroups.map((role) => (
+                      <SelectItem key={role.id} value={role.id}>
+                        <div className="flex items-center gap-2">
+                          {role.isSystemRole && (
+                            <Badge variant="secondary" className="text-xs bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20">
+                              System
+                            </Badge>
+                          )}
+                          {role.isDefault && (
+                            <Badge variant="secondary" className="text-xs bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20">
+                              Default
+                            </Badge>
+                          )}
+                          <span>{role.name}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               )}
               <FormMessage />
             </FormItem>

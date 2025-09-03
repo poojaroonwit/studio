@@ -58,6 +58,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
   const { isJobMatchEnabled } = useJobMatchFeature();
   const [avatarInputRef] = useState<React.RefObject<HTMLInputElement>>(React.createRef());
   
+
   // Modal states
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isTransitionsModalOpen, setIsTransitionsModalOpen] = useState(false);
@@ -107,6 +108,8 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
     isSaving,
     realtimeConnected,
     formPopulated,
+    
+    // Form
     control,
     handleSubmit,
     reset,
@@ -114,18 +117,6 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
     errors,
     watch,
     setValue,
-    setIsEditing,
-    setCopiedJobApplied,
-    setCopiedJobMatchIndex,
-    setIsSaving,
-    setIsAssigningRecruiter,
-    setIsAssigningSource,
-    calculateTotalExperienceDuration,
-    calculateAverageDurationPerCompany,
-    handleAssignRecruiter,
-    handleAssignSource,
-    handleAvatarUpload,
-    // Form field arrays
     educationFields,
     appendEducation,
     removeEducation,
@@ -143,7 +134,25 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
     removeJobMatch,
     setCandidate,
     setTransitionHistory,
+    // Functions
+    calculateTotalExperienceDuration,
+    calculateAverageDurationPerCompany,
+    handleAssignRecruiter,
+    handleAssignSource,
+    handleAvatarUpload,
   } = useCandidateDetail(candidateId);
+
+  // Debug logging for taskboard modal issue
+  console.log(`[FullCandidateDetail] Component rendered with:`, {
+    candidateId,
+    isModal,
+    candidate: candidate?.id,
+    loading,
+    error,
+    avatarUploading,
+    avatarError,
+    avatarForceRefresh
+  });
 
   // UUID validation removed
 

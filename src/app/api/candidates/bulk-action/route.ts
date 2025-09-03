@@ -32,7 +32,7 @@ async function validateCandidateHiringStatusWithClient(client: any, candidateId:
     
     // Check if position has any headcounts
     const headcountsResult = await client.query(
-      'SELECT id, status, "candidateId" FROM headcount WHERE "positionId" = $1',
+      'SELECT id, status, "candidateId" FROM "Headcount" WHERE "positionId" = $1',
       [positionId]
     );
     const headcounts = headcountsResult.rows;
@@ -111,7 +111,7 @@ async function assignCandidateToHeadcountWithClient(client: any, candidateId: st
   try {
     // Find vacant headcount for this position (status is vacant OR no candidate assigned)
     const vacantHeadcountResult = await client.query(
-      `SELECT id FROM headcount 
+      `SELECT id FROM "Headcount" 
        WHERE "positionId" = $1 AND (status = 'vacant' OR "candidateId" IS NULL)
        ORDER BY "createdAt" ASC 
        LIMIT 1`,
@@ -129,7 +129,7 @@ async function assignCandidateToHeadcountWithClient(client: any, candidateId: st
 
     // Update the headcount to assign this candidate
     await client.query(
-      'UPDATE headcount SET status = $1, "candidateId" = $2 WHERE id = $3',
+      'UPDATE "Headcount" SET status = $1, "candidateId" = $2 WHERE id = $3',
       ['filled', candidateId, vacantHeadcount.id]
     );
 
@@ -137,7 +137,7 @@ async function assignCandidateToHeadcountWithClient(client: any, candidateId: st
     let autoCloseResult = null;
     try {
       const allHeadcountsResult = await client.query(
-        'SELECT COUNT(*) as total, COUNT(CASE WHEN status = $1 AND "candidateId" IS NOT NULL THEN 1 END) as filled FROM headcount WHERE "positionId" = $2',
+        'SELECT COUNT(*) as total, COUNT(CASE WHEN status = $1 AND "candidateId" IS NOT NULL THEN 1 END) as filled FROM "Headcount" WHERE "positionId" = $2',
         ['filled', positionId]
       );
       

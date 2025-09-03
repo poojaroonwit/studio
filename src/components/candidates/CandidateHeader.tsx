@@ -115,10 +115,17 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
                     className="absolute -bottom-1 -right-1 p-2 bg-background/95 backdrop-blur-sm border border-border/50 rounded-full hover:bg-primary/10 hover:scale-110 transition-all duration-200 z-10 flex items-center justify-center shadow-lg"
                     title="Change profile picture"
                     onClick={() => {
-                      if (avatarInputRef?.current) avatarInputRef.current.click();
+                      // console.log(`[CandidateHeader] Avatar upload button clicked`);
+                      if (avatarInputRef?.current) {
+                        console.log(`[CandidateHeader] File input ref exists, clicking it`);
+                        avatarInputRef.current.click();
+                      } else {
+                        console.error(`[CandidateHeader] File input ref is null`);
+                      }
                     }}
                     onKeyDown={e => {
                       if (e.key === 'Enter' || e.key === ' ') {
+                        console.log(`[CandidateHeader] Avatar upload button key pressed: ${e.key}`);
                         if (avatarInputRef?.current) avatarInputRef.current.click();
                       }
                     }}
@@ -134,8 +141,12 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
                     ref={avatarInputRef}
                     style={{ display: 'none' }}
                     onChange={async (e) => {
+                      console.log(`[CandidateHeader] File input changed:`, e.target.files);
                       const file = e.target.files?.[0];
-                      if (file) await onAvatarUpload(file);
+                      if (file) {
+                        console.log(`[CandidateHeader] Calling onAvatarUpload with file:`, file);
+                        await onAvatarUpload(file);
+                      }
                       e.target.value = '';
                     }}
                     tabIndex={-1}

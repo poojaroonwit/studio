@@ -677,7 +677,13 @@ export const useCandidateDetail = (candidateId: string) => {
   };
 
   const handleAvatarUpload = async (file: File) => {
-    if (!candidate) return;
+    console.log(`[handleAvatarUpload] Called with file:`, file);
+    console.log(`[handleAvatarUpload] Current candidate:`, candidate);
+    
+    if (!candidate) {
+      console.error(`[handleAvatarUpload] No candidate available, cannot upload avatar`);
+      return;
+    }
 
     setAvatarUploading(true);
     setAvatarError(null);
@@ -687,18 +693,25 @@ export const useCandidateDetail = (candidateId: string) => {
       const formData = new FormData();
       formData.append('avatar', file);
 
+      console.log(`[handleAvatarUpload] Uploading to: /api/candidates/${candidate.id}/avatar`);
+      
       const res = await fetch(`/api/candidates/${candidate.id}/avatar`, {
         method: 'POST',
         body: formData,
         credentials: 'include',
       });
 
+      console.log(`[handleAvatarUpload] Response status:`, res.status);
+      console.log(`[handleAvatarUpload] Response ok:`, res.ok);
+
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
+        console.error(`[handleAvatarUpload] Upload failed:`, errorData);
         throw new Error(errorData.message || 'Failed to update avatar');
       }
 
       const result = await res.json();
+      console.log(`[handleAvatarUpload] Upload successful:`, result);
       
       // Update the candidate with the new avatar URL
       setCandidate(prev => prev ? { ...prev, avatarUrl: result.avatarUrl } : null);
@@ -716,6 +729,7 @@ export const useCandidateDetail = (candidateId: string) => {
       toast.success('Avatar updated successfully');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update avatar';
+      console.error(`[handleAvatarUpload] Error:`, err);
       setAvatarError(errorMessage);
       toast.error(errorMessage);
     } finally {

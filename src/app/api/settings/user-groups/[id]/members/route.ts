@@ -88,79 +88,28 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ message: "User group not found" }, { status: 404 });
     }
 
-    // Try the new direct foreign key approach first
-    try {
-      const result = await client.query(`
-        SELECT 
-          u.id,
-          u.name,
-          u.email,
-          u.role,
-          u."avatar_url",
-          u."personal_color",
-          u."created_at"
-        FROM "User" u
-        WHERE u."userGroupId" = $1
-        ORDER BY u.name ASC
-      `, [groupId]);
+    // Use direct foreign key approach (current schema)
+    const result = await client.query(`
+      SELECT 
+        u.id,
+        u.name,
+        u.email,
+        u.role,
+        u."avatarUrl",
+        u."personal_color",
+        u."createdAt"
+      FROM "User" u
+      WHERE u."userGroupId" = $1
+      ORDER BY u.name ASC
+    `, [groupId]);
 
-      return NextResponse.json({ 
-        users: result.rows,
-        group: {
-          id: groupCheck.rows[0].id,
-          name: groupCheck.rows[0].name
-        }
-      }, { status: 200 });
-    } catch (directKeyError: any) {
-      console.warn(`Direct foreign key query failed for group ${groupId}, trying junction table approach:`, directKeyError.message);
-      
-      // Fallback to junction table approach if direct foreign key fails
-      try {
-        const junctionResult = await client.query(`
-          SELECT 
-            u.id,
-            u.name,
-            u.email,
-            u.role,
-            u."avatar_url",
-            u."personal_color",
-            u."created_at"
-          FROM "User" u
-          JOIN "User_UserGroup" uug ON u.id = uug."userId"
-          WHERE uug."groupId" = $1
-          ORDER BY u.name ASC
-        `, [groupId]);
-
-        return NextResponse.json({ 
-          users: junctionResult.rows,
-          group: {
-            id: groupCheck.rows[0].id,
-            name: groupCheck.rows[0].name
-          }
-        }, { status: 200 });
-      } catch (junctionError: any) {
-        console.error(`Both direct foreign key and junction table approaches failed for group ${groupId}:`, {
-          directKeyError: directKeyError.message,
-          junctionError: junctionError.message
-        });
-        
-        // Return empty result with warning instead of 500 error
-        await logAudit('WARN', `Database schema migration issue detected for group ${groupId}. Both direct foreign key and junction table approaches failed.`, 'API:UserGroups:GetMembers', session.user.id, { 
-          targetGroupId: groupId,
-          directKeyError: directKeyError.message,
-          junctionError: junctionError.message
-        });
-        
-        return NextResponse.json({ 
-          users: [],
-          group: {
-            id: groupCheck.rows[0].id,
-            name: groupCheck.rows[0].name
-          },
-          warning: "Database schema migration in progress. Group members may not be fully available."
-        }, { status: 200 });
+    return NextResponse.json({ 
+      users: result.rows,
+      group: {
+        id: groupCheck.rows[0].id,
+        name: groupCheck.rows[0].name
       }
-    }
+    }, { status: 200 });
 
   } catch (error: any) {
     console.error(`Failed to fetch group members for group ${groupId}:`, error);

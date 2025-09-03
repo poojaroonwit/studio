@@ -36,6 +36,7 @@ const NAV_ITEMS = {
 const usePendingCount = () => {
   const [pendingCount, setPendingCount] = React.useState<number | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
+  const [hasPermission, setHasPermission] = React.useState<boolean | null>(null);
   const eventSourceRef = React.useRef<EventSource | null>(null);
   const fallbackTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
@@ -53,13 +54,22 @@ const usePendingCount = () => {
         if (response.ok) {
           const data = await response.json();
           setPendingCount(data.count || 0);
+          setHasPermission(true);
+        } else if (response.status === 403) {
+          // User doesn't have permission to view process queue data
+          // This is expected behavior, not an error
+          setPendingCount(null);
+          setHasPermission(false);
         } else {
+          // Only log warnings for actual errors, not permission issues
           console.warn('Failed to fetch pending count:', response.status);
           setPendingCount(null);
+          setHasPermission(false);
         }
       } catch (error) {
         console.error('Error fetching pending count:', error);
         setPendingCount(null);
+        setHasPermission(false);
       } finally {
         setIsLoading(false);
       }
@@ -68,49 +78,52 @@ const usePendingCount = () => {
     // Initial fetch
     fetchPendingCount();
 
-    // Set up SSE connection for real-time updates
-    try {
-      const eventSource = new EventSource('/api/sse');
-      eventSourceRef.current = eventSource;
+    // Only set up SSE connection if user has permission
+    if (hasPermission !== false) {
+      // Set up SSE connection for real-time updates
+      try {
+        const eventSource = new EventSource('/api/sse');
+        eventSourceRef.current = eventSource;
 
-      eventSource.onopen = () => {
-        console.log('[Sidebar] SSE connection established for pending count');
-      };
+        eventSource.onopen = () => {
+          console.log('[Sidebar] SSE connection established for pending count');
+        };
 
-      eventSource.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          
-          // Listen for upload queue updates
-          if (data.type === 'upload_queue_update' && data.summary) {
-            const { queued, inprocess } = data.summary;
-            const newPendingCount = Number(queued || 0) + Number(inprocess || 0);
-            setPendingCount(newPendingCount);
-            console.log('[Sidebar] Pending count updated via SSE:', newPendingCount);
+        eventSource.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            
+            // Listen for upload queue updates
+            if (data.type === 'upload_queue_update' && data.summary) {
+              const { queued, inprocess } = data.summary;
+              const newPendingCount = Number(queued || 0) + Number(inprocess || 0);
+              setPendingCount(newPendingCount);
+              console.log('[Sidebar] Pending count updated via SSE:', newPendingCount);
+            }
+            
+            // Listen for general queue updates
+            if (data.type === 'queue' && data.summary) {
+              const { queued, inprocess } = data.summary;
+              const newPendingCount = Number(queued || 0) + Number(inprocess || 0);
+              setPendingCount(newPendingCount);
+              console.log('[Sidebar] Pending count updated via SSE:', newPendingCount);
+            }
+          } catch (error) {
+            console.error('[Sidebar] Error parsing SSE message:', error);
           }
-          
-          // Listen for general queue updates
-          if (data.type === 'queue' && data.summary) {
-            const { queued, inprocess } = data.summary;
-            const newPendingCount = Number(queued || 0) + Number(inprocess || 0);
-            setPendingCount(newPendingCount);
-            console.log('[Sidebar] Pending count updated via SSE:', newPendingCount);
-          }
-        } catch (error) {
-          console.error('[Sidebar] Error parsing SSE message:', error);
-        }
-      };
+        };
 
-      eventSource.onerror = (error) => {
-        console.warn('[Sidebar] SSE connection error, falling back to polling:', error);
-        // Fallback to periodic polling if SSE fails
+        eventSource.onerror = (error) => {
+          console.warn('[Sidebar] SSE connection error, falling back to polling:', error);
+          // Fallback to periodic polling if SSE fails
+          fallbackTimeoutRef.current = setInterval(fetchPendingCount, 10000); // 10 second fallback
+        };
+
+      } catch (error) {
+        console.error('[Sidebar] Failed to establish SSE connection:', error);
+        // Fallback to periodic polling if SSE is not available
         fallbackTimeoutRef.current = setInterval(fetchPendingCount, 10000); // 10 second fallback
-      };
-
-    } catch (error) {
-      console.error('[Sidebar] Failed to establish SSE connection:', error);
-      // Fallback to periodic polling if SSE is not available
-      fallbackTimeoutRef.current = setInterval(fetchPendingCount, 10000); // 10 second fallback
+      }
     }
 
     // Cleanup function
@@ -124,7 +137,7 @@ const usePendingCount = () => {
         fallbackTimeoutRef.current = null;
       }
     };
-  }, []);
+  }, [hasPermission]); // Add hasPermission to dependency array to re-run effect when permissions change
 
   return { pendingCount, isLoading };
 };

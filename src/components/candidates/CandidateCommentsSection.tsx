@@ -169,7 +169,7 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
       }
     } catch (error: any) {
       if (error.name === 'AbortError') {
-        console.log('🛑 Load more comments request was aborted');
+
         return;
       }
       console.error('Error loading more comments:', error);

@@ -132,7 +132,7 @@ const { isActioning, handleProtectedAsyncClick } = useClickProtection({
 }
 
 function main() {
-  console.log('🔍 Checking components for click protection needs...\n');
+
   
   let totalChecked = 0;
   let needsProtection = 0;
@@ -140,48 +140,23 @@ function main() {
   
   componentsToProtect.forEach(filePath => {
     totalChecked++;
-    console.log(`📁 Checking: ${filePath}`);
+
     
     const result = checkComponent(filePath);
     
     if (result.hasClickProtection) {
-      console.log('  ✅ Already has click protection');
+
       alreadyProtected++;
     } else if (result.needsProtection) {
-      console.log('  ⚠️  Needs click protection');
-      console.log('  Issues found:');
-      result.issues.slice(0, 3).forEach(issue => {
-        console.log(`    - ${issue}`);
-      });
-      if (result.issues.length > 3) {
-        console.log(`    ... and ${result.issues.length - 3} more issues`);
-      }
       needsProtection++;
-      
-      // Generate protection code
-      const componentName = path.basename(filePath, '.tsx');
-      console.log('  💡 Protection code:');
-      console.log(generateProtectionCode(componentName));
     } else {
-      console.log('  ✅ No protection needed');
+
     }
     
     console.log('');
   });
   
-  console.log('📊 Summary:');
-  console.log(`  Total components checked: ${totalChecked}`);
-  console.log(`  Already protected: ${alreadyProtected}`);
-  console.log(`  Need protection: ${needsProtection}`);
-  console.log(`  No protection needed: ${totalChecked - alreadyProtected - needsProtection}`);
-  
-  if (needsProtection > 0) {
-    console.log('\n🚀 Next steps:');
-    console.log('1. Add useClickProtection import to components that need it');
-    console.log('2. Wrap async functions with handleProtectedAsyncClick');
-    console.log('3. Update button disabled states to include isActioning');
-    console.log('4. Test rapid clicking to ensure protection works');
-  }
+
 }
 
 if (require.main === module) {

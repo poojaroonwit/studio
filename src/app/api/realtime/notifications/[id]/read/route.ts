@@ -42,7 +42,7 @@ export async function POST(
   const session = await getServerSession(authOptions);
 
   if (!session?.user) {
-    console.log('❌ API: Unauthorized request');
+    
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });       
   }
 
@@ -89,7 +89,7 @@ export async function POST(
       }
     });
 
-    console.log('✅ API: Notification updated successfully:', updatedNotification.id);
+    
 
     await logAudit('AUDIT', `Notification '${updatedNotification.title}' marked as read by ${actingUserName}`, 'API:Realtime:Notifications:MarkRead', actingUserId, {
       notificationId,

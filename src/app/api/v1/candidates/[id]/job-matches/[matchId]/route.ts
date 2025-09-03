@@ -16,7 +16,7 @@ const jobMatchSchema = z.object({
   // - updatedAt: Automatically set to current timestamp
 });
 
-export async function GET(req: NextRequest, { params }: { params: { id: string; matchId: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string; matchId: string }> }) {
   const authHeader = req.headers.get('authorization');
   const token = authHeader?.split(' ')[1];
   const user = token ? await verifyApiToken(token) : null;
@@ -30,9 +30,11 @@ export async function GET(req: NextRequest, { params }: { params: { id: string; 
   }
 
   const { id, matchId } = await params;
-  const client = await getPool().connect();
+  let client: any = null;
   
   try {
+    client = await getPool().connect();
+    
     // Check if candidate exists
     const candidateQuery = 'SELECT id FROM "Candidate" WHERE id = $1';
     const candidateResult = await client.query(candidateQuery, [id]);
@@ -69,7 +71,14 @@ export async function GET(req: NextRequest, { params }: { params: { id: string; 
   } catch (error) {
     return new Response(JSON.stringify({ error: 'Error fetching job match', details: (error as Error).message }), { status: 500, headers: handleCors(req) });
   } finally {
-    client.release();
+    // ✅ CRITICAL FIX: Always release the database client
+    if (client) {
+      try {
+        client.release();
+      } catch (releaseError) {
+        console.error('Error releasing database client:', releaseError);
+      }
+    }
   }
 }
 
@@ -100,9 +109,11 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string; 
   }
 
   const { fitScore, jobId, matchReasons } = validationResult.data;
-  const client = await getPool().connect();
+  let client: any = null;
   
   try {
+    client = await getPool().connect();
+    
     await client.query('BEGIN');
     
     // Check if candidate exists
@@ -126,40 +137,49 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string; 
     // Update the job match
     const updateQuery = `
       UPDATE "JobMatch" 
-      SET "jobId" = $1, "fitScore" = $2, "matchReasons" = $3
+      SET "fitScore" = $1, "jobId" = $2, "matchReasons" = $3, "updatedAt" = NOW()
       WHERE id = $4 AND "candidateId" = $5
-      RETURNING *;
+      RETURNING *
     `;
+    const updateResult = await client.query(updateQuery, [fitScore, jobId, matchReasons, matchId, id]);
     
-    const updateResult = await client.query(updateQuery, [
-      jobId,
-      fitScore,
-      matchReasons || [],
-      matchId,
-      id,
-    ]);
+    if (updateResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return new Response(JSON.stringify({ error: 'Failed to update job match' }), { status: 500, headers: handleCors(req) });
+    }
 
     await client.query('COMMIT');
     
     const updatedMatch = updateResult.rows[0];
-    const jobMatch = {
-      id: updatedMatch.id,
-      fitScore: updatedMatch.fitScore,
-      jobId: updatedMatch.jobId,
-      matchReasons: updatedMatch.matchReasons || [],
-      updatedAt: updatedMatch.updatedAt,
-    };
-
     return new Response(JSON.stringify({ 
-      message: 'Job match updated successfully', 
-      job_match: jobMatch 
+      message: 'Job match updated successfully',
+      job_match: {
+        id: updatedMatch.id,
+        fitScore: updatedMatch.fitScore,
+        jobId: updatedMatch.jobId,
+        matchReasons: updatedMatch.matchReasons || [],
+        updatedAt: updatedMatch.updatedAt
+      }
     }), { status: 200, headers: handleCors(req) });
     
   } catch (error) {
-    await client.query('ROLLBACK');
+    if (client) {
+      try {
+        await client.query('ROLLBACK');
+      } catch (rollbackError) {
+        console.error('Error rolling back transaction:', rollbackError);
+      }
+    }
     return new Response(JSON.stringify({ error: 'Error updating job match', details: (error as Error).message }), { status: 500, headers: handleCors(req) });
   } finally {
-    client.release();
+    // ✅ CRITICAL FIX: Always release the database client
+    if (client) {
+      try {
+        client.release();
+      } catch (releaseError) {
+        console.error('Error releasing database client:', releaseError);
+      }
+    }
   }
 }
 
@@ -176,9 +196,11 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   }
 
   const { id, matchId } = await params;
-  const client = await getPool().connect();
+  let client: any = null;
   
   try {
+    client = await getPool().connect();
+    
     await client.query('BEGIN');
     
     // Check if candidate exists
@@ -190,28 +212,52 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
       return new Response(JSON.stringify({ error: 'Candidate not found' }), { status: 404, headers: handleCors(req) });
     }
 
-    // Delete the specific job match
-    const deleteResult = await client.query(
-      'DELETE FROM "JobMatch" WHERE id = $1 AND "candidateId" = $2 RETURNING id', 
-      [matchId, id]
-    );
+    // Check if job match exists
+    const existingMatchQuery = 'SELECT id FROM "JobMatch" WHERE id = $1 AND "candidateId" = $2';
+    const existingMatchResult = await client.query(existingMatchQuery, [matchId, id]);
     
-    if (deleteResult.rowCount === 0) {
+    if (existingMatchResult.rows.length === 0) {
       await client.query('ROLLBACK');
       return new Response(JSON.stringify({ error: 'Job match not found' }), { status: 404, headers: handleCors(req) });
     }
+
+    // Delete the job match
+    const deleteQuery = 'DELETE FROM "JobMatch" WHERE id = $1 AND "candidateId" = $2 RETURNING *';
+    const deleteResult = await client.query(deleteQuery, [matchId, id]);
     
+    if (deleteResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return new Response(JSON.stringify({ error: 'Failed to delete job match' }), { status: 500, headers: handleCors(req) });
+    }
+
     await client.query('COMMIT');
     
     return new Response(JSON.stringify({ 
-      message: 'Job match deleted successfully'
+      message: 'Job match deleted successfully',
+      deleted_match: {
+        id: deleteResult.rows[0].id,
+        candidateId: deleteResult.rows[0].candidateId
+      }
     }), { status: 200, headers: handleCors(req) });
     
   } catch (error) {
-    await client.query('ROLLBACK');
+    if (client) {
+      try {
+        await client.query('ROLLBACK');
+      } catch (rollbackError) {
+        console.error('Error rolling back transaction:', rollbackError);
+      }
+    }
     return new Response(JSON.stringify({ error: 'Error deleting job match', details: (error as Error).message }), { status: 500, headers: handleCors(req) });
   } finally {
-    client.release();
+    // ✅ CRITICAL FIX: Always release the database client
+    if (client) {
+      try {
+        client.release();
+      } catch (releaseError) {
+        console.error('Error releasing database client:', releaseError);
+      }
+    }
   }
 }
 

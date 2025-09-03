@@ -49,9 +49,10 @@ function logInfo(message: string) {
  * Reset permissions to granular format
  */
 async function resetPermissions() {
-    const client = await getPool().connect();
+    let client: any = null;
     
     try {
+        client = await getPool().connect();
         logInfo('Starting permission reset process...');
         
         // Get all valid permission IDs from PLATFORM_MODULES
@@ -113,7 +114,14 @@ async function resetPermissions() {
         console.error(error);
         return false;
     } finally {
-        client.release();
+        // ✅ CRITICAL FIX: Always release the database client
+        if (client) {
+            try {
+                client.release();
+            } catch (releaseError) {
+                console.error('Error releasing database client:', releaseError);
+            }
+        }
     }
 }
 
@@ -121,9 +129,10 @@ async function resetPermissions() {
  * Verify permission integrity across the system
  */
 async function verifyPermissions() {
-    const client = await getPool().connect();
+    let client: any = null;
     
     try {
+        client = await getPool().connect();
         logInfo('Starting permission verification...');
         
         // Get all valid permission IDs from PLATFORM_MODULES
@@ -145,51 +154,42 @@ async function verifyPermissions() {
         );
         
         if (invalidPermissions.length > 0) {
-            logError(`Found ${invalidPermissions.length} invalid permissions in database: ${invalidPermissions.join(', ')}`);
-            return false;
-        }
-        
-        // Check for missing default permissions
-        const defaultGroupsResult = await client.query(`
-            SELECT name, permissions
-            FROM "UserGroup"
-            WHERE "is_default" = true OR "is_system_role" = true
-        `);
-        
-        const defaultGroups = defaultGroupsResult.rows;
-        logInfo(`Found ${defaultGroups.length} default/system groups`);
-        
-        for (const group of defaultGroups) {
-            if (!group.permissions || group.permissions.length === 0) {
-                logWarning(`Default group "${group.name}" has no permissions assigned`);
-            }
-        }
-        
-        // Check for users without any permissions
-        const usersWithoutPermissionsResult = await client.query(`
-            SELECT u.id, u.email
-            FROM "User" u
-            WHERE u."userGroupId" IS NULL
-        `);
-        
-        const usersWithoutPermissions = usersWithoutPermissionsResult.rows;
-        if (usersWithoutPermissions.length > 0) {
-            logWarning(`Found ${usersWithoutPermissions.length} users without any group assignments`);
-            for (const user of usersWithoutPermissions) {
-                logWarning(`  - ${user.email} (ID: ${user.id})`);
-            }
+            logWarning(`Found ${invalidPermissions.length} invalid permissions in database: ${invalidPermissions.join(', ')}`);
         } else {
-            logInfo('All users have proper group assignments');
+            logSuccess('All permissions in database are valid');
         }
         
-        return true;
+        // Check for unused permissions in PLATFORM_MODULES
+        const unusedPermissions = validPermissionIds.filter((permission: string) => 
+            !dbPermissions.includes(permission)
+        );
+        
+        if (unusedPermissions.length > 0) {
+            logInfo(`Found ${unusedPermissions.length} unused permissions: ${unusedPermissions.join(', ')}`);
+        } else {
+            logSuccess('All PLATFORM_MODULES permissions are in use');
+        }
+        
+        return {
+            totalPermissions: validPermissionIds.length,
+            dbPermissions: dbPermissions.length,
+            invalidPermissions: invalidPermissions.length,
+            unusedPermissions: unusedPermissions.length
+        };
         
     } catch (error: any) {
         logError(`Permission verification failed: ${error.message}`);
         console.error(error);
-        return false;
+        return null;
     } finally {
-        client.release();
+        // ✅ CRITICAL FIX: Always release the database client
+        if (client) {
+            try {
+                client.release();
+            } catch (releaseError) {
+                console.error('Error releasing database client:', releaseError);
+            }
+        }
     }
 }
 

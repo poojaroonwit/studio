@@ -61,14 +61,12 @@ export function useClickProtection(config: ClickProtectionConfig = {}): ClickPro
     
     // Prevent rapid clicks
     if (timeSinceLastClick < debounceMs) {
-      console.log(`${actionName} blocked: too rapid clicking`);
       onExcessiveClicks?.();
       return;
     }
     
     // Prevent action if already actioning
     if (isActioning) {
-      console.log(`${actionName} blocked: already actioning`);
       onBlocked?.();
       return;
     }
@@ -117,14 +115,12 @@ export function useClickProtection(config: ClickProtectionConfig = {}): ClickPro
     
     // Prevent rapid clicks
     if (timeSinceLastClick < debounceMs) {
-      console.log(`${actionName} blocked: too rapid clicking`);
       onExcessiveClicks?.();
       return;
     }
     
     // Prevent action if already actioning
     if (isActioning) {
-      console.log(`${actionName} blocked: already actioning`);
       onBlocked?.();
       return;
     }

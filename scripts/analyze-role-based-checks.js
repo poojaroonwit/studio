@@ -48,7 +48,7 @@ const PERMISSION_MAPPINGS = {
 };
 
 async function findRoleBasedChecks() {
-  console.log('🔍 Searching for role-based access checks...');
+
   
   const apiFiles = await glob('src/app/api/**/*.{ts,tsx}', {
     ignore: EXCLUDE_PATTERNS,
@@ -77,25 +77,13 @@ async function findRoleBasedChecks() {
 }
 
 function generateUpdateSuggestions(results) {
-  console.log('\n📋 Found role-based checks that should be updated:');
-  console.log('=' .repeat(80));
+
   
   const suggestions = [];
   
   for (const result of results) {
-    console.log(`\n📁 File: ${result.file}`);
-    console.log(`🔍 Pattern: ${result.pattern}`);
-    console.log(`📝 Matches: ${result.matches.length}`);
-    
     // Generate suggestions based on file path
     const suggestions = generateSuggestionsForFile(result.file, result.matches);
-    
-    console.log('💡 Suggested updates:');
-    suggestions.forEach((suggestion, index) => {
-      console.log(`   ${index + 1}. ${suggestion}`);
-    });
-    
-    console.log('-'.repeat(40));
   }
   
   return suggestions;
@@ -137,7 +125,7 @@ function generateSuggestionsForFile(filePath, matches) {
 }
 
 function generateMigrationScript(results) {
-  console.log('\n📝 Generating migration script...');
+
   
   const scriptContent = `#!/usr/bin/env node
 

@@ -27,7 +27,6 @@ function cleanupOldConnections() {
   for (const [client, usage] of connectionUsageTracker.entries()) {
     if (now - usage.lastUsed > maxIdleTime) {
       try {
-
         client.release();
         connectionUsageTracker.delete(client);
       } catch (error) {
@@ -41,20 +40,149 @@ function cleanupOldConnections() {
 // Start cleanup interval for old connections
 setInterval(cleanupOldConnections, 30000); // Check every 30 seconds
 
-// Get connection usage statistics for monitoring
-export function getConnectionUsageStats() {
-  const now = Date.now();
-  const stats = {
-    totalTracked: connectionUsageTracker.size,
-    connections: Array.from(connectionUsageTracker.entries()).map(([client, usage]) => ({
-      lastUsed: new Date(usage.lastUsed).toISOString(),
-      idleSeconds: Math.round((now - usage.lastUsed) / 1000),
-      queryCount: usage.queryCount,
-      willBeClosed: (now - usage.lastUsed) > (5 * 60 * 1000) // 5 minutes
-    }))
-  };
+// Enhanced connection pool monitoring and cleanup
+let poolMonitorInterval: NodeJS.Timeout | null = null;
+
+// Manual connection cleanup function for emergency use
+export async function emergencyConnectionCleanup() {
+  if (!pool) {
+    
+    return { success: false, message: 'No active pool' };
+  }
   
-  return stats;
+  try {
+    const { totalCount, idleCount, waitingCount } = pool;
+    const activeCount = totalCount - idleCount;
+    const usagePercent = Math.round((totalCount / parseInt(process.env.DATABASE_MAX_CONNECTIONS || '90')) * 100);
+    
+    
+    
+    let cleanedConnections = 0;
+    
+    // Force close idle connections
+    if (idleCount > 0) {
+      
+      
+      // Get all idle clients and release them
+      const idleClients = Array.from({ length: Math.min(idleCount, 10) }, () => pool!.connect());
+      
+      for (const clientPromise of idleClients) {
+        try {
+          const client = await clientPromise;
+          client.release();
+          cleanedConnections++;
+        } catch (error) {
+          console.error('[DB POOL] Error releasing idle client:', error);
+        }
+      }
+      
+      
+    }
+    
+    // Clean up tracked connections that are no longer valid
+    const now = Date.now();
+    const maxIdleTime = 2 * 60 * 1000; // 2 minutes for emergency cleanup
+    
+    for (const [client, usage] of connectionUsageTracker.entries()) {
+      if (now - usage.lastUsed > maxIdleTime) {
+        try {
+          connectionUsageTracker.delete(client);
+        } catch (error) {
+          console.error('[DB POOL] Error cleaning up tracked connection:', error);
+          connectionUsageTracker.delete(client);
+        }
+      }
+    }
+    
+    // Get updated stats after cleanup
+    const newStats = getConnectionUsageStats();
+    
+    return {
+      success: true,
+      cleanedConnections,
+      beforeStats: { totalCount, idleCount, waitingCount, usagePercent },
+      afterStats: newStats,
+      message: `Cleaned up ${cleanedConnections} connections. Usage: ${newStats?.usagePercent}%`
+    };
+    
+  } catch (error) {
+    console.error('[DB POOL] Error during emergency cleanup:', error);
+    return { success: false, message: `Error: ${error}` };
+  }
+}
+
+function startPoolMonitoring() {
+  if (poolMonitorInterval) {
+    clearInterval(poolMonitorInterval);
+  }
+  
+  poolMonitorInterval = setInterval(async () => {
+    if (pool) {
+      const { totalCount, idleCount, waitingCount } = pool;
+      const activeCount = totalCount - idleCount;
+      const usagePercent = Math.round((totalCount / parseInt(process.env.DATABASE_MAX_CONNECTIONS || '90')) * 100);
+      
+      // Log connection status every 5 seconds
+      if (usagePercent >= 70) {
+        console.warn(`[DB POOL] ⚠️  HIGH CONNECTION USAGE: ${totalCount}/${process.env.DATABASE_MAX_CONNECTIONS || '90'} (${usagePercent}%) - Active: ${activeCount}, Idle: ${idleCount}, Waiting: ${waitingCount}`);
+      }
+      
+      // Smart cleanup when approaching 80% threshold
+      if (usagePercent >= 80 && idleCount > 0) {
+        console.warn(`[DB POOL] 🚨 EMERGENCY: High usage detected (${usagePercent}%). Initiating smart cleanup...`);
+        
+        // Use the emergency cleanup function for better control
+        const cleanupResult = await emergencyConnectionCleanup();
+        if (cleanupResult.success) {
+  
+        } else {
+          console.error(`[DB POOL] ❌ Smart cleanup failed: ${cleanupResult.message}`);
+        }
+      }
+      
+      // Critical threshold - more aggressive cleanup
+      if (usagePercent >= 90) {
+        console.error(`[DB POOL] 🚨 CRITICAL: Connection usage at ${usagePercent}%!`);
+        
+        // Force cleanup of all idle connections
+        if (idleCount > 0) {
+          console.error(`[DB POOL] 🚨 CRITICAL: Force closing all ${idleCount} idle connections!`);
+          
+          // Use a more aggressive approach for critical situations
+          try {
+            // Force the pool to close idle connections
+            pool.end();
+            
+            // Recreate the pool after a short delay
+            setTimeout(() => {
+      
+              pool = null;
+              getPool();
+            }, 2000);
+          } catch (error) {
+            console.error('[DB POOL] Error during critical cleanup:', error);
+          }
+        }
+      }
+    }
+  }, 5000); // Check every 5 seconds instead of 30
+}
+
+export function getConnectionUsageStats() {
+  if (!pool) return null;
+  
+  const { totalCount, idleCount, waitingCount } = pool;
+  const activeCount = totalCount - idleCount;
+  const usagePercent = Math.round((totalCount / parseInt(process.env.DATABASE_MAX_CONNECTIONS || '90')) * 100);
+  
+  return {
+    totalCount,
+    activeCount,
+    idleCount,
+    waitingCount,
+    usagePercent,
+    maxConnections: parseInt(process.env.DATABASE_MAX_CONNECTIONS || '90')
+  };
 }
 
 export function getPool() {
@@ -76,8 +204,6 @@ export function getPool() {
       allowExitOnIdle: false,
     };
     
-
-    
     pool = new Pool(poolConfig);
     
     // Enhanced error handling
@@ -87,35 +213,8 @@ export function getPool() {
       // process.exit(-1);
     });
     
-    // Connection pool monitoring and cleanup (guard against dev hot-reloads)
-    const __globalAny = globalThis as unknown as { __dbPoolMonitor?: NodeJS.Timeout };
-    if (!__globalAny.__dbPoolMonitor) {
-      __globalAny.__dbPoolMonitor = setInterval(() => {
-        if (pool) {
-          const { totalCount, idleCount, waitingCount } = pool;
-          const activeCount = totalCount - idleCount;
-          const usagePercent = Math.round((totalCount / poolConfig.max) * 100);
-          
-          // Log warning when approaching limit
-          if (usagePercent >= 80) {
-            console.warn(`[DB POOL] ⚠️  HIGH CONNECTION USAGE: ${totalCount}/${poolConfig.max} (${usagePercent}%) - Active: ${activeCount}, Idle: ${idleCount}, Waiting: ${waitingCount}`);
-            
-            // ✅ EMERGENCY CLEANUP: Force close idle connections when usage is high
-            if (idleCount > 0) {
-              console.warn(`[DB POOL] 🚨 EMERGENCY: Force closing ${idleCount} idle connections due to high usage`);
-              pool.end(); // This will close all connections
-              
-              // Recreate the pool
-              setTimeout(() => {
-  
-                pool = null; // Force recreation
-                getPool(); // Recreate pool
-              }, 1000);
-            }
-          }
-        }
-      }, 60000); // Log every minute
-    }
+    // Start the enhanced pool monitoring
+    startPoolMonitoring();
     
     // Graceful shutdown handling - only add once using process manager
     if (!shutdownHandlerAdded) {
@@ -123,6 +222,12 @@ export function getPool() {
       
       const shutdownHandler = async (signal: string) => {
 
+        
+        if (poolMonitorInterval) {
+          clearInterval(poolMonitorInterval);
+          poolMonitorInterval = null;
+        }
+        
         if (pool) {
           await pool.end();
         }
@@ -208,7 +313,7 @@ export async function withDbTransaction<T>(
     try {
       await client.query('ROLLBACK');
     } catch (rollbackError) {
-      console.error('Rollback error:', rollbackError);
+      console.error('Error rolling back transaction:', rollbackError);
     }
     throw error;
   } finally {

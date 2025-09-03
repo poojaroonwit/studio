@@ -14,14 +14,12 @@ const { spawn } = require('child_process');
 // Check if .env.local exists
 const envLocalPath = path.join(__dirname, '.env.local');
 if (!fs.existsSync(envLocalPath)) {
-  console.log('⚠️  .env.local file not found!');
-  console.log('📝 Creating .env.local from template...');
+
   
   const templatePath = path.join(__dirname, 'env.local.template');
   if (fs.existsSync(templatePath)) {
     fs.copyFileSync(templatePath, envLocalPath);
-    console.log('✅ Created .env.local from template');
-    console.log('🔧 Please review and update .env.local with your specific configuration');
+
   } else {
     console.log('❌ env.local.template not found!');
     console.log('📝 Please create .env.local manually with the following minimum configuration:');

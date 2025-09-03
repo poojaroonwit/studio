@@ -538,7 +538,7 @@ export default function CandidateImportUploadQueue() {
 
   const handleRetryItem = async (itemId: string) => {
     try {
-      console.log(`Retrying job ${itemId}...`);
+      
       
       // Add debugging to check the request
       const response = await fetch(`/api/upload-queue/${itemId}`, {
@@ -549,11 +549,11 @@ export default function CandidateImportUploadQueue() {
         credentials: 'include'
       });
       
-      console.log(`Response status: ${response.status} ${response.statusText}`);
+      
       
       if (response.ok) {
         const result = await response.json();
-        console.log(`Retry successful for job ${itemId}:`, result);
+
         toast.success('Job queued for retry');
         fetchQueue(page, pageSize);
       } else {
@@ -648,7 +648,7 @@ export default function CandidateImportUploadQueue() {
       });
       if (response.ok) {
         const result = await response.json();
-        console.log('Bulk retry result:', result);
+
         
         // Show detailed results if available
         if (result.failedDetails && result.failedDetails.length > 0) {
@@ -1157,7 +1157,7 @@ export default function CandidateImportUploadQueue() {
                           {['error', 'fail'].includes(item.status) && (
                             <DropdownMenuItem 
                               onSelect={() => {
-                                console.log('Retry dropdown item selected for job:', item.id);
+                        
                                 handleRetryItem(item.id);
                               }}
                               className="text-sm py-2"

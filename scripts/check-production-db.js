@@ -11,7 +11,7 @@ const { Pool } = require('pg');
 require('dotenv').config();
 
 async function main() {
-  console.log('🔍 Checking production database structure...');
+
   
   const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
@@ -19,10 +19,10 @@ async function main() {
 
   try {
     const client = await pool.connect();
-    console.log('✅ Connected to production database');
+
 
     // Check if Candidate table exists and its structure
-    console.log('\n📊 Candidate table structure:');
+
     const candidateColumns = await client.query(`
       SELECT 
         column_name,
@@ -35,15 +35,13 @@ async function main() {
     `);
     
     if (candidateColumns.rows.length > 0) {
-      candidateColumns.rows.forEach(row => {
-        console.log(`   - ${row.column_name}: ${row.data_type} (nullable: ${row.is_nullable}, default: ${row.column_default})`);
-      });
+
     } else {
       console.log('   - Candidate table does not exist');
     }
 
     // Check if RecruitmentStage table exists
-    console.log('\n📊 RecruitmentStage table structure:');
+
     const recruitmentStageColumns = await client.query(`
       SELECT 
         column_name,
@@ -56,21 +54,19 @@ async function main() {
     `);
     
     if (recruitmentStageColumns.rows.length > 0) {
-      recruitmentStageColumns.rows.forEach(row => {
-        console.log(`   - ${row.column_name}: ${row.data_type} (nullable: ${row.is_nullable}, default: ${row.column_default})`);
-      });
+
     } else {
       console.log('   - RecruitmentStage table does not exist');
     }
 
     // Check existing data in Candidate table
-    console.log('\n📊 Existing candidate data:');
+
     const candidateCount = await client.query(`
       SELECT COUNT(*) as count FROM "Candidate";
     `);
     
     if (candidateCount.rows[0].count > 0) {
-      console.log(`   - Total candidates: ${candidateCount.rows[0].count}`);
+      
       
       // Check if status column exists and what values it has
       const statusExists = await client.query(`
@@ -88,10 +84,7 @@ async function main() {
           ORDER BY count DESC;
         `);
         
-        console.log('   - Status values:');
-        statusValues.rows.forEach(row => {
-          console.log(`     - ${row.status}: ${row.count} candidates`);
-        });
+
       } else {
         console.log('   - Status column does not exist');
       }
@@ -100,7 +93,7 @@ async function main() {
     }
 
     // Check migration state
-    console.log('\n📊 Migration state:');
+
     const migrationTableExists = await client.query(`
       SELECT EXISTS (
         SELECT 1 FROM information_schema.tables

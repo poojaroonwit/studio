@@ -115,7 +115,7 @@ export function SimplifiedWarningConfigurationEditDrawer({
       };
 
       // TODO: Implement actual save logic
-      console.log('Saving configuration:', dataToSave);
+      
       
       toast({
         title: "Success",

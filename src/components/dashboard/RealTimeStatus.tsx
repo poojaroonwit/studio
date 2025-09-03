@@ -18,7 +18,7 @@ export function RealTimeStatus({ onDataUpdate }: RealTimeStatusProps) {
     
     if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
       // eslint-disable-next-line no-console
-      console.log('[RealTimeStatus] Setting up EventSource connection...');
+  
     }
     
     const eventSource = createEventSource('/api/sse');
@@ -26,7 +26,7 @@ export function RealTimeStatus({ onDataUpdate }: RealTimeStatusProps) {
     eventSource.onopen = () => {
       if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
         // eslint-disable-next-line no-console
-        console.log('[RealTimeStatus] EventSource connected');
+
       }
       setIsConnected(true);
       // Set initial timestamp when connected
@@ -37,7 +37,7 @@ export function RealTimeStatus({ onDataUpdate }: RealTimeStatusProps) {
         if (mounted && isConnected) {
           if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
             // eslint-disable-next-line no-console
-            console.log('[RealTimeStatus] Fallback update - no events received, updating timestamp');
+    
           }
           setLastUpdate(new Date().toLocaleTimeString());
         }
@@ -50,7 +50,7 @@ export function RealTimeStatus({ onDataUpdate }: RealTimeStatusProps) {
           const data = JSON.parse(event.data);
           if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
             // eslint-disable-next-line no-console
-            console.log('[RealTimeStatus] Received SSE event:', data);
+    
           }
           setEventCount(prev => prev + 1);
           
@@ -76,7 +76,7 @@ export function RealTimeStatus({ onDataUpdate }: RealTimeStatusProps) {
           const data = JSON.parse(event.data);
           if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
             // eslint-disable-next-line no-console
-            console.log('[RealTimeStatus] Received keepalive event:', data);
+    
           }
           setEventCount(prev => prev + 1);
           
@@ -98,7 +98,7 @@ export function RealTimeStatus({ onDataUpdate }: RealTimeStatusProps) {
           const data = JSON.parse(event.data);
           if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
             // eslint-disable-next-line no-console
-            console.log('[RealTimeStatus] Received connected event:', data);
+    
           }
           setEventCount(prev => prev + 1);
           

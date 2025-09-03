@@ -104,14 +104,14 @@ export function HeadcountAttachmentModal({
         formData.append('file', file);
         formData.append('label', file.name);
         
-        console.log(`[UPLOAD] Uploading file: ${file.name} (${file.size} bytes)`);
+
         
         const response = await fetch(`/api/headcount/${headcount.id}/attachments`, {
           method: 'POST',
           body: formData,
         });
         
-        console.log(`[UPLOAD] Response status: ${response.status} ${response.statusText}`);
+
         
         if (!response.ok) {
           let errorData: { error?: string } = {};
@@ -138,7 +138,7 @@ export function HeadcountAttachmentModal({
         }
         
         const result = await response.json();
-        console.log(`[UPLOAD] File uploaded successfully:`, result);
+
       }
 
       toast.success('Files uploaded successfully');

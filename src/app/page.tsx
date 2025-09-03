@@ -34,8 +34,10 @@ export default async function DashboardPageServer() {
     }
     
     // Fetch data on server side
-    const client = await getPool().connect();
+    let client: any = null;
     try {
+      client = await getPool().connect();
+      
       // Fetch candidates
       const candidatesQuery = `
         SELECT c.*, p.id as "positionId", p.title as "positionTitle", p.department as "positionDepartment", p."positionLevel" as "positionLevel", p."isOpen" as "positionIsOpen",
@@ -132,8 +134,7 @@ export default async function DashboardPageServer() {
         name: row.name,
         email: row.email,
         role: row.role,
-        avatarUrl: row.avatarUrl,
-
+        avatarUrl: row.avatarUrl || null,
         createdAt: row.createdAt ? row.createdAt.toISOString() : new Date().toISOString(),
         updatedAt: row.updatedAt ? row.updatedAt.toISOString() : new Date().toISOString(),
       }));
@@ -160,15 +161,33 @@ export default async function DashboardPageServer() {
         if (name === 'rejected') stageIds.rejected = row.id;
       });
 
+    } catch (error) {
+      console.error('Error fetching initial data:', error);
+      console.error('Error details:', {
+        message: (error as any).message,
+        code: (error as any).code,
+        detail: (error as any).detail,
+        hint: (error as any).hint,
+        position: (error as any).position,
+        where: (error as any).where
+      });
+      fetchError = `Failed to load initial data: ${(error as any).message}`;
     } finally {
-      client.release();
+      // ✅ CRITICAL FIX: Always release the database client
+      if (client) {
+        try {
+          client.release();
+        } catch (releaseError) {
+          console.error('Error releasing database client:', releaseError);
+        }
+      }
     }
     
     return <DashboardPageClient 
              initialCandidates={initialCandidates} 
              initialPositions={initialPositions} 
              initialUsers={initialUsers} 
-             initialFetchError={undefined}
+             initialFetchError={fetchError}
              initialStageIds={stageIds}
              initialStageNames={stageNames}
            />;

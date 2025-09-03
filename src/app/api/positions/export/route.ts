@@ -5,6 +5,7 @@ import { getServerSession } from 'next-auth/next';
 import { getPool } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
 import * as XLSX from 'xlsx';
+import { logAudit } from '@/lib/auditLog';
 
 /**
  * @openapi
@@ -103,10 +104,10 @@ export async function GET() {
     return NextResponse.json({ error: 'Forbidden: Insufficient permissions to export positions' }, { status: 403 });
   }
 
+  let client: any = null;
   try {
-    const client = await getPool().connect();
+    client = await getPool().connect();
     const result = await client.query('SELECT * FROM "Position" ORDER BY "createdAt" DESC');
-    client.release();
 
     const excelBuffer = convertToExcel(result.rows);
     
@@ -127,5 +128,14 @@ export async function GET() {
       error: (error as Error).message 
     });
     return NextResponse.json({ error: 'Failed to export positions' }, { status: 500 });
+  } finally {
+    // ✅ CRITICAL FIX: Always release the database client
+    if (client) {
+      try {
+        client.release();
+      } catch (releaseError) {
+        console.error('Error releasing database client:', releaseError);
+      }
+    }
   }
 }

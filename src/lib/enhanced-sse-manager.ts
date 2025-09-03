@@ -372,8 +372,55 @@ export class EnhancedSSEManager {
       connectedEndpoints: connectedCount,
       failedEndpoints: failedCount,
       disabledEndpoints: disabledCount,
-      endpoints: Array.from(this.endpoints.values())
+      endpoints: Array.from(this.endpoints.values()).map(endpoint => ({
+        id: endpoint.id,
+        name: endpoint.name,
+        url: endpoint.url,
+        enabled: endpoint.enabled,
+        isConnected: endpoint.isConnected,
+        lastError: endpoint.lastError,
+        lastErrorTime: endpoint.lastErrorTime,
+        lastErrorEventType: endpoint.lastErrorEventType,
+        lastErrorLocation: endpoint.lastErrorLocation,
+        retryCount: endpoint.retryCount,
+        connectionAttempts: endpoint.connectionAttempts,
+        isHanging: endpoint.isHanging
+      }))
     };
+  }
+
+  // New method for detailed debugging
+  public getDetailedDebugInfo(): any {
+    const debugInfo = {
+      timestamp: new Date().toISOString(),
+      managerState: {
+        isConnecting: this.isConnecting,
+        subscriberCount: this.subscriberCount,
+        eventListenerCount: this.eventListeners.size,
+        connectionTimeout: this.connectionTimeout,
+        retryDelay: this.retryDelay,
+        maxConcurrentConnections: this.maxConcurrentConnections,
+        debugMode: this.debugMode
+      },
+      endpoints: this.getConnectionStatus().endpoints,
+      connectionQueue: this.connectionQueue,
+      recommendations: []
+    };
+
+    // Add recommendations based on current state
+    if (debugInfo.endpoints.some(e => !e.enabled && e.lastError)) {
+      debugInfo.recommendations.push('Some endpoints are disabled due to errors. Check server logs for details.');
+    }
+    
+    if (debugInfo.endpoints.some(e => e.isHanging)) {
+      debugInfo.recommendations.push('Some endpoints may have hanging connections. Consider increasing timeout values.');
+    }
+    
+    if (debugInfo.subscriberCount === 0) {
+      debugInfo.recommendations.push('No active subscribers. SSE connections may not be needed.');
+    }
+
+    return debugInfo;
   }
 
   public enableEndpoint(endpointId: string): void {

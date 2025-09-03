@@ -34,7 +34,7 @@ export function useLogoutRedirect(isAuthenticated: boolean, redirectPath: string
         // Set a timeout to prevent getting stuck
         redirectTimeoutRef.current = setTimeout(() => {
           if (!hasRedirectedRef.current) {
-            console.log('[LOGOUT_REDIRECT] Redirecting to signin page after timeout');
+
             hasRedirectedRef.current = true;
             router.replace(redirectPath);
           }

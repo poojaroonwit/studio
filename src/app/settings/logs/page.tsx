@@ -142,12 +142,6 @@ export default function ApplicationLogsPage() {
       signIn(undefined, { callbackUrl: pathname });
     } else if (status === 'authenticated') {
       // Debug: Log user permissions for troubleshooting
-      console.log('Logs page - User permissions:', {
-        role: session.user.role,
-        modulePermissions: session.user.modulePermissions,
-        hasLogsView: session.user.modulePermissions?.includes('LOGS_VIEW'),
-        hasSystemSettingsView: session.user.modulePermissions?.includes('SYSTEM_SETTINGS_VIEW')
-      });
       
       // Check if user has admin role, LOGS_VIEW permission, or SYSTEM_SETTINGS_VIEW permission
       if (session.user.role !== 'Admin' && 

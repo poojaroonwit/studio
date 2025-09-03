@@ -112,7 +112,7 @@ export function UserPreferencesModal({ isOpen, onOpenChange, user }: UserPrefere
             ...data.sidebar
           }
         };
-        console.log('Loaded preferences:', preferencesWithSidebar);
+
         setPreferences(preferencesWithSidebar);
       } else {
         // Use default preferences if none exist

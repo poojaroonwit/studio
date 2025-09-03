@@ -38,7 +38,7 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
   const loadData = useCallback(async () => {
     // Prevent multiple simultaneous requests
     if (isLoadingRef.current) {
-      console.log('⚠️ Request already in progress for candidate:', candidateId);
+      
       return;
     }
 
@@ -119,7 +119,7 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
       } else if (commentsRes.status === 'rejected') {
         // Check if it's an AbortError
         if (commentsRes.reason?.name === 'AbortError') {
-          console.log('🛑 Comments request was aborted');
+  
           return; // Exit early for aborted requests
         }
         console.warn('⚠️ Comments request failed:', commentsRes.reason);
@@ -141,7 +141,7 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
       } else if (attachmentsRes.status === 'rejected') {
         // Check if it's an AbortError
         if (attachmentsRes.reason?.name === 'AbortError') {
-          console.log('🛑 Attachments request was aborted');
+  
           return; // Exit early for aborted requests
         }
         console.warn('⚠️ Attachments request failed:', attachmentsRes.reason);
@@ -166,7 +166,7 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
       } else if (candidateRes.status === 'rejected') {
         // Check if it's an AbortError
         if (candidateRes.reason?.name === 'AbortError') {
-          console.log('🛑 Candidate request was aborted');
+  
           return; // Exit early for aborted requests
         }
         console.warn('⚠️ Candidate request rejected:', candidateRes.reason);
@@ -182,7 +182,7 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
 
       // Don't set error for aborted requests
       if (error.name === 'AbortError') {
-        console.log('🛑 Request aborted for candidate:', candidateId);
+
         return;
       }
       

@@ -1195,9 +1195,7 @@ export default function SystemPreferencesPage() {
     setErrorMsg(null);
     setSuccessMsg(false);
     
-    console.log('Starting save preferences...');
-    console.log('canEdit:', canEdit);
-    console.log('isMountedRef.current:', isMountedRef.current);
+    
     
     // Create abort controller for save request
     const saveController = new AbortController();
@@ -1296,7 +1294,7 @@ export default function SystemPreferencesPage() {
         throw new Error(errorData.message || 'Failed to save preferences');
       }
       
-      console.log('Save successful!');
+      
       
 
 

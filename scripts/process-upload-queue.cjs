@@ -61,10 +61,10 @@ let currentPressureLevel = 'medium';
 // Override baseUrl for local development if it's set to Docker service name
 if (dynamicConfig.baseUrl.includes('8021_fitscan_app:8021') || dynamicConfig.baseUrl.includes('172.21.0.2:8021')) {
   if (process.env.DOCKER_ENV || process.env.NODE_ENV === 'production') {
-    console.log(`[INFO] Running in Docker/production environment, using: ${dynamicConfig.baseUrl}`);
+
   } else {
     dynamicConfig.baseUrl = 'http://localhost:8021';
-    console.log(`[INFO] Overriding PROCESSOR_URL to localhost for local development: ${dynamicConfig.baseUrl}`);
+
   }
 }
 
@@ -86,7 +86,7 @@ async function getMaxConcurrentProcessorsSetting() {
       }
     }
   } catch (error) {
-    console.log(`[PROCESSOR] Failed to get maxConcurrentProcessors setting: ${error.message}`);
+
   }
   
   // Fallback to environment variable or default
@@ -100,17 +100,17 @@ async function updateConcurrentProcessorSetting() {
     if (maxConcurrent !== dynamicConfig.maxConcurrentProcessors) {
       const oldValue = dynamicConfig.maxConcurrentProcessors;
       dynamicConfig.maxConcurrentProcessors = maxConcurrent;
-      console.log(`[PROCESSOR] Updated max concurrent processors: ${oldValue} → ${maxConcurrent}`);
+
       
       // Adjust batch limit based on concurrent processors
       const newBatchLimit = Math.max(1, Math.min(maxConcurrent, 5)); // Cap at 5 for connection safety
       if (newBatchLimit !== dynamicConfig.batchLimit) {
         dynamicConfig.batchLimit = newBatchLimit;
-        console.log(`[PROCESSOR] Adjusted batch limit: ${newBatchLimit} (based on ${maxConcurrent} concurrent processors)`);
+
       }
     }
   } catch (error) {
-    console.log(`[PROCESSOR] Error updating concurrent processor setting: ${error.message}`);
+
   }
 }
 
@@ -217,8 +217,7 @@ function updateDynamicConfig() {
     dynamicConfig.retryDelayMs = newConfig.retryDelayMs;
     dynamicConfig.maxConsecutiveErrors = newConfig.maxConsecutiveErrors;
     
-    console.log(`[PROCESSOR] Resource pressure changed: ${oldLevel} → ${pressure}`);
-    console.log(`[PROCESSOR] Adjusted config: interval=${dynamicConfig.intervalMs}ms, batch=${dynamicConfig.batchLimit}, timeouts=${dynamicConfig.connectionTimeoutMs}ms`);
+
   }
 }
 
@@ -238,9 +237,7 @@ function log(level, message) {
   // Log status every logIntervalMs
   if (Date.now() - lastLogTime > dynamicConfig.logIntervalMs) {
     const metrics = getSystemMetrics();
-    console.log(`[STATUS] Processor running - Processed: ${processedCount}, Errors: ${errorCount}, Uptime: ${Math.floor((Date.now() - startTime) / 1000)}s`);
-    console.log(`[RESOURCES] Memory: ${metrics.memory.percentage.toFixed(1)}%, CPU Load: ${metrics.cpu.load.toFixed(2)}, Pressure: ${currentPressureLevel}`);
-    console.log(`[CONFIG] Max Concurrent: ${dynamicConfig.maxConcurrentProcessors}, Current Batch: ${dynamicConfig.batchLimit}, Interval: ${dynamicConfig.intervalMs}ms`);
+
     lastLogTime = Date.now();
   }
 }
@@ -290,12 +287,12 @@ function makeRequest(url, options) {
     });
     
     req.on('error', (error) => {
-      console.log(`[DEBUG] HTTP request error: ${error.message} for ${url}`);
+
       reject(error);
     });
     
     req.on('timeout', () => {
-      console.log(`[DEBUG] HTTP request timeout after ${dynamicConfig.requestTimeoutMs}ms for ${url}`);
+
       req.destroy();
       reject(new Error('Request timeout'));
     });

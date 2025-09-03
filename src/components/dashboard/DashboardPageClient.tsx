@@ -408,14 +408,14 @@ export default function DashboardPageClient({
           const data = JSON.parse(event.data);
           if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
             // eslint-disable-next-line no-console
-            console.log('[Dashboard] Received SSE event:', data);
+    
           }
           
           // Handle different event types with debouncing
           if (data.type === 'candidate_update' || data.type === 'position_update' || data.type === 'dashboard_update') {
             if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
               // eslint-disable-next-line no-console
-              console.log('[Dashboard] Update received, scheduling data refresh...');
+      
             }
             // Clear existing timeout and set new one to prevent rapid successive calls
             if (refreshTimeout) {
@@ -446,7 +446,7 @@ export default function DashboardPageClient({
     eventSource.onopen = () => {
       if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
         // eslint-disable-next-line no-console
-        console.log('[Dashboard] EventSource connected for real-time updates');
+
       }
       setDashboardRealtimeConnected(true);
     };
@@ -1045,9 +1045,7 @@ export default function DashboardPageClient({
               button: {
                 label: "View All",
                 onClick: () => {
-                  console.log('🔍 Dashboard: Clicking "View All" for High Score (80+)');
-                  console.log('🔍 Dashboard: highPriorityCandidates count:', highPriorityCandidates.length);
-                  console.log('🔍 Dashboard: Sending query: minAppliedJobFitScore:80');
+                  
                   router.push('/candidates?query=' + encodeURIComponent('minAppliedJobFitScore:80'));
                 }
               }

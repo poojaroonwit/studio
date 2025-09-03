@@ -140,7 +140,7 @@ export function useEnhancedSSE() {
       // Reduce noisy logs in production; enable with NEXT_PUBLIC_SSE_DEBUG=1
       if (debugMode) {
         // eslint-disable-next-line no-console
-        console.log('[Enhanced SSE Hook] Received SSE event:', event);
+
       }
       setLastMessage(event);
     };

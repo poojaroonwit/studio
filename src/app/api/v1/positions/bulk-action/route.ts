@@ -38,8 +38,9 @@ export async function POST(req: NextRequest) {
 
   const { action, positionIds, data } = validationResult.data;
 
-  const client = await getPool().connect();
+  let client: any = null;
   try {
+    client = await getPool().connect();
     await client.query('BEGIN');
 
     let updateQuery = '';
@@ -133,12 +134,22 @@ export async function POST(req: NextRequest) {
       message: `Bulk action '${action}' completed successfully`,
       affectedCount: result.rowCount 
     }), { status: 200, headers: handleCors(req) });
-
+    
   } catch (error) {
-    await client.query('ROLLBACK');
+    if (client) {
+      try {
+        await client.query('ROLLBACK');
+      } catch (rollbackError) {
+        console.error('Error rolling back transaction:', rollbackError);
+      }
+    }
+    console.error(`Bulk action '${action}' failed:`, error);
     await logAudit('ERROR', `Bulk action '${action}' failed by ${user.name}. Error: ${(error as Error).message}`, 'API:V1:Positions:BulkAction', user.id, { action, positionIds, data, error: (error as Error).message });
-    return new Response(JSON.stringify({ error: 'Error performing bulk action', details: (error as Error).message }), { status: 500, headers: handleCors(req) });
+    return new Response(JSON.stringify({ 
+      error: `Bulk action '${action}' failed: ${(error as Error).message}` 
+    }), { status: 500, headers: handleCors(req) });
   } finally {
+    // ✅ CRITICAL FIX: Always release the database client
     if (client) {
       try {
         client.release();

@@ -19,24 +19,24 @@ const MicrosoftLogo = () => (
 export function AzureAdSignInButton() {
   const handleSignIn = async () => {
     try {
-      console.log('[AZURE AD BUTTON] Starting Azure AD sign-in...');
+
       const result = await signIn("azure-ad", { 
         callbackUrl: "/",
         redirect: false // Don't redirect immediately to catch errors
       });
 
-      console.log('[AZURE AD BUTTON] Sign-in result:', result);
+
       
       if (result?.error) {
         console.error('[AZURE AD BUTTON] Sign-in error:', result.error);
         // Show error to user
         alert(`Sign-in failed: ${result.error}`);
       } else if (result?.ok) {
-        console.log('[AZURE AD BUTTON] Sign-in successful, redirecting to:', result.url || "/");
+
         // Use window.location.href for more reliable redirect
         window.location.href = result.url || "/";
       } else {
-        console.log('[AZURE AD BUTTON] Sign-in in progress...');
+
         // The sign-in process is still ongoing, let NextAuth handle the redirect
       }
     } catch (error) {

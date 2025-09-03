@@ -65,7 +65,7 @@ export function broadcastUnifiedEvent(event: UnifiedEvent) {
       try {
         connection.controller.enqueue(encodedMessage);
         connection.lastActivity = Date.now();
-        console.log(`[Unified] Sent ${event.type} to user ${userId}`);
+
       } catch (error) {
         console.error(`[UNIFIED] Failed to broadcast ${event.type} to user ${userId}:`, error);
         removeUserConnection(userId);
@@ -104,7 +104,7 @@ function addUserConnection(userId: string, controller: ReadableStreamDefaultCont
   };
   
   userConnections.set(userId, connection);
-  console.log(`[UNIFIED] User ${userId} connected. Total connections: ${userConnections.size}`);
+
 }
 
 function removeUserConnection(userId: string) {
@@ -119,7 +119,7 @@ function removeUserConnection(userId: string) {
     
     // Remove connection
     userConnections.delete(userId);
-    console.log(`[UNIFIED] User ${userId} disconnected. Total connections: ${userConnections.size}`);
+
   }
 }
 
@@ -267,7 +267,7 @@ export async function handleUnifiedSSEConnection(request: Request) {
     const userId = session?.user?.id;
 
     if (!userId) {
-      console.log('[UNIFIED] Authentication failed - no user session');
+      
       return new Response('Unauthorized', { status: 401 });
     }
 
@@ -378,7 +378,7 @@ export function cleanupInactiveConnections() {
   
   for (const [userId, connection] of userConnections.entries()) {
     if (now - connection.lastActivity > inactiveTimeout) {
-      console.log(`[UNIFIED] Cleaning up inactive connection for user ${userId}`);
+
       removeUserConnection(userId);
     }
   }
@@ -403,14 +403,14 @@ export function startPeriodicCleanup() {
     }
   }, 5000); // Every 5 seconds
   
-  console.log('[UNIFIED] Periodic cleanup started (every 5 seconds)');
+
 }
 
 export function stopPeriodicCleanup() {
   if (cleanupInterval) {
     clearInterval(cleanupInterval);
     cleanupInterval = null;
-    console.log('[UNIFIED] Periodic cleanup stopped');
+
   }
 }
 
@@ -452,7 +452,7 @@ export function emergencyConnectionReset() {
   
   // No more explicit release here as withDbClient handles it
   
-  console.log('[UNIFIED] Emergency reset completed');
+
   
   // Restart cleanup
   startPeriodicCleanup();

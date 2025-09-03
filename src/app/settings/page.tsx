@@ -107,13 +107,20 @@ const settingsItems = [
     permissionId: 'SYSTEM_SETTINGS_VIEW' as PlatformModuleId, 
     adminOnlyOrPermission: true
   },
-
   { 
     href: "/settings/data-configuration", 
     label: "Data Configuration", 
     icon: Database, 
     description: "Manage custom fields, recruitment stages, and candidate sources.", 
     permissionId: 'RECRUITMENT_STAGES_VIEW' as PlatformModuleId, 
+    adminOnlyOrPermission: true
+  },
+  { 
+    href: "/settings/upload-queue-settings", 
+    label: "Upload Queue Settings", 
+    icon: DatabaseZap, 
+    description: "Configure file upload processing and queue management.", 
+    permissionId: 'UPLOAD_QUEUE_VIEW' as PlatformModuleId, 
     adminOnlyOrPermission: true
   },
   { 
@@ -124,7 +131,6 @@ const settingsItems = [
     permissionId: 'WEBHOOKS_EDIT' as PlatformModuleId, 
     adminOnlyOrPermission: true
   },
-
   { 
     href: "/settings/users", 
     label: "User Management", 

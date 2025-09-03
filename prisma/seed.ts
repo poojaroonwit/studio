@@ -28,9 +28,7 @@ async function main() {
         forcePasswordChange: false
       }
     });
-    console.log('✅ Admin user created/updated');
-    console.log(`Email: ${adminEmail}`);
-console.log(`Password: ${adminPassword}`);
+        console.log('✅ Admin user created/updated');
 
     // Create default recruitment stages
     console.log('Creating recruitment stages...');

@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
           (SELECT COUNT(*) FROM upload_queue WHERE status = 'queued') as queued_uploads,
           (SELECT COUNT(*) FROM upload_queue WHERE status = 'inprocess') as processing_uploads,
           (SELECT COUNT(*) FROM upload_queue WHERE status = 'success') as successful_uploads,
-          (SELECT COUNT(*) FROM upload_queue WHERE status IN ('error', 'fail')) as failed_uploads
+          (SELECT COUNT(*) FROM upload_queue WHERE status = 'failed') as failed_uploads
       `);
       
       // Get recent activity

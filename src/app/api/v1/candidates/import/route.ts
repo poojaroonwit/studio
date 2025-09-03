@@ -16,13 +16,32 @@ async function resolveStageIdFromInput(input: string | undefined | null): Promis
   if (!input || typeof input !== 'string') return null;
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   if (uuidRegex.test(input)) return input;
+  
   try {
     const byName = await prisma.recruitmentStage.findFirst({
       where: { name: { equals: input, mode: 'insensitive' } },
       select: { id: true }
     });
     if (byName?.id) return byName.id;
-    const firstStage = await prisma.recruitmentStage.findFirst({ orderBy: { sortOrder: 'asc' }, select: { id: true } });
+    
+    // Default to "Applied" stage if no specific status provided
+    const appliedStage = await prisma.recruitmentStage.findFirst({
+      where: { 
+        OR: [
+          { name: { equals: 'Applied', mode: 'insensitive' } },
+          { name: { equals: 'applied', mode: 'insensitive' } }
+        ]
+      },
+      select: { id: true }
+    });
+    
+    if (appliedStage?.id) return appliedStage.id;
+    
+    // Fallback to first stage by sortOrder if "Applied" not found
+    const firstStage = await prisma.recruitmentStage.findFirst({ 
+      orderBy: { sortOrder: 'asc' }, 
+      select: { id: true } 
+    });
     return firstStage?.id || null;
   } catch {
     return null;
@@ -203,17 +222,17 @@ export async function POST(req: NextRequest) {
             if (position && position.recruiterId && position.recruiter) {
               await prisma.candidate.update({
                 where: { id: candidateId },
-                data: { recruiterId: position.recruiterId, updatedAt: new Date() },
+                data: { recruiter: { connect: { id: position.recruiterId } }, updatedAt: new Date() },
               });
 
               await prisma.transitionRecord.create({
                 data: {
                   id: uuidv4(),
-                  candidateId: candidateId,
-                  positionId: candidate.positionId,
+                  candidate: { connect: { id: candidateId } },
+                  position: candidate.positionId ? { connect: { id: candidate.positionId } } : undefined,
                   stage: resolvedStatusId,
                   notes: `Recruiter auto-assigned from position: ${position.recruiter.name}`,
-                  actingUserId: user.id,
+                  actingUser: { connect: { id: user.id } },
                   date: new Date(),
                 },
               });

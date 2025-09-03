@@ -36,7 +36,7 @@ const userTeamSchema = z.object({
  *         description: Server error
  *   post:
  *     summary: Create a new user team
- *     description: Creates a new user team. Requires authentication and Admin or USERS_MANAGE permission.
+ *     description: Creates a new user team. Requires authentication and Admin or USERS_CREATE permission.
  *     requestBody:
  *       required: true
  *       content:
@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
     if (!actingUserId) return new NextResponse('Unauthorized', { status: 401 });
 
     // Check permissions
-    if (!hasPermission(session.user, 'USERS_MANAGE')) {
+    if (!hasPermission(session.user, 'USERS_CREATE')) {
         return new NextResponse('Forbidden: Insufficient permissions', { status: 403 });
     }
 

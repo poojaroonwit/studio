@@ -89,10 +89,10 @@ export async function GET(request: NextRequest) {
       const summaryRes = await client.query(
         `SELECT 
           COUNT(*) as total,
-          COUNT(*) FILTER (WHERE uq.status = 'queued') as queued,
-          COUNT(*) FILTER (WHERE uq.status = 'inprocess') as inprocess,
-          COUNT(*) FILTER (WHERE uq.status = 'success') as success,
-          COUNT(*) FILTER (WHERE uq.status = 'error' OR uq.status = 'fail') as error
+                  COUNT(*) FILTER (WHERE uq.status = 'queued') as queued,
+        COUNT(*) FILTER (WHERE uq.status = 'inprocess') as inprocess,
+        COUNT(*) FILTER (WHERE uq.status = 'success') as success,
+        COUNT(*) FILTER (WHERE uq.status = 'failed') as error
         FROM upload_queue uq 
         LEFT JOIN "Position" p ON uq.position_id = p.id 
         ${whereSQL}`,

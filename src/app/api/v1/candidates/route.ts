@@ -150,9 +150,10 @@ export async function POST(request: NextRequest) {
   const email = contactInfo.email || 'no-email@example.com';
   
   // Resolve the desired status (UUID). If payload provides a status UUID, use it; if a name, resolve by name;
-  // otherwise default to the first stage by sortOrder (commonly 'Applied').
+  // otherwise default to "Applied" stage.
   let resolvedStageId: string | null = null;
   const inputStatus = typeof candidateInfo.status === 'string' ? candidateInfo.status.trim() : '';
+  
   if (inputStatus) {
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     if (uuidRegex.test(inputStatus)) {
@@ -169,17 +170,35 @@ export async function POST(request: NextRequest) {
       } catch {}
     }
   }
+  
+  // If no status provided or resolved, default to "Applied" stage
   if (!resolvedStageId) {
     try {
-      const firstStage = await prisma.recruitmentStage.findFirst({
-        orderBy: { sortOrder: 'asc' },
+      const appliedStage = await prisma.recruitmentStage.findFirst({
+        where: { 
+          OR: [
+            { name: { equals: 'Applied', mode: 'insensitive' } },
+            { name: { equals: 'applied', mode: 'insensitive' } }
+          ]
+        },
         select: { id: true }
       });
-      resolvedStageId = firstStage?.id || null;
+      
+      if (appliedStage?.id) {
+        resolvedStageId = appliedStage.id;
+      } else {
+        // Fallback to first stage by sortOrder if "Applied" not found
+        const firstStage = await prisma.recruitmentStage.findFirst({
+          orderBy: { sortOrder: 'asc' },
+          select: { id: true }
+        });
+        resolvedStageId = firstStage?.id || null;
+      }
     } catch {
       resolvedStageId = null;
     }
   }
+  
   if (!resolvedStageId) {
     return handleApiError(request, createValidationError('Unable to resolve a valid recruitment stage ID'));
   }
@@ -238,11 +257,11 @@ export async function POST(request: NextRequest) {
         name: name,
         email: email.toLowerCase(),
         phone: contactInfo.phone || null,
-        positionId: positionId, // Store positionId in database
-        status: resolvedStageId,
+        position: positionId ? { connect: { id: positionId } } : undefined,
+        recruitmentStage: { connect: { id: resolvedStageId } },
         fitScore: fitScore, // <-- always set top-level fitScore if present
         parsedData: parsedData,
-        sourceId: validationResult.data.sourceId || null,
+        source: validationResult.data.sourceId ? { connect: { id: validationResult.data.sourceId } } : null,
         subSource: validationResult.data.subSource || null,
         applicationDate: createDateInTimezone(),
         createdAt: createDateInTimezone(),
@@ -254,10 +273,10 @@ export async function POST(request: NextRequest) {
     await prisma.transitionRecord.create({
       data: {
         id: uuidv4(),
-        candidateId: newCandidateId,
+        candidate: { connect: { id: newCandidateId } },
         stage: resolvedStageId,
         notes: 'Initial creation via API',
-        actingUserId: user.id,
+        actingUser: { connect: { id: user.id } },
         date: createDateInTimezone(),
       },
     });
@@ -271,9 +290,9 @@ export async function POST(request: NextRequest) {
       // Don't fail the request if warning check fails
     }
     
-    // Auto-assign recruiter if candidate has a position and no recruiter
+    // Auto-assign recruiter if candidate has a position
     let finalCandidate = newCandidate;
-    if (positionId && !newCandidate.recruiterId) {
+    if (positionId) {
       try {
         // console.log(`Attempting to auto-assign recruiter for candidate ${newCandidateId} with positionId: ${positionId}`);
         
@@ -298,7 +317,7 @@ export async function POST(request: NextRequest) {
           const updatedCandidate = await prisma.candidate.update({
             where: { id: newCandidateId },
             data: { 
-              recruiterId: position.recruiterId,
+              recruiter: { connect: { id: position.recruiterId } },
               updatedAt: createDateInTimezone()
             },
             include: {
@@ -316,11 +335,11 @@ export async function POST(request: NextRequest) {
           await prisma.transitionRecord.create({
             data: {
               id: uuidv4(),
-              candidateId: newCandidateId,
-              positionId: positionId,
+              candidate: { connect: { id: newCandidateId } },
+              position: positionId ? { connect: { id: positionId } } : undefined,
               stage: resolvedStageId,
               notes: `Recruiter auto-assigned from position: ${position.recruiter.name}`,
-              actingUserId: user.id,
+              actingUser: { connect: { id: user.id } },
               date: createDateInTimezone(),
             },
           });

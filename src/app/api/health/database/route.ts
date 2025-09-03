@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
         COUNT(CASE WHEN status = 'queued' THEN 1 END) as queued_jobs,
         COUNT(CASE WHEN status = 'inprocess' THEN 1 END) as processing_jobs,
         COUNT(CASE WHEN status = 'success' THEN 1 END) as completed_jobs,
-        COUNT(CASE WHEN status IN ('error', 'fail') THEN 1 END) as failed_jobs
+        COUNT(CASE WHEN status = 'failed' THEN 1 END) as failed_jobs
       FROM upload_queue
     `);
     const tableTime = Date.now() - tableStartTime;

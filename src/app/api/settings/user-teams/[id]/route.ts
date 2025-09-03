@@ -41,7 +41,7 @@ const userTeamUpdateSchema = z.object({
  *         description: Server error
  *   put:
  *     summary: Update a user team
- *     description: Updates a user team. Requires Admin or USERS_MANAGE permission.
+ *     description: Updates a user team. Requires Admin or USERS_EDIT permission.
  *     parameters:
  *       - name: id
  *         in: path
@@ -74,7 +74,7 @@ const userTeamUpdateSchema = z.object({
  *         description: Team not found
  *   delete:
  *     summary: Delete a user team
- *     description: Deletes a user team. Requires Admin or USERS_MANAGE permission.
+ *     description: Deletes a user team. Requires Admin or USERS_DELETE permission.
  *     parameters:
  *       - name: id
  *         in: path
@@ -140,7 +140,7 @@ export async function PUT(
   if (!actingUserId) return new NextResponse('Unauthorized', { status: 401 });
 
   // Check permissions
-  if (!hasPermission(session.user, 'USERS_MANAGE')) {
+  if (!hasPermission(session.user, 'USERS_EDIT')) {
     return new NextResponse('Forbidden: Insufficient permissions', { status: 403 });
   }
 
@@ -192,7 +192,7 @@ export async function DELETE(
   if (!actingUserId) return new NextResponse('Unauthorized', { status: 401 });
 
   // Check permissions
-  if (!hasPermission(session.user, 'USERS_MANAGE')) {
+  if (!hasPermission(session.user, 'USERS_DELETE')) {
     return new NextResponse('Forbidden: Insufficient permissions', { status: 403 });
   }
 

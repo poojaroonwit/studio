@@ -2,18 +2,16 @@
 // Provides simple EventSource creation and management for components
 
 export function createEventSource(url: string): EventSource {
-  console.log('[EventSource Utils] Creating EventSource connection to:', url);
-  
   const eventSource = new EventSource(url);
   
   // Add error handling
   eventSource.onerror = (error) => {
-    console.error('[EventSource Utils] EventSource error:', error);
+    // Error handling without logging
   };
   
-  // Add connection status logging
+  // Add connection status handling
   eventSource.onopen = () => {
-    console.log('[EventSource Utils] EventSource connected to:', url);
+    // Connection established without logging
   };
   
   return eventSource;
@@ -21,11 +19,10 @@ export function createEventSource(url: string): EventSource {
 
 export function closeEventSource(eventSource: EventSource | null): void {
   if (eventSource) {
-    console.log('[EventSource Utils] Closing EventSource connection');
     try {
       eventSource.close();
     } catch (error) {
-      console.error('[EventSource Utils] Error closing EventSource:', error);
+      // Error handling without logging
     }
   }
 }
@@ -41,18 +38,16 @@ export function createEventSourceWithOptions(url: string, options?: EventSourceI
     throw new Error('EventSource is not supported in this browser');
   }
   
-  console.log('[EventSource Utils] Creating EventSource with options:', { url, options });
-  
   const eventSource = new EventSource(url, options);
   
   // Add error handling
   eventSource.onerror = (error) => {
-    console.error('[EventSource Utils] EventSource error:', error);
+    // Error handling without logging
   };
   
-  // Add connection status logging
+  // Add connection status handling
   eventSource.onopen = () => {
-    console.log('[EventSource Utils] EventSource connected to:', url);
+    // Connection established without logging
   };
   
   return eventSource;

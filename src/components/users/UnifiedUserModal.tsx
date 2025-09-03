@@ -129,6 +129,25 @@ export function UnifiedUserModal({
     fetchUserGroups();
   }, []);
 
+  // Update form default values when user groups are loaded
+  useEffect(() => {
+    if (userGroups.length > 0) {
+      form.setValue('role', userGroups[0].name);
+    }
+  }, [userGroups, form]);
+
+  // Watch userGroupIds to update role field
+  useEffect(() => {
+    const watchedUserGroupIds = form.watch('userGroupIds');
+    if (watchedUserGroupIds && watchedUserGroupIds.length > 0) {
+      const selectedGroup = userGroups.find(g => g.id === watchedUserGroupIds[0]);
+      if (selectedGroup) {
+        // Set role to match the user group name directly
+        form.setValue('role', selectedGroup.name);
+      }
+    }
+  }, [form.watch('userGroupIds'), userGroups, form]);
+
   // Cleanup timeout on component unmount
   useEffect(() => {
     return () => {
@@ -186,7 +205,7 @@ export function UnifiedUserModal({
           name: '',
           email: '',
           password: '',
-          role: '', // Keep for backward compatibility
+          role: userGroups.length > 0 ? userGroups[0].name : 'Recruiter', // Use first available group or fallback
           newPassword: '',
           forcePasswordChange: false,
           authenticationMethod: 'basic',
@@ -213,7 +232,7 @@ export function UnifiedUserModal({
         fetchTeams();
       }
     }
-  }, [isOpen, user, mode, form, canManageTeams]);
+  }, [isOpen, user, mode, form, canManageTeams, userGroups]);
 
   // Load sidebar preference when modal opens and when role/user changes
   useEffect(() => {
@@ -515,6 +534,19 @@ export function UnifiedUserModal({
                                 />
                               </div>
                             </div>
+
+                            {/* Role Field - Hidden but required for API */}
+                            <FormField 
+                              control={form.control} 
+                              name="role" 
+                              render={({ field }) => (
+                                <FormItem className="hidden">
+                                  <FormControl>
+                                    <Input {...field} type="hidden" />
+                                  </FormControl>
+                                </FormItem>
+                              )}
+                            />
 
                             {mode === 'create' && (
                               <FormField 

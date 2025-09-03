@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Check if user has admin permissions
-    const isAdmin = hasAnyPermission(session.user, ['USERS_PERMISSIONS_MANAGE', 'USERS_MANAGE']);
+    const isAdmin = hasAnyPermission(session.user, ['USERS_PERMISSIONS_MANAGE']);
     if (!isAdmin) {
       return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
     }
@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user has admin permissions
-    const isAdmin = hasAnyPermission(session.user, ['USERS_PERMISSIONS_MANAGE', 'USERS_MANAGE']);
+    const isAdmin = hasAnyPermission(session.user, ['USERS_PERMISSIONS_MANAGE']);
     if (!isAdmin) {
       return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
     }

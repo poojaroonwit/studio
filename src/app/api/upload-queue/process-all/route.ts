@@ -155,7 +155,7 @@ export async function POST(request: NextRequest) {
                -- For non-reprocess jobs, ensure file_path hasn't been processed before
                file_path NOT IN (
                  SELECT file_path FROM upload_queue 
-                 WHERE status IN ('success', 'fail', 'error')
+                 WHERE status IN ('success', 'failed')
                  AND file_path IS NOT NULL
                  AND file_path != ''
                )

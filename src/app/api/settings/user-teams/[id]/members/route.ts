@@ -16,7 +16,7 @@ const addMemberSchema = z.object({
  * /api/settings/user-teams/{id}/members:
  *   get:
  *     summary: Get team members
- *     description: Returns all users that belong to the specified user team. Requires Admin or USERS_MANAGE permission.
+ *     description: Returns all users that belong to the specified user team. Requires Admin or USERS_VIEW permission.
  *     parameters:
  *       - name: id
  *         in: path
@@ -54,7 +54,7 @@ const addMemberSchema = z.object({
  *         description: Team not found
  *   post:
  *     summary: Add user to team
- *     description: Adds a user to the specified user team. Requires Admin or USERS_MANAGE permission.
+ *     description: Adds a user to the specified user team. Requires Admin or USERS_EDIT permission.
  *     parameters:
  *       - name: id
  *         in: path
@@ -83,7 +83,7 @@ const addMemberSchema = z.object({
  *         description: User already in team
  *   delete:
  *     summary: Remove user from team
- *     description: Removes a user from the specified user team. Requires Admin or USERS_MANAGE permission.
+ *     description: Removes a user from the specified user team. Requires Admin or USERS_EDIT permission.
  *     parameters:
  *       - name: id
  *         in: path
@@ -113,7 +113,7 @@ export async function GET(
   if (!session?.user?.id) return new NextResponse('Unauthorized', { status: 401 });
 
   // Check permissions
-  if (!hasPermission(session.user, 'USERS_MANAGE')) {
+  if (!hasPermission(session.user, 'USERS_VIEW')) {
     return new NextResponse('Forbidden: Insufficient permissions', { status: 403 });
   }
 
@@ -156,7 +156,7 @@ export async function POST(
   if (!actingUserId) return new NextResponse('Unauthorized', { status: 401 });
 
   // Check permissions
-  if (!hasPermission(session.user, 'USERS_MANAGE')) {
+  if (!hasPermission(session.user, 'USERS_EDIT')) {
     return new NextResponse('Forbidden: Insufficient permissions', { status: 403 });
   }
 
@@ -227,7 +227,7 @@ export async function DELETE(
   if (!actingUserId) return new NextResponse('Unauthorized', { status: 401 });
 
   // Check permissions
-  if (!hasPermission(session.user, 'USERS_MANAGE')) {
+  if (!hasPermission(session.user, 'USERS_EDIT')) {
     return new NextResponse('Forbidden: Insufficient permissions', { status: 403 });
   }
 

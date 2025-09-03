@@ -726,7 +726,7 @@ export async function unassignCandidateFromHeadcount(
       if (appliedStageId) {
         await prisma.candidate.update({
           where: { id: candidateId },
-          data: { status: appliedStageId },
+          data: { recruitmentStage: { connect: { id: appliedStageId } } },
         });
 
       // Create transition record for status change
@@ -734,11 +734,11 @@ export async function unassignCandidateFromHeadcount(
       await prisma.transitionRecord.create({
         data: {
           id: newTransitionId,
-          candidateId,
-          positionId: headcount.position.id,
+          candidate: { connect: { id: candidateId } },
+          position: { connect: { id: headcount.position.id } },
           stage: appliedStageId,
           notes: 'Status automatically changed from "Hired" to "Applied" due to headcount unassignment',
-          actingUserId,
+          actingUser: { connect: { id: actingUserId } },
           date: new Date(),
         },
       });

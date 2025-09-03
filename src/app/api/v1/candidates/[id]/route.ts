@@ -390,12 +390,13 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
 
 
-        if (position && position.recruiterId && position.recruiter && !updatedCandidate.recruiterId) {
-          // Update candidate with recruiter using Prisma
+        if (position && position.recruiterId && position.recruiter) {
+          // Always assign recruiter when position is assigned, regardless of existing recruiter
+          // This ensures the position's recruiter takes precedence
           const updatedCandidateWithRecruiter = await prisma.candidate.update({
             where: { id },
             data: { 
-              recruiterId: position.recruiterId,
+              recruiter: { connect: { id: position.recruiterId } },
               updatedAt: new Date()
             },
             include: {
@@ -413,11 +414,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
           await prisma.transitionRecord.create({
             data: {
               id: uuidv4(),
-              candidateId: id,
-              positionId: newPositionId,
+              candidate: { connect: { id: id } },
+              position: { connect: { id: newPositionId } },
               stage: 'Applied', // Use default stage since we don't have the actual stage name
               notes: `Recruiter auto-assigned from position: ${position.recruiter.name}`,
-              actingUserId: user.id,
+              actingUser: { connect: { id: user.id } },
               date: new Date(),
             },
           });

@@ -10,18 +10,28 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
-import { Clock, Loader2, CheckCircle, XCircle, Search, Filter, RefreshCw, AlertCircle, Info } from 'lucide-react';
+import { Clock, Loader2, CheckCircle, XCircle, Search, Filter, RefreshCw, AlertCircle, Info, Circle } from 'lucide-react';
 import { useEnhancedSSE, useEnhancedUploadQueueUpdates } from '@/hooks/use-enhanced-sse';
 
 interface QueueItem {
   id: string;
   file_name: string;
-  status: 'queued' | 'inprocess' | 'success' | 'error' | 'fail';
-  upload_date: string;
-  process_date?: string;
-  completed_date?: string;
+  file_size: number;
+  status: 'queued' | 'inprocess' | 'success' | 'failed';
   error?: string;
   error_details?: string;
+  source?: string;
+  upload_date: string;
+  completed_date?: string;
+  upload_id?: string;
+  created_by?: string;
+  updated_at: string;
+  file_path: string;
+  webhook_payload?: any;
+  position_id?: string;
+  position_title?: string;
+  process_date?: string;
+  url?: string;
   progress?: number;
   total_candidates?: number;
   processed_candidates?: number;
@@ -100,12 +110,21 @@ export function UploadQueueStatus() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'queued': return <Clock className="h-4 w-4 text-blue-500" />;
-      case 'inprocess': return <Loader2 className="h-4 w-4 text-yellow-500 animate-spin" />;
-      case 'success': return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'error':
-      case 'fail': return <XCircle className="h-4 w-4 text-red-500" />;
-      default: return <Clock className="h-4 w-4 text-gray-500" />;
+      case 'queued': return <Clock className="h-5 w-5 text-blue-500" />;
+      case 'inprocess': return <Loader2 className="h-5 w-5 text-yellow-500 animate-spin" />;
+      case 'success': return <CheckCircle className="h-5 w-5 text-green-500" />;
+      case 'failed': return <XCircle className="h-5 w-5 text-red-500" />;
+      default: return <Circle className="h-5 w-5 text-gray-500" />;
+    }
+  };
+
+  const getStatusDisplayText = (status: string) => {
+    switch (status) {
+      case 'queued': return 'In Queue';
+      case 'inprocess': return 'Processing';
+      case 'success': return 'Success';
+      case 'failed': return 'Failed';
+      default: return status;
     }
   };
 
@@ -114,8 +133,7 @@ export function UploadQueueStatus() {
       case 'queued': return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'inprocess': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'success': return 'bg-green-100 text-green-800 border-green-200';
-      case 'error':
-      case 'fail': return 'bg-red-100 text-red-800 border-red-200';
+      case 'failed': return 'bg-red-100 text-red-800 border-red-200';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
@@ -202,8 +220,7 @@ export function UploadQueueStatus() {
                   <SelectItem value="queued">Queued</SelectItem>
                   <SelectItem value="inprocess">Processing</SelectItem>
                   <SelectItem value="success">Completed</SelectItem>
-                  <SelectItem value="error">Error</SelectItem>
-                  <SelectItem value="fail">Failed</SelectItem>
+                  <SelectItem value="failed">Failed</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -288,7 +305,7 @@ export function UploadQueueStatus() {
                     </div>
                     <div className="flex items-center space-x-2">
                       <Badge className={getStatusColor(item.status)}>
-                        {item.status}
+                        {getStatusDisplayText(item.status)}
                       </Badge>
                       {item.progress !== undefined && (
                         <span className="text-sm text-muted-foreground">
@@ -368,7 +385,7 @@ export function UploadQueueStatus() {
                   <div className="flex items-center space-x-2">
                     {getStatusIcon(selectedItem.status)}
                     <Badge className={getStatusColor(selectedItem.status)}>
-                      {selectedItem.status}
+                      {getStatusDisplayText(selectedItem.status)}
                     </Badge>
                   </div>
                 </div>

@@ -10,7 +10,7 @@ import { hasPermission } from '@/lib/permissions';
  * /api/settings/user-teams/{id}/available-users:
  *   get:
  *     summary: Get available users for team
- *     description: Returns all users that are not currently members of the specified user team. Requires Admin or USERS_MANAGE permission.
+ *     description: Returns all users that are not currently members of the specified user team. Requires Admin or USERS_VIEW permission.
  *     parameters:
  *       - name: id
  *         in: path
@@ -61,7 +61,7 @@ export async function GET(
   if (!session?.user?.id) return new NextResponse('Unauthorized', { status: 401 });
 
   // Check permissions
-  if (!hasPermission(session.user, 'USERS_MANAGE')) {
+  if (!hasPermission(session.user, 'USERS_VIEW')) {
     return new NextResponse('Forbidden: Insufficient permissions', { status: 403 });
   }
 

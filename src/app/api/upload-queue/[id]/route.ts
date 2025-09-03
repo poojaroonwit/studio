@@ -144,8 +144,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const job = res.rows[0];
 
     
-    // Check if this is a retry operation (job is in error or fail state)
-    const isRetry = ['error', 'fail'].includes(job.status);
+    // Check if this is a retry operation (job is in failed state)
+    const isRetry = ['failed'].includes(job.status);
 
     
     // Only allow processing if job is queued, error, or fail state

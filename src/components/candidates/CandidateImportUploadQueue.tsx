@@ -28,22 +28,26 @@ interface QueueItem {
   id: string;
   file_name: string;
   file_size: number;
-  status: 'queued' | 'inprocess' | 'success' | 'error' | 'fail';
-  upload_date: string;
-  process_date?: string;
-  completed_date?: string;
+  status: 'queued' | 'inprocess' | 'success' | 'failed';
   error?: string;
   error_details?: string;
+  source?: string;
+  upload_date: string;
+  completed_date?: string;
+  upload_id?: string;
+  created_by?: string;
+  updated_at: string;
+  file_path: string;
+  webhook_payload?: any;
+  position_id?: string;
+  position_title?: string;
+  process_date?: string;
+  url?: string;
   progress?: number;
   total_candidates?: number;
   processed_candidates?: number;
   user_id: string;
   user_email?: string;
-  position_title?: string;
-  position_id?: string;
-  webhook_payload?: any;
-  source?: string;
-  url?: string; // MinIO URL for file access
 }
 
 interface QueueResponse {
@@ -173,8 +177,15 @@ export default function CandidateImportUploadQueue() {
   // Refresh queue when we receive SSE updates for real-time updates
   useEffect(() => {
     if (isRealtimeActive && lastMessage) {
+      console.log('[Process Queue] SSE message received:', {
+        type: lastMessage.type,
+        data: lastMessage.data,
+        summary: lastMessage.summary
+      });
+      
       // Check if the message is related to upload queue updates
       if (lastMessage.type === 'upload_queue_update' || lastMessage.type === 'queue') {
+        console.log('[Process Queue] Queue refresh triggered by SSE update');
         fetchQueue(page, pageSize);
         setLastUpdate(new Date());
         
@@ -198,23 +209,36 @@ export default function CandidateImportUploadQueue() {
   // Fallback periodic refresh when real-time updates are not working
   useEffect(() => {
     if (!isRealtimeActive) {
+      console.log('[Process Queue] SSE not active, using fallback polling every 5 seconds');
       // If real-time updates are not working, refresh every 30 seconds
       const interval = setInterval(() => {
+        console.log('[Process Queue] Fallback polling refresh triggered');
         fetchQueue(page, pageSize);
         setLastUpdate(new Date());
       }, 5000);
       
       return () => clearInterval(interval);
+    } else {
+      console.log('[Process Queue] SSE active, fallback polling disabled');
     }
   }, [isRealtimeActive, fetchQueue, page, pageSize]);
+
+  // Debug SSE connection status
+  useEffect(() => {
+    console.log('[Process Queue] SSE Status:', {
+      isRealtimeActive,
+      hasLastMessage: !!lastMessage,
+      messageType: lastMessage?.type,
+      timestamp: new Date().toISOString()
+    });
+  }, [isRealtimeActive, lastMessage]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'queued': return <Clock className="h-4 w-4 text-blue-500" />;
       case 'inprocess': return <Loader2 className="h-4 w-4 text-yellow-500 animate-spin" />;
       case 'success': return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'error':
-      case 'fail': return <XCircle className="h-4 w-4 text-red-500" />;
+      case 'failed': return <XCircle className="h-4 w-4 text-red-500" />;
       default: return <Clock className="h-4 w-4 text-gray-500" />;
     }
   };
@@ -224,8 +248,7 @@ export default function CandidateImportUploadQueue() {
       case 'queued': return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'inprocess': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'success': return 'bg-green-100 text-green-800 border-green-200';
-      case 'error':
-      case 'fail': return 'bg-red-100 text-red-800 border-red-200';
+      case 'failed': return 'bg-red-100 text-red-800 border-red-200';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
@@ -491,9 +514,9 @@ export default function CandidateImportUploadQueue() {
     }
   };
 
-  const canRetry = (item: QueueItem) => ['error', 'fail'].includes(item.status);
+  const canRetry = (item: QueueItem) => ['failed'].includes(item.status);
   const canCancel = (item: QueueItem) => ['queued', 'inprocess'].includes(item.status);
-  const canDelete = (item: QueueItem) => ['success', 'error', 'fail', 'cancelled'].includes(item.status);
+  const canDelete = (item: QueueItem) => ['success', 'failed', 'cancelled'].includes(item.status);
   const canProcess = (item: QueueItem) => ['queued'].includes(item.status);
 
   const getSelectionIcon = () => {
@@ -507,13 +530,22 @@ export default function CandidateImportUploadQueue() {
     }
   };
 
+  const getStatusDisplayText = (status: string) => {
+    switch (status) {
+      case 'queued': return 'In Queue';
+      case 'inprocess': return 'Processing';
+      case 'success': return 'Success';
+      case 'failed': return 'Failed';
+      default: return status;
+    }
+  };
+
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
       case 'queued': return 'secondary';
       case 'inprocess': return 'outline';
       case 'success': return 'success';
-      case 'error':
-      case 'fail': return 'destructive';
+      case 'failed': return 'destructive';
       default: return 'secondary';
     }
   };
@@ -835,8 +867,7 @@ export default function CandidateImportUploadQueue() {
                   <SelectItem value="queued">Queued</SelectItem>
                   <SelectItem value="inprocess">Processing</SelectItem>
                   <SelectItem value="success">Completed</SelectItem>
-                  <SelectItem value="error">Error</SelectItem>
-                  <SelectItem value="fail">Failed</SelectItem>
+                  <SelectItem value="failed">Failed</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -1010,10 +1041,10 @@ export default function CandidateImportUploadQueue() {
         {selectedItems.size > 0 && (
           <div className="flex items-center gap-3 p-2 bg-muted/30 border-b border-border">
             <span className="text-sm text-muted-foreground">{selectedItems.size} selected</span>
-            {(() => {
-              const hasRetryableItems = queueData?.data?.some(item => 
-                selectedItems.has(item.id) && ['error', 'fail'].includes(item.status)
-              );
+                          {(() => {
+                const hasRetryableItems = queueData?.data?.some(item => 
+                  selectedItems.has(item.id) && ['failed'].includes(item.status)
+                );
               return hasRetryableItems ? (
                 <Button 
                   variant="ghost" 
@@ -1107,10 +1138,10 @@ export default function CandidateImportUploadQueue() {
                           item.status === 'queued' && "bg-blue-100 text-blue-800 border-blue-200",
                           item.status === 'inprocess' && "bg-yellow-100 text-yellow-800 border-yellow-200",
                           item.status === 'success' && "bg-green-100 text-green-800 border-green-200",
-                          (item.status === 'error' || item.status === 'fail') && "bg-red-100 text-red-800 border-red-200"
+                          item.status === 'failed' && "bg-red-100 text-red-800 border-red-200"
                         )}
                       >
-                        {item.status}
+                        {getStatusDisplayText(item.status)}
                       </Badge>
                     </TableCell>
                     <TableCell>{formatDate(item.upload_date)}</TableCell>
@@ -1154,7 +1185,7 @@ export default function CandidateImportUploadQueue() {
                             <FileText className="mr-2 h-4 w-4" /> 
                             Preview File
                           </DropdownMenuItem>
-                          {['error', 'fail'].includes(item.status) && (
+                          {['failed'].includes(item.status) && (
                             <DropdownMenuItem 
                               onSelect={() => {
                         

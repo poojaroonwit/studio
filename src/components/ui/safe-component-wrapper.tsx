@@ -59,12 +59,28 @@ class SafeComponentWrapper extends Component<Props, State> {
                                   error.message.includes('is not defined') ||
                                   error.name === 'ReferenceError';
     
+    // Enhanced detection for the specific 'ee' variable error
+    const isEeVariableError = error.message.includes('ee') && 
+                              (error.message.includes('Cannot access') || 
+                               error.message.includes('before initialization'));
+    
     if (isInitializationError) {
       console.error('Detected variable initialization error:', {
         message: error.message,
         stack: error.stack,
-        componentStack: errorInfo.componentStack
+        componentStack: errorInfo.componentStack,
+        isEeVariableError
       });
+      
+      // Log additional context for debugging
+      if (isEeVariableError) {
+        console.error('EE Variable Error Context:', {
+          errorType: 'Temporal Dead Zone',
+          likelyCause: 'Variable accessed before initialization in minified bundle',
+          recommendation: 'Check for circular dependencies or hook order issues',
+          componentStack: errorInfo.componentStack
+        });
+      }
     }
 
     this.props.onError?.(error, errorInfo);

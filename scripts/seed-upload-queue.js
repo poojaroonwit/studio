@@ -18,7 +18,7 @@ async function seedUploadQueue() {
     
     // Create 150 jobs to test the analytics limit
     for (let i = 1; i <= 150; i++) {
-      const statuses = ['queued', 'inprocess', 'success', 'error', 'fail'];
+      const statuses = ['queued', 'inprocess', 'success', 'failed'];
       const status = statuses[Math.floor(Math.random() * statuses.length)];
       const fileSize = BigInt(Math.floor(Math.random() * 5000000) + 100000); // 100KB to 5MB
       const uploadDate = new Date(Date.now() - Math.random() * 1000 * 60 * 60 * 24 * 7); // Random time in last week
@@ -28,15 +28,15 @@ async function seedUploadQueue() {
       let error = null;
       let errorDetails = null;
       
-      if (status === 'inprocess' || status === 'success' || status === 'error' || status === 'fail') {
+      if (status === 'inprocess' || status === 'success' || status === 'failed') {
         processDate = new Date(uploadDate.getTime() + Math.random() * 1000 * 60 * 30); // 0-30 minutes after upload
       }
       
-      if (status === 'success' || status === 'error' || status === 'fail') {
+      if (status === 'success' || status === 'failed') {
         completedDate = new Date(processDate.getTime() + Math.random() * 1000 * 60 * 60); // 0-60 minutes after process
       }
       
-      if (status === 'error' || status === 'fail') {
+      if (status === 'failed') {
         const errorMessages = [
           'Failed to parse PDF content',
           'File format not supported',

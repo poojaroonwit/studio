@@ -815,8 +815,7 @@ export default function ProcessQueueAnalytics() {
                           backgroundColor: (data?.scatterData || []).map(item => {
                             switch (item.status.toLowerCase()) {
                               case 'success': return 'rgba(34, 197, 94, 0.8)';
-                              case 'fail': return 'rgba(239, 68, 68, 0.8)';
-                              case 'error': return 'rgba(239, 68, 68, 0.8)';
+                              case 'failed': return 'rgba(239, 68, 68, 0.8)';
                               case 'inprocess': return 'rgba(234, 179, 8, 0.8)';
                               case 'queued': return 'rgba(59, 130, 246, 0.8)';
                               default: return 'rgba(107, 114, 128, 0.8)';
@@ -825,8 +824,7 @@ export default function ProcessQueueAnalytics() {
                           borderColor: (data?.scatterData || []).map(item => {
                             switch (item.status.toLowerCase()) {
                               case 'success': return 'rgba(34, 197, 94, 1)';
-                              case 'fail': return 'rgba(239, 68, 68, 1)';
-                              case 'error': return 'rgba(239, 68, 68, 1)';
+                              case 'failed': return 'rgba(239, 68, 68, 1)';
                               case 'inprocess': return 'rgba(234, 179, 8, 1)';
                               case 'queued': return 'rgba(59, 130, 246, 1)';
                               default: return 'rgba(107, 114, 128, 1)';

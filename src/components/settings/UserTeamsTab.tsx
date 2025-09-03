@@ -186,7 +186,7 @@ export function UserTeamsTab() {
     if (sessionStatus === 'unauthenticated') {
       signIn(undefined, { callbackUrl: pathname });
     } else if (sessionStatus === 'authenticated' && session) {
-      if (session.user.role !== 'Admin' &&  !(session.user.modulePermissions || []).includes('USERS_MANAGE')) {
+      if (session.user.role !== 'Admin' &&  !hasAnyPermission(session.user, ['USERS_VIEW', 'USERS_CREATE', 'USERS_EDIT', 'USERS_DELETE'])) {
         setFetchError("You do not have permission to manage user teams.");
         setIsLoading(false);
       } else {
@@ -337,7 +337,7 @@ export function UserTeamsTab() {
           <h2 className="text-xl font-semibold text-foreground">User Teams</h2>
           <p className="text-muted-foreground">Manage teams and team assignments</p>
         </div>
-        {hasAnyPermission(session?.user, ['USERS_MANAGE']) && (
+        {hasAnyPermission(session?.user, ['USERS_CREATE']) && (
           <Button onClick={() => handleOpenModal()} className="btn-hover-primary-gradient">
             <PlusCircle className="mr-2 h-4 w-4" />
             Create Team
@@ -352,7 +352,7 @@ export function UserTeamsTab() {
              <Users className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
              <h3 className="text-lg font-semibold text-foreground mb-2">No Teams Found</h3>
              <p className="text-muted-foreground mb-4">Create your first team to get started</p>
-             {hasAnyPermission(session?.user, ['USERS_MANAGE']) && (
+             {hasAnyPermission(session?.user, ['USERS_CREATE']) && (
                <Button onClick={() => handleOpenModal()} className="btn-hover-primary-gradient">
                  <PlusCircle className="mr-2 h-4 w-4" />
                  Create First Team

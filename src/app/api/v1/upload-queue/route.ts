@@ -39,7 +39,7 @@ export const dynamic = 'force-dynamic';
  *         name: status
  *         schema:
  *           type: string
- *         description: Filter by status (queued, inprocess, success, error, fail)
+ *         description: Filter by status (queued, inprocess, success, failed)
  *         example: "queued"
  *       - in: query
  *         name: date_start
@@ -213,16 +213,9 @@ export async function GET(request: NextRequest) {
     }
 
     if (status) {
-      // Handle multiple status codes (e.g., "error,fail" for Error filter)
-      const statusCodes = status.split(',').map(s => s.trim());
-      if (statusCodes.length === 1) {
-        whereClauses.push(`status = $${paramIdx++}`);
-        values.push(status);
-      } else {
-        const placeholders = statusCodes.map(() => `$${paramIdx++}`).join(', ');
-        whereClauses.push(`status IN (${placeholders})`);
-        values.push(...statusCodes);
-      }
+      // Handle status filter (now simplified since we only have 'failed' instead of 'error,fail')
+      whereClauses.push(`status = $${paramIdx++}`);
+      values.push(status);
     }
 
     if (dateStart) {
@@ -275,10 +268,10 @@ export async function GET(request: NextRequest) {
       const summaryRes = await client.query(
         `SELECT 
           COUNT(*) as total,
-          COUNT(*) FILTER (WHERE uq.status = 'queued') as queued,
-          COUNT(*) FILTER (WHERE uq.status = 'inprocess') as inprocess,
-          COUNT(*) FILTER (WHERE uq.status = 'success') as success,
-          COUNT(*) FILTER (WHERE uq.status = 'error' OR uq.status = 'fail') as error
+                  COUNT(*) FILTER (WHERE uq.status = 'queued') as queued,
+        COUNT(*) FILTER (WHERE uq.status = 'inprocess') as inprocess,
+        COUNT(*) FILTER (WHERE uq.status = 'success') as success,
+        COUNT(*) FILTER (WHERE uq.status = 'failed') as error
         FROM upload_queue uq 
         LEFT JOIN "Position" p ON uq.position_id = p.id 
         ${whereSQL}`,

@@ -1,24 +1,25 @@
-import type { Metadata } from 'next';
+import React, { Suspense } from 'react';
 import { Inter } from 'next/font/google';
-import './globals.css';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { AuthProvider } from '@/components/auth/AuthProvider';
+import { AppLayout } from '@/components/layout/AppLayout';
+import { SessionProvider } from '@/components/auth/SessionProvider';
+import { RamdaPolyfillInitializer } from '@/components/ui/RamdaPolyfillInitializer';
+import { initializeServices } from '@/lib/startup';
+import './globals.css';
 import { LoadingProvider } from '@/contexts/LoadingContext';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import { WarningProvider } from '@/contexts/WarningContext';
 import { GlobalSettingsProvider } from '@/contexts/GlobalSettingsContext';
-import { RamdaPolyfillInitializer } from '@/components/ui/RamdaPolyfillInitializer';
-import { ErrorBoundary } from '@/components/ui/error-boundary';
-import { AppLayout } from '@/components/layout/AppLayout';
 import { FontLoader } from '@/components/ui/FontLoader';
 import { FontPreloader } from '@/components/ui/FontPreloader';
 import ToastClient from '@/components/ui/ToastClient';
 import { ResizeObserverInitializer } from '@/components/ui/ResizeObserverInitializer';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
 
 const inter = Inter({ subsets: ['latin'] });
 
-export const metadata: Metadata = {
+export const metadata = {
   title: 'FitScan - AI-Powered Recruitment Platform',
   description: 'Advanced AI-powered recruitment and candidate management platform',
   keywords: 'recruitment, AI, candidate management, HR, hiring',
@@ -72,9 +73,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {/* Font preloading for better performance */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&display=swap" />
-        <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&display=swap" />
-        <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&display=swap" />
+        <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&display=swap" crossOrigin="anonymous" />
+        <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&display=swap" crossOrigin="anonymous" />
+        <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&display=swap" crossOrigin="anonymous" />
         {/* Ramda polyfill is now handled by RamdaPolyfillInitializer component */}
       </head>
       <body>
@@ -82,7 +83,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <ResizeObserverInitializer />
           <FontPreloader />
           <FontLoader>
-            <AuthProvider session={session}>
+            <SessionProvider session={session}>
               <LoadingProvider>
                 <NotificationProvider>
                   <WarningProvider>
@@ -94,7 +95,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                   </WarningProvider>
                 </NotificationProvider>
               </LoadingProvider>
-            </AuthProvider>
+            </SessionProvider>
           </FontLoader>
         </ErrorBoundary>
       </body>

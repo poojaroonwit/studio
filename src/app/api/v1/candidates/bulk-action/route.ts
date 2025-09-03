@@ -151,62 +151,61 @@ export async function POST(req: NextRequest) {
                 select: { recruiterId: true }
               });
 
-              if (candidate && !candidate.recruiterId) {
-                // Update candidate with recruiter using Prisma
-                const updatedCandidate = await prisma.candidate.update({
-                  where: { id: candidateId },
-                  data: { 
-                    recruiterId: position.recruiterId,
-                    updatedAt: new Date()
-                  },
-                  include: {
-                    recruiter: {
-                      select: {
-                        id: true,
-                        name: true,
-                        email: true
-                      }
+              // Always assign recruiter when position is assigned, regardless of existing recruiter
+              // This ensures the position's recruiter takes precedence
+              await prisma.candidate.update({
+                where: { id: candidateId },
+                data: { 
+                  recruiter: { connect: { id: position.recruiterId } },
+                  updatedAt: new Date()
+                },
+                include: {
+                  recruiter: {
+                    select: {
+                      id: true,
+                      name: true,
+                      email: true
                     }
                   }
-                });
-
-                // Create transition record for recruiter assignment
-                await prisma.transitionRecord.create({
-                  data: {
-                    id: uuidv4(),
-                    candidateId: candidateId,
-                    positionId: data.positionId,
-                    stage: 'Applied',
-                    notes: `Recruiter auto-assigned from position: ${position.recruiter.name}`,
-                    actingUserId: user.id,
-                    date: new Date(),
-                  },
-                });
-
-                // Send notification to the assigned recruiter
-                try {
-                  const candidate = await prisma.candidate.findUnique({
-                    where: { id: candidateId },
-                    select: { name: true }
-                  });
-                  
-                  if (candidate) {
-                    await NotificationService.notifyCandidateAdded(
-                      candidateId,
-                      candidate.name,
-                      data.positionId,
-                      position.title,
-                      position.recruiterId,
-                      user.id
-                    );
-                  }
-                } catch (notificationError) {
-                  console.error(`Failed to send notification for candidate ${candidateId}:`, notificationError);
-                  // Don't fail the bulk action if notification fails
                 }
+              });
 
-                syncCount++;
+              // Create transition record for recruiter assignment
+              await prisma.transitionRecord.create({
+                data: {
+                  id: uuidv4(),
+                  candidate: { connect: { id: candidateId } },
+                  position: { connect: { id: data.positionId } },
+                  stage: 'Applied',
+                  notes: `Recruiter auto-assigned from position: ${position.recruiter.name}`,
+                  actingUser: { connect: { id: user.id } },
+                  date: new Date(),
+                },
+              });
+
+              // Send notification to the assigned recruiter
+              try {
+                const candidate = await prisma.candidate.findUnique({
+                  where: { id: candidateId },
+                  select: { name: true }
+                });
+                
+                if (candidate) {
+                  await NotificationService.notifyCandidateAdded(
+                    candidateId,
+                    candidate.name,
+                    data.positionId,
+                    position.title,
+                    position.recruiterId,
+                    user.id
+                  );
+                }
+              } catch (notificationError) {
+                console.error(`Failed to send notification for candidate ${candidateId}:`, notificationError);
+                // Don't fail the bulk action if notification fails
               }
+
+              syncCount++;
             } catch (syncError) {
               console.error(`Failed to auto-assign recruiter for candidate ${candidateId}:`, syncError);
               // Don't fail the bulk action if sync fails

@@ -24,10 +24,10 @@ export async function GET(request: NextRequest) {
       const countQuery = `
         SELECT 
           COUNT(*) as total,
-          COUNT(*) FILTER (WHERE status = 'queued') as queued,
-          COUNT(*) FILTER (WHERE status = 'inprocess') as inprocess,
-          COUNT(*) FILTER (WHERE status = 'success') as success,
-          COUNT(*) FILTER (WHERE status = 'error' OR status = 'fail') as error
+                  COUNT(*) FILTER (WHERE status = 'queued') as queued,
+        COUNT(*) FILTER (WHERE status = 'inprocess') as inprocess,
+        COUNT(*) FILTER (WHERE status = 'success') as success,
+        COUNT(*) FILTER (WHERE status = 'failed') as error
         FROM upload_queue
       `;
 

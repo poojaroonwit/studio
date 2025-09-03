@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import enhancedSSEManager, { SSEConnectionStatus, SSEEndpoint } from '@/lib/enhanced-sse-manager';
 
@@ -9,7 +9,7 @@ export function useEnhancedSSE() {
   const warn = (...args: any[]) => { /* eslint-disable no-console */ console.warn(...args); /* eslint-enable no-console */ };
   const errorLog = (...args: any[]) => { /* eslint-disable no-console */ console.error(...args); /* eslint-enable no-console */ };
 
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const [connectionStatus, setConnectionStatus] = useState<SSEConnectionStatus>(enhancedSSEManager.getConnectionStatus());
   const [isConnecting, setIsConnecting] = useState(false);
   const [lastMessage, setLastMessage] = useState<any>(null);
@@ -18,70 +18,71 @@ export function useEnhancedSSE() {
   const statusUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const connectingRef = useRef<boolean>(false);
+  const isInitializedRef = useRef(false);
+
+  // Enhanced initialization guard to prevent early access errors
+  const isReady = useMemo(() => {
+    return status !== 'loading' && (status === 'authenticated' ? !!session?.user?.id : false);
+  }, [status, session?.user?.id]);
 
   // Update connection status periodically
   const updateConnectionStatus = useCallback(() => {
-    const status = enhancedSSEManager.getConnectionStatus();
-    setConnectionStatus(status);
-    
-    // Check if any endpoints have errors
-    const hasErrors = status.endpoints.some(endpoint => endpoint.lastError);
-    if (hasErrors) {
-      const errorMessages = status.endpoints
-        .filter(endpoint => endpoint.lastError)
-        .map(endpoint => `${endpoint.name}: ${endpoint.lastError}${endpoint.lastErrorEventType ? ` [${endpoint.lastErrorEventType}]` : ''}${endpoint.lastErrorLocation ? ` @ ${endpoint.lastErrorLocation}` : ''}`)
-        .join('; ');
+    try {
+      if (!isInitializedRef.current) return;
+      const newStatus = enhancedSSEManager.getConnectionStatus();
+      setConnectionStatus(newStatus);
       
-      setError(errorMessages);
-    } else {
-      setError(null);
+      // Check if any endpoints have errors
+      const hasErrors = newStatus.endpoints.some(endpoint => endpoint.lastError);
+      if (hasErrors) {
+        const errorMessages = newStatus.endpoints
+          .filter(endpoint => endpoint.lastError)
+          .map(endpoint => `${endpoint.name}: ${endpoint.lastError}${endpoint.lastErrorEventType ? ` [${endpoint.lastErrorEventType}]` : ''}${endpoint.lastErrorLocation ? ` @ ${endpoint.lastErrorLocation}` : ''}`)
+          .join('; ');
+        
+        setError(errorMessages);
+      } else {
+        setError(null);
+      }
+    } catch (error) {
+      console.warn('useEnhancedSSE: Error updating connection status:', error);
     }
   }, []);
 
-  // Connect to all SSE endpoints
+  // Connect to SSE endpoints
   const connect = useCallback(async () => {
-    if (!session?.user?.id) {
-      info('[Enhanced SSE Hook] No session, skipping connection');
-      return;
-    }
-
-    if (connectingRef.current) {
-      info('[Enhanced SSE Hook] Connection already in progress, skipping');
-      return;
-    }
-
-    connectingRef.current = true;
-    setIsConnecting(true);
-    setError(null);
-
     try {
-      info('[Enhanced SSE Hook] Starting connection to all SSE endpoints...');
-      
-      // Connect to all endpoints sequentially
+      if (!isReady || !isInitializedRef.current || connectingRef.current) {
+        return;
+      }
+
+      connectingRef.current = true;
+      setIsConnecting(true);
+      setError(null);
+
       await enhancedSSEManager.connectAll();
       
-      // Update status after connection
+      // Update connection status after connection
       updateConnectionStatus();
-      
-      info('[Enhanced SSE Hook] Connection sequence completed');
-      
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      errorLog('[Enhanced SSE Hook] Connection error:', errorMessage);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown connection error';
       setError(errorMessage);
+      errorLog('[Enhanced SSE Hook] Connection failed:', error);
     } finally {
-      connectingRef.current = false;
       setIsConnecting(false);
+      connectingRef.current = false;
     }
-  }, [session?.user?.id, updateConnectionStatus]);
+  }, [isReady, updateConnectionStatus]);
 
-  // Disconnect from all SSE endpoints
-  const disconnect = useCallback(() => {
-    info('[Enhanced SSE Hook] Disconnecting from all SSE endpoints');
-    
-    enhancedSSEManager.disconnectAll();
-    updateConnectionStatus();
-    setError(null);
+  // Disconnect from SSE endpoints
+  const disconnect = useCallback(async () => {
+    try {
+      if (!isInitializedRef.current) return;
+      await enhancedSSEManager.disconnectAll();
+      updateConnectionStatus();
+    } catch (error) {
+      console.warn('useEnhancedSSE: Error disconnecting:', error);
+    }
   }, [updateConnectionStatus]);
 
   // Manual reconnect
@@ -128,38 +129,60 @@ export function useEnhancedSSE() {
 
   // Check if specific endpoint is connected
   const isEndpointConnected = useCallback((endpointId: string): boolean => {
-    return enhancedSSEManager.isEndpointConnected(endpointId);
+    try {
+      if (!isInitializedRef.current) return false;
+      return enhancedSSEManager.isEndpointConnected(endpointId);
+    } catch (error) {
+      console.warn('useEnhancedSSE: Error checking endpoint connection:', error);
+      return false;
+    }
   }, []);
 
   // Subscribe once per mount
   useEffect(() => {
-    enhancedSSEManager.addSubscriber();
-    
-    // Add event listener to receive SSE events
-    const handleSSEEvent = (event: any) => {
-      // Reduce noisy logs in production; enable with NEXT_PUBLIC_SSE_DEBUG=1
-      if (debugMode) {
-        // eslint-disable-next-line no-console
-
+    try {
+      if (!isInitializedRef.current) {
+        isInitializedRef.current = true;
       }
-      setLastMessage(event);
-    };
-    
-    enhancedSSEManager.addEventListener(handleSSEEvent);
-    
-    return () => {
-      enhancedSSEManager.removeSubscriber();
-      enhancedSSEManager.removeEventListener(handleSSEEvent);
-    };
-  }, []);
+      
+      enhancedSSEManager.addSubscriber();
+      
+      // Add event listener to receive SSE events
+      const handleSSEEvent = (event: any) => {
+        try {
+          // Reduce noisy logs in production; enable with NEXT_PUBLIC_SSE_DEBUG=1
+          if (debugMode) {
+            // eslint-disable-next-line no-console
+            info('[Enhanced SSE Hook] Received event:', event);
+          }
+          setLastMessage(event);
+        } catch (error) {
+          console.warn('useEnhancedSSE: Error handling SSE event:', error);
+        }
+      };
+      
+      enhancedSSEManager.addEventListener(handleSSEEvent);
+      
+      return () => {
+        try {
+          enhancedSSEManager.removeSubscriber();
+          enhancedSSEManager.removeEventListener(handleSSEEvent);
+        } catch (error) {
+          console.warn('useEnhancedSSE: Error cleaning up event listeners:', error);
+        }
+      };
+    } catch (error) {
+      console.error('useEnhancedSSE: Error during initialization:', error);
+    }
+  }, [debugMode]);
 
   // Connect on mount when session is available
   useEffect(() => {
-    if (session?.user?.id) {
+    if (isReady && session?.user?.id) {
       info('[Enhanced SSE Hook] Session available, connecting...');
       connect();
     } else {
-      info('[Enhanced SSE Hook] No session available');
+      info('[Enhanced SSE Hook] No session available or not ready');
     }
 
     return () => {
@@ -168,10 +191,12 @@ export function useEnhancedSSE() {
         clearTimeout(reconnectTimeoutRef.current);
       }
     };
-  }, [session?.user?.id]);
+  }, [isReady, session?.user?.id, connect]);
 
   // Set up periodic status updates
   useEffect(() => {
+    if (!isInitializedRef.current) return;
+    
     // Update status every 5 seconds
     statusUpdateIntervalRef.current = setInterval(updateConnectionStatus, 5000);
 

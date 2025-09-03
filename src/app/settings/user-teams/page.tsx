@@ -185,7 +185,7 @@ export default function UserTeamsPage() {
     if (sessionStatus === 'unauthenticated') {
       signIn(undefined, { callbackUrl: pathname });
     } else if (sessionStatus === 'authenticated' && session) {
-      if (session.user.role !== 'Admin' &&  !session.user.modulePermissions?.includes('USERS_MANAGE')) {
+      if (session.user.role !== 'Admin' &&  !hasAnyPermission(session.user, ['USERS_VIEW', 'USERS_CREATE', 'USERS_EDIT', 'USERS_DELETE'])) {
         setFetchError("You do not have permission to manage user teams.");
         setIsLoading(false);
       } else {

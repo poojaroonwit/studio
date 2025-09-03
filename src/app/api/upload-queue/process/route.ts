@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
            OR webhook_payload->>'source' = 'reprocess'
            OR file_path NOT IN (
              SELECT file_path FROM upload_queue 
-             WHERE status IN ('success', 'fail', 'error')
+             WHERE status IN ('success', 'failed')
              AND file_path IS NOT NULL
            )
          )

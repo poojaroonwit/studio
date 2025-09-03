@@ -714,6 +714,369 @@ export function getSwaggerSpec() {
             '401': { description: 'Unauthorized' }
           }
         }
+      },
+      '/api/v1/ai/search-candidates': {
+        post: {
+          summary: 'Search candidates using AI (V1 API)',
+          description: 'Search candidates using AI-powered semantic search. Requires Bearer token authentication.',
+          tags: ['V1 AI Search'],
+          security: [{ bearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    query: {
+                      type: 'string',
+                      description: 'Search query',
+                      example: 'software engineer with React experience'
+                    },
+                    positionId: {
+                      type: 'string',
+                      format: 'uuid',
+                      description: 'Optional position ID to filter results',
+                      example: '123e4567-e89b-12d3-a456-426614174000'
+                    },
+                    limit: {
+                      type: 'integer',
+                      default: 20,
+                      minimum: 1,
+                      maximum: 100,
+                      description: 'Number of results to return'
+                    },
+                    offset: {
+                      type: 'integer',
+                      default: 0,
+                      minimum: 0,
+                      description: 'Offset for pagination'
+                    }
+                  },
+                  required: ['query']
+                }
+              }
+            }
+          },
+          responses: {
+            '200': {
+              description: 'Search results',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: true },
+                      data: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            id: { type: 'string', format: 'uuid' },
+                            name: { type: 'string' },
+                            email: { type: 'string' },
+                            phone: { type: 'string' },
+                            status: { type: 'string' },
+                            fitScore: { type: 'number' },
+                            matchReasons: {
+                              type: 'array',
+                              items: { type: 'string' }
+                            },
+                            parsedData: { type: 'object' }
+                          }
+                        }
+                      },
+                      total: { type: 'integer', description: 'Total number of matching candidates' },
+                      query: { type: 'string', description: 'The search query used' },
+                      timestamp: { type: 'string', format: 'date-time' },
+                      path: { type: 'string' },
+                      method: { type: 'string' },
+                      statusCode: { type: 'integer' }
+                    }
+                  }
+                }
+              }
+            },
+            '400': { description: 'Invalid request body' },
+            '401': { description: 'Unauthorized' },
+            '500': { description: 'Internal server error' }
+          }
+        }
+      },
+      '/api/v1/notifications': {
+        get: {
+          summary: 'Get user notifications (V1 API)',
+          description: 'Retrieve notifications for the authenticated user with pagination and filtering. Requires Bearer token authentication.',
+          tags: ['V1 Notifications'],
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { name: 'limit', in: 'query', description: 'Number of notifications to return', schema: { type: 'integer', default: 50, maximum: 100 } },
+            { name: 'offset', in: 'query', description: 'Offset for pagination', schema: { type: 'integer', default: 0 } },
+            { name: 'isRead', in: 'query', description: 'Filter by read status', schema: { type: 'boolean' } }
+          ],
+          responses: {
+            '200': {
+              description: 'User notifications',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      notifications: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            id: { type: 'string', format: 'uuid' },
+                            type: { type: 'string' },
+                            title: { type: 'string' },
+                            message: { type: 'string' },
+                            data: { type: 'object' },
+                            isRead: { type: 'boolean' },
+                            createdAt: { type: 'string', format: 'date-time' },
+                            updatedAt: { type: 'string', format: 'date-time' }
+                          }
+                        }
+                      },
+                      total: { type: 'integer' },
+                      unreadCount: { type: 'integer' },
+                      limit: { type: 'integer' },
+                      offset: { type: 'integer' }
+                    }
+                  }
+                }
+              }
+            },
+            '401': { description: 'Unauthorized' },
+            '500': { description: 'Internal server error' }
+          }
+        },
+        post: {
+          summary: 'Send notifications (V1 API)',
+          description: 'Send custom notifications. Supports both single and bulk notifications. Requires Bearer token authentication and CANDIDATES_EDIT_BASIC permission or Admin role.',
+          tags: ['V1 Notifications'],
+          security: [{ bearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  oneOf: [
+                    {
+                      type: 'object',
+                      properties: {
+                        type: { type: 'string', example: 'custom_notification' },
+                        title: { type: 'string', example: 'Important Update' },
+                        message: { type: 'string', example: 'Your account has been updated' },
+                        targetUserId: { type: 'string', format: 'uuid', description: 'Optional, defaults to current user' },
+                        data: { type: 'object' }
+                      },
+                      required: ['type', 'title', 'message']
+                    },
+                    {
+                      type: 'object',
+                      properties: {
+                        notifications: {
+                          type: 'array',
+                          items: {
+                            type: 'object',
+                            properties: {
+                              type: { type: 'string' },
+                              title: { type: 'string' },
+                              message: { type: 'string' },
+                              targetUserId: { type: 'string', format: 'uuid' },
+                              data: { type: 'object' }
+                            },
+                            required: ['type', 'title', 'message', 'targetUserId']
+                          }
+                        }
+                      },
+                      required: ['notifications']
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          responses: {
+            '200': {
+              description: 'Notification sent successfully',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      message: { type: 'string' },
+                      notification: {
+                        type: 'object',
+                        properties: {
+                          id: { type: 'string', format: 'uuid' },
+                          type: { type: 'string' },
+                          title: { type: 'string' },
+                          message: { type: 'string' },
+                          data: { type: 'object' },
+                          isRead: { type: 'boolean' },
+                          createdAt: { type: 'string', format: 'date-time' }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            '400': { description: 'Invalid request body' },
+            '401': { description: 'Unauthorized' },
+            '403': { description: 'Forbidden - Insufficient permissions' },
+            '500': { description: 'Internal server error' }
+          }
+        }
+      },
+      '/api/v1/upload-queue': {
+        get: {
+          summary: 'Get upload queue (V1 API)',
+          description: 'Returns a paginated list of upload queue jobs. Requires Bearer token authentication.',
+          tags: ['V1 Upload Queue'],
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { name: 'limit', in: 'query', description: 'Number of items per page', schema: { type: 'integer', default: 20, maximum: 1000 } },
+            { name: 'offset', in: 'query', description: 'Offset for pagination', schema: { type: 'integer', default: 0 } },
+            { name: 'file_name', in: 'query', description: 'Filter by filename (partial match)', schema: { type: 'string' } },
+            { name: 'status', in: 'query', description: 'Filter by status', schema: { type: 'string', enum: ['queued', 'inprocess', 'success', 'error', 'fail'] } },
+            { name: 'date_start', in: 'query', description: 'Filter by start date (YYYY-MM-DD)', schema: { type: 'string', format: 'date' } },
+            { name: 'date_end', in: 'query', description: 'Filter by end date (YYYY-MM-DD)', schema: { type: 'string', format: 'date' } },
+            { name: 'position_id', in: 'query', description: 'Filter by position ID', schema: { type: 'string', format: 'uuid' } }
+          ],
+          responses: {
+            '200': {
+              description: 'Upload queue data',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: true },
+                      data: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            id: { type: 'string', format: 'uuid' },
+                            file_name: { type: 'string' },
+                            file_size: { type: 'integer' },
+                            status: { type: 'string', enum: ['queued', 'inprocess', 'success', 'error', 'fail'] },
+                            source: { type: 'string' },
+                            upload_id: { type: 'string', format: 'uuid' },
+                            created_by: { type: 'string', format: 'uuid' },
+                            file_path: { type: 'string' },
+                            created_at: { type: 'string', format: 'date-time' },
+                            updated_at: { type: 'string', format: 'date-time' }
+                          }
+                        }
+                      },
+                      total: { type: 'integer' },
+                      limit: { type: 'integer' },
+                      offset: { type: 'integer' }
+                    }
+                  }
+                }
+              }
+            },
+            '401': { description: 'Unauthorized' },
+            '500': { description: 'Internal server error' }
+          }
+        }
+      },
+      '/api/v1/candidate-sources': {
+        get: {
+          summary: 'Get candidate sources (V1 API)',
+          description: 'Get all candidate sources for filtering and display. Requires Bearer token authentication.',
+          tags: ['V1 Source Management'],
+          security: [{ bearerAuth: [] }],
+          responses: {
+            '200': {
+              description: 'Candidate sources list',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: true },
+                      data: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            id: { type: 'string', format: 'uuid' },
+                            name: { type: 'string' },
+                            description: { type: 'string' },
+                            email: { type: 'string' },
+                            logo: { type: 'string' },
+                            allowSubSource: { type: 'boolean' },
+                            sortOrder: { type: 'integer' },
+                            isActive: { type: 'boolean' },
+                            createdAt: { type: 'string', format: 'date-time' },
+                            updatedAt: { type: 'string', format: 'date-time' }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            '401': { description: 'Unauthorized' },
+            '500': { description: 'Internal server error' }
+          }
+        }
+      },
+      '/api/v1/job-match-status': {
+        get: {
+          summary: 'Check job match function status (V1 API)',
+          description: 'Returns whether the job match function is enabled or disabled. Requires Bearer token authentication.',
+          tags: ['V1 Job Match Status'],
+          security: [{ bearerAuth: [] }],
+          responses: {
+            '200': {
+              description: 'Job match function status',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: true },
+                      data: {
+                        type: 'object',
+                        properties: {
+                          isJobMatchEnabled: {
+                            type: 'boolean',
+                            description: 'Whether the job match function is enabled',
+                            example: true
+                          },
+                          settingValue: {
+                            type: 'string',
+                            description: 'The raw setting value from the database',
+                            example: 'true'
+                          },
+                          defaultBehavior: {
+                            type: 'string',
+                            description: 'Explanation of the default behavior',
+                            example: 'Feature is enabled by default unless explicitly set to false'
+                          }
+                        }
+                      },
+                      timestamp: { type: 'string', format: 'date-time' },
+                      path: { type: 'string' },
+                      method: { type: 'string' },
+                      statusCode: { type: 'integer' }
+                    }
+                  }
+                }
+              }
+            },
+            '401': { description: 'Unauthorized' },
+            '500': { description: 'Internal server error' }
+          }
+        }
       }
     },
     components: {
@@ -803,7 +1166,12 @@ export function getSwaggerSpec() {
       { name: 'V1 Recruitment Stages', description: 'External API for recruitment stages' },
       { name: 'V1 Transitions', description: 'External API for candidate stage transitions' },
       { name: 'V1 Settings', description: 'External API for system settings' },
-      { name: 'V1 Logs', description: 'External API for system logs' }
+      { name: 'V1 Logs', description: 'External API for system logs' },
+      { name: 'V1 AI Search', description: 'External API for AI-powered candidate search' },
+      { name: 'V1 Notifications', description: 'External API for user notifications' },
+      { name: 'V1 Upload Queue', description: 'External API for upload queue management' },
+      { name: 'V1 Source Management', description: 'External API for candidate source management' },
+      { name: 'V1 Job Match Status', description: 'External API for job match function status' }
     ]
   };
 }

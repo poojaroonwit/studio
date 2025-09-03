@@ -141,6 +141,50 @@ interface PersonalInfoContentProps {
 }
 
 function PersonalInfoContent({ form, user, mode, userTeams }: PersonalInfoContentProps) {
+  const [userGroups, setUserGroups] = useState<UserGroup[]>([]);
+  const [isLoadingGroups, setIsLoadingGroups] = useState(false);
+
+  // Fetch user groups for role mapping
+  useEffect(() => {
+    const fetchUserGroups = async () => {
+      setIsLoadingGroups(true);
+      try {
+        const response = await fetch('/api/settings/user-groups');
+        if (response.ok) {
+          const groups = await response.json();
+          setUserGroups(groups);
+        }
+      } catch (error) {
+        console.error('Failed to fetch user groups:', error);
+      } finally {
+        setIsLoadingGroups(false);
+      }
+    };
+
+    fetchUserGroups();
+  }, []);
+
+  // Watch userGroupIds to update role field
+  const watchedUserGroupIds = form.watch('userGroupIds');
+  
+  useEffect(() => {
+    if (watchedUserGroupIds && watchedUserGroupIds.length > 0) {
+      const selectedGroup = userGroups.find(g => g.id === watchedUserGroupIds[0]);
+      if (selectedGroup) {
+        // Map user group to role string for API compatibility
+        let roleString = 'Recruiter'; // default
+        if (selectedGroup.name.toLowerCase().includes('admin')) {
+          roleString = 'Admin';
+        } else if (selectedGroup.name.toLowerCase().includes('hiring') || selectedGroup.name.toLowerCase().includes('manager')) {
+          roleString = 'Hiring Manager';
+        } else if (selectedGroup.name.toLowerCase().includes('recruiter')) {
+          roleString = 'Recruiter';
+        }
+        form.setValue('role', roleString);
+      }
+    }
+  }, [watchedUserGroupIds, userGroups, form]);
+
   return (
     <div className="space-y-6">
       {/* Profile Photo and Basic Info Row */}
@@ -216,6 +260,19 @@ function PersonalInfoContent({ form, user, mode, userTeams }: PersonalInfoConten
           />
         </div>
       </div>
+
+      {/* Role Field - Hidden but required for API */}
+      <FormField 
+        control={form.control} 
+        name="role" 
+        render={({ field }: any) => (
+          <FormItem className="hidden">
+            <FormControl>
+              <Input {...field} type="hidden" />
+            </FormControl>
+          </FormItem>
+        )}
+      />
 
       {mode === 'create' && (
         <FormField 
@@ -678,7 +735,7 @@ export function RedesignedUserModal({
           name: '',
           email: '',
           password: '',
-          role: '', // Keep for backward compatibility
+          role: 'Recruiter', // Set default role for new users
           newPassword: '',
           forcePasswordChange: false,
           authenticationMethod: 'basic',

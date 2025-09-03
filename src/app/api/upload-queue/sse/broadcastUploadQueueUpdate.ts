@@ -52,7 +52,7 @@ export async function sendUploadQueueUpdate(controller: ReadableStreamDefaultCon
         COUNT(*) FILTER (WHERE status = 'queued') as queued,
         COUNT(*) FILTER (WHERE status = 'inprocess') as inprocess,
         COUNT(*) FILTER (WHERE status = 'success') as success,
-        COUNT(*) FILTER (WHERE status = 'error' OR status = 'fail') as error
+        COUNT(*) FILTER (WHERE status = 'failed') as error
       FROM upload_queue 
       ${whereSQL}`,
       values.slice(0, values.length - 2)
@@ -101,10 +101,10 @@ export async function broadcastUploadQueueUpdate() {
       const summaryRes = await client.query(`
         SELECT 
           COUNT(*) as total,
-          COUNT(*) FILTER (WHERE status = 'queued') as queued,
-          COUNT(*) FILTER (WHERE status = 'inprocess') as inprocess,
-          COUNT(*) FILTER (WHERE status = 'success') as success,
-          COUNT(*) FILTER (WHERE status = 'error' OR status = 'fail') as error
+                  COUNT(*) FILTER (WHERE status = 'queued') as queued,
+        COUNT(*) FILTER (WHERE status = 'inprocess') as inprocess,
+        COUNT(*) FILTER (WHERE status = 'success') as success,
+        COUNT(*) FILTER (WHERE status = 'failed') as error
         FROM upload_queue
       `);
       

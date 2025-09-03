@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 
 export interface TaskBoardPreferences {
@@ -107,17 +107,28 @@ export function useUserPreferences() {
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isSavingRef = useRef(false);
   const clearSavingTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Flag to prevent circular updates
+  const isInitializedRef = useRef(false);
+
+  // Enhanced initialization guard to prevent early access errors
+  const isReady = useMemo(() => {
+    return status !== 'loading' && (status === 'authenticated' ? !!session?.user?.id : true);
+  }, [status, session?.user?.id]);
 
   // Load preferences from database when session is available
   useEffect(() => {
-    if (status === 'authenticated' && session?.user?.id) {
+    // Prevent multiple initializations
+    if (isInitializedRef.current) return;
+    
+    if (isReady && status === 'authenticated' && session?.user?.id) {
+      isInitializedRef.current = true;
       loadPreferences();
     } else if (status === 'unauthenticated') {
       // Reset to defaults if user is not authenticated
+      isInitializedRef.current = true;
       setPreferences(defaultPreferences);
       setIsLoaded(true);
     }
-  }, [status, session?.user?.id]);
+  }, [isReady, status, session?.user?.id]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -132,7 +143,11 @@ export function useUserPreferences() {
   }, []);
 
   const loadPreferences = useCallback(async () => {
-    if (!session?.user?.id || isSavingRef.current) return; // Don't load while saving
+    // Enhanced safety checks
+    if (!isReady || !session?.user?.id || isSavingRef.current) {
+      console.warn('useUserPreferences: Cannot load preferences - not ready or already saving');
+      return;
+    }
 
     try {
       setIsLoading(true);
@@ -167,10 +182,14 @@ export function useUserPreferences() {
       setIsLoaded(true);
       setIsLoading(false);
     }
-  }, [session?.user?.id]);
+  }, [isReady, session?.user?.id]);
 
   const savePreferences = useCallback(async (modelType: 'taskBoard' | 'positions' | 'appearance' | 'sidebar', updates: any) => {
-    if (!session?.user?.id) return;
+    // Enhanced safety checks
+    if (!isReady || !session?.user?.id) {
+      console.warn('useUserPreferences: Cannot save preferences - not ready or no session');
+      return;
+    }
 
     // Clear any existing timeout
     if (saveTimeoutRef.current) {
@@ -251,7 +270,7 @@ export function useUserPreferences() {
         isSavingRef.current = false;
       }, 100);
     }, 500); // 500ms debounce delay
-  }, [session?.user?.id]);
+  }, [isReady, session?.user?.id]);
 
   // Update task board preferences
   const updateTaskBoardPreferences = useCallback((updates: Partial<TaskBoardPreferences>) => {

@@ -457,14 +457,6 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
             logoToUse = contextualLogos.loginPageLogoLightMode;
           }
           
-  
-            appLogoUrl,
-            isThemeDark,
-            contextualLogos,
-            logoToUse,
-            isClient
-          });
-          
           return logoToUse ? (
             <Image
               src={logoToUse}
@@ -615,14 +607,6 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
             } else if (!isThemeDark && contextualLogos.loginPageLogoLightMode && contextualLogos.loginPageLogoLightMode.trim() !== '') {
               logoToUse = contextualLogos.loginPageLogoLightMode;
             }
-            
-            
-              appLogoUrl,
-              isThemeDark,
-              contextualLogos,
-              logoToUse,
-              isClient
-            });
             
             return logoToUse ? (
               <img

@@ -101,12 +101,11 @@ export async function getUserSessionData(userId: string) {
 export async function getUserPermissions(userId: string): Promise<PlatformModuleId[]> {
   const client = await getPool().connect();
   try {
-    // Get permissions using the User_UserGroup junction table
+    // Get permissions using direct foreign key
     const result = await client.query(`
       SELECT DISTINCT unnest(ug.permissions) AS permission
       FROM "User" u
-      JOIN "User_UserGroup" uug ON u.id = uug."userId"
-      JOIN "UserGroup" ug ON uug."groupId" = ug.id
+      JOIN "UserGroup" ug ON u."userGroupId" = ug.id
       WHERE u.id = $1
     `, [userId]);
 

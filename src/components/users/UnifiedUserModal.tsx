@@ -172,8 +172,8 @@ export function UnifiedUserModal({
             newPassword: '',
             forcePasswordChange: false,
             authenticationMethod: user.authenticationMethod || 'basic',
-            userTeamIds: user.teams?.map(t => t.id) || [],
-            userGroupIds: user.userGroups?.map(g => g.id) || [],
+            userTeamIds: user.userTeamId ? [user.userTeamId] : [],
+            userGroupIds: user.userGroupId ? [user.userGroupId] : [],
             avatarUrl: user.avatarUrl || '',
             personalColor: user.personalColor || '#3B82F6',
           });

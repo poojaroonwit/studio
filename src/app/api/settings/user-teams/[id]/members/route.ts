@@ -133,8 +133,7 @@ export async function GET(
         u.role,
         u."createdAt"
       FROM "User" u
-      INNER JOIN "User_UserTeam" uut ON u.id = uut."userId"
-      WHERE uut."teamId" = $1
+      WHERE u."userTeamId" = $1
       ORDER BY u.name ASC
     `, [id]);
 
@@ -191,17 +190,17 @@ export async function POST(
 
     // Check if user is already in the team
     const existingMembership = await client.query(
-      'SELECT 1 FROM "User_UserTeam" WHERE "userId" = $1 AND "teamId" = $2',
+      'SELECT 1 FROM "User" WHERE id = $1 AND "userTeamId" = $2',
       [userId, id]
     );
     if (existingMembership.rows.length > 0) {
       return new NextResponse('User is already a member of this team', { status: 409 });
     }
 
-    // Add user to team
+    // Add user to team using direct foreign key
     await client.query(
-      'INSERT INTO "User_UserTeam" ("userId", "teamId") VALUES ($1, $2)',
-      [userId, id]
+      'UPDATE "User" SET "userTeamId" = $1 WHERE id = $2',
+      [id, userId]
     );
 
     const teamName = teamExists.rows[0].name;
@@ -255,17 +254,17 @@ export async function DELETE(
 
     // Check if user is in the team
     const existingMembership = await client.query(
-      'SELECT 1 FROM "User_UserTeam" WHERE "userId" = $1 AND "teamId" = $2',
+      'SELECT 1 FROM "User" WHERE id = $1 AND "userTeamId" = $2',
       [userId, id]
     );
     if (existingMembership.rows.length === 0) {
       return new NextResponse('User is not a member of this team', { status: 404 });
     }
 
-    // Remove user from team
+    // Remove user from team using direct foreign key
     await client.query(
-      'DELETE FROM "User_UserTeam" WHERE "userId" = $1 AND "teamId" = $2',
-      [userId, id]
+      'UPDATE "User" SET "userTeamId" = NULL WHERE id = $1',
+      [userId]
     );
 
     const teamName = teamExists.rows[0].name;

@@ -206,7 +206,9 @@ export async function DELETE(
 
     const teamName = existingTeam.rows[0].name;
 
-    // Delete team (cascade will handle User_UserTeam relationships)
+    // Remove users from this team by setting userTeamId to NULL
+    await client.query('UPDATE "User" SET "userTeamId" = NULL WHERE "userTeamId" = $1', [id]);
+    // Delete team
     await client.query('DELETE FROM "UserTeam" WHERE id = $1', [id]);
 
     await logAudit('AUDIT', `User team '${teamName}' deleted.`, 'API:UserTeams:Delete', actingUserId, { teamId: id });

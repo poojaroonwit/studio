@@ -84,11 +84,7 @@ export async function GET(
         u.role,
         u."createdAt"
       FROM "User" u
-      WHERE u.id NOT IN (
-        SELECT uut."userId" 
-        FROM "User_UserTeam" uut 
-        WHERE uut."teamId" = $1
-      )
+      WHERE u."userTeamId" IS NULL OR u."userTeamId" != $1
     `;
     let queryParams = [id];
 

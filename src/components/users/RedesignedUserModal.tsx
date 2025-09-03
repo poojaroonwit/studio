@@ -646,8 +646,8 @@ export function RedesignedUserModal({
           authenticationMethod: user.authenticationMethod || 'basic',
           avatarUrl: user.avatarUrl || '',
           personalColor: user.personalColor || '#3B82F6',
-          userTeamIds: user.teams?.map(t => t.id) || [],
-          userGroupIds: user.userGroups?.map(g => g.id) || [],
+          userTeamIds: user.userTeamId ? [user.userTeamId] : [],
+          userGroupIds: user.userGroupId ? [user.userGroupId] : [],
         });
         }
       } else {

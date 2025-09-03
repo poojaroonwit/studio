@@ -498,9 +498,13 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       return;
     }
 
+    // Find the stage name for the new status
+    const targetStage = stages.find(stage => stage.id === newStatus);
+    const stageName = targetStage?.name || 'Unknown Stage';
+
     try {
       // Show loading state
-      toast.loading(`Moving ${candidate.name} to ${newStatus}...`, { id: `move-${candidate.id}` });
+      toast.loading(`Moving ${candidate.name} to ${stageName}...`, { id: `move-${candidate.id}` });
       
       // Update the candidate status
       const response = await fetch('/api/candidates/bulk-action', {
@@ -531,7 +535,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
           )
         );
         
-        toast.success(`Moved ${candidate.name} to ${newStatus}`, { id: `move-${candidate.id}` });
+        toast.success(`Moved ${candidate.name} to ${stageName}`, { id: `move-${candidate.id}` });
       } else {
         // If no candidates were updated, show error
         toast.error(`Failed to move ${candidate.name}: No candidates updated`, { id: `move-${candidate.id}` });
@@ -542,7 +546,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       toast.error(`Failed to update candidate status: ${error instanceof Error ? error.message : 'Unknown error'}`, { id: `move-${candidate.id}` });
       
       // Revert the visual change if the API call failed
-      // The real-time update will handle the correct state
+      // The real-time update will handle the final state
     }
   };
 

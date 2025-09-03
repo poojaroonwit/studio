@@ -93,9 +93,9 @@ export async function GET(request: NextRequest) {
         u.name,
         u.email,
         u.role,
-        u."avatarUrl",
-        u."personalColor",
-        u."createdAt"
+        u."avatar_url",
+        u."personal_color",
+        u."created_at"
       FROM "User" u
       WHERE u."userGroupId" IS NULL OR u."userGroupId" != $1
       ORDER BY u.name ASC

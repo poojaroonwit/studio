@@ -194,15 +194,75 @@ export default function CandidateImportUploadQueue() {
           setSseConnected(true);
           setSseError(null);
           
-          // Set up keepalive to detect connection issues
-          keepaliveInterval = setInterval(() => {
-            if (eventSource?.readyState === EventSource.OPEN) {
-              console.log('[Process Queue] SSE keepalive - connection healthy');
-            } else {
-              console.log('[Process Queue] SSE keepalive - connection lost, reconnecting...');
-              reconnectSSE();
+                  // Set up keepalive to detect connection issues
+        keepaliveInterval = setInterval(() => {
+          if (eventSource?.readyState === EventSource.OPEN) {
+            console.log('[Process Queue] SSE keepalive - connection healthy');
+          } else {
+            console.log('[Process Queue] SSE keepalive - connection lost, reconnecting...');
+            reconnectSSE();
+          }
+        }, 10000); // Check every 10 seconds
+
+        // Add specific event listeners for upload queue updates
+        if (eventSource) {
+          eventSource.addEventListener('upload_queue_update', (event) => {
+            try {
+              const data = JSON.parse(event.data);
+              console.log('[Process Queue] SSE upload_queue_update event received:', data);
+              setSseEventCount(prev => prev + 1);
+              
+              // Refresh queue data
+              fetchQueue(page, pageSize);
+              setLastUpdate(new Date());
+              
+              // Show toast notification
+              if (data.summary) {
+                const { queued, inprocess, success, error } = data.summary;
+                toast.success(`Queue updated: ${queued} queued, ${inprocess} processing, ${success} completed, ${error} errors`, {
+                  duration: 2000,
+                  position: 'top-right',
+                  style: {
+                    background: '#10b981',
+                    color: 'white',
+                    fontSize: '12px',
+                  }
+                });
+              }
+            } catch (error) {
+              console.error('[Process Queue] Error parsing upload_queue_update event:', error);
             }
-          }, 10000); // Check every 10 seconds
+          });
+
+          // Add listener for queue events
+          eventSource.addEventListener('queue', (event) => {
+            try {
+              const data = JSON.parse(event.data);
+              console.log('[Process Queue] SSE queue event received:', data);
+              setSseEventCount(prev => prev + 1);
+              
+              // Refresh queue data
+              fetchQueue(page, pageSize);
+              setLastUpdate(new Date());
+              
+              // Show toast notification
+              if (data.summary) {
+                const { queued, inprocess, success, error } = data.summary;
+                toast.success(`Queue updated: ${queued} queued, ${inprocess} processing, ${success} completed, ${error} errors`, {
+                  duration: 2000,
+                  position: 'top-right',
+                  style: {
+                    background: '#10b981',
+                    color: 'white',
+                    fontSize: '12px',
+                  }
+                });
+              }
+            } catch (error) {
+              console.error('[Process Queue] Error parsing queue event:', error);
+            }
+          });
+        }
         };
 
         eventSource.onmessage = (event) => {
@@ -211,15 +271,19 @@ export default function CandidateImportUploadQueue() {
             console.log('[Process Queue] SSE message received:', data);
             setSseEventCount(prev => prev + 1);
             
-            // Handle upload queue updates
-            if (data.type === 'upload_queue_update' || data.type === 'queue') {
+            // Handle upload queue updates - check both the event type and data structure
+            if (data.type === 'upload_queue_update' || data.type === 'queue' || 
+                (data.data && data.data.type === 'upload_queue_update') ||
+                (data.data && data.data.type === 'queue')) {
+              
               console.log('[Process Queue] Queue update received, refreshing data...');
               fetchQueue(page, pageSize);
               setLastUpdate(new Date());
               
-              // Show toast notification
-              if (data.summary) {
-                const { queued, inprocess, success, error } = data.summary;
+              // Show toast notification - check both data structures
+              const summary = data.summary || data.data?.summary;
+              if (summary) {
+                const { queued, inprocess, success, error } = summary;
                 toast.success(`Queue updated: ${queued} queued, ${inprocess} processing, ${success} completed, ${error} errors`, {
                   duration: 2000,
                   position: 'top-right',
@@ -882,6 +946,38 @@ export default function CandidateImportUploadQueue() {
                   title="Test simple SSE endpoint"
                 >
                   Test SSE
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    console.log('[Process Queue] Testing main SSE connection...');
+                    // Test if the main SSE connection is working by checking the connection state
+                    if (sseConnected) {
+                      toast.success(`SSE Connected! Events received: ${sseEventCount}`);
+                    } else {
+                      toast.error(`SSE Disconnected! Error: ${sseError || 'Unknown'}`);
+                    }
+                  }}
+                  className="h-6 px-2 text-xs"
+                  title="Test main SSE connection status"
+                >
+                  Test Main
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    console.log('[Process Queue] Manual queue refresh test...');
+                    // Manually refresh the queue to test if data fetching works
+                    fetchQueue(page, pageSize);
+                    setLastUpdate(new Date());
+                    toast.success('Manual refresh completed');
+                  }}
+                  className="h-6 px-2 text-xs"
+                  title="Test manual queue refresh"
+                >
+                  Test Refresh
                 </Button>
               </div>
               <div className="flex items-center space-x-4 text-sm text-muted-foreground">

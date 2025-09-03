@@ -59,7 +59,7 @@ const createUserSchema = z.object({
   email: z.string().email("Invalid email address"),
   // Password is only required for 'basic' users; for 'azure', it is optional
   password: z.string().min(8, "Password must be at least 8 characters long").optional(),
-  role: userRoleEnum,
+  role: userRoleEnum.optional(), // Made optional to allow default role assignment
   // modulePermissions removed - permissions come from UserGroup based on role
   userTeamIds: z.array(z.string().uuid()).optional().default([]),
   userGroupIds: z.array(z.string().uuid()).optional().default([]),
@@ -178,7 +178,7 @@ export async function GET(request: NextRequest) {
         ...user,
         teams: userTeam ? [userTeam] : [],
         modulePermissions: userGroup?.permissions || [],
-        // Expose derived group name for UI display so tables can conform to userGroupId
+        // Expose derived group name for UI display
         userGroupName: userGroup?.name || null
       };
     }));
@@ -245,6 +245,40 @@ export async function POST(request: NextRequest) {
    // Note: modulePermissions are now handled through UserGroup assignment
    // The role determines which UserGroup the user gets, and the UserGroup contains the permissions
 
+  // Handle default role logic
+  let finalRole = role;
+  let finalUserGroupIds = userGroupIds;
+  
+  if (!role) {
+    // No role specified, try to find a default user group
+    const defaultUserGroup = await prisma.userGroup.findFirst({
+      where: { isDefault: true },
+      orderBy: { createdAt: 'asc' } // Use the first default group if multiple exist
+    });
+    
+    if (!defaultUserGroup) {
+      await logAudit('ERROR', `Failed to create user ${email} - No default role configured in the system.`, 'API:Users:Create', session.user.id);
+      return NextResponse.json({ 
+        message: "No default role configured. Please specify a role or contact your system administrator to configure a default role.",
+        error: "No default role configured"
+      }, { status: 400 });
+    }
+    
+    // Map the default group to a role string for API compatibility
+    let roleString = 'Recruiter'; // default fallback
+    if (defaultUserGroup.name.toLowerCase().includes('admin')) {
+      roleString = 'Admin';
+    } else if (defaultUserGroup.name.toLowerCase().includes('hiring') || defaultUserGroup.name.toLowerCase().includes('manager')) {
+      roleString = 'Hiring Manager';
+    } else if (defaultUserGroup.name.toLowerCase().includes('recruiter')) {
+      roleString = 'Recruiter';
+    }
+    
+    finalRole = roleString;
+    finalUserGroupIds = [defaultUserGroup.id];
+    
+    await logAudit('INFO', `User ${email} created with default role '${finalRole}' from default group '${defaultUserGroup.name}' (ID: ${defaultUserGroup.id}).`, 'API:Users:Create', session.user.id);
+  }
 
   const saltRounds = 10;
   let hashedPassword;
@@ -271,9 +305,9 @@ export async function POST(request: NextRequest) {
     // Use provided userGroupIds or fall back to role-based mapping
     let targetUserGroupId = null;
     
-    if (userGroupIds && userGroupIds.length > 0) {
+    if (finalUserGroupIds && finalUserGroupIds.length > 0) {
       // Use the first selected user group
-      targetUserGroupId = userGroupIds[0];
+      targetUserGroupId = finalUserGroupIds[0];
       
       // Verify that the target user group exists
       const groupExists = await prisma.userGroup.findUnique({
@@ -296,7 +330,7 @@ export async function POST(request: NextRequest) {
         'Hiring Manager': '00000000-0000-0000-0000-000000000003'
       };
       
-      targetUserGroupId = roleToGroupId[role] || null;
+      targetUserGroupId = roleToGroupId[finalRole] || null;
       
       if (targetUserGroupId) {
         const groupExists = await prisma.userGroup.findUnique({
@@ -304,10 +338,10 @@ export async function POST(request: NextRequest) {
         });
         
         if (!groupExists) {
-          console.error(`User group with ID ${targetUserGroupId} for role ${role} does not exist`);
-          await logAudit('ERROR', `Failed to create user ${email} - User group for role ${role} does not exist.`, 'API:Users:Create', session.user.id);
+          console.error(`User group with ID ${targetUserGroupId} for role ${finalRole} does not exist`);
+          await logAudit('ERROR', `Failed to create user ${email} - User group for role ${finalRole} does not exist.`, 'API:Users:Create', session.user.id);
           return NextResponse.json({ 
-            message: `User group for role '${role}' does not exist. Please contact your system administrator.`,
+            message: `User group for role '${finalRole}' does not exist. Please contact your system administrator.`,
             error: "Missing user group"
           }, { status: 500 });
         }
@@ -315,25 +349,21 @@ export async function POST(request: NextRequest) {
     }
 
          const newUser = await prisma.user.create({
-       data: {
-         name,
-         email,
-         password: hashedPassword,
-         role,
-         avatarUrl: defaultAvatarUrl,
-         dataAiHint: defaultDataAiHint,
-         // Remove module_permissions - permissions come from UserGroup
-         authenticationMethod,
-         forcePasswordChange,
-         personalColor,
-         userGroupId: targetUserGroupId, // Assign user group
-         userTeamId: userTeamIds && userTeamIds.length > 0 ? userTeamIds[0] : null, // Assign user team
-       }
-     });
-
-           // Note: With direct foreign keys, we can only assign one team per user
-      // If multiple teams are provided, we'll use the first one
-      // For multiple team support, you would need to implement a different approach
+           data: {
+             name,
+             email,
+             password: hashedPassword,
+             role: finalRole,
+             avatarUrl: defaultAvatarUrl,
+             dataAiHint: defaultDataAiHint,
+             // Remove module_permissions - permissions come from UserGroup
+             authenticationMethod,
+             forcePasswordChange,
+             personalColor,
+             userGroupId: targetUserGroupId, // Assign user group
+             userTeamId: userTeamIds && userTeamIds.length > 0 ? userTeamIds[0] : null, // Assign user team
+           }
+         });
 
     // Create default warning configurations for the new user
     try {

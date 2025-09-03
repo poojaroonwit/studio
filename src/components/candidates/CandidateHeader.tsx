@@ -173,15 +173,6 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
                       <span className="text-muted-foreground">ID:</span> {candidate.id}
                     </Badge>
                   )}
-                  {stageId && (
-                    <StatusBadge
-                      statusId={stageId}
-                      className="capitalize text-xs px-2.5 py-0.5 rounded-full"
-                      stageNames={stageNames}
-                      stageColors={stageColors}
-                    />
-                  )}
-
                 </div>
               </div>
 

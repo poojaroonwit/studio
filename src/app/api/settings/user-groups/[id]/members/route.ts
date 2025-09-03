@@ -95,9 +95,9 @@ export async function GET(request: NextRequest) {
         u.name,
         u.email,
         u.role,
-        u."avatarUrl",
-        u."personalColor",
-        u."createdAt"
+        u."avatar_url",
+        u."personal_color",
+        u."created_at"
       FROM "User" u
       WHERE u."userGroupId" = $1
       ORDER BY u.name ASC
@@ -136,13 +136,13 @@ export async function GET(request: NextRequest) {
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               userId:
- *                 type: string
- *                 format: uuid
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 userId:
+ *                   type: string
+ *                   format: uuid
  *     responses:
  *       200:
  *         description: User added to group successfully
@@ -204,7 +204,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: "User not found" }, { status: 404 });
     }
 
-    // Check if user is already in the group
+    // Check if user is already in the group using direct foreign key
     const existingMembership = await client.query(
       'SELECT id FROM "User" WHERE id = $1 AND "userGroupId" = $2',
       [userId, groupId]
@@ -307,21 +307,21 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ message: "User not found" }, { status: 404 });
     }
 
-         // Check if user is in the group
-     const existingMembership = await client.query(
-       'SELECT id FROM "User" WHERE id = $1 AND "userGroupId" = $2',
-       [userId, groupId]
-     );
+    // Check if user is in the group using direct foreign key
+    const existingMembership = await client.query(
+      'SELECT id FROM "User" WHERE id = $1 AND "userGroupId" = $2',
+      [userId, groupId]
+    );
 
-     if (existingMembership.rows.length === 0) {
-       return NextResponse.json({ message: "User is not a member of this group" }, { status: 404 });
-     }
+    if (existingMembership.rows.length === 0) {
+      return NextResponse.json({ message: "User is not a member of this group" }, { status: 404 });
+    }
 
-     // Remove user from group using direct foreign key
-     await client.query(
-       'UPDATE "User" SET "userGroupId" = NULL WHERE id = $1',
-       [userId]
-     );
+    // Remove user from group using direct foreign key
+    await client.query(
+      'UPDATE "User" SET "userGroupId" = NULL WHERE id = $1',
+      [userId]
+    );
 
     await logAudit('AUDIT', `User '${userCheck.rows[0].name}' removed from group '${groupCheck.rows[0].name}' by ${session.user.name}.`, 'API:UserGroups:RemoveMember', session.user.id, { targetGroupId: groupId, targetUserId: userId });
 

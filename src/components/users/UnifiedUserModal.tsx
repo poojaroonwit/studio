@@ -43,7 +43,7 @@ const unifiedUserFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email address"),
   password: z.string().min(8, "Password must be at least 8 characters long").optional().or(z.literal('')),
-  role: z.string().min(1, "Role is required"),
+  role: z.string().min(1, "Role is required").optional(),
   newPassword: z.string().min(8, "New password must be at least 8 characters").optional().or(z.literal('')),
   forcePasswordChange: z.boolean().optional().default(false),
   authenticationMethod: z.enum(['basic', 'azure']).optional().default('basic'),
@@ -557,7 +557,7 @@ export function UnifiedUserModal({
                               </div>
                             </div>
 
-                            {/* Role Field - Hidden but required for API */}
+                            {/* Role Field - Hidden field for API compatibility (optional, can use default role) */}
                             <FormField 
                               control={form.control} 
                               name="role" 

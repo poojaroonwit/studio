@@ -160,12 +160,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Forbidden: Insufficient permissions to export candidates' }, { status: 403 });
   }
 
+  let client: any = null;
   try {
     // Check if job match feature is enabled
     const jobMatchFeatureEnabled = await getSystemSetting('jobMatchFeatureEnabled');
     const isJobMatchEnabled = jobMatchFeatureEnabled !== 'false';
     
-    const client = await getPool().connect();
+    client = await getPool().connect();
     
     // Parse query parameters for filtering
     const url = new URL(request.url);
@@ -351,7 +352,6 @@ export async function GET(request: NextRequest) {
       `;
     
     const result = await client.query(query, queryParams);
-    client.release();
 
     // Transform data for export
     const exportData = result.rows.map(candidate => transformCandidateForExport(candidate, isJobMatchEnabled));
@@ -460,6 +460,15 @@ export async function GET(request: NextRequest) {
       error: errorMessage,
       details: error instanceof Error ? error.message : String(error)
     }, { status: 500 });
+  } finally {
+    // ✅ CRITICAL FIX: Always release the database client
+    if (client) {
+      try {
+        client.release();
+      } catch (releaseError) {
+        console.error('Error releasing database client:', releaseError);
+      }
+    }
   }
 }
 

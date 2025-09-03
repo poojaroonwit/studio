@@ -117,8 +117,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ message: 'Invalid candidate ID format' }, { status: 400 });
   }
 
+  let client: any = null;
   try {
-    const client = await getPool().connect();
+    client = await getPool().connect();
     
     // Get candidate with position and recruiter information
     const candidateQuery = `
@@ -155,7 +156,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     `;
     
     const jobMatchesResult = await client.query(jobMatchesQuery, [id]);
-    client.release();
 
     // Transform data for export
     const exportData = [transformCandidateForExport(candidate, jobMatchesResult.rows)];
@@ -218,5 +218,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       error: (error as Error).message 
     });
     return NextResponse.json({ error: 'Failed to export candidate' }, { status: 500 });
+  } finally {
+    // ✅ CRITICAL FIX: Always release the database client
+    if (client) {
+      try {
+        client.release();
+      } catch (releaseError) {
+        console.error('Error releasing database client:', releaseError);
+      }
+    }
   }
 }

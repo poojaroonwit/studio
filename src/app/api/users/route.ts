@@ -11,6 +11,7 @@ import { authOptions, clearUserValidationCache } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { dispatchWebhooks } from '@/lib/webhooks';
 import { createDefaultWarningConfigurations } from '@/lib/userWarningDefaults';
+import { hasAnyPermission } from '@/lib/permissions';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -85,7 +86,7 @@ export async function GET(request: NextRequest) {
   const pageSize = parseInt(searchParams.get('pageSize') || '10');
   const skip = (page - 1) * pageSize;
 
-  const canManageUsers = userRole === 'Admin' || (session.user.modulePermissions?.includes('USERS_VIEW') ?? false);
+  const canManageUsers = hasAnyPermission(session.user, ['USERS_VIEW']);
   const isRecruiter = userRole === 'Recruiter';
 
   // Allow all authenticated users to fetch recruiters for filtering purposes
@@ -176,7 +177,9 @@ export async function GET(request: NextRequest) {
       return {
         ...user,
         teams: userTeam ? [userTeam] : [],
-        modulePermissions: userGroup?.permissions || []
+        modulePermissions: userGroup?.permissions || [],
+        // Expose derived group name for UI display so tables can conform to userGroupId
+        userGroupName: userGroup?.name || null
       };
     }));
 
@@ -211,13 +214,12 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const isAdmin = session.user?.role === 'Admin';
-  const hasUserCreatePermission = session.user?.modulePermissions?.includes('USERS_CREATE');
+  const hasUserCreatePermission = hasAnyPermission(session.user, ['USERS_CREATE']);
   
-  if (!isAdmin && !hasUserCreatePermission) {
-    await logAudit('WARN', `Forbidden attempt to create user by ${session?.user?.email || 'Unknown'} (ID: ${session?.user?.id || 'N/A'}). Required: Admin role or USERS_CREATE permission.`, 'API:Users:Create', session?.user?.id);
+  if (!hasUserCreatePermission) {
+    await logAudit('WARN', `Forbidden attempt to create user by ${session?.user?.email || 'Unknown'} (ID: ${session?.user?.id || 'N/A'}). Required: USERS_CREATE permission.`, 'API:Users:Create', session?.user?.id);
     return NextResponse.json(
-      { message: "Forbidden: You must be an Admin or have USERS_CREATE permission to create users." },
+      { message: "Forbidden: You must have USERS_CREATE permission to create users." },
       { status: 403 }
     );
   }

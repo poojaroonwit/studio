@@ -6,6 +6,7 @@ import { ScoreBadge } from '@/components/ui/score-color';
 import { formatScoreWithGrade } from "@/lib/scoreUtils";
 import { useSession } from 'next-auth/react';
 import type { Candidate, Position } from '@/lib/types';
+import { hasAnyPermission } from '@/lib/permissions';
 
 interface JobMatchTabProps {
   candidate: Candidate;
@@ -29,11 +30,8 @@ export const JobMatchTab: React.FC<JobMatchTabProps> = ({
   const { data: session } = useSession();
   
   // Check permissions
-  const modulePermissions = session?.user?.modulePermissions || [];
-  const canViewJobMatches = session?.user?.role === 'Admin' || 
-    modulePermissions.includes('JOB_MATCH_VIEW');
-  const canManageJobMatches = session?.user?.role === 'Admin' || 
-    modulePermissions.includes('JOB_MATCH_MANAGE');
+  const canViewJobMatches = hasAnyPermission(session?.user, ['JOB_MATCH_VIEW']);
+  const canManageJobMatches = hasAnyPermission(session?.user, ['JOB_MATCH_MANAGE']);
 
   // If user can't view job matches, show access denied
   if (!canViewJobMatches) {

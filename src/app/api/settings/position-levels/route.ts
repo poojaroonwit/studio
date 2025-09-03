@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
 import { getPool } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
@@ -14,9 +15,7 @@ export async function GET(request: NextRequest) {
 
     // Check if user has permission to view position levels
     // Users should be able to view levels if they can view positions or manage system settings
-    if (session.user.role !== 'Admin' && 
-        !session.user.modulePermissions?.includes('POSITIONS_VIEW') &&
-        !session.user.modulePermissions?.includes('SYSTEM_SETTINGS_VIEW')) {
+    if (!hasPermission(session.user, 'POSITIONS_VIEW') && !hasPermission(session.user, 'SYSTEM_SETTINGS_VIEW')) {
       return NextResponse.json({ error: 'Forbidden: Insufficient permissions to view position levels' }, { status: 403 });
     }
 
@@ -54,9 +53,7 @@ export async function POST(request: NextRequest) {
 
     // Check if user has permission to create position levels
     // Users should be able to create levels if they can manage positions or system settings
-    if (session.user.role !== 'Admin' && 
-        !(session.user.modulePermissions?.includes('POSITIONS_CREATE') || session.user.modulePermissions?.includes('POSITIONS_EDIT_BASIC') || session.user.modulePermissions?.includes('POSITIONS_EDIT_DETAILED')) &&
-        !session.user.modulePermissions?.includes('SYSTEM_SETTINGS_EDIT')) {
+    if (!hasPermission(session.user, 'POSITIONS_CREATE') && !hasPermission(session.user, 'POSITIONS_EDIT_BASIC') && !hasPermission(session.user, 'POSITIONS_EDIT_DETAILED') && !hasPermission(session.user, 'SYSTEM_SETTINGS_EDIT')) {
       return NextResponse.json({ message: 'Forbidden: Insufficient permissions to create position levels' }, { status: 403 });
     }
 

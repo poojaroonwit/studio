@@ -4,6 +4,7 @@ import { getPool } from '@/lib/db';
 import { logAudit } from '@/lib/auditLog';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
 
 const reorderCandidateSourcesSchema = z.object({
   sourceIds: z.array(z.string().uuid()),
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Check permissions
-  if (session?.user?.role !== 'Admin' && !session?.user?.modulePermissions?.includes('SYSTEM_SETTINGS_EDIT')) {
+  if (!hasPermission(session.user, 'SYSTEM_SETTINGS_EDIT')) {
     return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
   }
 

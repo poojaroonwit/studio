@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
 import prisma from '@/lib/prisma';
 import type { CreateHeadcountRequest } from '@/lib/types';
 import { autoClosePositionIfHeadcountFilled } from '@/lib/headcountUtils';
@@ -21,9 +22,8 @@ export async function GET(request: NextRequest) {
 
     // Check if user has permission to view headcount data
     // Users should be able to view headcount if they can view positions or candidates
-    if (session.user.role !== 'Admin' && 
-        !session.user.modulePermissions?.includes('POSITIONS_VIEW') &&
-        !session.user.modulePermissions?.includes('CANDIDATES_VIEW')) {
+    if (!hasPermission(session.user, 'POSITIONS_VIEW') && 
+        !hasPermission(session.user, 'CANDIDATES_VIEW')) {
       return NextResponse.json({ error: 'Forbidden: Insufficient permissions to view headcount data' }, { status: 403 });
     }
 
@@ -86,8 +86,7 @@ export async function POST(request: NextRequest) {
 
     // Check if user has permission to create headcount data
     // Users should be able to create headcount if they can manage positions
-    if (session.user.role !== 'Admin' && 
-        !session.user.modulePermissions?.includes('POSITIONS_EDIT_BASIC')) {
+    if (!hasPermission(session.user, 'POSITIONS_EDIT_BASIC')) {
       return NextResponse.json({ error: 'Forbidden: Insufficient permissions to create headcount data' }, { status: 403 });
     }
 

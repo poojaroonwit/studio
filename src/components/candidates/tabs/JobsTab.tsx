@@ -6,6 +6,7 @@ import { ScoreBadge } from '@/components/ui/score-color';
 import { formatScoreWithGrade } from "@/lib/scoreUtils";
 import { useSession } from 'next-auth/react';
 import type { Candidate, Position } from '@/lib/types';
+import { hasAnyPermission } from '@/lib/permissions';
 
 interface JobsTabProps {
   candidate: Candidate;
@@ -43,11 +44,8 @@ export const JobsTab: React.FC<JobsTabProps> = ({
   const { data: session } = useSession();
   
   // Check permissions
-  const modulePermissions = session?.user?.modulePermissions || [];
-  const canViewJobMatches = session?.user?.role === 'Admin' || 
-    modulePermissions.includes('JOB_MATCH_VIEW');
-  const canManageJobMatches = session?.user?.role === 'Admin' || 
-    modulePermissions.includes('JOB_MATCH_MANAGE');
+  const canViewJobMatches = hasAnyPermission(session?.user, ['JOB_MATCH_VIEW']);
+  const canManageJobMatches = hasAnyPermission(session?.user, ['JOB_MATCH_MANAGE']);
 
   return (
     <>
@@ -126,11 +124,10 @@ export const JobsTab: React.FC<JobsTabProps> = ({
                 }}
               >
                 <div className="rounded-lg p-4 h-full border shadow-lg bg-card">
-                  <div className="flex items-center justify-between mb-1">
+                  <div className="mb-1">
                     <h4 className="font-semibold text-foreground text-lg">
                       {Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === appliedJobId)?.title || 'Unknown Position' : 'Unknown Position'}
                     </h4>
-                    {appliedJobBadge}
                   </div>
                   {(() => {
                     const position = Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === appliedJobId) : null;
@@ -140,6 +137,11 @@ export const JobsTab: React.FC<JobsTabProps> = ({
                       </div>
                     ) : null;
                   })()}
+                  {appliedJobBadge && (
+                    <div className="mb-2">
+                      {appliedJobBadge}
+                    </div>
+                  )}
                   {appliedJustification.length > 0 && (
                     <div className="mt-3">
                       <h5 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-1">

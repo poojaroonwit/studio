@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
 import { logAudit } from '@/lib/auditLog';
 import prisma from '@/lib/prisma';
 
@@ -16,9 +17,8 @@ export async function GET(request: NextRequest) {
 
   // Check if user has permission to view warnings
   // Users should be able to view warnings if they can view candidates or have warning-specific permissions
-  if (session.user.role !== 'Admin' && 
-      !session.user.modulePermissions?.includes('CANDIDATES_VIEW') &&
-      !session.user.modulePermissions?.includes('WARNINGS_VIEW')) {
+  if (!hasPermission(session.user, 'CANDIDATES_VIEW') && 
+      !hasPermission(session.user, 'WARNINGS_VIEW')) {
     return NextResponse.json({ error: 'Forbidden: Insufficient permissions to view warnings' }, { status: 403 });
   }
 
@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Transform the warnings to use camelCase field names for frontend compatibility
-    const transformedWarnings = warnings.map(warning => ({
+    const transformedWarnings = warnings.map((warning: any) => ({
       id: warning.id,
       configurationId: warning.configuration_id,
       entityType: warning.entityType,
@@ -132,9 +132,8 @@ export async function POST(request: NextRequest) {
 
   // Check if user has permission to create/update warnings
   // Users should be able to manage warnings if they can edit candidates or have warning-specific permissions
-  if (session.user.role !== 'Admin' && 
-      !session.user.modulePermissions?.includes('CANDIDATES_EDIT_BASIC') &&
-      !session.user.modulePermissions?.includes('WARNINGS_MANAGE')) {
+  if (!hasPermission(session.user, 'CANDIDATES_EDIT_BASIC') && 
+      !hasPermission(session.user, 'WARNINGS_MANAGE')) {
     return NextResponse.json({ error: 'Forbidden: Insufficient permissions to manage warnings' }, { status: 403 });
   }
 

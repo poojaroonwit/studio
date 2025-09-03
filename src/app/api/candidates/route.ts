@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getPool } from '@/lib/db';
+import { hasPermission } from '@/lib/permissions';
 import { logAudit } from '@/lib/auditLog';
 import { broadcastCandidateCreated } from '@/lib/simple-broadcaster';
 import { v4 as uuidv4 } from 'uuid';
@@ -102,10 +103,7 @@ async function requireSessionAndPermission(requiredPermission: string, request: 
   if (!session?.user?.id) {
     return { error: NextResponse.json({ message: 'Unauthorized' }, { status: 401 }) };
   }
-  if (
-    session.user.role !== 'Admin' &&
-    !session.user.modulePermissions?.includes(requiredPermission)
-  ) {
+  if (!hasPermission(session.user, requiredPermission as any)) {
     await logAudit(
       'WARN',
       `Forbidden attempt to access candidates by ${session.user.name || session.user.email}.`,
@@ -650,14 +648,13 @@ export async function GET(request: NextRequest) {
 
     // Auto-filter: If user is a recruiter (not Admin and doesn't have CANDIDATES_VIEW permission), 
     // only show their assigned candidates unless explicit filters are set
-    const isRecruiter = session.user.role === 'Recruiter' && 
-                       !session.user.modulePermissions?.includes('CANDIDATES_VIEW');
+    const isRecruiterViewRestricted = !hasPermission(session.user, 'CANDIDATES_VIEW');
     const recruiterIdFromFilter = filters.recruiterId;
     const positionIdFromFilter = filters.positionId;
     
     // Apply recruiter filter if user is a recruiter AND there are no explicit filters
     // This allows position-based and recruiter-based filtering to work properly even for recruiters
-    if (isRecruiter && !recruiterIdFromFilter && !positionIdFromFilter) {
+    if (isRecruiterViewRestricted && !recruiterIdFromFilter && !positionIdFromFilter) {
       whereClauses.push(`c."recruiterId" = $${paramIndex++}`);
       queryParams.push(session.user.id);
     }

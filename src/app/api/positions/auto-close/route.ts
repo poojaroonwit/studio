@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
 import { checkAndAutoCloseAllPositions } from '@/lib/headcountUtils';
 
 export const dynamic = 'force-dynamic';
@@ -51,7 +52,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user has admin permissions
-    if (session.user.role !== 'Admin') {
+    if (!hasPermission(session.user, 'SYSTEM_SETTINGS_EDIT')) {
       // console.log(`Auto-close API: Forbidden access attempt by ${session.user.name} (role: ${session.user.role})`);
       return NextResponse.json({ 
         error: 'Forbidden - Admin permissions required' 

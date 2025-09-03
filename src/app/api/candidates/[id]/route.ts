@@ -13,6 +13,7 @@ import { NotificationService } from '@/lib/notificationService';
 import { validateCandidateHiringStatus, assignCandidateToHeadcount } from '@/lib/headcountUtils';
 import { SimpleWarningService } from '@/lib/warnings';
 import { getSystemSetting } from '@/lib/systemSettings';
+import { hasAnyPermission } from '@/lib/permissions';
 
 export const dynamic = 'force-dynamic';
 
@@ -390,9 +391,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   }
 
   // Check if user has permission to manage candidates
-  const hasBasicEditPermission = session.user.role === 'Admin' || session.user.modulePermissions?.includes('CANDIDATES_EDIT_BASIC');
-  const hasSensitiveEditPermission = session.user.role === 'Admin' || session.user.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE');
-  const hasPipelineUpdatePermission = session.user.role === 'Admin' || session.user.modulePermissions?.includes('CANDIDATES_PIPELINE_STAGE_UPDATE');
+  const hasBasicEditPermission = hasAnyPermission(session.user, ['CANDIDATES_EDIT_BASIC']);
+  const hasSensitiveEditPermission = hasAnyPermission(session.user, ['CANDIDATES_EDIT_SENSITIVE']);
+  const hasPipelineUpdatePermission = hasAnyPermission(session.user, ['CANDIDATES_PIPELINE_STAGE_UPDATE']);
   
   // Check if user has any required permission
   if (!hasBasicEditPermission && !hasSensitiveEditPermission && !hasPipelineUpdatePermission) {

@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
 
@@ -21,8 +22,8 @@ export async function GET(
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
-  // Check if user has admin role or SYSTEM_SETTINGS_VIEW permission
-  if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('SYSTEM_SETTINGS_VIEW')) {
+  // Check if user has SYSTEM_SETTINGS_VIEW permission
+  if (!hasPermission(session.user, 'SYSTEM_SETTINGS_VIEW')) {
     return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
   }
 
@@ -54,8 +55,8 @@ export async function PUT(
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
-  // Check if user has admin role or SYSTEM_SETTINGS_EDIT permission
-  if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('SYSTEM_SETTINGS_EDIT')) {
+  // Check if user has SYSTEM_SETTINGS_EDIT permission
+  if (!hasPermission(session.user, 'SYSTEM_SETTINGS_EDIT')) {
     return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
   }
 
@@ -139,8 +140,8 @@ export async function DELETE(
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
-  // Check if user has admin role or SYSTEM_SETTINGS_EDIT permission
-  if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('SYSTEM_SETTINGS_EDIT')) {
+  // Check if user has SYSTEM_SETTINGS_EDIT permission
+  if (!hasPermission(session.user, 'SYSTEM_SETTINGS_EDIT')) {
     return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
   }
 

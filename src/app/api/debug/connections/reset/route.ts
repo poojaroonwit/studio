@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { emergencyConnectionReset } from '@/lib/unified-connection-manager';
+import { hasAnyPermission } from '@/lib/permissions';
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,8 +12,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check if user is admin (required for emergency reset)
-    const isAdmin = session.user.role === 'admin' || session.user.role === 'super_admin';
+    // Check if user has admin permissions (required for emergency reset)
+    const isAdmin = hasAnyPermission(session.user, ['USERS_PERMISSIONS_MANAGE', 'USERS_MANAGE']);
     if (!isAdmin) {
       return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
     }

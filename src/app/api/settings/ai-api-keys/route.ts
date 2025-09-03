@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
 import { logAudit } from '@/lib/auditLog';
 import { getApiKeys, saveApiKeys, getApiKeyStats } from '@/lib/aiApiKeyManager';
 
@@ -37,7 +38,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (session?.user?.role !== 'Admin' && !session?.user?.modulePermissions?.includes('AI_INTEGRATION_EDIT')) {
+  if (!hasPermission(session.user, 'AI_INTEGRATION_EDIT')) {
     await logAudit('WARN', `Forbidden attempt to access AI API keys by user ${session?.user?.email || 'Unknown'}.`, 'API:AiApiKeys:Get', session?.user?.id);
     return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
   }
@@ -62,7 +63,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (session?.user?.role !== 'Admin' && !session?.user?.modulePermissions?.includes('AI_INTEGRATION_EDIT')) {
+  if (!hasPermission(session.user, 'AI_INTEGRATION_EDIT')) {
     await logAudit('WARN', `Forbidden attempt to update AI API keys by user ${session?.user?.email || 'Unknown'}.`, 'API:AiApiKeys:Update', session?.user?.id);
     return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
   }

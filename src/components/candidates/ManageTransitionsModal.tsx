@@ -98,11 +98,12 @@ export function ManageTransitionsModal({
     const fetchStageName = async () => {
       if (candidate?.status) {
         try {
-          const name = await getRecruitmentStageNameClient(candidate.status);
-          setCurrentStageName(name);
+          const idOrName = candidate.statusId || candidate.status || '';
+          const name = await getRecruitmentStageNameClient(idOrName);
+          setCurrentStageName(name || '');
         } catch (error) {
           console.error('Error fetching stage name:', error);
-          setCurrentStageName(candidate.status);
+          setCurrentStageName((candidate.statusId || candidate.status || ''));
         }
       }
     };
@@ -118,7 +119,7 @@ export function ManageTransitionsModal({
     if (transition?.stage) {
       try {
         const name = await getRecruitmentStageNameClient(transition.stage);
-        setDeletingStageName(name);
+        setDeletingStageName(name || '');
       } catch (error) {
         console.error('Error fetching stage name for deletion:', error);
         setDeletingStageName(transition.stage);
@@ -129,7 +130,7 @@ export function ManageTransitionsModal({
   const form = useForm<TransitionFormValues>({
     resolver: zodResolver(transitionFormSchema),
     defaultValues: {
-      newStatus: candidate?.status || (stages[0]?.id || ''),
+      newStatus: candidate?.statusId || candidate?.status || (stages[0]?.id || ''),
       notes: '',
     },
   });
@@ -138,7 +139,7 @@ export function ManageTransitionsModal({
   useEffect(() => {
     if (isMountedRef.current && candidate && isOpen) {
       form.reset({
-        newStatus: preselectedStage || candidate.status,
+        newStatus: (preselectedStage || candidate.statusId || candidate.status || ''),
         notes: '',
       });
       setEditingTransitionId(null);
@@ -179,7 +180,7 @@ export function ManageTransitionsModal({
     if (!isMountedRef.current) return;
 
     const trimmedNotes = data.notes?.trim() || '';
-    const noChangeCondition = data.newStatus === candidate.status && !trimmedNotes;
+    const noChangeCondition = data.newStatus === (candidate.statusId || candidate.status) && !trimmedNotes;
     
     if (noChangeCondition) {
         toast("Please select a new status or add notes to create a transition.");
@@ -352,7 +353,7 @@ export function ManageTransitionsModal({
     // Reset form to initial state
     if (candidate) {
       form.reset({
-        newStatus: preselectedStage || candidate.status,
+        newStatus: (preselectedStage || candidate.statusId || candidate.status || ''),
         notes: '',
       });
     }

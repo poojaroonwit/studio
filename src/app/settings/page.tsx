@@ -189,9 +189,6 @@ function SettingsPageContent() {
       ? session.user.modulePermissions 
       : [];
 
-    // Admin has access to everything
-    if (userRole === 'Admin') return true;
-
     // Check for adminOnly items
     if (item.adminOnly) return false;
 

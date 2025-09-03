@@ -169,8 +169,8 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   const isRecruiter = userSession?.role === 'Recruiter' && 
     !userSession?.modulePermissions?.includes('CANDIDATES_VIEW');
 
-  // Check if user can see all recruiters (Admin or has CANDIDATES_VIEW permission)
-  const canSeeAllRecruiters = userSession?.role === 'Admin' || 
+  // Check if user can see all recruiters (has USERS_VIEW or CANDIDATES_VIEW permission)
+  const canSeeAllRecruiters = userSession?.modulePermissions?.includes('USERS_VIEW') || 
     userSession?.modulePermissions?.includes('CANDIDATES_VIEW');
 
   // Set initial recruiter filter for recruiters
@@ -447,7 +447,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
         title: candidate.name,
         description: candidate.parsedData?.summary || '', // Only use summary, don't fallback to email
         email: candidate.email, // Always include email separately
-        status: candidate.status,
+        status: candidate.statusId,
         priority: (candidate.fitScore > 0.8 ? 'high' : candidate.fitScore > 0.6 ? 'medium' : 'low') as 'low' | 'medium' | 'high' | 'urgent',
         assignee: candidate.recruiter ? {
           id: candidate.recruiter.id,
@@ -1052,7 +1052,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                           </div>
                         </TableCell>
                                                   <TableCell>
-                            <StatusBadge statusId={candidate.status} className="text-xs font-medium px-2.5 py-0.5 rounded-full" />
+                            <StatusBadge statusId={candidate.statusId} className="text-xs font-medium px-2.5 py-0.5 rounded-full" />
                           </TableCell>
                         <TableCell className="text-foreground">{candidate.position?.title || candidate.positionId}</TableCell>
                         <TableCell className="text-foreground">{candidate.recruiter?.name || candidate.recruiterId}</TableCell>

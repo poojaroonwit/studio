@@ -296,8 +296,7 @@ export async function POST(request: NextRequest) {
 
   // Check permissions using the new permission system
   const canManageUploadQueue = hasAnyPermission(
-    session.user.role,
-    session.user.modulePermissions,
+    session.user,
     ['UPLOAD_QUEUE_MANAGE']
   );
   

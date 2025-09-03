@@ -6,6 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { getPool } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
 import { broadcastCandidateUpdate } from '@/lib/simple-broadcaster';
+import { hasAnyPermission } from '@/lib/permissions';
 
 const bulkActionSchema = z.object({
   action: z.enum(['delete', 'change_status', 'assign_recruiter']),
@@ -216,25 +217,21 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'Invalid JSON body' }, { status: 400 });
   }
   
-  if (session.user.role === 'Admin') {
-    hasPermission = true;
-  } else {
-    // Check specific permissions based on action
-    const { action } = body;
-    
-    switch (action) {
-      case 'assign_recruiter':
-        hasPermission = session.user.modulePermissions?.includes('CANDIDATES_RECRUITER_ASSIGN') || false;
-        break;
-      case 'change_status':
-        hasPermission = session.user.modulePermissions?.includes('CANDIDATES_PIPELINE_STAGE_BULK_UPDATE') || false;
-        break;
-      case 'delete':
-        hasPermission = session.user.modulePermissions?.includes('CANDIDATES_DELETE') || false;
-        break;
-      default:
-        hasPermission = false;
-    }
+  // Check specific permissions based on action
+  const actionType = body.action;
+  
+  switch (actionType) {
+    case 'assign_recruiter':
+      hasPermission = hasAnyPermission(session.user, ['CANDIDATES_RECRUITER_ASSIGN']);
+      break;
+    case 'change_status':
+      hasPermission = hasAnyPermission(session.user, ['CANDIDATES_PIPELINE_STAGE_BULK_UPDATE']);
+      break;
+    case 'delete':
+      hasPermission = hasAnyPermission(session.user, ['CANDIDATES_DELETE']);
+      break;
+    default:
+      hasPermission = false;
   }
   
   if (!hasPermission) {

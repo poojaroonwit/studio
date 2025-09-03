@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
 import prisma from '@/lib/prisma';
 
 export async function GET(request: NextRequest) {
@@ -12,10 +13,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Check permissions
-    const canViewWebhookAnalytics = session.user.role === 'Admin' || session.user.modulePermissions?.includes('USERS_MANAGE') || 
-      session.user.modulePermissions?.includes('WEBHOOK_ANALYTICS_VIEW');
-    
-    if (!canViewWebhookAnalytics) {
+    if (!hasPermission(session.user, 'USERS_MANAGE') && !hasPermission(session.user, 'WEBHOOK_ANALYTICS_VIEW')) {
       return NextResponse.json({ error: 'Forbidden: Insufficient permissions to view webhook analytics' }, { status: 403 });
     }
 

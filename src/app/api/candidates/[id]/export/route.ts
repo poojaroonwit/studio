@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { getPool } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
 import { logAudit } from '@/lib/auditLog';
 import * as XLSX from 'xlsx';
 import { z } from 'zod';
@@ -102,7 +103,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 
   // Check if user has permission to export candidates
-  if (session.user.role !== 'Admin' &&  !session.user.modulePermissions?.includes('CANDIDATES_EXPORT')) {
+  if (!hasPermission(session.user, 'CANDIDATES_EXPORT')) {
     await logAudit('WARN', `Forbidden attempt to export candidate by ${actingUserName}`, 'API:Candidate:Export', actingUserId);
     return NextResponse.json({ error: 'Forbidden: Insufficient permissions to export candidates' }, { status: 403 });
   }

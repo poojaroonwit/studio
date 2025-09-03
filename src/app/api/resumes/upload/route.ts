@@ -7,6 +7,7 @@ import { logAudit } from '@/lib/auditLog';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { generateUniqueFilename } from '@/lib/fileUtils';
+import { hasAnyPermission } from '@/lib/permissions';
 
 export const dynamic = 'force-dynamic';
 
@@ -48,8 +49,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Check if user has permission to manage candidate resumes
-  const canManageResumes = session.user.role === 'Admin' || session.user.modulePermissions?.includes('USERS_MANAGE') || 
-    session.user.modulePermissions?.includes('CANDIDATES_RESUMES_UPLOAD');
+  const canManageResumes = hasAnyPermission(session.user, ['USERS_MANAGE', 'CANDIDATES_RESUMES_UPLOAD']);
   
   if (!canManageResumes) {
     await logAudit('WARN', `Forbidden attempt to upload resume by ${actingUserName}`, 'API:Resumes:Upload', actingUserId);

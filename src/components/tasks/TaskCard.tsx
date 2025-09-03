@@ -136,11 +136,9 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   // Safely access session data with fallbacks
   const modulePermissions = session?.user?.modulePermissions || [];
   const canManageOwnTasks = Boolean(
-    session?.user?.role === 'Admin' || 
     modulePermissions.includes('TASK_BOARD_MANAGE_OWN')
   );
   const canManageAllTasks = Boolean(
-    session?.user?.role === 'Admin' || 
     modulePermissions.includes('TASK_BOARD_MANAGE_ALL')
   );
 

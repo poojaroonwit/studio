@@ -1106,6 +1106,9 @@ export interface UserProfile {
   modulePermissions?: PlatformModuleId[];
   createdAt?: string;
   updatedAt?: string;
+  // Derived/expanded fields for UI convenience
+  teams?: { id: string; name: string; color?: string }[];
+  userGroupName?: string | null;
 }
 
 export type LogLevel = 'INFO' | 'WARN' | 'ERROR' | 'DEBUG' | 'AUDIT';

@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { processSingleUploadQueueJob } from '@/lib/uploadQueueProcessor';
 import { broadcastUploadQueueUpdate } from '../sse/broadcastUploadQueueUpdate';
+import { hasAnyPermission } from '@/lib/permissions';
 
 /**
  * @openapi
@@ -124,8 +125,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-  // Only allow Admin or users with UPLOAD_QUEUE_MANAGE
-  const canProcess = session.user.role === 'Admin' || session.user.modulePermissions?.includes('UPLOAD_QUEUE_MANAGE');
+  // Only allow users with UPLOAD_QUEUE_MANAGE permission
+  const canProcess = hasAnyPermission(session.user, ['UPLOAD_QUEUE_MANAGE']);
   if (!canProcess) {
     return NextResponse.json({ error: 'Forbidden: Insufficient permissions' }, { status: 403 });
   }

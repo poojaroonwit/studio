@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
 import { getPool } from '@/lib/db';
 import { logAudit } from '@/lib/auditLog';
 
@@ -16,9 +17,8 @@ export async function GET(request: NextRequest) {
 
     // Check if user has permission to view process queue data
     // Users should be able to view queue data if they can manage uploads or have system monitoring permissions
-    if (session.user.role !== 'Admin' && 
-        !session.user.modulePermissions?.includes('UPLOAD_QUEUE_VIEW') &&
-        !session.user.modulePermissions?.includes('SYSTEM_MONITORING_VIEW')) {
+    if (!hasPermission(session.user, 'UPLOAD_QUEUE_VIEW') && 
+        !hasPermission(session.user, 'SYSTEM_MONITORING_VIEW')) {
       return NextResponse.json({ message: 'Forbidden: Insufficient permissions to view process queue data' }, { status: 403 });
     }
 

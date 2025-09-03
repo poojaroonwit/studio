@@ -673,7 +673,7 @@ export function CandidateRowKanbanView({
         name: formatCandidateName(candidate),
         email: candidate.email,
         phone: candidate.phone,
-        status: candidate.status,
+        status: candidate.statusId,
         position: candidate.position,
         fitScore: candidate.fitScore,
         parsedData: validatedParsedData
@@ -1543,7 +1543,7 @@ export function SingleRowCandidateView({
                     )}
                   </div>
                   {/* Status Badge */}
-                  <StatusBadge status={candidate.status} className="text-xs px-2 py-1 flex-shrink-0" />
+                  <StatusBadge statusId={candidate.statusId} className="text-xs px-2 py-1 flex-shrink-0" />
                 </div>
 
                 {/* Contact Information */}
@@ -1744,7 +1744,7 @@ export function SingleRowKanbanView({
         name: formatCandidateName(candidate),
         email: candidate.email,
         phone: candidate.phone,
-        status: candidate.status,
+        status: candidate.statusId,
         position: candidate.position,
         fitScore: candidate.fitScore,
         parsedData: validatedParsedData
@@ -2162,7 +2162,7 @@ export function HorizontalStageKanbanView({
   // Determine what to show as columns based on columnField
   const getColumnValue = (candidate: Candidate) => {
     if (columnField === 'none') return 'All Candidates';
-    if (columnField === 'status') return candidate.status;
+    if (columnField === 'status') return candidate.statusId || candidate.status;
     if (columnField === 'recruiterId') {
       // For recruiterId, we need to match against recruiter names, not IDs
       // If the candidate has a recruiter object with a name, use that

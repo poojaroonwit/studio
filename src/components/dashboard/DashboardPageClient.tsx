@@ -29,6 +29,7 @@ import { useDynamicHeight } from '@/hooks/use-dynamic-height';
 import { PositionDetailDrawer } from '@/components/positions/PositionDetailDrawer';
 import { useEnhancedSSE } from '@/hooks/use-enhanced-sse';
 import { cn } from '@/lib/utils';
+import { hasPermission } from '@/lib/permissions';
 import { useChartSetup } from '@/hooks/use-chart-setup';
 import { isDataLabelsAvailable } from '@/lib/chartjs-setup';
 import { createEventSource, closeEventSource } from '@/lib/event-source-utils';
@@ -153,12 +154,11 @@ export default function DashboardPageClient({
   // Check permissions for dashboard access - based on actual permissions, not hardcoded roles
   // Allow access if user has any permissions or is authenticated (more permissive)
   const modulePermissions = session?.user?.modulePermissions || [];
-  const canViewDashboard = session?.user?.role === 'Admin' || modulePermissions.includes('DASHBOARD_VIEW') || false;
-  const canGenerateReports = session?.user?.role === 'Admin' || modulePermissions.includes('REPORTS_GENERATE') || false;
+  const canViewDashboard = hasPermission(session?.user, 'DASHBOARD_VIEW');
+  const canGenerateReports = hasPermission(session?.user, 'REPORTS_GENERATE');
 
   // Check if user can view all candidates (for conditional rendering)
-  const canViewAllCandidates = session?.user?.role === 'Admin' || 
-                               modulePermissions.includes('CANDIDATES_VIEW');
+  const canViewAllCandidates = hasPermission(session?.user, 'CANDIDATES_VIEW');
 
   // Function to re-fetch data on client if needed (e.g., after an action or for a refresh button)
   const fetchDataClientSide = useCallback(async () => {
@@ -170,21 +170,19 @@ export default function DashboardPageClient({
     setIsLoading(true);
     setFetchError(null);
     let accumulatedFetchError = "";
-    const userRole = session.user.role;
+    const userRole = undefined as any; // deprecated
     const userId = session.user.id;
 
     try {
       const fetchOptions = { credentials: 'include' as const };
       const promises = [];
       // Check permissions to determine what data to fetch
-      const canViewAllCandidates = session?.user?.role === 'Admin' || 
-                                   modulePermissions.includes('CANDIDATES_VIEW');
-      const canViewAllUsers = session?.user?.role === 'Admin' || 
-                              modulePermissions.includes('USERS_VIEW') ||
-                              modulePermissions.includes('USERS_CREATE') ||
-                              modulePermissions.includes('USERS_EDIT') ||
-                              modulePermissions.includes('USERS_DELETE') ||
-                              modulePermissions.includes('USERS_PERMISSIONS_MANAGE');
+      const canViewAllCandidates = hasPermission(session?.user, 'CANDIDATES_VIEW');
+      const canViewAllUsers = hasPermission(session?.user, 'USERS_VIEW') ||
+                              hasPermission(session?.user, 'USERS_CREATE') ||
+                              hasPermission(session?.user, 'USERS_EDIT') ||
+                              hasPermission(session?.user, 'USERS_DELETE') ||
+                              hasPermission(session?.user, 'USERS_PERMISSIONS_MANAGE');
       
       if (canViewAllCandidates) {
         promises.push(fetch('/api/candidates', fetchOptions));
@@ -335,8 +333,7 @@ export default function DashboardPageClient({
     setFilteredCandidates(initialCandidates || []);
     
     // Check if user can view all candidates or only their assigned ones
-    const canViewAllCandidates = session?.user?.role === 'Admin' || 
-                                 modulePermissions.includes('CANDIDATES_VIEW');
+    const canViewAllCandidates = hasPermission(session?.user, 'CANDIDATES_VIEW');
     
     if (!canViewAllCandidates) {
       // User can only see their assigned candidates
@@ -360,7 +357,7 @@ export default function DashboardPageClient({
     if (initialFetchError) {
       toast.error(initialFetchError);
     }
-  }, [initialCandidates, initialPositions, initialUsers, initialFetchError, serverAuthError, serverPermissionError, status, session?.user?.role, modulePermissions, stageIds.hired, stageIds.rejected]);
+  }, [initialCandidates, initialPositions, initialUsers, initialFetchError, serverAuthError, serverPermissionError, status, modulePermissions, stageIds.hired, stageIds.rejected]);
 
   // REMOVED: Automatic permission refresh - this was causing the loop
   // Users can manually refresh permissions if needed using the button in the UI
@@ -526,7 +523,7 @@ export default function DashboardPageClient({
       !(stageIds.hired && c.status === getStageName(stageIds.hired)) && 
       !(stageIds.rejected && c.status === getStageName(stageIds.rejected))
     );
-    const myCandidatesInInterviewCount = myActiveCandidatesList.filter((c: Candidate) => INTERVIEW_STATUSES.includes(c.status)).length;
+    const myCandidatesInInterviewCount = myActiveCandidatesList.filter((c: Candidate) => INTERVIEW_STATUSES.includes(c.status || '')).length;
     
     const newCandidatesAssignedToMeTodayList = myActiveCandidatesList.filter((c: Candidate) => {
       try {
@@ -584,7 +581,7 @@ export default function DashboardPageClient({
     const scoreRangeCounts: { [key: string]: number } = {};
     
     safeAllCandidates.forEach((candidate: Candidate) => {
-      if (!(stageIds.hired && candidate.status === stageIds.hired) && !(stageIds.rejected && candidate.status === stageIds.rejected)) {
+      if (!(stageIds.hired && candidate.statusId === stageIds.hired) && !(stageIds.rejected && candidate.statusId === stageIds.rejected)) {
         scoreRanges.forEach(range => {
           if (typeof candidate.fitScore === 'number' && candidate.fitScore >= range.min && candidate.fitScore <= range.max) {
             scoreRangeCounts[range.label] = (scoreRangeCounts[range.label] || 0) + 1;
@@ -600,30 +597,30 @@ export default function DashboardPageClient({
     }));
   }, [filteredCandidates]);
 
-  const unassignedCandidatesCount = useMemo(() => {
-    const safeAllCandidates = Array.isArray(filteredCandidates)? filteredCandidates : [];
-    return safeAllCandidates.filter((c: Candidate) => 
-      !(stageIds.hired && c.status === stageIds.hired) && 
-      !(stageIds.rejected && c.status === stageIds.rejected) && 
-      !c.recruiterId
-    ).length;
-  }, [filteredCandidates]);
+      const unassignedCandidatesCount = useMemo(() => {
+      const safeAllCandidates = Array.isArray(filteredCandidates)? filteredCandidates : [];
+      return safeAllCandidates.filter((c: Candidate) => 
+        !(stageIds.hired && c.statusId === stageIds.hired) && 
+        !(stageIds.rejected && c.statusId === stageIds.rejected) && 
+        !c.recruiterId
+      ).length;
+    }, [filteredCandidates]);
 
-  const unassignedCandidatesList = useMemo(() => {
-    const safeAllCandidates = Array.isArray(filteredCandidates)? filteredCandidates : [];
-    return safeAllCandidates.filter((c: Candidate) => 
-      !(stageIds.hired && c.status === stageIds.hired) && 
-      !(stageIds.rejected && c.status === stageIds.rejected) && 
-      !c.recruiterId
-    );
-  }, [filteredCandidates]);
+      const unassignedCandidatesList = useMemo(() => {
+      const safeAllCandidates = Array.isArray(filteredCandidates)? filteredCandidates : [];
+      return safeAllCandidates.filter((c: Candidate) => 
+        !(stageIds.hired && c.statusId === stageIds.hired) && 
+        !(stageIds.rejected && c.statusId === stageIds.rejected) && 
+        !c.recruiterId
+      );
+    }, [filteredCandidates]);
 
   // Calculate Average Time to Hire (in days)
-  const averageTimeToHire = useMemo(() => {
-    const safeAllCandidates = Array.isArray(filteredCandidates)? filteredCandidates : [];
-    const hiredCandidates = safeAllCandidates.filter((c: Candidate) => 
-      stageIds.hired && c.status === stageIds.hired && c.applicationDate && typeof c.applicationDate === 'string'
-    );
+      const averageTimeToHire = useMemo(() => {
+      const safeAllCandidates = Array.isArray(filteredCandidates)? filteredCandidates : [];
+      const hiredCandidates = safeAllCandidates.filter((c: Candidate) => 
+        stageIds.hired && c.statusId === stageIds.hired && c.applicationDate && typeof c.applicationDate === 'string'
+      );
 
     if (hiredCandidates.length === 0) return 0;
 
@@ -647,11 +644,11 @@ export default function DashboardPageClient({
     return parseFloat((totalDays / hiredCandidates.length).toFixed(2));
   }, [filteredCandidates]);
 
-  const highPriorityCandidates = useMemo(() => {
-    const safeAllCandidates = Array.isArray(filteredCandidates)? filteredCandidates : [];
-    return safeAllCandidates.filter((c: Candidate) => {
-      if (stageIds.hired && c.status === stageIds.hired) return false;
-      if (stageIds.rejected && c.status === stageIds.rejected) return false;
+      const highPriorityCandidates = useMemo(() => {
+      const safeAllCandidates = Array.isArray(filteredCandidates)? filteredCandidates : [];
+      return safeAllCandidates.filter((c: Candidate) => {
+        if (stageIds.hired && c.statusId === stageIds.hired) return false;
+        if (stageIds.rejected && c.statusId === stageIds.rejected) return false;
       // Note: 'Offer Accepted' stage needs to be added to RecruitmentStage table
       let appliedFitScore: number | undefined = undefined;
       // Check if parsedData is CandidateDetails and has job_applied
@@ -689,8 +686,8 @@ export default function DashboardPageClient({
     const stageCounts: { [key: string]: number } = {};
     
     safeAllCandidates.forEach((candidate: Candidate) => {
-      if (!(stageIds.hired && candidate.status === stageIds.hired) && !(stageIds.rejected && candidate.status === stageIds.rejected)) {
-        const status = candidate.status;
+      if (!(stageIds.hired && candidate.statusId === stageIds.hired) && !(stageIds.rejected && candidate.statusId === stageIds.rejected)) {
+        const status = candidate.statusId || candidate.status || 'UNKNOWN';
         stageCounts[status] = (stageCounts[status] || 0) + 1;
       }
     });
@@ -727,18 +724,19 @@ export default function DashboardPageClient({
   }, [myAssignedCandidates]);
 
   // On-process candidates (not in excluded statuses)
-  const onProcessCandidates = useMemo(() => {
-    const safeAllCandidates = Array.isArray(filteredCandidates)? filteredCandidates : [];
-    return safeAllCandidates.filter(
-      (c) => !(stageIds.hired && c.status === stageIds.hired) && !(stageIds.rejected && c.status === stageIds.rejected)
-    );
-  }, [filteredCandidates, stageIds]);
+      const onProcessCandidates = useMemo(() => {
+      const safeAllCandidates = Array.isArray(filteredCandidates)? filteredCandidates : [];
+      return safeAllCandidates.filter(
+        (c) => !(stageIds.hired && c.statusId === stageIds.hired) && !(stageIds.rejected && c.statusId === stageIds.rejected)
+      );
+    }, [filteredCandidates, stageIds]);
 
   // Pie chart: On-process by stage
   const onProcessByStage = useMemo(() => {
     const stageCounts: Record<string, number> = {};
     onProcessCandidates.forEach((c) => {
-      stageCounts[c.status] = (stageCounts[c.status] || 0) + 1;
+      const sid = c.status || 'UNKNOWN';
+      stageCounts[sid] = (stageCounts[sid] || 0) + 1;
     });
     
     // Map stage IDs to names for display
@@ -796,103 +794,11 @@ export default function DashboardPageClient({
   // Auto-redirect non-admin users without dashboard permissions to my-tasks
   useEffect(() => {
     if (status === 'authenticated' && session?.user && !canViewDashboard) {
-      const isAdmin = session.user.role === 'Admin';
-      if (!isAdmin) {
-        console.log('[DASHBOARD] Non-admin user without dashboard permissions, redirecting to my-tasks');
-        router.replace('/my-tasks');
-      }
+      router.replace('/my-tasks');
     }
   }, [status, session, canViewDashboard, router]);
 
   if (!canViewDashboard) {
-    // For admin users without permissions, show the permission error page
-    if (session?.user?.role === 'Admin') {
-      return (
-        <div className="flex items-center justify-center h-screen">
-          <div className="text-center max-w-md mx-auto p-6">
-            <h1 className="text-2xl font-bold text-destructive mb-4">Dashboard Access Restricted</h1>
-            <p className="text-muted-foreground mb-6">
-              You don't have permission to view the dashboard. This could be because:
-            </p>
-            <ul className="text-sm text-muted-foreground mb-6 text-left space-y-2">
-              <li>• Your account doesn't have the required permissions assigned</li>
-              <li>• Your role or permissions were recently updated</li>
-              <li>• You need to be assigned to a user group with dashboard access</li>
-            </ul>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Button 
-                onClick={() => window.location.reload()} 
-                className="btn-hover-primary-gradient"
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Reload Page
-              </Button>
-              <Button 
-                onClick={() => router.push('/my-tasks')} 
-                variant="outline"
-              >
-                Go to My Tasks
-              </Button>
-              <Button 
-                onClick={async () => {
-                  try {
-                    // Clear any cached data
-                    if (session?.user?.id) {
-                      await fetch('/api/auth/clear-user-cache', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ userId: session.user.id }),
-                      }).catch(() => {
-                        // Ignore errors in cache clearing
-                      });
-                    }
-                    
-                    // Perform signout with redirect
-                    await signOut({ 
-                      callbackUrl: '/auth/signin?signout=true', 
-                      redirect: false 
-                    });
-                    
-                    // Manually redirect after signOut completes
-                    window.location.href = '/auth/signin?signout=true';
-                  } catch (error) {
-                    console.error('Signout error:', error);
-                    // Fallback to window.location if signOut fails
-                    window.location.href = '/auth/signin?signout=true';
-                  }
-                }} 
-                variant="ghost"
-              >
-                Sign Out
-              </Button>
-              <Button 
-                onClick={async () => {
-                  try {
-                    const response = await fetch('/api/auth/force-refresh-session', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                    });
-                    if (response.ok) {
-                      toast.success('Session cleared. Please sign in again.');
-                      window.location.href = '/auth/signin';
-                    } else {
-                      toast.error('Failed to clear session');
-                    }
-                  } catch (error) {
-                    toast.error('Error clearing session');
-                  }
-                }} 
-                variant="destructive"
-              >
-                Force Session Refresh
-              </Button>
-            </div>
-          </div>
-        </div>
-      );
-    }
-    
-    // For non-admin users, show loading while redirecting
     return <div className="flex items-center justify-center h-screen">Redirecting to My Tasks...</div>;
   }
   // Remove stray closing brace and ensure this is inside a function/component body
@@ -1756,7 +1662,7 @@ export default function DashboardPageClient({
                       </TableCell>
                       <TableCell>{candidate.position?.title || 'N/A'}</TableCell>
                       <TableCell>
-                        <StatusBadge statusId={candidate.status} className="capitalize" stageNames={stageNames} />
+                        <StatusBadge statusId={candidate.statusId} className="capitalize" stageNames={stageNames} />
                       </TableCell>
                       <TableCell className={getScoreColor(candidate.fitScore)}>{formatScoreWithGrade(candidate.fitScore)}</TableCell>
                     </TableRow>
@@ -1893,7 +1799,7 @@ export default function DashboardPageClient({
                           </TableCell>
                           <TableCell>{candidate.position?.title || 'N/A'}</TableCell>
                           <TableCell>
-                            <StatusBadge statusId={candidate.status} className="capitalize" stageNames={stageNames} />
+                            <StatusBadge statusId={candidate.statusId} className="capitalize" stageNames={stageNames} />
                           </TableCell>
                           <TableCell className={getScoreColor(candidate.fitScore)}>{formatScoreWithGrade(candidate.fitScore)}</TableCell>
                           <TableCell>{candidate.applicationDate ? new Date(candidate.applicationDate).toLocaleDateString() : 'N/A'}</TableCell>
@@ -1958,7 +1864,7 @@ export default function DashboardPageClient({
                           </TableCell>
                           <TableCell>{candidate.position?.title || 'N/A'}</TableCell>
                           <TableCell>
-                            <StatusBadge statusId={candidate.status} className="capitalize" stageNames={stageNames} />
+                            <StatusBadge statusId={candidate.statusId} className="capitalize" stageNames={stageNames} />
                           </TableCell>
                           <TableCell>{formatScoreWithGrade(candidate.fitScore)}</TableCell>
                         </TableRow>

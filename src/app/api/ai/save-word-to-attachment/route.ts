@@ -5,6 +5,7 @@ import prisma from '@/lib/prisma';
 import { minioClient } from '@/lib/minio';
 import { MINIO_BUCKET, MINIO_PUBLIC_BASE_URL } from '@/lib/minio-constants';
 import { v4 as uuidv4 } from 'uuid';
+import { hasAnyPermission } from '@/lib/permissions';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,9 +18,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Check permissions
-  const canManageAttachments = session.user.role === 'Admin' || session.user.modulePermissions?.includes('USERS_MANAGE') || 
-    session.user.modulePermissions?.includes('CANDIDATES_EDIT_BASIC') ||
-    session.user.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE');
+  const canManageAttachments = hasAnyPermission(session.user, ['USERS_MANAGE', 'CANDIDATES_EDIT_BASIC', 'CANDIDATES_EDIT_SENSITIVE']);
   
   if (!canManageAttachments) {
     return NextResponse.json({ error: 'Forbidden: Insufficient permissions to manage candidate attachments' }, { status: 403 });

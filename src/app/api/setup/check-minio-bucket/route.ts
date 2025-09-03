@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
 import { getBucketInfo, startupMinIOInitialization } from '@/lib/minio';
 
 export const dynamic = 'force-dynamic';
@@ -42,7 +43,7 @@ export async function GET() {
     }
 
     // Check if user has admin privileges
-    if (session.user.role !== 'Admin') {
+    if (!hasPermission(session.user, 'SYSTEM_SETTINGS_VIEW')) {
       return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
     }
 

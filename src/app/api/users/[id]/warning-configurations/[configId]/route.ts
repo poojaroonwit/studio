@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { logAudit } from '@/lib/auditLog';
+import { hasAnyPermission } from '@/lib/permissions';
 
 // PUT - Update warning configuration
 export async function PUT(
@@ -17,12 +18,11 @@ export async function PUT(
 
     const { id, configId } = await params;
 
-    // Check if user is updating their own configuration, is admin, or has warning configurations management permission
-    const isAdmin = session.user.role === 'Admin';
-    const hasWarningManagePermission = session.user.modulePermissions?.includes('WARNING_CONFIGURATIONS_MANAGE');
+    // Check if user is updating their own configuration or has warning configurations management permission
+    const hasWarningManagePermission = hasAnyPermission(session.user, ['WARNING_CONFIGURATIONS_MANAGE']);
     const isUpdatingOwn = session.user.id === id;
     
-    if (!isUpdatingOwn && !isAdmin && !hasWarningManagePermission) {
+    if (!isUpdatingOwn && !hasWarningManagePermission) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -133,12 +133,11 @@ export async function PATCH(
 
     const { id, configId } = await params;
 
-    // Check if user is updating their own configuration, is admin, or has warning configurations management permission
-    const isAdmin = session.user.role === 'Admin';
-    const hasWarningManagePermission = session.user.modulePermissions?.includes('WARNING_CONFIGURATIONS_MANAGE');
+    // Check if user is updating their own configuration or has warning configurations management permission
+    const hasWarningManagePermission = hasAnyPermission(session.user, ['WARNING_CONFIGURATIONS_MANAGE']);
     const isUpdatingOwn = session.user.id === id;
     
-    if (!isUpdatingOwn && !isAdmin && !hasWarningManagePermission) {
+    if (!isUpdatingOwn && !hasWarningManagePermission) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -208,12 +207,11 @@ export async function DELETE(
 
     const { id, configId } = await params;
 
-    // Check if user is deleting their own configuration, is admin, or has warning configurations management permission
-    const isAdmin = session.user.role === 'Admin';
-    const hasWarningManagePermission = session.user.modulePermissions?.includes('WARNING_CONFIGURATIONS_MANAGE');
+    // Check if user is deleting their own configuration or has warning configurations management permission
+    const hasWarningManagePermission = hasAnyPermission(session.user, ['WARNING_CONFIGURATIONS_MANAGE']);
     const isDeletingOwn = session.user.id === id;
     
-    if (!isDeletingOwn && !isAdmin && !hasWarningManagePermission) {
+    if (!isDeletingOwn && !hasWarningManagePermission) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

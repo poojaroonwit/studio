@@ -196,7 +196,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       case 'name': return candidate.name?.toLowerCase() || '';
       case 'email': return candidate.email?.toLowerCase() || '';
       case 'fitScore': return candidate.fitScore || 0;
-      case 'status': return candidate.status?.toLowerCase() || '';
+      case 'status': return (candidate.statusId || candidate.status)?.toLowerCase() || '';
       case 'applicationDate': return candidate.applicationDate || '';
       default: return '';
     }
@@ -872,7 +872,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                 )}
               </TableCell>
               <TableCell>
-                <StatusBadge statusId={candidate.status} />
+                <StatusBadge statusId={candidate.statusId} />
               </TableCell>
               <TableCell>
                 <Button 
@@ -1035,7 +1035,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                 )}
               </TableCell>
               <TableCell>
-                <StatusBadge statusId={candidate.status} />
+                <StatusBadge statusId={candidate.statusId} />
               </TableCell>
               <TableCell>
                 <Button 
@@ -1229,7 +1229,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                           )}
                         </TableCell>
                         <TableCell>
-                          <StatusBadge statusId={candidate.status} />
+                          <StatusBadge statusId={candidate.statusId} />
                         </TableCell>
                         <TableCell>
                           <Button
@@ -1287,7 +1287,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                               )}
                             </TableCell>
                             <TableCell>
-                              <StatusBadge statusId={candidate.status} />
+                              <StatusBadge statusId={candidate.statusId} />
                             </TableCell>
                             <TableCell>
                               <Button

@@ -34,6 +34,7 @@ import { UserAvatarUpload } from '@/components/ui/user-avatar-upload';
 import { PersonalColorPicker } from '@/components/settings/PersonalColorPicker';
 import { useClickProtection } from '@/hooks/use-click-protection';
 import { Switch } from '@/components/ui/switch';
+import { hasAnyPermission } from '@/lib/permissions';
 
 
 
@@ -151,15 +152,15 @@ export function UnifiedUserModal({
   const { isSubmitting } = form.formState;
 
   // Check permissions for different fields
-  const isAdmin = session?.user?.role === 'Admin';
   const modulePermissions = session?.user?.modulePermissions || [];
-  const hasUserManagePermission = modulePermissions.includes('USERS_VIEW') || modulePermissions.includes('USERS_CREATE') || modulePermissions.includes('USERS_EDIT') || modulePermissions.includes('USERS_DELETE') || modulePermissions.includes('USERS_PERMISSIONS_MANAGE');
+  
+  const hasUserManagePermission = hasAnyPermission(session?.user, ['USERS_VIEW', 'USERS_CREATE', 'USERS_EDIT', 'USERS_DELETE', 'USERS_PERMISSIONS_MANAGE']);
   const isEditingSelf = user?.id === session?.user?.id;
   
-  const canManageUsers = isAdmin || hasUserManagePermission;
-  const canManageTeams = isAdmin || hasUserManagePermission;
-  const canForcePasswordChange = isAdmin || hasUserManagePermission;
-  const canManageAuthentication = isAdmin || hasUserManagePermission;
+  const canManageUsers = hasUserManagePermission;
+  const canManageTeams = hasUserManagePermission;
+  const canForcePasswordChange = hasUserManagePermission;
+  const canManageAuthentication = hasUserManagePermission;
 
   // Load user data and teams when modal opens
   useEffect(() => {
@@ -226,7 +227,7 @@ export function UnifiedUserModal({
             const data = await res.json();
             setSidebarShowAssigned(Boolean(data?.sidebar?.showAssignedPositions));
           }
-        } else if ((mode === 'edit') && user && (session?.user?.role === 'Admin')) {
+        } else if ((mode === 'edit') && user && hasUserManagePermission) {
           const res = await fetch(`/api/user-preferences/${user.id}`, { credentials: 'include' });
           if (res.ok) {
             const data = await res.json();
@@ -254,7 +255,7 @@ export function UnifiedUserModal({
           credentials: 'include',
           body: JSON.stringify({ modelType: 'sidebar', updates: { showAssignedPositions: checked } })
         });
-      } else if ((mode === 'edit') && user && (session?.user?.role === 'Admin')) {
+              } else if ((mode === 'edit') && user && hasUserManagePermission) {
         await fetch(`/api/user-preferences/${user.id}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

@@ -28,7 +28,7 @@ export const CandidatePipelineSection: React.FC<CandidatePipelineSectionProps> =
           <RecruitmentPipelineCard
             stages={availableStages}
             transitionHistory={transitionHistory}
-            currentStatus={candidate.status}
+            currentStatus={candidate.statusId || candidate.status}
             onStageClick={onStageClick}
             editableNotes={true}
             onNoteEdit={onNoteEdit}

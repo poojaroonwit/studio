@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { getConnectionDebugInfo } from '@/lib/unified-connection-manager';
 import { getPool } from '@/lib/db';
+import { hasAnyPermission } from '@/lib/permissions';
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,8 +13,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check if user is admin (optional security check)
-    const isAdmin = session.user.role === 'admin' || session.user.role === 'super_admin';
+    // Check if user has admin permissions
+    const isAdmin = hasAnyPermission(session.user, ['USERS_PERMISSIONS_MANAGE', 'USERS_MANAGE']);
     if (!isAdmin) {
       return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
     }

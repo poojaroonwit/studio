@@ -7,6 +7,7 @@ import { getServerSession } from 'next-auth/next';
 import { v4 as uuidv4 } from 'uuid';
 import type { CustomFieldType } from '@/lib/types';
 import { authOptions } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
 
 const createCustomFieldSchema = z.object({
   model_name: z.enum(['Candidate', 'Position', 'User', 'Headcount']),
@@ -182,7 +183,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
-  if (session.user.role !== 'Admin' &&  !session.user.modulePermissions?.includes('CUSTOM_FIELDS_EDIT')) {
+  if (!hasPermission(session.user, 'CUSTOM_FIELDS_EDIT')) {
     await logAudit('WARN', `Forbidden attempt to create custom field by ${session.user.name}.`, 'API:CustomFields:Create', session.user.id);
     return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
   }
@@ -293,7 +294,7 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
-  if (session.user.role !== 'Admin' &&  !session.user.modulePermissions?.includes('CUSTOM_FIELDS_EDIT')) {
+  if (!hasPermission(session.user, 'CUSTOM_FIELDS_EDIT')) {
     await logAudit('WARN', `Forbidden attempt to update custom field by ${session.user.name}.`, 'API:CustomFields:Update', session.user.id);
     return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
   }

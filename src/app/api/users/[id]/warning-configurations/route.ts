@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { logAudit } from '@/lib/auditLog';
+import { hasAnyPermission } from '@/lib/permissions';
 
 // GET - Fetch user's warning configurations
 export async function GET(
@@ -17,12 +18,11 @@ export async function GET(
 
     const { id } = await params;
 
-    // Check if user is accessing their own configurations, is admin, or has warning configurations management permission
-    const isAdmin = session.user.role === 'Admin';
-    const hasWarningManagePermission = session.user.modulePermissions?.includes('WARNING_CONFIGURATIONS_MANAGE');
+    // Check if user is accessing their own configurations or has warning configurations management permission
+    const hasWarningManagePermission = hasAnyPermission(session.user, ['WARNING_CONFIGURATIONS_MANAGE']);
     const isAccessingOwn = session.user.id === id;
     
-    if (!isAccessingOwn && !isAdmin && !hasWarningManagePermission) {
+    if (!isAccessingOwn && !hasWarningManagePermission) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -67,12 +67,11 @@ export async function POST(
 
     const { id } = await params;
 
-    // Check if user is creating their own configuration, is admin, or has warning configurations management permission
-    const isAdmin = session.user.role === 'Admin';
-    const hasWarningManagePermission = session.user.modulePermissions?.includes('WARNING_CONFIGURATIONS_MANAGE');
+    // Check if user is creating their own configuration or has warning configurations management permission
+    const hasWarningManagePermission = hasAnyPermission(session.user, ['WARNING_CONFIGURATIONS_MANAGE']);
     const isCreatingOwn = session.user.id === id;
     
-    if (!isCreatingOwn && !isAdmin && !hasWarningManagePermission) {
+    if (!isCreatingOwn && !hasWarningManagePermission) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

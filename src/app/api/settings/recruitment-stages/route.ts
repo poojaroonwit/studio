@@ -6,6 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { logAudit } from '@/lib/auditLog';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
 import { broadcastCandidateUpdate } from '@/lib/simple-broadcaster';
 import { fetchAllRecruitmentStagesDb } from '@/lib/apiUtils';
 
@@ -149,7 +150,7 @@ export async function GET(request: NextRequest) {
       if (!session?.user?.id) return new NextResponse('Unauthorized', { status: 401 });
       
       // Check permissions
-      if (session.user.role !== 'Admin' &&  !session.user.modulePermissions?.includes('RECRUITMENT_STAGES_EDIT')) {
+      if (!hasPermission(session.user, 'RECRUITMENT_STAGES_EDIT')) {
           return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
       }
 
@@ -174,7 +175,7 @@ export async function POST(request: NextRequest) {
     if (!actingUserId) return new NextResponse('Unauthorized', { status: 401 });
     
     // Check permissions
-    if (session.user.role !== 'Admin' &&  !session.user.modulePermissions?.includes('RECRUITMENT_STAGES_EDIT')) {
+    if (!hasPermission(session.user, 'RECRUITMENT_STAGES_EDIT')) {
         await logAudit('WARN', `Forbidden attempt to create recruitment stage by ${session.user.name || session.user.email}.`, 'API:RecruitmentStages:Create', actingUserId);
         return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
     }

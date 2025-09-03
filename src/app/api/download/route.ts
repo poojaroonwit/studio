@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,7 +14,7 @@ export async function GET(request: NextRequest) {
 
   // Check if user has permission to download files
   // Users should be able to download files if they can view candidates (basic access)
-  if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('CANDIDATES_VIEW')) {
+  if (!hasPermission(session.user, 'CANDIDATES_VIEW')) {
     return NextResponse.json({ error: 'Forbidden: Insufficient permissions to download files' }, { status: 403 });
   }
 

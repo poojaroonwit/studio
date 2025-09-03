@@ -5,7 +5,7 @@
  * Generated on: 2025-09-01T11:48:14.784Z
  */
 
-import { hasPermission, hasAnyPermission } from '../src/lib/permissions';
+import { hasPermission, hasAnyPermission } from '@/lib/permissions';
 
 // TODO: Update the following files to use permission-based access control:
 

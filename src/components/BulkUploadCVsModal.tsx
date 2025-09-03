@@ -15,6 +15,7 @@ import FileUploadArea from "@/components/ui/FileUploadArea";
 import { toast } from "react-hot-toast";
 import { PositionMultiSelectDropdown } from "@/components/candidates/PositionMultiSelectDropdown";
 import { FileViewerModal } from "@/components/ui/file-viewer-modal";
+import { hasAnyPermission } from '@/lib/permissions';
 
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 
@@ -47,9 +48,8 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
   
   // Memoize the permission check to prevent unnecessary re-renders
   const canBulkUpload = useMemo(() => {
-    return session?.user?.role === 'Admin' || 
-      (session?.user?.modulePermissions || []).includes('BULK_UPLOAD_EXECUTE');
-  }, [session?.user?.role, session?.user?.modulePermissions]);
+    return hasAnyPermission(session?.user, ['BULK_UPLOAD_EXECUTE']);
+  }, [session?.user]);
   
   if (!canBulkUpload) {
     return (

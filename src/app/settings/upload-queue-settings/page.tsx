@@ -12,6 +12,7 @@ import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Settings, Database, Clock, Zap, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { hasAnyPermission } from '@/lib/permissions';
 
 interface UploadQueueSettings {
   maxConcurrentProcessors: number;
@@ -81,7 +82,7 @@ export default function UploadQueueSettingsPage() {
       return;
     }
     
-    if (sessionStatus === 'authenticated' && session?.user?.role === 'Admin') {
+    if (sessionStatus === 'authenticated' && hasAnyPermission(session?.user, ['UPLOAD_QUEUE_MANAGE'])) {
       fetchSettings();
     }
   }, [sessionStatus, session?.user?.role, fetchSettings]);
@@ -160,7 +161,7 @@ export default function UploadQueueSettingsPage() {
     );
   }
 
-  if (session?.user?.role !== 'Admin' && !session?.user?.modulePermissions?.includes('UPLOAD_QUEUE_MANAGE')) {
+  if (!hasAnyPermission(session?.user, ['UPLOAD_QUEUE_MANAGE'])) {
     setFetchError("You do not have permission to manage upload queue settings.");
     setIsLoading(false);
   }

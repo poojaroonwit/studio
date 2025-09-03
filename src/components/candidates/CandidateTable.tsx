@@ -203,8 +203,8 @@ export function CandidateTable({
   const uniqueStageIds = useMemo(() => {
     const stageIds = new Set<string>();
     candidates.forEach(candidate => {
-      if (candidate.status) {
-        stageIds.add(candidate.status);
+      if (candidate.statusId) {
+        stageIds.add(candidate.statusId);
       }
     });
     return Array.from(stageIds);
@@ -212,6 +212,14 @@ export function CandidateTable({
 
   // Fetch stage colors using the custom hook
   const { stageColors } = useStageColors(uniqueStageIds);
+  // Map stage id to name for display in StatusBadge
+  const stageNames = useMemo(() => {
+    const map: Record<string, string> = {};
+    availableStages.forEach((s) => {
+      if (s.id && s.name) map[s.id] = s.name;
+    });
+    return map;
+  }, [availableStages]);
   // Ensure selectedCandidateIds is always a Set
   const safeSelectedCandidateIds = selectedCandidateIds || new Set<string>();
   const [candidateToDelete, setCandidateToDelete] = useState<Candidate | null>(null);
@@ -686,7 +694,7 @@ export function CandidateTable({
               }
 
               // Find the index of the candidate's current stage
-                              const currentStageIndex = availableStages.findIndex(s => s.id === candidate.status);
+                              const currentStageIndex = availableStages.findIndex(s => s.id === candidate.statusId);
 
                   const row = (
                 <TableRow key={candidate.id} onClick={(e) => handleRowClick(candidate, e)} className="cursor-pointer hover:bg-muted/40" data-state={safeSelectedCandidateIds.has(candidate.id) ? 'selected' : ''}>
@@ -820,7 +828,7 @@ export function CandidateTable({
                   )}
                   {(!settings || settings.showStatusColumn !== false) && (
                     <TableCell key={`${candidate.id}-status`} className="max-w-[150px]">
-                      <StatusBadge status={candidate.status} className="capitalize" />
+                      <StatusBadge statusId={candidate.statusId} className="capitalize" stageNames={stageNames} stageColors={stageColors} />
                     </TableCell>
                   )}
                   {(!settings || settings.showAppliedDateColumn !== false) && (
@@ -1022,7 +1030,7 @@ export function CandidateTable({
                             )}
                             {(!settings || settings.showStatusColumn !== false) && (
                               <TableCell key={`${candidate.id}-status`} className="max-w-[150px]">
-                                <StatusBadge status={candidate.status} className="capitalize" />
+                                <StatusBadge statusId={candidate.statusId} className="capitalize" stageNames={stageNames} stageColors={stageColors} />
                               </TableCell>
                             )}
                             {(!settings || settings.showAppliedDateColumn !== false) && (

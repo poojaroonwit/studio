@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { logAudit } from '@/lib/auditLog';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
 
 const searchRequestSchema = z.object({
   query: z.string(),
@@ -18,9 +19,8 @@ export async function POST(request: NextRequest) {
 
   // Check if user has permission to use AI search
   // Users should be able to use AI search if they can view candidates or have AI-specific permissions
-  if (session.user.role !== 'Admin' && 
-      !session.user.modulePermissions?.includes('CANDIDATES_VIEW') &&
-      !session.user.modulePermissions?.includes('AI_INTEGRATION_VIEW')) {
+  if (!hasPermission(session.user, 'CANDIDATES_VIEW') && 
+      !hasPermission(session.user, 'AI_INTEGRATION_VIEW')) {
     return NextResponse.json({ message: "Forbidden: Insufficient permissions to use AI search" }, { status: 403 });
   }
 

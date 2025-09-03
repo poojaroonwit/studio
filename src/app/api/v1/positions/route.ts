@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { getPool } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
 import { verifyApiToken } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
 import { handleCors } from '@/lib/cors';
 import { 
   createSuccessResponse, 
@@ -103,7 +104,7 @@ export async function POST(req: NextRequest) {
   const authHeader = req.headers.get('authorization');
   const token = authHeader?.split(' ')[1];
   const user = token ? await verifyApiToken(token) : null;
-  if (!user || (user.role !== 'Admin' && !user.modulePermissions?.includes('POSITIONS_CREATE'))) {
+  if (!user || !hasPermission(user, 'POSITIONS_CREATE')) {
     return handleApiError(req, createForbiddenError('Insufficient permissions to create positions'));
   }
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
 import { logAudit } from '@/lib/auditLog';
 import { getPool } from '@/lib/db';
 import { executeWithApiKeyFallback } from '@/lib/aiApiKeyManager';
@@ -17,9 +18,8 @@ export async function POST(request: NextRequest) {
 
   // Check if user has permission to use AI features
   // Users should be able to use AI features if they can manage positions or have AI-specific permissions
-  if (session.user.role !== 'Admin' && 
-      !session.user.modulePermissions?.includes('POSITIONS_EDIT_BASIC') &&
-      !session.user.modulePermissions?.includes('AI_INTEGRATION_VIEW')) {
+  if (!hasPermission(session.user, 'POSITIONS_EDIT_BASIC') && 
+      !hasPermission(session.user, 'AI_INTEGRATION_VIEW')) {
     return NextResponse.json({ error: 'Forbidden: Insufficient permissions to use AI features' }, { status: 403 });
   }
 

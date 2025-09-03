@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { getPool } from '@/lib/db';
 import { verifyApiToken } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
 import { handleCors } from '@/lib/cors';
 import { 
   createSuccessResponse, 
@@ -169,7 +170,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Check permissions
-    if (user.role !== 'Admin' &&  !user.modulePermissions?.includes('LOGS_VIEW')) {
+    if (!hasPermission(user, 'LOGS_VIEW')) {
       return handleApiError(req, createForbiddenError('Insufficient permissions to view logs'));
     }
 

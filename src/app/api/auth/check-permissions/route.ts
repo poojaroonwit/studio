@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     const userModulePermissions = session.user.modulePermissions || [];
 
     // Check if user has any of the requested permissions using the new permission system
-    const hasAnyPermissionResult = hasAnyPermission(userRole, userModulePermissions, permissions);
+    const hasAnyPermissionResult = hasAnyPermission(session.user, permissions);
 
     return NextResponse.json({
       hasPermission: hasAnyPermissionResult,

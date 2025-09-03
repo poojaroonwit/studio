@@ -6,6 +6,7 @@ import { getServerSession } from 'next-auth/next';
 import type { PositionBulkActionPayload } from '@/lib/types';
 import { getPool } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
 
 export const dynamic = "force-dynamic";
 
@@ -88,7 +89,7 @@ export async function POST(request: NextRequest) {
   const actingUserId = session?.user?.id;
   const actingUserName = session?.user?.name || session?.user?.email || 'System';
 
-  if (!actingUserId || (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('POSITIONS_DELETE'))) {
+  if (!actingUserId || !hasPermission(session.user, 'POSITIONS_DELETE')) {
     await logAudit('WARN', `Forbidden attempt to perform bulk position action by ${actingUserName}.`, 'API:Positions:BulkAction', actingUserId);
     return NextResponse.json({ message: "Forbidden: Insufficient permissions." }, { status: 403 });
   }

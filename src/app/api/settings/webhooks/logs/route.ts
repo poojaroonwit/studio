@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
 import prisma from '@/lib/prisma';
 
 export async function GET(req: NextRequest) {
@@ -11,11 +12,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Check permissions
-    const canViewWebhookLogs = session.user.role === 'Admin' || 
-      session.user.modulePermissions?.includes('WEBHOOKS_VIEW') ||
-      session.user.modulePermissions?.includes('LOGS_VIEW');
-    
-    if (!canViewWebhookLogs) {
+    if (!hasPermission(session.user, 'WEBHOOKS_VIEW') && !hasPermission(session.user, 'LOGS_VIEW')) {
       return NextResponse.json({ error: 'Forbidden: Insufficient permissions to view webhook logs' }, { status: 403 });
     }
 

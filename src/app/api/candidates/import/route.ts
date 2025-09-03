@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
 import { getPool } from '@/lib/db';
 import { logAudit } from '@/lib/auditLog';
 import { safeJsonParse } from '@/lib/utils';
@@ -71,7 +72,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Check if user has permission to import candidates
-  if (session.user.role !== 'Admin' &&  !session.user.modulePermissions?.includes('CANDIDATES_IMPORT')) {
+  if (!hasPermission(session.user, 'CANDIDATES_IMPORT')) {
     await logAudit('WARN', `Forbidden attempt to import candidates by ${actingUserName}`, 'API:Candidates:Import', actingUserId);
     return NextResponse.json({ error: 'Forbidden: Insufficient permissions to import candidates' }, { status: 403 });
   }
@@ -322,7 +323,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Check if user has permission to import candidates
-  if (session.user.role !== 'Admin' &&  !session.user.modulePermissions?.includes('CANDIDATES_IMPORT')) {
+  if (!hasPermission(session.user, 'CANDIDATES_IMPORT')) {
     return NextResponse.json({ error: 'Forbidden: Insufficient permissions to import candidates' }, { status: 403 });
   }
 

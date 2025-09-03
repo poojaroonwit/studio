@@ -137,7 +137,7 @@ export function UserGroupsTab() {
   });
 
   // Check if user has permission to manage roles
-  const canManageRoles = session?.user?.role === 'Admin' || 
+  const canManageRoles = modulePermissions.includes('USERS_PERMISSIONS_MANAGE') || 
     (Array.isArray(session?.user?.modulePermissions) && 
      (session.user.modulePermissions.includes('USER_GROUPS_CREATE') ||
       session.user.modulePermissions.includes('USER_GROUPS_EDIT') ||
@@ -283,10 +283,10 @@ export function UserGroupsTab() {
   };
 
   const modulePermissions = session?.user?.modulePermissions || [];
-  const canViewUserGroups = session?.user?.role === 'Admin' || modulePermissions.includes('USER_GROUPS_VIEW') || false;
-  const canCreateUserGroups = session?.user?.role === 'Admin' || modulePermissions.includes('USER_GROUPS_CREATE') || false;
-  const canEditUserGroups = session?.user?.role === 'Admin' || modulePermissions.includes('USER_GROUPS_EDIT') || false;
-  const canDeleteUserGroups = session?.user?.role === 'Admin' || modulePermissions.includes('USER_GROUPS_DELETE') || false;
+  const canViewUserGroups = modulePermissions.includes('USER_GROUPS_VIEW') || false;
+  const canCreateUserGroups = modulePermissions.includes('USER_GROUPS_CREATE') || false;
+  const canEditUserGroups = modulePermissions.includes('USER_GROUPS_EDIT') || false;
+  const canDeleteUserGroups = modulePermissions.includes('USER_GROUPS_DELETE') || false;
 
 
   if (isLoading) {

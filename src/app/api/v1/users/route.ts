@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { getPool } from '@/lib/db';
 import { z } from 'zod';
 import { verifyApiToken } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
 import { handleCors } from '@/lib/cors';
 import { 
   createSuccessResponse, 
@@ -31,7 +32,7 @@ export async function GET(req: NextRequest) {
     return handleApiError(req, createUnauthorizedError('Authentication required'));
   }
 
-  if (user.role !== 'Admin') {
+  if (!hasPermission(user, 'USERS_VIEW')) {
     return handleApiError(req, createForbiddenError('Insufficient permissions to view users'));
   }
 
@@ -99,7 +100,7 @@ export async function POST(req: NextRequest) {
     return handleApiError(req, createUnauthorizedError('Authentication required'));
   }
 
-  if (user.role !== 'Admin') {
+  if (!hasPermission(user, 'USERS_CREATE')) {
     return handleApiError(req, createForbiddenError('Insufficient permissions to create users'));
   }
 

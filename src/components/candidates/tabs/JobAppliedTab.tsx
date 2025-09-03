@@ -69,11 +69,10 @@ export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
                 e.currentTarget.style.filter = 'brightness(1)';
               }}
             >
-                <div className="flex items-center justify-between mb-1">
+                <div className="mb-1">
                   <h4 className="font-semibold text-foreground text-lg">
                     {Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === appliedJobId)?.title || 'Unknown Position' : 'Unknown Position'}
                   </h4>
-                  {appliedJobBadge}
                 </div>
                 {(() => {
                   const position = Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === appliedJobId) : null;
@@ -83,6 +82,11 @@ export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
                     </div>
                   ) : null;
                 })()}
+                {appliedJobBadge && (
+                  <div className="mb-2">
+                    {appliedJobBadge}
+                  </div>
+                )}
                 {appliedJustification.length > 0 && (
                   <div className="mt-3">
                     <h5 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-1">

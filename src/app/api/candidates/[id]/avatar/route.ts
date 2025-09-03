@@ -5,6 +5,7 @@ import { getPool } from '@/lib/db';
 import { randomUUID } from 'crypto';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
 import { logAudit } from '@/lib/auditLog';
 
 // Helper to extract candidateId from the URL
@@ -23,8 +24,8 @@ export async function POST(request: NextRequest) {
   }
 
   // Check if user has permission to manage candidates
-  if (session.user.role !== 'Admin' &&  !session.user.modulePermissions?.includes('CANDIDATES_EDIT_BASIC')) {
-    await logAudit('WARN', `Forbidden attempt to upload avatar by ${actingUserName}.`, 'API:Candidates:Avatar:Upload', actingUserId);
+  if (!hasPermission(session.user, 'CANDIDATES_EDIT_BASIC')) {
+    await logAudit('WARN', `Forbidden attempt to upload avatar by ${actingUserName}.`, 'API:Candidates:Upload', actingUserId);
     return NextResponse.json({ message: 'Forbidden: Insufficient permissions to upload avatars' }, { status: 403 });
   }
 

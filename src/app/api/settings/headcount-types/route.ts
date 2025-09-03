@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
 import { getPool } from '@/lib/db';
 import { z } from 'zod';
 
@@ -27,8 +28,7 @@ export async function GET(request: NextRequest) {
 
     // Check if user has permission to view headcount type options
     // Users should be able to view these options if they can view positions
-    if (session.user.role !== 'Admin' && 
-        !session.user.modulePermissions?.includes('POSITIONS_VIEW')) {
+    if (!hasPermission(session.user, 'POSITIONS_VIEW')) {
       return NextResponse.json({ error: 'Forbidden: Insufficient permissions to view headcount type options' }, { status: 403 });
     }
 
@@ -81,8 +81,8 @@ export async function PUT(request: NextRequest) {
     }
 
     // Check if user has permission to manage system settings
-    if (session.user.role !== 'Admin') {
-      return NextResponse.json({ error: 'Forbidden - Admin role required' }, { status: 403 });
+    if (!hasPermission(session.user, 'SYSTEM_SETTINGS_EDIT')) {
+      return NextResponse.json({ error: 'Forbidden - Insufficient permissions' }, { status: 403 });
     }
 
     const body = await request.json();

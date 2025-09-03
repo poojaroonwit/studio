@@ -263,8 +263,8 @@ const getSafeSessionInfo = (session: any) => {
 
     const modulePermissions = session.user.modulePermissions || [];
     const canAccessMyTasks = modulePermissions.includes('TASK_BOARD_MANAGE_OWN') || 
-                            session.user.role === 'admin' || 
-                            session.user.role === 'super_admin';
+                            modulePermissions.includes('TASK_BOARD_VIEW') || 
+                            modulePermissions.includes('CANDIDATES_VIEW');
 
     return { canAccessMyTasks, modulePermissions };
   } catch (error) {

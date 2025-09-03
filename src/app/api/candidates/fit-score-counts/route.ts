@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
 import { getPool } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
@@ -12,10 +13,7 @@ async function requireSessionAndPermission(requiredPermission: string, request: 
   if (!session?.user?.id) {
     return { error: NextResponse.json({ message: 'Unauthorized' }, { status: 401 }) };
   }
-  if (
-    session.user.role !== 'Admin' &&
-    !session.user.modulePermissions?.includes(requiredPermission)
-  ) {
+  if (!hasPermission(session.user, requiredPermission)) {
     return { error: NextResponse.json({ message: 'Forbidden' }, { status: 403 }) };
   }
   return { session };

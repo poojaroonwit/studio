@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getPool } from '@/lib/db';
 import { z } from 'zod';
 import { verifyApiToken } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
 import { handleCors } from '@/lib/cors';
 import { v4 as uuidv4 } from 'uuid';
 import prisma from '@/lib/prisma';
@@ -118,7 +119,7 @@ export async function POST(request: NextRequest) {
     return handleApiError(request, createUnauthorizedError('Authentication required'));
   }
 
-  if (user.role !== 'Admin' &&  !user.modulePermissions?.includes('CANDIDATES_CREATE')) {
+  if (!hasPermission(user, 'CANDIDATES_CREATE')) {
     return handleApiError(request, createForbiddenError('Insufficient permissions to create candidates'));
   }
 

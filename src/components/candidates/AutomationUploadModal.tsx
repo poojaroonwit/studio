@@ -11,6 +11,7 @@ import { toast } from "react-hot-toast";
 import { useSession } from "next-auth/react";
 import type { Position } from '@/lib/types';
 import { PositionSelectDropdown } from "@/components/candidates/PositionSelectDropdown";
+import { hasAnyPermission } from '@/lib/permissions';
 
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 
@@ -28,8 +29,7 @@ export const AutomationUploadModal: React.FC<AutomationUploadModalProps> = ({ is
   const { data: session } = useSession();
 
   // Check permissions
-      const canAutomationUpload = session?.user?.role === 'Admin' || 
-        (session?.user?.modulePermissions || []).includes('BULK_UPLOAD_EXECUTE');
+      const canAutomationUpload = hasAnyPermission(session?.user, ['BULK_UPLOAD_EXECUTE']);
   
   if (!canAutomationUpload) {
     return (

@@ -8,6 +8,8 @@ import { formatCandidateNameWithLang } from "@/lib/candidateUtils";
 import type { Candidate, UserProfile, RecruitmentStage, CandidateSource } from '@/lib/types';
 import { CandidateRecruiterCell } from './CandidateRecruiterCell';
 import { CandidateSourceCell } from './CandidateSourceCell';
+import { StatusBadge } from './CandidateKanbanView';
+import { useStageColors } from '@/hooks/use-stage-colors';
 
 interface CandidateHeaderProps {
   candidate: Candidate;
@@ -63,6 +65,13 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
   realtimeConnected
 }) => {
   const nameInfo = formatCandidateNameWithLang(candidate);
+  const stageId = candidate.statusId || candidate.status || '';
+  const { stageColors } = useStageColors(stageId ? [stageId] : []);
+  const stageNames = React.useMemo(() => {
+    const map: Record<string, string> = {};
+    availableStages.forEach((s) => { if (s.id && s.name) map[s.id] = s.name; });
+    return map;
+  }, [availableStages]);
 
   return (
     <div className="bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-100/20 dark:from-slate-900 dark:via-slate-800/50 dark:to-slate-700/30 shadow-lg backdrop-blur-sm border-b border-border p-4 sticky top-0 z-50 pointer-events-auto">
@@ -163,6 +172,14 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
                     <Badge variant="outline" className="text-xs px-3 py-1 rounded-full bg-background/50 backdrop-blur-sm border-border/50 shadow-sm">
                       <span className="text-muted-foreground">ID:</span> {candidate.id}
                     </Badge>
+                  )}
+                  {stageId && (
+                    <StatusBadge
+                      statusId={stageId}
+                      className="capitalize text-xs px-2.5 py-0.5 rounded-full"
+                      stageNames={stageNames}
+                      stageColors={stageColors}
+                    />
                   )}
 
                 </div>

@@ -26,7 +26,7 @@ export class WebhookEvents {
         id: candidate.id,
         name: candidate.name,
         email: candidate.email,
-        status: candidate.status || candidate.statusName || 'Unknown',
+        status: candidate.statusId || candidate.status || candidate.statusName || 'Unknown',
         position_id: candidate.positionId,
         application_date: candidate.applicationDate,
         createdAt: candidate.createdAt,

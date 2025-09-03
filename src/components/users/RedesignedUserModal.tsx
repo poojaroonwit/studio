@@ -27,6 +27,7 @@ import { toast } from 'react-hot-toast';
 import { UserAvatarUpload } from '@/components/ui/user-avatar-upload';
 import { PersonalColorPicker } from '@/components/settings/PersonalColorPicker';
 import { Switch } from '@/components/ui/switch';
+import { hasAnyPermission } from '@/lib/permissions';
 
 
 
@@ -635,13 +636,9 @@ export function RedesignedUserModal({
   const { isSubmitting } = form.formState;
 
   // Check permissions
-  const modulePermissions = session?.user?.modulePermissions || [];
-  const canManageUsers = Boolean(session?.user?.role === 'Admin' || 
-    modulePermissions.includes('USERS_EDIT'));
-  const canForcePasswordChange = Boolean(session?.user?.role === 'Admin' || 
-    modulePermissions.includes('USERS_EDIT'));
-  const canManageAuthentication = Boolean(session?.user?.role === 'Admin' || 
-    modulePermissions.includes('USERS_EDIT'));
+  const canManageUsers = hasAnyPermission(session?.user, ['USERS_EDIT']);
+  const canForcePasswordChange = hasAnyPermission(session?.user, ['USERS_EDIT']);
+  const canManageAuthentication = hasAnyPermission(session?.user, ['USERS_EDIT']);
 
   // Load user data when modal opens
   useEffect(() => {

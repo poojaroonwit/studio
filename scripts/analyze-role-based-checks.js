@@ -116,21 +116,21 @@ function generateSuggestionsForFile(filePath, matches) {
     suggestions.push('Use hasPermission(userRole, userPermissions, "POSITIONS_EDIT_BASIC") for edit access');
     suggestions.push('Use hasPermission(userRole, userPermissions, "POSITIONS_DELETE") for delete access');
   } else if (filePath.includes('/users/')) {
-    suggestions.push('Use hasPermission(userRole, userPermissions, "USERS_VIEW") for view access');
-    suggestions.push('Use hasPermission(userRole, userPermissions, "USERS_CREATE") for create access');
-    suggestions.push('Use hasPermission(userRole, userPermissions, "USERS_EDIT") for edit access');
-    suggestions.push('Use hasPermission(userRole, userPermissions, "USERS_DELETE") for delete access');
+    suggestions.push('Use hasPermission(user, "USERS_VIEW") for view access');
+    suggestions.push('Use hasPermission(user, "USERS_CREATE") for create access');
+    suggestions.push('Use hasPermission(user, "USERS_EDIT") for edit access');
+    suggestions.push('Use hasPermission(user, "USERS_DELETE") for delete access');
   } else if (filePath.includes('/settings/')) {
-    suggestions.push('Use hasPermission(userRole, userPermissions, "SYSTEM_SETTINGS_VIEW") for view access');
-    suggestions.push('Use hasPermission(userRole, userPermissions, "SYSTEM_SETTINGS_EDIT") for edit access');
+    suggestions.push('Use hasPermission(user, "SYSTEM_SETTINGS_VIEW") for view access');
+    suggestions.push('Use hasPermission(user, "SYSTEM_SETTINGS_EDIT") for edit access');
   } else if (filePath.includes('/logs/')) {
-    suggestions.push('Use hasPermission(userRole, userPermissions, "LOGS_VIEW") for view access');
-    suggestions.push('Use hasPermission(userRole, userPermissions, "LOGS_EXPORT") for export access');
+    suggestions.push('Use hasPermission(user, "LOGS_VIEW") for view access');
+    suggestions.push('Use hasPermission(user, "LOGS_EXPORT") for export access');
   } else if (filePath.includes('/upload-queue/')) {
-    suggestions.push('Use hasPermission(userRole, userPermissions, "UPLOAD_QUEUE_MANAGE") for management access');
+    suggestions.push('Use hasPermission(user, "UPLOAD_QUEUE_MANAGE") for management access');
   } else {
-    suggestions.push('Use hasPermission(userRole, userPermissions, "RELEVANT_PERMISSION") for specific access');
-    suggestions.push('Use hasAnyPermission(userRole, userPermissions, ["PERM1", "PERM2"]) for multiple permissions');
+    suggestions.push('Use hasPermission(user, "RELEVANT_PERMISSION") for specific access');
+    suggestions.push('Use hasAnyPermission(user, ["PERM1", "PERM2"]) for multiple permissions');
   }
   
   return suggestions;
@@ -146,7 +146,7 @@ function generateMigrationScript(results) {
  * Generated on: ${new Date().toISOString()}
  */
 
-import { hasPermission, hasAnyPermission } from '../src/lib/permissions';
+import { hasPermission, hasAnyPermission } from '@/lib/permissions';
 
 // TODO: Update the following files to use permission-based access control:
 

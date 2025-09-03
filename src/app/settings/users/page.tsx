@@ -40,6 +40,7 @@ import { toast } from 'react-hot-toast';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { Pagination } from "@/components/ui/pagination";
+import { hasPermission } from '@/lib/permissions';
 
 const userRoleOptionsFilter: (UserProfile['role'] | "ALL_ROLES")[] = ['ALL_ROLES', 'Admin', 'Recruiter', 'Hiring Manager'];
 
@@ -202,8 +203,8 @@ export default function ManageUsersPage() {
     if (sessionStatus === 'unauthenticated') {
       signIn(undefined, { callbackUrl: pathname });
     } else if (sessionStatus === 'authenticated') {
-      // Check if user has admin role or USERS_VIEW permission
-      if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('USERS_VIEW')) {
+      // Check permission instead of role
+      if (!hasPermission(session.user, 'USERS_VIEW')) {
         setFetchError("You do not have permission to manage users.");
         setIsLoading(false);
       } else {
@@ -388,7 +389,7 @@ export default function ManageUsersPage() {
             <h1 className="text-2xl font-semibold text-foreground">User Management</h1>
             <p className="text-muted-foreground">Manage users, roles, permissions, and teams</p>
           </div>
-                     {(session?.user?.role === 'Admin' || (session?.user?.modulePermissions || []).includes('USERS_CREATE')) && activeTab === 'users' && (
+                     {(hasPermission(session?.user, 'USERS_CREATE')) && activeTab === 'users' && (
             <Button variant="default" onClick={() => openUserModal('create')}> 
               <PlusCircle className="mr-2 h-4 w-4" /> Add New User
             </Button>
@@ -491,7 +492,7 @@ export default function ManageUsersPage() {
                 <div className="text-center py-10">
                   <UsersRound className="mx-auto h-12 w-12 text-muted-foreground" />
                   <p className="mt-4 text-muted-foreground">No users found matching your criteria.</p>
-                                         {(session?.user?.role === 'Admin' || (session?.user?.modulePermissions || []).includes('USERS_CREATE')) && (
+                                         {(hasPermission(session?.user, 'USERS_CREATE')) && (
                       <Button variant="default" className="mt-4" onClick={() => openUserModal('create')}> 
                         <PlusCircle className="mr-2 h-4 w-4" /> Add First User
                     </Button>
@@ -525,9 +526,15 @@ export default function ManageUsersPage() {
                           </TableCell>
                           <TableCell className="hidden sm:table-cell">{user.email}</TableCell>
                           <TableCell>
-                            <Badge variant={user.role === 'Admin' ? "default" : "secondary"} className={user.role === 'Admin' ? 'bg-primary hover:bg-primary/90' : ''}>
-                              {user.role}
-                            </Badge>
+                            {(() => {
+                              const displayRole = (user as any).userGroupName || user.role;
+                              const isAdminBadge = displayRole === 'Admin';
+                              return (
+                                <Badge variant={isAdminBadge ? "default" : "secondary"} className={isAdminBadge ? 'bg-primary hover:bg-primary/90' : ''}>
+                                  {displayRole}
+                                </Badge>
+                              );
+                            })()}
                           </TableCell>
                           <TableCell className="hidden md:table-cell">
                             {user.teams && user.teams.length > 0
@@ -536,7 +543,7 @@ export default function ManageUsersPage() {
                             }
                           </TableCell>
                                                      <TableCell className="text-right">
-                             {(session?.user?.role === 'Admin' || (session?.user?.modulePermissions || []).includes('USERS_EDIT') || (session?.user?.modulePermissions || []).includes('WARNING_CONFIGURATIONS_MANAGE')) && (
+                             {(hasPermission(session?.user, 'USERS_EDIT') || hasPermission(session?.user, 'WARNING_CONFIGURATIONS_MANAGE')) && (
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button variant="ghost" size="icon" className="h-8 w-8">

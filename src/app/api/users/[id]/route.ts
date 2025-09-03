@@ -6,6 +6,7 @@ import { logAudit } from '@/lib/auditLog';
 import { getServerSession } from 'next-auth/next';
 import { authOptions, clearUserValidationCache } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import { hasAnyPermission } from '@/lib/permissions';
 
 export const dynamic = 'force-dynamic';
 
@@ -149,17 +150,15 @@ export async function PUT(request: NextRequest) {
     }
 
     // Check if the acting user has permission to modify the target user
-    const isAdmin = session?.user?.role === 'Admin';
-    const hasUsersEditPermission = session?.user?.modulePermissions?.includes('USERS_EDIT');
-    const hasUsersPermissionsManage = session?.user?.modulePermissions?.includes('USERS_PERMISSIONS_MANAGE');
+    const hasUsersEditPermission = hasAnyPermission(session.user, ['USERS_EDIT']);
+    const hasUsersPermissionsManage = hasAnyPermission(session.user, ['USERS_PERMISSIONS_MANAGE']);
     const isModifyingSelf = actingUserId === id;
     
     // Allow access if:
-    // 1. User is Admin, OR
-    // 2. User has USERS_EDIT permission, OR  
-    // 3. User is modifying their own profile (for basic fields)
-    if (!isAdmin && !hasUsersEditPermission && !isModifyingSelf) {
-        await logAudit('WARN', `Forbidden attempt to update user ${id} by ${session?.user?.email || 'Unknown'} (ID: ${actingUserId}). Required: Admin role or USERS_EDIT permission.`, 'API:Users:Update', actingUserId);
+    // 1. User has USERS_EDIT permission, OR  
+    // 2. User is modifying their own profile (for basic fields)
+    if (!hasUsersEditPermission && !isModifyingSelf) {
+        await logAudit('WARN', `Forbidden attempt to update user ${id} by ${session?.user?.email || 'Unknown'} (ID: ${actingUserId}). Required: USERS_EDIT permission.`, 'API:Users:Update', actingUserId);
         return NextResponse.json({ message: "Forbidden: You don't have permission to modify this user." }, { status: 403 });
     }
 
@@ -184,8 +183,8 @@ export async function PUT(request: NextRequest) {
     }
 
     // Prevent users without proper permission from modifying role
-    if (!isAdmin && !hasUsersPermissionsManage && role !== undefined) {
-        await logAudit('WARN', `Non-admin user ${session?.user?.email} attempted to modify role`, 'API:Users:Update', actingUserId);
+    if (!hasUsersPermissionsManage && role !== undefined) {
+        await logAudit('WARN', `User ${session?.user?.email} attempted to modify role without permission`, 'API:Users:Update', actingUserId);
         return NextResponse.json({ message: "Forbidden: insufficient permissions to modify roles." }, { status: 403 });
     }
     

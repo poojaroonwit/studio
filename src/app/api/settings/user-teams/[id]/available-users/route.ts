@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { getPool } from '@/lib/db';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
 
 /**
  * @openapi
@@ -60,7 +61,7 @@ export async function GET(
   if (!session?.user?.id) return new NextResponse('Unauthorized', { status: 401 });
 
   // Check permissions
-  if (session.user.role !== 'Admin' &&  !session.user.modulePermissions?.includes('USERS_MANAGE')) {
+  if (!hasPermission(session.user, 'USERS_MANAGE')) {
     return new NextResponse('Forbidden: Insufficient permissions', { status: 403 });
   }
 

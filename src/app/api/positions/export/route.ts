@@ -98,7 +98,7 @@ export async function GET() {
   }
 
   // Check if user has permission to export positions
-  if (!hasPermission(session.user.role, session.user.modulePermissions, 'POSITIONS_EXPORT')) {
+  if (!hasPermission(session.user, 'POSITIONS_EXPORT')) {
     await logAudit('WARN', `Forbidden attempt to export positions by ${actingUserName}`, 'API:Positions:Export', actingUserId);
     return NextResponse.json({ error: 'Forbidden: Insufficient permissions to export positions' }, { status: 403 });
   }

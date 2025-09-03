@@ -412,13 +412,13 @@ export default function PositionsPageClient() {
   };
 
   const modulePermissions = session?.user?.modulePermissions || [];
-  const canManagePositions = session?.user?.role === 'Admin' || modulePermissions.includes('POSITIONS_EDIT_BASIC') || false;
-  const canCreatePositions = session?.user?.role === 'Admin' || modulePermissions.includes('POSITIONS_CREATE') || false;
-  const canEditPositions = session?.user?.role === 'Admin' || modulePermissions.includes('POSITIONS_EDIT_BASIC') || false;
-  const canDeletePositions = session?.user?.role === 'Admin' || modulePermissions.includes('POSITIONS_DELETE') || false;
-  const canImportPositions = session?.user?.role === 'Admin' || modulePermissions.includes('POSITIONS_IMPORT') || false;
-  const canExportPositions = session?.user?.role === 'Admin' || modulePermissions.includes('POSITIONS_EXPORT') || false;
-  const canAssignPositionRecruiter = session?.user?.role === 'Admin' || modulePermissions.includes('POSITIONS_RECRUITER_ASSIGN') || false;
+  const canManagePositions = modulePermissions.includes('POSITIONS_EDIT_BASIC') || false;
+  const canCreatePositions = modulePermissions.includes('POSITIONS_CREATE') || false;
+  const canEditPositions = modulePermissions.includes('POSITIONS_EDIT_BASIC') || false;
+  const canDeletePositions = modulePermissions.includes('POSITIONS_DELETE') || false;
+  const canImportPositions = modulePermissions.includes('POSITIONS_IMPORT') || false;
+  const canExportPositions = modulePermissions.includes('POSITIONS_EXPORT') || false;
+  const canAssignPositionRecruiter = modulePermissions.includes('POSITIONS_RECRUITER_ASSIGN') || false;
   
 
 

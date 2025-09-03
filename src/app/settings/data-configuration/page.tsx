@@ -66,6 +66,7 @@ import CandidateSourceAlertDialog from '@/components/settings/CandidateSourceAle
 import { HeadcountTypesTab } from './HeadcountTypesTab';
 import { GradesTab } from '@/components/settings/GradesTab';
 import { PositionLevelsTab } from '@/components/settings/PositionLevelsTab';
+import { hasAnyPermission } from '@/lib/permissions';
 
 // Custom Fields Tab Component
 function CustomFieldsTab() {
@@ -79,8 +80,7 @@ function CustomFieldsTab() {
   const [definitionToDelete, setDefinitionToDelete] = useState<CustomFieldDefinition | null>(null);
 
   // Check permissions for custom fields management
-  const canManageCustomFields = session?.user?.role === 'Admin' || 
-    session?.user?.modulePermissions?.includes('CUSTOM_FIELDS_EDIT');
+  const canManageCustomFields = hasAnyPermission(session?.user, ['CUSTOM_FIELDS_EDIT']);
 
   const fetchDefinitions = useCallback(async () => {
     setIsLoading(true);
@@ -267,8 +267,7 @@ function RecruitmentStagesTab() {
   const [replacementStageName, setReplacementStageName] = useState<string>('');
 
   // Check permissions for recruitment stages management
-  const canManageStages = session?.user?.role === 'Admin' || 
-    session?.user?.modulePermissions?.includes('RECRUITMENT_STAGES_EDIT');
+  const canManageStages = hasAnyPermission(session?.user, ['RECRUITMENT_STAGES_EDIT']);
 
   const fetchStages = useCallback(async () => {
     setIsLoading(true);
@@ -1030,10 +1029,8 @@ export default function DataConfigurationPage() {
   const [positionSubTab, setPositionSubTab] = useState('position-headcount');
 
   // Check permissions for different tabs
-  const canManageStages = session?.user?.role === 'Admin' || 
-    session?.user?.modulePermissions?.includes('RECRUITMENT_STAGES_EDIT');
-  const canManageCustomFields = session?.user?.role === 'Admin' || 
-    session?.user?.modulePermissions?.includes('CUSTOM_FIELDS_EDIT');
+  const canManageStages = hasAnyPermission(session?.user, ['RECRUITMENT_STAGES_EDIT']);
+  const canManageCustomFields = hasAnyPermission(session?.user, ['CUSTOM_FIELDS_EDIT']);
 
   // Set default sub-tab based on permissions
   useEffect(() => {

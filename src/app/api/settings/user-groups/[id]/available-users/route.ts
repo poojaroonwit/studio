@@ -2,6 +2,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
 import { logAudit } from '@/lib/auditLog';
 import { getPool } from '@/lib/db';
 
@@ -68,7 +69,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
-  if (session.user.role !== 'Admin' &&  !session.user.modulePermissions?.includes('USER_GROUPS_VIEW')) {
+  if (!hasPermission(session.user, 'USER_GROUPS_VIEW')) {
     await logAudit('WARN', `Forbidden attempt to GET available users for group (Group ID: ${groupId}) by user ${session.user.email}.`, 'API:UserGroups:GetAvailableUsers', session.user.id, { targetGroupId: groupId });
     return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
   }

@@ -423,12 +423,7 @@ export async function requireSessionAndPermission(requiredPermission: string, re
     return { error: NextResponse.json({ message: 'Unauthorized' }, { status: 401 }) };
   }
   
-  // Admin users have full access to everything
-  if (session.user.role === 'Admin') {
-    return { session };
-  }
-  
-  // For non-admin users, check specific permissions from user groups
+  // Check specific permissions from user groups
   if (!session.user.modulePermissions?.includes(requiredPermission)) {
     await logAudit(
       'WARN',

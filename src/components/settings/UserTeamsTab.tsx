@@ -59,6 +59,7 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { hasAnyPermission } from '@/lib/permissions';
 
 const teamFormSchema = z.object({
   name: z.string().min(1, "Team name is required").max(100),
@@ -336,7 +337,7 @@ export function UserTeamsTab() {
           <h2 className="text-xl font-semibold text-foreground">User Teams</h2>
           <p className="text-muted-foreground">Manage teams and team assignments</p>
         </div>
-        {(session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('USERS_MANAGE')) && (
+        {hasAnyPermission(session?.user, ['USERS_MANAGE']) && (
           <Button onClick={() => handleOpenModal()} className="btn-hover-primary-gradient">
             <PlusCircle className="mr-2 h-4 w-4" />
             Create Team
@@ -351,7 +352,7 @@ export function UserTeamsTab() {
              <Users className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
              <h3 className="text-lg font-semibold text-foreground mb-2">No Teams Found</h3>
              <p className="text-muted-foreground mb-4">Create your first team to get started</p>
-             {(session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('USERS_MANAGE')) && (
+             {hasAnyPermission(session?.user, ['USERS_MANAGE']) && (
                <Button onClick={() => handleOpenModal()} className="btn-hover-primary-gradient">
                  <PlusCircle className="mr-2 h-4 w-4" />
                  Create First Team

@@ -5,6 +5,7 @@ import { logAudit } from '@/lib/auditLog';
 import { getServerSession } from 'next-auth/next';
 import { v4 as uuidv4 } from 'uuid';
 import { authOptions } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
 
 const createCandidateSourceSchema = z.object({
   name: z.string().min(1, "Source name is required"),
@@ -81,9 +82,7 @@ export async function GET(request: NextRequest) {
 
   // Check if user has permission to view candidate sources
   // Users should be able to view sources if they can view candidates or manage system settings
-  if (session.user.role !== 'Admin' && 
-      !session.user.modulePermissions?.includes('CANDIDATES_VIEW') &&
-      !session.user.modulePermissions?.includes('SYSTEM_SETTINGS_VIEW')) {
+  if (!hasPermission(session.user, 'CANDIDATES_VIEW') && !hasPermission(session.user, 'SYSTEM_SETTINGS_VIEW')) {
     return NextResponse.json({ message: "Forbidden: Insufficient permissions to view candidate sources" }, { status: 403 });
   }
 
@@ -112,7 +111,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Check permissions
-  if (session?.user?.role !== 'Admin' && !session?.user?.modulePermissions?.includes('SYSTEM_SETTINGS_EDIT')) {
+  if (!hasPermission(session.user, 'SYSTEM_SETTINGS_EDIT')) {
     return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
   }
 

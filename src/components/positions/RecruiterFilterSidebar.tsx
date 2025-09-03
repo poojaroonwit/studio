@@ -31,7 +31,7 @@ export function RecruiterFilterSidebar({
   const recruiterIds = recruiters.map(r => r.id);
 
   // Filter recruiters based on search term
-  const filteredRecruiters = useMemo(() => {
+  const filteredRecruiter = useMemo(() => {
     if (!searchTerm.trim()) {
       return recruiterIds;
     }
@@ -53,7 +53,7 @@ export function RecruiterFilterSidebar({
       <div className="pb-4 mb-4 border-b border-border/50">
         <h2 className="flex items-center gap-2 text-xl font-bold mb-2">
           <Users className="h-6 w-6 text-primary" />
-          Recruiters
+          Recruiter
         </h2>
         <p className="text-base text-muted-foreground font-medium">
           Filter positions by assigned recruiter
@@ -85,7 +85,7 @@ export function RecruiterFilterSidebar({
 
       <div className="flex-1 overflow-hidden">
         <nav className="space-y-1">
-          {/* All Recruiters Option - Always show when no search or search matches */}
+          {/* All Recruiter Option - Always show when no search or search matches */}
           {(!searchTerm.trim() || 'all recruiters'.includes(searchTerm.toLowerCase())) && (
             <div 
               className={cn(
@@ -107,7 +107,7 @@ export function RecruiterFilterSidebar({
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="mb-1">
-                    <span className="truncate font-semibold text-base">All Recruiters</span>
+                    <span className="truncate font-semibold text-base">All Recruiter</span>
                   </div>
                   <p className={cn(
                     "text-sm leading-relaxed break-words line-clamp-2 font-medium",
@@ -160,12 +160,12 @@ export function RecruiterFilterSidebar({
             </>
           )}
 
-          {/* Individual Recruiters - Show filtered recruiters */}
-          {filteredRecruiters.length > 0 && (
+          {/* Individual Recruiter - Show filtered recruiters */}
+          {filteredRecruiter.length > 0 && (
             <>
               <div className="border-b border-border/50 mx-3 my-1"></div>
               
-              {filteredRecruiters.map((recruiterId, index) => {
+              {filteredRecruiter.map((recruiterId, index) => {
                 const positionCount = recruiterStats?.[recruiterId] || 0;
                 const isActive = selectedRecruiterId === recruiterId;
                 
@@ -242,7 +242,7 @@ export function RecruiterFilterSidebar({
                       </div>
                     </div>
                     
-                    {index < filteredRecruiters.length - 1 && (
+                    {index < filteredRecruiter.length - 1 && (
                       <div className="border-b border-border/50 mx-3 my-1"></div>
                     )}
                   </React.Fragment>
@@ -252,7 +252,7 @@ export function RecruiterFilterSidebar({
           )}
 
           {/* Show message when no recruiters match search */}
-          {searchTerm.trim() && filteredRecruiters.length === 0 && !showUnassigned && (
+          {searchTerm.trim() && filteredRecruiter.length === 0 && !showUnassigned && (
             <div className="px-3 py-8 text-center">
               <p className="text-base text-muted-foreground font-medium">
                 No recruiters found matching "{searchTerm}"

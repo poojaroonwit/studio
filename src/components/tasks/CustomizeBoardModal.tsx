@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
 const candidateFields = [
   { key: 'none', label: 'None', icon: '🚫' },
   { key: 'status', label: 'Status', icon: '📊' },
-  { key: 'recruiterId', label: 'Recruiters', icon: '👤' },
+  { key: 'recruiterId', label: 'Recruiter', icon: '👤' },
   { key: 'positionId', label: 'Position', icon: '💼' },
   { key: 'fitScore', label: 'Fit Score', icon: '🎯' },
 ];
@@ -246,7 +246,7 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
 
   
   // State for actual data
-  const [recruiters, setRecruiters] = useState<any[]>([]);
+  const [recruiters, setRecruiter] = useState<any[]>([]);
   const [positions, setPositions] = useState<any[]>([]);
   const [stages, setStages] = useState<Array<{id: string, name: string}>>([]);
   const [candidates, setCandidates] = useState<any[]>([]);
@@ -258,12 +258,12 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
     const fetchActualData = async () => {
       try {
         // Fetch recruiters
-        const recruitersRes = await fetch('/api/users?role=Recruiters');
+        const recruitersRes = await fetch('/api/users?role=Recruiter');
         if (!recruitersRes.ok) throw new Error('Failed to fetch recruiters');
         const recruitersData = await recruitersRes.json();
         // Handle the correct API response structure: { users: [...], pagination: {...} }
         const recruitersArray = recruitersData?.users || [];
-        setRecruiters(Array.isArray(recruitersArray) ? recruitersArray : []);
+        setRecruiter(Array.isArray(recruitersArray) ? recruitersArray : []);
         // Fetch positions
         const positionsRes = await fetch('/api/positions/all');
         if (!positionsRes.ok) throw new Error('Failed to fetch positions');
@@ -500,7 +500,7 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
       setLoading(false);
       setInitializing(false);
       // Reset data when modal closes to prevent stale data
-      setRecruiters([]);
+      setRecruiter([]);
       setPositions([]);
       setStages([]);
       setCandidates([]);

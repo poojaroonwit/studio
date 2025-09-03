@@ -70,7 +70,7 @@ describe('User Creation with Default Role', () => {
     // Mock default user group
     const defaultGroup = {
       id: 'default-group-id',
-      name: 'Recruiters',
+      name: 'Recruiter',
       permissions: ['CANDIDATES_VIEW', 'CANDIDATES_CREATE']
     };
 
@@ -80,7 +80,7 @@ describe('User Creation with Default Role', () => {
       id: 'new-user-id',
       name: 'New User',
       email: 'newuser@example.com',
-      role: 'Recruiters'
+      role: 'Recruiter'
     });
 
     const request = new NextRequest('http://localhost:3000/api/users', {
@@ -98,7 +98,7 @@ describe('User Creation with Default Role', () => {
     const result = await response.json();
 
     expect(response.status).toBe(201);
-    expect(result.role).toBe('Recruiters');
+    expect(result.role).toBe('Recruiter');
     
     // Verify that findFirst was called to find default group
     expect(mockPrisma.userGroup.findFirst).toHaveBeenCalledWith({
@@ -109,7 +109,7 @@ describe('User Creation with Default Role', () => {
     // Verify that user was created with the mapped role
     expect(mockPrisma.user.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
-        role: 'Recruiters'
+        role: 'Recruiter'
       })
     });
   });
@@ -193,9 +193,9 @@ describe('User Creation with Default Role', () => {
   it('should map default group names to appropriate roles', async () => {
     const testCases = [
       { groupName: 'Administrators', expectedRole: 'Admin' },
-      { groupName: 'Recruiters', expectedRole: 'Recruiters' },
+      { groupName: 'Recruiter', expectedRole: 'Recruiter' },
       { groupName: 'Hiring Managers', expectedRole: 'Hiring Manager' },
-      { groupName: 'Custom Group', expectedRole: 'Recruiters' } // Default fallback
+      { groupName: 'Custom Group', expectedRole: 'Recruiter' } // Default fallback
     ];
 
     for (const testCase of testCases) {

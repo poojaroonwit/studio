@@ -154,7 +154,7 @@ interface CandidateFiltersProps {
   onClearAllFilters: () => void;
   availablePositions: Position[];
   availableStages: RecruitmentStage[];
-  availableRecruiters: Pick<UserProfile, 'id' | 'name'>[];
+  availableRecruiter: Pick<UserProfile, 'id' | 'name'>[];
   availableSources: CandidateSource[];
   isLoading?: boolean;
   isAiSearching?: boolean;
@@ -173,7 +173,7 @@ export function CandidateFilters({
     onClearAllFilters,
     availablePositions,
     availableStages,
-    availableRecruiters,
+    availableRecruiter,
     availableSources,
     isLoading,
     isAiSearching,
@@ -209,9 +209,9 @@ export function CandidateFilters({
   
   // Remove loading states since they're managed by the parent component
   // const [isStagesLoading, setIsStagesLoading] = useState(false);
-  // const [isRecruitersLoading, setIsRecruitersLoading] = useState(false);
+  // const [isRecruiterLoading, setIsRecruiterLoading] = useState(false);
   // const [stagesError, setStagesError] = useState<string | null>(null);
-  // const [recruitersError, setRecruitersError] = useState<string | null>(null);
+  // const [recruitersError, setRecruiterError] = useState<string | null>(null);
   
   const isInitialLoadRef = useRef(true);
   // Guard to avoid triggering auto-apply effects while syncing state from incoming props
@@ -1150,7 +1150,7 @@ export function CandidateFilters({
   // Defensive defaults for arrays
   const safeAvailablePositions = Array.isArray(availablePositions) ? availablePositions : [];
   const safeAvailableStages = Array.isArray(availableStages) ? availableStages : [];
-  const safeAvailableRecruiters = Array.isArray(availableRecruiters) ? availableRecruiters : [];
+  const safeAvailableRecruiter = Array.isArray(availableRecruiter) ? availableRecruiter : [];
   
 
 
@@ -1641,7 +1641,7 @@ export function CandidateFilters({
                    </div>
                    <div className="space-y-2">
                      <Label htmlFor="recruiter-select" className="text-xs">Assigned Recruiter(s)</Label>
-                     {safeAvailableRecruiters.length === 0 ? (
+                     {safeAvailableRecruiter.length === 0 ? (
                        <div className="p-2 border bg-muted/20">
                          <span className="text-xs text-muted-foreground">No recruiters available</span>
                        </div>
@@ -1652,7 +1652,7 @@ export function CandidateFilters({
                            onSelectionChange={handleRecruiterChange}
                            placeholder="All recruiters..."
                            disabled={isLoading || isAiSearching || isApplyingFilters}
-                           recruiters={safeAvailableRecruiters}
+                           recruiters={safeAvailableRecruiter}
                          />
                        </div>
                      )}

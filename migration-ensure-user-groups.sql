@@ -42,7 +42,7 @@ INSERT INTO "User_UserGroup" ("userId", "groupId")
 SELECT u.id, '00000000-0000-0000-0000-000000000002' -- Recruiter group ID
 FROM "User" u
 LEFT JOIN "User_UserGroup" uug ON u.id = uug."userId" AND uug."groupId" = '00000000-0000-0000-0000-000000000002'
-WHERE u.role = 'Recruiters' AND uug."userId" IS NULL
+WHERE u.role = 'Recruiter' AND uug."userId" IS NULL
 ON CONFLICT ("userId", "groupId") DO NOTHING;
 
 -- Hiring Manager users get Hiring Manager group (if it exists)
@@ -69,13 +69,13 @@ WHERE id IN (
 );
 
 UPDATE "User" 
-SET role = 'Recruiters'
+SET role = 'Recruiter'
 WHERE id IN (
     SELECT DISTINCT u.id
     FROM "User" u
     JOIN "User_UserGroup" uug ON u.id = uug."userId"
     JOIN "UserGroup" ug ON uug."groupId" = ug.id
-    WHERE ug.name = 'Recruiters' AND u.role != 'Recruiters'
+    WHERE ug.name = 'Recruiter' AND u.role != 'Recruiter'
 );
 
 -- 5. Final verification - show all users with their groups and permissions

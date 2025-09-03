@@ -4,7 +4,7 @@
  * Fix Permission Alignment Script
  * 
  * This script fixes the issue where users have admin-level permissions
- * but their role field in the User table still shows as 'Recruiters'.
+ * but their role field in the User table still shows as 'Recruiter'.
  * 
  * The system uses UserGroup.permissions as the primary permission source,
  * but User.role should be synchronized to reflect the user's permission level.
@@ -94,7 +94,7 @@ async function main() {
         );
 
         if (hasRecruiterPermissions) {
-          newRole = 'Recruiters';
+          newRole = 'Recruiter';
         } else {
           // Check if user has hiring manager permissions
           const hasHiringManagerPermissions = HIRING_MANAGER_PERMISSIONS.some(permission => 
@@ -105,7 +105,7 @@ async function main() {
             newRole = 'Hiring Manager';
           } else {
             // Default to Recruiter if no specific permissions found
-            newRole = 'Recruiters';
+            newRole = 'Recruiter';
           }
         }
       }

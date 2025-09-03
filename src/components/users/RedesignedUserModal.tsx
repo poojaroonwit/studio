@@ -172,13 +172,13 @@ function PersonalInfoContent({ form, user, mode, userTeams }: PersonalInfoConten
       const selectedGroup = userGroups.find(g => g.id === watchedUserGroupIds[0]);
       if (selectedGroup) {
         // Map user group to role string for API compatibility
-        let roleString = 'Recruiters'; // default
+        let roleString = 'Recruiter'; // default
         if (selectedGroup.name.toLowerCase().includes('admin')) {
           roleString = 'Admin';
         } else if (selectedGroup.name.toLowerCase().includes('hiring') || selectedGroup.name.toLowerCase().includes('manager')) {
           roleString = 'Hiring Manager';
         } else if (selectedGroup.name.toLowerCase().includes('recruiter')) {
-          roleString = 'Recruiters';
+          roleString = 'Recruiter';
         }
         form.setValue('role', roleString);
       }
@@ -691,7 +691,7 @@ export function RedesignedUserModal({
       name: '', 
       email: '', 
       password: '',
-      role: 'Recruiters', 
+      role: 'Recruiter', 
       newPassword: '', 
       forcePasswordChange: false, 
       authenticationMethod: 'basic', 
@@ -751,7 +751,7 @@ export function RedesignedUserModal({
           name: '',
           email: '',
           password: '',
-          role: 'Recruiters', // Set default role for new users
+          role: 'Recruiter', // Set default role for new users
           newPassword: '',
           forcePasswordChange: false,
           authenticationMethod: 'basic',

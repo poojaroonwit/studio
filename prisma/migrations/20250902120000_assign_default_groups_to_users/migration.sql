@@ -11,7 +11,7 @@ ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO "UserGroup" (id, name, description, permissions, "is_default", "is_system_role", "created_at", "updated_at")
 VALUES 
-  ('00000000-0000-0000-0000-000000000002', 'Recruiters', 'Standard recruiter access', 
+  ('00000000-0000-0000-0000-000000000002', 'Recruiter', 'Standard recruiter access', 
    ARRAY['CANDIDATES_VIEW', 'CANDIDATES_CREATE', 'CANDIDATES_EDIT_BASIC', 'POSITIONS_VIEW', 'POSITIONS_CREATE', 'POSITIONS_EDIT_BASIC', 'TASK_BOARD_VIEW', 'TASK_BOARD_MANAGE_OWN'], 
    true, true, NOW(), NOW())
 ON CONFLICT (name) DO NOTHING;
@@ -36,13 +36,13 @@ WHERE ug.name = 'Administrators'
     WHERE uug."userId" = u.id AND uug."groupId" = ug.id
   );
 
--- Assign Recruiter users to Recruiters group
+-- Assign Recruiter users to Recruiter group
 INSERT INTO "User_UserGroup" ("userId", "groupId")
 SELECT u.id, ug.id
 FROM "User" u
 CROSS JOIN "UserGroup" ug
-WHERE ug.name = 'Recruiters'
-  AND u.role = 'Recruiters'
+WHERE ug.name = 'Recruiter'
+  AND u.role = 'Recruiter'
   AND NOT EXISTS (
     SELECT 1 FROM "User_UserGroup" uug 
     WHERE uug."userId" = u.id AND uug."groupId" = ug.id
@@ -60,12 +60,12 @@ WHERE ug.name = 'Hiring Managers'
     WHERE uug."userId" = u.id AND uug."groupId" = ug.id
   );
 
--- Step 3: For any users still without group assignments, assign them to Recruiters group (default)
+-- Step 3: For any users still without group assignments, assign them to Recruiter group (default)
 INSERT INTO "User_UserGroup" ("userId", "groupId")
 SELECT u.id, ug.id
 FROM "User" u
 CROSS JOIN "UserGroup" ug
-WHERE ug.name = 'Recruiters'
+WHERE ug.name = 'Recruiter'
   AND NOT EXISTS (
     SELECT 1 FROM "User_UserGroup" uug 
     WHERE uug."userId" = u.id

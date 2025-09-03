@@ -33,11 +33,11 @@ export function RecruiterMultiSelectDropdown({
   const [searchTerm, setSearchTerm] = useState('');
 
   // Filter recruiters based on search term
-  const filteredRecruiters = recruiters.filter(recruiter => 
+  const filteredRecruiter = recruiters.filter(recruiter => 
     recruiter.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const selectedRecruiters = recruiters.filter(recruiter => selectedIds.has(recruiter.id));
+  const selectedRecruiter = recruiters.filter(recruiter => selectedIds.has(recruiter.id));
   const hasUnassigned = selectedIds.has('unassigned');
   const hasSelectAll = selectedIds.has('select-all');
 
@@ -151,7 +151,7 @@ export function RecruiterMultiSelectDropdown({
                     </Badge>
                   )}
                   {/* Show regular recruiter badges */}
-                  {selectedRecruiters.map((recruiter) => (
+                  {selectedRecruiter.map((recruiter) => (
                     <Badge
                       key={recruiter.id}
                       variant="secondary"
@@ -184,7 +184,7 @@ export function RecruiterMultiSelectDropdown({
         </PopoverTrigger>
         <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 bg-popover border-border shadow-lg z-[100001] max-h-[300px] overflow-y-auto" align="start">
           <div className="p-2">
-            <div className="text-sm font-medium mb-2">Select Recruiters</div>
+            <div className="text-sm font-medium mb-2">Select Recruiter</div>
             
             {/* Search Input */}
             <div className="relative mb-2">
@@ -199,7 +199,7 @@ export function RecruiterMultiSelectDropdown({
               />
             </div>
             
-            {filteredRecruiters.length === 0 ? (
+            {filteredRecruiter.length === 0 ? (
               <div className="text-sm text-muted-foreground py-2">No recruiters available</div>
             ) : (
               <div className="space-y-0.5">
@@ -255,7 +255,7 @@ export function RecruiterMultiSelectDropdown({
                   </div>
                 </button>
                 
-                {filteredRecruiters.map((recruiter) => (
+                {filteredRecruiter.map((recruiter) => (
                   <button
                     key={recruiter.id}
                     onClick={() => handleToggleRecruiter(recruiter.id)}

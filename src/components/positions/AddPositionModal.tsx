@@ -62,7 +62,7 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
   const [isSaving, setIsSaving] = useState(false);
   const [grades, setGrades] = useState<Grade[]>([]);
   const descriptionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const [availableRecruiters, setAvailableRecruiters] = useState<{id: string, name: string, avatarUrl?: string}[]>([]);
+  const [availableRecruiter, setAvailableRecruiter] = useState<{id: string, name: string, avatarUrl?: string}[]>([]);
   const { error: showError, success: showSuccess } = useToast();
   const { levels: positionLevels, isLoading: isLoadingLevels } = usePositionLevels();
   
@@ -128,18 +128,18 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
         }
       };
 
-      const fetchRecruiters = async () => {
+      const fetchRecruiter = async () => {
         try {
-          const response = await fetch('/api/users?role=Recruiters');
+          const response = await fetch('/api/users?role=Recruiter');
           if (response.ok) {
             const data = await response.json();
             const recruitersArray = data?.users || [];
-            const availableRecruitersData = recruitersArray.map((r: any) => ({ 
+            const availableRecruiterData = recruitersArray.map((r: any) => ({ 
               id: r.id, 
               name: r.name, 
               avatarUrl: r.avatarUrl 
             }));
-            setAvailableRecruiters(availableRecruitersData);
+            setAvailableRecruiter(availableRecruiterData);
           }
         } catch (error) {
           console.error('Error fetching recruiters:', error);
@@ -149,7 +149,7 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
       try {
         fetchDefaultMatchCriteria();
         fetchGrades();
-        fetchRecruiters();
+        fetchRecruiter();
       } catch (error) {
         console.error('Failed to fetch default match criteria:', error);
       } finally {
@@ -430,7 +430,7 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
                          </SelectTrigger>
                          <SelectContent>
                            <SelectItem value="none">No Recruiter</SelectItem>
-                           {availableRecruiters.map((recruiter) => (
+                           {availableRecruiter.map((recruiter) => (
                              <SelectItem key={recruiter.id} value={recruiter.id}>
                                {recruiter.name}
                              </SelectItem>

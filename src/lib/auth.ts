@@ -156,7 +156,7 @@ export const authOptions: NextAuthOptions = {
           if (account && user) {
             token.accessToken = account.access_token;
             token.id = user.id;
-            token.role = user.role || 'Recruiters';
+            token.role = user.role || 'Recruiter';
             
             // Get permissions from UserGroup (not from direct field)
             const modulePermissions = Array.isArray(user.modulePermissions) 
@@ -223,14 +223,14 @@ export const authOptions: NextAuthOptions = {
             token.modulePermissions = [];
           }
           if (!token.role) {
-            token.role = 'Recruiters';
+            token.role = 'Recruiter';
           }
           
         } catch (error) {
           console.error('[JWT CALLBACK] Critical error in JWT callback:', error);
           // Ensure token has minimal valid structure
           token.modulePermissions = token.modulePermissions || [];
-          token.role = token.role || 'Recruiters';
+          token.role = token.role || 'Recruiter';
         }
         
         return token;
@@ -253,7 +253,7 @@ export const authOptions: NextAuthOptions = {
           }
           
           // Ensure role is always a valid string
-          const userRole = (token.role as UserProfile['role']) || 'Recruiters';
+          const userRole = (token.role as UserProfile['role']) || 'Recruiter';
           session.user.role = userRole;
           
           // Debug log to help identify role issues
@@ -308,7 +308,7 @@ export const authOptions: NextAuthOptions = {
             user: {
               ...session.user,
               id: '',
-              role: 'Recruiters',
+              role: 'Recruiter',
               modulePermissions: [],
               avatarUrl: null,
               personalColor: null
@@ -346,7 +346,7 @@ export const authOptions: NextAuthOptions = {
                       const uuid = uuidv4(); // always generate a new UUID for the user id
                       await client.query(
                           'INSERT INTO "User" (id, name, email, "emailVerified", image, role, password, "authentication_method", "azure_oid") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
-                          [uuid, profile.name, profile.email, new Date(), picture, 'Recruiters', placeholderPassword, 'azure', oid]
+                          [uuid, profile.name, profile.email, new Date(), picture, 'Recruiter', placeholderPassword, 'azure', oid]
                       );
                       await logAudit('AUDIT', `New user '${profile.name}' created via Azure AD SSO.`, 'Auth:SignIn', uuid);
                      

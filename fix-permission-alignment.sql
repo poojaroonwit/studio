@@ -59,7 +59,7 @@ WHERE id IN (
 
 -- 4. Update users who have recruiter-level permissions to have Recruiter role
 UPDATE "User" 
-SET role = 'Recruiters'
+SET role = 'Recruiter'
 WHERE id IN (
     SELECT DISTINCT u.id
     FROM "User" u
@@ -74,7 +74,7 @@ WHERE id IN (
         'POSITIONS_EDIT_BASIC' = ANY(ug.permissions) OR
         'TASK_BOARD_VIEW' = ANY(ug.permissions) OR
         'TASK_BOARD_MANAGE_OWN' = ANY(ug.permissions)
-    ) AND u.role != 'Recruiters' AND u.role != 'Admin'
+    ) AND u.role != 'Recruiter' AND u.role != 'Admin'
 );
 
 -- 5. Update users who have hiring manager permissions to have Hiring Manager role
@@ -89,7 +89,7 @@ WHERE id IN (
         'CANDIDATES_VIEW' = ANY(ug.permissions) OR
         'POSITIONS_VIEW' = ANY(ug.permissions) OR
         'TASK_BOARD_VIEW' = ANY(ug.permissions)
-    ) AND u.role != 'Hiring Manager' AND u.role != 'Recruiters' AND u.role != 'Admin'
+    ) AND u.role != 'Hiring Manager' AND u.role != 'Recruiter' AND u.role != 'Admin'
 );
 
 -- 6. Verify the changes

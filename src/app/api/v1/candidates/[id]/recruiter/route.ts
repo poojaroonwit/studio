@@ -107,7 +107,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       }
       
       const recruiter = recruiterResult.rows[0];
-      if (recruiter.role !== 'Recruiters' && recruiter.role !== 'Admin') {
+      if (recruiter.role !== 'Recruiter' && recruiter.role !== 'Admin') {
         await client.query('ROLLBACK');
         return handleApiError(req, createValidationError('User is not a recruiter'));
       }

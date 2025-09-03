@@ -169,7 +169,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
       id: session.user.id as string,
       name: (session.user.name || session.user.email || 'User') as string,
       email: session.user.email ?? undefined,
-      role: (session.user as any).role ?? 'Recruiters',
+      role: (session.user as any).role ?? 'Recruiter',
       avatarUrl: ((session.user as any).avatarUrl ?? null) as string | null,
       image: ((session.user as any).image ?? null) as string | null,
       personalColor: ((session.user as any).personalColor ?? null) as string | null,

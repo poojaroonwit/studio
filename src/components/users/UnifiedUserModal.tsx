@@ -140,13 +140,13 @@ export function UnifiedUserModal({
       if (defaultGroup) {
         form.setValue('userGroupIds', [defaultGroup.id]);
         // Map user group to role for API compatibility
-        let roleString = 'Recruiters'; // default fallback
+        let roleString = 'Recruiter'; // default fallback
         if (defaultGroup.name.toLowerCase().includes('admin')) {
           roleString = 'Admin';
         } else if (defaultGroup.name.toLowerCase().includes('hiring') || defaultGroup.name.toLowerCase().includes('manager')) {
           roleString = 'Hiring Manager';
         } else if (defaultGroup.name.toLowerCase().includes('recruiter')) {
-          roleString = 'Recruiters';
+          roleString = 'Recruiter';
         }
         form.setValue('role', roleString);
         
@@ -162,13 +162,13 @@ export function UnifiedUserModal({
       const selectedGroup = userGroups.find(g => g.id === watchedUserGroupIds[0]);
       if (selectedGroup) {
         // Map user group to role string for API compatibility
-        let roleString = 'Recruiters'; // default
+        let roleString = 'Recruiter'; // default
         if (selectedGroup.name.toLowerCase().includes('admin')) {
           roleString = 'Admin';
         } else if (selectedGroup.name.toLowerCase().includes('hiring') || selectedGroup.name.toLowerCase().includes('manager')) {
           roleString = 'Hiring Manager';
         } else if (selectedGroup.name.toLowerCase().includes('recruiter')) {
-          roleString = 'Recruiters';
+          roleString = 'Recruiter';
         }
         form.setValue('role', roleString);
       }
@@ -232,7 +232,7 @@ export function UnifiedUserModal({
           name: '',
           email: '',
           password: '',
-          role: 'Recruiters', // Use valid role value, not user group name
+          role: 'Recruiter', // Use valid role value, not user group name
           newPassword: '',
           forcePasswordChange: false,
           authenticationMethod: 'basic',

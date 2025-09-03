@@ -228,7 +228,7 @@ export function UserPreferencesModal({ isOpen, onOpenChange, user }: UserPrefere
     return null;
   }
 
-  const isRecruiter = user.role === 'Recruiters';
+  const isRecruiter = user.role === 'Recruiter';
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>

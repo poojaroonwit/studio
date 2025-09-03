@@ -26,21 +26,21 @@ const RecruiterAssignmentDropdown: React.FC<RecruiterAssignmentDropdownProps> = 
   className = '',
 }) => {
   const [recruiterSearchTerm, setRecruiterSearchTerm] = useState('');
-  const [filteredRecruiters, setFilteredRecruiters] = useState(recruiters);
+  const [filteredRecruiter, setFilteredRecruiter] = useState(recruiters);
 
   useEffect(() => {
     try {
       // Defensive check to prevent filter errors
       if (!Array.isArray(recruiters)) {
         console.warn('RecruiterAssignmentDropdown: recruiters is not an array:', recruiters);
-        setFilteredRecruiters([]);
+        setFilteredRecruiter([]);
         return;
       }
       
       if (recruiterSearchTerm.trim() === '') {
-        setFilteredRecruiters(recruiters);
+        setFilteredRecruiter(recruiters);
       } else {
-        setFilteredRecruiters(
+        setFilteredRecruiter(
           recruiters.filter(r => {
             try {
               return r && r.name && r.name.toLowerCase().includes(recruiterSearchTerm.toLowerCase());
@@ -53,7 +53,7 @@ const RecruiterAssignmentDropdown: React.FC<RecruiterAssignmentDropdownProps> = 
       }
     } catch (error) {
       console.error('RecruiterAssignmentDropdown: Error filtering recruiters:', error);
-      setFilteredRecruiters([]);
+      setFilteredRecruiter([]);
     }
   }, [recruiterSearchTerm, recruiters]);
 
@@ -89,8 +89,8 @@ const RecruiterAssignmentDropdown: React.FC<RecruiterAssignmentDropdownProps> = 
                   onChange={e => setRecruiterSearchTerm(e.target.value)}
                 />
               </div>
-              {filteredRecruiters.length > 0 ? (
-                filteredRecruiters.map(recruiter => (
+              {filteredRecruiter.length > 0 ? (
+                filteredRecruiter.map(recruiter => (
                   <button
                     key={recruiter.id}
                     onClick={() => onAssignRecruiter(recruiter.id)}

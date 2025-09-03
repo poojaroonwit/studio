@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions';
-import { syncAllRecruiters, syncRecruitersForPosition } from '@/lib/recruiterSync';
+import { syncAllRecruiter, syncRecruiterForPosition } from '@/lib/recruiterSync';
 import { z } from 'zod';
 
 const syncRequestSchema = z.object({
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
   try {
     if (syncAll) {
       // Sync all positions
-      const results = await syncAllRecruiters(actingUserId, actingUserName);
+      const results = await syncAllRecruiter(actingUserId, actingUserName);
       
       const summary = {
         totalPositions: results.length,
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
       });
     } else if (positionId) {
       // Sync specific position
-      const result = await syncRecruitersForPosition(positionId, actingUserId, actingUserName);
+      const result = await syncRecruiterForPosition(positionId, actingUserId, actingUserName);
       
       return NextResponse.json({
         message: 'Position recruiter sync completed',

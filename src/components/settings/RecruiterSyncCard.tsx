@@ -129,7 +129,7 @@ export function RecruiterSyncCard() {
                          <div className="text-xs text-blue-800">
                <p className="font-medium mb-1">Automatic Assignment</p>
                <p>
-                 Recruiters are automatically assigned to candidates without one when they are assigned to a position. 
+                 Recruiter are automatically assigned to candidates without one when they are assigned to a position. 
                  This manual sync is only needed for bulk operations or to fix inconsistencies.
                </p>
              </div>

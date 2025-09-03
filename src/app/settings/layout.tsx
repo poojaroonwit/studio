@@ -88,7 +88,7 @@ function SettingsLayoutContent({ children }: { children: ReactNode }) {
     // Ensure session and user exist
     if (!session?.user) return false;
     
-    const userRole = session.user.role || 'Recruiters'; // Default fallback
+    const userRole = session.user.role || 'Recruiter'; // Default fallback
     const modulePermissions = Array.isArray(session.user.modulePermissions) 
       ? session.user.modulePermissions 
       : [];

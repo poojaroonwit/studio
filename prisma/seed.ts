@@ -63,7 +63,7 @@ async function main() {
     });
     
     const existingRecruiterGroup = await prisma.userGroup.findUnique({
-      where: { name: 'Recruiters' }
+      where: { name: 'Recruiter' }
     });
     
     const existingHiringManagerGroup = await prisma.userGroup.findUnique({
@@ -121,7 +121,7 @@ async function main() {
     // Create or update recruiter group
     let recruiterGroup;
     if (existingRecruiterGroup) {
-      console.log('   Updating existing Recruiters group...');
+      console.log('   Updating existing Recruiter group...');
       recruiterGroup = await prisma.userGroup.update({
         where: { id: existingRecruiterGroup.id },
         data: {
@@ -139,10 +139,10 @@ async function main() {
         }
       });
     } else {
-      console.log('   Creating new Recruiters group...');
+      console.log('   Creating new Recruiter group...');
       recruiterGroup = await prisma.userGroup.create({
         data: {
-          name: 'Recruiters',
+          name: 'Recruiter',
           description: 'Standard recruiter access',
           permissions: [
             // Candidate management

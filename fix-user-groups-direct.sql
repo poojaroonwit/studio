@@ -6,10 +6,10 @@ UPDATE "UserGroup"
 SET "is_default" = false, "updatedAt" = NOW()
 WHERE "is_default" = true;
 
--- Step 2: Create or update the Recruiters group (set as default)
+-- Step 2: Create or update the Recruiter group (set as default)
 INSERT INTO "UserGroup" (id, name, description, permissions, "is_default", "is_system_role", "createdAt", "updatedAt")
 VALUES 
-  ('00000000-0000-0000-0000-000000000002', 'Recruiters', 'Standard recruiter access', 
+  ('00000000-0000-0000-0000-000000000002', 'Recruiter', 'Standard recruiter access', 
    ARRAY['CANDIDATES_VIEW', 'CANDIDATES_CREATE', 'CANDIDATES_EDIT_BASIC', 'POSITIONS_VIEW', 'POSITIONS_CREATE', 'POSITIONS_EDIT_BASIC', 'TASK_BOARD_VIEW', 'TASK_BOARD_MANAGE_OWN', 'DASHBOARD_VIEW', 'USER_PREFERENCES_MANAGE_OWN'], 
    true, true, NOW(), NOW())
 ON CONFLICT (id) DO UPDATE SET
@@ -50,8 +50,8 @@ ON CONFLICT (id) DO UPDATE SET
 
 -- Step 5: Handle any existing groups with old names (rename them to match the expected names)
 UPDATE "UserGroup" 
-SET name = 'Recruiters', "updatedAt" = NOW()
-WHERE name = 'Recruiters' AND id != '00000000-0000-0000-0000-000000000002';
+SET name = 'Recruiter', "updatedAt" = NOW()
+WHERE name = 'Recruiter' AND id != '00000000-0000-0000-0000-000000000002';
 
 UPDATE "UserGroup" 
 SET name = 'Administrators', "updatedAt" = NOW()

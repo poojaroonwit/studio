@@ -189,7 +189,7 @@ function SettingsPageContent() {
     // Ensure session and user exist
     if (!session?.user) return false;
     
-    const userRole = session.user.role || 'Recruiters';
+    const userRole = session.user.role || 'Recruiter';
     const modulePermissions = Array.isArray(session.user.modulePermissions) 
       ? session.user.modulePermissions 
       : [];

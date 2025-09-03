@@ -93,7 +93,7 @@ export default function PositionsPageClient() {
   const [allDepartments, setAllDepartments] = useState<string[]>([]);
   const [selectedRecruiterId, setSelectedRecruiterId] = useState<string | null>(preferences.selectedRecruiterId);
   const [recruiterStats, setRecruiterStats] = useState<{ [key: string]: number }>({});
-  const [availableRecruiters, setAvailableRecruiters] = useState<{id: string, name: string, avatarUrl?: string}[]>([]);
+  const [availableRecruiter, setAvailableRecruiter] = useState<{id: string, name: string, avatarUrl?: string}[]>([]);
   const [assigningRecruiter, setAssigningRecruiter] = useState<string | null>(null);
   const [headcountData, setHeadcountData] = useState<{ [positionId: string]: { total: number; vacant: number; filled: number } }>({});
   const [isLoadingHeadcount, setIsLoadingHeadcount] = useState(false);
@@ -287,12 +287,12 @@ export default function PositionsPageClient() {
     
     if (recruiterId) {
       // Find the recruiter name from available recruiters
-      const foundRecruiter = availableRecruiters.find(r => r.id === recruiterId);
+      const foundRecruiter = availableRecruiter.find(r => r.id === recruiterId);
       recruiterName = foundRecruiter?.name || null;
       
-      // If not found in availableRecruiters, try to fetch it to ensure we have the latest data
+      // If not found in availableRecruiter, try to fetch it to ensure we have the latest data
       if (!foundRecruiter) {
-        // Recruiter not found in availableRecruiters, this might cause display issues
+        // Recruiter not found in availableRecruiter, this might cause display issues
       }
     }
     
@@ -380,7 +380,7 @@ export default function PositionsPageClient() {
         toast.success(recruiterId ? 'Recruiter assigned successfully' : 'Recruiter unassigned successfully');
       }
       
-      // Refresh recruiter stats (this also refreshes availableRecruiters)
+      // Refresh recruiter stats (this also refreshes availableRecruiter)
       // Use a debounced approach to prevent excessive API calls
       if (refreshTimeoutRef.current) {
         clearTimeout(refreshTimeoutRef.current);
@@ -674,13 +674,13 @@ export default function PositionsPageClient() {
       const recruiterStatsData = await recruiterStatsResponse.json();
       
       // Set available recruiters with headcount data
-      const availableRecruitersData = recruiterStatsData.recruiters.map((r: any) => ({ 
+      const availableRecruiterData = recruiterStatsData.recruiters.map((r: any) => ({ 
         id: r.id, 
         name: r.name, 
         avatarUrl: r.avatarUrl,
         vacantHeadcount: r.vacantHeadcount
       }));
-      setAvailableRecruiters(availableRecruitersData);
+      setAvailableRecruiter(availableRecruiterData);
       
       // Create stats object for backward compatibility
       const stats: { [key: string]: number } = {};
@@ -712,10 +712,10 @@ export default function PositionsPageClient() {
 
   // Fetch recruiter stats when session becomes available
   useEffect(() => {
-    if (session?.user?.id && availableRecruiters.length === 0) {
+    if (session?.user?.id && availableRecruiter.length === 0) {
       fetchRecruiterStats();
     }
-  }, [session?.user?.id, availableRecruiters.length, fetchRecruiterStats]);
+  }, [session?.user?.id, availableRecruiter.length, fetchRecruiterStats]);
 
   // Effect for pagination changes only
   useEffect(() => {
@@ -857,9 +857,9 @@ export default function PositionsPageClient() {
   // Get selected recruiter name
   const selectedRecruiterName = useMemo(() => {
     if (!selectedRecruiterId || selectedRecruiterId === 'unassigned') return null;
-    const recruiter = availableRecruiters.find(r => r.id === selectedRecruiterId);
+    const recruiter = availableRecruiter.find(r => r.id === selectedRecruiterId);
     return recruiter?.name || null;
-  }, [selectedRecruiterId, availableRecruiters]);
+  }, [selectedRecruiterId, availableRecruiter]);
   
   const allSelected = useMemo(() => 
     selectedIds.length > 0 && selectedIds.length === filteredPositions.length, 
@@ -1057,7 +1057,7 @@ export default function PositionsPageClient() {
               selectedRecruiterId={selectedRecruiterId}
               onRecruiterSelect={handleRecruiterSelect}
               recruiterStats={recruiterStats}
-              recruiters={availableRecruiters}
+              recruiters={availableRecruiter}
             />
           </div>
         </div>
@@ -1552,7 +1552,7 @@ export default function PositionsPageClient() {
                   <TableCell className="hide-on-mobile">
                     <RecruiterCell
                       position={position}
-                      availableRecruiters={availableRecruiters}
+                      availableRecruiter={availableRecruiter}
                       canManagePositions={canAssignPositionRecruiter}
                       isAssigning={assigningRecruiter === position.id}
                       onAssignRecruiter={handleAssignRecruiterToPosition}

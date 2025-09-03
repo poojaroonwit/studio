@@ -46,7 +46,7 @@ export const useCandidateDetail = (candidateId: string) => {
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [allDbPositions, setAllDbPositions] = useState<Position[]>([]);
-  const [availableRecruiters, setAvailableRecruiters] = useState<UserProfile[]>([]);
+  const [availableRecruiter, setAvailableRecruiter] = useState<UserProfile[]>([]);
   const [availableSources, setAvailableSources] = useState<CandidateSource[]>([]);
   const [availableStages, setAvailableStages] = useState<RecruitmentStage[]>([]);
   const [transitionHistory, setTransitionHistory] = useState<TransitionRecord[]>([]);
@@ -260,16 +260,16 @@ export const useCandidateDetail = (candidateId: string) => {
     }
   }, []);
 
-  const fetchRecruiters = useCallback(async () => {
+  const fetchRecruiter = useCallback(async () => {
     try {
-      const res = await fetch('/api/users?role=Recruiters', {
+      const res = await fetch('/api/users?role=Recruiter', {
         headers: { 'Cache-Control': 'no-cache' },
         credentials: 'include' // Include session cookies
       });
       if (res.ok) {
         const responseData = await res.json();
         const recruitersArray = responseData?.users || [];
-        setAvailableRecruiters(recruitersArray);
+        setAvailableRecruiter(recruitersArray);
       } else {
         console.error('Error fetching recruiters:', res.status, res.statusText);
       }
@@ -364,7 +364,7 @@ export const useCandidateDetail = (candidateId: string) => {
     // Fetch all static data in parallel for better performance
     Promise.all([
       fetchPositions(),
-      fetchRecruiters(),
+      fetchRecruiter(),
       fetchSources(),
       fetchStages()
     ]).catch(error => {
@@ -744,7 +744,7 @@ export const useCandidateDetail = (candidateId: string) => {
     error,
     isEditing,
     allDbPositions,
-    availableRecruiters,
+    availableRecruiter,
     availableSources,
     availableStages,
     transitionHistory,

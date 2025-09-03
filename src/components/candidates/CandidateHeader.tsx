@@ -17,7 +17,7 @@ interface CandidateHeaderProps {
   onClose?: () => void;
   isEditing: boolean;
   availableStages: RecruitmentStage[];
-  availableRecruiters: UserProfile[];
+  availableRecruiter: UserProfile[];
   availableSources: CandidateSource[];
   isAssigningRecruiter: boolean;
   isAssigningSource: boolean;
@@ -45,7 +45,7 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
   onClose,
   isEditing,
   availableStages,
-  availableRecruiters,
+  availableRecruiter,
   availableSources,
   isAssigningRecruiter,
   isAssigningSource,
@@ -228,7 +228,7 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
             <div className="border border-border rounded-lg">
               <CandidateRecruiterCell
                 candidate={candidate}
-                availableRecruiters={availableRecruiters}
+                availableRecruiter={availableRecruiter}
                 canManageCandidates={true}
                 isAssigning={isAssigningRecruiter}
                 onAssignRecruiter={(candidateId, recruiterId) => onAssignRecruiter(recruiterId)}

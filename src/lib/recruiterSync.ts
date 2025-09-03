@@ -17,7 +17,7 @@ export interface RecruiterSyncResult {
  * @param actingUserName - The name of the user performing the sync
  * @returns Promise<RecruiterSyncResult>
  */
-export async function syncRecruitersForPosition(
+export async function syncRecruiterForPosition(
   positionId: string,
   actingUserId: string,
   actingUserName: string
@@ -171,7 +171,7 @@ export async function syncRecruitersForPosition(
  * @param actingUserName - The name of the user performing the sync
  * @returns Promise<RecruiterSyncResult[]>
  */
-export async function syncAllRecruiters(
+export async function syncAllRecruiter(
   actingUserId: string,
   actingUserName: string
 ): Promise<RecruiterSyncResult[]> {
@@ -189,7 +189,7 @@ export async function syncAllRecruiters(
 
     for (const position of positionsResult.rows) {
       try {
-        const result = await syncRecruitersForPosition(
+        const result = await syncRecruiterForPosition(
           position.id,
           actingUserId,
           actingUserName

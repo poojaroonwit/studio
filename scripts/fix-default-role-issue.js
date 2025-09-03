@@ -2,7 +2,7 @@
 
 /**
  * Script to fix the default role issue where multiple user groups are set as default
- * This ensures only the Recruiters group is set as default
+ * This ensures only the Recruiter group is set as default
  */
 
 const { PrismaClient } = require('@prisma/client');
@@ -34,8 +34,8 @@ async function fixDefaultRoleIssue() {
     const defaultGroups = allGroups.filter(g => g.isDefault);
     console.log(`\n⚠️  Found ${defaultGroups.length} groups marked as default: ${defaultGroups.map(g => g.name).join(', ')}`);
     
-    if (defaultGroups.length === 1 && defaultGroups[0].name === 'Recruiters') {
-      console.log('✅ Database is already in correct state - only Recruiters group is default');
+    if (defaultGroups.length === 1 && defaultGroups[0].name === 'Recruiter') {
+      console.log('✅ Database is already in correct state - only Recruiter group is default');
       return;
     }
     
@@ -46,17 +46,17 @@ async function fixDefaultRoleIssue() {
       where: { isDefault: true }
     });
     
-    // Step 3: Set only Recruiters group as default
-    console.log('🎯 Setting Recruiters group as the only default...');
+    // Step 3: Set only Recruiter group as default
+    console.log('🎯 Setting Recruiter group as the only default...');
     const recruiterGroup = await prisma.userGroup.findFirst({
-      where: { name: 'Recruiters' }
+      where: { name: 'Recruiter' }
     });
     
     if (!recruiterGroup) {
-      console.log('❌ Recruiters group not found, creating it...');
+      console.log('❌ Recruiter group not found, creating it...');
       await prisma.userGroup.create({
         data: {
-          name: 'Recruiters',
+          name: 'Recruiter',
           description: 'Standard recruiter access',
           permissions: [
             'CANDIDATES_VIEW', 'CANDIDATES_CREATE', 'CANDIDATES_EDIT_BASIC', 

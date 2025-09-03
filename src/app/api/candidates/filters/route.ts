@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
           ORDER BY "sort_order" ASC
         `),
         
-        // Recruiters (users with recruiter role)
+        // Recruiter (users with recruiter role)
         client.query(`
           SELECT 
             id,
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
             email,
             "avatarUrl"
           FROM "User" 
-          WHERE role = 'Recruiters' OR role = 'Admin'
+          WHERE role = 'Recruiter' OR role = 'Admin'
           ORDER BY name ASC
         `),
         

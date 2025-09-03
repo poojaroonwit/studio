@@ -136,7 +136,7 @@ SET permissions = ARRAY[
   -- Bulk Upload
   'BULK_UPLOAD_EXECUTE'
 ]
-WHERE name = 'Recruiters';
+WHERE name = 'Recruiter';
 
 -- Update any other roles that might have old permissions
 -- Replace old broad permissions with new granular ones
@@ -191,12 +191,12 @@ WHERE 'POSITIONS_EDIT' = ANY(permissions);
 -- Add missing permissions that might be needed for basic functionality
 UPDATE "UserGroup" 
 SET permissions = array_append(permissions, 'DASHBOARD_VIEW')
-WHERE name != 'Admin' AND name != 'Recruiters' AND NOT ('DASHBOARD_VIEW' = ANY(permissions));
+WHERE name != 'Admin' AND name != 'Recruiter' AND NOT ('DASHBOARD_VIEW' = ANY(permissions));
 
 UPDATE "UserGroup" 
 SET permissions = array_append(permissions, 'CANDIDATES_VIEW')
-WHERE name != 'Admin' AND name != 'Recruiters' AND NOT ('CANDIDATES_VIEW' = ANY(permissions));
+WHERE name != 'Admin' AND name != 'Recruiter' AND NOT ('CANDIDATES_VIEW' = ANY(permissions));
 
 UPDATE "UserGroup" 
 SET permissions = array_append(permissions, 'POSITIONS_VIEW')
-WHERE name != 'Admin' AND name != 'Recruiters' AND NOT ('POSITIONS_VIEW' = ANY(permissions));
+WHERE name != 'Admin' AND name != 'Recruiter' AND NOT ('POSITIONS_VIEW' = ANY(permissions));

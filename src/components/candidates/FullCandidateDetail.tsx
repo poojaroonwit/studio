@@ -106,7 +106,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
     error,
     isEditing,
     allDbPositions,
-    availableRecruiters,
+    availableRecruiter,
     availableSources,
     availableStages,
     transitionHistory,
@@ -420,7 +420,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
         onClose={onClose}
         isEditing={isEditing}
         availableStages={availableStages}
-        availableRecruiters={availableRecruiters}
+        availableRecruiter={availableRecruiter}
         availableSources={availableSources}
         isAssigningRecruiter={isAssigningRecruiter}
         isAssigningSource={isAssigningSource}

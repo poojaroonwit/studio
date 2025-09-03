@@ -183,8 +183,8 @@ export function CandidatesPageClient({
     setAvailablePositions,
     availableStages,
     setAvailableStages,
-    availableRecruiters,
-    setAvailableRecruiters,
+    availableRecruiter,
+    setAvailableRecruiter,
     availableSources,
     setAvailableSources,
     isLoading,
@@ -204,7 +204,7 @@ export function CandidatesPageClient({
     latestRequestIdRef,
     normalizeFitScore,
     getBestMatchingFitScore,
-    fetchRecruiters,
+    fetchRecruiter,
     fetchSources,
     fetchAllCandidatesForCounts,
     fetchCandidateById,
@@ -230,7 +230,7 @@ export function CandidatesPageClient({
   // Use optimized filter data when available
   const effectivePositions = filterData?.positions || availablePositions;
   const effectiveStages = filterData?.stages || availableStages;
-  const effectiveRecruiters = filterData?.recruiters || availableRecruiters;
+  const effectiveRecruiter = filterData?.recruiters || availableRecruiter;
   const effectiveSources = filterData?.sources || availableSources;
 
   const {
@@ -425,7 +425,7 @@ export function CandidatesPageClient({
       }
 
       const result = await response.json();
-      const recruiterName = availableRecruiters.find(r => r.id === recruiterId)?.name || 'No Recruiter';
+      const recruiterName = availableRecruiter.find(r => r.id === recruiterId)?.name || 'No Recruiter';
       toast.success(`${result.successCount} candidate(s) assigned to ${recruiterName}`);
       
       // Clear selection and refresh data
@@ -437,7 +437,7 @@ export function CandidatesPageClient({
     } catch (error) {
       toast.error((error as Error).message || 'Bulk recruiter assignment failed');
     }
-  }, [fetchTableData, filters, page, pageSize, fetchAllCandidatesForCounts, availableRecruiters]);
+  }, [fetchTableData, filters, page, pageSize, fetchAllCandidatesForCounts, availableRecruiter]);
 
   const {
     isAiSearching,
@@ -757,7 +757,7 @@ export function CandidatesPageClient({
   const mappedCandidates = useMemo(() => {
     const candidates = filteredCandidates.map((candidate: Candidate) => {
       const position = availablePositions.find(p => p.id === candidate.positionId);
-      const recruiter = availableRecruiters.find(r => r.id === candidate.recruiterId);
+      const recruiter = availableRecruiter.find(r => r.id === candidate.recruiterId);
       const source = availableSources.find(s => s.id === candidate.sourceId);
       
       return {
@@ -769,7 +769,7 @@ export function CandidatesPageClient({
     });
     
     return candidates;
-  }, [filteredCandidates, availablePositions, availableRecruiters, availableSources, isAiSearchActive, aiMatchedCandidateIds]);
+  }, [filteredCandidates, availablePositions, availableRecruiter, availableSources, isAiSearchActive, aiMatchedCandidateIds]);
 
   // Paginate candidates for display
   const paginatedCandidates = useMemo(() => {
@@ -1174,7 +1174,7 @@ export function CandidatesPageClient({
       
       // Fetch recruiters and sources with a delay to give server time to start up
       const timeoutId = setTimeout(() => {
-        fetchRecruiters();
+        fetchRecruiter();
         fetchSources();
       }, 1000);
       
@@ -1183,7 +1183,7 @@ export function CandidatesPageClient({
       setIsLoading(false);
       setTableLoading(false);
     }
-  }, [sessionStatus, serverAuthError, serverPermissionError, fetchRecruiters, fetchSources, initialFetchError]);
+  }, [sessionStatus, serverAuthError, serverPermissionError, fetchRecruiter, fetchSources, initialFetchError]);
 
   // Single client-side fetch - no server-side initial data
   useEffect(() => {
@@ -1428,7 +1428,7 @@ export function CandidatesPageClient({
                       onAiSearch={handleAiSearch}
                       availablePositions={effectivePositions}
                       availableStages={effectiveStages}
-                      availableRecruiters={effectiveRecruiters}
+                      availableRecruiter={effectiveRecruiter}
                       availableSources={effectiveSources}
                       candidateCounts={candidateCountsByStage}
                       onClearAllFilters={handleClearAllFilters}
@@ -1571,7 +1571,7 @@ export function CandidatesPageClient({
                 onAssignSource={handleAssignSource}
                 availablePositions={availablePositions}
                 availableStages={availableStages}
-                availableRecruiters={availableRecruiters}
+                availableRecruiter={availableRecruiter}
                 availableSources={availableSources}
                                     canManageCandidates={canEditCandidates}
                   canEditCandidates={canEditCandidates}
@@ -1928,7 +1928,7 @@ export function CandidatesPageClient({
                 </SelectTrigger>
                 <SelectContent className="z-[100003]">
                   <SelectItem value="none">No Recruiter</SelectItem>
-                  {availableRecruiters.map((recruiter) => (
+                  {availableRecruiter.map((recruiter) => (
                     <SelectItem key={recruiter.id} value={recruiter.id}>
                       {recruiter.name}
                     </SelectItem>

@@ -5,7 +5,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { getPool } from '@/lib/db';
 import { dispatchWebhooks } from '@/lib/webhookDispatcher';
-import { syncRecruitersForPosition } from '@/lib/recruiterSync';
+import { syncRecruiterForPosition } from '@/lib/recruiterSync';
 import { NotificationService } from '@/lib/notificationService';
 import { SimpleWarningService } from '@/lib/warnings';
 import { broadcastPositionUpdate, broadcastPositionListUpdated, broadcastPositionStatisticsUpdated, broadcastPositionDeleted } from '@/lib/simple-broadcaster';
@@ -210,7 +210,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       }
       
       const recruiter = recruiterResult.rows[0];
-      if (recruiter.role !== 'Recruiters' && recruiter.role !== 'Admin') {
+      if (recruiter.role !== 'Recruiter' && recruiter.role !== 'Admin') {
         await client.query('ROLLBACK');
         return NextResponse.json({ message: 'User is not a recruiter' }, { status: 400 });
       }
@@ -320,7 +320,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (updateData.recruiterId !== undefined && updateData.recruiterId !== oldRecruiterId) {
       try {
         // Add timeout for sync operation to prevent hanging
-        const syncPromise = syncRecruitersForPosition(id, actingUserId, actingUserName);
+        const syncPromise = syncRecruiterForPosition(id, actingUserId, actingUserName);
         let syncTimeoutId: NodeJS.Timeout | null = null;
         const timeoutPromise = new Promise((_, reject) => {
           syncTimeoutId = setTimeout(() => reject(new Error('Sync operation timed out')), 5000);

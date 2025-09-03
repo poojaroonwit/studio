@@ -29,7 +29,7 @@ SET permissions = ARRAY[
   'TASK_BOARD_VIEW',
   'TASK_BOARD_MANAGE_OWN'
 ]
-WHERE name = 'Recruiters';
+WHERE name = 'Recruiter';
 
 -- Revert any other roles that might have been updated
 -- Replace new granular permissions with old broad ones

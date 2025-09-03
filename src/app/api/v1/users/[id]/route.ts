@@ -18,7 +18,7 @@ import { logAudit } from '@/lib/auditLog';
 const updateUserSchema = z.object({
   name: z.string().min(1).optional(),
   email: z.string().email().optional(),
-  role: z.enum(['Admin', 'Recruiters', 'User']).optional(),
+  role: z.enum(['Admin', 'Recruiter', 'User']).optional(),
 
   password: z.string().min(6).optional(),
 });

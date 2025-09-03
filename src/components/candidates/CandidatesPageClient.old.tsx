@@ -125,7 +125,7 @@ export function CandidatesPageClient({
   const [allCandidatesForCounts, setAllCandidatesForCounts] = useState<Candidate[]>(safeInitialCandidates || []);
   const [availablePositions, setAvailablePositions] = useState<Position[]>(safeInitialAvailablePositions || []);
   const [availableStages, setAvailableStages] = useState<RecruitmentStage[]>(safeInitialAvailableStages || []);
-  const [availableRecruiters, setAvailableRecruiters] = useState<Pick<UserProfile, 'id' | 'name' | 'email' | 'avatarUrl'>[]>([]);
+  const [availableRecruiter, setAvailableRecruiter] = useState<Pick<UserProfile, 'id' | 'name' | 'email' | 'avatarUrl'>[]>([]);
   const [availableSources, setAvailableSources] = useState<CandidateSource[]>([]);
 
 
@@ -494,7 +494,7 @@ export function CandidatesPageClient({
     }
   }, [searchParams, isClearingFilters, filters]); // Use searchParams instead of window.location.search
 
-  const fetchRecruiters = useCallback(async (retryCount = 0) => {
+  const fetchRecruiter = useCallback(async (retryCount = 0) => {
 
     if (sessionStatus !== 'authenticated') return;
     
@@ -502,7 +502,7 @@ export function CandidatesPageClient({
     const retryDelay = 1000 * (retryCount + 1); // Exponential backoff: 1s, 2s, 3s
     
     try {
-      const response = await fetch('/api/users?role=Recruiters');
+      const response = await fetch('/api/users?role=Recruiter');
       if (!response.ok) {
           const errorData = await response.json().catch(() => ({})); // Default to empty object on JSON parse fail
           console.error("API error fetching recruiters:", errorData); // Log the object we got
@@ -521,13 +521,13 @@ export function CandidatesPageClient({
           // Retry on server errors (5xx) but not on client errors (4xx)
           if (response.status >= 500 && retryCount < maxRetries) {
             console.warn(`Recruiter fetch failed (attempt ${retryCount + 1}/${maxRetries}), retrying in ${retryDelay}ms:`, detailedErrorMessage);
-            setTimeout(() => fetchRecruiters(retryCount + 1), retryDelay);
+            setTimeout(() => fetchRecruiter(retryCount + 1), retryDelay);
             return;
           }
           
           // Don't throw error, just log it and continue with empty recruiters list
           console.warn("Recruiter fetch failed, continuing with empty list:", detailedErrorMessage);
-          setAvailableRecruiters([]);
+          setAvailableRecruiter([]);
           return;
       }
       const responseData = await response.json(); 
@@ -536,25 +536,25 @@ export function CandidatesPageClient({
 
       if (!Array.isArray(recruitersArray)) {
         console.warn("Invalid data format received for recruiters, using empty list");
-        setAvailableRecruiters([]);
+        setAvailableRecruiter([]);
         return;
       }
-      const mappedRecruiters = recruitersArray.map(r => ({ id: r.id, name: r.name, email: r.email || '', avatarUrl: r.avatarUrl }));
+      const mappedRecruiter = recruitersArray.map(r => ({ id: r.id, name: r.name, email: r.email || '', avatarUrl: r.avatarUrl }));
 
-      setAvailableRecruiters(mappedRecruiters);
+      setAvailableRecruiter(mappedRecruiter);
     } catch (error) {
       console.error("Error fetching recruiters:", error);
       
       // Retry on network errors
       if (retryCount < maxRetries) {
         console.warn(`Recruiter fetch failed due to network error (attempt ${retryCount + 1}/${maxRetries}), retrying in ${retryDelay}ms`);
-        setTimeout(() => fetchRecruiters(retryCount + 1), retryDelay);
+        setTimeout(() => fetchRecruiter(retryCount + 1), retryDelay);
         return;
       }
       
       // Don't show toast error, just log it and continue with empty recruiters list
       console.warn("Recruiter fetch failed due to network error, continuing with empty list");
-      setAvailableRecruiters([]);
+      setAvailableRecruiter([]);
     }
   }, [sessionStatus]);
 
@@ -1123,7 +1123,7 @@ export function CandidatesPageClient({
       
       // Fetch recruiters and sources with a delay to give server time to start up
       const timeoutId = setTimeout(() => {
-        fetchRecruiters();
+        fetchRecruiter();
         fetchSources();
       }, 1000);
       
@@ -1133,7 +1133,7 @@ export function CandidatesPageClient({
       setIsLoading(false);
       setTableLoading(false); // Also clear table loading state
     }
-  }, [sessionStatus, serverAuthError, serverPermissionError, fetchRecruiters, fetchSources, safeInitialCandidates.length, initialFetchError, filteredCandidates.length]);
+  }, [sessionStatus, serverAuthError, serverPermissionError, fetchRecruiter, fetchSources, safeInitialCandidates.length, initialFetchError, filteredCandidates.length]);
 
   // Add a separate effect to clear loading when we have data
   useEffect(() => {
@@ -2198,7 +2198,7 @@ export function CandidatesPageClient({
     if (action === 'change_status') {
       setBulkNewStatus(availableStages.find(s => s.name === 'Applied')?.name || availableStages[0]?.name || '');
     } else if (action === 'assign_recruiter') {
-      setBulkNewRecruiterId(availableRecruiters[0]?.id || null);
+      setBulkNewRecruiterId(availableRecruiter[0]?.id || null);
     }
     setBulkTransitionNotes('');
     setIsBulkActionConfirmOpen(true);
@@ -2254,7 +2254,7 @@ export function CandidatesPageClient({
               ...c,
               recruiter: recruiterId
                 ? (() => {
-                    const found = availableRecruiters.find(r => r.id === recruiterId);
+                    const found = availableRecruiter.find(r => r.id === recruiterId);
                     return found
                       ? { id: found.id, name: found.name, email: found.email || '' }
                       : { id: recruiterId, name: 'Unknown', email: '' };
@@ -2590,7 +2590,7 @@ export function CandidatesPageClient({
                 onClearAllFilters={handleClearAllFilters}
                 availablePositions={availablePositions}
                 availableStages={availableStages}
-                availableRecruiters={availableRecruiters}
+                availableRecruiter={availableRecruiter}
                 availableSources={availableSources}
                 isLoading={false}
                 isAiSearching={isAiSearching}
@@ -2824,7 +2824,7 @@ export function CandidatesPageClient({
                 <Badge variant="secondary" className="text-xs">
                   Recruiter{filters.selectedRecruiterIds.length > 1 ? 's' : ''}: {filters.selectedRecruiterIds.map(id => {
                     if (id === 'unassigned') return 'Unassigned';
-                    const recruiter = availableRecruiters.find(r => r.id === id);
+                    const recruiter = availableRecruiter.find(r => r.id === id);
                     return recruiter ? recruiter.name : id;
                   }).join(', ')}
                 </Badge>
@@ -3029,7 +3029,7 @@ export function CandidatesPageClient({
                   candidates={sortedCandidates}
                   availablePositions={availablePositions}
                   availableStages={availableStages}
-                  availableRecruiters={availableRecruiters}
+                  availableRecruiter={availableRecruiter}
                   availableSources={availableSources}
                   onAssignRecruiter={handleAssignRecruiter}
                   onAssignSource={handleAssignSource}
@@ -3214,7 +3214,7 @@ export function CandidatesPageClient({
                     {bulkNewRecruiterId ? (
                       <div className="flex items-center gap-2">
                         {(() => {
-                          const selectedRecruiter = availableRecruiters.find(r => r.id === bulkNewRecruiterId);
+                          const selectedRecruiter = availableRecruiter.find(r => r.id === bulkNewRecruiterId);
                           return selectedRecruiter ? (
                             <>
                               <Avatar className="h-5 w-5">
@@ -3258,7 +3258,7 @@ export function CandidatesPageClient({
                     </button>
 
                     {/* Available recruiters */}
-                    {availableRecruiters.map((recruiter) => (
+                    {availableRecruiter.map((recruiter) => (
                       <button
                         key={recruiter.id}
                         onClick={() => setBulkNewRecruiterId(recruiter.id)}

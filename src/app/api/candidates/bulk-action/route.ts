@@ -492,7 +492,7 @@ export async function POST(request: NextRequest) {
       case 'assign_recruiter':
         // If newRecruiterId is provided, verify it exists and has recruiter role
         if (newRecruiterId !== null && newRecruiterId !== undefined) {
-          const recruiterCheck = await client.query('SELECT id FROM "User" WHERE id = $1 AND role = $2', [newRecruiterId, 'Recruiters']);
+          const recruiterCheck = await client.query('SELECT id FROM "User" WHERE id = $1 AND role = $2', [newRecruiterId, 'Recruiter']);
           if (recruiterCheck.rows.length === 0) {
             throw new Error('Invalid recruiter ID or user is not a recruiter');
           }
@@ -503,7 +503,7 @@ export async function POST(request: NextRequest) {
           'SELECT id, "recruiterId", "positionId", "statusId" FROM "Candidate" WHERE id = ANY($1::uuid[])',
           [candidateIds]
         );
-        const currentRecruiters = currentRecruiterResult.rows;
+        const currentRecruiter = currentRecruiterResult.rows;
 
         const assignRecruiterResult = await client.query(
           'UPDATE "Candidate" SET "recruiterId" = $1, "updatedAt" = NOW() WHERE id = ANY($2::uuid[]) RETURNING id',
@@ -511,7 +511,7 @@ export async function POST(request: NextRequest) {
         );
 
         // Create transition records for recruiter changes
-        for (const candidate of currentRecruiters) {
+        for (const candidate of currentRecruiter) {
           if (candidate.recruiterId !== newRecruiterId) {
             const newTransitionId = uuidv4();
             const transitionMessage = newRecruiterId 

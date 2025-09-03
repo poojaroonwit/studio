@@ -6,16 +6,16 @@ UPDATE "UserGroup"
 SET "is_default" = false, "updatedAt" = NOW()
 WHERE "is_default" = true;
 
--- Step 2: Set only the Recruiters group as default (this is the most common role for new users)
+-- Step 2: Set only the Recruiter group as default (this is the most common role for new users)
 UPDATE "UserGroup" 
 SET "is_default" = true, "updatedAt" = NOW()
-WHERE name = 'Recruiters';
+WHERE name = 'Recruiter';
 
--- Step 3: If Recruiters group doesn't exist, create it and set as default
+-- Step 3: If Recruiter group doesn't exist, create it and set as default
 INSERT INTO "UserGroup" (id, name, description, permissions, "is_default", "is_system_role", "createdAt", "updatedAt")
 SELECT 
   '00000000-0000-0000-0000-000000000002',
-  'Recruiters',
+  'Recruiter',
   'Standard recruiter access',
   ARRAY['CANDIDATES_VIEW', 'CANDIDATES_CREATE', 'CANDIDATES_EDIT_BASIC', 'POSITIONS_VIEW', 'POSITIONS_CREATE', 'POSITIONS_EDIT_BASIC', 'TASK_BOARD_VIEW', 'TASK_BOARD_MANAGE_OWN', 'DASHBOARD_VIEW', 'USER_PREFERENCES_MANAGE_OWN'],
   true,
@@ -23,16 +23,16 @@ SELECT
   NOW(),
   NOW()
 WHERE NOT EXISTS (
-  SELECT 1 FROM "UserGroup" WHERE name = 'Recruiters'
+  SELECT 1 FROM "UserGroup" WHERE name = 'Recruiter'
 );
 
 -- Step 4: Ensure all users have proper group assignments
--- For users without any group assignment, assign them to the default Recruiters group
+-- For users without any group assignment, assign them to the default Recruiter group
 INSERT INTO "User_UserGroup" ("userId", "groupId")
 SELECT u.id, ug.id
 FROM "User" u
 CROSS JOIN "UserGroup" ug
-WHERE ug.name = 'Recruiters' 
+WHERE ug.name = 'Recruiter' 
   AND ug."is_default" = true
   AND NOT EXISTS (
     SELECT 1 FROM "User_UserGroup" uug 
@@ -60,7 +60,7 @@ WHERE id IN (
 
 -- Set to Recruiter when possessing recruiter-level permissions (but not promoted to Admin)
 UPDATE "User" 
-SET role = 'Recruiters'
+SET role = 'Recruiter'
 WHERE id IN (
     SELECT DISTINCT u.id
     FROM "User" u
@@ -75,7 +75,7 @@ WHERE id IN (
         'POSITIONS_EDIT_BASIC' = ANY(ug.permissions) OR
         'TASK_BOARD_VIEW' = ANY(ug.permissions) OR
         'TASK_BOARD_MANAGE_OWN' = ANY(ug.permissions)
-    ) AND u.role != 'Recruiters' AND u.role != 'Admin'
+    ) AND u.role != 'Recruiter' AND u.role != 'Admin'
 );
 
 -- Set to Hiring Manager when possessing viewing permissions only (and not higher roles)
@@ -90,12 +90,12 @@ WHERE id IN (
         'CANDIDATES_VIEW' = ANY(ug.permissions) OR
         'POSITIONS_VIEW' = ANY(ug.permissions) OR
         'TASK_BOARD_VIEW' = ANY(ug.permissions)
-    ) AND u.role != 'Hiring Manager' AND u.role != 'Recruiters' AND u.role != 'Admin'
+    ) AND u.role != 'Hiring Manager' AND u.role != 'Recruiter' AND u.role != 'Admin'
 );
 
 -- Step 6: Set default role for users without any group assignments
 UPDATE "User" 
-SET role = 'Recruiters'
+SET role = 'Recruiter'
 WHERE role IS NULL OR role = '';
 
 -- Step 7: Verify the fix - ensure only one group is default

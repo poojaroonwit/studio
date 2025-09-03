@@ -58,7 +58,7 @@ const userGroupSchema = z.object({
  *             example:
  *               summary: Example request
  *               value:
- *                 name: "Recruiters"
+ *                 name: "Recruiter"
  *                 description: "Group for all recruiters"
  *                 permissions: ["CANDIDATES_VIEW", "CANDIDATES_MANAGE"]
  *     responses:
@@ -73,7 +73,7 @@ const userGroupSchema = z.object({
  *                 summary: Example response
  *                 value:
  *                   id: "uuid"
- *                   name: "Recruiters"
+ *                   name: "Recruiter"
  *                   description: "Group for all recruiters"
  *                   permissions: ["CANDIDATES_VIEW", "CANDIDATES_MANAGE"]
  *                   is_default: false

@@ -52,7 +52,7 @@ export const runtime = 'nodejs';
 
 const platformModuleIds = PLATFORM_MODULES.map(m => m.id);
 
-const userRoleEnum = z.enum(['Admin', 'Recruiters', 'Hiring Manager']);
+const userRoleEnum = z.enum(['Admin', 'Recruiter', 'Hiring Manager']);
 
 const createUserSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
   const skip = (page - 1) * pageSize;
 
   const canManageUsers = hasAnyPermission(session.user, ['USERS_VIEW']);
-  const isRecruiter = userRole === 'Recruiters';
+  const isRecruiter = userRole === 'Recruiter';
 
   // Allow all authenticated users to fetch recruiters for filtering purposes
   // Only restrict user management operations, not viewing recruiters
@@ -102,7 +102,7 @@ export async function GET(request: NextRequest) {
     } else if (!canManageUsers) {
       // For non-admin users without USERS_VIEW, default to showing only recruiters
       // This allows them to use recruiter filters while maintaining security
-      whereConditions.role = 'Recruiters';
+      whereConditions.role = 'Recruiter';
     }
     // If canManageUsers and no specific role filter, show all users
 
@@ -256,28 +256,28 @@ export async function POST(request: NextRequest) {
       orderBy: { createdAt: 'asc' } // Use the first default group if multiple exist
     });
     
-    // If no default group exists, try to create or find the Recruiters group
+    // If no default group exists, try to create or find the Recruiter group
     if (!defaultUserGroup) {
-      console.log('No default user group found, attempting to find or create Recruiters group...');
+      console.log('No default user group found, attempting to find or create Recruiter group...');
       
-      // First try to find the Recruiters group
+      // First try to find the Recruiter group
       defaultUserGroup = await prisma.userGroup.findFirst({
         where: {
           OR: [
-            { name: 'Recruiters' },
-            { name: 'Recruiters' }
+            { name: 'Recruiter' },
+            { name: 'Recruiter' }
           ]
         }
       });
       
-      // If still no group found, create the Recruiters group
+      // If still no group found, create the Recruiter group
       if (!defaultUserGroup) {
-        console.log('Creating Recruiters group as default...');
+        console.log('Creating Recruiter group as default...');
         try {
           defaultUserGroup = await prisma.userGroup.create({
             data: {
               id: '00000000-0000-0000-0000-000000000002',
-              name: 'Recruiters',
+              name: 'Recruiter',
               description: 'Standard recruiter access',
               permissions: [
                 'CANDIDATES_VIEW', 'CANDIDATES_CREATE', 'CANDIDATES_EDIT_BASIC',
@@ -289,10 +289,10 @@ export async function POST(request: NextRequest) {
               isSystemRole: true
             }
           });
-          console.log('Recruiters group created successfully with ID:', defaultUserGroup.id);
+          console.log('Recruiter group created successfully with ID:', defaultUserGroup.id);
         } catch (createError) {
-          console.error('Failed to create Recruiters group:', createError);
-          await logAudit('ERROR', `Failed to create user ${email} - Could not create default Recruiters group. Error: ${(createError as Error).message}`, 'API:Users:Create', session.user.id);
+          console.error('Failed to create Recruiter group:', createError);
+          await logAudit('ERROR', `Failed to create user ${email} - Could not create default Recruiter group. Error: ${(createError as Error).message}`, 'API:Users:Create', session.user.id);
           return NextResponse.json({ 
             message: "System configuration error. Please contact your system administrator.",
             error: "Failed to create default user group"
@@ -311,13 +311,13 @@ export async function POST(request: NextRequest) {
     }
     
     // Map the default group to a role string for API compatibility
-    let roleString = 'Recruiters'; // default fallback
+    let roleString = 'Recruiter'; // default fallback
     if (defaultUserGroup.name.toLowerCase().includes('admin')) {
       roleString = 'Admin';
     } else if (defaultUserGroup.name.toLowerCase().includes('hiring') || defaultUserGroup.name.toLowerCase().includes('manager')) {
       roleString = 'Hiring Manager';
     } else if (defaultUserGroup.name.toLowerCase().includes('recruiter')) {
-      roleString = 'Recruiters';
+      roleString = 'Recruiter';
     }
     
     finalRole = roleString;
@@ -381,7 +381,7 @@ export async function POST(request: NextRequest) {
             // Then try partial matches
             { name: { contains: finalRole, mode: 'insensitive' } },
             // Handle specific role mappings
-            ...(finalRole === 'Recruiters' ? [{ name: 'Recruiters' }] : []),
+            ...(finalRole === 'Recruiter' ? [{ name: 'Recruiter' }] : []),
             ...(finalRole === 'Admin' ? [{ name: 'Administrators' }] : []),
             ...(finalRole === 'Hiring Manager' ? [{ name: 'Hiring Managers' }] : [])
           ]
@@ -395,7 +395,7 @@ export async function POST(request: NextRequest) {
         // Fallback to hardcoded UUIDs if name-based search fails
         const roleToGroupId = {
           'Admin': '00000000-0000-0000-0000-000000000001',
-          'Recruiters': '00000000-0000-0000-0000-000000000002',
+          'Recruiter': '00000000-0000-0000-0000-000000000002',
           'Hiring Manager': '00000000-0000-0000-0000-000000000003'
         };
         

@@ -172,7 +172,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
   // Recruiter Assignment
   { 
     id: 'CANDIDATES_RECRUITER_ASSIGN', 
-    label: 'Assign Candidates to Recruiters', 
+    label: 'Assign Candidates to Recruiter', 
     category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT, 
     description: "Assign candidates to specific recruiters",
     detailedDescription: "Ability to assign and reassign candidates to different recruiters. Controls workload distribution and responsibility.",
@@ -278,7 +278,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
   
   { 
     id: 'POSITIONS_RECRUITER_ASSIGN', 
-    label: 'Assign Recruiters to Positions', 
+    label: 'Assign Recruiter to Positions', 
     category: PLATFORM_MODULE_CATEGORIES.POSITION_MANAGEMENT, 
     description: "Assign and change recruiters responsible for positions",
     detailedDescription: "Ability to assign and reassign recruiters to specific job positions. Controls responsibility and workload distribution.",
@@ -1098,7 +1098,7 @@ export interface UserProfile {
   avatarUrl?: string;
   dataAiHint?: string;
   personalColor?: string;
-  role: 'Admin' | 'Recruiters' | 'Hiring Manager';
+  role: 'Admin' | 'Recruiter' | 'Hiring Manager';
   password?: string;
   authenticationMethod?: 'basic' | 'azure';
   userTeamId?: string | null; // Direct foreign key to UserTeam

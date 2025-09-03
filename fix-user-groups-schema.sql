@@ -79,7 +79,7 @@ ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO "UserGroup" (id, name, description, permissions, "is_default", "is_system_role", "createdAt", "updatedAt")
 VALUES 
-    ('00000000-0000-0000-0000-000000000002', 'Recruiters', 'Standard recruiter access', 
+    ('00000000-0000-0000-0000-000000000002', 'Recruiter', 'Standard recruiter access', 
      ARRAY['CANDIDATES_VIEW', 'CANDIDATES_CREATE', 'CANDIDATES_EDIT_BASIC', 'POSITIONS_VIEW', 'POSITIONS_CREATE', 'POSITIONS_EDIT_BASIC', 'TASK_BOARD_VIEW', 'TASK_BOARD_MANAGE_OWN'], 
      true, true, NOW(), NOW())
 ON CONFLICT (name) DO NOTHING;
@@ -97,10 +97,10 @@ UPDATE "User"
 SET "userGroupId" = (SELECT id FROM "UserGroup" WHERE name = 'Administrators')
 WHERE role = 'Admin' AND "userGroupId" IS NULL;
 
--- Assign Recruiter users to Recruiters group
+-- Assign Recruiter users to Recruiter group
 UPDATE "User" 
-SET "userGroupId" = (SELECT id FROM "UserGroup" WHERE name = 'Recruiters')
-WHERE role = 'Recruiters' AND "userGroupId" IS NULL;
+SET "userGroupId" = (SELECT id FROM "UserGroup" WHERE name = 'Recruiter')
+WHERE role = 'Recruiter' AND "userGroupId" IS NULL;
 
 -- Assign other users to Hiring Managers group if they don't have a group
 UPDATE "User" 

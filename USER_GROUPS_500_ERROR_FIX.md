@@ -35,7 +35,7 @@ The issue occurs because:
 - Creates the `UserGroup` table if it doesn't exist
 - Adds the `userGroupId` column to the `User` table if missing
 - Creates necessary indexes and foreign key constraints
-- Creates default user groups (Administrators, Recruiters, Hiring Managers)
+- Creates default user groups (Administrators, Recruiter, Hiring Managers)
 - Migrates existing users to appropriate groups
 - Provides verification queries to check migration status
 

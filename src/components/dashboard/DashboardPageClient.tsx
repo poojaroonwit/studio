@@ -528,8 +528,8 @@ export default function DashboardPageClient({
     }).length;
     
     // Combined recruiter statistics
-    const totalActiveRecruiters = safeAllUsers.filter((u: UserProfile) => 
-      u.role === 'Recruiters' || 
+    const totalActiveRecruiter = safeAllUsers.filter((u: UserProfile) => 
+      u.role === 'Recruiter' || 
       (u.modulePermissions || []).includes('CANDIDATES_VIEW') ||
       (u.modulePermissions || []).includes('CANDIDATES_CREATE') ||
       (u.modulePermissions || []).includes('CANDIDATES_EDIT_BASIC') ||
@@ -578,7 +578,7 @@ export default function DashboardPageClient({
       openPositions,
       hiredThisMonthAdmin,
       rejectedThisMonthAdmin,
-      totalActiveRecruiters,
+      totalActiveRecruiter,
       newCandidatesTodayAdminList,
       openPositionsWithNoCandidates,
       myActiveCandidatesList,
@@ -595,7 +595,7 @@ export default function DashboardPageClient({
     openPositions,
     hiredThisMonthAdmin,
     rejectedThisMonthAdmin,
-    totalActiveRecruiters,
+    totalActiveRecruiter,
     newCandidatesTodayAdminList,
     openPositionsWithNoCandidates,
     myActiveCandidatesList,

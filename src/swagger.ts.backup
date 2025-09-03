@@ -2440,7 +2440,7 @@ export function getSwaggerSpec() {
           parameters: [
             { name: 'page', in: 'query', description: 'Page number for pagination', schema: { type: 'integer', default: 1, minimum: 1 } },
             { name: 'limit', in: 'query', description: 'Number of items per page', schema: { type: 'integer', default: 10, minimum: 1, maximum: 100 } },
-            { name: 'role', in: 'query', description: 'Filter by user role', schema: { type: 'string', enum: ['Admin', 'Recruiters', 'User'] } },
+            { name: 'role', in: 'query', description: 'Filter by user role', schema: { type: 'string', enum: ['Admin', 'Recruiter', 'User'] } },
             { name: 'searchTerm', in: 'query', description: 'Search term for name or email', schema: { type: 'string' } }
           ],
           responses: {
@@ -2459,7 +2459,7 @@ export function getSwaggerSpec() {
                             id: { type: 'string', format: 'uuid' },
                             name: { type: 'string' },
                             email: { type: 'string', format: 'email' },
-                            role: { type: 'string', enum: ['Admin', 'Recruiters', 'User'] },
+                            role: { type: 'string', enum: ['Admin', 'Recruiter', 'User'] },
                             createdAt: { type: 'string', format: 'date-time' },
                             updatedAt: { type: 'string', format: 'date-time' }
                           }
@@ -2490,7 +2490,7 @@ export function getSwaggerSpec() {
                   properties: {
                     name: { type: 'string', minLength: 1 },
                     email: { type: 'string', format: 'email' },
-                    role: { type: 'string', enum: ['Admin', 'Recruiters', 'User'] },
+                    role: { type: 'string', enum: ['Admin', 'Recruiter', 'User'] },
                     modulePermissions: { type: 'array', items: { type: 'string' } },
                     password: { type: 'string', minLength: 8 }
                   },
@@ -2502,7 +2502,7 @@ export function getSwaggerSpec() {
                     value: {
                       name: 'Jane Smith',
                       email: 'jane.smith@example.com',
-                      role: 'Recruiters',
+                      role: 'Recruiter',
                       modulePermissions: ['CANDIDATES_VIEW', 'CANDIDATES_MANAGE'],
                       password: 'securePassword123'
                     }
@@ -2537,7 +2537,7 @@ export function getSwaggerSpec() {
                   properties: {
                     name: { type: 'string', minLength: 1 },
                     email: { type: 'string', format: 'email' },
-                    role: { type: 'string', enum: ['Admin', 'Recruiters', 'User'] },
+                    role: { type: 'string', enum: ['Admin', 'Recruiter', 'User'] },
                     modulePermissions: { type: 'array', items: { type: 'string' } },
                     password: { type: 'string', minLength: 8 }
                   }
@@ -3385,7 +3385,7 @@ export function getSwaggerSpec() {
             id: { type: 'string', format: 'uuid' },
             name: { type: 'string' },
             email: { type: 'string', format: 'email' },
-            role: { type: 'string', enum: ['Admin', 'Recruiters', 'Manager'] },
+            role: { type: 'string', enum: ['Admin', 'Recruiter', 'Manager'] },
             modulePermissions: { type: 'array', items: { type: 'string' } },
             createdAt: { type: 'string', format: 'date-time' },
             updatedAt: { type: 'string', format: 'date-time' }
@@ -3398,7 +3398,7 @@ export function getSwaggerSpec() {
             name: { type: 'string', minLength: 1 },
             email: { type: 'string', format: 'email' },
             password: { type: 'string', minLength: 8 },
-            role: { type: 'string', enum: ['Admin', 'Recruiters', 'Manager'] },
+            role: { type: 'string', enum: ['Admin', 'Recruiter', 'Manager'] },
             modulePermissions: { type: 'array', items: { type: 'string' } }
           },
           required: ['name', 'email', 'password', 'role']
@@ -3408,7 +3408,7 @@ export function getSwaggerSpec() {
           properties: {
             name: { type: 'string', minLength: 1 },
             email: { type: 'string', format: 'email' },
-            role: { type: 'string', enum: ['Admin', 'Recruiters', 'Manager'] },
+            role: { type: 'string', enum: ['Admin', 'Recruiter', 'Manager'] },
             modulePermissions: { type: 'array', items: { type: 'string' } }
           }
         },

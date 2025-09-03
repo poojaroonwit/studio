@@ -82,7 +82,7 @@ async function runMigration() {
       SELECT u.id, '00000000-0000-0000-0000-000000000002'
       FROM "User" u
       LEFT JOIN "User_UserGroup" uug ON u.id = uug."userId" AND uug."groupId" = '00000000-0000-0000-0000-000000000002'
-      WHERE u.role = 'Recruiters' AND uug."userId" IS NULL
+      WHERE u.role = 'Recruiter' AND uug."userId" IS NULL
       ON CONFLICT ("userId", "groupId") DO NOTHING
     `);
     console.log(`  Assigned ${recruiterResult.rowCount} users to Recruiter group`);
@@ -119,13 +119,13 @@ async function runMigration() {
     
     const recruiterRoleUpdate = await client.query(`
       UPDATE "User" 
-      SET role = 'Recruiters'
+      SET role = 'Recruiter'
       WHERE id IN (
         SELECT DISTINCT u.id
         FROM "User" u
         JOIN "User_UserGroup" uug ON u.id = uug."userId"
         JOIN "UserGroup" ug ON uug."groupId" = ug.id
-        WHERE ug.name = 'Recruiters' AND u.role != 'Recruiters'
+        WHERE ug.name = 'Recruiter' AND u.role != 'Recruiter'
       )
     `);
     console.log(`  Updated ${recruiterRoleUpdate.rowCount} users to Recruiter role`);

@@ -53,7 +53,7 @@ interface CandidateTableProps {
   candidates: Candidate[];
   availablePositions: Position[];
   availableStages: RecruitmentStage[];
-  availableRecruiters: { id: string; name: string }[];
+  availableRecruiter: { id: string; name: string }[];
   availableSources: CandidateSource[];
   onAssignRecruiter: (candidateId: string, recruiterId: string | null) => void;
   onAssignSource?: (candidateId: string, sourceId: string | null, subSource?: string | null) => void;
@@ -164,7 +164,7 @@ export function CandidateTable({
   candidates,
   availablePositions,
   availableStages,
-  availableRecruiters,
+  availableRecruiter,
   availableSources,
   onAssignRecruiter,
   onAssignSource,
@@ -806,7 +806,7 @@ export function CandidateTable({
                     <TableCell key={`${candidate.id}-recruiter`} className="max-w-[150px]">
                       <CandidateRecruiterCell
                         candidate={candidate}
-                        availableRecruiters={availableRecruiters}
+                        availableRecruiter={availableRecruiter}
                         canManageCandidates={canEditCandidates}
                         isAssigning={assigningRecruiter === candidate.id}
                         onAssignRecruiter={handleAssignRecruiter}
@@ -1008,7 +1008,7 @@ export function CandidateTable({
                               <TableCell key={`${candidate.id}-recruiter`} className="max-w-[150px]">
                                 <CandidateRecruiterCell
                                   candidate={candidate}
-                                  availableRecruiters={availableRecruiters}
+                                  availableRecruiter={availableRecruiter}
                                   canManageCandidates={canAssignRecruiter}
                                   isAssigning={assigningRecruiter === candidate.id}
                                   onAssignRecruiter={handleAssignRecruiter}

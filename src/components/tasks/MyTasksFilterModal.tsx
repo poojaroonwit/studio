@@ -206,7 +206,7 @@ export function MyTasksFilterModal({
                             <User className="h-3 w-3 text-gray-500" />
                           </div>
                           <div className="flex flex-col flex-1">
-                            <span className="text-sm">All Recruiters</span>
+                            <span className="text-sm">All Recruiter</span>
                             <span className="text-xs text-muted-foreground">Show all recruiters</span>
                           </div>
                           {!localFilters.recruiterId && (
@@ -360,7 +360,7 @@ export function MyTasksFilterModal({
                 } else if (key === 'recruiterId') {
                   const recruiter = recruiters.find(r => r.id === value);
                   displayValue = recruiter?.name || value;
-                  label = 'Recruiters';
+                  label = 'Recruiter';
                 } else if (key === 'stage') {
                   label = 'Stage';
                 } else if (key === 'name') {

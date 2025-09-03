@@ -32,7 +32,7 @@ export function useCandidateData({
   const [allCandidatesForCounts, setAllCandidatesForCounts] = useState<Candidate[]>([]);
   const [availablePositions, setAvailablePositions] = useState<Position[]>([]);
   const [availableStages, setAvailableStages] = useState<RecruitmentStage[]>([]);
-  const [availableRecruiters, setAvailableRecruiters] = useState<Pick<UserProfile, 'id' | 'name' | 'email' | 'avatarUrl'>[]>([]);
+  const [availableRecruiter, setAvailableRecruiter] = useState<Pick<UserProfile, 'id' | 'name' | 'email' | 'avatarUrl'>[]>([]);
   const [availableSources, setAvailableSources] = useState<CandidateSource[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
@@ -54,7 +54,7 @@ export function useCandidateData({
   const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const currentRequestRef = useRef<string | null>(null);
   const latestRequestIdRef = useRef<string | null>(null);
-  const fetchRecruitersTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const fetchRecruiterTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const stableSetFilteredCandidates = useCallback((candidates: Candidate[] | ((prev: Candidate[]) => Candidate[])) => {
     setFilteredCandidates(candidates);
@@ -72,8 +72,8 @@ export function useCandidateData({
     setAvailableStages(stages);
   }, []);
 
-  const stableSetAvailableRecruiters = useCallback((recruiters: Pick<UserProfile, 'id' | 'name' | 'email' | 'avatarUrl'>[] | ((prev: Pick<UserProfile, 'id' | 'name' | 'email' | 'avatarUrl'>[]) => Pick<UserProfile, 'id' | 'name' | 'email' | 'avatarUrl'>[])) => {
-    setAvailableRecruiters(recruiters);
+  const stableSetAvailableRecruiter = useCallback((recruiters: Pick<UserProfile, 'id' | 'name' | 'email' | 'avatarUrl'>[] | ((prev: Pick<UserProfile, 'id' | 'name' | 'email' | 'avatarUrl'>[]) => Pick<UserProfile, 'id' | 'name' | 'email' | 'avatarUrl'>[])) => {
+    setAvailableRecruiter(recruiters);
   }, []);
 
   const stableSetAvailableSources = useCallback((sources: CandidateSource[] | ((prev: CandidateSource[]) => CandidateSource[])) => {
@@ -170,11 +170,11 @@ export function useCandidateData({
   }, [sessionStatus, stableSetAvailableSources]);
 
   // Fetch recruiters
-  const fetchRecruiters = useCallback(async () => {
+  const fetchRecruiter = useCallback(async () => {
     if (sessionStatus !== 'authenticated') return;
 
     try {
-      const response = await fetch('/api/users?role=Recruiters');
+      const response = await fetch('/api/users?role=Recruiter');
       if (response.ok) {
         const data = await response.json();
         const recruiters = (data.users || []).map((user: any) => ({
@@ -183,12 +183,12 @@ export function useCandidateData({
           email: user.email,
           avatarUrl: user.avatarUrl
         }));
-        stableSetAvailableRecruiters(recruiters);
+        stableSetAvailableRecruiter(recruiters);
       }
     } catch (error) {
       console.error('Error fetching recruiters:', error);
     }
-  }, [sessionStatus, stableSetAvailableRecruiters]);
+  }, [sessionStatus, stableSetAvailableRecruiter]);
 
   // Store current filters in a ref to avoid dependency issues
   const filtersRef = useRef(filters);
@@ -366,9 +366,9 @@ export function useCandidateData({
   useEffect(() => {
     if (sessionStatus === 'authenticated') {
       fetchSources();
-      fetchRecruiters();
+      fetchRecruiter();
     }
-  }, [sessionStatus, fetchSources, fetchRecruiters]);
+  }, [sessionStatus, fetchSources, fetchRecruiter]);
 
   // Fetch fit score counts on mount
   // Fetch fit score counts on mount - FIXED: Use regular useEffect instead of useSafeEffect
@@ -466,8 +466,8 @@ export function useCandidateData({
     setAvailablePositions: stableSetAvailablePositions,
     availableStages,
     setAvailableStages: stableSetAvailableStages,
-    availableRecruiters,
-    setAvailableRecruiters: stableSetAvailableRecruiters,
+    availableRecruiter,
+    setAvailableRecruiter: stableSetAvailableRecruiter,
     availableSources,
     setAvailableSources: stableSetAvailableSources,
     isLoading,
@@ -491,7 +491,7 @@ export function useCandidateData({
     // Functions
     normalizeFitScore,
     getBestMatchingFitScore,
-    fetchRecruiters,
+    fetchRecruiter,
     fetchSources,
     fetchAllCandidatesForCounts,
     fetchCandidateById,

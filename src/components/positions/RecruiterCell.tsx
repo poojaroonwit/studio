@@ -16,7 +16,7 @@ interface RecruiterCellProps {
     recruiterId?: string | null;
     recruiterName?: string | null;
   };
-  availableRecruiters: Array<{
+  availableRecruiter: Array<{
     id: string;
     name: string;
     avatarUrl?: string;
@@ -31,7 +31,7 @@ interface RecruiterCellProps {
 
 export function RecruiterCell({
   position,
-  availableRecruiters,
+  availableRecruiter,
   canManagePositions,
   isAssigning,
   onAssignRecruiter,
@@ -41,21 +41,21 @@ export function RecruiterCell({
   const [searchTerm, setSearchTerm] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  const currentRecruiter = availableRecruiters.find(r => r.id === position.recruiterId);
+  const currentRecruiter = availableRecruiter.find(r => r.id === position.recruiterId);
 
   // Filter recruiters based on search term
-  const filteredRecruiters = useMemo(() => {
+  const filteredRecruiter = useMemo(() => {
     if (!searchTerm.trim()) {
-      return availableRecruiters;
+      return availableRecruiter;
     }
     
     const searchLower = searchTerm.toLowerCase();
-    const filtered = availableRecruiters.filter(recruiter => 
+    const filtered = availableRecruiter.filter(recruiter => 
       recruiter.name.toLowerCase().includes(searchLower)
     );
     
     return filtered;
-  }, [availableRecruiters, searchTerm]);
+  }, [availableRecruiter, searchTerm]);
 
   // Auto-reset if stuck in assigning state for too long
   React.useEffect(() => {
@@ -269,13 +269,13 @@ export function RecruiterCell({
             </button>
 
             {/* Divider */}
-            {filteredRecruiters.length > 0 && (
+            {filteredRecruiter.length > 0 && (
               <div className="border-t border-border my-2"></div>
             )}
 
             {/* Available recruiters */}
-            {filteredRecruiters.length > 0 ? (
-              filteredRecruiters.map((recruiter) => (
+            {filteredRecruiter.length > 0 ? (
+              filteredRecruiter.map((recruiter) => (
                 <button
                   key={recruiter.id}
                   onClick={() => handleSelect(recruiter.id)}

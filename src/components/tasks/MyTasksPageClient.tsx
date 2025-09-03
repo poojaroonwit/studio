@@ -72,7 +72,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   const [filters, setFilters] = useState<any>({});
   const [candidates, setCandidates] = useState<any[]>([]);
   const [stages, setStages] = useState<Array<{id: string, name: string, description?: string, sortOrder?: number, colorComplete?: string, colorBadge?: string, isSystem?: boolean}>>([]);
-  const [recruiters, setRecruiters] = useState<any[]>([]);
+  const [recruiters, setRecruiter] = useState<any[]>([]);
   const [positions, setPositions] = useState<any[]>([]);
 
   const [selectedTask, setSelectedTask] = useState<any | null>(null);
@@ -166,11 +166,11 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
 
   // Permission check: If user is a recruiter (not Admin and doesn't have CANDIDATES_VIEW permission), 
   // only show their assigned candidates
-  const isRecruiter = userSession?.role === 'Recruiters' && 
+  const isRecruiter = userSession?.role === 'Recruiter' && 
     !userSession?.modulePermissions?.includes('CANDIDATES_VIEW');
 
   // Check if user can see all recruiters (has USERS_VIEW or CANDIDATES_VIEW permission)
-  const canSeeAllRecruiters = userSession?.modulePermissions?.includes('USERS_VIEW') || 
+  const canSeeAllRecruiter = userSession?.modulePermissions?.includes('USERS_VIEW') || 
     userSession?.modulePermissions?.includes('CANDIDATES_VIEW');
 
   // Set initial recruiter filter for recruiters
@@ -272,7 +272,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       try {
         const [stagesRes, recruitersRes, positionsRes] = await Promise.all([
           fetch('/api/recruitment-stages'),
-          fetch('/api/users?role=Recruiters'),
+          fetch('/api/users?role=Recruiter'),
           fetch('/api/positions'),
         ]);
         const stagesData = await stagesRes.json();
@@ -290,7 +290,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
         const recruitersData = await recruitersRes.json();
         // Handle the correct API response structure: { users: [...], pagination: {...} }
         const recruitersArray = recruitersData?.users || [];
-        setRecruiters(Array.isArray(recruitersArray) ? recruitersArray : []);
+        setRecruiter(Array.isArray(recruitersArray) ? recruitersArray : []);
         const positionsData = await positionsRes.json();
         setPositions(Array.isArray(positionsData.data) ? positionsData.data : []);
         setMetadataLoaded(true);
@@ -750,7 +750,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                            })()}
                          </div>
                        ) : (
-                         <span className="text-muted-foreground">All Recruiters</span>
+                         <span className="text-muted-foreground">All Recruiter</span>
                        )}
                        <ChevronDown className="ml-2 h-3 w-3 opacity-50" />
                      </Button>
@@ -760,7 +760,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                        <div className="text-sm font-medium mb-2">Select Recruiter</div>
                        
                        {/* All recruiters option - Only show if user can see all recruiters */}
-                       {canSeeAllRecruiters && (
+                       {canSeeAllRecruiter && (
                          <button
                            onClick={() => setFilters((f: any) => ({ ...f, recruiterId: '' }))}
                            className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-accent text-left"
@@ -769,7 +769,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                              <Users className="h-3 w-3 text-gray-500" />
                            </div>
                            <div className="flex flex-col flex-1">
-                             <span className="text-sm">All Recruiters</span>
+                             <span className="text-sm">All Recruiter</span>
                              <span className="text-xs text-muted-foreground">Show all recruiters</span>
                            </div>
                            {!filters.recruiterId && (

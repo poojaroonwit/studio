@@ -80,6 +80,13 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
   useEffect(() => {
     console.log('FullCandidateDetail - isHeadcountWarningModalOpen changed:', isHeadcountWarningModalOpen);
     console.log('FullCandidateDetail - headcountWarningData:', headcountWarningData);
+    
+    // Additional debugging to track when modal should be open
+    if (isHeadcountWarningModalOpen && headcountWarningData) {
+      console.log('FullCandidateDetail - Modal should be open with data:', headcountWarningData);
+    } else if (!isHeadcountWarningModalOpen && headcountWarningData) {
+      console.log('FullCandidateDetail - WARNING: Modal closed but data still exists');
+    }
   }, [isHeadcountWarningModalOpen, headcountWarningData]);
   
   // Selection states

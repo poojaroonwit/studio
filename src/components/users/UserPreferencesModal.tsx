@@ -253,11 +253,11 @@ export function UserPreferencesModal({ isOpen, onOpenChange, user }: UserPrefere
         ) : preferences ? (
           <div className="flex flex-col h-full">
             <Tabs defaultValue="appearance" className="w-full">
-              <TabsList className={`grid w-full ${isRecruiter ? 'grid-cols-4' : 'grid-cols-3'}`}>
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="appearance">Appearance</TabsTrigger>
                 <TabsTrigger value="taskBoard">Task Board</TabsTrigger>
                 <TabsTrigger value="positions">Positions</TabsTrigger>
-                {isRecruiter && <TabsTrigger value="sidebar">Sidebar</TabsTrigger>}
+                <TabsTrigger value="sidebar">Sidebar</TabsTrigger>
               </TabsList>
 
               <div className="flex-1 overflow-y-auto mt-6">

@@ -723,26 +723,16 @@ export function UnifiedUserModal({
                                     {mode === 'profile' ? (
                                       <div className="h-10 px-3 py-2 border border-input rounded-md bg-muted text-foreground flex items-center transition-all duration-200">
                                         {(() => {
-                                          // Try to find the user's group by ID first
+                                          // Use the same logic as the user management page
+                                          // First try to find the user's group by ID, then fall back to role
                                           const userGroup = userGroups.find(g => g.id === field.value?.[0]);
                                           if (userGroup) {
                                             return userGroup.name;
                                           }
                                           
-                                          // Fallback: try to find by role name if userGroupId is not set
+                                          // Fallback to the role from the form
                                           const currentRole = form.getValues('role');
-                                          if (currentRole) {
-                                            const roleBasedGroup = userGroups.find(g => 
-                                              g.name.toLowerCase().includes(currentRole.toLowerCase()) ||
-                                              currentRole.toLowerCase().includes(g.name.toLowerCase())
-                                            );
-                                            if (roleBasedGroup) {
-                                              return roleBasedGroup.name;
-                                            }
-                                            return currentRole; // Show the role string if no matching group found
-                                          }
-                                          
-                                          return 'No role assigned';
+                                          return currentRole || 'No role assigned';
                                         })()}
                                       </div>
                                     ) : (
@@ -830,7 +820,7 @@ export function UnifiedUserModal({
                                     <Switch
                                       checked={sidebarShowAssigned}
                                       onCheckedChange={(c) => saveSidebarPref(Boolean(c))}
-                                      disabled={sidebarPrefLoading || (mode === 'edit' && user && session?.user?.role !== 'Admin')}
+                                      disabled={sidebarPrefLoading || mode !== 'profile'}
                                     />
                                   </div>
                                 </div>

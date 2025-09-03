@@ -114,7 +114,7 @@ export async function GET(request: NextRequest) {
         themePreference: 'system',
       },
       sidebar: {
-        showAssignedPositions: false,
+        showAssignedPositions: true,
       },
       candidates: {
         showCandidateColumn: true,

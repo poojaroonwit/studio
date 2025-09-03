@@ -458,46 +458,17 @@ function AccountSettingsContent({ form, mode, canManageAuthentication, canForceP
               </FormLabel>
               {mode === 'profile' ? (
                 <div className="h-11 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center">
-                  {isLoadingGroups ? (
-                    <div className="flex items-center gap-2 text-slate-500">
-                      <div className="w-4 h-4 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin"></div>
-                      <span>Loading role...</span>
-                    </div>
-                  ) : userGroups.length === 0 ? (
-                    <div className="text-slate-500">
-                      Unable to load roles
-                    </div>
-                  ) : (() => {
-                    // Debug logging
-                    console.log('Profile mode - field value:', field.value);
-                    console.log('Available user groups:', userGroups);
-                    console.log('Current form role:', form.getValues('role'));
-                    
-                    // Try to find the user's group by ID first
+                  {(() => {
+                    // Use the same logic as the user management page
+                    // First try to find the user's group by ID, then fall back to role
                     const userGroup = userGroups.find(g => g.id === field.value?.[0]);
                     if (userGroup) {
-                      console.log('Found user group by ID:', userGroup);
                       return userGroup.name;
                     }
                     
-                    // Fallback: try to find by role name if userGroupId is not set
+                    // Fallback to the role from the form
                     const currentRole = form.getValues('role');
-                    if (currentRole) {
-                      console.log('Looking for role-based group match for:', currentRole);
-                      const roleBasedGroup = userGroups.find(g => 
-                        g.name.toLowerCase().includes(currentRole.toLowerCase()) ||
-                        currentRole.toLowerCase().includes(g.name.toLowerCase())
-                      );
-                      if (roleBasedGroup) {
-                        console.log('Found role-based group match:', roleBasedGroup);
-                        return roleBasedGroup.name;
-                      }
-                      console.log('No role-based group match found, showing role string');
-                      return currentRole; // Show the role string if no matching group found
-                    }
-                    
-                    console.log('No role information available');
-                    return 'No role assigned';
+                    return currentRole || 'No role assigned';
                   })()}
                 </div>
               ) : (

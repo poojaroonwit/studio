@@ -89,7 +89,7 @@ const defaultAppearancePreferences: AppearancePreferences = {
 };
 
 const defaultSidebarPreferences: SidebarPreferences = {
-  showAssignedPositions: false,
+  showAssignedPositions: true,
 };
 
 const defaultPreferences: UserPreferences = {

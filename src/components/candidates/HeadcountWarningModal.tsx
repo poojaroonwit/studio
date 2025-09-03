@@ -140,6 +140,12 @@ export function HeadcountWarningModal({
     }
   };
 
+  // Prevent any automatic closing behavior
+  const handleClose = () => {
+    console.log('HeadcountWarningModal - handleClose called');
+    onClose();
+  };
+
   return (
     <Dialog 
       open={isOpen} 
@@ -156,6 +162,16 @@ export function HeadcountWarningModal({
         onOpenAutoFocus={(e) => {
           console.log('HeadcountWarningModal - Auto-focus event, preventing default');
           // Prevent auto-focus issues
+          e.preventDefault();
+        }}
+        onInteractOutside={(e) => {
+          console.log('HeadcountWarningModal - Interact outside event, preventing default');
+          // Prevent clicking outside from closing the modal
+          e.preventDefault();
+        }}
+        onPointerDownOutside={(e) => {
+          console.log('HeadcountWarningModal - Pointer down outside event, preventing default');
+          // Prevent pointer events outside from closing the modal
           e.preventDefault();
         }}
       >
@@ -231,10 +247,7 @@ export function HeadcountWarningModal({
         </div>
 
         <DialogFooter className="flex gap-2">
-          <Button variant="outline" onClick={() => {
-            console.log('HeadcountWarningModal - Close button clicked');
-            onClose();
-          }}>
+          <Button variant="outline" onClick={handleClose}>
             Close
           </Button>
           {onProceed && !isNoPosition && (

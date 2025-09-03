@@ -95,14 +95,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 
   const { id } = await params;
-  console.log(`[Positions API] Fetching position with ID: ${id}`);
   
   const client = await getPool().connect();
   try {
     const query = 'SELECT p.id, p.title, p.department, p.description, p."matchCriteria", p."isOpen", p."positionLevel", p."positionAttribute", p."gradeId", p."hiringDate", p."recruiterId", p."customAttributes", p."createdAt", p."updatedAt", u.name as "recruiterName", g.name as "gradeName", g.label as "gradeLabel", g."sla_days" as "gradeSlaDays", g.color as "gradeColor" FROM "Position" p LEFT JOIN "User" u ON p."recruiterId" = u.id LEFT JOIN "Grade" g ON p."gradeId" = g.id WHERE p.id = $1';
     const result = await client.query(query, [id]);
-    
-    console.log(`[Positions API] Query result rows: ${result.rows.length}`);
     
     if (result.rows.length === 0) {
       console.error(`[Positions API] Position not found: ${id}`);
@@ -110,7 +107,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     const position = result.rows[0];
-    console.log(`[Positions API] Found position: ${position.title}`);
 
     // Fetch the latest webhook_payload for this position from upload_queue
     const uploadQueueRes = await client.query(
@@ -131,7 +127,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       } : null,
     };
 
-    console.log(`[Positions API] Successfully returning position data`);
     return NextResponse.json(responseData);
   } catch (error: any) {
     console.error(`[Positions API] Database error fetching position ${id}:`, error);
@@ -195,21 +190,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const wantsToChangeRecruiter = Object.prototype.hasOwnProperty.call(updateData, 'recruiterId');
 
     // Debug logging for permission check
-    console.log(`[POSITIONS API] Permission check for user ${actingUserId}:`, {
-      role: actingUserRole,
-      isAdmin,
-      isAssignedRecruiter,
-      modulePermissions,
-      hasPOSITIONS_EDIT_BASIC: modulePermissions.includes('POSITIONS_EDIT_BASIC'),
-      hasPOSITIONS_RECRUITER_ASSIGN: modulePermissions.includes('POSITIONS_RECRUITER_ASSIGN'),
-      wantsToChangeRecruiter
-    });
 
     const canEditBasic = isAdmin || modulePermissions.includes('POSITIONS_EDIT_BASIC') || isAssignedRecruiter;
     const canAssignRecruiter = isAdmin || modulePermissions.includes('POSITIONS_RECRUITER_ASSIGN');
 
     if (wantsToChangeRecruiter && !canAssignRecruiter) {
-      console.log(`[POSITIONS API] 403 Error: User ${actingUserId} cannot assign recruiter. canAssignRecruiter: ${canAssignRecruiter}`);
       await client.query('ROLLBACK');
       return NextResponse.json({ message: 'Forbidden: insufficient permissions to assign recruiter' }, { status: 403 });
     }
@@ -309,7 +294,6 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         // Assigned recruiters can edit only custom attributes on their positions, not structural fields
         const onlyCustomAttributes = Object.keys(updateData).every((k) => k === 'custom_attributes');
         if (!onlyCustomAttributes) {
-          console.log(`[POSITIONS API] 403 Error: Assigned recruiter ${actingUserId} trying to edit restricted fields:`, Object.keys(updateData));
           await client.query('ROLLBACK');
           return NextResponse.json({ message: 'Forbidden: assigned recruiter may only edit custom attributes' }, { status: 403 });
         }

@@ -95,13 +95,11 @@ export function SidebarHeaderContent({
     
     // Reduced protection: prevent rapid toggling (less than 100ms apart - reduced from 150ms)
     if (timeSinceLastToggle < 100) {
-      console.log('[SIDEBAR_HEADER] Toggle blocked: too rapid clicking');
       return;
     }
     
     // Prevent toggle if already toggling
     if (isToggling) {
-      console.log('[SIDEBAR_HEADER] Toggle blocked: already toggling');
       return;
     }
     

@@ -534,7 +534,6 @@ export default function SystemPreferencesPage() {
       });
       
       // Dispatch event for immediate sidebar update
-      console.log('Dispatching appConfigChanged event for sidebar background type change:', sidebarBackgroundType);
       window.dispatchEvent(new CustomEvent('appConfigChanged', {
         detail: {
           sidebarBackgroundType: sidebarBackgroundType,
@@ -737,7 +736,6 @@ export default function SystemPreferencesPage() {
           success('Logo uploaded and saved!');
           
           // Dispatch event to update sidebar immediately
-          console.log('Dispatching appConfigChanged event with logoUrl:', url);
           // Add cache-busting parameter to force browser to reload the image
           const logoUrlWithCacheBuster = `${url}?t=${Date.now()}`;
           window.dispatchEvent(new CustomEvent('appConfigChanged', {
@@ -824,7 +822,6 @@ export default function SystemPreferencesPage() {
             const logoUrlWithCacheBuster = `${url}?t=${Date.now()}`;
             currentContextualLogos[settingKey as keyof typeof currentContextualLogos] = logoUrlWithCacheBuster;
             
-            console.log('Dispatching appConfigChanged event with contextualLogos:', currentContextualLogos);
             window.dispatchEvent(new CustomEvent('appConfigChanged', {
               detail: {
                 contextualLogos: currentContextualLogos,
@@ -912,7 +909,6 @@ export default function SystemPreferencesPage() {
         localStorage.setItem('sidebarBackgroundType', 'gradient');
         
         // Dispatch event to update sidebar background immediately
-        console.log('Dispatching appConfigChanged event to remove sidebar background image');
         window.dispatchEvent(new CustomEvent('appConfigChanged', {
           detail: {
             sidebarBackgroundImageUrl: null,
@@ -1010,7 +1006,6 @@ export default function SystemPreferencesPage() {
       localStorage.setItem('sidebarBackgroundImageUrl', url);
       
       // Dispatch event to update sidebar background immediately
-      console.log('Dispatching appConfigChanged event with sidebar background image:', url);
       window.dispatchEvent(new CustomEvent('appConfigChanged', {
         detail: {
           sidebarBackgroundImageUrl: url,

@@ -6,8 +6,9 @@ const uploadQueueControllers = new Set<ReadableStreamDefaultController<any>>();
 
 export async function sendUploadQueueUpdate(controller: ReadableStreamDefaultController<any>, queryParams?: { fileName?: string, status?: string, dateStart?: string, dateEnd?: string, limit?: number, offset?: number }) {
   const encoder = new TextEncoder();
+  let client: any = null;
   try {
-    const client = await getPool().connect();
+    client = await getPool().connect();
     const fileName = queryParams?.fileName;
     const status = queryParams?.status;
     const dateStart = queryParams?.dateStart;
@@ -66,11 +67,12 @@ export async function sendUploadQueueUpdate(controller: ReadableStreamDefaultCon
     };
     // Fix: define total from countRes
     const total = Number(countRes.rows[0]?.count) || 0;
-    client.release();
+    
     const data = JSON.stringify({ type: 'queue', data: res.rows, total, summary: safeSummary });
     // console.log(`[Broadcast] Sending update with summary:`, safeSummary);
     controller.enqueue(encoder.encode(`data: ${data}\n\n`));
   } catch (error) {
+    console.error('[Broadcast] Error in sendUploadQueueUpdate:', error);
     const encoder = new TextEncoder();
     const errorData = JSON.stringify({ type: 'error', message: 'Failed to load queue data' });
     try {
@@ -78,6 +80,15 @@ export async function sendUploadQueueUpdate(controller: ReadableStreamDefaultCon
     } catch (controllerError) {
       // Controller might be closed, remove it from the set
       uploadQueueControllers.delete(controller);
+    }
+  } finally {
+    // ✅ ALWAYS release the client, even in error cases
+    if (client) {
+      try {
+        client.release();
+      } catch (releaseError) {
+        console.error('[Broadcast] Error releasing client:', releaseError);
+      }
     }
   }
 }

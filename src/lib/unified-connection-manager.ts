@@ -422,3 +422,87 @@ export function cleanupInactiveConnections() {
 
 // Start cleanup interval
 setInterval(cleanupInactiveConnections, 60000); // Every minute
+
+// Start periodic cleanup (every 2 minutes)
+let cleanupInterval: NodeJS.Timeout | null = null;
+
+export function startPeriodicCleanup() {
+  if (cleanupInterval) {
+    clearInterval(cleanupInterval);
+  }
+  
+  cleanupInterval = setInterval(() => {
+    try {
+      cleanupInactiveConnections();
+    } catch (error) {
+      console.error('[UNIFIED] Error in periodic cleanup:', error);
+    }
+  }, 2 * 60 * 1000); // Every 2 minutes
+  
+  console.log('[UNIFIED] Periodic cleanup started (every 2 minutes)');
+}
+
+export function stopPeriodicCleanup() {
+  if (cleanupInterval) {
+    clearInterval(cleanupInterval);
+    cleanupInterval = null;
+    console.log('[UNIFIED] Periodic cleanup stopped');
+  }
+}
+
+// Auto-start cleanup when module is imported
+startPeriodicCleanup();
+
+// Connection monitoring and debugging
+export function getConnectionDebugInfo() {
+  const now = Date.now();
+  const connections = Array.from(userConnections.entries()).map(([userId, conn]) => ({
+    userId,
+    lastActivity: new Date(conn.lastActivity).toISOString(),
+    age: Math.round((now - conn.lastActivity) / 1000),
+    hasKeepalive: !!conn.keepaliveInterval,
+    connectionAge: Math.round((now - conn.connectionStartTime) / 1000)
+  }));
+
+  const dbClients = Array.from(userDbClients.keys());
+
+  return {
+    timestamp: new Date().toISOString(),
+    totalConnections: userConnections.size,
+    totalDbClients: userDbClients.size,
+    connections,
+    dbClients,
+    orphanedDbClients: dbClients.filter(userId => !userConnections.has(userId))
+  };
+}
+
+// Emergency connection reset (use with caution)
+export function emergencyConnectionReset() {
+  console.warn('[UNIFIED] EMERGENCY: Resetting all connections...');
+  
+  // Stop cleanup
+  stopPeriodicCleanup();
+  
+  // Clear all connections
+  for (const [userId, connection] of userConnections.entries()) {
+    if (connection.keepaliveInterval) {
+      clearInterval(connection.keepaliveInterval);
+    }
+  }
+  userConnections.clear();
+  
+  // Release all database clients
+  for (const [userId, client] of userDbClients.entries()) {
+    try {
+      client.release();
+    } catch (error) {
+      console.error(`[UNIFIED] Error releasing DB client for user ${userId}:`, error);
+    }
+  }
+  userDbClients.clear();
+  
+  console.log('[UNIFIED] Emergency reset completed');
+  
+  // Restart cleanup
+  startPeriodicCleanup();
+}

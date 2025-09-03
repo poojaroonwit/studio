@@ -398,7 +398,6 @@ export function applySidebarBackgroundToCSS() {
     const sidebarElement = document.querySelector('[data-sidebar="sidebar"]') as HTMLElement;
     
     if (!sidebarElement) {
-      console.log('Sidebar element not found');
       return;
     }
     

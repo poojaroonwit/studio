@@ -3,9 +3,6 @@ import { getPool } from '@/lib/db';
 
 export async function GET() {
   try {
-    console.log('Simple positions API called');
-    console.log('DATABASE_URL:', process.env.DATABASE_URL);
-    
     // Check if DATABASE_URL is configured
     if (!process.env.DATABASE_URL) {
       return NextResponse.json({ 
@@ -15,11 +12,9 @@ export async function GET() {
     }
 
     const pool = getPool();
-    console.log('Database pool created');
     
     // Simple query to test database connection
     const result = await pool.query('SELECT COUNT(*) as count FROM "Position"');
-    console.log('Database query successful');
     
     return NextResponse.json({ 
       message: "Simple positions API working",

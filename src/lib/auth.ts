@@ -175,13 +175,11 @@ export const authOptions: NextAuthOptions = {
             const client = await getPool().connect();
             try {
               const oid = (profile as any)?.oid ?? (profile as any)?.sub ?? profile?.email;
-              console.log('[JWT CALLBACK] Looking up user for Azure AD:', { oid, email: profile?.email });
               // Looking up user with oid
               const res = await client.query('SELECT id FROM "User" WHERE email = $1 OR "azure_oid" = $2', [profile?.email, oid]);
               const dbUser = res.rows[0];
               if (dbUser) {
                 // Found user with UUID
-                // console.log('[JWT CALLBACK] Found user with UUID:', dbUser.id);
                 token.id = dbUser.id;
               }
             } catch (e) {

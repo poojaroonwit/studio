@@ -290,13 +290,11 @@ const SidebarTrigger = React.forwardRef<
     
     // Reduced protection: prevent rapid toggling (less than 150ms apart - reduced from 300ms)
     if (timeSinceLastToggle < 150) {
-      console.log('Sidebar trigger toggle blocked: too rapid clicking');
       return;
     }
     
     // Prevent toggle if already toggling
     if (isToggling) {
-      console.log('Sidebar trigger toggle blocked: already toggling');
       return;
     }
     
@@ -358,13 +356,11 @@ const SidebarRail = React.forwardRef<
     
     // Reduced protection: prevent rapid toggling (less than 150ms apart - reduced from 300ms)
     if (timeSinceLastToggle < 150) {
-      console.log('Sidebar rail toggle blocked: too rapid clicking');
       return;
     }
     
     // Prevent toggle if already toggling
     if (isToggling) {
-      console.log('Sidebar rail toggle blocked: already toggling');
       return;
     }
     

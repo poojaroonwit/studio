@@ -171,13 +171,10 @@ async function validateSession(): Promise<{ userId: string; userName: string }> 
 }
 
 async function fetchPositionsFromDatabase(query: string, params: any[]): Promise<Position[]> {
-  console.log('[Positions API] Executing database query...');
   const pool = getPool();
-  console.log('[Positions API] Got database pool');
   
   try {
     const result = await pool.query(query, params);
-    console.log('[Positions API] Database query successful, rows returned:', result.rows.length);
     return result.rows.map(mapPositionRow);
   } catch (error) {
     console.error('[Positions API] Database query failed:', error);
@@ -217,15 +214,11 @@ async function fetchPositionsFromDatabase(query: string, params: any[]): Promise
  */
 export async function GET(request: NextRequest) {
   try {
-    console.log('[Positions API] GET /api/positions/all called');
-    
     // Validate session
     const { userId, userName } = await validateSession();
-    console.log('[Positions API] Session validated:', { userId, userName });
     
     // Parse and validate filters
     const filters = parseFilters(new URL(request.url).searchParams);
-    console.log('[Positions API] Filters:', filters);
     
     // Check cache first
     const now = Date.now();
@@ -256,8 +249,6 @@ export async function GET(request: NextRequest) {
         );
       }
       
-      console.log('[Positions API] Returning cached data:', cachedPositions.length, 'positions');
-      
       return NextResponse.json({ 
         data: cachedPositions,
         meta: {
@@ -269,13 +260,9 @@ export async function GET(request: NextRequest) {
 
     // Build query
     const { query, params } = buildQuery(filters);
-    console.log('[Positions API] Built query:', query);
-    console.log('[Positions API] Query params:', params);
-   
 
     // Execute query
     const positions = await fetchPositionsFromDatabase(query, params);
-    console.log('[Positions API] Database returned:', positions.length, 'positions');
     
     // Update cache
     positionsCache = {

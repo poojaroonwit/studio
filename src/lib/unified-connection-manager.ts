@@ -298,8 +298,15 @@ export async function handleUnifiedSSEConnection(request: Request) {
   console.log('[UNIFIED] New connection request received');
   
   try {
-    // Authenticate user
-    const session = await getServerSession(authOptions);
+    // Authenticate user with better error handling
+    let session;
+    try {
+      session = await getServerSession(authOptions);
+    } catch (sessionError) {
+      console.error('[UNIFIED] Session authentication error:', sessionError);
+      return new Response('Unauthorized', { status: 401 });
+    }
+    
     const userId = session?.user?.id;
 
     if (!userId) {

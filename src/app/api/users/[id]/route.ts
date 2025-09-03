@@ -76,14 +76,14 @@ export async function GET(request: NextRequest) {
                 forcePasswordChange: true,
                 createdAt: true,
                 updatedAt: true,
-                userGroup: {
+                userGroups: {
                     select: {
                         id: true,
                         name: true,
                         permissions: true
                     }
                 },
-                userTeam: {
+                userTeams: {
                     select: {
                         id: true,
                         name: true,
@@ -99,8 +99,8 @@ export async function GET(request: NextRequest) {
 
         const userToReturn = {
             ...user,
-            teams: user.userTeam ? [user.userTeam] : [],
-            modulePermissions: user.userGroup?.permissions || [],
+            teams: user.userTeams ? user.userTeams : [],
+            modulePermissions: user.userGroups && user.userGroups.length > 0 ? user.userGroups[0].permissions : [],
         };
 
         return NextResponse.json(userToReturn, { status: 200 });

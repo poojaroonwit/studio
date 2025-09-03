@@ -39,6 +39,11 @@ model User {
   warningConfigurationShares WarningConfigurationShare[]
   uploadQueue                UploadQueue[]               @relation("UserUploadQueue")
 
+  // Junction table relation for many-to-many with UserGroup
+  userGroups                 UserGroup[]                 @relation("UserUserGroup")
+  // Junction table relation for many-to-many with UserTeam
+  userTeams                  UserTeam[]                  @relation("UserUserTeam")
+
   @@index([email])
   @@index([role])
   @@index([authenticationMethod])
@@ -230,6 +235,9 @@ model UserGroup {
   isSystemRole Boolean  @default(false) @map("is_system_role")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  
+  // Junction table relation for many-to-many with User
+  users        User[]   @relation("UserUserGroup")
 
   @@index([isDefault])
   @@index([isSystemRole])
@@ -243,6 +251,9 @@ model UserTeam {
   isActive    Boolean  @default(true) @map("is_active")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @default(now())
+  
+  // Junction table relation for many-to-many with User
+  users       User[]   @relation("UserUserTeam")
 
   @@index([isActive])
 }

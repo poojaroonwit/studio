@@ -50,10 +50,10 @@ export function FitScoreFilterBadges({
     <div className={cn("flex flex-col gap-2", className)}>
       {title && (
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-muted-foreground">{title}:</span>
+          <span className="text-xs font-medium text-muted-foreground">{title}:</span>
         </div>
       )}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-1">
         {scoreRanges.map((grade) => {
           const isSelected = selectedGrades.has(grade.letter);
           const count = getCount(grade.letter);
@@ -63,7 +63,7 @@ export function FitScoreFilterBadges({
               key={grade.letter}
               variant={isSelected ? "default" : "outline"}
               className={cn(
-                "cursor-pointer transition-all duration-200 hover:scale-105 relative",
+                "cursor-pointer transition-all duration-200 hover:scale-105 relative text-xs px-2 py-1",
                 isSelected 
                   ? getGradeColor(grade.letter)
                   : "hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700"
@@ -84,7 +84,7 @@ export function FitScoreFilterBadges({
               <Badge
                 variant="secondary"
                 className={cn(
-                  "ml-1 text-xs px-2 py-1 h-5 min-w-5 flex items-center justify-center",
+                  "ml-1 text-xs px-1 py-0.5 h-4 min-w-4 flex items-center justify-center",
                   isSelected
                     ? "bg-white/20 text-white border-white/30"
                     : "bg-blue-100 text-blue-700 border-blue-200"
@@ -100,7 +100,7 @@ export function FitScoreFilterBadges({
         <Badge
           variant={selectedGrades.has('no-score') ? "default" : "outline"}
           className={cn(
-            "cursor-pointer transition-all duration-200 hover:scale-105 relative",
+            "cursor-pointer transition-all duration-200 hover:scale-105 relative text-xs px-2 py-1",
             selectedGrades.has('no-score')
               ? "bg-gray-700 hover:bg-gray-600 text-white border-gray-700"
               : "hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700"
@@ -121,7 +121,7 @@ export function FitScoreFilterBadges({
           <Badge
             variant="secondary"
             className={cn(
-              "ml-1 text-xs px-2 py-1 h-5 min-w-5 flex items-center justify-center",
+              "ml-1 text-xs px-1 py-0.5 h-4 min-w-4 flex items-center justify-center",
               selectedGrades.has('no-score')
                 ? "bg-white/20 text-white border-white/30"
                 : "bg-gray-100 text-gray-700 border-gray-200"

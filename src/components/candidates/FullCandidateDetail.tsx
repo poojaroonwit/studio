@@ -22,6 +22,7 @@ import ReprocessModal from './ReprocessModal';
 import { GenerativeAIModal } from './GenerativeAIModal';
 import CandidateAttachmentUploadModal from './CandidateAttachmentUploadModal';
 import { HeadcountWarningModal } from './HeadcountWarningModal';
+import { DeleteCandidateModal } from './DeleteCandidateModal';
 import { PositionDetailDrawer } from '@/components/positions/PositionDetailDrawer';
 import { useJobMatchFeature } from '@/hooks/useJobMatchFeature';
 
@@ -69,6 +70,8 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
   const [isReprocessModalOpen, setIsReprocessModalOpen] = useState(false);
   const [isGenerativeAIModalOpen, setIsGenerativeAIModalOpen] = useState(false);
   const [isHeadcountWarningModalOpen, setIsHeadcountWarningModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   // Position drawer state
   const [isPositionDrawerOpen, setIsPositionDrawerOpen] = useState(false);
@@ -91,6 +94,42 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
   const handleOpenPositionDrawer = (positionId: string) => {
     setSelectedPositionId(positionId);
     setIsPositionDrawerOpen(true);
+  };
+
+  // Function to handle candidate deletion
+  const handleDeleteCandidate = async () => {
+    if (!candidate?.id) return;
+    
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/candidates/${candidate.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to delete candidate');
+      }
+
+      toast.success('Candidate deleted successfully');
+      
+      // Close the modal/detail view
+      if (onClose) {
+        onClose();
+      } else {
+        // If not in modal, redirect to candidates list
+        window.location.href = '/candidates';
+      }
+    } catch (error: any) {
+      console.error('Error deleting candidate:', error);
+      toast.error(error.message || 'Failed to delete candidate');
+    } finally {
+      setIsDeleting(false);
+      setIsDeleteModalOpen(false);
+    }
   };
 
   // Wrap setHeadcountWarningData to add debugging
@@ -487,6 +526,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
         onManageTransitions={openManageTransitionsModal}
         onReprocess={() => setIsReprocessModalOpen(true)}
         onGenerativeAI={() => setIsGenerativeAIModalOpen(true)}
+        onDelete={() => setIsDeleteModalOpen(true)}
         avatarInputRef={avatarInputRef}
         avatarUploading={avatarUploading}
         avatarError={avatarError}
@@ -897,6 +937,15 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
           errorMessage={headcountWarningData.errorMessage}
         />
       )}
+
+      {/* Delete Candidate Modal */}
+      <DeleteCandidateModal
+        isOpen={isDeleteModalOpen}
+        onOpenChange={setIsDeleteModalOpen}
+        candidate={candidate}
+        onConfirm={handleDeleteCandidate}
+        isDeleting={isDeleting}
+      />
 
       {/* Position Detail Drawer */}
       <PositionDetailDrawer

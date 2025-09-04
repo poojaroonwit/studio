@@ -9,6 +9,8 @@ import { Separator } from '@/components/ui/separator';
 import { Settings, X } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { useJobMatchFeature } from '@/hooks/useJobMatchFeature';
 
 interface CandidateSettingsDrawerProps {
@@ -42,6 +44,10 @@ export interface CandidateSettings {
   
   // Fit score filter mode
   fitScoreFilterMode: 'single' | 'multi';
+  
+  // Table size settings
+  defaultPageSize: number;
+  tableHeight: number;
 }
 
 const defaultSettings: CandidateSettings = {
@@ -57,7 +63,9 @@ const defaultSettings: CandidateSettings = {
   showFilters: true,
   showHorizontalFitScoreFilters: true,
   fitScoreType: 'applied',
-  fitScoreFilterMode: 'single'
+  fitScoreFilterMode: 'single',
+  defaultPageSize: 50,
+  tableHeight: 600
 } as const;
 
 export function CandidateSettingsDrawer({
@@ -334,6 +342,63 @@ export function CandidateSettingsDrawer({
                     </div>
                   </div>
                 </RadioGroup>
+              </CardContent>
+            </Card>
+
+            <Separator />
+
+            {/* Table Size Settings Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Table Size Settings</CardTitle>
+                <CardDescription>
+                  Configure the default table size and height
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="defaultPageSize" className="text-sm font-medium">
+                    Default Rows Per Page
+                  </Label>
+                  <Select
+                    value={localSettings.defaultPageSize.toString()}
+                    onValueChange={(value) => handleSettingChange('defaultPageSize', parseInt(value))}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="10">10 rows</SelectItem>
+                      <SelectItem value="20">20 rows</SelectItem>
+                      <SelectItem value="50">50 rows</SelectItem>
+                      <SelectItem value="100">100 rows</SelectItem>
+                      <SelectItem value="200">200 rows</SelectItem>
+                      <SelectItem value="500">500 rows</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <div className="text-xs text-muted-foreground">
+                    Number of candidates to display per page by default
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="tableHeight" className="text-sm font-medium">
+                    Table Height (px)
+                  </Label>
+                  <Input
+                    id="tableHeight"
+                    type="number"
+                    min="300"
+                    max="1000"
+                    step="50"
+                    value={localSettings.tableHeight}
+                    onChange={(e) => handleSettingChange('tableHeight', parseInt(e.target.value) || 600)}
+                    className="w-full"
+                  />
+                  <div className="text-xs text-muted-foreground">
+                    Height of the candidate table in pixels (300-1000px)
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>

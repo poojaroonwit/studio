@@ -91,6 +91,8 @@ interface CandidateTableProps {
     showStatusColumn?: boolean;
     showAppliedDateColumn?: boolean;
     showLastUpdateColumn?: boolean;
+    defaultPageSize?: number;
+    tableHeight?: number;
   };
   // Dynamic height
   tableHeight?: number;
@@ -191,7 +193,7 @@ export function CandidateTable({
   canAssignSource = false,
   canAssignRecruiter = false,
   settings,
-  tableHeight = 400,
+  tableHeight,
   onBulkDelete,
   onBulkChangeStatus,
   onBulkAssignRecruiter,
@@ -426,10 +428,11 @@ export function CandidateTable({
   return (
     <>
       <div 
-        className="overflow-hidden table-container-responsive h-full"
+        className="overflow-hidden table-container-responsive"
         style={{ 
           '--table-cell-max-width': '100%',
-          '--table-text-overflow': 'ellipsis'
+          '--table-text-overflow': 'ellipsis',
+          height: tableHeight || settings?.tableHeight || 400
         } as React.CSSProperties}
       >
         <div className="h-full w-full overflow-auto table-scrollbar">
@@ -928,7 +931,7 @@ export function CandidateTable({
                                           avatarUrl: candidate.avatarUrl,
                                           email: candidate.email
                                         }}
-                                        size="lg"
+                                        size="md"
                                         className=""
                                       />
                                       <div>

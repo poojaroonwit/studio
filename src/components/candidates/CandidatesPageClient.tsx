@@ -94,7 +94,7 @@ export function CandidatesPageClient({
 
   // Local state for pagination and UI
   const [page, setPage] = useState<number>(1);
-  const [pageSize, setPageSize] = useState<number>(50); // Use reasonable limit for efficiency
+  const [pageSize, setPageSize] = useState<number>(50); // Will be updated when settings load
   const [total, setTotal] = useState<number>(0);
   const [sortColumn, setSortColumn] = useState<string>('applicationDate');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc' | null>('desc');
@@ -560,6 +560,13 @@ export function CandidatesPageClient({
 
   // Settings
   const { settings: candidateSettings, setSettings: setCandidateSettings, isLoading: settingsLoading, error: settingsError, clearError: clearSettingsError } = useCandidateSettings();
+
+  // Update pageSize when settings load
+  useEffect(() => {
+    if (candidateSettings?.defaultPageSize && candidateSettings.defaultPageSize !== pageSize) {
+      setPageSize(candidateSettings.defaultPageSize);
+    }
+  }, [candidateSettings?.defaultPageSize, pageSize]);
 
   // Stable callback for settings change
   const handleSettingsChange = useCallback(async (settings: any) => {
@@ -1699,6 +1706,7 @@ export function CandidatesPageClient({
                 onBulkChangeStatus={handleBulkChangeStatus}
                 onBulkAssignRecruiter={handleBulkAssignRecruiter}
                 settings={candidateSettings}
+                tableHeight={candidateSettings?.tableHeight}
               />
             </div>
 

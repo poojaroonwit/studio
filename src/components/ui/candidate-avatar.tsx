@@ -20,17 +20,17 @@ interface CandidateAvatarProps {
 }
 
 const sizeClasses = {
-  sm: 'h-8 w-8',
-  md: 'h-10 w-10',
-  lg: 'h-12 w-12',
-  xl: 'h-16 w-16'
+  sm: 'h-6 w-6',
+  md: 'h-8 w-8',
+  lg: 'h-10 w-10',
+  xl: 'h-12 w-12'
 };
 
 const fontSizeClasses = {
   sm: 'text-xs',
-  md: 'text-sm',
-  lg: 'text-base',
-  xl: 'text-lg'
+  md: 'text-xs',
+  lg: 'text-sm',
+  xl: 'text-base'
 };
 
 export function CandidateAvatar({ 
@@ -123,7 +123,7 @@ export function CandidateAvatar({
           color: personalColor
         }}
       >
-        {initials || <UserCircle className={cn(size === 'sm' ? 'h-3 w-3' : size === 'md' ? 'h-4 w-4' : size === 'lg' ? 'h-5 w-5' : 'h-6 w-6')} />}
+        {initials || <UserCircle className={cn(size === 'sm' ? 'h-3 w-3' : size === 'md' ? 'h-3 w-3' : size === 'lg' ? 'h-4 w-4' : 'h-5 w-5')} />}
       </AvatarFallback>
     </Avatar>
   );
@@ -199,7 +199,7 @@ export function CandidateAvatarLarge({ user, className }: CandidateAvatarProps) 
   return (
     <Avatar 
       className={cn(
-        'h-16 w-16',
+        'h-12 w-12',
         'relative bg-gradient-to-br from-blue-100 to-indigo-200 dark:from-blue-900/30 dark:to-indigo-800/30',
         'transition-all duration-300 rounded-md',
         isLoading && 'animate-pulse',
@@ -215,13 +215,13 @@ export function CandidateAvatarLarge({ user, className }: CandidateAvatarProps) 
         />
       ) : null}
       <AvatarFallback 
-        className="bg-gradient-to-br from-blue-500/20 to-indigo-600/20 text-blue-700 dark:text-blue-300 font-bold text-lg rounded-md"
+        className="bg-gradient-to-br from-blue-500/20 to-indigo-600/20 text-blue-700 dark:text-blue-300 font-bold text-base rounded-md"
         style={{ 
           backgroundColor: personalColor + '20',
           color: personalColor
         }}
       >
-        {initials || <UserCircle className="h-6 w-6" />}
+        {initials || <UserCircle className="h-5 w-5" />}
       </AvatarFallback>
     </Avatar>
   );

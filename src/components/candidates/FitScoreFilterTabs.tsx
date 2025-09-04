@@ -170,7 +170,7 @@ export function FitScoreFilterTabs({
     return (
       <Badge 
         variant="secondary" 
-        className="ml-1 text-xs px-1.5 py-0.5 h-5 min-w-5 flex items-center justify-center text-foreground transition-all duration-200"
+        className="ml-1 text-xs px-1 py-0.5 h-4 min-w-4 flex items-center justify-center text-foreground transition-all duration-200"
       >
         <SmoothCount count={count} />
       </Badge>
@@ -185,7 +185,7 @@ export function FitScoreFilterTabs({
             safeOnClearAll();
           }}
           className={cn(
-            "flex items-center gap-2 px-2 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer rounded-t-lg",
+            "flex items-center gap-1 px-1.5 py-2 text-xs font-medium transition-all duration-200 relative cursor-pointer rounded-t-lg",
             isAllSelected
               ? "text-white border-b-2 bg-blue-800"
               : "text-black hover:text-foreground hover:bg-muted/30 border-b-2 border-gray-300"
@@ -210,7 +210,7 @@ export function FitScoreFilterTabs({
               safeOnGradeToggle(grade.letter);
             }}
             className={cn(
-              "flex items-center gap-2 px-2 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer rounded-t-lg",
+              "flex items-center gap-1 px-1.5 py-2 text-xs font-medium transition-all duration-200 relative cursor-pointer rounded-t-lg",
               safeSelectedGrades && safeSelectedGrades.has(grade.letter)
                 ? cn("text-white border-b-2", getGradeBorderColor(grade.letter))
                 : cn("hover:bg-muted/30", getGradeTextColor(grade.letter))
@@ -234,7 +234,7 @@ export function FitScoreFilterTabs({
             safeOnGradeToggle('no-score');
           }}
           className={cn(
-            "flex items-center gap-2 px-2 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer rounded-t-lg",
+            "flex items-center gap-1 px-1.5 py-2 text-xs font-medium transition-all duration-200 relative cursor-pointer rounded-t-lg",
             safeSelectedGrades && safeSelectedGrades.has('no-score')
               ? cn("text-white border-b-2", getGradeBorderColor('no-score'))
               : cn("hover:bg-muted/30", getGradeTextColor('no-score'))

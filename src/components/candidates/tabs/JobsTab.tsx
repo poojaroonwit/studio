@@ -59,21 +59,28 @@ export const JobsTab: React.FC<JobsTabProps> = ({
             <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Job Applied</h2>
             {jobAppliedOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
           </button>
-          {appliedJobId && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onCopyJobApplied}
-              className="h-8 w-8 p-0"
-              title="Copy job applied information"
-            >
-              {copiedJobApplied ? (
-                <Check className="h-4 w-4 text-green-600" />
-              ) : (
-                <Copy className="h-4 w-4" />
-              )}
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {appliedFitScore !== null && appliedFitScore !== undefined && (
+              <ScoreBadge score={appliedFitScore} className="text-xs">
+                {formatScoreWithGrade(appliedFitScore)}
+              </ScoreBadge>
+            )}
+            {appliedJobId && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onCopyJobApplied}
+                className="h-8 w-8 p-0"
+                title="Copy job applied information"
+              >
+                {copiedJobApplied ? (
+                  <Check className="h-4 w-4 text-green-600" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+              </Button>
+            )}
+          </div>
         </div>
         {jobAppliedOpen && (
           <div className="space-y-4 transition-all duration-200">

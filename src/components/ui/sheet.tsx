@@ -7,7 +7,14 @@ import { X } from "lucide-react"
 import { logIfInvalidSingleChild } from "./utils"
 
 import { cn } from "@/lib/utils"
-import { zIndexManager, useZIndexManager } from "@/lib/z-index-manager"
+// Import z-index manager with error handling
+let zIndexManager: any = null;
+try {
+  const manager = require('@/lib/z-index-manager');
+  zIndexManager = manager.zIndexManager;
+} catch (error) {
+  console.warn('[Sheet] Z-index manager not available, using fallback z-index values');
+}
 
 const Sheet = SheetPrimitive.Root
 
@@ -35,13 +42,22 @@ const SheetOverlay = React.forwardRef<
   const [zIndex, setZIndex] = React.useState(10000);
   
   React.useEffect(() => {
-    if (modalId) {
-      const { overlayZIndex } = zIndexManager.registerModal(modalId, 'sheet');
-      setZIndex(overlayZIndex);
-      
-      return () => {
-        zIndexManager.unregisterModal(modalId);
-      };
+    if (modalId && zIndexManager) {
+      try {
+        const { overlayZIndex } = zIndexManager.registerModal(modalId, 'sheet');
+        setZIndex(overlayZIndex);
+        
+        return () => {
+          try {
+            zIndexManager.unregisterModal(modalId);
+          } catch (error) {
+            console.error('[SheetOverlay] Error unregistering modal:', error);
+          }
+        };
+      } catch (error) {
+        console.error('[SheetOverlay] Error registering modal:', error);
+        setZIndex(10000); // Fallback z-index
+      }
     }
   }, [modalId]);
 
@@ -91,9 +107,14 @@ const SheetContent = React.forwardRef<
   const [zIndex, setZIndex] = React.useState(10001);
   
   React.useEffect(() => {
-    if (modalId) {
-      const { contentZIndex } = zIndexManager.registerModal(modalId, 'sheet');
-      setZIndex(contentZIndex);
+    if (modalId && zIndexManager) {
+      try {
+        const { contentZIndex } = zIndexManager.registerModal(modalId, 'sheet');
+        setZIndex(contentZIndex);
+      } catch (error) {
+        console.error('[SheetContent] Error registering modal:', error);
+        setZIndex(10001); // Fallback z-index
+      }
     }
   }, [modalId]);
 

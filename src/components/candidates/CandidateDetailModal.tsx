@@ -3,7 +3,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import CandidateDetailView from './CandidateDetailView';
-import { zIndexManager } from '@/lib/z-index-manager';
+// Import z-index manager with error handling
+let zIndexManager: any = null;
+try {
+  const manager = require('@/lib/z-index-manager');
+  zIndexManager = manager.zIndexManager;
+} catch (error) {
+  console.warn('[CandidateDetailModal] Z-index manager not available, using fallback z-index values');
+}
 
 interface CandidateDetailModalProps {
   candidateId: string;
@@ -17,11 +24,7 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
   const portalContainerRef = useRef<HTMLDivElement | null>(null);
   const modalIdRef = useRef<string | null>(null);
 
-  // Add infinite loop prevention
-  // Simple tracking for debugging (removed complex infinite loop prevention)
-  const modalOpenCount = useRef(0);
-
-  // Create portal container on mount - FIXED: Use useEffect instead of useSafeEffect
+  // Create portal container on mount
   useEffect(() => {
     setMounted(true);
     
@@ -40,30 +43,40 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
         portalContainerRef.current = null;
       }
     };
-  }, []); // FIXED: Empty dependency array since this should only run once
+  }, []);
 
   // Handle modal opening/closing and z-index management
   useEffect(() => {
     if (open && candidateId) {
-      // Generate unique modal ID
-      modalIdRef.current = zIndexManager.generateId('custom-modal');
-      const { overlayZIndex, contentZIndex } = zIndexManager.registerModal(modalIdRef.current, 'custom-modal');
-      setZIndex({ overlay: overlayZIndex, content: contentZIndex });
-      
-      console.log(`[CandidateDetailModal] Opened with z-index ${overlayZIndex}/${contentZIndex}`);
-    } else if (modalIdRef.current) {
-      // Unregister modal when closing
-      zIndexManager.unregisterModal(modalIdRef.current);
-      modalIdRef.current = null;
-      console.log(`[CandidateDetailModal] Closed and unregistered`);
+      if (zIndexManager) {
+        try {
+          // Generate unique modal ID
+          modalIdRef.current = zIndexManager.generateId('custom-modal');
+          const { overlayZIndex, contentZIndex } = zIndexManager.registerModal(modalIdRef.current, 'custom-modal');
+          setZIndex({ overlay: overlayZIndex, content: contentZIndex });
+          
+          console.log(`[CandidateDetailModal] Opened with z-index ${overlayZIndex}/${contentZIndex}`);
+        } catch (error) {
+          console.error('[CandidateDetailModal] Error registering modal:', error);
+          setZIndex({ overlay: 10002, content: 10003 }); // Fallback z-index
+        }
+      } else {
+        setZIndex({ overlay: 10002, content: 10003 }); // Fallback z-index
+      }
+    } else if (modalIdRef.current && zIndexManager) {
+      try {
+        // Unregister modal when closing
+        zIndexManager.unregisterModal(modalIdRef.current);
+        modalIdRef.current = null;
+        console.log(`[CandidateDetailModal] Closed and unregistered`);
+      } catch (error) {
+        console.error('[CandidateDetailModal] Error unregistering modal:', error);
+      }
     }
   }, [open, candidateId]);
 
-  // Handle escape key - FIXED: Use useEffect instead of useSafeEffect
+  // Handle escape key
   useEffect(() => {
-    // Simple tracking (removed complex infinite loop prevention)
-    modalOpenCount.current++;
-
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && open) {
         onClose();
@@ -81,19 +94,23 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
       // Restore body scroll when modal closes
       document.body.style.overflow = '';
     };
-  }, [open, onClose]); // FIXED: Removed trackModalOpen dependency
+  }, [open, onClose]);
 
-  // Cleanup on unmount - FIXED: Use useEffect instead of useSafeEffect
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       // Ensure body scroll is restored
       document.body.style.overflow = '';
       // Clean up modal registration
-      if (modalIdRef.current) {
-        zIndexManager.unregisterModal(modalIdRef.current);
+      if (modalIdRef.current && zIndexManager) {
+        try {
+          zIndexManager.unregisterModal(modalIdRef.current);
+        } catch (error) {
+          console.error('[CandidateDetailModal] Error cleaning up modal:', error);
+        }
       }
     };
-  }, []); // FIXED: Empty dependency array for cleanup
+  }, []);
 
   if (!open || !candidateId || !mounted || !portalContainerRef.current) return null;
 

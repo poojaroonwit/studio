@@ -5,7 +5,14 @@ import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog"
 
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
-import { zIndexManager, useZIndexManager } from "@/lib/z-index-manager"
+// Import z-index manager with error handling
+let zIndexManager: any = null;
+try {
+  const manager = require('@/lib/z-index-manager');
+  zIndexManager = manager.zIndexManager;
+} catch (error) {
+  console.warn('[AlertDialog] Z-index manager not available, using fallback z-index values');
+}
 
 const AlertDialog = AlertDialogPrimitive.Root
 
@@ -22,13 +29,22 @@ const AlertDialogOverlay = React.forwardRef<
   const [zIndex, setZIndex] = React.useState(10001);
   
   React.useEffect(() => {
-    if (modalId) {
-      const { overlayZIndex } = zIndexManager.registerModal(modalId, 'alert-dialog');
-      setZIndex(overlayZIndex);
-      
-      return () => {
-        zIndexManager.unregisterModal(modalId);
-      };
+    if (modalId && zIndexManager) {
+      try {
+        const { overlayZIndex } = zIndexManager.registerModal(modalId, 'alert-dialog');
+        setZIndex(overlayZIndex);
+        
+        return () => {
+          try {
+            zIndexManager.unregisterModal(modalId);
+          } catch (error) {
+            console.error('[AlertDialogOverlay] Error unregistering modal:', error);
+          }
+        };
+      } catch (error) {
+        console.error('[AlertDialogOverlay] Error registering modal:', error);
+        setZIndex(10001); // Fallback z-index
+      }
     }
   }, [modalId]);
 
@@ -55,9 +71,14 @@ const AlertDialogContent = React.forwardRef<
   const [zIndex, setZIndex] = React.useState(10002);
   
   React.useEffect(() => {
-    if (modalId) {
-      const { contentZIndex } = zIndexManager.registerModal(modalId, 'alert-dialog');
-      setZIndex(contentZIndex);
+    if (modalId && zIndexManager) {
+      try {
+        const { contentZIndex } = zIndexManager.registerModal(modalId, 'alert-dialog');
+        setZIndex(contentZIndex);
+      } catch (error) {
+        console.error('[AlertDialogContent] Error registering modal:', error);
+        setZIndex(10002); // Fallback z-index
+      }
     }
   }, [modalId]);
 

@@ -35,37 +35,62 @@ class ZIndexManager {
    * Register a new modal/drawer and get its z-index values
    */
   public registerModal(id: string, type: ModalType): { overlayZIndex: number; contentZIndex: number } {
-    // Remove any existing modal with the same ID
-    this.unregisterModal(id);
+    try {
+      // Validate inputs
+      if (!id || typeof id !== 'string') {
+        console.warn('[ZIndexManager] Invalid modal ID provided:', id);
+        return { overlayZIndex: this.baseZIndex, contentZIndex: this.baseZIndex + 1 };
+      }
 
-    const overlayZIndex = this.baseZIndex + (this.modalStack.length * this.zIndexIncrement);
-    const contentZIndex = overlayZIndex + 1;
+      if (!type || !['dialog', 'sheet', 'alert-dialog', 'custom-modal'].includes(type)) {
+        console.warn('[ZIndexManager] Invalid modal type provided:', type);
+        return { overlayZIndex: this.baseZIndex, contentZIndex: this.baseZIndex + 1 };
+      }
 
-    const modalInstance: ModalInstance = {
-      id,
-      type,
-      overlayZIndex,
-      contentZIndex,
-      openedAt: Date.now()
-    };
+      // Remove any existing modal with the same ID
+      this.unregisterModal(id);
 
-    this.modalStack.push(modalInstance);
-    
-    console.log(`[ZIndexManager] Registered ${type} modal "${id}" with z-index ${overlayZIndex}/${contentZIndex}`);
-    console.log(`[ZIndexManager] Current stack:`, this.modalStack.map(m => `${m.type}:${m.id}(${m.overlayZIndex})`));
+      const overlayZIndex = this.baseZIndex + (this.modalStack.length * this.zIndexIncrement);
+      const contentZIndex = overlayZIndex + 1;
 
-    return { overlayZIndex, contentZIndex };
+      const modalInstance: ModalInstance = {
+        id,
+        type,
+        overlayZIndex,
+        contentZIndex,
+        openedAt: Date.now()
+      };
+
+      this.modalStack.push(modalInstance);
+      
+      console.log(`[ZIndexManager] Registered ${type} modal "${id}" with z-index ${overlayZIndex}/${contentZIndex}`);
+      console.log(`[ZIndexManager] Current stack:`, this.modalStack.map(m => `${m.type}:${m.id}(${m.overlayZIndex})`));
+
+      return { overlayZIndex, contentZIndex };
+    } catch (error) {
+      console.error('[ZIndexManager] Error registering modal:', error);
+      return { overlayZIndex: this.baseZIndex, contentZIndex: this.baseZIndex + 1 };
+    }
   }
 
   /**
    * Unregister a modal/drawer when it's closed
    */
   public unregisterModal(id: string): void {
-    const index = this.modalStack.findIndex(modal => modal.id === id);
-    if (index !== -1) {
-      const removed = this.modalStack.splice(index, 1)[0];
-      console.log(`[ZIndexManager] Unregistered ${removed.type} modal "${id}"`);
-      console.log(`[ZIndexManager] Current stack:`, this.modalStack.map(m => `${m.type}:${m.id}(${m.overlayZIndex})`));
+    try {
+      if (!id || typeof id !== 'string') {
+        console.warn('[ZIndexManager] Invalid modal ID provided for unregister:', id);
+        return;
+      }
+
+      const index = this.modalStack.findIndex(modal => modal.id === id);
+      if (index !== -1) {
+        const removed = this.modalStack.splice(index, 1)[0];
+        console.log(`[ZIndexManager] Unregistered ${removed.type} modal "${id}"`);
+        console.log(`[ZIndexManager] Current stack:`, this.modalStack.map(m => `${m.type}:${m.id}(${m.overlayZIndex})`));
+      }
+    } catch (error) {
+      console.error('[ZIndexManager] Error unregistering modal:', error);
     }
   }
 

@@ -36,13 +36,9 @@ const DialogContent = React.forwardRef<
     modalId?: string;
   }
 >(({ className, children, modalId, ...props }, ref) => {
-  // TEMPORARILY DISABLED: Modal manager for debugging
+  // Use dynamic modal manager for proper z-index sequencing
   const id = modalId || `dialog-${React.useId()}`;
-  // const { zIndex, overlayZIndex } = useModalManager(id, 'dialog');
-  
-  // Use fixed z-index values for testing
-  const zIndex = 50000;
-  const overlayZIndex = 49999;
+  const { zIndex, overlayZIndex } = useModalManager(id, 'dialog');
 
   return (
     <DialogPortal>

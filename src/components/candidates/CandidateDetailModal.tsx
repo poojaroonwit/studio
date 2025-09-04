@@ -17,15 +17,11 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
   const portalContainerRef = useRef<HTMLDivElement | null>(null);
   
   // Debug logging
-  // console.log('CandidateDetailModal render:', { candidateId, open, mounted });
+  console.log('CandidateDetailModal render:', { candidateId, open, mounted });
   
-  // TEMPORARILY DISABLED: Modal manager for debugging
+  // Use dynamic modal manager for proper z-index sequencing
   const modalId = candidateId ? `candidate-detail-${candidateId}` : 'candidate-detail-unknown';
-  // const { zIndex, overlayZIndex } = useModalManager(modalId, 'custom');
-  
-  // Use fixed z-index values for testing
-  const zIndex = 60000;
-  const overlayZIndex = 59999;
+  const { zIndex, overlayZIndex } = useModalManager(modalId, 'custom');
 
   // Add infinite loop prevention
   // Simple tracking for debugging (removed complex infinite loop prevention)
@@ -39,6 +35,14 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
     if (!portalContainerRef.current) {
       portalContainerRef.current = document.createElement('div');
       portalContainerRef.current.setAttribute('data-candidate-modal-portal', 'true');
+      // Ensure portal container doesn't constrain overlays
+      portalContainerRef.current.style.position = 'fixed';
+      portalContainerRef.current.style.top = '0';
+      portalContainerRef.current.style.left = '0';
+      portalContainerRef.current.style.width = '100vw';
+      portalContainerRef.current.style.height = '100vh';
+      portalContainerRef.current.style.pointerEvents = 'none';
+      portalContainerRef.current.style.zIndex = '1';
       document.body.appendChild(portalContainerRef.current);
     }
 
@@ -84,7 +88,11 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
     };
   }, []); // FIXED: Empty dependency array for cleanup
 
-  if (!open || !candidateId || !mounted || !portalContainerRef.current) return null;
+  console.log('Early return check:', { open, candidateId, mounted, portalContainer: !!portalContainerRef.current });
+  if (!open || !candidateId || !mounted || !portalContainerRef.current) {
+    console.log('Early return triggered - modal not rendering');
+    return null;
+  }
 
   const handleBackdropClick = (e: React.MouseEvent) => {
     // Prevent event from bubbling up to parent components
@@ -100,7 +108,20 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
   const modalContent = (
     <div
       className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center p-4 pointer-events-auto"
-      style={{ zIndex: overlayZIndex }}
+      style={{ 
+        zIndex: overlayZIndex,
+        width: '100vw',
+        height: '100vh',
+        left: 0,
+        top: 0,
+        right: 0,
+        bottom: 0,
+        position: 'fixed',
+        margin: 0,
+        padding: 0,
+        border: 'none',
+        boxSizing: 'border-box'
+      }}
       onClick={handleBackdropClick}
       data-modal-overlay={modalId}
     >
@@ -119,6 +140,13 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
     </div>
   );
 
+  console.log('Modal content created:', { modalId, zIndex, overlayZIndex, open });
+
   // Use Portal to render outside the current component tree
+  console.log('Portal container:', portalContainerRef.current);
+  if (!portalContainerRef.current) {
+    console.error('Portal container not found!');
+    return null;
+  }
   return createPortal(modalContent, portalContainerRef.current);
 }

@@ -53,7 +53,7 @@ interface ManageTransitionsModalProps {
   candidate: Candidate | null;
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onUpdateCandidate: (candidateId: string, status: CandidateStatus, notes?: string, suppressToast?: boolean) => Promise<void>;
+  onUpdateCandidate: (candidateId: string, status: CandidateStatus, notes?: string, suppressToast?: boolean) => Promise<boolean | undefined>;
   onRefreshCandidateData: (candidateId: string) => Promise<void>;
   availableStages: RecruitmentStage[];
   preselectedStage?: string | null;
@@ -198,8 +198,8 @@ export function ManageTransitionsModal({
 
     setIsSaving(true);
     
-    // Show loading toast
-    const loadingToastId = showLoadingToast("Saving transition...");
+    // Show loading toast for transaction management
+    const loadingToastId = showLoadingToast("Managing transaction...");
     
     // Create abort controller for this request
     const controller = new AbortController();
@@ -228,7 +228,7 @@ export function ManageTransitionsModal({
         
         if (!isMountedRef.current) return;
         
-        // Dismiss loading toast
+        // Transaction passed successfully - close the manage transaction toast
         toast.dismiss(loadingToastId);
         
         // Reset form and state
@@ -244,8 +244,8 @@ export function ManageTransitionsModal({
             onCommentsChange();
         }
         
-        // Show success message with better styling
-        showSuccessToast("Transition saved successfully!", {
+        // Show success toast for update success
+        showSuccessToast("Update successful!", {
           duration: 3000,
           icon: "✅"
         });

@@ -175,6 +175,23 @@
   box-sizing: border-box !important;
 }
 
+/* Force all modal overlays to cover full screen regardless of parent constraints */
+.fixed.inset-0.bg-black\/20,
+.fixed.inset-0.bg-black\/20.backdrop-blur-sm {
+  width: 100vw !important;
+  height: 100vh !important;
+  left: 0 !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  position: fixed !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  box-sizing: border-box !important;
+  transform: none !important;
+}
+
 /* Sheet components should have higher z-index than regular modals */
 [data-modal-id*="position-drawer"] {
   /* Position drawers get higher z-index automatically via modal manager */
@@ -200,6 +217,22 @@
   padding: 0 !important;
   border: none !important;
   box-sizing: border-box !important;
+}
+
+/* Force all elements with backdrop-blur-sm to cover full screen */
+.fixed.inset-0.backdrop-blur-sm {
+  width: 100vw !important;
+  height: 100vh !important;
+  left: 0 !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  position: fixed !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  box-sizing: border-box !important;
+  transform: none !important;
 }
 
 /* Ensure dialog overlays are properly removed when closed */

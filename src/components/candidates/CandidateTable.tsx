@@ -448,7 +448,8 @@ export function CandidateTable({
         style={{ 
           '--table-cell-max-width': '100%',
           '--table-text-overflow': 'ellipsis',
-          height: 400
+          height: 'calc(100vh - 200px)',
+          minHeight: '400px'
         } as React.CSSProperties}
       >
         <div className="h-full w-full overflow-auto table-scrollbar">

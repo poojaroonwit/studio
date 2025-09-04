@@ -11,43 +11,57 @@ interface ModalInstance {
   zIndex: number;
   overlayElement?: HTMLElement;
   contentElement?: HTMLElement;
+  openedAt: number; // Timestamp when modal was opened
+  stackOrder: number; // Order in the stack (0 = oldest, higher = newer)
 }
 
 class ModalManager {
   private modals: Map<string, ModalInstance> = new Map();
   private globalOverlay: HTMLElement | null = null;
   private nextZIndex = 50000; // Increased base z-index to ensure modals are visible
+  private modalStack: string[] = []; // Stack to track opening order
+  private baseZIndex = 50000; // Base z-index for the first modal
 
   /**
-   * Register a new modal instance
+   * Register a new modal instance with dynamic z-index based on opening order
    */
   registerModal(id: string, type: ModalInstance['type']): number {
     try {
       // Safety check for undefined id
       if (!id || typeof id !== 'string') {
         console.warn('ModalManager.registerModal: Invalid id provided:', id);
-        return 50000; // Return default z-index
+        return this.baseZIndex; // Return default z-index
       }
 
-      const zIndex = this.nextZIndex;
-      this.nextZIndex += 100; // Increment by 100 to leave room for overlays
+      // If modal already exists, return its current z-index
+      if (this.modals.has(id)) {
+        return this.modals.get(id)!.zIndex;
+      }
+
+      // Add to stack and calculate z-index based on position
+      this.modalStack.push(id);
+      const stackOrder = this.modalStack.length - 1;
+      const zIndex = this.baseZIndex + (stackOrder * 1000); // Each modal gets 1000 z-index units
 
       this.modals.set(id, {
         id,
         type,
         zIndex,
+        openedAt: Date.now(),
+        stackOrder,
       });
 
+      console.log(`Modal registered: ${id} (${type}) with z-index ${zIndex}, stack order: ${stackOrder}`);
       this.updateGlobalOverlay();
       return zIndex;
     } catch (error) {
       console.warn('Error in ModalManager.registerModal:', error);
-      return 50000; // Return default z-index on error
+      return this.baseZIndex; // Return default z-index on error
     }
   }
 
   /**
-   * Unregister a modal instance
+   * Unregister a modal instance and update stack
    */
   unregisterModal(id: string): void {
     try {
@@ -57,7 +71,16 @@ class ModalManager {
         return;
       }
 
+      // Remove from stack
+      const stackIndex = this.modalStack.indexOf(id);
+      if (stackIndex !== -1) {
+        this.modalStack.splice(stackIndex, 1);
+      }
+
+      // Remove from modals map
       this.modals.delete(id);
+
+      console.log(`Modal unregistered: ${id}, remaining stack:`, this.modalStack);
       this.updateGlobalOverlay();
     } catch (error) {
       console.warn('Error in ModalManager.unregisterModal:', error);
@@ -69,7 +92,7 @@ class ModalManager {
    */
   getModalZIndex(id: string): number {
     const modal = this.modals.get(id);
-    return modal?.zIndex || 50000;
+    return modal?.zIndex || this.baseZIndex;
   }
 
   /**
@@ -77,7 +100,21 @@ class ModalManager {
    */
   getOverlayZIndex(id: string): number {
     const modal = this.modals.get(id);
-    return modal ? modal.zIndex - 1 : 49999;
+    return modal ? modal.zIndex - 1 : this.baseZIndex - 1;
+  }
+
+  /**
+   * Get the current modal stack order
+   */
+  getModalStack(): string[] {
+    return [...this.modalStack];
+  }
+
+  /**
+   * Get the stack order of a specific modal
+   */
+  getModalStackOrder(id: string): number {
+    return this.modalStack.indexOf(id);
   }
 
   /**
@@ -138,17 +175,19 @@ class ModalManager {
    */
   cleanup(): void {
     this.modals.clear();
+    this.modalStack = [];
     this.removeGlobalOverlay();
-    this.nextZIndex = 50000;
+    this.nextZIndex = this.baseZIndex;
   }
 
   /**
    * Get debug information about current modals
    */
-  getDebugInfo(): { modals: ModalInstance[]; hasGlobalOverlay: boolean } {
+  getDebugInfo(): { modals: ModalInstance[]; hasGlobalOverlay: boolean; stack: string[] } {
     return {
       modals: Array.from(this.modals.values()),
       hasGlobalOverlay: this.globalOverlay !== null,
+      stack: [...this.modalStack],
     };
   }
 }
@@ -191,6 +230,7 @@ export function useModalManager(id: string, type: ModalInstance['type']) {
     zIndex,
     overlayZIndex: zIndex - 1,
     hasOpenModals: modalManager.hasOpenModals(),
+    stackOrder: modalManager.getModalStackOrder(id),
   };
 }
 
@@ -235,7 +275,13 @@ export function emergencyModalCleanup() {
 if (typeof window !== 'undefined') {
   (window as any).emergencyModalCleanup = emergencyModalCleanup;
   (window as any).debugModalManager = () => {
-    console.log('Modal Manager Debug Info:', modalManager.getDebugInfo());
+    const debugInfo = modalManager.getDebugInfo();
+    console.log('Modal Manager Debug Info:', debugInfo);
     console.log('Current modals:', Array.from(modalManager['modals'].entries()));
+    console.log('Modal stack (opening order):', debugInfo.stack);
+    console.log('Z-index hierarchy:');
+    debugInfo.modals.forEach(modal => {
+      console.log(`  ${modal.id} (${modal.type}): z-index ${modal.zIndex}, stack order ${modal.stackOrder}`);
+    });
   };
 }

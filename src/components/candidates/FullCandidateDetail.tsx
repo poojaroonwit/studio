@@ -750,7 +750,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
         }}
         candidate={candidate}
         availableStages={availableStages}
-        onUpdateCandidate={async (candidateId: string, status: string, notes?: string, suppressToast?: boolean) => {
+        onUpdateCandidate={async (candidateId: string, status: string, notes?: string, suppressToast?: boolean): Promise<boolean | undefined> => {
           console.log('FullCandidateDetail - onUpdateCandidate called with:', { candidateId, status, notes, suppressToast });
           // Store original state for potential reversion
           const originalCandidate = candidate;
@@ -817,7 +817,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                 console.error('Error validating headcount availability:', validationError);
                 // If validation fails, show error and don't proceed
                 toast.error('Failed to validate headcount availability. Please try again.');
-                return;
+                return false;
               }
             }
             
@@ -856,8 +856,9 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
               toast.success(`Candidate status updated to "${status}".`);
             }
             
-            // Successfully completed
+            // Successfully completed - return true to indicate transaction passed
             console.log('FullCandidateDetail - onUpdateCandidate completed successfully');
+            return true;
                      } catch (error: any) {
              console.error('FullCandidateDetail - Error updating candidate status:', error);
              
@@ -875,8 +876,8 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                toast.error(error?.message || 'Failed to update status.');
              }
              
-             // Error handled, no return value needed
-             return;
+             // Error handled - return false to indicate transaction failed
+             return false;
            }
         }}
         onRefreshCandidateData={async (candidateId: string) => {

@@ -70,13 +70,9 @@ const SheetContent = React.forwardRef<
     modalId?: string;
   }
 >(({ side = "right", className, children, modalId, ...props }, ref) => {
-  // TEMPORARILY DISABLED: Modal manager for debugging
+  // Use dynamic modal manager for proper z-index sequencing
   const id = modalId || `sheet-${React.useId()}`;
-  // const { zIndex, overlayZIndex } = useModalManager(id, 'sheet');
-  
-  // Use fixed z-index values for testing
-  const zIndex = 55000;
-  const overlayZIndex = 54999;
+  const { zIndex, overlayZIndex } = useModalManager(id, 'sheet');
 
   return (
     <SheetPortal>

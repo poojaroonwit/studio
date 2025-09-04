@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { hasAnyPermission } from '@/lib/permissions';
+import { getUnifiedConnectionStats } from '@/lib/unified-connection-manager';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,40 +31,60 @@ export const dynamic = 'force-dynamic';
  *                   type: number
  *       401:
  *         description: Unauthorized
- *       403:
- *         description: Forbidden - Admin access required
  *       500:
  *         description: Internal server error
  */
 export async function GET(request: NextRequest) {
   try {
-    // Check authentication and permissions
+    // Simple authentication check without database calls
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ 
+        error: 'Unauthorized',
+        message: 'Authentication required'
+      }, { 
+        status: 401,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        }
+      });
     }
 
-    // Check if user has admin permissions
-    const isAdmin = hasAnyPermission(session.user, ['USERS_PERMISSIONS_MANAGE']);
-    if (!isAdmin) {
-      return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
-    }
-
-    // Get SSE connection info from global state or environment
-    // This is a simplified implementation - you may need to track actual SSE connections
+    // Get SSE connection stats without database calls
+    const connectionStats = getUnifiedConnectionStats();
+    
     const sseStatus = {
-      status: 'connected' as const, // You can implement actual connection tracking
-      lastUpdate: new Date().toLocaleTimeString(),
-      eventCount: Math.floor(Math.random() * 1000), // Placeholder - implement actual counting
-      activeConnections: Math.floor(Math.random() * 10) + 1 // Placeholder - implement actual counting
+      status: connectionStats.totalConnections > 0 ? 'connected' : 'disconnected',
+      lastUpdate: new Date().toISOString(),
+      activeConnections: connectionStats.totalConnections,
+      connectedUsers: connectionStats.connectedUsers.length,
+      timestamp: new Date().toISOString(),
+      serverTime: new Date().toLocaleTimeString()
     };
 
-    return NextResponse.json(sseStatus);
+    return NextResponse.json(sseStatus, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Cache-Control': 'no-cache'
+      }
+    });
   } catch (error) {
     console.error('[SSE STATUS] Error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      { 
+        error: 'Internal server error',
+        message: 'Failed to get SSE status',
+        timestamp: new Date().toISOString()
+      },
+      { 
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        }
+      }
     );
   }
 }

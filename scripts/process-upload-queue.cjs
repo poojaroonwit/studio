@@ -365,10 +365,18 @@ async function processJob() {
     });
 
     if (response.status === 200) {
-      log('INFO', 'Processed single job successfully');
-      consecutiveErrors = 0;
-      currentBackoffMs = dynamicConfig.retryDelayMs;
-      return 1;
+      // Check if the response indicates no queued jobs
+      if (response.data && response.data.message === 'No queued jobs') {
+        // Don't log empty single job attempts to reduce noise
+        consecutiveErrors = 0;
+        currentBackoffMs = dynamicConfig.retryDelayMs;
+        return 0; // Return 0 to indicate no jobs were processed
+      } else {
+        log('INFO', 'Processed single job successfully');
+        consecutiveErrors = 0;
+        currentBackoffMs = dynamicConfig.retryDelayMs;
+        return 1;
+      }
     } else {
       throw new Error(`HTTP ${response.status}: ${JSON.stringify(response.data)}`);
     }

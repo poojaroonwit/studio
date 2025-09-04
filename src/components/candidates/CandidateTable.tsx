@@ -110,17 +110,17 @@ function displayFitScoreWithGrade(score: number | undefined | null) {
   return formatScoreWithGrade(score);
 }
 
-// Utility for getting row height styles
-function getRowHeightStyle(rowHeight: 'compact' | 'normal' | 'comfortable' = 'normal') {
+// Utility for getting row height CSS class
+function getRowHeightClass(rowHeight: 'compact' | 'normal' | 'comfortable' = 'normal') {
   console.log('Row height setting:', rowHeight); // Debug log
   switch (rowHeight) {
     case 'compact':
-      return { height: '32px', minHeight: '32px' }; // 32px
+      return 'candidate-table-row-compact';
     case 'comfortable':
-      return { height: '64px', minHeight: '64px' }; // 64px
+      return 'candidate-table-row-comfortable';
     case 'normal':
     default:
-      return { height: '48px', minHeight: '48px' }; // 48px
+      return 'candidate-table-row-normal';
   }
 }
 
@@ -242,6 +242,10 @@ export function CandidateTable({
   const [candidateToDelete, setCandidateToDelete] = useState<Candidate | null>(null);
   const [selectedCandidateSummary, setSelectedCandidateSummary] = useState<Partial<Candidate> & { id: string; name: string } | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  
+  // State for candidate detail modal
+  const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
+  const [isCandidateModalOpen, setIsCandidateModalOpen] = useState(false);
   // Add state for each column's dropdown menu open state
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [expandedEmails, setExpandedEmails] = useState<Record<string, boolean>>({});
@@ -328,8 +332,9 @@ export function CandidateTable({
       return;
     }
     
-    // Navigate to candidate detail page using Next.js router
-    router.push(`/candidates/${candidate.id}`);
+    // Open candidate detail modal instead of navigating to separate page
+    setSelectedCandidate(candidate);
+    setIsCandidateModalOpen(true);
   };
 
   const renderSortIcon = (col: string) => {
@@ -723,7 +728,7 @@ export function CandidateTable({
                               const currentStageIndex = availableStages.findIndex(s => s.id === candidate.statusId);
 
                   const row = (
-                <TableRow key={candidate.id} onClick={(e) => handleRowClick(candidate, e)} className="cursor-pointer hover:bg-muted/40" style={getRowHeightStyle(settings?.rowHeight)} data-state={safeSelectedCandidateIds.has(candidate.id) ? 'selected' : ''}>
+                <TableRow key={candidate.id} onClick={(e) => handleRowClick(candidate, e)} className={`cursor-pointer hover:bg-muted/40 ${getRowHeightClass(settings?.rowHeight)}`} data-state={safeSelectedCandidateIds.has(candidate.id) ? 'selected' : ''}>
                       <TableCell key={`${candidate.id}-row-number`} className="text-center font-mono text-xs text-muted-foreground">{rowNumber}</TableCell>
                   <TableCell key={`${candidate.id}-select`}><Checkbox
                       checked={safeSelectedCandidateIds.has(candidate.id)}
@@ -923,7 +928,7 @@ export function CandidateTable({
                       </TableRow>
                       {isExpanded && group.map((candidate, idx) => {
                         const row = (
-                          <TableRow key={candidate.id} onClick={(e) => handleRowClick(candidate, e)} className="cursor-pointer hover:bg-muted/40 border-t" style={getRowHeightStyle(settings?.rowHeight)} data-state={safeSelectedCandidateIds.has(candidate.id) ? 'selected' : ''}>
+                          <TableRow key={candidate.id} onClick={(e) => handleRowClick(candidate, e)} className={`cursor-pointer hover:bg-muted/40 border-t ${getRowHeightClass(settings?.rowHeight)}`} data-state={safeSelectedCandidateIds.has(candidate.id) ? 'selected' : ''}>
                             <TableCell key={`${candidate.id}-row-number`} className="text-center font-mono text-xs text-muted-foreground">{rowNumber}</TableCell>
                             <TableCell key={`${candidate.id}-select`}><Checkbox
                                 checked={safeSelectedCandidateIds.has(candidate.id)}
@@ -1159,6 +1164,18 @@ export function CandidateTable({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Candidate Detail Modal */}
+      {selectedCandidate && (
+        <CandidateDetailModal
+          candidateId={selectedCandidate.id}
+          open={isCandidateModalOpen}
+          onClose={() => {
+            setIsCandidateModalOpen(false);
+            setSelectedCandidate(null);
+          }}
+        />
+      )}
 
     </>
   );

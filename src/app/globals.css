@@ -130,11 +130,29 @@
 
 [data-modal-overlay] {
   pointer-events: auto !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  left: 0 !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
 }
 
 /* Ensure modal elements with data-modal-id get proper layering */
 [data-modal-id] {
   pointer-events: auto !important;
+}
+
+/* Ensure portal containers don't constrain modal overlays */
+[data-candidate-modal-portal],
+[data-portal-container] {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  pointer-events: none !important;
+  z-index: 1 !important;
 }
 
 /* Sheet components should have higher z-index than regular modals */
@@ -145,6 +163,17 @@
 /* Candidate detail modals should have highest z-index */
 [data-modal-id*="candidate-detail"] {
   /* Candidate detail modals get highest z-index automatically via modal manager */
+}
+
+/* Ensure all modal overlays cover full screen */
+[data-radix-dialog-overlay],
+[data-radix-alert-dialog-overlay] {
+  width: 100vw !important;
+  height: 100vh !important;
+  left: 0 !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
 }
 
 /* Ensure dialog overlays are properly removed when closed */
@@ -2133,6 +2162,43 @@ audio::-webkit-scrollbar-button {
   height: calc(100vh - 200px);
   min-height: 400px;
   max-height: calc(100vh - 100px);
+}
+
+/* Custom row height styles for candidate table */
+.candidate-table-row-compact {
+  height: 40px !important;
+}
+
+.candidate-table-row-compact td {
+  height: 40px !important;
+  min-height: 40px !important;
+  max-height: 40px !important;
+  padding: 4px 8px !important;
+  vertical-align: middle !important;
+}
+
+.candidate-table-row-normal {
+  height: 56px !important;
+}
+
+.candidate-table-row-normal td {
+  height: 56px !important;
+  min-height: 56px !important;
+  max-height: 56px !important;
+  padding: 8px 8px !important;
+  vertical-align: middle !important;
+}
+
+.candidate-table-row-comfortable {
+  height: 72px !important;
+}
+
+.candidate-table-row-comfortable td {
+  height: 72px !important;
+  min-height: 72px !important;
+  max-height: 72px !important;
+  padding: 12px 8px !important;
+  vertical-align: middle !important;
 }
 
 /* Responsive table wrapper */

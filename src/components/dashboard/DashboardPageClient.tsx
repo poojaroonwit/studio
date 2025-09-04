@@ -69,6 +69,29 @@ export default function DashboardPageClient({
   initialStageIds,
   initialStageNames,
 }: DashboardPageClientProps) {
+  
+  // Add global error handler for getTime errors
+  useEffect(() => {
+    const originalError = console.error;
+    console.error = (...args) => {
+      if (args[0] && typeof args[0] === 'string' && args[0].includes('getTime is not a function')) {
+        console.error('DashboardPageClient: Caught getTime error:', ...args);
+        console.error('DashboardPageClient: Stack trace:', new Error().stack);
+        console.error('DashboardPageClient: Component state:', {
+          initialCandidatesCount: initialCandidates?.length,
+          initialPositionsCount: initialPositions?.length,
+          initialUsersCount: initialUsers?.length,
+          initialStageIds,
+          initialStageNames
+        });
+      }
+      originalError.apply(console, args);
+    };
+
+    return () => {
+      console.error = originalError;
+    };
+  }, [initialCandidates, initialPositions, initialUsers, initialStageIds, initialStageNames]);
   // Use stage IDs from props instead of fetching them
   const [stageIds, setStageIds] = useState<Record<string, string | undefined>>(initialStageIds);
   const [stageNames, setStageNames] = useState<Record<string, string>>(initialStageNames);

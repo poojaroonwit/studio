@@ -12,6 +12,7 @@ import { ErrorBoundary } from '@/components/ui/error-boundary';
 import SafeComponentWrapper from '@/components/ui/safe-component-wrapper';
 // CSS import moved to client component
 
+
 export default async function DashboardPageServer() {
   let initialCandidates: Candidate[] = [];
   let initialPositions: Position[] = [];
@@ -35,7 +36,9 @@ export default async function DashboardPageServer() {
                 initialCandidates={[]} 
                 initialPositions={[]} 
                 initialUsers={[]} 
-                authError={true} 
+                authError={true}
+                initialStageIds={{}}
+                initialStageNames={{}}
               />
             </SafeComponentWrapper>
           </Suspense>
@@ -110,7 +113,7 @@ export default async function DashboardPageServer() {
         })(),
         statusId: row.statusId || null,
         status: row.statusName || 'Unknown', // Ensure status is never null for backward compatibility
-        applicationDate: row.applicationDate ? row.applicationDate.toISOString() : new Date().toISOString(),
+        applicationDate: row.applicationDate && row.applicationDate instanceof Date && !isNaN(row.applicationDate.getTime()) ? row.applicationDate.toISOString() : new Date().toISOString(),
         recruiterId: row.recruiterId || null,
         recruiter: row.recruiterId ? {
           id: row.recruiterId,
@@ -118,8 +121,8 @@ export default async function DashboardPageServer() {
           email: row.recruiterEmail || '',
           avatarUrl: row.recruiterAvatarUrl || null
         } : null,
-        createdAt: row.createdAt ? row.createdAt.toISOString() : new Date().toISOString(),
-        updatedAt: row.updatedAt ? row.updatedAt.toISOString() : new Date().toISOString(),
+        createdAt: row.createdAt && row.createdAt instanceof Date && !isNaN(row.createdAt.getTime()) ? row.createdAt.toISOString() : new Date().toISOString(),
+        updatedAt: row.updatedAt && row.updatedAt instanceof Date && !isNaN(row.updatedAt.getTime()) ? row.updatedAt.toISOString() : new Date().toISOString(),
         transitionHistory: row.transitionHistory || [],
       }));
 
@@ -132,8 +135,8 @@ export default async function DashboardPageServer() {
         requirements: row.requirements,
         isOpen: row.isOpen,
         positionLevel: row.positionLevel,
-        createdAt: row.createdAt ? row.createdAt.toISOString() : new Date().toISOString(),
-        updatedAt: row.updatedAt ? row.updatedAt.toISOString() : new Date().toISOString(),
+        createdAt: row.createdAt && row.createdAt instanceof Date && !isNaN(row.createdAt.getTime()) ? row.createdAt.toISOString() : new Date().toISOString(),
+        updatedAt: row.updatedAt && row.updatedAt instanceof Date && !isNaN(row.updatedAt.getTime()) ? row.updatedAt.toISOString() : new Date().toISOString(),
       }));
 
       // Transform users data
@@ -143,8 +146,8 @@ export default async function DashboardPageServer() {
         email: row.email,
         role: row.role,
         avatarUrl: row.avatarUrl,
-        createdAt: row.createdAt ? row.createdAt.toISOString() : new Date().toISOString(),
-        updatedAt: row.updatedAt ? row.updatedAt.toISOString() : new Date().toISOString(),
+        createdAt: row.createdAt && row.createdAt instanceof Date && !isNaN(row.createdAt.getTime()) ? row.createdAt.toISOString() : new Date().toISOString(),
+        updatedAt: row.updatedAt && row.updatedAt instanceof Date && !isNaN(row.updatedAt.getTime()) ? row.updatedAt.toISOString() : new Date().toISOString(),
       }));
 
       // Fetch recruitment stages for stage IDs

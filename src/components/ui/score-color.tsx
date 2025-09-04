@@ -19,10 +19,19 @@ export const SCORE_COLOR_STOPS: ScoreColorInfo[] = [
 ];
 
 export function getScoreColorInfo(score: number | null | undefined): ScoreColorInfo {
-  let normalized = 0;
   if (score === null || score === undefined || isNaN(Number(score))) return SCORE_COLOR_STOPS[0];
-  if (score > 0 && score <= 1) normalized = Math.round(score * 100);
-  else normalized = Math.round(score);
+  
+  let normalized = 0;
+  if (typeof score === 'number') {
+    if (score > 0 && score <= 1) {
+      normalized = Math.round(score * 100);
+    } else {
+      normalized = Math.round(score);
+    }
+  } else {
+    return SCORE_COLOR_STOPS[0];
+  }
+  
   for (const stop of SCORE_COLOR_STOPS) {
     if (normalized >= stop.min && normalized <= stop.max) return stop;
   }
@@ -30,6 +39,11 @@ export function getScoreColorInfo(score: number | null | undefined): ScoreColorI
 }
 
 export function ScoreBadge({ score, className = '', children }: { score: number | null | undefined, className?: string, children?: React.ReactNode }) {
+  // Additional safety check for score
+  if (score === null || score === undefined) {
+    return null;
+  }
+  
   const info = getScoreColorInfo(score);
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${info.bg} ${info.text} ${className}`}>

@@ -1005,10 +1005,8 @@ export function CandidateTable({
                             {(!settings || settings.showFitScoreColumn !== false) && (
                               <TableCell key={`${candidate.id}-fit-score`} className="hidden sm:table-cell max-w-[120px]">
                                 <div className="flex items-center gap-2">
-                                  {(candidate.fitScore !== undefined && candidate.fitScore !== null) ? (
-                                    <ScoreBadge score={candidate.fitScore} className="rounded-full">
-                                      {displayFitScoreWithGrade(candidate.fitScore)}
-                                    </ScoreBadge>
+                                  {(candidate.fitScore !== undefined && candidate.fitScore !== null && typeof candidate.fitScore === 'number' && !isNaN(candidate.fitScore)) ? (
+                                    <ScoreBadge score={candidate.fitScore} className="rounded-full" />
                                   ) : (
                                     <span className="text-xs text-muted-foreground">No job applied</span>
                                   )}

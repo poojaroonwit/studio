@@ -465,7 +465,12 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
 
   // Job applied data
   const appliedJobId = candidate?.positionId;
-  const appliedFitScore = candidate?.fitScore;
+  const appliedFitScore = candidate?.fitScore !== null && candidate?.fitScore !== undefined 
+    ? (() => {
+        const score = typeof candidate.fitScore === 'number' ? candidate.fitScore : Number(candidate.fitScore);
+        return !isNaN(score) ? score : null;
+      })()
+    : null;
   const appliedJustification = candidate?.assignmentJustification
     ? (Array.isArray(candidate.assignmentJustification)
         ? candidate.assignmentJustification.filter(Boolean)

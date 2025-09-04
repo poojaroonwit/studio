@@ -40,7 +40,7 @@ export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
               Job Applied
             </CardTitle>
             <div className="flex items-center gap-2">
-              {appliedFitScore !== null && appliedFitScore !== undefined && (
+              {appliedFitScore !== null && appliedFitScore !== undefined && typeof appliedFitScore === 'number' && !isNaN(appliedFitScore) && (
                 <ScoreBadge score={appliedFitScore} className="text-xs" />
               )}
               {appliedJobId && (

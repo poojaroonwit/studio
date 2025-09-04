@@ -656,6 +656,12 @@ export default function DashboardPageClient({
 
   // Calculate Average Time to Hire (in days)
       const averageTimeToHire = useMemo(() => {
+      console.log('DashboardPageClient: Calculating averageTimeToHire', { 
+        filteredCandidatesCount: filteredCandidates?.length,
+        stageIds,
+        hiredStageId: stageIds.hired
+      });
+      
       const safeAllCandidates = Array.isArray(filteredCandidates)? filteredCandidates : [];
       const hiredCandidates = safeAllCandidates.filter((c: Candidate) => 
         stageIds.hired && c.statusId === stageIds.hired && c.applicationDate && typeof c.applicationDate === 'string'
@@ -668,15 +674,26 @@ export default function DashboardPageClient({
         const applicationDate = parseISO(candidate.applicationDate);
         if (!isValidDate(applicationDate)) return total;
         // Find the last transition to 'Hired'
+        console.log('DashboardPageClient: Processing candidate transition history', { 
+          candidateId: candidate.id, 
+          transitionHistoryLength: candidate.transitionHistory?.length,
+          transitionHistory: candidate.transitionHistory
+        });
+        
         const hiredTransition = candidate.transitionHistory
           .filter(transition => stageIds.hired && transition.stage === stageIds.hired)
           .sort((itemA, itemB) => {
             try {
+              console.log('DashboardPageClient: Sorting transition dates', { itemA, itemB });
               const dateA = new Date(itemA.date);
               const dateB = new Date(itemB.date);
-              if (!isValidDate(dateA) || !isValidDate(dateB)) return 0;
+              if (!isValidDate(dateA) || !isValidDate(dateB)) {
+                console.warn('DashboardPageClient: Invalid transition dates', { dateA, dateB });
+                return 0;
+              }
               return safeGetTime(dateB) - safeGetTime(dateA);
-            } catch {
+            } catch (error) {
+              console.error('DashboardPageClient: Error sorting transition dates:', error, { itemA, itemB });
               return 0;
             }
           })[0];

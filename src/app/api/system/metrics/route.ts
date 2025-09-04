@@ -199,28 +199,52 @@ export async function GET(request: NextRequest) {
 
     // Get container information
     let containerInfo = null;
+    let dockerAvailable = false;
+    
+    // First check if Docker is available
     try {
-      const { stdout: containerCountOutput } = await execAsync('docker ps -q | wc -l');
-      const containerCount = parseInt(containerCountOutput.trim()) || 0;
-      
-      const { stdout: runningContainersOutput } = await execAsync('docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"');
-      const runningContainers = runningContainersOutput.trim().split('\n').slice(1).map(line => {
-        const parts = line.split('\t');
-        return {
-          name: parts[0] || 'Unknown',
-          status: parts[1] || 'Unknown',
-          ports: parts[2] || 'No ports'
-        };
-      });
-
-      containerInfo = {
-        total: containerCount,
-        running: runningContainers.length,
-        containers: runningContainers
-      };
+      await execAsync('docker --version');
+      dockerAvailable = true;
     } catch (error) {
-      console.warn('[SYSTEM METRICS] Failed to get container info:', error);
-      containerInfo = { error: 'Docker not accessible' };
+      // Docker is not available, skip container metrics
+      containerInfo = { 
+        error: 'Docker not available',
+        message: 'Docker CLI is not accessible in this environment'
+      };
+    }
+    
+    // Only try to get container info if Docker is available
+    if (dockerAvailable) {
+      try {
+        const { stdout: containerCountOutput } = await execAsync('docker ps -q | wc -l');
+        const containerCount = parseInt(containerCountOutput.trim()) || 0;
+        
+        const { stdout: runningContainersOutput } = await execAsync('docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"');
+        const runningContainers = runningContainersOutput.trim().split('\n').slice(1).map(line => {
+          const parts = line.split('\t');
+          return {
+            name: parts[0] || 'Unknown',
+            status: parts[1] || 'Unknown',
+            ports: parts[2] || 'No ports'
+          };
+        });
+
+        containerInfo = {
+          total: containerCount,
+          running: runningContainers.length,
+          containers: runningContainers
+        };
+      } catch (error) {
+        // Only log this error once per session to avoid spam
+        if (!(global as any).dockerErrorLogged) {
+          console.warn('[SYSTEM METRICS] Docker is available but container commands failed:', error);
+          (global as any).dockerErrorLogged = true;
+        }
+        containerInfo = { 
+          error: 'Docker commands failed',
+          message: 'Docker is available but container commands are not working'
+        };
+      }
     }
 
     const metrics = {

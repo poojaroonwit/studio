@@ -15,7 +15,10 @@ const defaultSettings: CandidateSettings = {
   showFilters: true,
   showHorizontalFitScoreFilters: true,
   fitScoreType: 'applied',
-  fitScoreFilterMode: 'single'
+  fitScoreFilterMode: 'single',
+  defaultPageSize: 50,
+  tableHeight: 600,
+  rowHeight: 'normal'
 };
 
 export function useCandidateSettings() {

@@ -101,90 +101,119 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
     }
 
-    const containerMetrics = {
+    const containerMetrics: any = {
       timestamp: new Date().toISOString(),
       containers: [],
       dockerInfo: {}
     };
 
+    // First check if Docker is available
+    let dockerAvailable = false;
     try {
-      // Get Docker info
-      const { stdout: dockerInfoOutput } = await execAsync('docker info --format "{{json .}}"');
-      const dockerInfo = JSON.parse(dockerInfoOutput);
-      
-      containerMetrics.dockerInfo = {
-        version: dockerInfo.ServerVersion || 'Unknown',
-        containers: dockerInfo.Containers || 0,
-        images: dockerInfo.Images || 0,
-        system: {
-          totalMemory: dockerInfo.MemTotal || 'Unknown',
-          totalDisk: dockerInfo.DiskTotal || 'Unknown'
-        }
-      };
+      await execAsync('docker --version');
+      dockerAvailable = true;
     } catch (error) {
-      console.warn('[CONTAINER METRICS] Failed to get Docker info:', error);
-      containerMetrics.dockerInfo = { error: 'Docker not accessible' };
+      // Docker is not available, return early with error info
+      containerMetrics.dockerInfo = { 
+        error: 'Docker not available',
+        message: 'Docker CLI is not accessible in this environment'
+      };
+      containerMetrics.containers = [];
+      return NextResponse.json(containerMetrics);
     }
 
-    try {
-      // Get container stats
-      const { stdout: containerStatsOutput } = await execAsync('docker stats --no-stream --format "table {{.Container}}\t{{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}\t{{.NetIO}}\t{{.BlockIO}}\t{{.PIDs}}"');
-      
-      const lines = containerStatsOutput.trim().split('\n').slice(1); // Skip header
-      const containers = [];
-
-      for (const line of lines) {
-        const parts = line.split('\t');
-        if (parts.length >= 8) {
-          const container = {
-            id: parts[0]?.trim() || 'Unknown',
-            name: parts[1]?.trim() || 'Unknown',
-            cpu: {
-              usage: parts[2]?.trim() || '0%',
-              percentage: parseFloat(parts[2]?.replace('%', '') || '0')
-            },
-            memory: {
-              usage: parts[3]?.trim() || '0B / 0B',
-              percentage: parseFloat(parts[4]?.replace('%', '') || '0')
-            },
-            network: {
-              rx: parts[5]?.trim() || '0B',
-              tx: parts[5]?.trim() || '0B'
-            },
-            disk: {
-              io: parts[6]?.trim() || '0B / 0B'
-            },
-            processes: parseInt(parts[7]?.trim() || '0')
-          };
-
-          // Get additional container info
-          try {
-            const { stdout: inspectOutput } = await execAsync(`docker inspect --format '{{json .}}' ${container.id}`);
-            const inspectData = JSON.parse(inspectOutput);
-            
-            container.status = inspectData.State?.Status || 'Unknown';
-            container.image = inspectData.Config?.Image || 'Unknown';
-            container.ports = inspectData.NetworkSettings?.Ports ? 
-              Object.entries(inspectData.NetworkSettings.Ports)
-                .map(([port, bindings]) => `${port}->${bindings?.[0]?.HostPort || '?'}`)
-                .join(', ') : 'No ports';
-            container.created = inspectData.Created || 'Unknown';
-            container.command = inspectData.Config?.Cmd?.join(' ') || 'No command';
-          } catch (error) {
-            console.warn(`[CONTAINER METRICS] Failed to inspect container ${container.id}:`, error);
-            container.status = 'Unknown';
-            container.image = 'Unknown';
-            container.ports = 'Unknown';
+    // Only proceed if Docker is available
+    if (dockerAvailable) {
+      try {
+        // Get Docker info
+        const { stdout: dockerInfoOutput } = await execAsync('docker info --format "{{json .}}"');
+        const dockerInfo = JSON.parse(dockerInfoOutput);
+        
+        containerMetrics.dockerInfo = {
+          version: dockerInfo.ServerVersion || 'Unknown',
+          containers: dockerInfo.Containers || 0,
+          images: dockerInfo.Images || 0,
+          system: {
+            totalMemory: dockerInfo.MemTotal || 'Unknown',
+            totalDisk: dockerInfo.DiskTotal || 'Unknown'
           }
-
-          containers.push(container);
+        };
+      } catch (error) {
+        // Only log this error once per session to avoid spam
+        if (!(global as any).dockerInfoErrorLogged) {
+          console.warn('[CONTAINER METRICS] Docker is available but info command failed:', error);
+          (global as any).dockerInfoErrorLogged = true;
         }
+        containerMetrics.dockerInfo = { 
+          error: 'Docker info command failed',
+          message: 'Docker is available but info command is not working'
+        };
       }
 
-      containerMetrics.containers = containers;
-    } catch (error) {
-      console.warn('[CONTAINER METRICS] Failed to get container stats:', error);
-      containerMetrics.containers = [];
+      try {
+        // Get container stats
+        const { stdout: containerStatsOutput } = await execAsync('docker stats --no-stream --format "table {{.Container}}\t{{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}\t{{.NetIO}}\t{{.BlockIO}}\t{{.PIDs}}"');
+        
+        const lines = containerStatsOutput.trim().split('\n').slice(1); // Skip header
+        const containers: any[] = [];
+
+        for (const line of lines) {
+          const parts = line.split('\t');
+          if (parts.length >= 8) {
+            const container: any = {
+              id: parts[0]?.trim() || 'Unknown',
+              name: parts[1]?.trim() || 'Unknown',
+              cpu: {
+                usage: parts[2]?.trim() || '0%',
+                percentage: parseFloat(parts[2]?.replace('%', '') || '0')
+              },
+              memory: {
+                usage: parts[3]?.trim() || '0B / 0B',
+                percentage: parseFloat(parts[4]?.replace('%', '') || '0')
+              },
+              network: {
+                rx: parts[5]?.trim() || '0B',
+                tx: parts[5]?.trim() || '0B'
+              },
+              disk: {
+                io: parts[6]?.trim() || '0B / 0B'
+              },
+              processes: parseInt(parts[7]?.trim() || '0')
+            };
+
+            // Get additional container info
+            try {
+              const { stdout: inspectOutput } = await execAsync(`docker inspect --format '{{json .}}' ${container.id}`);
+              const inspectData = JSON.parse(inspectOutput);
+              
+              container.status = inspectData.State?.Status || 'Unknown';
+              container.image = inspectData.Config?.Image || 'Unknown';
+              container.ports = inspectData.NetworkSettings?.Ports ? 
+                Object.entries(inspectData.NetworkSettings.Ports)
+                  .map(([port, bindings]: [string, any]) => `${port}->${bindings?.[0]?.HostPort || '?'}`)
+                  .join(', ') : 'No ports';
+              container.created = inspectData.Created || 'Unknown';
+              container.command = inspectData.Config?.Cmd?.join(' ') || 'No command';
+            } catch (error) {
+              console.warn(`[CONTAINER METRICS] Failed to inspect container ${container.id}:`, error);
+              container.status = 'Unknown';
+              container.image = 'Unknown';
+              container.ports = 'Unknown';
+            }
+
+            containers.push(container);
+          }
+        }
+
+        containerMetrics.containers = containers;
+      } catch (error) {
+        // Only log this error once per session to avoid spam
+        if (!(global as any).dockerStatsErrorLogged) {
+          console.warn('[CONTAINER METRICS] Docker is available but stats command failed:', error);
+          (global as any).dockerStatsErrorLogged = true;
+        }
+        containerMetrics.containers = [];
+      }
     }
 
     return NextResponse.json(containerMetrics);

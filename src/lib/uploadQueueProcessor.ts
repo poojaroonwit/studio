@@ -230,27 +230,70 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
         
         
         
+        // Check both HTTP status and response body content for success
+        let isSuccess = false;
+        let responseAnalysis = '';
+        
         if (webhookResStatus === 200) {
+          isSuccess = true;
+          responseAnalysis = 'HTTP 200 OK';
+        } else {
+          // For non-200 status codes, check if the response body indicates success
+          try {
+            if (webhookResponseText) {
+              const responseData = JSON.parse(webhookResponseText);
+              
+              // Check for common success indicators in the response
+              if (responseData.success === true || 
+                  (responseData.data && responseData.data.success === true) ||
+                  responseData.status === 'success' ||
+                  (responseData.data && responseData.data.status === 'success')) {
+                isSuccess = true;
+                responseAnalysis = `HTTP ${webhookResStatus} but response body indicates success`;
+              } else {
+                responseAnalysis = `HTTP ${webhookResStatus} and response body indicates failure`;
+              }
+            } else {
+              responseAnalysis = `HTTP ${webhookResStatus} with no response body`;
+            }
+          } catch (parseError) {
+            // If we can't parse the response, treat non-200 as failure
+            responseAnalysis = `HTTP ${webhookResStatus} with unparseable response body`;
+          }
+        }
+        
+        if (isSuccess) {
           status = 'success';
           error = null;
           error_details = null;
           
         } else {
-          // Any non-200 status is considered a failure
+          // Non-successful response
           status = 'failed';
           error = `Webhook responded with status ${webhookResStatus}`;
-          // Truncate response text if it's too long (likely HTML error page)
-        const truncatedResponse = webhookResponseText && webhookResponseText.length > 200 
-          ? webhookResponseText.substring(0, 200) + '...' 
-          : webhookResponseText;
           
-        error_details = `The external resume processing service returned status ${webhookResStatus}. This could indicate:
-1. The external service is experiencing issues
-2. The request was malformed or invalid
-3. The service is temporarily unavailable
-4. Authentication or authorization issues
+          // Truncate response text if it's too long (likely HTML error page)
+          const truncatedResponse = webhookResponseText && webhookResponseText.length > 200 
+            ? webhookResponseText.substring(0, 200) + '...' 
+            : webhookResponseText;
+          
+          // Provide more specific error guidance based on status code
+          let specificGuidance = '';
+          if (webhookResStatus >= 500) {
+            specificGuidance = 'This is a server error (5xx), indicating the external service is experiencing issues.';
+          } else if (webhookResStatus >= 400) {
+            specificGuidance = 'This is a client error (4xx), indicating the request may be malformed or unauthorized.';
+          } else if (webhookResStatus >= 300) {
+            specificGuidance = 'This is a redirect (3xx), which may indicate configuration issues.';
+          } else {
+            specificGuidance = 'This is an unexpected status code.';
+          }
+            
+          error_details = `The external resume processing service returned status ${webhookResStatus}. ${specificGuidance}
+
 
 Status: ${webhookResStatus}
+Response Analysis: ${responseAnalysis}
 Response: ${truncatedResponse || 'No response body'}`;
           
         }

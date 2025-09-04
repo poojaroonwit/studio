@@ -22,6 +22,9 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
   // Use dynamic modal manager for proper z-index sequencing
   const modalId = candidateId ? `candidate-detail-${candidateId}` : 'candidate-detail-unknown';
   const { zIndex, overlayZIndex } = useModalManager(modalId, 'custom');
+  
+  // Enhanced debug logging for z-index
+  console.log('Modal z-index values:', { modalId, zIndex, overlayZIndex, open });
 
   // Add infinite loop prevention
   // Simple tracking for debugging (removed complex infinite loop prevention)
@@ -54,7 +57,23 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
         portalContainerRef.current = null;
       }
     };
-  }, []); // FIXED: Empty dependency array since this should only run once
+  }, []);
+
+  // Ensure portal container exists when modal is open
+  useEffect(() => {
+    if (open && !portalContainerRef.current) {
+      portalContainerRef.current = document.createElement('div');
+      portalContainerRef.current.setAttribute('data-candidate-modal-portal', 'true');
+      portalContainerRef.current.style.position = 'fixed';
+      portalContainerRef.current.style.top = '0';
+      portalContainerRef.current.style.left = '0';
+      portalContainerRef.current.style.width = '100vw';
+      portalContainerRef.current.style.height = '100vh';
+      portalContainerRef.current.style.pointerEvents = 'none';
+      portalContainerRef.current.style.zIndex = '1';
+      document.body.appendChild(portalContainerRef.current);
+    }
+  }, [open]); // FIXED: Empty dependency array since this should only run once
 
   // Handle escape key - FIXED: Use useEffect instead of useSafeEffect
   useEffect(() => {
@@ -88,8 +107,48 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
     };
   }, []); // FIXED: Empty dependency array for cleanup
 
+  // Debug effect to check DOM elements after render
+  useEffect(() => {
+    if (open && mounted && portalContainerRef.current) {
+      const checkModalInDOM = () => {
+        const overlay = document.querySelector(`[data-modal-overlay="${modalId}"]`);
+        const content = document.querySelector(`[data-modal-content="${modalId}"]`);
+        
+        if (overlay && content) {
+          const overlayStyles = window.getComputedStyle(overlay);
+          const contentStyles = window.getComputedStyle(content);
+          
+          console.log('Modal DOM elements found:', {
+            modalId,
+            overlayExists: !!overlay,
+            contentExists: !!content,
+            overlayDisplay: overlayStyles.display,
+            overlayVisibility: overlayStyles.visibility,
+            overlayOpacity: overlayStyles.opacity,
+            overlayZIndex: overlayStyles.zIndex,
+            contentDisplay: contentStyles.display,
+            contentVisibility: contentStyles.visibility,
+            contentOpacity: contentStyles.opacity,
+            contentZIndex: contentStyles.zIndex,
+            overlayPosition: overlayStyles.position,
+            overlayTop: overlayStyles.top,
+            overlayLeft: overlayStyles.left,
+            overlayWidth: overlayStyles.width,
+            overlayHeight: overlayStyles.height
+          });
+        } else {
+          console.log('Modal DOM elements NOT found:', { modalId, overlayExists: !!overlay, contentExists: !!content });
+        }
+      };
+      
+      // Check after a short delay to allow DOM to update
+      setTimeout(checkModalInDOM, 100);
+      setTimeout(checkModalInDOM, 500);
+    }
+  }, [open, mounted, modalId]);
+
   console.log('Early return check:', { open, candidateId, mounted, portalContainer: !!portalContainerRef.current });
-  if (!open || !candidateId || !mounted || !portalContainerRef.current) {
+  if (!open || !candidateId) {
     console.log('Early return triggered - modal not rendering');
     return null;
   }

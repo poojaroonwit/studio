@@ -1363,9 +1363,10 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       <Sheet 
         open={isOpen} 
         onOpenChange={(open) => {
-          // Prevent closing the drawer when the candidate modal is open
+          // If closing the drawer and candidate modal is open, close the candidate modal first
           if (!open && isCandidateModalOpen) {
-            return;
+            setIsCandidateModalOpen(false);
+            setSelectedCandidateId(null);
           }
           onOpenChange(open);
         }}

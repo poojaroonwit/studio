@@ -1175,7 +1175,6 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                   stages={convertStagesToTaskStages(filteredStages)}
                   onMoveTask={handleMoveTask}
                   onTaskClick={(task) => {
-                    console.log('Task clicked:', task, 'originalCandidate:', task.originalCandidate);
                     setSelectedTask(task.originalCandidate);
                   }}
                   cardPreferences={{
@@ -1256,15 +1255,13 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
 
       {/* Modals */}
       {selectedTask && (
-        <>
-          <CandidateDetailModal
-            candidateId={selectedTask.id}
-            open={!!selectedTask}
-            onClose={() => {
-              setSelectedTask(null);
-            }}
-          />
-        </>
+        <CandidateDetailModal
+          candidateId={selectedTask.id}
+          open={!!selectedTask}
+          onClose={() => {
+            setSelectedTask(null);
+          }}
+        />
       )}
 
       {/* Card Settings Drawer */}

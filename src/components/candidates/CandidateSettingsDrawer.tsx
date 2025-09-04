@@ -80,18 +80,30 @@ export function CandidateSettingsDrawer({
   const { isJobMatchEnabled } = useJobMatchFeature();
   
   // Initialize local settings with currentSettings or defaults
-  const [localSettings, setLocalSettings] = useState<CandidateSettings>(currentSettings || defaultSettings);
+  const [localSettings, setLocalSettings] = useState<CandidateSettings>(() => {
+    if (currentSettings) {
+      return {
+        ...defaultSettings,
+        ...currentSettings
+      };
+    }
+    return defaultSettings;
+  });
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
   // Update local settings when currentSettings changes
   useEffect(() => {
     if (currentSettings) {
-      setLocalSettings(currentSettings);
+      setLocalSettings(prev => ({
+        ...defaultSettings,
+        ...prev,
+        ...currentSettings
+      }));
     }
   }, [currentSettings]);
 
-  const handleSettingChange = (key: keyof CandidateSettings, value: boolean | string) => {
+  const handleSettingChange = (key: keyof CandidateSettings, value: boolean | string | number) => {
     setLocalSettings(prev => ({ ...prev, [key]: value }));
   };
 
@@ -361,7 +373,7 @@ export function CandidateSettingsDrawer({
                     Default Rows Per Page
                   </Label>
                   <Select
-                    value={localSettings.defaultPageSize.toString()}
+                    value={localSettings.defaultPageSize?.toString() || '50'}
                     onValueChange={(value) => handleSettingChange('defaultPageSize', parseInt(value))}
                   >
                     <SelectTrigger className="w-full">
@@ -391,7 +403,7 @@ export function CandidateSettingsDrawer({
                     min="300"
                     max="1000"
                     step="50"
-                    value={localSettings.tableHeight}
+                    value={localSettings.tableHeight || 600}
                     onChange={(e) => handleSettingChange('tableHeight', parseInt(e.target.value) || 600)}
                     className="w-full"
                   />

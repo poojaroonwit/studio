@@ -489,9 +489,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
       appliedJobBadge = (
         <div className="flex items-center gap-2">
           {hasFitScore && (
-            <ScoreBadge score={appliedFitScore} className="text-sm">
-              {formatScoreWithGrade(appliedFitScore)}
-            </ScoreBadge>
+            <ScoreBadge score={appliedFitScore} className="text-sm" />
           )}
           {hasGrade && appliedPosition?.grade && (
             <Badge

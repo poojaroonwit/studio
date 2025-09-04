@@ -222,10 +222,8 @@ export const JobsTab: React.FC<JobsTabProps> = ({
                             <div className="flex items-center justify-between">
                               <h4 className="font-semibold">{displayTitle}</h4>
                               <div className="flex items-center gap-2">
-                                {match.fitScore !== undefined && match.fitScore !== null && (
-                                  <ScoreBadge score={match.fitScore}>
-                                    {formatScoreWithGrade(match.fitScore)}
-                                  </ScoreBadge>
+                                {match.fitScore !== undefined && match.fitScore !== null && typeof match.fitScore === 'number' && !isNaN(match.fitScore) && (
+                                  <ScoreBadge score={match.fitScore} />
                                 )}
                                 {canManageJobMatches && (
                                   <Button

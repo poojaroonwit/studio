@@ -153,6 +153,13 @@ export async function POST(request: NextRequest) {
   // Use email from payload, or default to unknown@email.com if missing
   const email = contactInfo.email || 'unknown@email.com';
   
+  // Debug logging for email extraction
+  console.log('Email extraction debug:', {
+    contactInfo_email: contactInfo.email,
+    extracted_email: email,
+    email_lowercase: email.toLowerCase()
+  });
+  
   // Always default to "Applied" stage regardless of input
   let resolvedStageId: string | null = null;
   
@@ -206,23 +213,32 @@ export async function POST(request: NextRequest) {
     fitScore = Math.round(job_applied.fitScore);
   }
 
-  // Extract positionId from candidate_info.job_applied or job_matches, or from top-level job_applied/job_matches
+  // Extract positionId - prioritize top-level job_applied, then candidate_info.job_applied, then job_matches
   let positionId = null;
-  if (candidateInfo.job_applied?.jobId) {
-    positionId = candidateInfo.job_applied.jobId;
-  } else if (job_applied?.jobId) {
+  if (job_applied?.jobId) {
     positionId = job_applied.jobId;
-  } else if (candidateInfo.job_matches && Array.isArray(candidateInfo.job_matches) && candidateInfo.job_matches.length > 0) {
-    const matchWithJobId = candidateInfo.job_matches.find((m: any) => m && m.jobId);
-    if (matchWithJobId) {
-      positionId = matchWithJobId.jobId;
-    }
+  } else if (candidateInfo.job_applied?.jobId) {
+    positionId = candidateInfo.job_applied.jobId;
   } else if (job_matches && Array.isArray(job_matches) && job_matches.length > 0) {
     const matchWithJobId = job_matches.find((m: any) => m && m.jobId);
     if (matchWithJobId) {
       positionId = matchWithJobId.jobId;
     }
+  } else if (candidateInfo.job_matches && Array.isArray(candidateInfo.job_matches) && candidateInfo.job_matches.length > 0) {
+    const matchWithJobId = candidateInfo.job_matches.find((m: any) => m && m.jobId);
+    if (matchWithJobId) {
+      positionId = matchWithJobId.jobId;
+    }
   }
+
+  // Debug logging for positionId extraction
+  console.log('PositionId extraction debug:', {
+    candidateInfo_job_applied: candidateInfo.job_applied,
+    top_level_job_applied: job_applied,
+    candidateInfo_job_matches: candidateInfo.job_matches,
+    top_level_job_matches: job_matches,
+    extracted_positionId: positionId
+  });
 
   // Validate positionId format if present
   if (positionId && typeof positionId === 'string') {
@@ -237,6 +253,26 @@ export async function POST(request: NextRequest) {
     // Check for existing candidate with same email and positionId
     let existingCandidate = null;
     if (positionId) {
+      console.log('Checking for existing candidate with:', {
+        email: email.toLowerCase(),
+        positionId: positionId
+      });
+      
+      // First, let's check if there are any candidates with the same email (for debugging)
+      const candidatesWithSameEmail = await prisma.candidate.findMany({
+        where: {
+          email: email.toLowerCase()
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          positionId: true
+        }
+      });
+      
+      console.log('All candidates with same email:', candidatesWithSameEmail);
+      
       existingCandidate = await prisma.candidate.findFirst({
         where: {
           email: email.toLowerCase(),
@@ -252,12 +288,22 @@ export async function POST(request: NextRequest) {
           }
         }
       });
+      
+      console.log('Existing candidate found with same email AND positionId:', existingCandidate ? {
+        id: existingCandidate.id,
+        name: existingCandidate.name,
+        email: existingCandidate.email,
+        positionId: existingCandidate.positionId
+      } : 'None');
+    } else {
+      console.log('No positionId provided, will create new candidate');
     }
 
     let candidate;
 
     if (existingCandidate) {
       // Update existing candidate
+      console.log('UPDATING existing candidate:', existingCandidate.id);
       isUpdate = true;
       const updateData: any = {
         name: name,
@@ -285,6 +331,7 @@ export async function POST(request: NextRequest) {
       });
     } else {
       // Create new candidate
+      console.log('CREATING new candidate with ID:', newCandidateId);
       const candidateData: any = {
         id: newCandidateId,
         name: name,

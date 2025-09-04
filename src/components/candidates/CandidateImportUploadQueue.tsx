@@ -18,8 +18,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Clock, Loader2, CheckCircle, XCircle, Search, Filter, AlertCircle, Info, Upload, FileText, Users, Calendar as CalendarIcon, MoreHorizontal, Play, X, Trash2, Eye, RotateCcw, CheckSquare, Square, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, RefreshCw } from 'lucide-react';
 import { FileViewerModal } from '@/components/ui/file-viewer-modal';
 
-import { useEnhancedSSE, useEnhancedUploadQueueUpdates } from '@/hooks/use-enhanced-sse';
-import { useRealtimeCollaboration } from '@/hooks/use-realtime-collaboration';
+import { useSharedSSE } from '@/hooks/use-shared-sse';
 import { toast } from 'react-hot-toast';
 import { format } from 'date-fns';
 import { DateRange } from 'react-day-picker';
@@ -95,27 +94,8 @@ export default function CandidateImportUploadQueue() {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [positionSearchTerm, setPositionSearchTerm] = useState<string>('');
 
-  // Simplified SSE state
-  const [sseConnected, setSseConnected] = useState(false);
-  const [sseError, setSseError] = useState<string | null>(null);
-  const [sseEventCount, setSseEventCount] = useState(0);
-
-  // Add realtime collaboration hook for upload queue updates
-  const { isConnected: realtimeConnected } = useRealtimeCollaboration({
-    onUploadQueueUpdate: (updateData: any) => {
-      console.log('[ProcessQueue] Received upload queue update:', updateData);
-      
-      // Handle upload queue updates
-      if (updateData.type === 'queue' || updateData.action) {
-        console.log('[ProcessQueue] Refreshing queue data after update');
-        // Refresh the queue data
-        setTimeout(() => {
-          fetchQueue(page, pageSize);
-          setLastUpdate(new Date());
-        }, 100); // Small delay to ensure server has processed the update
-      }
-    }
-  });
+  // Use shared SSE hook for realtime updates
+  const { isConnected: realtimeConnected, subscribeToEvents } = useSharedSSE();
 
   // SSE connection status display
 
@@ -215,108 +195,52 @@ export default function CandidateImportUploadQueue() {
     }
   }, [selectedItems, queueData?.data]);
 
-  // Simplified SSE connection
+  // Subscribe to SSE events for realtime updates
   useEffect(() => {
-    let eventSource: EventSource | null = null;
-    let reconnectTimeout: NodeJS.Timeout | null = null;
-    let keepaliveInterval: NodeJS.Timeout | null = null;
-
-    const connectSSE = () => {
-      try {
-        eventSource = new EventSource('/api/sse');
+    let mounted = true;
+    let refreshTimeout: NodeJS.Timeout;
+    let lastUpdateTime = 0;
+    const MIN_UPDATE_INTERVAL = 500; // Minimum 500ms between updates
+    
+    // Subscribe to shared SSE events
+    const unsubscribe = subscribeToEvents((event) => {
+      if (!mounted) return;
+      
+      if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+        console.log('[ProcessQueue] SSE event received:', event);
+      }
+      
+      // Handle upload queue updates
+      if (event.type === 'upload_queue_update' || event.type === 'queue') {
+        const now = Date.now();
         
-        eventSource.onopen = () => {
-          setSseConnected(true);
-          setSseError(null);
-          // Reset retry count on successful connection
-          sessionStorage.removeItem('sseRetryCount');
-          
-                  // Set up keepalive to detect connection issues
-        keepaliveInterval = setInterval(() => {
-          if (eventSource?.readyState === EventSource.OPEN) {
-            // Connection healthy
-          } else {
-            reconnectSSE();
+        // Rate limit updates to prevent excessive reloading
+        if (now - lastUpdateTime < MIN_UPDATE_INTERVAL) {
+          if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+            console.log('[ProcessQueue] Update rate limited, skipping');
           }
-        }, 30000); // Check every 30 seconds for better performance
-
-        // Add specific event listeners for upload queue updates
-        if (eventSource) {
-          eventSource.addEventListener('upload_queue_update', (event) => {
-            try {
-              const data = JSON.parse(event.data);
-              
-              // Only count meaningful upload queue updates, not keepalive events
-              if (data.type === 'upload_queue_update' && data.summary) {
-                setSseEventCount(prev => prev + 1);
-              }
-              
-              // Refresh queue data
-              fetchQueue(page, pageSize);
-              setLastUpdate(new Date());
-              
-              // Show toast notification
-              if (data.summary) {
-                const { queued, inprocess, success, error } = data.summary;
-                toast.success(`Queue updated: ${queued} queued, ${inprocess} processing, ${success} completed, ${error} errors`, {
-                  duration: 2000,
-                  position: 'top-right',
-                  style: {
-                    background: '#10b981',
-                    color: 'white',
-                    fontSize: '12px',
-                  }
-                });
-              }
-            } catch (error) {
-              // Error parsing upload_queue_update event
-            }
-          });
-
-          // Add listener for queue events
-          eventSource.addEventListener('queue', (event) => {
-            try {
-              const data = JSON.parse(event.data);
-              setSseEventCount(prev => prev + 1);
-              
-              // Refresh queue data
-              fetchQueue(page, pageSize);
-              setLastUpdate(new Date());
-              
-              // Show toast notification
-              if (data.summary) {
-                const { queued, inprocess, success, error } = data.summary;
-                toast.success(`Queue updated: ${queued} queued, ${inprocess} processing, ${success} completed, ${error} errors`, {
-                  duration: 2000,
-                  position: 'top-right',
-                  style: {
-                    background: '#10b981',
-                    color: 'white',
-                    fontSize: '12px',
-                  }
-                });
-              }
-            } catch (error) {
-            }
-          });
+          return;
         }
-        };
-
-        eventSource.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            setSseEventCount(prev => prev + 1);
-            
-            // Handle upload queue updates - check both the event type and data structure
-            if (data.type === 'upload_queue_update' || data.type === 'queue' || 
-                (data.data && data.data.type === 'upload_queue_update') ||
-                (data.data && data.data.type === 'queue')) {
-              
+        
+        if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+          console.log('[ProcessQueue] Processing upload queue update event');
+        }
+        
+        // Clear existing timeout and set new one to prevent rapid successive calls
+        if (refreshTimeout) {
+          clearTimeout(refreshTimeout);
+        }
+        
+        refreshTimeout = setTimeout(() => {
+          if (mounted) {
+            lastUpdateTime = Date.now();
+            // Only fetch if not currently loading
+            if (!loading) {
               fetchQueue(page, pageSize);
               setLastUpdate(new Date());
               
-              // Show toast notification - check both data structures
-              const summary = data.summary || data.data?.summary;
+              // Show toast notification if summary is available
+              const summary = event.data?.summary;
               if (summary) {
                 const { queued, inprocess, success, error } = summary;
                 toast.success(`Queue updated: ${queued} queued, ${inprocess} processing, ${success} completed, ${error} errors`, {
@@ -330,103 +254,19 @@ export default function CandidateImportUploadQueue() {
                 });
               }
             }
-          } catch (error) {
           }
-        };
-
-        eventSource.onerror = (error) => {
-          setSseConnected(false);
-          
-          // Enhanced error detection for connection issues
-          const isConnectionError = error.type === 'error' && 
-            (eventSource?.readyState === EventSource.CLOSED || eventSource?.readyState === EventSource.CONNECTING);
-          
-          const isNetworkError = error.type === 'error' && 
-            (eventSource?.readyState === EventSource.CLOSED || navigator.onLine === false);
-          
-          // Provide more specific error messages based on error type and readyState
-          if (eventSource && eventSource.readyState === EventSource.CONNECTING) {
-            setSseError('Connecting...');
-          } else if (eventSource && eventSource.readyState === EventSource.CLOSED) {
-            if (isConnectionError) {
-              setSseError('Connection interrupted - retrying...');
-            } else {
-              setSseError('Connection closed - check authentication');
-            }
-          } else {
-            if (isNetworkError) {
-              setSseError('Network error - retrying...');
-            } else {
-              setSseError('Connection failed - retrying...');
-            }
-          }
-          
-          // Enhanced reconnection logic with exponential backoff
-          if (reconnectTimeout) clearTimeout(reconnectTimeout);
-          
-          // Calculate retry delay with exponential backoff (max 30 seconds)
-          const retryCount = parseInt(sessionStorage.getItem('sseRetryCount') || '0');
-          const maxRetries = 15; // Increased from 10 to 15 for better resilience
-          const baseDelay = 1000; // 1 second
-          const retryDelay = Math.min(baseDelay * Math.pow(1.5, retryCount), 30000); // Gentler backoff
-          
-          if (retryCount < maxRetries) {
-            sessionStorage.setItem('sseRetryCount', (retryCount + 1).toString());
-            
-            // Close existing connection before retrying to prevent hanging connections
-            if (eventSource) {
-              try {
-                eventSource.close();
-                eventSource = null;
-              } catch (closeError) {
-                console.warn('Error closing EventSource before retry:', closeError);
-              }
-            }
-            
-            reconnectTimeout = setTimeout(() => {
-              console.log(`Attempting SSE reconnection (attempt ${retryCount + 1}/${maxRetries})...`);
-              connectSSE();
-            }, retryDelay);
-          } else {
-            console.error('Max SSE reconnection attempts reached');
-            setSseError('Connection failed - max retries reached. Please refresh the page.');
-            sessionStorage.removeItem('sseRetryCount');
-          }
-        };
-
-      } catch (error) {
-        setSseError('Failed to create SSE connection');
+        }, 200); // 200ms debounce for better performance
       }
-    };
-
-    const reconnectSSE = () => {
-      if (eventSource) {
-        eventSource.close();
-        eventSource = null;
-      }
-      if (keepaliveInterval) {
-        clearInterval(keepaliveInterval);
-        keepaliveInterval = null;
-      }
-      connectSSE();
-    };
-
-    // Initial connection
-    connectSSE();
-
-    // Cleanup
+    });
+    
     return () => {
-      if (eventSource) {
-        eventSource.close();
+      mounted = false;
+      if (refreshTimeout) {
+        clearTimeout(refreshTimeout);
       }
-      if (reconnectTimeout) {
-        clearTimeout(reconnectTimeout);
-      }
-      if (keepaliveInterval) {
-        clearInterval(keepaliveInterval);
-      }
+      unsubscribe();
     };
-  }, []);
+  }, [subscribeToEvents, loading, page, pageSize, fetchQueue]);
 
   // Fallback polling when SSE is not connected
   useEffect(() => {
@@ -437,14 +277,8 @@ export default function CandidateImportUploadQueue() {
       }, 10000); // Poll every 10 seconds when SSE is down
       
       return () => clearInterval(interval);
-    } else {
     }
   }, [realtimeConnected, fetchQueue, page, pageSize]);
-
-  // Debug SSE connection status
-  useEffect(() => {
-    // SSE status monitoring removed
-  }, [sseConnected, sseError, sseEventCount]);
 
 
   const getStatusIcon = (status: string) => {
@@ -973,7 +807,6 @@ export default function CandidateImportUploadQueue() {
 
               </div>
               <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                <span>Events: {sseEventCount}</span>
                 <span>Last updated: {lastUpdate ? formatDate(lastUpdate.toISOString()) : 'Never'}</span>
                 {!realtimeConnected && (
                   <Button

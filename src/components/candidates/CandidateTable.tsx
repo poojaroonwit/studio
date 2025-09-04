@@ -110,16 +110,17 @@ function displayFitScoreWithGrade(score: number | undefined | null) {
   return formatScoreWithGrade(score);
 }
 
-// Utility for getting row height classes
-function getRowHeightClass(rowHeight: 'compact' | 'normal' | 'comfortable' = 'normal') {
+// Utility for getting row height styles
+function getRowHeightStyle(rowHeight: 'compact' | 'normal' | 'comfortable' = 'normal') {
+  console.log('Row height setting:', rowHeight); // Debug log
   switch (rowHeight) {
     case 'compact':
-      return 'h-8'; // 32px
+      return { height: '32px', minHeight: '32px' }; // 32px
     case 'comfortable':
-      return 'h-16'; // 64px
+      return { height: '64px', minHeight: '64px' }; // 64px
     case 'normal':
     default:
-      return 'h-12'; // 48px
+      return { height: '48px', minHeight: '48px' }; // 48px
   }
 }
 
@@ -722,7 +723,7 @@ export function CandidateTable({
                               const currentStageIndex = availableStages.findIndex(s => s.id === candidate.statusId);
 
                   const row = (
-                <TableRow key={candidate.id} onClick={(e) => handleRowClick(candidate, e)} className={`cursor-pointer hover:bg-muted/40 ${getRowHeightClass(settings?.rowHeight)}`} data-state={safeSelectedCandidateIds.has(candidate.id) ? 'selected' : ''}>
+                <TableRow key={candidate.id} onClick={(e) => handleRowClick(candidate, e)} className="cursor-pointer hover:bg-muted/40" style={getRowHeightStyle(settings?.rowHeight)} data-state={safeSelectedCandidateIds.has(candidate.id) ? 'selected' : ''}>
                       <TableCell key={`${candidate.id}-row-number`} className="text-center font-mono text-xs text-muted-foreground">{rowNumber}</TableCell>
                   <TableCell key={`${candidate.id}-select`}><Checkbox
                       checked={safeSelectedCandidateIds.has(candidate.id)}
@@ -922,7 +923,7 @@ export function CandidateTable({
                       </TableRow>
                       {isExpanded && group.map((candidate, idx) => {
                         const row = (
-                          <TableRow key={candidate.id} onClick={(e) => handleRowClick(candidate, e)} className={`cursor-pointer hover:bg-muted/40 border-t ${getRowHeightClass(settings?.rowHeight)}`} data-state={safeSelectedCandidateIds.has(candidate.id) ? 'selected' : ''}>
+                          <TableRow key={candidate.id} onClick={(e) => handleRowClick(candidate, e)} className="cursor-pointer hover:bg-muted/40 border-t" style={getRowHeightStyle(settings?.rowHeight)} data-state={safeSelectedCandidateIds.has(candidate.id) ? 'selected' : ''}>
                             <TableCell key={`${candidate.id}-row-number`} className="text-center font-mono text-xs text-muted-foreground">{rowNumber}</TableCell>
                             <TableCell key={`${candidate.id}-select`}><Checkbox
                                 checked={safeSelectedCandidateIds.has(candidate.id)}

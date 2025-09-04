@@ -37,6 +37,7 @@ import parseISO from 'date-fns/parseISO';
 import { toast } from "react-hot-toast";
 import { cn } from "@/lib/utils";
 import { useToastManager } from "@/hooks/use-toast-manager";
+import { useModalSave } from "@/hooks/use-modal-save";
 
 import CandidateCommentsSection from './CandidateCommentsSection';
 import { StageSelect } from './StageSelect';
@@ -87,6 +88,14 @@ export function ManageTransitionsModal({
   // Initialize toast manager for better toast handling
   const { success: showSuccessToast, error: showErrorToast, loading: showLoadingToast } = useToastManager({
     deduplicationWindowMs: 2000
+  });
+
+  // Initialize modal save hook for consistent save operations
+  const { isSaving: isModalSaving, save: saveWithModal } = useModalSave(onOpenChange, {
+    successMessage: "Transition saved successfully!",
+    errorMessage: "Failed to save transition. Please try again.",
+    loadingMessage: "Saving transition...",
+    closeModalDelay: 500
   });
 
   // Refs for cleanup and preventing memory leaks
@@ -195,16 +204,8 @@ export function ManageTransitionsModal({
         return;
     }
 
-    setIsSaving(true);
-    
-    // Show loading toast
-    const loadingToastId = showLoadingToast("Saving transition...");
-    
-    // Create abort controller for this request
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
-
     try {
+      await saveWithModal(async () => {
         // Call the onUpdateCandidate function
         if (onUpdateCandidate) {
             console.log('ManageTransitionsModal - Calling onUpdateCandidate...');
@@ -215,19 +216,12 @@ export function ManageTransitionsModal({
             // If onUpdateCandidate returns undefined or false, it means the update was blocked
             if (result === false || result === undefined) {
                 console.log('ManageTransitionsModal - Update was blocked, not proceeding with success flow');
-                setIsSaving(false); // Reset saving state
-                toast.dismiss(loadingToastId); // Dismiss loading toast
-                return; // Don't show success toast or close modal
+                throw new Error('Update was blocked'); // This will prevent the success flow
             }
         } else {
             console.error('onUpdateCandidate function is not provided');
             throw new Error('Update function not available');
         }
-        
-        if (!isMountedRef.current) return;
-        
-        // Dismiss loading toast
-        toast.dismiss(loadingToastId);
         
         // Reset form and state
         form.reset({ newStatus: data.newStatus, notes: '' }); 
@@ -241,40 +235,12 @@ export function ManageTransitionsModal({
         if (onCommentsChange) {
             onCommentsChange();
         }
-        
-        // Show success message with better styling
-        showSuccessToast("Transition saved successfully!", {
-          duration: 3000,
-          icon: "✅"
-        });
-        
-        // Add a small delay before closing modal for better UX
-        setTimeout(() => {
-          if (isMountedRef.current) {
-            onOpenChange(false);
-          }
-        }, 500);
-        
+      });
     } catch (error) {
-        if (!isMountedRef.current) return;
-        
-        // Dismiss loading toast
-        toast.dismiss(loadingToastId);
-        
-        console.error('Transition save error:', error);
-        
-        // Handle all errors with better messaging
-        const errorMessage = error instanceof Error ? error.message : 'Failed to save transition. Please try again.';
-        showErrorToast(errorMessage, {
-          duration: 5000
-        });
-    } finally {
-        if (isMountedRef.current) {
-            setIsSaving(false);
-        }
-        abortControllerRef.current = null;
+      // Error handling is done by the useModalSave hook
+      console.error('Transition save error:', error);
     }
-  }, [candidate, onUpdateCandidate, onRefreshCandidateData, onCommentsChange, onOpenChange, form, showSuccessToast, showErrorToast, showLoadingToast]);
+  }, [candidate, onUpdateCandidate, onRefreshCandidateData, onCommentsChange, form, showErrorToast, saveWithModal]);
 
   const handleEditNotesClick = useCallback((transition: TransitionRecord) => {
     if (!isMountedRef.current) return;
@@ -320,7 +286,7 @@ export function ManageTransitionsModal({
     } finally {
       abortControllerRef.current = null;
     }
-  }, [editingNotes, onRefreshCandidateData, candidate?.id]);
+  }, [editingNotes, onRefreshCandidateData, candidate?.id, showSuccessToast, showErrorToast]);
 
   const confirmDeleteTransition = useCallback((transition: TransitionRecord) => {
     if (!isMountedRef.current) return;
@@ -365,7 +331,7 @@ export function ManageTransitionsModal({
       }
       abortControllerRef.current = null;
     }
-  }, [transitionToDelete, onRefreshCandidateData, candidate?.id]);
+  }, [transitionToDelete, onRefreshCandidateData, candidate?.id, showSuccessToast, showErrorToast]);
 
   const handleModalOpenChange = useCallback((open: boolean) => {
     if (!isMountedRef.current) return;
@@ -415,7 +381,7 @@ export function ManageTransitionsModal({
       console.error('Error in handleSaveClick:', error);
       showErrorToast('An unexpected error occurred. Please try again.');
     }
-  }, [form, handleAddTransitionSubmit]);
+  }, [form, handleAddTransitionSubmit, showErrorToast]);
 
   const filteredStages = (() => {
     try {
@@ -490,18 +456,18 @@ export function ManageTransitionsModal({
               type="button" 
               variant="outline"
               onClick={handleCancelClick}
-              disabled={isSaving}
+              disabled={isModalSaving}
             >
               Cancel
             </Button>
             <Button 
               type="button" 
               variant="default" 
-              disabled={isSaving}
+              disabled={isModalSaving}
               onClick={handleSaveClick}
             >
-              {isSaving ? <Save className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-              {isSaving ? 'Saving...' : 'Save Transition'}
+              {isModalSaving ? <Save className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+              {isModalSaving ? 'Saving...' : 'Save Transition'}
             </Button>
           </DialogFooter>
         </DialogContent>

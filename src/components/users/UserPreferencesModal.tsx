@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { PersonalColorPicker } from '@/components/settings/PersonalColorPicker';
 import { toast } from 'react-hot-toast';
+import { useModalSave } from '@/hooks/use-modal-save';
 import type { UserProfile } from '@/lib/types';
 
 interface TaskBoardPreferences {
@@ -81,6 +82,17 @@ export function UserPreferencesModal({ isOpen, onOpenChange, user }: UserPrefere
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+
+  // Initialize modal save hook for consistent save operations
+  const { isSaving: isModalSaving, save: saveWithModal } = useModalSave(onOpenChange, {
+    successMessage: "User preferences updated successfully!",
+    errorMessage: "Failed to update user preferences. Please try again.",
+    loadingMessage: "Saving preferences...",
+    closeModalDelay: 500,
+    onSuccess: () => {
+      setHasChanges(false);
+    }
+  });
 
   // Load user preferences when modal opens
   useEffect(() => {
@@ -192,30 +204,25 @@ export function UserPreferencesModal({ isOpen, onOpenChange, user }: UserPrefere
   const handleSave = async () => {
     if (!user || !preferences) return;
     
-    setIsSaving(true);
     try {
-      const response = await fetch(`/api/user-preferences/${user.id}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(preferences),
-        credentials: 'include'
-      });
+      await saveWithModal(async () => {
+        const response = await fetch(`/api/user-preferences/${user.id}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(preferences),
+          credentials: 'include'
+        });
 
-      if (response.ok) {
-        toast.success('User preferences updated successfully');
-        setHasChanges(false);
-        onOpenChange(false);
-      } else {
-        const errorData = await response.json();
-        toast.error(errorData.message || 'Failed to update user preferences');
-      }
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to update user preferences');
+        }
+      });
     } catch (error) {
+      // Error handling is done by the useModalSave hook
       console.error('Error saving user preferences:', error);
-      toast.error('Failed to save user preferences');
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -462,18 +469,18 @@ export function UserPreferencesModal({ isOpen, onOpenChange, user }: UserPrefere
               
               <div className="flex items-center gap-3">
                 <Button 
-                  variant="outline" 
+                  variant="outline"
                   onClick={handleCancel}
-                  disabled={isSaving}
+                  disabled={isModalSaving}
                 >
                   <X className="w-4 h-4 mr-2" />
                   Cancel
                 </Button>
                 <Button 
                   onClick={handleSave}
-                  disabled={isSaving || !hasChanges}
+                  disabled={isModalSaving || !hasChanges}
                 >
-                  {isSaving ? (
+                  {isModalSaving ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       Saving...

@@ -322,10 +322,17 @@ export async function handleUnifiedSSEConnection(request: Request) {
     const stream = new ReadableStream({
       start(controller) {
         // console.log(`[UNIFIED] Starting unified stream for user ${userId}`);
-        
+
         // Add connection
         addUserConnection(userId, controller);
         // console.log(`[UNIFIED] User ${userId} SSE connection established`);
+
+        // Send an immediate comment frame to encourage early flush through proxies
+        try {
+          controller.enqueue(encoder.encode(`: ping ${Date.now()}\n\n`));
+        } catch (e) {
+          console.error(`[UNIFIED] Failed to send warm-up frame for user ${userId}:`, e);
+        }
 
         // Send initial connection confirmation
         const initialData = JSON.stringify({
@@ -336,7 +343,7 @@ export async function handleUnifiedSSEConnection(request: Request) {
           connectionId: `${userId}-${Date.now()}`,
           features: ['candidates', 'positions', 'notifications', 'upload_queue', 'dashboard']
         });
-        
+
         try {
           controller.enqueue(encoder.encode(`data: ${initialData}\n\n`));
         } catch (error) {

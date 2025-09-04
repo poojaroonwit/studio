@@ -115,19 +115,41 @@ export async function autoClosePositionIfHeadcountFilled(
       };
     }
 
-    // Close the position
-    const updatedPosition = await prisma.position.update({
-      where: { id: positionId },
-      data: { isOpen: false },
-      select: {
-        id: true,
-        title: true,
-        department: true,
-        isOpen: true,
-        customAttributes: true,
-        updatedAt: true,
-      },
-    });
+    // Close the position - using a more robust approach to ensure primary key is included
+    let updatedPosition;
+    try {
+      updatedPosition = await prisma.position.update({
+        where: { id: positionId },
+        data: { isOpen: false },
+        select: {
+          id: true,
+          title: true,
+          department: true,
+          isOpen: true,
+          customAttributes: true,
+          updatedAt: true,
+        },
+      });
+    } catch (prismaError: any) {
+      // If Prisma fails with primary key error, try alternative approach
+      if (prismaError.message && prismaError.message.includes('attributes of key')) {
+        console.warn('Prisma primary key error detected, using alternative update approach');
+        // Use raw SQL as fallback
+        const { getPool } = await import('@/lib/db');
+        const client = await getPool().connect();
+        try {
+          const result = await client.query(
+            'UPDATE "Position" SET "isOpen" = false, "updatedAt" = NOW() WHERE id = $1 RETURNING id, title, department, "isOpen", "customAttributes", "updatedAt"',
+            [positionId]
+          );
+          updatedPosition = result.rows[0];
+        } finally {
+          client.release();
+        }
+      } else {
+        throw prismaError;
+      }
+    }
 
     // console.log(`Position ${positionId} successfully closed`);
 
@@ -267,19 +289,41 @@ export async function reopenPositionIfHeadcountAvailable(
       };
     }
 
-    // Reopen the position
-    const updatedPosition = await prisma.position.update({
-      where: { id: positionId },
-      data: { isOpen: true },
-      select: {
-        id: true,
-        title: true,
-        department: true,
-        isOpen: true,
-        customAttributes: true,
-        updatedAt: true,
-      },
-    });
+    // Reopen the position - using a more robust approach to ensure primary key is included
+    let updatedPosition;
+    try {
+      updatedPosition = await prisma.position.update({
+        where: { id: positionId },
+        data: { isOpen: true },
+        select: {
+          id: true,
+          title: true,
+          department: true,
+          isOpen: true,
+          customAttributes: true,
+          updatedAt: true,
+        },
+      });
+    } catch (prismaError: any) {
+      // If Prisma fails with primary key error, try alternative approach
+      if (prismaError.message && prismaError.message.includes('attributes of key')) {
+        console.warn('Prisma primary key error detected, using alternative update approach');
+        // Use raw SQL as fallback
+        const { getPool } = await import('@/lib/db');
+        const client = await getPool().connect();
+        try {
+          const result = await client.query(
+            'UPDATE "Position" SET "isOpen" = true, "updatedAt" = NOW() WHERE id = $1 RETURNING id, title, department, "isOpen", "customAttributes", "updatedAt"',
+            [positionId]
+          );
+          updatedPosition = result.rows[0];
+        } finally {
+          client.release();
+        }
+      } else {
+        throw prismaError;
+      }
+    }
 
     // Log the automatic reopening
     await logAudit(

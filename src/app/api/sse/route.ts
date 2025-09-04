@@ -22,9 +22,9 @@ export async function OPTIONS() {
 
 export async function GET(request: NextRequest) {
   try {
-    // Simple timeout wrapper to prevent hanging connections
+    // Simple timeout wrapper to prevent hanging connections (raised to 60s)
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('SSE connection timeout')), 15000) // 15 second timeout
+      setTimeout(() => reject(new Error('SSE connection timeout')), 60000) // 60 second timeout
     );
     
     const ssePromise = handleUnifiedSSEConnection(request);

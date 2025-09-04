@@ -115,6 +115,16 @@ const usePendingCount = () => {
 
         eventSource.onerror = (error) => {
           console.warn('[Sidebar] SSE connection error, falling back to polling:', error);
+          
+          // Provide more specific error information
+          if (eventSource.readyState === EventSource.CONNECTING) {
+            console.warn('[Sidebar] SSE connection is still connecting...');
+          } else if (eventSource.readyState === EventSource.CLOSED) {
+            console.warn('[Sidebar] SSE connection closed - likely authentication issue');
+          } else {
+            console.warn('[Sidebar] SSE connection failed - network or server issue');
+          }
+          
           // Fallback to periodic polling if SSE fails
           fallbackTimeoutRef.current = setInterval(fetchPendingCount, 10000); // 10 second fallback
         };

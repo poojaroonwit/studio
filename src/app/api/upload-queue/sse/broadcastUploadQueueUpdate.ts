@@ -1,5 +1,6 @@
 import { getPool } from '@/lib/db';
 import { broadcastToAll } from '@/lib/unified-connection-manager';
+import { broadcastUploadQueueUpdateIfChanged } from '@/lib/data-change-tracker';
 
 // Keep the old controllers for backward compatibility during transition
 const uploadQueueControllers = new Set<ReadableStreamDefaultController<any>>();
@@ -124,10 +125,10 @@ export async function broadcastUploadQueueUpdate() {
       const summaryRes = await client.query(`
         SELECT 
           COUNT(*) as total,
-                  COUNT(*) FILTER (WHERE status = 'queued') as queued,
-        COUNT(*) FILTER (WHERE status = 'inprocess') as inprocess,
-        COUNT(*) FILTER (WHERE status = 'success') as success,
-        COUNT(*) FILTER (WHERE status = 'failed') as error
+          COUNT(*) FILTER (WHERE status = 'queued') as queued,
+          COUNT(*) FILTER (WHERE status = 'inprocess') as inprocess,
+          COUNT(*) FILTER (WHERE status = 'success') as success,
+          COUNT(*) FILTER (WHERE status = 'failed') as error
         FROM upload_queue
       `);
       
@@ -140,17 +141,19 @@ export async function broadcastUploadQueueUpdate() {
         error: Number(summary.error) || 0,
       };
       
-      // Use unified broadcast system with real data
-      const data = { type: 'queue', summary: safeSummary };
-      broadcastToAll('upload_queue_update', data);
+      // Use smart change detection - only broadcast if summary actually changed
+      broadcastUploadQueueUpdateIfChanged(safeSummary, {
+        minBroadcastInterval: 2000, // 2 seconds minimum between broadcasts
+        ignoreFields: ['timestamp']
+      });
     } finally {
       client.release();
     }
   } catch (error) {
     console.error('[Broadcast] Failed to fetch queue data for broadcast:', error);
     // Fallback to empty data if database query fails
-    const data = { type: 'queue', summary: { queued: 0, inprocess: 0, total: 0, success: 0, error: 0 } };
-    broadcastToAll('upload_queue_update', data);
+    const fallbackSummary = { queued: 0, inprocess: 0, total: 0, success: 0, error: 0 };
+    broadcastUploadQueueUpdateIfChanged(fallbackSummary);
   }
   
   // Keep old system for backward compatibility

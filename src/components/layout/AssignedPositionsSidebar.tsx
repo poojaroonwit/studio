@@ -57,84 +57,105 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
   useEffect(() => {
     if (!session?.user?.id) return;
 
-    try {
-      console.log('[AssignedPositionsSidebar] Establishing SSE connection...');
-      const es = new EventSource('/api/sse');
-      sseRef.current = es;
+    const establishSSEConnection = () => {
+      try {
+        console.log('[AssignedPositionsSidebar] Establishing SSE connection...');
+        const es = new EventSource('/api/sse');
+        sseRef.current = es;
 
-      es.onopen = () => {
-        console.log('[AssignedPositionsSidebar] SSE connection established successfully');
-        setSseConnected(true);
-      };
+        es.onopen = () => {
+          console.log('[AssignedPositionsSidebar] SSE connection established successfully');
+          setSseConnected(true);
+          setError(null); // Clear any previous errors
+        };
 
-      es.onerror = (error) => {
-        console.error('[AssignedPositionsSidebar] SSE connection error:', error);
+        es.onerror = (error) => {
+          console.error('[AssignedPositionsSidebar] SSE connection error:', error);
+          setSseConnected(false);
+          
+          // Provide more detailed error information
+          const errorMessage = `SSE connection failed. Please check your authentication and network connection.`;
+          setError(errorMessage);
+          
+          // Attempt to reconnect after a delay
+          setTimeout(() => {
+            if (sseRef.current?.readyState === EventSource.CLOSED) {
+              console.log('[AssignedPositionsSidebar] Attempting to reconnect SSE...');
+              establishSSEConnection();
+            }
+          }, 5000);
+        };
+
+        const handlePositionUpdate = (event: MessageEvent) => {
+          try {
+            console.log('[AssignedPositionsSidebar] Received position_update event:', event.data);
+            const payload = JSON.parse(event.data || '{}');
+            // If event carries a position and it's open or recruiter changed, refresh list
+            if (payload && (payload.position || payload.data?.position)) {
+              console.log('[AssignedPositionsSidebar] Refreshing due to position update');
+              if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+              refreshTimerRef.current = setTimeout(() => {
+                fetchAssignedPositions();
+              }, 500);
+            }
+            // Also refresh when position list is updated (includes deletions and headcount changes)
+            if (payload && (payload.action === 'list_updated' || payload.action === 'deleted')) {
+              console.log('[AssignedPositionsSidebar] Refreshing due to list update:', payload.action);
+              if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+              refreshTimerRef.current = setTimeout(() => {
+                fetchAssignedPositions();
+              }, 500);
+            }
+          } catch (error) {
+            console.error('[AssignedPositionsSidebar] Error parsing position_update event:', error);
+          }
+        };
+
+        const handleDashboardUpdate = (event: MessageEvent) => {
+          try {
+            console.log('[AssignedPositionsSidebar] Received dashboard_update event:', event.data);
+            const payload = JSON.parse(event.data || '{}');
+            // Refresh when dashboard updates occur (includes statistics and headcount changes)
+            if (payload && payload.type === 'dashboard_update') {
+              console.log('[AssignedPositionsSidebar] Refreshing due to dashboard update');
+              if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+              refreshTimerRef.current = setTimeout(() => {
+                fetchAssignedPositions();
+              }, 500);
+            }
+          } catch (error) {
+            console.error('[AssignedPositionsSidebar] Error parsing dashboard_update event:', error);
+          }
+        };
+
+        es.addEventListener('position_update', handlePositionUpdate);
+        es.addEventListener('dashboard_update', handleDashboardUpdate);
+        
+        // Add general message listener to catch any events
+        es.onmessage = (event) => {
+          console.log('[AssignedPositionsSidebar] Received general message:', event.data);
+        };
+
+      } catch (error) {
+        console.error('[AssignedPositionsSidebar] Failed to establish SSE connection:', error);
         setSseConnected(false);
-      };
+        setError('Failed to establish real-time connection. Manual refresh still available.');
+      }
+    };
 
-      const handlePositionUpdate = (event: MessageEvent) => {
-        try {
-          console.log('[AssignedPositionsSidebar] Received position_update event:', event.data);
-          const payload = JSON.parse(event.data || '{}');
-          // If event carries a position and it's open or recruiter changed, refresh list
-          if (payload && (payload.position || payload.data?.position)) {
-            console.log('[AssignedPositionsSidebar] Refreshing due to position update');
-            if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
-            refreshTimerRef.current = setTimeout(() => {
-              fetchAssignedPositions();
-            }, 500);
-          }
-          // Also refresh when position list is updated (includes deletions and headcount changes)
-          if (payload && (payload.action === 'list_updated' || payload.action === 'deleted')) {
-            console.log('[AssignedPositionsSidebar] Refreshing due to list update:', payload.action);
-            if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
-            refreshTimerRef.current = setTimeout(() => {
-              fetchAssignedPositions();
-            }, 500);
-          }
-        } catch (error) {
-          console.error('[AssignedPositionsSidebar] Error parsing position_update event:', error);
-        }
-      };
+    // Start the connection
+    establishSSEConnection();
 
-      const handleDashboardUpdate = (event: MessageEvent) => {
-        try {
-          console.log('[AssignedPositionsSidebar] Received dashboard_update event:', event.data);
-          const payload = JSON.parse(event.data || '{}');
-          // Refresh when dashboard updates occur (includes statistics and headcount changes)
-          if (payload && payload.type === 'dashboard_update') {
-            console.log('[AssignedPositionsSidebar] Refreshing due to dashboard update');
-            if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
-            refreshTimerRef.current = setTimeout(() => {
-              fetchAssignedPositions();
-            }, 500);
-          }
-        } catch (error) {
-          console.error('[AssignedPositionsSidebar] Error parsing dashboard_update event:', error);
-        }
-      };
-
-      es.addEventListener('position_update', handlePositionUpdate);
-      es.addEventListener('dashboard_update', handleDashboardUpdate);
-      
-      // Add general message listener to catch any events
-      es.onmessage = (event) => {
-        console.log('[AssignedPositionsSidebar] Received general message:', event.data);
-      };
-
-      return () => {
-        es.removeEventListener('position_update', handlePositionUpdate as any);
-        es.removeEventListener('dashboard_update', handleDashboardUpdate as any);
-        es.close();
+    return () => {
+      if (sseRef.current) {
+        sseRef.current.close();
         sseRef.current = null;
-        if (refreshTimerRef.current) {
-          clearTimeout(refreshTimerRef.current);
-          refreshTimerRef.current = null;
-        }
-      };
-    } catch {
-      // If SSE fails, silently skip; manual refresh still works
-    }
+      }
+      if (refreshTimerRef.current) {
+        clearTimeout(refreshTimerRef.current);
+        refreshTimerRef.current = null;
+      }
+    };
   }, [session?.user?.id]);
 
   const fetchAssignedPositions = async () => {

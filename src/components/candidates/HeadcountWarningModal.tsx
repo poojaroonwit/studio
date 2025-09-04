@@ -40,6 +40,16 @@ export function HeadcountWarningModal({
     }
   }, [isOpen]);
 
+  // Prevent modal from closing automatically - add a ref to track if modal should stay open
+  const shouldStayOpenRef = React.useRef(false);
+  
+  React.useEffect(() => {
+    if (isOpen) {
+      shouldStayOpenRef.current = true;
+      console.log('HeadcountWarningModal - Setting shouldStayOpen to true');
+    }
+  }, [isOpen]);
+
   // Parse headcount status from error message
   const headcountMatch = errorMessage.match(/\(Total: (\d+), Vacant: (\d+), Filled: (\d+)\)/);
   const headcountStatus = headcountMatch ? {
@@ -53,10 +63,19 @@ export function HeadcountWarningModal({
   // Prevent automatic closing by handling onOpenChange properly
   const handleOpenChange = (open: boolean) => {
     console.log('HeadcountWarningModal - handleOpenChange called with:', open);
+    console.log('HeadcountWarningModal - shouldStayOpenRef.current:', shouldStayOpenRef.current);
+    
     // Only allow closing if the user explicitly wants to close
     // Prevent any automatic closing behavior
+    if (!open && shouldStayOpenRef.current) {
+      console.log('HeadcountWarningModal - Attempting to close modal, but shouldStayOpen is true - preventing close');
+      // Don't call onClose() - prevent the modal from closing
+      return;
+    }
+    
     if (!open) {
       console.log('HeadcountWarningModal - User requested to close modal');
+      shouldStayOpenRef.current = false;
       onClose();
     }
   };
@@ -64,6 +83,7 @@ export function HeadcountWarningModal({
   // Prevent any automatic closing behavior
   const handleClose = () => {
     console.log('HeadcountWarningModal - handleClose called');
+    shouldStayOpenRef.current = false;
     onClose();
   };
 
@@ -178,6 +198,7 @@ export function HeadcountWarningModal({
               variant="destructive" 
               onClick={() => {
                 console.log('HeadcountWarningModal - Proceed button clicked');
+                shouldStayOpenRef.current = false;
                 onProceed();
                 onClose();
               }}

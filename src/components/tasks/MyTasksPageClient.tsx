@@ -395,24 +395,14 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     }
     
     try {
-      // If user is not a recruiter (Admin or has CANDIDATES_VIEW permission), show all candidates
-      if (!isRecruiter) {
-        return candidates;
-      }
-      // Otherwise, show only candidates assigned to the current user
-      return candidates.filter(c => {
-        try {
-          return c && c.recruiterId === userSession?.id;
-        } catch (error) {
-          console.warn('MyTasksPageClient: Error filtering candidate:', error, c);
-          return false;
-        }
-      });
+      // The API already handles permission-based filtering, so we just return all candidates
+      // that the API returned. The API will only return candidates the user has permission to see.
+      return candidates;
     } catch (error) {
       console.error('MyTasksPageClient: Error in filteredCandidates useMemo:', error);
       return [];
     }
-  }, [candidates, userSession?.id, isRecruiter]);
+  }, [candidates]);
 
   // Filtering logic (for fitScore, if not supported by API)
   const displayedCandidates = useMemo(() => {

@@ -158,16 +158,28 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
           intervalEnd = endOfMonth(intervalStart);
         }
       } else {
-        switch (periodUnit) {
-          case 'week':
+        // For daily intervals (this week, last week), use end of day
+        if (periodType === 'this' || periodType === 'last') {
+          if (periodUnit === 'week') {
+            intervalEnd = addDays(intervalStart, 1);
+          } else if (periodUnit === 'month') {
             intervalEnd = endOfWeek(intervalStart);
-            break;
-          case 'year':
-            intervalEnd = endOfYear(intervalStart);
-            break;
-          default:
+          } else {
             intervalEnd = endOfMonth(intervalStart);
-            break;
+          }
+        } else {
+          // For other period types, use the original logic
+          switch (periodUnit) {
+            case 'week':
+              intervalEnd = endOfWeek(intervalStart);
+              break;
+            case 'year':
+              intervalEnd = endOfYear(intervalStart);
+              break;
+            default:
+              intervalEnd = endOfMonth(intervalStart);
+              break;
+          }
         }
       }
       const count = candidates.filter(candidate => {
@@ -204,16 +216,28 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
           intervalEnd = endOfMonth(intervalStart);
         }
       } else {
-        switch (periodUnit) {
-          case 'week':
+        // For daily intervals (this week, last week), use end of day
+        if (periodType === 'this' || periodType === 'last') {
+          if (periodUnit === 'week') {
+            intervalEnd = addDays(intervalStart, 1);
+          } else if (periodUnit === 'month') {
             intervalEnd = endOfWeek(intervalStart);
-            break;
-          case 'year':
-            intervalEnd = endOfYear(intervalStart);
-            break;
-          default:
+          } else {
             intervalEnd = endOfMonth(intervalStart);
-            break;
+          }
+        } else {
+          // For other period types, use the original logic
+          switch (periodUnit) {
+            case 'week':
+              intervalEnd = endOfWeek(intervalStart);
+              break;
+            case 'year':
+              intervalEnd = endOfYear(intervalStart);
+              break;
+            default:
+              intervalEnd = endOfMonth(intervalStart);
+              break;
+          }
         }
       }
       const count = candidates.filter(candidate => {

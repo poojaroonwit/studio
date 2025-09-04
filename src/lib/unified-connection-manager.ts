@@ -265,7 +265,7 @@ export async function getDashboardDataForUser(userId: string) {
 
 // Unified SSE connection handler
 export async function handleUnifiedSSEConnection(request: Request) {
-  // console.log('[UNIFIED] New connection request received');
+  console.log('[UNIFIED] New SSE connection request received');
   
   try {
     // Authenticate user with better error handling
@@ -274,23 +274,37 @@ export async function handleUnifiedSSEConnection(request: Request) {
       session = await getServerSession(authOptions);
     } catch (sessionError) {
       console.error('[UNIFIED] Session authentication error:', sessionError);
-      return new Response('Unauthorized', { status: 401 });
+      return new Response(JSON.stringify({
+        error: 'Authentication failed',
+        message: 'Session validation error',
+        timestamp: new Date().toISOString()
+      }), { 
+        status: 401,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
     
     const userId = session?.user?.id;
 
     if (!userId) {
-      
-      return new Response('Unauthorized', { status: 401 });
+      console.log('[UNIFIED] Authentication failed - no user session');
+      return new Response(JSON.stringify({
+        error: 'Authentication required',
+        message: 'No valid user session found',
+        timestamp: new Date().toISOString()
+      }), { 
+        status: 401,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
 
     // Check if user already has a connection
     if (userConnections.has(userId)) {
-      // console.log(`[UNIFIED] User ${userId} already has a connection, replacing old one`);
+      console.log(`[UNIFIED] User ${userId} already has a connection, replacing old one`);
       removeUserConnection(userId);
     }
 
-    // console.log(`[UNIFIED] User ${userId} authenticated successfully`);
+    console.log(`[UNIFIED] User ${userId} authenticated successfully`);
 
     const encoder = new TextEncoder();
     let keepaliveInterval: NodeJS.Timeout;
@@ -314,7 +328,7 @@ export async function handleUnifiedSSEConnection(request: Request) {
         });
         controller.enqueue(encoder.encode(`data: ${initialData}\n\n`));
 
-        // Send keepalive every 30 seconds
+        // Send keepalive every 30 seconds (reduced from 5 seconds)
         keepaliveInterval = setInterval(() => {
           try {
             const keepaliveData = JSON.stringify({
@@ -336,7 +350,7 @@ export async function handleUnifiedSSEConnection(request: Request) {
             clearInterval(keepaliveInterval);
             removeUserConnection(userId);
           }
-        }, 5000);
+        }, 30000); // 30 seconds instead of 5 seconds
 
         // Store keepalive interval reference
         const connection = userConnections.get(userId);
@@ -384,23 +398,23 @@ export async function handleUnifiedSSEConnection(request: Request) {
   }
 }
 
-// Cleanup inactive connections (run every 5 seconds)
+// Cleanup inactive connections (run every 30 seconds)
 export function cleanupInactiveConnections() {
   const now = Date.now();
-  const inactiveTimeout = 5 * 1000; // 5 seconds
+  const inactiveTimeout = 2 * 60 * 1000; // 2 minutes instead of 5 seconds
   
   for (const [userId, connection] of userConnections.entries()) {
     if (now - connection.lastActivity > inactiveTimeout) {
-
+      console.log(`[UNIFIED] Cleaning up inactive connection for user ${userId}`);
       removeUserConnection(userId);
     }
   }
 }
 
-// Start cleanup interval (every 5 seconds)
-setInterval(cleanupInactiveConnections, 5000); // Every 5 seconds
+// Start cleanup interval (every 30 seconds)
+setInterval(cleanupInactiveConnections, 30000); // Every 30 seconds
 
-// Start periodic cleanup (every 5 seconds)
+// Start periodic cleanup (every 30 seconds)
 let cleanupInterval: NodeJS.Timeout | null = null;
 
 export function startPeriodicCleanup() {
@@ -414,7 +428,7 @@ export function startPeriodicCleanup() {
     } catch (error) {
       console.error('[UNIFIED] Error in periodic cleanup:', error);
     }
-  }, 5000); // Every 5 seconds
+  }, 30000); // Every 30 seconds
   
 
 }

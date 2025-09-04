@@ -23,24 +23,4 @@ export const ssePaths = {
       }
     }
   },
-  '/api/sse/test': {
-    get: {
-      summary: 'Test SSE connection',
-      description: 'Test endpoint for SSE functionality.',
-      tags: ['SSE'],
-      responses: {
-        '200': {
-          description: 'Test SSE connection successful',
-          content: {
-            'text/event-stream': {
-              schema: {
-                type: 'string',
-                description: 'Test event stream data'
-              }
-            }
-          }
-        }
-      }
-    }
-  }
 };

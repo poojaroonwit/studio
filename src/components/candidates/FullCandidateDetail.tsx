@@ -76,6 +76,9 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
     errorMessage: string;
   } | null>(null);
 
+  // Add a ref to track when the modal was opened to prevent premature closing
+  const headcountModalOpenTimeRef = useRef<number | null>(null);
+
   // Wrap setHeadcountWarningData to add debugging
   const setHeadcountWarningDataWithDebug = (data: typeof headcountWarningData) => {
     console.log('FullCandidateDetail - setHeadcountWarningData called with:', data);
@@ -95,9 +98,30 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
   // Prevent modal from being closed unexpectedly
   const closeHeadcountWarningModal = useCallback(() => {
     console.log('FullCandidateDetail - closeHeadcountWarningModal called - user explicitly closing modal');
+    
+    // Check if modal was opened recently (within last 2 seconds) to prevent premature closing
+    if (headcountModalOpenTimeRef.current) {
+      const timeSinceOpen = Date.now() - headcountModalOpenTimeRef.current;
+      if (timeSinceOpen < 2000) {
+        console.log('FullCandidateDetail - Modal opened too recently, preventing close. Time since open:', timeSinceOpen, 'ms');
+        return;
+      }
+    }
+    
     setIsHeadcountWarningModalOpen(false);
     setHeadcountWarningDataWithDebug(null);
+    headcountModalOpenTimeRef.current = null;
   }, []);
+
+  // Add additional debugging to track when modal state changes
+  useEffect(() => {
+    console.log('FullCandidateDetail - Headcount warning modal state changed:', {
+      isOpen: isHeadcountWarningModalOpen,
+      hasData: !!headcountWarningData,
+      candidateName: headcountWarningData?.candidateName,
+      timestamp: new Date().toISOString()
+    });
+  }, [isHeadcountWarningModalOpen, headcountWarningData]);
   
   // Selection states
   const [preselectedStage, setPreselectedStage] = useState<string | null>(null);
@@ -711,6 +735,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                   });
                   
                   // Open modal to block the status change
+                  headcountModalOpenTimeRef.current = Date.now();
                   setIsHeadcountWarningModalOpen(true);
                   
                   // IMPORTANT: Return early to prevent status update
@@ -840,6 +865,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
             console.log('HeadcountWarningModal - Proceed clicked, attempting to force hire');
             // Here you could implement logic to force hire the candidate
             // For now, just close the modal
+            headcountModalOpenTimeRef.current = null;
             setIsHeadcountWarningModalOpen(false);
             setHeadcountWarningDataWithDebug(null);
           }}

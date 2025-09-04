@@ -265,10 +265,11 @@ export class EnhancedSSEManager {
           this.error(`[Enhanced SSE Manager] ${endpoint.name} EventSource error:`, error);
           endpoint.lastErrorEventType = 'eventsource_error';
           endpoint.lastErrorLocation = endpoint.url;
+          endpoint.lastError = `EventSource error: ${error.type || 'unknown'}`;
           clearTimeout(connectionTimeout);
           eventSource.close();
           // Avoid stringifying the Event object in the error message; log above for details
-          reject(new Error('EventSource error'));
+          reject(new Error(`EventSource error: ${error.type || 'connection failed'}`));
         };
 
         eventSource.onmessage = (event) => {

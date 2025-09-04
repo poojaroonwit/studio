@@ -408,7 +408,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   let body;
   try {
     body = await request.json();
-    console.log('Candidate update request body:', JSON.stringify(body, null, 2));
+
   } catch (error) {
     console.error('Failed to parse request body:', error);
     return NextResponse.json({ message: 'Invalid JSON body' }, { status: 400 });
@@ -421,7 +421,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
   // Log source assignment specifically for debugging
   if (sourceId !== undefined) {
-    console.log(`Source assignment request - candidate: ${id}, sourceId: ${sourceId}, subSource: ${subSource}`);
+
   }
 
   // Validation removed - proceed with data as-is

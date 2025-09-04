@@ -189,8 +189,11 @@ export default function CandidateImportUploadQueue() {
         eventSource = new EventSource('/api/sse');
         
         eventSource.onopen = () => {
+          console.log('[Process Queue] SSE connection established');
           setSseConnected(true);
           setSseError(null);
+          // Reset retry count on successful connection
+          sessionStorage.removeItem('sseRetryCount');
           
                   // Set up keepalive to detect connection issues
         keepaliveInterval = setInterval(() => {
@@ -300,21 +303,35 @@ export default function CandidateImportUploadQueue() {
           console.error('[Process Queue] SSE connection error:', error);
           setSseConnected(false);
           
-          // Provide more specific error messages
+          // Provide more specific error messages based on readyState
           if (eventSource && eventSource.readyState === EventSource.CONNECTING) {
             setSseError('Connecting...');
           } else if (eventSource && eventSource.readyState === EventSource.CLOSED) {
-            setSseError('Connection closed');
+            setSseError('Connection closed - check authentication');
           } else {
-            setSseError('Connection failed');
+            setSseError('Connection failed - retrying...');
           }
           
-          // Attempt to reconnect after 5 seconds
+          // Enhanced reconnection logic with exponential backoff
           if (reconnectTimeout) clearTimeout(reconnectTimeout);
-          reconnectTimeout = setTimeout(() => {
-            console.log('[Process Queue] Attempting SSE reconnection...');
-            connectSSE();
-          }, 5000);
+          
+          // Calculate retry delay with exponential backoff (max 30 seconds)
+          const retryCount = parseInt(sessionStorage.getItem('sseRetryCount') || '0');
+          const maxRetries = 10;
+          const baseDelay = 1000; // 1 second
+          const retryDelay = Math.min(baseDelay * Math.pow(2, retryCount), 30000);
+          
+          if (retryCount < maxRetries) {
+            sessionStorage.setItem('sseRetryCount', (retryCount + 1).toString());
+            reconnectTimeout = setTimeout(() => {
+              console.log(`[Process Queue] Attempting SSE reconnection (attempt ${retryCount + 1}/${maxRetries})...`);
+              connectSSE();
+            }, retryDelay);
+          } else {
+            console.error('[Process Queue] Max SSE reconnection attempts reached');
+            setSseError('Connection failed - max retries reached');
+            sessionStorage.removeItem('sseRetryCount');
+          }
         };
 
       } catch (error) {

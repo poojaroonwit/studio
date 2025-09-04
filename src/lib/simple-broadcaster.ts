@@ -3,20 +3,23 @@
 
 import { broadcastToAll, broadcastToUser } from './unified-connection-manager';
 import type { UnifiedEventType } from './unified-connection-manager';
+import { 
+  broadcastCandidateUpdateIfChanged, 
+  broadcastPositionUpdateIfChanged, 
+  broadcastUploadQueueUpdateIfChanged,
+  broadcastDashboardUpdateIfChanged,
+  forceBroadcast 
+} from './data-change-tracker';
 
 // Candidate-related broadcasts
 export function broadcastCandidateUpdate(candidate: any, actingUserId?: string) {
-      console.log('[Broadcaster] Broadcasting candidate update:', candidate.id, 'statusId:', candidate.statusId, 'actingUserId:', actingUserId);
-  broadcastToAll('candidate_update', {
-    candidate,
-    actingUserId,
-    action: 'updated',
-    timestamp: new Date().toISOString()
-  });
+  // Use smart change detection - only broadcast if data actually changed
+  broadcastCandidateUpdateIfChanged(candidate, actingUserId);
 }
 
 export function broadcastCandidateCreated(candidate: any, actingUserId?: string) {
-  broadcastToAll('candidate_update', {
+  // Force broadcast for new candidates (always meaningful)
+  forceBroadcast('candidate_update', {
     candidate,
     actingUserId,
     action: 'created',
@@ -25,7 +28,8 @@ export function broadcastCandidateCreated(candidate: any, actingUserId?: string)
 }
 
 export function broadcastCandidateDeleted(candidateId: string, actingUserId?: string) {
-  broadcastToAll('candidate_update', {
+  // Force broadcast for deletions (always meaningful)
+  forceBroadcast('candidate_update', {
     candidateId,
     actingUserId,
     action: 'deleted',
@@ -34,7 +38,8 @@ export function broadcastCandidateDeleted(candidateId: string, actingUserId?: st
 }
 
 export function broadcastCandidateStatusChanged(candidate: any, oldStatus: string, newStatus: string, actingUserId?: string) {
-  broadcastToAll('candidate_update', {
+  // Force broadcast for status changes (always meaningful)
+  forceBroadcast('candidate_update', {
     candidate,
     actingUserId,
     action: 'status_changed',
@@ -46,16 +51,13 @@ export function broadcastCandidateStatusChanged(candidate: any, oldStatus: strin
 
 // Position-related broadcasts
 export function broadcastPositionUpdate(position: any, actingUserId?: string) {
-  broadcastToAll('position_update', {
-    position,
-    actingUserId,
-    action: 'updated',
-    timestamp: new Date().toISOString()
-  });
+  // Use smart change detection - only broadcast if data actually changed
+  broadcastPositionUpdateIfChanged(position, actingUserId);
 }
 
 export function broadcastPositionCreated(position: any, actingUserId?: string) {
-  broadcastToAll('position_update', {
+  // Force broadcast for new positions (always meaningful)
+  forceBroadcast('position_update', {
     position,
     actingUserId,
     action: 'created',
@@ -64,7 +66,8 @@ export function broadcastPositionCreated(position: any, actingUserId?: string) {
 }
 
 export function broadcastPositionDeleted(positionId: string, actingUserId?: string) {
-  broadcastToAll('position_update', {
+  // Force broadcast for deletions (always meaningful)
+  forceBroadcast('position_update', {
     positionId,
     actingUserId,
     action: 'deleted',
@@ -73,17 +76,18 @@ export function broadcastPositionDeleted(positionId: string, actingUserId?: stri
 }
 
 export function broadcastPositionListUpdated() {
-  broadcastToAll('position_update', {
+  // Force broadcast for list updates (always meaningful)
+  forceBroadcast('position_update', {
     action: 'list_updated',
     timestamp: new Date().toISOString()
   });
 }
 
 export function broadcastPositionStatisticsUpdated(statistics: any) {
-  broadcastToAll('position_update', {
-    action: 'statistics_updated',
-    statistics,
-    timestamp: new Date().toISOString()
+  // Use smart change detection for statistics
+  broadcastPositionUpdateIfChanged({ statistics }, undefined, {
+    minBroadcastInterval: 5000, // 5 seconds for statistics
+    ignoreFields: ['timestamp']
   });
 }
 
@@ -140,14 +144,12 @@ export function broadcastUploadFailed(fileName: string, userId: string, error: s
 
 // Dashboard broadcasts
 export function broadcastDashboardUpdate(data: any) {
-  broadcastToAll('dashboard_update', {
-    ...data,
-    timestamp: new Date().toISOString()
-  });
+  // Use smart change detection for dashboard updates
+  broadcastDashboardUpdateIfChanged(data);
 }
 
 // Generic broadcast function
-export function broadcast(eventType: SSEEventType, data: any, targetUserId?: string) {
+export function broadcast(eventType: UnifiedEventType, data: any, targetUserId?: string) {
   if (targetUserId) {
     broadcastToUser(targetUserId, eventType, data);
   } else {
@@ -156,7 +158,7 @@ export function broadcast(eventType: SSEEventType, data: any, targetUserId?: str
 }
 
 // Batch broadcast for multiple events
-export function broadcastBatch(events: Array<{ type: SSEEventType; data: any; targetUserId?: string }>) {
+export function broadcastBatch(events: Array<{ type: UnifiedEventType; data: any; targetUserId?: string }>) {
   events.forEach(event => {
     broadcast(event.type, event.data, event.targetUserId);
   });

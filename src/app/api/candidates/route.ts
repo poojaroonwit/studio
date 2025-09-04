@@ -633,7 +633,6 @@ export async function GET(request: NextRequest) {
             } else {
               whereClauses.push(`c."statusId" = ANY($${paramIndex++})`);
               queryParams.push(allStatusIds);
-              paramIndex += 1;
             }
           } finally {
             client.release();
@@ -646,7 +645,6 @@ export async function GET(request: NextRequest) {
           } else {
             whereClauses.push(`c."statusId" = ANY($${paramIndex++})`);
             queryParams.push(uuidStatuses);
-            paramIndex += 1;
           }
         } else if (nameStatuses.length > 0) {
           // Only names - need to look up IDs
@@ -665,7 +663,6 @@ export async function GET(request: NextRequest) {
             } else if (statusIds.length > 1) {
               whereClauses.push(`c."statusId" = ANY($${paramIndex++})`);
               queryParams.push(statusIds);
-              paramIndex += 1;
             }
           } finally {
             client.release();
@@ -1058,7 +1055,7 @@ export async function GET(request: NextRequest) {
     const total = parseInt(countResult.rows[0].total);
     
     // Optimize data transformation
-    const candidates = dataResult.rows.map(row => ({
+    const candidates = dataResult.rows.map((row: any) => ({
       id: row.id,
       name: row.name,
       email: row.email,

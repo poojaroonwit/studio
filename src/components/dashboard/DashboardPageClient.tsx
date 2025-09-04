@@ -1949,7 +1949,6 @@ export default function DashboardPageClient({
           }
         }}
         positionId={selectedPositionId}
-        modalId="dashboard-position-drawer"
       />
     </div>
   );

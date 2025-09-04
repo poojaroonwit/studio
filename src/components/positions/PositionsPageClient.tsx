@@ -1770,7 +1770,7 @@ export default function PositionsPageClient() {
 
       {/* Delete Confirmation */}
       <AlertDialog open={!!positionToDelete} onOpenChange={() => setPositionToDelete(null)}>
-        <AlertDialogContent modalId="positions-delete-confirmation">
+        <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Position</AlertDialogTitle>
             <AlertDialogDescription>
@@ -1787,7 +1787,7 @@ export default function PositionsPageClient() {
       </AlertDialog>
       {/* Bulk Delete Confirmation */}
       <AlertDialog open={showBulkDeleteConfirm} onOpenChange={setShowBulkDeleteConfirm}>
-        <AlertDialogContent modalId="positions-bulk-delete-confirmation">
+        <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Bulk Delete Positions</AlertDialogTitle>
             <AlertDialogDescription>
@@ -1813,7 +1813,6 @@ export default function PositionsPageClient() {
           }
         }}
         positionId={selectedPositionId}
-        modalId="positions-page-drawer"
       />
 
       {/* Position Edit Drawer */}
@@ -1827,7 +1826,6 @@ export default function PositionsPageClient() {
         }}
         positionId={editingPositionId}
         initialEditMode={false}
-        modalId="positions-page-edit-drawer"
       />
     </div>
   );

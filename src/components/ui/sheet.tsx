@@ -7,14 +7,6 @@ import { X } from "lucide-react"
 import { logIfInvalidSingleChild } from "./utils"
 
 import { cn } from "@/lib/utils"
-// Import z-index manager with error handling
-let zIndexManager: any = null;
-try {
-  const manager = require('@/lib/z-index-manager');
-  zIndexManager = manager.zIndexManager;
-} catch (error) {
-  console.warn('[Sheet] Z-index manager not available, using fallback z-index values');
-}
 
 const Sheet = SheetPrimitive.Root
 
@@ -35,48 +27,21 @@ const SheetPortal = SheetPrimitive.Portal
 
 const SheetOverlay = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Overlay>,
-  React.ComponentPropsWithoutRef<typeof SheetPrimitive.Overlay> & {
-    modalId?: string;
-  }
->(({ className, modalId, ...props }, ref) => {
-  const [zIndex, setZIndex] = React.useState(10000);
-  
-  React.useEffect(() => {
-    if (modalId && zIndexManager) {
-      try {
-        const { overlayZIndex } = zIndexManager.registerModal(modalId, 'sheet');
-        setZIndex(overlayZIndex);
-        
-        return () => {
-          try {
-            zIndexManager.unregisterModal(modalId);
-          } catch (error) {
-            console.error('[SheetOverlay] Error unregistering modal:', error);
-          }
-        };
-      } catch (error) {
-        console.error('[SheetOverlay] Error registering modal:', error);
-        setZIndex(10000); // Fallback z-index
-      }
-    }
-  }, [modalId]);
-
-  return (
-    <SheetPrimitive.Overlay
-      className={cn(
-        "fixed inset-0 bg-black/20 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-        className
-      )}
-      style={{ zIndex }}
-      {...props}
-      ref={ref}
-    />
-  );
-})
+  React.ComponentPropsWithoutRef<typeof SheetPrimitive.Overlay>
+>(({ className, ...props }, ref) => (
+  <SheetPrimitive.Overlay
+    className={cn(
+      "fixed inset-0 z-[10000] bg-black/20 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      className
+    )}
+    {...props}
+    ref={ref}
+  />
+))
 SheetOverlay.displayName = SheetPrimitive.Overlay.displayName
 
 const sheetVariants = cva(
-  "fixed gap-4 bg-background p-6 shadow-lg transition ease-in-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:duration-500",
+  "fixed z-[10001] gap-4 bg-background p-6 shadow-lg transition ease-in-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:duration-500",
   {
     variants: {
       side: {
@@ -96,47 +61,28 @@ const sheetVariants = cva(
 
 interface SheetContentProps
   extends React.ComponentPropsWithoutRef<typeof SheetPrimitive.Content>,
-    VariantProps<typeof sheetVariants> {
-  modalId?: string;
-}
+    VariantProps<typeof sheetVariants> {}
 
 const SheetContent = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Content>,
   SheetContentProps
->(({ side = "right", className, modalId, children, ...props }, ref) => {
-  const [zIndex, setZIndex] = React.useState(10001);
-  
-  React.useEffect(() => {
-    if (modalId && zIndexManager) {
-      try {
-        const { contentZIndex } = zIndexManager.registerModal(modalId, 'sheet');
-        setZIndex(contentZIndex);
-      } catch (error) {
-        console.error('[SheetContent] Error registering modal:', error);
-        setZIndex(10001); // Fallback z-index
-      }
-    }
-  }, [modalId]);
-
-  return (
-    <SheetPortal>
-      <SheetOverlay modalId={modalId} />
-      <SheetPrimitive.Content
-        ref={ref}
-        className={cn(sheetVariants({ side }), className)}
-        style={{ zIndex }}
-        {...props}
-      >
-        <SheetPrimitive.Title className="sr-only">Sheet</SheetPrimitive.Title>
-        {children}
-        <SheetPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary">
-          <X className="h-4 w-4" />
-          <span className="sr-only">Close</span>
-        </SheetPrimitive.Close>
-      </SheetPrimitive.Content>
-    </SheetPortal>
-  );
-})
+>(({ side = "right", className, children, ...props }, ref) => (
+  <SheetPortal>
+    <SheetOverlay />
+    <SheetPrimitive.Content
+      ref={ref}
+      className={cn(sheetVariants({ side }), className)}
+      {...props}
+    >
+      <SheetPrimitive.Title className="sr-only">Sheet</SheetPrimitive.Title>
+      {children}
+      <SheetPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary">
+        <X className="h-4 w-4" />
+        <span className="sr-only">Close</span>
+      </SheetPrimitive.Close>
+    </SheetPrimitive.Content>
+  </SheetPortal>
+))
 SheetContent.displayName = SheetPrimitive.Content.displayName
 
 const SheetHeader = ({

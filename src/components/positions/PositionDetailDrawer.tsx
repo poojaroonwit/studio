@@ -54,10 +54,9 @@ interface PositionDetailDrawerProps {
   onOpenChange: (open: boolean) => void;
   positionId: string | null;
   initialEditMode?: boolean;
-  modalId?: string;
 }
 
-export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initialEditMode = false, modalId }: PositionDetailDrawerProps) {
+export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initialEditMode = false }: PositionDetailDrawerProps) {
   const { data: session, status: sessionStatus } = useSession();
   const { isJobMatchEnabled } = useJobMatchFeature();
   
@@ -1370,7 +1369,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
           onOpenChange(open);
         }}
       >
-        <SheetContent side="right" className="w-[50vw] min-w-[800px] max-w-none p-0" modalId={modalId}>
+        <SheetContent side="right" className="w-[50vw] min-w-[800px] max-w-none p-0">
           <div className="h-full flex flex-col">
             <SheetHeader className="p-6 border-b">
               <SheetTitle className="flex items-center gap-2">

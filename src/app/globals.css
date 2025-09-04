@@ -107,14 +107,13 @@
   animation: notificationPulse 2s ease-in-out infinite;
 }
 
-/* Dynamic z-index values are now managed by the z-index manager */
-/* These rules are kept for fallback but should not be needed */
+/* Force all dialogs to have very high z-index to appear above drawers */
 [data-radix-dialog-overlay] {
-  z-index: 10000;
+  z-index: 99999 !important;
 }
 
 [data-radix-dialog-content] {
-  z-index: 10001;
+  z-index: 100000 !important;
 }
 
 /* Ensure dialog overlays are properly removed when closed */
@@ -154,13 +153,13 @@ body {
   pointer-events: none !important;
 }
 
-/* Dynamic z-index values are now managed by the z-index manager */
+/* Force all alert dialogs to have very high z-index */
 [data-radix-alert-dialog-overlay] {
-  z-index: 10000;
+  z-index: 99999 !important;
 }
 
 [data-radix-alert-dialog-content] {
-  z-index: 10001;
+  z-index: 100000 !important;
 }
 
 /* Warning pulse animation */

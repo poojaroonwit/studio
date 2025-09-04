@@ -61,9 +61,7 @@ export const JobsTab: React.FC<JobsTabProps> = ({
           </button>
           <div className="flex items-center gap-2">
             {appliedFitScore !== null && appliedFitScore !== undefined && (
-              <ScoreBadge score={appliedFitScore} className="text-xs">
-                {formatScoreWithGrade(appliedFitScore)}
-              </ScoreBadge>
+              <ScoreBadge score={appliedFitScore} className="text-xs" />
             )}
             {appliedJobId && (
               <Button

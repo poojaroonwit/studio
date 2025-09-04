@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Briefcase, Copy, Check, Info } from 'lucide-react';
 import { ScoreBadge } from '@/components/ui/score-color';
-import { formatScoreWithGrade } from '@/lib/scoreUtils';
 import type { Candidate, Position } from '@/lib/types';
 
 interface JobAppliedTabProps {
@@ -42,9 +41,7 @@ export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
             </CardTitle>
             <div className="flex items-center gap-2">
               {appliedFitScore !== null && appliedFitScore !== undefined && (
-                <ScoreBadge score={appliedFitScore} className="text-xs">
-                  {formatScoreWithGrade(appliedFitScore)}
-                </ScoreBadge>
+                <ScoreBadge score={appliedFitScore} className="text-xs" />
               )}
               {appliedJobId && (
                 <Button

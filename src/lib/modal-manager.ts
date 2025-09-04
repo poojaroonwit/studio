@@ -22,25 +22,46 @@ class ModalManager {
    * Register a new modal instance
    */
   registerModal(id: string, type: ModalInstance['type']): number {
-    const zIndex = this.nextZIndex;
-    this.nextZIndex += 100; // Increment by 100 to leave room for overlays
+    try {
+      // Safety check for undefined id
+      if (!id || typeof id !== 'string') {
+        console.warn('ModalManager.registerModal: Invalid id provided:', id);
+        return 10000; // Return default z-index
+      }
 
-    this.modals.set(id, {
-      id,
-      type,
-      zIndex,
-    });
+      const zIndex = this.nextZIndex;
+      this.nextZIndex += 100; // Increment by 100 to leave room for overlays
 
-    this.updateGlobalOverlay();
-    return zIndex;
+      this.modals.set(id, {
+        id,
+        type,
+        zIndex,
+      });
+
+      this.updateGlobalOverlay();
+      return zIndex;
+    } catch (error) {
+      console.warn('Error in ModalManager.registerModal:', error);
+      return 10000; // Return default z-index on error
+    }
   }
 
   /**
    * Unregister a modal instance
    */
   unregisterModal(id: string): void {
-    this.modals.delete(id);
-    this.updateGlobalOverlay();
+    try {
+      // Safety check for undefined id
+      if (!id || typeof id !== 'string') {
+        console.warn('ModalManager.unregisterModal: Invalid id provided:', id);
+        return;
+      }
+
+      this.modals.delete(id);
+      this.updateGlobalOverlay();
+    } catch (error) {
+      console.warn('Error in ModalManager.unregisterModal:', error);
+    }
   }
 
   /**
@@ -152,12 +173,28 @@ export function useModalManager(id: string, type: ModalInstance['type']) {
   const [zIndex, setZIndex] = React.useState(10000);
 
   React.useEffect(() => {
-    const modalZIndex = modalManager.registerModal(id, type);
-    setZIndex(modalZIndex);
+    try {
+      // Safety check for undefined id
+      if (!id || typeof id !== 'string') {
+        console.warn('useModalManager: Invalid id provided:', id);
+        return;
+      }
 
-    return () => {
-      modalManager.unregisterModal(id);
-    };
+      const modalZIndex = modalManager.registerModal(id, type);
+      setZIndex(modalZIndex);
+
+      return () => {
+        try {
+          modalManager.unregisterModal(id);
+        } catch (error) {
+          console.warn('Error unregistering modal:', error);
+        }
+      };
+    } catch (error) {
+      console.warn('Error in useModalManager:', error);
+      // Fallback to default z-index
+      setZIndex(10000);
+    }
   }, [id, type]);
 
   return {

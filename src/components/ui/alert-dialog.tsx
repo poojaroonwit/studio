@@ -35,7 +35,7 @@ const AlertDialogContent = React.forwardRef<
   }
 >(({ className, modalId, ...props }, ref) => {
   // Generate a unique ID for this modal if not provided
-  const id = modalId || React.useId();
+  const id = modalId || `alert-dialog-${React.useId()}`;
   const { zIndex, overlayZIndex } = useModalManager(id, 'alert-dialog');
 
   return (

@@ -71,7 +71,7 @@ const SheetContent = React.forwardRef<
   }
 >(({ side = "right", className, children, modalId, ...props }, ref) => {
   // Generate a unique ID for this sheet if not provided
-  const id = modalId || React.useId();
+  const id = modalId || `sheet-${React.useId()}`;
   const { zIndex, overlayZIndex } = useModalManager(id, 'sheet');
 
   return (

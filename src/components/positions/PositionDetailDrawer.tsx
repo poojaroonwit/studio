@@ -1372,7 +1372,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         <SheetContent 
           side="right" 
           className="w-[50vw] min-w-[800px] max-w-none p-0"
-          modalId={`position-drawer-${positionId}`}
+          modalId={positionId ? `position-drawer-${positionId}` : 'position-drawer-unknown'}
         >
           <div className="h-full flex flex-col">
             <SheetHeader className="p-6 border-b">

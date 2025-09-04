@@ -16,6 +16,9 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
   const [mounted, setMounted] = useState(false);
   const portalContainerRef = useRef<HTMLDivElement | null>(null);
   
+  // Debug logging
+  // console.log('CandidateDetailModal render:', { candidateId, open, mounted });
+  
   // TEMPORARILY DISABLED: Modal manager for debugging
   const modalId = candidateId ? `candidate-detail-${candidateId}` : 'candidate-detail-unknown';
   // const { zIndex, overlayZIndex } = useModalManager(modalId, 'custom');

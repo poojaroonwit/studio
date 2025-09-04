@@ -46,8 +46,6 @@ export interface CandidateSettings {
   fitScoreFilterMode: 'single' | 'multi';
   
   // Table size settings
-  defaultPageSize: number;
-  tableHeight: number;
   rowHeight: 'compact' | 'normal' | 'comfortable';
 }
 
@@ -65,8 +63,6 @@ const defaultSettings: CandidateSettings = {
   showHorizontalFitScoreFilters: true,
   fitScoreType: 'applied',
   fitScoreFilterMode: 'single',
-  defaultPageSize: 50,
-  tableHeight: 600,
   rowHeight: 'normal'
 } as const;
 
@@ -361,59 +357,15 @@ export function CandidateSettingsDrawer({
 
             <Separator />
 
-            {/* Table Size Settings Section */}
+            {/* Row Height Settings Section */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Table Size Settings</CardTitle>
+                <CardTitle className="text-lg">Row Height</CardTitle>
                 <CardDescription>
-                  Configure the default table size and height
+                  Adjust the height of table rows for better readability
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="defaultPageSize" className="text-sm font-medium">
-                    Default Rows Per Page
-                  </Label>
-                  <Select
-                    value={localSettings.defaultPageSize?.toString() || '50'}
-                    onValueChange={(value) => handleSettingChange('defaultPageSize', parseInt(value))}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="10">10 rows</SelectItem>
-                      <SelectItem value="20">20 rows</SelectItem>
-                      <SelectItem value="50">50 rows</SelectItem>
-                      <SelectItem value="100">100 rows</SelectItem>
-                      <SelectItem value="200">200 rows</SelectItem>
-                      <SelectItem value="500">500 rows</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <div className="text-xs text-muted-foreground">
-                    Number of candidates to display per page by default
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="tableHeight" className="text-sm font-medium">
-                    Table Height (px)
-                  </Label>
-                  <Input
-                    id="tableHeight"
-                    type="number"
-                    min="300"
-                    max="1000"
-                    step="50"
-                    value={localSettings.tableHeight || 600}
-                    onChange={(e) => handleSettingChange('tableHeight', parseInt(e.target.value) || 600)}
-                    className="w-full"
-                  />
-                  <div className="text-xs text-muted-foreground">
-                    Height of the candidate table in pixels (300-1000px)
-                  </div>
-                </div>
-                
+              <CardContent>
                 <div className="space-y-2">
                   <Label htmlFor="rowHeight" className="text-sm font-medium">
                     Row Height
@@ -432,7 +384,7 @@ export function CandidateSettingsDrawer({
                     </SelectContent>
                   </Select>
                   <div className="text-xs text-muted-foreground">
-                    Adjust the height of table rows for better readability
+                    Choose the spacing between table rows
                   </div>
                 </div>
               </CardContent>

@@ -488,6 +488,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
 
   // Handle candidate click
   const handleCandidateClick = (candidateId: string) => {
+    console.log('PositionDetailDrawer: handleCandidateClick called with:', candidateId);
     setSelectedCandidateId(candidateId);
     setIsCandidateModalOpen(true);
   };

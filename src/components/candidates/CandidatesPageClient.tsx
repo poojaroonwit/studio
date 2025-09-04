@@ -561,12 +561,7 @@ export function CandidatesPageClient({
   // Settings
   const { settings: candidateSettings, setSettings: setCandidateSettings, isLoading: settingsLoading, error: settingsError, clearError: clearSettingsError } = useCandidateSettings();
 
-  // Update pageSize when settings load
-  useEffect(() => {
-    if (candidateSettings?.defaultPageSize && candidateSettings.defaultPageSize !== pageSize) {
-      setPageSize(candidateSettings.defaultPageSize);
-    }
-  }, [candidateSettings?.defaultPageSize, pageSize]);
+  // PageSize is now managed locally, no longer tied to settings
 
   // Stable callback for settings change
   const handleSettingsChange = useCallback(async (settings: any) => {
@@ -1706,7 +1701,6 @@ export function CandidatesPageClient({
                 onBulkChangeStatus={handleBulkChangeStatus}
                 onBulkAssignRecruiter={handleBulkAssignRecruiter}
                 settings={candidateSettings}
-                tableHeight={candidateSettings?.tableHeight}
               />
             </div>
 

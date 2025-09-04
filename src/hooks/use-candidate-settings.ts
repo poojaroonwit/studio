@@ -16,8 +16,6 @@ const defaultSettings: CandidateSettings = {
   showHorizontalFitScoreFilters: true,
   fitScoreType: 'applied',
   fitScoreFilterMode: 'single',
-  defaultPageSize: 50,
-  tableHeight: 600,
   rowHeight: 'normal'
 };
 

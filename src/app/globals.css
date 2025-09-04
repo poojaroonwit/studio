@@ -136,6 +136,11 @@
   top: 0 !important;
   right: 0 !important;
   bottom: 0 !important;
+  position: fixed !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  box-sizing: border-box !important;
 }
 
 /* Ensure modal elements with data-modal-id get proper layering */
@@ -155,6 +160,21 @@
   z-index: 1 !important;
 }
 
+/* Force all fixed inset-0 elements to cover full screen */
+.fixed.inset-0 {
+  width: 100vw !important;
+  height: 100vh !important;
+  left: 0 !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  position: fixed !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  box-sizing: border-box !important;
+}
+
 /* Sheet components should have higher z-index than regular modals */
 [data-modal-id*="position-drawer"] {
   /* Position drawers get higher z-index automatically via modal manager */
@@ -167,13 +187,19 @@
 
 /* Ensure all modal overlays cover full screen */
 [data-radix-dialog-overlay],
-[data-radix-alert-dialog-overlay] {
+[data-radix-alert-dialog-overlay],
+[data-radix-sheet-overlay] {
   width: 100vw !important;
   height: 100vh !important;
   left: 0 !important;
   top: 0 !important;
   right: 0 !important;
   bottom: 0 !important;
+  position: fixed !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  box-sizing: border-box !important;
 }
 
 /* Ensure dialog overlays are properly removed when closed */
@@ -193,9 +219,16 @@
 
 /* REMOVED: Aggressive CSS rules that might be hiding open modals */
 
-/* Ensure body is always clickable */
-body {
+/* Ensure html and body don't constrain overlays */
+html, body {
   pointer-events: auto !important;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow-x: visible !important;
+  position: relative !important;
+  box-sizing: border-box !important;
 }
 
 /* Prevent any fixed overlays from blocking interactions when closed */

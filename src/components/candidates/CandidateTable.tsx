@@ -92,11 +92,9 @@ interface CandidateTableProps {
     showAppliedDateColumn?: boolean;
     showLastUpdateColumn?: boolean;
     defaultPageSize?: number;
-    tableHeight?: number;
     rowHeight?: 'compact' | 'normal' | 'comfortable';
   };
   // Dynamic height
-  tableHeight?: number;
   // Bulk action handlers
   onBulkDelete?: (candidateIds: string[]) => Promise<void>;
   onBulkChangeStatus?: (candidateIds: string[], newStatus: string, notes?: string) => Promise<void>;
@@ -112,7 +110,6 @@ function displayFitScoreWithGrade(score: number | undefined | null) {
 
 // Utility for getting row height CSS class
 function getRowHeightClass(rowHeight: 'compact' | 'normal' | 'comfortable' = 'normal') {
-  console.log('Row height setting:', rowHeight); // Debug log
   switch (rowHeight) {
     case 'compact':
       return 'candidate-table-row-compact';
@@ -208,7 +205,6 @@ export function CandidateTable({
   canAssignSource = false,
   canAssignRecruiter = false,
   settings,
-  tableHeight,
   onBulkDelete,
   onBulkChangeStatus,
   onBulkAssignRecruiter,
@@ -452,7 +448,7 @@ export function CandidateTable({
         style={{ 
           '--table-cell-max-width': '100%',
           '--table-text-overflow': 'ellipsis',
-          height: tableHeight || settings?.tableHeight || 400
+          height: 400
         } as React.CSSProperties}
       >
         <div className="h-full w-full overflow-auto table-scrollbar">

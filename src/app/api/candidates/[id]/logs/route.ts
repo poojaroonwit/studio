@@ -7,6 +7,12 @@ import { z } from 'zod';
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
+    const { searchParams } = new URL(req.url);
+    
+    // Parse pagination parameters
+    const limit = parseInt(searchParams.get('limit') || '10');
+    const offset = parseInt(searchParams.get('offset') || '0');
+    
     // Validate candidate ID format
     const uuidSchema = z.string().uuid();
     if (!uuidSchema.safeParse(id).success) {
@@ -107,7 +113,19 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       return dateB.getTime() - dateA.getTime();
     });
 
-    return new Response(JSON.stringify({ data: logs }), {
+    // Apply pagination
+    const paginatedLogs = logs.slice(offset, offset + limit);
+    const hasMore = offset + limit < logs.length;
+    
+    return new Response(JSON.stringify({ 
+      data: paginatedLogs,
+      pagination: {
+        limit,
+        offset,
+        hasMore,
+        total: logs.length
+      }
+    }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });

@@ -178,7 +178,6 @@ export default function CandidateImportUploadQueue() {
       }
       
       const data: QueueResponse = await response.json();
-      console.log('[ProcessQueue] API Response:', data);
       setQueueData(data);
       setLastUpdate(new Date());
     } catch (error) {

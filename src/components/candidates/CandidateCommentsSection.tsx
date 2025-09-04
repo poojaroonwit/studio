@@ -60,6 +60,16 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
   const [commentsOffset, setCommentsOffset] = useState(0);
   const COMMENTS_PER_LOAD = 5;
   
+  // Activity pagination state
+  const [loadingMoreActivities, setLoadingMoreActivities] = useState(false);
+  const [hasMoreActivities, setHasMoreActivities] = useState(true);
+  const [activitiesOffset, setActivitiesOffset] = useState(0);
+  const ACTIVITIES_PER_LOAD = 5;
+  
+  // Display state for height-based rendering
+  const [displayedItems, setDisplayedItems] = useState(8); // Show 8 items initially
+  const ITEMS_PER_LOAD = 5; // Load 5 more items at a time
+  
   // Drag-and-drop and file state
   const [files, setFiles] = useState<File[]>([]);
   const [labels, setLabels] = useState<string[]>([]);
@@ -124,15 +134,24 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
     };
   }, [candidateId, initialComments]);
 
-  // Fetch activity logs once on candidateId change (no real-time polling)
+  // Fetch activity logs with pagination
   useEffect(() => {
     setLogsLoading(true);
-    fetch(`/api/candidates/${candidateId}/logs`, {
+    fetch(`/api/candidates/${candidateId}/logs?limit=${ACTIVITIES_PER_LOAD}&offset=0`, {
       credentials: 'include'
     })
       .then(res => res.json())
-      .then(data => setLogs(Array.isArray(data.data) ? data.data : []))
-      .catch(() => setLogs([]))
+      .then(data => {
+        const initialLogs = Array.isArray(data.data) ? data.data : [];
+        setLogs(initialLogs);
+        setActivitiesOffset(initialLogs.length);
+        setHasMoreActivities(data.pagination?.hasMore || false);
+      })
+      .catch(() => {
+        setLogs([]);
+        setActivitiesOffset(0);
+        setHasMoreActivities(false);
+      })
       .finally(() => setLogsLoading(false));
   }, [candidateId]);
 
@@ -180,6 +199,59 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
     }
   }, [candidateId, commentsOffset, loadingMore, hasMoreComments]);
 
+  // Load more activities function
+  const loadMoreActivities = useCallback(async () => {
+    if (loadingMoreActivities || !hasMoreActivities) return;
+    
+    setLoadingMoreActivities(true);
+    try {
+      const response = await fetch(`/api/candidates/${candidateId}/logs?limit=${ACTIVITIES_PER_LOAD}&offset=${activitiesOffset}`, {
+        credentials: 'include'
+      });
+      
+      if (!mountedRef.current) return;
+      
+      if (response.ok) {
+        const data = await response.json();
+        const newActivities = Array.isArray(data.data) ? data.data : [];
+        
+        if (newActivities.length > 0) {
+          setLogs(prev => [...prev, ...newActivities]);
+          setActivitiesOffset(prev => prev + newActivities.length);
+          setHasMoreActivities(data.pagination?.hasMore || false);
+        } else {
+          setHasMoreActivities(false);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading more activities:', error);
+    } finally {
+      if (mountedRef.current) {
+        setLoadingMoreActivities(false);
+      }
+    }
+  }, [candidateId, activitiesOffset, loadingMoreActivities, hasMoreActivities]);
+
+  // Load more items for height-based display
+  const loadMoreItems = useCallback(async () => {
+    // Check if we need to load more comments or activities
+    const currentComments = Array.isArray(comments) ? comments : [];
+    const currentActivities = Array.isArray(logs) ? logs : [];
+    const totalCurrentItems = currentComments.length + currentActivities.length;
+    
+    if (displayedItems >= totalCurrentItems) {
+      // We need to load more data from the server
+      if (hasMoreComments && !loadingMore) {
+        await loadMoreComments();
+      } else if (hasMoreActivities && !loadingMoreActivities) {
+        await loadMoreActivities();
+      }
+    }
+    
+    // Increase displayed items
+    setDisplayedItems(prev => prev + ITEMS_PER_LOAD);
+  }, [comments, logs, displayedItems, hasMoreComments, hasMoreActivities, loadingMore, loadingMoreActivities, loadMoreComments, loadMoreActivities]);
+
   // Auto-resize textarea
   useEffect(() => {
     if (textareaRef.current) {
@@ -201,8 +273,8 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
 
 
 
-  // Show all activities (no pagination, use load more for comments)
-  const combinedActivities: CombinedActivityItem[] = [
+  // Combine and sort all activities, then limit display
+  const allCombinedActivities: CombinedActivityItem[] = [
     // Add comments
     ...(Array.isArray(comments) ? comments : []).map(comment => ({
       id: `comment-${comment.id || 'unknown'}`,
@@ -236,6 +308,10 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
     
     return parsedDateB.getTime() - parsedDateA.getTime(); // Sort newest first
   });
+
+  // Limit displayed activities based on height
+  const combinedActivities = allCombinedActivities.slice(0, displayedItems);
+  const hasMoreItems = displayedItems < allCombinedActivities.length || hasMoreComments || hasMoreActivities;
 
   // Drag-and-drop handlers
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -629,17 +705,17 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
               </div>
             ))}
             
-            {/* Load More Button - Only show when there are more comments to load */}
-            {hasMoreComments && (
+            {/* Load More Button - Show when there are more items to display */}
+            {hasMoreItems && (
               <div className="flex justify-center py-4">
                 <Button
-                  onClick={loadMoreComments}
-                  disabled={loadingMore}
+                  onClick={loadMoreItems}
+                  disabled={loadingMore || loadingMoreActivities}
                   variant="outline"
                   size="sm"
                   className="w-full max-w-xs"
                 >
-                  {loadingMore ? (
+                  {(loadingMore || loadingMoreActivities) ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-2"></div>
                       Loading more...
@@ -647,7 +723,7 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
                   ) : (
                     <>
                       <ChevronDown className="w-4 h-4 mr-2" />
-                      Load more comments
+                      Load more
                     </>
                   )}
                 </Button>

@@ -102,10 +102,6 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
     setHeadcountWarningData(data);
   };
   
-  // Simple debugging for modal state changes
-  useEffect(() => {
-    console.log('FullCandidateDetail - Modal state changed:', { isOpen: isHeadcountWarningModalOpen, hasData: !!headcountWarningData });
-  }, [isHeadcountWarningModalOpen, headcountWarningData]);
 
 
 
@@ -128,15 +124,6 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
     setHeadcountWarningShownTime(null);
   }, []);
 
-  // Add additional debugging to track when modal state changes
-  useEffect(() => {
-    console.log('FullCandidateDetail - Headcount warning modal state changed:', {
-      isOpen: isHeadcountWarningModalOpen,
-      hasData: !!headcountWarningData,
-      candidateName: headcountWarningData?.candidateName,
-      timestamp: new Date().toISOString()
-    });
-  }, [isHeadcountWarningModalOpen, headcountWarningData]);
   
   // Auto-clear headcount warning timestamp after 5 seconds to allow transitions modal to be reopened
   useEffect(() => {

@@ -21,7 +21,7 @@ export default function ProcessQueuePage() {
    
 
       {/* Content Area with Custom Tabs */}
-      <div className="flex-1 p-6 pt-0 overflow-y-auto">
+      <div className="flex-1 p-6 pt-2 overflow-y-auto">
         <div className="w-full">
           <div className="flex w-full border-b border-border/50">
             <div
@@ -51,7 +51,7 @@ export default function ProcessQueuePage() {
             
             {/* Upload CV Button - only show on queue tab */}
             {activeTab === 'queue' && (
-              <div className="ml-auto flex items-center">
+              <div className="ml-auto flex items-center p-4">
                 <Button
                   onClick={() => setIsBulkUploadModalOpen(true)}
                   className="h-8 px-3 text-sm"

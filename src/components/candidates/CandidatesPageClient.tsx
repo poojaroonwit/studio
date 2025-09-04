@@ -559,7 +559,7 @@ export function CandidatesPageClient({
   const [bulkTransitionNotes, setBulkTransitionNotes] = useState<string>('');
 
   // Settings
-  const { settings: candidateSettings, setSettings: setCandidateSettings, isLoading: settingsLoading, error: settingsError } = useCandidateSettings();
+  const { settings: candidateSettings, setSettings: setCandidateSettings, isLoading: settingsLoading, error: settingsError, clearError: clearSettingsError } = useCandidateSettings();
 
   // Stable callback for settings change
   const handleSettingsChange = useCallback(async (settings: any) => {
@@ -1555,7 +1555,7 @@ export function CandidatesPageClient({
                       <Button
                         onClick={() => setIsBulkUploadModalOpen(true)}
                         disabled={isLoading || tableLoading}
-                        className="mb-2 h-9 px-3"
+                        className="mb-2 h-8 px-3"
                       >
                         Upload CVs
                       </Button>
@@ -1915,6 +1915,7 @@ export function CandidatesPageClient({
         onSettingsChange={handleSettingsChange}
         isLoading={settingsLoading}
         error={settingsError}
+        onClearError={clearSettingsError}
       />
 
       {/* Bulk Status Change Modal */}

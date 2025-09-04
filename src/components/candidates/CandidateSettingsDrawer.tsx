@@ -18,6 +18,7 @@ interface CandidateSettingsDrawerProps {
   currentSettings?: CandidateSettings;
   isLoading?: boolean;
   error?: string | null;
+  onClearError?: () => void;
 }
 
 export interface CandidateSettings {
@@ -65,7 +66,8 @@ export function CandidateSettingsDrawer({
   onSettingsChange,
   currentSettings,
   isLoading = false,
-  error = null
+  error = null,
+  onClearError
 }: CandidateSettingsDrawerProps) {
   const { isJobMatchEnabled } = useJobMatchFeature();
   
@@ -87,11 +89,9 @@ export function CandidateSettingsDrawer({
 
   const handleSave = async () => {
     try {
-      
       setIsSaving(true);
       setSaveError(null);
       await onSettingsChange(localSettings);
-      
       onOpenChange(false);
     } catch (error) {
       console.error('🔧 SETTINGS DRAWER: Error saving settings:', error);
@@ -342,8 +342,21 @@ export function CandidateSettingsDrawer({
             <div className="flex flex-col w-full space-y-3">
               {/* Error message */}
               {(error || saveError) && (
-                <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-2">
-                  {error || saveError}
+                <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-2 flex items-center justify-between">
+                  <span>{error || saveError}</span>
+                  {onClearError && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setSaveError(null);
+                        onClearError();
+                      }}
+                      className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  )}
                 </div>
               )}
               
@@ -356,7 +369,15 @@ export function CandidateSettingsDrawer({
               )}
               
               {/* Action buttons */}
-              <div className="flex items-center justify-end w-full">
+              <div className="flex items-center justify-between w-full">
+                <Button 
+                  variant="ghost" 
+                  onClick={handleReset}
+                  disabled={isSaving || isLoading}
+                  className="text-muted-foreground"
+                >
+                  Reset to Defaults
+                </Button>
                 <div className="flex gap-2">
                   <Button 
                     variant="outline" 

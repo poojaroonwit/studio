@@ -47,14 +47,19 @@ export function useCandidateSettings() {
         setIsLoading(true);
         setError(null);
 
+        // Create AbortController for timeout instead of using AbortSignal.timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
         const response = await fetch('/api/user-preferences', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
           },
-          // Increase timeout to prevent hanging requests
-          signal: AbortSignal.timeout(5000), // Reduced to 5s
+          signal: controller.signal,
         });
+        
+        clearTimeout(timeoutId);
         
         if (!response.ok) {
           if (response.status === 401) {
@@ -75,6 +80,7 @@ export function useCandidateSettings() {
           ...candidateSettings
         };
         setSettings(mergedSettings);
+        setIsLoading(false);
         break; // Success, exit retry loop
         
       } catch (err) {
@@ -90,13 +96,10 @@ export function useCandidateSettings() {
           }
           // Fall back to default settings
           setSettings(defaultSettings);
+          setIsLoading(false);
         } else {
           // Wait before retry with exponential backoff
-          await new Promise(resolve => setTimeout(resolve, 5000));
-        }
-      } finally {
-        if (retryCount >= maxRetries) {
-          setIsLoading(false);
+          await new Promise(resolve => setTimeout(resolve, 2000 * retryCount)); // Progressive backoff
         }
       }
     }
@@ -105,13 +108,17 @@ export function useCandidateSettings() {
   // Save settings to database
   const saveSettings = useCallback(async (newSettings: CandidateSettings) => {
     if (status !== 'authenticated' || !session?.user?.id) {
-      return;
+      throw new Error('User not authenticated');
     }
 
     setIsLoading(true);
     setError(null);
 
     try {
+      // Create AbortController for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
       const response = await fetch('/api/user-preferences', {
         method: 'POST',
         headers: {
@@ -121,7 +128,10 @@ export function useCandidateSettings() {
           modelType: 'candidates',
           updates: newSettings,
         }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -145,7 +155,7 @@ export function useCandidateSettings() {
     if (status !== 'loading') {
       loadSettings();
     }
-  }, [session?.user?.id, status]); // Remove loadSettings from dependencies to prevent infinite loops
+  }, [loadSettings, status]); // Include loadSettings in dependencies to prevent stale closures
 
   return {
     settings,
@@ -153,5 +163,6 @@ export function useCandidateSettings() {
     isLoading,
     error,
     reload: loadSettings,
+    clearError: () => setError(null),
   };
 }

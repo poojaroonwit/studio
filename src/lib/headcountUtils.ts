@@ -5,6 +5,46 @@ import { v4 as uuidv4 } from 'uuid';
 import { getRecruitmentStageByName } from './recruitmentStageUtils';
 
 /**
+ * Safely update a Position using Prisma with fallback to raw SQL if primary key error occurs
+ * This handles the "attributes of key 'public."Position"."Position_pkey"' are missing in result set" error
+ */
+async function safeUpdatePosition(positionId: string, updateData: { isOpen: boolean }) {
+  try {
+    return await prisma.position.update({
+      where: { id: positionId },
+      data: updateData,
+      select: {
+        id: true,
+        title: true,
+        department: true,
+        isOpen: true,
+        customAttributes: true,
+        updatedAt: true,
+      },
+    });
+  } catch (prismaError: any) {
+    // If Prisma fails with primary key error, try alternative approach
+    if (prismaError.message && prismaError.message.includes('attributes of key')) {
+      console.warn('Prisma primary key error detected, using alternative update approach');
+      // Use raw SQL as fallback
+      const { getPool } = await import('@/lib/db');
+      const client = await getPool().connect();
+      try {
+        const result = await client.query(
+          'UPDATE "Position" SET "isOpen" = $1, "updatedAt" = NOW() WHERE id = $2 RETURNING id, title, department, "isOpen", "customAttributes", "updatedAt"',
+          [updateData.isOpen, positionId]
+        );
+        return result.rows[0];
+      } finally {
+        client.release();
+      }
+    } else {
+      throw prismaError;
+    }
+  }
+}
+
+/**
  * Check if all headcounts for a position are filled
  * @param positionId - The position ID to check
  * @returns Object with isFilled boolean and headcount details

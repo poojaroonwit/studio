@@ -76,7 +76,7 @@ export const CandidateSidebar: React.FC<CandidateSidebarProps> = ({
       </div>
 
       {/* Tab Content */}
-      <div className="p-4 flex-1 overflow-y-auto pointer-events-auto">
+      <div className="flex-1 min-h-0 pointer-events-auto">
         {activeTab === 'comments' && (
           <CandidateCommentsSection 
             candidateId={candidate.id} 

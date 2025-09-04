@@ -5,7 +5,6 @@ import { getServerSession } from 'next-auth/next';
 import { getPool } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
 import * as XLSX from 'xlsx';
-import { NextRequest } from 'next/server';
 import { hasPermission } from '@/lib/permissions';
 import { getSystemSetting } from '@/lib/systemSettings';
 
@@ -196,12 +195,20 @@ export async function GET(request: NextRequest) {
           case 'phone':
             advancedFilters.phone = value;
             break;
+          case 'skills':
+            advancedFilters.skills = value;
+            break;
+          case 'location':
+            advancedFilters.location = value;
+            break;
+          case 'position':
           case 'positionid':
             advancedFilters.positionId = value;
             break;
           case 'status':
             advancedFilters.status = value;
             break;
+          case 'recruiter':
           case 'recruiterid':
             advancedFilters.recruiterId = value;
             break;
@@ -210,6 +217,32 @@ export async function GET(request: NextRequest) {
             break;
           case 'applicationdateend':
             advancedFilters.applicationDateEnd = value;
+            break;
+          case 'minexperienceyears':
+            advancedFilters.minExperienceYears = value;
+            break;
+          case 'maxexperienceyears':
+            advancedFilters.maxExperienceYears = value;
+            break;
+          case 'minfitscore':
+          case 'minappliedjobfitscore':
+            advancedFilters.minAppliedJobFitScore = value;
+            break;
+          case 'maxfitscore':
+          case 'maxappliedjobfitscore':
+            advancedFilters.maxAppliedJobFitScore = value;
+            break;
+          case 'minmatchingjobfitscore':
+            advancedFilters.minMatchingJobFitScore = value;
+            break;
+          case 'maxmatchingjobfitscore':
+            advancedFilters.maxMatchingJobFitScore = value;
+            break;
+          case 'education':
+            advancedFilters.education = value;
+            break;
+          case 'selectedsourceids':
+            advancedFilters.selectedSourceIds = value;
             break;
         }
       });
@@ -354,7 +387,7 @@ export async function GET(request: NextRequest) {
     const result = await client.query(query, queryParams);
 
     // Transform data for export
-    const exportData = result.rows.map(candidate => transformCandidateForExport(candidate, isJobMatchEnabled));
+    const exportData = result.rows.map((candidate: any) => transformCandidateForExport(candidate, isJobMatchEnabled));
     
     // Check if user wants Excel format (default) or CSV
     const format = url.searchParams.get('format') || 'excel';

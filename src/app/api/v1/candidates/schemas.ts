@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 const contactInfoSchema = z.object({
-  email: z.string().min(1, "Email is required"),
+  email: z.string().optional(),
   phone: z.string().optional(),
 }).strict();
 

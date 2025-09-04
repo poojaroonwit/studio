@@ -145,16 +145,13 @@ export async function POST(request: NextRequest) {
   const personalInfo = candidateInfo.personal_info || {};
   const contactInfo = candidateInfo.contact_info || {};
   
-  // Only email is required
-  if (!contactInfo.email) {
-    return handleApiError(request, createValidationError('Email is required'));
-  }
-  
   // Use firstname and lastname from payload, or empty strings if not provided
   const firstname = personalInfo.firstname || '';
   const lastname = personalInfo.lastname || '';
-  const name = `${firstname} ${lastname}`.trim() || 'Candidate';
-  const email = contactInfo.email;
+  const name = `${firstname} ${lastname}`.trim() || 'Unknown Candidate';
+  
+  // Use email from payload, or default to unknown@email.com if missing
+  const email = contactInfo.email || 'unknown@email.com';
   
   // Always default to "Applied" stage regardless of input
   let resolvedStageId: string | null = null;

@@ -87,11 +87,11 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
 
   const modalContent = (
     <div
-      className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[10002] flex items-center justify-center p-4 pointer-events-auto"
+      className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[40000] flex items-center justify-center p-4 pointer-events-auto"
       onClick={handleBackdropClick}
     >
       <div
-        className="w-full max-w-[95vw] h-full max-h-[95vh] flex flex-col bg-background rounded-lg shadow-2xl border border-border overflow-hidden relative pointer-events-auto"
+        className="w-full max-w-[95vw] h-full max-h-[95vh] flex flex-col bg-background rounded-lg shadow-2xl border border-border overflow-hidden relative pointer-events-auto z-[40001]"
         onClick={handleModalClick}
       >
         <CandidateDetailView 

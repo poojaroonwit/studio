@@ -115,10 +115,10 @@ describe('NewApplicationsTimeSeriesChart', () => {
     // Check for the new filter options
     expect(screen.getByText('Today')).toBeInTheDocument();
     expect(screen.getByText('Yesterday')).toBeInTheDocument();
-    expect(screen.getByText('Last N Days')).toBeInTheDocument();
+    expect(screen.getByText('Last N')).toBeInTheDocument();
   });
 
-  it('shows number input for Last N Days filter', () => {
+  it('shows number input and unit selector for Last N filter', () => {
     render(
       <NewApplicationsTimeSeriesChart 
         candidates={mockCandidates} 
@@ -126,18 +126,21 @@ describe('NewApplicationsTimeSeriesChart', () => {
       />
     );
     
-    // Select "Last N Days" from the dropdown
+    // Select "Last N" from the dropdown
     const periodSelector = screen.getByRole('combobox');
     fireEvent.click(periodSelector);
-    fireEvent.click(screen.getByText('Last N Days'));
+    fireEvent.click(screen.getByText('Last N'));
     
     // Check that the number input appears
     const numberInput = screen.getByDisplayValue('7');
     expect(numberInput).toBeInTheDocument();
-    expect(screen.getByText('days')).toBeInTheDocument();
+    
+    // Check that the unit selector appears
+    const unitSelectors = screen.getAllByRole('combobox');
+    expect(unitSelectors).toHaveLength(2); // Main selector + unit selector
   });
 
-  it('does not show period unit selector for Today/Yesterday/Last N Days', () => {
+  it('does not show period unit selector for Today/Yesterday', () => {
     render(
       <NewApplicationsTimeSeriesChart 
         candidates={mockCandidates} 

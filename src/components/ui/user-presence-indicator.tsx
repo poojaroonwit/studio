@@ -54,8 +54,12 @@ export function UserPresenceIndicator({ className, maxVisible = 3 }: UserPresenc
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className="relative">
-            <Avatar className="w-8 h-8 border-2 border-background rounded-full">
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="relative transition-all duration-200 ease-in-out hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-full"
+            aria-label={`View ${user.userName} details`}
+          >
+            <Avatar className="w-8 h-8 border-2 border-background rounded-full cursor-pointer hover:shadow-lg transition-shadow">
               <AvatarImage 
                 src={user.avatarUrl || undefined} 
                 alt={user.userName}
@@ -74,13 +78,14 @@ export function UserPresenceIndicator({ className, maxVisible = 3 }: UserPresenc
             <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-background rounded-full flex items-center justify-center">
               <Circle className="w-1.5 h-1.5 fill-green-500 text-green-500" />
             </div>
-          </div>
+          </button>
         </TooltipTrigger>
         <TooltipContent className="z-[100]">
           <div className="text-center">
             <div className="font-medium">{user.userName}</div>
             <div className="text-xs text-muted-foreground">{user.currentPage}</div>
             <div className="text-xs text-green-600">Online</div>
+            <div className="text-xs text-muted-foreground mt-1">Click to view details</div>
           </div>
         </TooltipContent>
       </Tooltip>
@@ -139,10 +144,10 @@ export function UserPresenceIndicator({ className, maxVisible = 3 }: UserPresenc
                 <TooltipTrigger asChild>
                   <button
                     onClick={() => setIsModalOpen(true)}
-                    className="w-8 h-8 rounded-full bg-muted border-2 border-background flex items-center justify-center transition-all duration-200 ease-in-out hover:scale-105 hover:bg-muted/80 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                    className="w-8 h-8 rounded-full bg-primary/10 border-2 border-background flex items-center justify-center transition-all duration-200 ease-in-out hover:scale-105 hover:bg-primary/20 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 shadow-sm hover:shadow-md"
                     aria-label={`View ${remainingCount} more online users`}
                   >
-                    <span className="text-xs font-medium text-muted-foreground">
+                    <span className="text-xs font-semibold text-primary">
                       +{remainingCount}
                     </span>
                   </button>

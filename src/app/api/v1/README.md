@@ -215,17 +215,17 @@ Create a new candidate with candidate information, job matches, and applied job 
 
 **Field Requirements:**
 
-**Required Fields:**
-- `candidate_info.personal_info.firstname` - Candidate's first name
-- `candidate_info.personal_info.lastname` - Candidate's last name
-- `candidate_info.contact_info.email` - Candidate's email address
+**Optional Fields (with defaults):**
+- `candidate_info.personal_info.firstname` - Candidate's first name (defaults to "Unknown Candidate" if both firstname and lastname are empty)
+- `candidate_info.personal_info.lastname` - Candidate's last name (defaults to "Unknown Candidate" if both firstname and lastname are empty)
+- `candidate_info.contact_info.email` - Candidate's email address (defaults to "unknown@email.com" if missing)
 
 **Note:** The following fields have been removed from the v1 API and are no longer supported:
 - `job_matches` - Job matching functionality has been moved to separate endpoints
 - `job_applied` - Job application functionality has been moved to separate endpoints
 
-**Optional Fields:**
-- All other fields in the request body are optional
+**All Fields Are Optional:**
+- All fields in the request body are optional with sensible defaults
 
 **Note:** The following fields are automatically handled and should not be included in the request:
 - `createdAt`: Automatically set to current timestamp

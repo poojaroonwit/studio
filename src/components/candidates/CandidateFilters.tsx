@@ -568,10 +568,10 @@ export function CandidateFilters({
 
     const parts = query.split(' ').filter(part => part.includes(':'));
     const validFields = [
-      'name', 'email', 'phone', 'skills', 'location', 'status', 'positionId', 'recruiterId', 
-      'selectedSourceIds', 'education', 'minFitScore', 'maxFitScore', 'minMatchingJobFitScore', 
-      'maxMatchingJobFitScore', 'minExperienceYears', 'maxExperienceYears', 'applicationDateStart', 
-      'applicationDateEnd', 'locationOperator'
+      'name', 'email', 'phone', 'skills', 'location', 'status', 'position', 'positionid', 
+      'recruiter', 'recruiterid', 'selectedsourceids', 'education', 'minfitscore', 'maxfitscore', 
+      'minappliedjobfitscore', 'maxappliedjobfitscore', 'minmatchingjobfitscore', 'maxmatchingjobfitscore', 
+      'minexperienceyears', 'maxexperienceyears', 'applicationdatestart', 'applicationdateend', 'locationoperator'
     ];
 
     for (const part of parts) {
@@ -608,7 +608,7 @@ export function CandidateFilters({
       }
 
       // Validate numeric fields
-      if (['minFitScore', 'maxFitScore', 'minMatchingJobFitScore', 'maxMatchingJobFitScore', 'minExperienceYears', 'maxExperienceYears'].includes(key.toLowerCase())) {
+      if (['minfitscore', 'maxfitscore', 'minappliedjobfitscore', 'maxappliedjobfitscore', 'minmatchingjobfitscore', 'maxmatchingjobfitscore', 'minexperienceyears', 'maxexperienceyears'].includes(key.toLowerCase())) {
         const numValue = parseInt(value, 10);
         if (isNaN(numValue) || numValue < 0) {
           return { 
@@ -620,7 +620,7 @@ export function CandidateFilters({
       }
 
       // Validate date fields
-      if (['applicationDateStart', 'applicationDateEnd'].includes(key.toLowerCase())) {
+      if (['applicationdatestart', 'applicationdateend'].includes(key.toLowerCase())) {
         const dateValue = new Date(value);
         if (isNaN(dateValue.getTime())) {
           return { 
@@ -1289,7 +1289,7 @@ export function CandidateFilters({
               {/* AI Power Search Section */}
               <Accordion type="multiple" defaultValue={["ai-power-search"]} className="w-full">
                 <AccordionItem value="ai-power-search" className="border-b border-border/50">
-                  <AccordionTrigger className="px-4 py-3 hover:no-underline rounded-none pl-6 pr-6 pr-6">
+                  <AccordionTrigger className="px-6 py-3 hover:no-underline rounded-none pl-6 pr-6 pr-6">
                     <div className="flex items-center justify-between w-full pr-2">
                       <div className="flex items-center gap-2">
                         {isAiSearching ? (
@@ -1394,7 +1394,7 @@ export function CandidateFilters({
               {/* Candidate Information Section */}
                <Accordion type="multiple" defaultValue={["candidate-info"]} className="w-full">
                  <AccordionItem value="candidate-info" className="border-b border-border/50">
-                   <AccordionTrigger className="px-4 py-3 hover:no-underline rounded-none pl-6 pr-6">
+                   <AccordionTrigger className="px-6 py-3 hover:no-underline rounded-none pl-6 pr-6">
                      <div className="flex items-center justify-between w-full pr-2">
                        <div className="flex items-center gap-2">
                          <User className="w-4 h-4 text-muted-foreground" />
@@ -1666,7 +1666,7 @@ export function CandidateFilters({
                {/* Application Status Section */}
                <Accordion type="multiple" defaultValue={["application-status"]} className="w-full">
                  <AccordionItem value="application-status" className="border-b border-border/50">
-                   <AccordionTrigger className="px-4 py-3 hover:no-underline rounded-none pl-6 pr-6">
+                   <AccordionTrigger className="px-6 py-3 hover:no-underline rounded-none pl-6 pr-6">
                      <div className="flex items-center justify-between w-full pr-2">
                        <div className="flex items-center gap-2">
                          <FileText className="w-4 h-4 text-muted-foreground" />
@@ -1782,7 +1782,7 @@ export function CandidateFilters({
                {/* Experience Section */}
                <Accordion type="multiple" defaultValue={["experience"]} className="w-full">
                  <AccordionItem value="experience" className="border-b border-border/50">
-                   <AccordionTrigger className="px-4 py-3 hover:no-underline rounded-none pl-6 pr-6">
+                   <AccordionTrigger className="px-6 py-3 hover:no-underline rounded-none pl-6 pr-6">
                      <div className="flex items-center justify-between w-full pr-2">
                        <div className="flex items-center gap-2">
                          <Clock className="w-4 h-4 text-muted-foreground" />

@@ -115,7 +115,7 @@ const CandidateResumesSection: React.FC<CandidateResumesSectionProps> = ({ candi
 
 
   return (
-    <div className="h-full flex flex-col min-h-0">
+    <div className="h-full flex flex-col min-h-0 p-4">
       <div className="flex justify-between items-center mb-2 flex-shrink-0">
         <span className="font-semibold">Attachments</span>
         <div className="flex gap-2">

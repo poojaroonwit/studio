@@ -405,6 +405,15 @@ export async function GET(request: NextRequest) {
           case 'maxmatchingjobfitscore':
             advancedFilters.maxMatchingJobFitScore = value;
             break;
+          case 'education':
+            advancedFilters.education = value;
+            break;
+          case 'selectedsourceids':
+            advancedFilters.selectedSourceIds = value;
+            break;
+          case 'locationoperator':
+            advancedFilters.locationOperator = value;
+            break;
         }
       });
     }

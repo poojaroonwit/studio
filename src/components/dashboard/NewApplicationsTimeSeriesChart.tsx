@@ -29,13 +29,14 @@ type ComparisonPeriod = '12' | '24' | '36' | '48' | '60';
 const PERIOD_TYPES = [
   { label: 'Today', value: 'today' },
   { label: 'Yesterday', value: 'yesterday' },
-  { label: 'Last N Days', value: 'lastNDays' },
+  { label: 'Last N', value: 'lastN' },
   { label: 'This', value: 'this' },
   { label: 'Last', value: 'last' },
   { label: 'Past', value: 'pastN' },
   { label: 'Custom', value: 'custom' },
 ];
 const PERIOD_UNITS = [
+  { label: 'Day(s)', value: 'day' },
   { label: 'Week(s)', value: 'week' },
   { label: 'Month(s)', value: 'month' },
   { label: 'Year(s)', value: 'year' },
@@ -46,12 +47,13 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
   const { chartReady, isLoading: chartLoading, error: chartError } = useChartSetup();
 
   // New state for period selection
-  const [periodType, setPeriodType] = useState<'today'|'yesterday'|'lastNDays'|'this'|'last'|'pastN'|'custom'>('lastNDays');
-  const [periodUnit, setPeriodUnit] = useState<'week'|'month'|'year'>('week');
-  const [periodN, setPeriodN] = useState<number>(7); // Default to 7 days for "Last N Days"
+  const [periodType, setPeriodType] = useState<'today'|'yesterday'|'lastN'|'this'|'last'|'pastN'|'custom'>('lastN');
+  const [periodUnit, setPeriodUnit] = useState<'day'|'week'|'month'|'year'>('day');
+  const [periodN, setPeriodN] = useState<number>(7); // Default to 7 days for "Last N"
   const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
     const now = new Date();
-    const startDate = subWeeks(now, 1); // Default to last 7 days
+    const startDate = new Date(now);
+    startDate.setDate(startDate.getDate() - 7); // Default to last 7 days
     return {
       from: startDate,
       to: now
@@ -118,14 +120,37 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
           };
           formatFn = (date: Date) => format(date, 'HH:mm');
           break;
-        case 'lastNDays':
+        case 'lastN':
           start = new Date(now);
-          start.setDate(start.getDate() - n);
-          start.setHours(0, 0, 0, 0);
           end = new Date(now);
           end.setHours(23, 59, 59, 999);
-          intervalFn = eachDayOfInterval;
-          formatFn = (date: Date) => format(date, 'MMM dd');
+          
+          switch (periodUnit) {
+            case 'day':
+              start.setDate(start.getDate() - n);
+              start.setHours(0, 0, 0, 0);
+              intervalFn = eachDayOfInterval;
+              formatFn = (date: Date) => format(date, 'MMM dd');
+              break;
+            case 'week':
+              start = subWeeks(now, n);
+              start.setHours(0, 0, 0, 0);
+              intervalFn = eachWeekOfInterval;
+              formatFn = (date: Date) => `Week ${format(date, 'w')}`;
+              break;
+            case 'month':
+              start = subMonths(now, n);
+              start.setHours(0, 0, 0, 0);
+              intervalFn = eachMonthOfInterval;
+              formatFn = (date: Date) => format(date, 'MMM yyyy');
+              break;
+            case 'year':
+              start = subYears(now, n);
+              start.setHours(0, 0, 0, 0);
+              intervalFn = eachYearOfInterval;
+              formatFn = (date: Date) => format(date, 'yyyy');
+              break;
+          }
           break;
         case 'this':
           if (periodUnit === 'week') {
@@ -486,7 +511,7 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
                 ))}
               </SelectContent>
             </Select>
-            {periodType === 'lastNDays' && (
+            {periodType === 'lastN' && (
               <div className="flex items-center gap-1">
                 <input
                   type="number"
@@ -497,7 +522,16 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
                   className="w-16 h-8 text-xs border border-input bg-background text-foreground rounded-md px-2 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                   style={{ minWidth: 40 }}
                 />
-                <span className="text-xs text-muted-foreground">days</span>
+                <Select value={periodUnit} onValueChange={v => setPeriodUnit(v as any)}>
+                  <SelectTrigger className="w-20 h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PERIOD_UNITS.map(opt => (
+                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             )}
             {periodType === 'pastN' && (
@@ -523,7 +557,7 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
                 </Select>
               </div>
             )}
-            {periodType !== 'custom' && periodType !== 'pastN' && periodType !== 'today' && periodType !== 'yesterday' && periodType !== 'lastNDays' && (
+            {periodType !== 'custom' && periodType !== 'pastN' && periodType !== 'today' && periodType !== 'yesterday' && periodType !== 'lastN' && (
               <Select value={periodUnit} onValueChange={v => setPeriodUnit(v as any)}>
                 <SelectTrigger className="w-28 h-8 text-xs">
                   <SelectValue />

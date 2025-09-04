@@ -491,7 +491,7 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
   };
 
   return (
-    <div className="h-full flex flex-col min-h-0">
+    <div className="h-full flex flex-col min-h-0 p-4">
       {/* Combined Activity and Comments List - Scrollable */}
       <div className="flex-1 overflow-y-auto space-y-0">
         {logsLoading ? (

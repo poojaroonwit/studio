@@ -270,7 +270,7 @@ Platform: ${metrics.system.platform}, Uptime: ${Math.round(metrics.system.uptime
 
   return (
     <div
-      className={`fixed select-none animate-in fade-in-0 slide-in-from-top-2 duration-300 ${isPinned ? 'z-[9999]' : 'z-50'}`}
+      className={`fixed select-none animate-in fade-in-0 slide-in-from-top-2 duration-300 z-[99999]`}
       style={{
         left: position.x,
         top: position.y,
@@ -367,14 +367,11 @@ Platform: ${metrics.system.platform}, Uptime: ${Math.round(metrics.system.uptime
               {metrics && (
                 <div className="text-xs text-muted-foreground text-center pb-2 border-b border-border/20">
                   Last updated: {new Date().toLocaleTimeString()}
+                  {isLoading && <span className="ml-2 text-blue-500">• Refreshing...</span>}
                 </div>
               )}
               
-              {isLoading ? (
-                <div className="flex items-center justify-center py-4">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
-                </div>
-              ) : metrics ? (
+              {metrics ? (
                 <>
                   {/* Database Connections */}
                   <div className="space-y-2">
@@ -392,15 +389,15 @@ Platform: ${metrics.system.platform}, Uptime: ${Math.round(metrics.system.uptime
                       </Badge>
                     </div>
                     <div className="grid grid-cols-3 gap-2 text-xs">
-                      <div className="text-center p-1 rounded bg-blue-50 dark:bg-blue-950/20">
+                      <div className={`text-center p-1 rounded bg-blue-50 dark:bg-blue-950/20 transition-opacity duration-200 ${isLoading ? 'opacity-70' : 'opacity-100'}`}>
                         <div className="font-semibold text-blue-700 dark:text-blue-300">{metrics.connections.total}</div>
                         <div className="text-muted-foreground">Total</div>
                       </div>
-                      <div className="text-center p-1 rounded bg-green-50 dark:bg-green-950/20">
+                      <div className={`text-center p-1 rounded bg-green-50 dark:bg-green-950/20 transition-opacity duration-200 ${isLoading ? 'opacity-70' : 'opacity-100'}`}>
                         <div className="font-semibold text-green-700 dark:text-green-300">{metrics.connections.active}</div>
                         <div className="text-muted-foreground">Active</div>
                       </div>
-                      <div className="text-center p-1 rounded bg-yellow-50 dark:bg-yellow-950/20">
+                      <div className={`text-center p-1 rounded bg-yellow-50 dark:bg-yellow-950/20 transition-opacity duration-200 ${isLoading ? 'opacity-70' : 'opacity-100'}`}>
                         <div className="font-semibold text-yellow-700 dark:text-yellow-300">{metrics.connections.idle}</div>
                         <div className="text-muted-foreground">Idle</div>
                       </div>
@@ -423,11 +420,11 @@ Platform: ${metrics.system.platform}, Uptime: ${Math.round(metrics.system.uptime
                       </Badge>
                     </div>
                     <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className="text-center p-1 rounded bg-orange-50 dark:bg-orange-950/20">
+                      <div className={`text-center p-1 rounded bg-orange-50 dark:bg-orange-950/20 transition-opacity duration-200 ${isLoading ? 'opacity-70' : 'opacity-100'}`}>
                         <div className="font-semibold text-orange-700 dark:text-orange-300">{metrics.memory.used}MB</div>
                         <div className="text-muted-foreground">Used</div>
                       </div>
-                      <div className="text-center p-1 rounded bg-blue-50 dark:bg-blue-950/20">
+                      <div className={`text-center p-1 rounded bg-blue-50 dark:bg-blue-950/20 transition-opacity duration-200 ${isLoading ? 'opacity-70' : 'opacity-100'}`}>
                         <div className="font-semibold text-blue-700 dark:text-blue-300">{metrics.memory.total}MB</div>
                         <div className="text-muted-foreground">Total</div>
                       </div>
@@ -472,11 +469,11 @@ Platform: ${metrics.system.platform}, Uptime: ${Math.round(metrics.system.uptime
                       </Badge>
                     </div>
                     <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className="text-center p-1 rounded bg-purple-50 dark:bg-purple-950/20">
+                      <div className={`text-center p-1 rounded bg-purple-50 dark:bg-purple-950/20 transition-opacity duration-200 ${isLoading ? 'opacity-70' : 'opacity-100'}`}>
                         <div className="font-semibold text-purple-700 dark:text-purple-300">{metrics.sse.eventCount}</div>
                         <div className="text-muted-foreground">Events</div>
                       </div>
-                      <div className="text-center p-1 rounded bg-gray-50 dark:bg-gray-950/20">
+                      <div className={`text-center p-1 rounded bg-gray-50 dark:bg-gray-950/20 transition-opacity duration-200 ${isLoading ? 'opacity-70' : 'opacity-100'}`}>
                         <div className="font-semibold text-gray-700 dark:text-gray-300">{metrics.sse.lastUpdate}</div>
                         <div className="text-muted-foreground">Last Update</div>
                       </div>
@@ -499,11 +496,11 @@ Platform: ${metrics.system.platform}, Uptime: ${Math.round(metrics.system.uptime
                       </Badge>
                     </div>
                     <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className="text-center p-1 rounded bg-red-50 dark:bg-red-950/20">
+                      <div className={`text-center p-1 rounded bg-red-50 dark:bg-red-950/20 transition-opacity duration-200 ${isLoading ? 'opacity-70' : 'opacity-100'}`}>
                         <div className="font-semibold text-red-700 dark:text-red-300">{metrics.disk.used}GB</div>
                         <div className="text-muted-foreground">Used</div>
                       </div>
-                      <div className="text-center p-1 rounded bg-blue-50 dark:bg-blue-950/20">
+                      <div className={`text-center p-1 rounded bg-blue-50 dark:bg-blue-950/20 transition-opacity duration-200 ${isLoading ? 'opacity-70' : 'opacity-100'}`}>
                         <div className="font-semibold text-blue-700 dark:text-blue-300">{metrics.disk.total}GB</div>
                         <div className="text-muted-foreground">Total</div>
                       </div>
@@ -675,21 +672,21 @@ Platform: ${metrics.system.platform}, Uptime: ${Math.round(metrics.system.uptime
           {isMinimized && metrics && (
             <div className="py-2 space-y-2">
               <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="text-center p-1 rounded bg-blue-50 dark:bg-blue-950/20">
+                <div className={`text-center p-1 rounded bg-blue-50 dark:bg-blue-950/20 transition-opacity duration-200 ${isLoading ? 'opacity-70' : 'opacity-100'}`}>
                   <div className="font-semibold text-blue-700 dark:text-blue-300">{metrics.connections.usagePercent}%</div>
                   <div className="text-muted-foreground">DB</div>
                 </div>
-                <div className="text-center p-1 rounded bg-orange-50 dark:bg-orange-950/20">
+                <div className={`text-center p-1 rounded bg-orange-50 dark:bg-orange-950/20 transition-opacity duration-200 ${isLoading ? 'opacity-70' : 'opacity-100'}`}>
                   <div className="font-semibold text-orange-700 dark:text-orange-300">{metrics.memory.percentage}%</div>
                   <div className="text-muted-foreground">RAM</div>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="text-center p-1 rounded bg-green-50 dark:bg-green-950/20">
+                <div className={`text-center p-1 rounded bg-green-50 dark:bg-green-950/20 transition-opacity duration-200 ${isLoading ? 'opacity-70' : 'opacity-100'}`}>
                   <div className="font-semibold text-green-700 dark:text-green-300">{metrics.cpu.load.toFixed(1)}</div>
                   <div className="text-muted-foreground">CPU</div>
                 </div>
-                <div className="text-center p-1 rounded bg-red-50 dark:bg-red-950/20">
+                <div className={`text-center p-1 rounded bg-red-50 dark:bg-red-950/20 transition-opacity duration-200 ${isLoading ? 'opacity-70' : 'opacity-100'}`}>
                   <div className="font-semibold text-red-700 dark:text-red-300">{metrics.disk.percentage}%</div>
                   <div className="text-muted-foreground">Disk</div>
                 </div>

@@ -229,22 +229,34 @@ export function SLAViolationsWidget({ recruiterId }: SLAViolationsWidgetProps) {
 
                 {/* Severity Breakdown */}
                 <div className="grid grid-cols-4 gap-3">
-                  <div className="text-center p-3 bg-green-50 dark:bg-green-950/20 rounded-lg">
-                    <div className="text-2xl font-bold text-green-600 dark:text-green-400">{statistics.onTrack}</div>
-                    <div className="text-xs text-green-600 dark:text-green-400">On Track</div>
-                  </div>
-                  <div className="text-center p-3 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg">
-                    <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{statistics.warning}</div>
-                    <div className="text-xs text-yellow-600 dark:text-yellow-400">Warning</div>
-                  </div>
-                  <div className="text-center p-3 bg-orange-50 dark:bg-orange-950/20 rounded-lg">
-                    <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">{statistics.critical}</div>
-                    <div className="text-xs text-orange-600 dark:text-orange-400">Critical</div>
-                  </div>
-                  <div className="text-center p-3 bg-red-50 dark:bg-red-950/20 rounded-lg">
-                    <div className="text-2xl font-bold text-red-600 dark:text-red-400">{statistics.urgent}</div>
-                    <div className="text-xs text-red-600 dark:text-red-400">Urgent</div>
-                  </div>
+                  <Card className="group relative overflow-hidden border-2 border-green-200 hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm">
+                    <div className="absolute inset-0 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/50 dark:to-green-900/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <CardContent className="relative p-3 text-center">
+                      <div className="text-2xl font-bold text-green-600 dark:text-green-400">{statistics.onTrack}</div>
+                      <div className="text-xs text-green-600 dark:text-green-400">On Track</div>
+                    </CardContent>
+                  </Card>
+                  <Card className="group relative overflow-hidden border-2 border-yellow-200 hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm">
+                    <div className="absolute inset-0 bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-950/50 dark:to-yellow-900/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <CardContent className="relative p-3 text-center">
+                      <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{statistics.warning}</div>
+                      <div className="text-xs text-yellow-600 dark:text-yellow-400">Warning</div>
+                    </CardContent>
+                  </Card>
+                  <Card className="group relative overflow-hidden border-2 border-orange-200 hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm">
+                    <div className="absolute inset-0 bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950/50 dark:to-orange-900/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <CardContent className="relative p-3 text-center">
+                      <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">{statistics.critical}</div>
+                      <div className="text-xs text-orange-600 dark:text-orange-400">Critical</div>
+                    </CardContent>
+                  </Card>
+                  <Card className="group relative overflow-hidden border-2 border-red-200 hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm">
+                    <div className="absolute inset-0 bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/50 dark:to-red-900/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <CardContent className="relative p-3 text-center">
+                      <div className="text-2xl font-bold text-red-600 dark:text-red-400">{statistics.urgent}</div>
+                      <div className="text-xs text-red-600 dark:text-red-400">Urgent</div>
+                    </CardContent>
+                  </Card>
                 </div>
 
                 {/* Additional Stats */}

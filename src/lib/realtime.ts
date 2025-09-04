@@ -46,10 +46,13 @@ export function subscribe(request: Request): Response {
         timestamp: new Date().toISOString()
       });
 
-      // Keepalive comments (lightweight)
+      // Keepalive events (proper events that update lastUpdate time)
       keepalive = setInterval(() => {
         try {
-          controller.enqueue(encoder.encode(`: keepalive ${Date.now()}\n\n`));
+          writeEvent(controller, 'keepalive', {
+            type: 'keepalive',
+            timestamp: new Date().toISOString()
+          });
         } catch {
           if (keepalive) clearInterval(keepalive);
         }

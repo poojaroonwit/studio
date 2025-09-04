@@ -776,41 +776,81 @@ export default function ProcessQueueAnalytics() {
 
       {/* Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="border rounded-lg p-4">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium">Total Jobs</h3>
-            <Database className="h-4 w-4 text-muted-foreground" />
-          </div>
-          <div className="text-2xl font-bold">{data!.stats.totalJobs}</div>
-        </div>
+        <Card className="group relative overflow-hidden border-2 border-gray-200 hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm">
+          <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-950/50 dark:to-gray-900/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-3">
+            <div className="space-y-1">
+              <CardTitle className="text-sm font-semibold text-muted-foreground group-hover:text-foreground transition-colors">
+                Total Jobs
+              </CardTitle>
+              <p className="text-xs text-muted-foreground/70">All processing jobs</p>
+            </div>
+            <div className="p-3 rounded-xl bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-950/50 dark:to-gray-900/50 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
+              <Database className="h-6 w-6 text-gray-500 dark:text-gray-400 group-hover:drop-shadow-sm" />
+            </div>
+          </CardHeader>
+          <CardContent className="relative">
+            <div className="text-3xl font-bold text-gray-800 dark:text-gray-200">{data!.stats.totalJobs}</div>
+          </CardContent>
+        </Card>
 
-        <div className="border rounded-lg p-4">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium">Avg Duration</h3>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </div>
-          <div className="text-2xl font-bold">{data!.stats.avgDuration.toFixed(1)}m</div>
-        </div>
+        <Card className="group relative overflow-hidden border-2 border-blue-200 hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-3">
+            <div className="space-y-1">
+              <CardTitle className="text-sm font-semibold text-muted-foreground group-hover:text-foreground transition-colors">
+                Avg Duration
+              </CardTitle>
+              <p className="text-xs text-muted-foreground/70">Average processing time</p>
+            </div>
+            <div className="p-3 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/50 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
+              <Clock className="h-6 w-6 text-blue-500 dark:text-blue-400 group-hover:drop-shadow-sm" />
+            </div>
+          </CardHeader>
+          <CardContent className="relative">
+            <div className="text-3xl font-bold text-blue-800 dark:text-blue-200">{data!.stats.avgDuration.toFixed(1)}m</div>
+          </CardContent>
+        </Card>
 
-        <div className="border rounded-lg p-4">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium">Completed Jobs</h3>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </div>
-          <div className="text-2xl font-bold">
-            {data!.stats.jobsByType.find(j => j.type === 'completed')?.count || 0}
-          </div>
-        </div>
+        <Card className="group relative overflow-hidden border-2 border-emerald-200 hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm">
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950/50 dark:to-emerald-900/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-3">
+            <div className="space-y-1">
+              <CardTitle className="text-sm font-semibold text-muted-foreground group-hover:text-foreground transition-colors">
+                Completed Jobs
+              </CardTitle>
+              <p className="text-xs text-muted-foreground/70">Successfully processed</p>
+            </div>
+            <div className="p-3 rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950/50 dark:to-emerald-900/50 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
+              <TrendingUp className="h-6 w-6 text-emerald-500 dark:text-emerald-400 group-hover:drop-shadow-sm" />
+            </div>
+          </CardHeader>
+          <CardContent className="relative">
+            <div className="text-3xl font-bold text-emerald-800 dark:text-emerald-200">
+              {data!.stats.jobsByType.find(j => j.type === 'completed')?.count || 0}
+            </div>
+          </CardContent>
+        </Card>
 
-        <div className="border rounded-lg p-4">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium">Failed Jobs</h3>
-            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-          </div>
-          <div className="text-2xl font-bold">
-            {data!.stats.jobsByType.find(j => j.type === 'failed')?.count || 0}
-          </div>
-        </div>
+        <Card className="group relative overflow-hidden border-2 border-red-200 hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm">
+          <div className="absolute inset-0 bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/50 dark:to-red-900/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-3">
+            <div className="space-y-1">
+              <CardTitle className="text-sm font-semibold text-muted-foreground group-hover:text-foreground transition-colors">
+                Failed Jobs
+              </CardTitle>
+              <p className="text-xs text-muted-foreground/70">Processing errors</p>
+            </div>
+            <div className="p-3 rounded-xl bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/50 dark:to-red-900/50 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
+              <AlertTriangle className="h-6 w-6 text-red-500 dark:text-red-400 group-hover:drop-shadow-sm" />
+            </div>
+          </CardHeader>
+          <CardContent className="relative">
+            <div className="text-3xl font-bold text-red-800 dark:text-red-200">
+              {data!.stats.jobsByType.find(j => j.type === 'failed')?.count || 0}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Charts and Detailed Stats */}

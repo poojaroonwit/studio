@@ -107,13 +107,24 @@
   animation: notificationPulse 2s ease-in-out infinite;
 }
 
-/* Force all dialogs to have very high z-index to appear above drawers */
+/* 
+ * Z-INDEX HIERARCHY FOR MODAL COMPONENTS:
+ * 
+ * Sheet (Drawer): Overlay z-[10000], Content z-[10001]
+ * Dialog: Overlay z-[20000], Content z-[20001] 
+ * AlertDialog: Overlay z-[30000], Content z-[30001]
+ * CandidateDetailModal: Overlay z-[40000], Content z-[40001]
+ * 
+ * This ensures proper layering when modals are opened over other modals.
+ */
+
+/* Dialog z-index hierarchy - updated to prevent modal over modal issues */
 [data-radix-dialog-overlay] {
-  z-index: 99999 !important;
+  z-index: 20000 !important;
 }
 
 [data-radix-dialog-content] {
-  z-index: 100000 !important;
+  z-index: 20001 !important;
 }
 
 /* Ensure dialog overlays are properly removed when closed */
@@ -153,13 +164,13 @@ body {
   pointer-events: none !important;
 }
 
-/* Force all alert dialogs to have very high z-index */
+/* Alert dialog z-index hierarchy - higher than regular dialogs */
 [data-radix-alert-dialog-overlay] {
-  z-index: 99999 !important;
+  z-index: 30000 !important;
 }
 
 [data-radix-alert-dialog-content] {
-  z-index: 100000 !important;
+  z-index: 30001 !important;
 }
 
 /* Warning pulse animation */

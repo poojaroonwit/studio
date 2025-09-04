@@ -116,22 +116,34 @@ export function EnhancedSSEStatus() {
       <CardContent className="space-y-4">
         {/* Summary Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="text-center p-3 bg-blue-50 rounded-lg">
-            <div className="text-2xl font-bold text-blue-600">{totalEndpoints}</div>
-            <div className="text-sm text-blue-600">Total Endpoints</div>
-          </div>
-          <div className="text-center p-3 bg-green-50 rounded-lg">
-            <div className="text-2xl font-bold text-green-600">{connectedEndpoints}</div>
-            <div className="text-sm text-green-600">Connected</div>
-          </div>
-          <div className="text-center p-3 bg-red-50 rounded-lg">
-            <div className="text-2xl font-bold text-red-600">{failedEndpoints}</div>
-            <div className="text-sm text-red-600">Failed</div>
-          </div>
-          <div className="text-center p-3 bg-gray-50 rounded-lg">
-            <div className="text-2xl font-bold text-gray-600">{disabledEndpoints}</div>
-            <div className="text-sm text-gray-600">Disabled</div>
-          </div>
+          <Card className="group relative overflow-hidden border-2 border-blue-200 hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            <CardContent className="relative p-4 text-center">
+              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{totalEndpoints}</div>
+              <div className="text-sm text-blue-600 dark:text-blue-400">Total Endpoints</div>
+            </CardContent>
+          </Card>
+          <Card className="group relative overflow-hidden border-2 border-green-200 hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm">
+            <div className="absolute inset-0 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/50 dark:to-green-900/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            <CardContent className="relative p-4 text-center">
+              <div className="text-2xl font-bold text-green-600 dark:text-green-400">{connectedEndpoints}</div>
+              <div className="text-sm text-green-600 dark:text-green-400">Connected</div>
+            </CardContent>
+          </Card>
+          <Card className="group relative overflow-hidden border-2 border-red-200 hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm">
+            <div className="absolute inset-0 bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/50 dark:to-red-900/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            <CardContent className="relative p-4 text-center">
+              <div className="text-2xl font-bold text-red-600 dark:text-red-400">{failedEndpoints}</div>
+              <div className="text-sm text-red-600 dark:text-red-400">Failed</div>
+            </CardContent>
+          </Card>
+          <Card className="group relative overflow-hidden border-2 border-gray-200 hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm">
+            <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-950/50 dark:to-gray-900/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            <CardContent className="relative p-4 text-center">
+              <div className="text-2xl font-bold text-gray-600 dark:text-gray-400">{disabledEndpoints}</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Disabled</div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Endpoint Details */}

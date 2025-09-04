@@ -40,9 +40,9 @@ Create a new candidate with basic information.
 #### Request Body
 ```json
 {
-  "firstName": "string (required)",
-  "lastName": "string (required)", 
-  "email": "string (required)",
+  "firstName": "string (optional, defaults to 'Unknown Candidate' if both firstname and lastname are empty)",
+  "lastName": "string (optional, defaults to 'Unknown Candidate' if both firstname and lastname are empty)", 
+  "email": "string (optional, defaults to 'unknown@email.com' if missing)",
   "phone": "string (optional)",
   "location": "string (optional)",
   "experience": "string (optional)",
@@ -108,12 +108,14 @@ curl -X POST /api/v1/candidates \
 
 #### Error Responses
 
-**400 Bad Request** - Missing required fields
+**400 Bad Request** - Invalid input format
 ```json
 {
-  "error": "First name, last name, and email are required"
+  "error": "Invalid input format"
 }
 ```
+
+**Note**: All fields are now optional. If firstname and lastname are both empty, the candidate name will default to "Unknown Candidate". If email is missing, it will default to "unknown@email.com".
 
 **401 Unauthorized** - Invalid or missing authentication
 ```json

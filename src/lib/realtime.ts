@@ -75,8 +75,7 @@ export function subscribe(request: Request): Response {
       'Access-Control-Allow-Methods': 'GET, OPTIONS',
       'Access-Control-Allow-Credentials': 'true',
       'X-Accel-Buffering': 'no',
-      'Transfer-Encoding': 'identity',
-      'Content-Length': '0'
+      
     }
   });
 }

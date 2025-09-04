@@ -1282,7 +1282,7 @@ export function CandidatesPageClient({
           fetchTableData(filters, page, pageSize);
         }
         fetchAllCandidatesForCounts();
-      }, 5000); // Refresh every 5 seconds when SSE is connected
+      }, 10000); // Refresh every 10 seconds when SSE is connected
       
       return () => clearInterval(interval);
     }

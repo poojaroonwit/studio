@@ -55,7 +55,7 @@ export function GlobalSettingsProvider({ children }: { children: React.ReactNode
   const fetchSettings = useCallback(async (forceRefresh = false) => {
     // Prevent excessive API calls - only fetch once per 5 minutes unless forced
     const now = Date.now();
-    if (!forceRefresh && now - lastFetchTime.current < 5000) { // 5 seconds
+    if (!forceRefresh && now - lastFetchTime.current < 1000) { // 1 second
       return;
     }
 

@@ -125,14 +125,14 @@ const usePendingCount = () => {
             console.warn('[Sidebar] SSE connection failed - network or server issue');
           }
           
-                  // Fallback to periodic polling if SSE fails
-        fallbackTimeoutRef.current = setInterval(fetchPendingCount, 30000); // 30 second fallback
+          // Fallback to periodic polling if SSE fails
+          fallbackTimeoutRef.current = setInterval(fetchPendingCount, 10000); // 10 second fallback
         };
 
       } catch (error) {
         console.error('[Sidebar] Failed to establish SSE connection:', error);
         // Fallback to periodic polling if SSE is not available
-        fallbackTimeoutRef.current = setInterval(fetchPendingCount, 30000); // 30 second fallback
+        fallbackTimeoutRef.current = setInterval(fetchPendingCount, 10000); // 10 second fallback
       }
     }
 

@@ -128,7 +128,7 @@ export async function handleSSEConnection(request: Request) {
         });
         controller.enqueue(encoder.encode(`data: ${initialData}\n\n`));
 
-        // Send keepalive every 5 seconds
+        // Send keepalive every 1 second
         keepaliveInterval = setInterval(() => {
           try {
             const keepaliveData = JSON.stringify({
@@ -143,7 +143,7 @@ export async function handleSSEConnection(request: Request) {
             clearInterval(keepaliveInterval);
             removeConnection(userId);
           }
-        }, 5000);
+        }, 1000);
 
         // Cleanup on connection close
         request.signal.addEventListener('abort', () => {
@@ -174,7 +174,7 @@ export async function handleSSEConnection(request: Request) {
         'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         'Access-Control-Allow-Credentials': 'true',
         'X-Accel-Buffering': 'no',
-        'Keep-Alive': 'timeout=120, max=1000',
+        'Keep-Alive': 'timeout=180, max=1000',
         'X-Frame-Options': 'DENY',
         'X-Content-Type-Options': 'nosniff',
       },

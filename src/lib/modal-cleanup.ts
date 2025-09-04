@@ -126,7 +126,7 @@ export function useModalCleanupMonitor() {
     };
 
     // Check periodically for cleanup issues
-    const interval = setInterval(checkForIssues, 5000);
+    const interval = setInterval(checkForIssues, 1000);
 
     // Check on page visibility change
     const handleVisibilityChange = () => {

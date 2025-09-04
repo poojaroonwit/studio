@@ -198,7 +198,7 @@ export function useEnhancedSSE() {
     if (!isInitializedRef.current) return;
     
     // Update status every 5 seconds
-    statusUpdateIntervalRef.current = setInterval(updateConnectionStatus, 30000); // 30 seconds to reduce events
+          statusUpdateIntervalRef.current = setInterval(updateConnectionStatus, 1000); // 1 second for maximum responsiveness
 
     return () => {
       if (statusUpdateIntervalRef.current) {

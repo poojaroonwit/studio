@@ -87,7 +87,7 @@ export function broadcastPositionListUpdated() {
 export function broadcastPositionStatisticsUpdated(statistics: any) {
   // Use smart change detection for statistics
   broadcastPositionUpdateIfChanged({ statistics }, undefined, {
-    minBroadcastInterval: 5000, // 5 seconds for statistics
+    minBroadcastInterval: 1000, // 1 second for statistics
     ignoreFields: ['timestamp']
   });
 }
@@ -145,8 +145,8 @@ export function broadcastUploadFailed(fileName: string, userId: string, error: s
 
 // Dashboard broadcasts
 export function broadcastDashboardUpdate(data: any) {
-  // Use smart change detection for dashboard updates
-  broadcastDashboardUpdateIfChanged(data);
+  // Use smart change detection for dashboard updates with 1 second interval
+  broadcastDashboardUpdateIfChanged(data, { minBroadcastInterval: 1000 });
 }
 
 // Generic broadcast function

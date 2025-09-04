@@ -1,4 +1,8 @@
 // src/components/dashboard/DashboardPageClient.tsx
+// Dashboard with smart animation control:
+// - Animations play only on page refresh/initial load
+// - Animations are disabled during SSE updates to prevent distraction
+// - Manual refresh button re-enables animations
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
@@ -67,6 +71,10 @@ export default function DashboardPageClient({
   const [stageIds, setStageIds] = useState<Record<string, string | undefined>>(initialStageIds);
   const [stageNames, setStageNames] = useState<Record<string, string>>(initialStageNames);
   
+  // State to track if page was just refreshed (for animation control)
+  const [isPageRefresh, setIsPageRefresh] = useState(true);
+  const [hasSSEUpdated, setHasSSEUpdated] = useState(false);
+  
   // Helper function to safely get stage name
   const getStageName = useCallback((stageId: string | undefined): string | null => {
     if (!stageId) return null;
@@ -94,6 +102,26 @@ export default function DashboardPageClient({
       INTERVIEW_STATUSES.push(interviewScheduledStageName, interviewingStageName);
     }
   }, [initialStageIds, initialStageNames]);
+  
+  // Set page refresh state to false after initial render
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsPageRefresh(false);
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Reset SSE update flag after a period of inactivity
+  useEffect(() => {
+    if (hasSSEUpdated) {
+      const timer = setTimeout(() => {
+        setHasSSEUpdated(false);
+      }, 30000); // Reset after 30 seconds of no SSE updates
+      
+      return () => clearTimeout(timer);
+    }
+  }, [hasSSEUpdated]);
   
 
   
@@ -159,6 +187,17 @@ export default function DashboardPageClient({
 
   // Check if user can view all candidates (for conditional rendering)
   const canViewAllCandidates = hasPermission(session?.user, 'CANDIDATES_VIEW');
+
+  // Function to manually refresh data and reset animation state
+  const handleManualRefresh = useCallback(() => {
+    setIsPageRefresh(true);
+    setHasSSEUpdated(false);
+    // Reset the page refresh state after a short delay
+    setTimeout(() => {
+      setIsPageRefresh(false);
+    }, 100);
+    fetchDataClientSide();
+  }, []);
 
   // Function to re-fetch data on client if needed (e.g., after an action or for a refresh button)
   const fetchDataClientSide = useCallback(async () => {
@@ -406,7 +445,7 @@ export default function DashboardPageClient({
     let mounted = true;
     let refreshTimeout: NodeJS.Timeout;
     let lastUpdateTime = 0;
-    const MIN_UPDATE_INTERVAL = 2000; // Minimum 2 seconds between updates
+    const MIN_UPDATE_INTERVAL = 1000; // Minimum 1 second between updates
     
     // Only create EventSource if user is authenticated
     if (status !== 'authenticated' || !session?.user?.id) {
@@ -442,6 +481,9 @@ export default function DashboardPageClient({
               console.log('[Dashboard] Processing update event:', data.type);
             }
             
+            // Mark that SSE has updated data
+            setHasSSEUpdated(true);
+            
             // Clear existing timeout and set new one to prevent rapid successive calls
             if (refreshTimeout) {
               clearTimeout(refreshTimeout);
@@ -455,7 +497,7 @@ export default function DashboardPageClient({
                   fetchDataClientSide();
                 }
               }
-            }, 500); // Reduced debounce to 500ms (from 1 second)
+            }, 1000); // 1 second debounce for better responsiveness
           }
         } catch (error) {
           if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
@@ -903,7 +945,25 @@ export default function DashboardPageClient({
             <p className="text-sm text-muted-foreground mt-1">Real-time recruitment metrics</p>
           </div>
         </div>
-        <RealTimeStatus onDataUpdate={fetchDataClientSide} />
+        <div className="flex items-center space-x-3">
+          {hasSSEUpdated && (
+            <div className="flex items-center space-x-2 text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-md">
+              <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span>Live updates active</span>
+            </div>
+          )}
+          <Button
+            onClick={handleManualRefresh}
+            variant="outline"
+            size="sm"
+            className="flex items-center space-x-2 hover:bg-primary hover:text-primary-foreground transition-colors"
+            title="Refresh dashboard data and play animations"
+          >
+            <RefreshCw className="h-4 w-4" />
+            <span>Refresh</span>
+          </Button>
+          <RealTimeStatus onDataUpdate={fetchDataClientSide} />
+        </div>
       </div>
 
             {/* Section 1: Key Statics - Row 1 */}
@@ -979,9 +1039,11 @@ export default function DashboardPageClient({
           ].map((stat, index) => (
             <Card 
               key={stat.title} 
-              className={`group relative overflow-hidden border-2 ${stat.borderColor} hover:border-opacity-80 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm shadow-lg`}
+              className={`group relative overflow-hidden border-2 ${stat.borderColor} hover:border-opacity-80 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm shadow-lg ${
+                isPageRefresh && !hasSSEUpdated ? 'animate-in slide-in-from-bottom-4 fade-in-0' : ''
+              }`}
               style={{
-                animationDelay: `${index * 100}ms`
+                animationDelay: isPageRefresh && !hasSSEUpdated ? `${index * 100}ms` : '0ms'
               }}
             >
               {/* Always show the gradient background as active */}
@@ -1096,9 +1158,11 @@ export default function DashboardPageClient({
           ].map((stat, index) => (
             <Card 
               key={stat.title} 
-              className={`group relative overflow-hidden border-2 ${stat.borderColor} hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm`}
+              className={`group relative overflow-hidden border-2 ${stat.borderColor} hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm ${
+                isPageRefresh && !hasSSEUpdated ? 'animate-in slide-in-from-bottom-4 fade-in-0' : ''
+              }`}
               style={{
-                animationDelay: `${index * 100}ms`
+                animationDelay: isPageRefresh && !hasSSEUpdated ? `${index * 100}ms` : '0ms'
               }}
             >
               <div className={`absolute inset-0 ${stat.bgColor} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}></div>
@@ -1388,9 +1452,11 @@ export default function DashboardPageClient({
             ].map((stat, index) => (
               <Card 
                 key={stat.title} 
-                className={`group relative overflow-hidden border-2 ${stat.borderColor} hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-white/50 backdrop-blur-sm`}
+                className={`group relative overflow-hidden border-2 ${stat.borderColor} hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-white/50 backdrop-blur-sm ${
+                  isPageRefresh && !hasSSEUpdated ? 'animate-in slide-in-from-bottom-4 fade-in-0' : ''
+                }`}
                 style={{
-                  animationDelay: `${index * 150}ms`
+                  animationDelay: isPageRefresh && !hasSSEUpdated ? `${index * 150}ms` : '0ms'
                 }}
               >
                 <div className={`absolute inset-0 ${stat.bgColor} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}></div>
@@ -1455,7 +1521,7 @@ export default function DashboardPageClient({
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Bar Chart: On-process by Stage */}
-          <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm">
+          <Card className={`group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm ${isPageRefresh && !hasSSEUpdated ? 'animate-in slide-in-from-bottom-4' : ''}`}>
             <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/50 dark:to-purple-900/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             <CardHeader className="relative pb-3">
               <CardTitle className="text-base font-semibold text-foreground group-hover:text-foreground transition-colors">On-Process Candidates by Stage</CardTitle>
@@ -1547,7 +1613,7 @@ export default function DashboardPageClient({
           </Card>
 
           {/* Bar Chart: On-process by Recruiter */}
-          <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm">
+          <Card className={`group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm ${isPageRefresh && !hasSSEUpdated ? 'animate-in slide-in-from-bottom-4' : ''}`}>
             <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/50 dark:to-purple-900/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             <CardHeader className="relative pb-3">
               <CardTitle className="text-base font-semibold text-foreground group-hover:text-foreground transition-colors">On-Process Candidates by Recruiter</CardTitle>

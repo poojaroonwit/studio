@@ -267,7 +267,6 @@ export default function CandidateImportUploadQueue() {
         eventSource.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data);
-            console.log('[Process Queue] SSE message received:', data);
             setSseEventCount(prev => prev + 1);
             
             // Handle upload queue updates - check both the event type and data structure
@@ -377,7 +376,7 @@ export default function CandidateImportUploadQueue() {
         console.log('[Process Queue] Fallback polling refresh');
         fetchQueue(page, pageSize);
         setLastUpdate(new Date());
-      }, 5000); // Poll every 5 seconds when SSE is down (reduced from 10s)
+      }, 10000); // Poll every 10 seconds when SSE is down
       
       return () => clearInterval(interval);
     } else {
@@ -387,12 +386,7 @@ export default function CandidateImportUploadQueue() {
 
   // Debug SSE connection status
   useEffect(() => {
-    console.log('[Process Queue] SSE Status:', {
-      sseConnected,
-      sseError,
-      sseEventCount,
-      timestamp: new Date().toISOString()
-    });
+    // SSE status monitoring removed
   }, [sseConnected, sseError, sseEventCount]);
 
   // Debug queue data to help troubleshoot retry button visibility

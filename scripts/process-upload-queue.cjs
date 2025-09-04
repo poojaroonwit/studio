@@ -1,15 +1,14 @@
 #!/usr/bin/env node
 
 /**
- * Upload Queue Processor with Dynamic Resource Management
+ * Upload Queue Processor with Fixed Timing
  * 
  * This script automatically processes the upload queue by calling the process endpoint
- * at regular intervals. It dynamically adjusts its behavior based on available system resources
- * and system settings for concurrent processing.
+ * at fixed intervals. It uses consistent timing based on environment configuration.
  * 
- * OPTIMIZED: Reduced processing frequency to prevent database connection exhaustion
- * DYNAMIC: Supports multiple concurrent processors based on system settings
- * OPTIMIZED: Increased intervals for better stability
+ * OPTIMIZED: Fixed processing frequency for predictable behavior
+ * SIMPLIFIED: No dynamic resource management - consistent performance
+ * STABLE: Predictable intervals regardless of system load
  */
 
 // Load environment variables from .env.local
@@ -17,15 +16,14 @@ require('dotenv').config({ path: '.env.local' });
 
 const https = require('https');
 const http = require('http');
-const os = require('os');
 
-// Dynamic configuration that adjusts based on system resources
-let dynamicConfig = {
+// Fixed configuration - no dynamic adjustments
+let config = {
   baseUrl: process.env.PROCESSOR_URL || 'http://localhost:8021',
   apiKey: process.env.PROCESSOR_API_KEY || 'dev-key',
-  intervalMs: parseInt(process.env.PROCESSOR_INTERVAL_MS) || 2000, // ✅ Reduced to 2000 (2 seconds)
+  intervalMs: parseInt(process.env.PROCESSOR_INTERVAL_MS) || 2000, // Fixed interval from environment
   logIntervalMs: parseInt(process.env.LOG_INTERVAL_MS) || 60000,
-  batchLimit: parseInt(process.env.PROCESSOR_BATCH_LIMIT) || 1, // ✅ Reduced from 3 to 1
+  batchLimit: parseInt(process.env.PROCESSOR_BATCH_LIMIT) || 1,
   maxRetries: 3,
   retryDelayMs: 10000,
   quietMode: process.env.PROCESSOR_QUIET_MODE === 'true' || false,
@@ -35,14 +33,8 @@ let dynamicConfig = {
   connectionTimeoutMs: parseInt(process.env.PROCESSOR_CONNECTION_TIMEOUT_MS) || 60000,
   requestTimeoutMs: parseInt(process.env.PROCESSOR_REQUEST_TIMEOUT_MS) || 180000,
   
-  // Dynamic adjustment factors
-  cpuThreshold: 80, // CPU usage threshold for scaling down
-  memoryThreshold: 85, // Memory usage threshold for scaling down
-  healthCheckInterval: 5000, // How often to check system health
-  
   // Concurrent processing settings
-  maxConcurrentProcessors: parseInt(process.env.MAX_CONCURRENT_PROCESSORS) || 1, // Default to 1 for connection optimization
-  currentConcurrentProcessors: 1, // Current active processors
+  maxConcurrentProcessors: parseInt(process.env.MAX_CONCURRENT_PROCESSORS) || 1,
   processorCheckInterval: 60000, // Check system settings every minute
 };
 
@@ -52,26 +44,23 @@ let lastLogTime = Date.now();
 let processedCount = 0;
 let errorCount = 0;
 let consecutiveErrors = 0;
-let currentBackoffMs = dynamicConfig.retryDelayMs;
+let currentBackoffMs = config.retryDelayMs;
 const startTime = Date.now();
-let lastHealthCheck = Date.now();
 let lastProcessorCheck = Date.now();
-let currentPressureLevel = 'medium';
 
 // Override baseUrl for local development if it's set to Docker service name
-if (dynamicConfig.baseUrl.includes('8021_fitscan_app:8021') || dynamicConfig.baseUrl.includes('172.21.0.2:8021')) {
+if (config.baseUrl.includes('8021_fitscan_app:8021') || config.baseUrl.includes('172.21.0.2:8021')) {
   if (process.env.DOCKER_ENV || process.env.NODE_ENV === 'production') {
-
+    // Keep Docker service name in production
   } else {
-    dynamicConfig.baseUrl = 'http://localhost:8021';
-
+    config.baseUrl = 'http://localhost:8021';
   }
 }
 
 // Get system setting for max concurrent processors
 async function getMaxConcurrentProcessorsSetting() {
   try {
-    const response = await makeRequest(`${dynamicConfig.baseUrl}/api/settings/system-settings`, {
+    const response = await makeRequest(`${config.baseUrl}/api/settings/system-settings`, {
       method: 'GET'
     });
     
@@ -86,7 +75,7 @@ async function getMaxConcurrentProcessorsSetting() {
       }
     }
   } catch (error) {
-
+    // Silently fail and use default
   }
   
   // Fallback to environment variable or default
@@ -97,127 +86,19 @@ async function getMaxConcurrentProcessorsSetting() {
 async function updateConcurrentProcessorSetting() {
   try {
     const maxConcurrent = await getMaxConcurrentProcessorsSetting();
-    if (maxConcurrent !== dynamicConfig.maxConcurrentProcessors) {
-      const oldValue = dynamicConfig.maxConcurrentProcessors;
-      dynamicConfig.maxConcurrentProcessors = maxConcurrent;
-
+    if (maxConcurrent !== config.maxConcurrentProcessors) {
+      const oldValue = config.maxConcurrentProcessors;
+      config.maxConcurrentProcessors = maxConcurrent;
       
       // Adjust batch limit based on concurrent processors
       const newBatchLimit = Math.max(1, Math.min(maxConcurrent, 5)); // Cap at 5 for connection safety
-      if (newBatchLimit !== dynamicConfig.batchLimit) {
-        dynamicConfig.batchLimit = newBatchLimit;
-
+      if (newBatchLimit !== config.batchLimit) {
+        config.batchLimit = newBatchLimit;
+        log('INFO', `Updated batch limit from ${oldValue} to ${newBatchLimit} based on concurrent processors`);
       }
     }
   } catch (error) {
-
-  }
-}
-
-// Resource monitoring functions
-function getSystemMetrics() {
-  const memUsage = process.memoryUsage();
-  const totalMem = os.totalmem();
-  const freeMem = os.freemem();
-  const usedMem = totalMem - freeMem;
-  const memoryUsagePercent = (usedMem / totalMem) * 100;
-  
-  // Simplified CPU usage calculation
-  const cpuUsage = process.cpuUsage();
-  const loadAvg = os.loadavg()[0]; // 1-minute load average
-  
-  return {
-    memory: {
-      used: usedMem,
-      total: totalMem,
-      percentage: memoryUsagePercent,
-      heapUsed: memUsage.heapUsed,
-      heapTotal: memUsage.heapTotal
-    },
-    cpu: {
-      usage: cpuUsage,
-      load: loadAvg,
-      cores: os.cpus().length
-    }
-  };
-}
-
-function calculateResourcePressure(metrics) {
-  const memoryPressure = metrics.memory.percentage / 100;
-  const cpuPressure = Math.min(1, metrics.cpu.load / metrics.cpu.cores);
-  
-  // Combined pressure score (0-1, higher is more pressure)
-  const pressureScore = (memoryPressure + cpuPressure) / 2;
-  
-  if (pressureScore < 0.3) return 'low';
-  if (pressureScore < 0.6) return 'medium';
-  if (pressureScore < 0.8) return 'high';
-  return 'critical';
-}
-
-function adjustConfiguration(pressure) {
-  const baseInterval = parseInt(process.env.PROCESSOR_INTERVAL_MS) || 5000;
-  const baseBatchSize = dynamicConfig.maxConcurrentProcessors; // Use system setting as base
-  
-  // Adjustment multipliers based on pressure
-  const adjustments = {
-    low: {
-      interval: 0.8, // 20% faster processing
-      batchSize: 1.2, // 20% larger batches
-      timeout: 0.8, // 20% shorter timeouts
-      retries: 0.8 // 20% fewer retries
-    },
-    medium: {
-      interval: 1.0, // Normal processing
-      batchSize: 1.0, // Normal batch size
-      timeout: 1.0, // Normal timeouts
-      retries: 1.0 // Normal retries
-    },
-    high: {
-      interval: 1.5, // 50% slower processing
-      batchSize: 0.8, // 20% smaller batches
-      timeout: 1.5, // 50% longer timeouts
-      retries: 1.2 // 20% more retries
-    },
-    critical: {
-      interval: 2.5, // 150% slower processing
-      batchSize: 0.5, // 50% smaller batches
-      timeout: 2.0, // 100% longer timeouts
-      retries: 1.5 // 50% more retries
-    }
-  };
-  
-  const adj = adjustments[pressure];
-  
-  return {
-    intervalMs: Math.round(baseInterval * adj.interval),
-    batchLimit: Math.max(1, Math.min(dynamicConfig.maxConcurrentProcessors, Math.round(baseBatchSize * adj.batchSize))),
-    connectionTimeoutMs: Math.round(dynamicConfig.connectionTimeoutMs * adj.timeout),
-    requestTimeoutMs: Math.round(dynamicConfig.requestTimeoutMs * adj.timeout),
-    retryDelayMs: Math.round(dynamicConfig.retryDelayMs * adj.retries),
-    maxConsecutiveErrors: Math.max(2, Math.round(dynamicConfig.maxConsecutiveErrors * adj.retries))
-  };
-}
-
-function updateDynamicConfig() {
-  const metrics = getSystemMetrics();
-  const pressure = calculateResourcePressure(metrics);
-  
-  if (pressure !== currentPressureLevel) {
-    const oldLevel = currentPressureLevel;
-    currentPressureLevel = pressure;
-    
-    const newConfig = adjustConfiguration(pressure);
-    
-    // Update configuration
-    dynamicConfig.intervalMs = newConfig.intervalMs;
-    dynamicConfig.batchLimit = newConfig.batchLimit;
-    dynamicConfig.connectionTimeoutMs = newConfig.connectionTimeoutMs;
-    dynamicConfig.requestTimeoutMs = newConfig.requestTimeoutMs;
-    dynamicConfig.retryDelayMs = newConfig.retryDelayMs;
-    dynamicConfig.maxConsecutiveErrors = newConfig.maxConsecutiveErrors;
-    
-
+    // Silently fail and continue with current settings
   }
 }
 
@@ -230,19 +111,19 @@ function log(level, message) {
     console.error(logMessage);
   } else if (level === 'WARN') {
     console.warn(logMessage);
-  } else if (!dynamicConfig.quietMode) {
+  } else if (!config.quietMode) {
     console.log(logMessage);
   }
   
   // Log status every logIntervalMs
-  if (Date.now() - lastLogTime > dynamicConfig.logIntervalMs) {
-    const metrics = getSystemMetrics();
-
+  if (Date.now() - lastLogTime > config.logIntervalMs) {
+    // Simplified status logging without system metrics
+    log('INFO', `Status: processed=${processedCount}, errors=${errorCount}, consecutive_errors=${consecutiveErrors}`);
     lastLogTime = Date.now();
   }
 }
 
-// HTTP request utility with dynamic timeouts
+// HTTP request utility with fixed timeouts
 function makeRequest(url, options) {
   return new Promise((resolve, reject) => {
     const urlObj = new URL(url);
@@ -256,10 +137,10 @@ function makeRequest(url, options) {
       method: options.method || 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': dynamicConfig.apiKey,
+        'x-api-key': config.apiKey,
         ...options.headers
       },
-      timeout: dynamicConfig.requestTimeoutMs,
+      timeout: config.requestTimeoutMs,
       keepAlive: true,
       keepAliveMsecs: 1000,
       maxSockets: 5,
@@ -287,17 +168,16 @@ function makeRequest(url, options) {
     });
     
     req.on('error', (error) => {
-
+      req.destroy();
       reject(error);
     });
     
     req.on('timeout', () => {
-
       req.destroy();
       reject(new Error('Request timeout'));
     });
     
-    req.setTimeout(dynamicConfig.connectionTimeoutMs, () => {
+    req.setTimeout(config.connectionTimeoutMs, () => {
       req.destroy();
       reject(new Error('Connection timeout'));
     });
@@ -310,10 +190,10 @@ function makeRequest(url, options) {
   });
 }
 
-// Process a batch of jobs with dynamic batch size
+// Process a batch of jobs with fixed batch size
 async function processBatch() {
   try {
-    const response = await makeRequest(`${dynamicConfig.baseUrl}/api/upload-queue/process-all?limit=${dynamicConfig.batchLimit}`, {
+    const response = await makeRequest(`${config.baseUrl}/api/upload-queue/process-all?limit=${config.batchLimit}`, {
       method: 'POST'
     });
 
@@ -323,22 +203,16 @@ async function processBatch() {
       
       // Only log if jobs were actually processed
       if (processedCount > 0) {
-        log('INFO', `Processed ${processedCount} jobs (batch size: ${dynamicConfig.batchLimit}, max concurrent: ${dynamicConfig.maxConcurrentProcessors})`);
+        log('INFO', `Processed ${processedCount} jobs (batch size: ${config.batchLimit}, max concurrent: ${config.maxConcurrentProcessors})`);
         consecutiveErrors = 0;
-        currentBackoffMs = dynamicConfig.retryDelayMs;
-        lastSuccessfulProcessing = Date.now();
+        currentBackoffMs = config.retryDelayMs;
       } else if (msgs.some(m => (m || '').includes('No queued jobs'))) {
         // Don't log empty batches to reduce noise
         consecutiveErrors = 0;
-        currentBackoffMs = dynamicConfig.retryDelayMs;
+        currentBackoffMs = config.retryDelayMs;
       }
       
       return processedCount;
-    } else if (response.status === 404) {
-      // Fall back to single-job processing
-      log('WARN', 'Batch endpoint not found, falling back to single processing');
-      await processJob();
-      return 1;
     } else {
       throw new Error(`HTTP ${response.status}: ${JSON.stringify(response.data)}`);
     }
@@ -347,9 +221,9 @@ async function processBatch() {
     consecutiveErrors++;
     log('ERROR', `Failed to process batch: ${error.message}`);
     
-    // Implement exponential backoff with dynamic retry delay
-    if (consecutiveErrors >= dynamicConfig.maxConsecutiveErrors) {
-      currentBackoffMs = Math.min(currentBackoffMs * dynamicConfig.backoffMultiplier, dynamicConfig.maxBackoffMs);
+    // Implement exponential backoff with fixed retry delay
+    if (consecutiveErrors >= config.maxConsecutiveErrors) {
+      currentBackoffMs = Math.min(currentBackoffMs * config.backoffMultiplier, config.maxBackoffMs);
       log('WARN', `Too many consecutive errors, backing off for ${currentBackoffMs}ms`);
     }
     
@@ -360,7 +234,7 @@ async function processBatch() {
 // Process a single job (fallback)
 async function processJob() {
   try {
-    const response = await makeRequest(`${dynamicConfig.baseUrl}/api/upload-queue/process`, {
+    const response = await makeRequest(`${config.baseUrl}/api/upload-queue/process`, {
       method: 'POST'
     });
 
@@ -369,12 +243,12 @@ async function processJob() {
       if (response.data && response.data.message === 'No queued jobs') {
         // Don't log empty single job attempts to reduce noise
         consecutiveErrors = 0;
-        currentBackoffMs = dynamicConfig.retryDelayMs;
+        currentBackoffMs = config.retryDelayMs;
         return 0; // Return 0 to indicate no jobs were processed
       } else {
         log('INFO', 'Processed single job successfully');
         consecutiveErrors = 0;
-        currentBackoffMs = dynamicConfig.retryDelayMs;
+        currentBackoffMs = config.retryDelayMs;
         return 1;
       }
     } else {
@@ -385,34 +259,28 @@ async function processJob() {
     consecutiveErrors++;
     log('ERROR', `Failed to process single job: ${error.message}`);
     
-    if (consecutiveErrors >= dynamicConfig.maxConsecutiveErrors) {
-      currentBackoffMs = Math.min(currentBackoffMs * dynamicConfig.backoffMultiplier, dynamicConfig.maxBackoffMs);
+    if (consecutiveErrors >= config.maxConsecutiveErrors) {
+      currentBackoffMs = Math.min(currentBackoffMs * config.backoffMultiplier, config.maxBackoffMs);
     }
     
     return 0;
   }
 }
 
-// Main processing loop with dynamic intervals
+// Main processing loop with fixed intervals
 async function processLoop() {
   while (isRunning) {
     try {
-      // Check system resources and update configuration
-      if (Date.now() - lastHealthCheck > dynamicConfig.healthCheckInterval) {
-        updateDynamicConfig();
-        lastHealthCheck = Date.now();
-      }
-      
       // Check system settings for concurrent processors
-      if (Date.now() - lastProcessorCheck > dynamicConfig.processorCheckInterval) {
+      if (Date.now() - lastProcessorCheck > config.processorCheckInterval) {
         await updateConcurrentProcessorSetting();
         lastProcessorCheck = Date.now();
       }
       
       const count = await processBatch();
       
-      // Use dynamic backoff based on error state and resource pressure
-      const waitTime = consecutiveErrors >= dynamicConfig.maxConsecutiveErrors ? currentBackoffMs : dynamicConfig.intervalMs;
+      // Use fixed interval with error backoff only
+      const waitTime = consecutiveErrors >= config.maxConsecutiveErrors ? currentBackoffMs : config.intervalMs;
       
       // Wait before next iteration
       await new Promise(resolve => setTimeout(resolve, waitTime));
@@ -421,8 +289,8 @@ async function processLoop() {
       
       consecutiveErrors++;
       
-      if (consecutiveErrors >= dynamicConfig.maxConsecutiveErrors) {
-        currentBackoffMs = Math.min(currentBackoffMs * dynamicConfig.backoffMultiplier, dynamicConfig.maxBackoffMs);
+      if (consecutiveErrors >= config.maxConsecutiveErrors) {
+        currentBackoffMs = Math.min(currentBackoffMs * config.backoffMultiplier, config.maxBackoffMs);
       }
       
       await new Promise(resolve => setTimeout(resolve, currentBackoffMs));
@@ -442,8 +310,8 @@ process.on('SIGINT', () => shutdown('SIGINT'));
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 
 // Start the processor
-log('INFO', `Upload Queue Processor starting with max concurrent: ${dynamicConfig.maxConcurrentProcessors}`);
-log('INFO', `Configuration: interval=${dynamicConfig.intervalMs}ms, batch=${dynamicConfig.batchLimit}, timeouts=${dynamicConfig.connectionTimeoutMs}ms`);
+log('INFO', `Upload Queue Processor starting with fixed timing`);
+log('INFO', `Configuration: interval=${config.intervalMs}ms, batch=${config.batchLimit}, timeouts=${config.connectionTimeoutMs}ms`);
 
 processLoop().catch(error => {
   log('ERROR', `Fatal error in process loop: ${error.message}`);

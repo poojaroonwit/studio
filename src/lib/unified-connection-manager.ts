@@ -336,7 +336,7 @@ export async function handleUnifiedSSEConnection(request: Request) {
           return;
         }
 
-        // Send keepalive every 15 seconds for better connection stability
+        // Send keepalive every 1 second for maximum responsiveness
         keepaliveInterval = setInterval(() => {
           if (!connectionAlive) {
             clearInterval(keepaliveInterval);
@@ -364,7 +364,7 @@ export async function handleUnifiedSSEConnection(request: Request) {
             clearInterval(keepaliveInterval);
             removeUserConnection(userId);
           }
-        }, 15000); // 15 seconds for better stability
+        }, 1000); // 1 second for maximum responsiveness
 
         // Store keepalive interval reference
         const connection = userConnections.get(userId);
@@ -403,7 +403,7 @@ export async function handleUnifiedSSEConnection(request: Request) {
         'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         'Access-Control-Allow-Credentials': 'true',
         'X-Accel-Buffering': 'no',
-        'Keep-Alive': 'timeout=300, max=1000', // 5 minutes timeout
+        'Keep-Alive': 'timeout=180, max=1000', // 3 minutes timeout
         'X-Frame-Options': 'DENY',
         'X-Content-Type-Options': 'nosniff'
         // Removed Transfer-Encoding: chunked to prevent conflicts with nginx
@@ -415,10 +415,10 @@ export async function handleUnifiedSSEConnection(request: Request) {
   }
 }
 
-// Cleanup inactive connections (run every 60 seconds instead of 30)
+// Cleanup inactive connections (run every 60 seconds)
 export function cleanupInactiveConnections() {
   const now = Date.now();
-  const inactiveTimeout = 5 * 60 * 1000; // 5 minutes instead of 2 minutes for better stability
+  const inactiveTimeout = 3 * 60 * 1000; // 3 minutes for better responsiveness
   
   for (const [userId, connection] of userConnections.entries()) {
     if (now - connection.lastActivity > inactiveTimeout) {

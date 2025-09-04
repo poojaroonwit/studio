@@ -171,7 +171,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     }
   }, [realtimeConnected]);
 
-  // Add periodic refresh as fallback (every 30 seconds)
+  // Add periodic refresh as fallback (every 10 seconds)
   useEffect(() => {
     if (!session?.user?.id) return;
     
@@ -208,7 +208,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
         
         refreshCandidates();
       }
-    }, 30000); // 30 seconds
+    }, 10000); // 10 seconds
     
     return () => clearInterval(interval);
   }, [session?.user?.id, loading, candidates, filters, realtimeConnected]);

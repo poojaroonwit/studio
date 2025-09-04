@@ -170,7 +170,7 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
         
         // Add general message listener to catch any events
         es.onmessage = (event) => {
-          console.log('[AssignedPositionsSidebar] Received general message:', event.data);
+          // General message handling removed
         };
 
       } catch (error) {

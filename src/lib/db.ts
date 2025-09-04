@@ -38,7 +38,7 @@ function cleanupOldConnections() {
 }
 
 // Start cleanup interval for old connections
-setInterval(cleanupOldConnections, 30000); // Check every 30 seconds
+setInterval(cleanupOldConnections, 10000); // Check every 10 seconds
 
 // Enhanced connection pool monitoring and cleanup
 let poolMonitorInterval: NodeJS.Timeout | null = null;
@@ -165,7 +165,7 @@ function startPoolMonitoring() {
         }
       }
     }
-  }, 5000); // Check every 5 seconds instead of 30
+      }, 1000); // Check every 1 second for maximum responsiveness
 }
 
 export function getConnectionUsageStats() {

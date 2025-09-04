@@ -94,7 +94,7 @@ export function broadcastCandidateUpdateIfChanged(
   const trackerKey = `candidate_${candidate.id}`;
   
   if (hasDataChanged(trackerKey, candidate, {
-    minBroadcastInterval: options.minBroadcastInterval || 3000, // 3 seconds for candidates
+    minBroadcastInterval: options.minBroadcastInterval || 1000, // 1 second for candidates
     ignoreFields: ['updated_at', 'last_activity', ...(options.ignoreFields || [])]
   })) {
     console.log('[DataChange] Broadcasting candidate update:', candidate.id);
@@ -117,7 +117,7 @@ export function broadcastPositionUpdateIfChanged(
   const trackerKey = `position_${position.id}`;
   
   if (hasDataChanged(trackerKey, position, {
-    minBroadcastInterval: options.minBroadcastInterval || 5000, // 5 seconds for positions
+    minBroadcastInterval: options.minBroadcastInterval || 1000, // 1 second for positions
     ignoreFields: ['updated_at', 'last_activity', ...(options.ignoreFields || [])]
   })) {
     console.log('[DataChange] Broadcasting position update:', position.id);
@@ -139,7 +139,7 @@ export function broadcastUploadQueueUpdateIfChanged(
   const trackerKey = 'upload_queue_summary';
   
   if (hasDataChanged(trackerKey, summary, {
-    minBroadcastInterval: options.minBroadcastInterval || 2000, // 2 seconds for upload queue
+    minBroadcastInterval: options.minBroadcastInterval || 1000, // 1 second for upload queue
     ignoreFields: ['timestamp', ...(options.ignoreFields || [])]
   })) {
     console.log('[DataChange] Broadcasting upload queue update:', summary);
@@ -160,7 +160,7 @@ export function broadcastDashboardUpdateIfChanged(
   const trackerKey = 'dashboard_data';
   
   if (hasDataChanged(trackerKey, data, {
-    minBroadcastInterval: options.minBroadcastInterval || 3000, // 3 seconds for dashboard (reduced from 10s)
+    minBroadcastInterval: options.minBroadcastInterval || 1000, // 1 second for dashboard
     ignoreFields: ['timestamp', 'last_updated', ...(options.ignoreFields || [])]
   })) {
     console.log('[DataChange] Broadcasting dashboard update');
@@ -188,7 +188,7 @@ export function broadcastBatchUpdateIfChanged(
   };
   
   if (hasDataChanged(trackerKey, batchData, {
-    minBroadcastInterval: options.minBroadcastInterval || 2000, // 2 seconds for batch updates (reduced from 5s)
+    minBroadcastInterval: options.minBroadcastInterval || 1000, // 1 second for batch updates
     ignoreFields: ['timestamp', ...(options.ignoreFields || [])]
   })) {
     console.log(`[DataChange] Broadcasting ${itemType} batch update:`, items.length, 'items');

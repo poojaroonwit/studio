@@ -15,7 +15,6 @@ import { getScoreRangesForChart, formatScoreWithGrade, getScoreColor } from "@/l
 import { formatCandidateName, formatCandidateNameWithLang } from "@/lib/candidateUtils";
 import { isToday } from 'date-fns';
 import parseISO from 'date-fns/parseISO';
-import { isValidDate } from '@/lib/utils';
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { signIn, useSession, signOut } from "next-auth/react";
@@ -663,13 +662,7 @@ export default function DashboardPageClient({
         // Find the last transition to 'Hired'
         const hiredTransition = candidate.transitionHistory
           .filter(transition => stageIds.hired && transition.stage === stageIds.hired)
-          .sort((itemA, itemB) => {
-            const dateA = new Date(itemA.date);
-            const dateB = new Date(itemB.date);
-            // Use safe date comparison to prevent getTime errors
-            if (!isValidDate(dateA) || !isValidDate(dateB)) return 0;
-            return dateB.getTime() - dateA.getTime();
-          })[0];
+          .sort((itemA, itemB) => new Date(itemB.date).getTime() - new Date(itemA.date).getTime())[0];
         const hireDate = hiredTransition ? parseISO(hiredTransition.date) : null;
         if (!hireDate) return total;
         const daysDiff = Math.ceil((hireDate.getTime() - applicationDate.getTime()) / (1000 * 60 * 60 * 24));

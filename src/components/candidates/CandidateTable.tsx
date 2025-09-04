@@ -34,7 +34,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-import { cn, isValidDate } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { z } from 'zod';
 import { getScoreColorInfo, ScoreBadge } from '@/components/ui/score-color';
 import CandidateDetailModal from './CandidateDetailModal';
@@ -271,13 +271,7 @@ export function CandidateTable({
       if (candidate.updatedAt) activities.push({ date: candidate.updatedAt, type: 'updated', candidate });
       if (candidate.createdAt) activities.push({ date: candidate.createdAt, type: 'created', candidate });
       return activities;
-    }).sort((a, b) => {
-      const dateA = new Date(a.date);
-      const dateB = new Date(b.date);
-      // Use safe date comparison to prevent getTime errors
-      if (!isValidDate(dateA) || !isValidDate(dateB)) return 0;
-      return dateB.getTime() - dateA.getTime();
-    });
+    }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   };
 
 

@@ -4,7 +4,6 @@ import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
 import { X, ImageIcon, FileTextIcon, FileIcon, Send, Paperclip, Activity, MessageSquare, ChevronDown } from 'lucide-react';
 import { FileViewerModal } from '../ui/file-viewer-modal';
-import { isValidDate } from '@/lib/utils';
 
 const LABEL_OPTIONS = [
   { value: 'resume', label: 'Resume' },
@@ -226,11 +225,7 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
     const dateA = (a as any).createdAt || (a as any).time;
     const dateB = (b as any).createdAt || (b as any).time;
     if (!dateA || !dateB) return 0;
-    const dateObjA = new Date(dateA);
-    const dateObjB = new Date(dateB);
-    // Use safe date comparison to prevent getTime errors
-    if (!isValidDate(dateObjA) || !isValidDate(dateObjB)) return 0;
-    return dateObjB.getTime() - dateObjA.getTime(); // Sort newest first
+    return new Date(dateB).getTime() - new Date(dateA).getTime(); // Sort newest first
   });
 
   // Drag-and-drop handlers

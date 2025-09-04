@@ -5,7 +5,6 @@ import { toast } from 'react-hot-toast';
 import { FileTextIcon, FileIcon, ImageIcon, UploadCloud, X } from 'lucide-react';
 import { FileViewerModal } from '../ui/file-viewer-modal';
 import UploadAttachmentsModal from './UploadAttachmentsModal';
-import { isValidDate } from '@/lib/utils';
 
 interface Attachment {
   id: string;
@@ -55,13 +54,9 @@ const CandidateResumesSection: React.FC<CandidateResumesSectionProps> = ({ candi
   // onResumesChange callback is used to trigger manual refresh after user actions
 
   const sortedAttachments = Array.isArray(resumes) ? [...resumes].sort((a, b) => {
-    const dateA = new Date(a.updatedAt);
-    const dateB = new Date(b.updatedAt);
-    // Use safe date comparison to prevent getTime errors
-    if (!isValidDate(dateA) || !isValidDate(dateB)) return 0;
-    const timeA = dateA.getTime();
-    const timeB = dateB.getTime();
-    return sortDesc ? timeB - timeA : timeA - timeB;
+    const dateA = new Date(a.updatedAt).getTime();
+    const dateB = new Date(b.updatedAt).getTime();
+    return sortDesc ? dateB - dateA : dateA - dateB;
   }) : [];
 
   const handleFileClick = (attachment: Attachment) => {

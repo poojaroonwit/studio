@@ -2,7 +2,6 @@ import { NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
 import { broadcastCandidateUpdate } from '@/lib/simple-broadcaster';
 import { z } from 'zod';
-import { isValidDate } from '@/lib/utils';
 // Type imports removed due to linter errors
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -98,13 +97,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         time: r.uploadedAt,
         note: r.fileName,
       })),
-    ].sort((a, b) => {
-      const dateA = new Date(a.time);
-      const dateB = new Date(b.time);
-      // Use safe date comparison to prevent getTime errors
-      if (!isValidDate(dateA) || !isValidDate(dateB)) return 0;
-      return dateB.getTime() - dateA.getTime();
-    });
+    ].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
 
     return new Response(JSON.stringify({ data: logs }), {
       status: 200,

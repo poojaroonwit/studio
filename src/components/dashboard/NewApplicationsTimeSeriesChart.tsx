@@ -190,6 +190,12 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
       return { labels: [], datasets: [] };
     }
     
+    // Additional safety check: ensure startDate is not after endDate
+    if (startDate.getTime() > endDate.getTime()) {
+      console.error('Start date is after end date:', { startDate, endDate });
+      return { labels: [], datasets: [] };
+    }
+    
     // Use new startDate, endDate, intervalFunction, formatFunction
     const intervals = intervalFunction({ start: startDate, end: endDate });
     
@@ -214,7 +220,7 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
           console.error('Invalid dateRange dates:', { from: dateRange.from, to: dateRange.to });
           return { label: 'Invalid Date Range', count: 0, start: intervalStart, end: intervalStart };
         }
-        const daysDiff = Math.ceil(safeDateDiff(dateRange.from, dateRange.to) / (1000 * 60 * 60 * 24));
+        const daysDiff = Math.ceil(Math.abs(safeDateDiff(dateRange.from, dateRange.to)) / (1000 * 60 * 60 * 24));
         if (daysDiff <= 30) {
           intervalEnd = addDays(intervalStart, 1);
         } else if (daysDiff <= 180) {
@@ -257,6 +263,11 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
         if (!candidate.applicationDate) return false;
         try {
           const appDate = parseISO(candidate.applicationDate);
+          // Validate the parsed date
+          if (!isValidDate(appDate)) {
+            console.warn('Invalid parsed application date:', candidate.applicationDate, appDate);
+            return false;
+          }
           return appDate >= intervalStart && appDate <= intervalEnd;
         } catch (error) {
           console.error('Error parsing application date:', candidate.applicationDate, error);
@@ -273,7 +284,7 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
     // For comparison, just use previous period of same length
     const rangeLength = safeDateDiff(startDate, endDate);
     const comparisonStart = new Date(safeGetTime(startDate) - rangeLength);
-    const comparisonEnd = startDate;
+    const comparisonEnd = new Date(safeGetTime(startDate));
     
     // Validate comparison dates
     if (!isValidDate(comparisonStart) || !isValidDate(comparisonEnd)) {
@@ -302,7 +313,7 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
           console.error('Invalid dateRange dates in comparison:', { from: dateRange.from, to: dateRange.to });
           return { label: 'Invalid Date Range', count: 0, start: intervalStart, end: intervalStart };
         }
-        const daysDiff = Math.ceil(safeDateDiff(dateRange.from, dateRange.to) / (1000 * 60 * 60 * 24));
+        const daysDiff = Math.ceil(Math.abs(safeDateDiff(dateRange.from, dateRange.to)) / (1000 * 60 * 60 * 24));
         if (daysDiff <= 30) {
           intervalEnd = addDays(intervalStart, 1);
         } else if (daysDiff <= 180) {
@@ -345,8 +356,14 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
         if (!candidate.applicationDate) return false;
         try {
           const appDate = parseISO(candidate.applicationDate);
+          // Validate the parsed date
+          if (!isValidDate(appDate)) {
+            console.warn('Invalid parsed application date in comparison:', candidate.applicationDate, appDate);
+            return false;
+          }
           return appDate >= intervalStart && appDate <= intervalEnd;
-        } catch {
+        } catch (error) {
+          console.error('Error parsing application date in comparison:', candidate.applicationDate, error);
           return false;
         }
       }).length;
@@ -422,8 +439,14 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
       if (!candidate.applicationDate) return false;
       try {
         const appDate = parseISO(candidate.applicationDate);
+        // Validate the parsed date
+        if (!isValidDate(appDate)) {
+          console.warn('Invalid parsed application date in totalApplications:', candidate.applicationDate, appDate);
+          return false;
+        }
         return appDate >= startDate && appDate <= endDate;
-      } catch {
+      } catch (error) {
+        console.error('Error parsing application date in totalApplications:', candidate.applicationDate, error);
         return false;
       }
     }).length;

@@ -59,6 +59,9 @@ export async function GET(request: NextRequest) {
       'Connection': 'keep-alive',
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Headers': 'Cache-Control',
+      // CRITICAL: Disable chunked encoding for SSE streams
+      'Transfer-Encoding': 'identity',
+      'Content-Length': '0' // Set to 0 for streaming responses
     },
   });
 }

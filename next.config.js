@@ -84,23 +84,7 @@ const nextConfig = {
     ];
   },
   
-  // Optimize page loading and caching
-  onDemandEntries: {
-    // period (in ms) where the server will keep pages in the buffer
-    maxInactiveAge: 25 * 1000,
-    // number of pages that should be kept simultaneously without being disposed
-    pagesBufferLength: 4, // Increased from 2 to 4 for better navigation
-  },
-  
-  // Disable static export to prevent timeout issues
-  trailingSlash: false,
-  skipTrailingSlashRedirect: true,
-  
-  // Disable static generation to prevent timeout issues
-  generateBuildId: async () => {
-    return 'build-' + Date.now();
-  },
-
+  // Configure headers for SSE endpoints to prevent chunked encoding issues
   async headers() {
     return [
       {
@@ -135,6 +119,32 @@ const nextConfig = {
           {
             key: 'X-XSS-Protection',
             value: '1; mode=block',
+          },
+        ],
+      },
+      // Special headers for SSE endpoints to prevent chunked encoding
+      {
+        source: '/api/sse/:path*',
+        headers: [
+          {
+            key: 'Content-Type',
+            value: 'text/event-stream; charset=utf-8',
+          },
+          {
+            key: 'Cache-Control',
+            value: 'no-cache, no-transform',
+          },
+          {
+            key: 'Connection',
+            value: 'keep-alive',
+          },
+          {
+            key: 'Transfer-Encoding',
+            value: 'identity',
+          },
+          {
+            key: 'X-Accel-Buffering',
+            value: 'no',
           },
         ],
       },
@@ -226,6 +236,24 @@ const nextConfig = {
       },
     ];
   },
+  
+  // Optimize page loading and caching
+  onDemandEntries: {
+    // period (in ms) where the server will keep pages in the buffer
+    maxInactiveAge: 25 * 1000,
+    // number of pages that should be kept simultaneously without being disposed
+    pagesBufferLength: 4, // Increased from 2 to 4 for better navigation
+  },
+  
+  // Disable static export to prevent timeout issues
+  trailingSlash: false,
+  skipTrailingSlashRedirect: true,
+  
+  // Disable static generation to prevent timeout issues
+  generateBuildId: async () => {
+    return 'build-' + Date.now();
+  },
+
   
   images: {
     domains: ['localhost', '127.0.0.1'],

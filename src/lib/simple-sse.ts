@@ -177,6 +177,9 @@ export async function handleSSEConnection(request: Request) {
         'Keep-Alive': 'timeout=180, max=1000',
         'X-Frame-Options': 'DENY',
         'X-Content-Type-Options': 'nosniff',
+        // CRITICAL: Disable chunked encoding for SSE streams
+        'Transfer-Encoding': 'identity',
+        'Content-Length': '0' // Set to 0 for streaming responses
       },
     });
   } catch (error) {

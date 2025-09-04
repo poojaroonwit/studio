@@ -93,7 +93,10 @@ export async function GET(request: NextRequest) {
         'Access-Control-Allow-Methods': 'GET, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         'Access-Control-Allow-Credentials': 'true',
-        'X-Accel-Buffering': 'no'
+        'X-Accel-Buffering': 'no',
+        // CRITICAL: Disable chunked encoding for SSE streams
+        'Transfer-Encoding': 'identity',
+        'Content-Length': '0' // Set to 0 for streaming responses
       },
     });
 

@@ -415,7 +415,10 @@ export async function handleUnifiedSSEConnection(request: Request) {
         'X-DNS-Prefetch-Control': 'off',
         // Additional stability headers
         'X-Connection-Type': 'sse-stream',
-        'X-Stream-Mode': 'continuous'
+        'X-Stream-Mode': 'continuous',
+        // CRITICAL: Disable chunked encoding for SSE streams
+        'Transfer-Encoding': 'identity',
+        'Content-Length': '0' // Set to 0 for streaming responses
       },
     });
   } catch (error) {

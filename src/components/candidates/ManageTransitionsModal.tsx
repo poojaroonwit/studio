@@ -304,7 +304,7 @@ export function ManageTransitionsModal({
         throw new Error(errorData.message || `Failed to update notes: ${response.statusText}`);
       }
       
-      toast("Transition notes have been successfully updated.");
+      showSuccessToast("Transition notes have been successfully updated.");
       setEditingTransitionId(null);
       await onRefreshCandidateData(candidate.id);
     } catch (error) {
@@ -314,13 +314,8 @@ export function ManageTransitionsModal({
         return;
       }
       
-      toast("Error Updating Notes", {
-        icon: "❌",
-        duration: 5000,
-        style: {
-          background: "#ff0000",
-          color: "#fff",
-        },
+      showErrorToast("Error updating notes. Please try again.", {
+        duration: 5000
       });
     } finally {
       abortControllerRef.current = null;
@@ -352,7 +347,7 @@ export function ManageTransitionsModal({
         throw new Error(errorData.message || `Failed to delete transition: ${response.statusText}`);
       }
       
-      toast("The transition record has been successfully deleted.");
+      showSuccessToast("The transition record has been successfully deleted.");
       await onRefreshCandidateData(candidate.id);
     } catch (error) {
       if (!isMountedRef.current) return;
@@ -361,13 +356,8 @@ export function ManageTransitionsModal({
         return;
       }
       
-      toast("Error Deleting Transition", {
-        icon: "❌",
-        duration: 5000,
-        style: {
-          background: "#ff0000",
-          color: "#fff",
-        },
+      showErrorToast("Error deleting transition. Please try again.", {
+        duration: 5000
       });
     } finally {
       if (isMountedRef.current) {
@@ -416,14 +406,14 @@ export function ManageTransitionsModal({
         // Show specific validation errors
         const errorMessages = Object.values(form.formState.errors).map(error => error?.message).filter(Boolean);
         if (errorMessages.length > 0) {
-          toast.error(`Please fix the following errors: ${errorMessages.join(', ')}`);
+          showErrorToast(`Please fix the following errors: ${errorMessages.join(', ')}`);
         } else {
-          toast.error('Please fix the form errors before submitting');
+          showErrorToast('Please fix the form errors before submitting');
         }
       }
     } catch (error) {
       console.error('Error in handleSaveClick:', error);
-      toast.error('An unexpected error occurred. Please try again.');
+      showErrorToast('An unexpected error occurred. Please try again.');
     }
   }, [form, handleAddTransitionSubmit]);
 

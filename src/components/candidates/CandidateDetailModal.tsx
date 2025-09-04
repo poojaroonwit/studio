@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import CandidateDetailView from './CandidateDetailView';
-// Removed complex infinite loop prevention - using simple useEffect instead
+import { zIndexManager } from '@/lib/z-index-manager';
 
 interface CandidateDetailModalProps {
   candidateId: string;
@@ -13,7 +13,9 @@ interface CandidateDetailModalProps {
 
 export default function CandidateDetailModal({ candidateId, open, onClose }: CandidateDetailModalProps) {
   const [mounted, setMounted] = useState(false);
+  const [zIndex, setZIndex] = useState({ overlay: 10002, content: 10003 });
   const portalContainerRef = useRef<HTMLDivElement | null>(null);
+  const modalIdRef = useRef<string | null>(null);
 
   // Add infinite loop prevention
   // Simple tracking for debugging (removed complex infinite loop prevention)
@@ -39,6 +41,23 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
       }
     };
   }, []); // FIXED: Empty dependency array since this should only run once
+
+  // Handle modal opening/closing and z-index management
+  useEffect(() => {
+    if (open && candidateId) {
+      // Generate unique modal ID
+      modalIdRef.current = zIndexManager.generateId('custom-modal');
+      const { overlayZIndex, contentZIndex } = zIndexManager.registerModal(modalIdRef.current, 'custom-modal');
+      setZIndex({ overlay: overlayZIndex, content: contentZIndex });
+      
+      console.log(`[CandidateDetailModal] Opened with z-index ${overlayZIndex}/${contentZIndex}`);
+    } else if (modalIdRef.current) {
+      // Unregister modal when closing
+      zIndexManager.unregisterModal(modalIdRef.current);
+      modalIdRef.current = null;
+      console.log(`[CandidateDetailModal] Closed and unregistered`);
+    }
+  }, [open, candidateId]);
 
   // Handle escape key - FIXED: Use useEffect instead of useSafeEffect
   useEffect(() => {
@@ -69,6 +88,10 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
     return () => {
       // Ensure body scroll is restored
       document.body.style.overflow = '';
+      // Clean up modal registration
+      if (modalIdRef.current) {
+        zIndexManager.unregisterModal(modalIdRef.current);
+      }
     };
   }, []); // FIXED: Empty dependency array for cleanup
 
@@ -87,11 +110,13 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
 
   const modalContent = (
     <div
-      className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[10002] flex items-center justify-center p-4 pointer-events-auto"
+      className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center p-4 pointer-events-auto"
+      style={{ zIndex: zIndex.overlay }}
       onClick={handleBackdropClick}
     >
       <div
         className="w-full max-w-[95vw] h-full max-h-[95vh] flex flex-col bg-background rounded-lg shadow-2xl border border-border overflow-hidden relative pointer-events-auto"
+        style={{ zIndex: zIndex.content }}
         onClick={handleModalClick}
       >
         <CandidateDetailView 

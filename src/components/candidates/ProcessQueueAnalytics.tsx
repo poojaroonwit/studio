@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Loader2, Clock, FileText, AlertTriangle, TrendingUp, Database, CalendarIcon, Filter, X, Download, FileSpreadsheet } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { formatFileSize, formatDate, calculateDuration, safeGetTime } from '@/lib/utils';
+import { formatFileSize, formatDate, calculateDuration } from '@/lib/utils';
 import { Line, Scatter } from 'react-chartjs-2';
 import { useChartSetup } from '@/hooks/use-chart-setup';
 import { isDataLabelsAvailable } from '@/lib/chartjs-setup';
@@ -198,8 +198,8 @@ export default function ProcessQueueAnalytics() {
 
     queueData.forEach(item => {
       if (item.process_date && item.completed_date) {
-        const processTime = safeGetTime(new Date(item.process_date));
-        const completedTime = safeGetTime(new Date(item.completed_date));
+        const processTime = new Date(item.process_date).getTime();
+        const completedTime = new Date(item.completed_date).getTime();
         const duration = (completedTime - processTime) / (1000 * 60); // minutes
         
         scatterData.push({
@@ -236,7 +236,7 @@ export default function ProcessQueueAnalytics() {
       // Track by type (status)
       const currentType = typeMap.get(item.status) || { totalDuration: 0, count: 0 };
       if (item.process_date && item.completed_date) {
-        const duration = (safeGetTime(new Date(item.completed_date)) - safeGetTime(new Date(item.process_date))) / (1000 * 60);
+        const duration = (new Date(item.completed_date).getTime() - new Date(item.process_date).getTime()) / (1000 * 60);
         typeMap.set(item.status, {
           totalDuration: currentType.totalDuration + duration,
           count: currentType.count + 1

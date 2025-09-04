@@ -116,15 +116,7 @@ export function formatDate(date: string | Date | null): string {
  * Safely validates if a value is a valid Date object
  */
 export function isValidDate(date: any): date is Date {
-  if (!date || typeof date !== 'object' || !(date instanceof Date)) {
-    return false;
-  }
-  try {
-    const time = date.getTime();
-    return !isNaN(time) && isFinite(time);
-  } catch (error) {
-    return false;
-  }
+  return date instanceof Date && !isNaN(date.getTime());
 }
 
 /**
@@ -135,12 +127,7 @@ export function safeGetTime(date: any, fallback: number = 0): number {
     console.warn('safeGetTime: Invalid date provided', date);
     return fallback;
   }
-  try {
-    return date.getTime();
-  } catch (error) {
-    console.error('safeGetTime: Error calling getTime()', error, date);
-    return fallback;
-  }
+  return date.getTime();
 }
 
 /**
@@ -151,12 +138,7 @@ export function safeDateDiff(startDate: any, endDate: any, fallback: number = 0)
     console.warn('safeDateDiff: Invalid dates provided', { startDate, endDate });
     return fallback;
   }
-  try {
-    return endDate.getTime() - startDate.getTime();
-  } catch (error) {
-    console.error('safeDateDiff: Error calling getTime()', error, { startDate, endDate });
-    return fallback;
-  }
+  return endDate.getTime() - startDate.getTime();
 }
 
 export function calculateDuration(startDate: string | Date | null, endDate: string | Date | null): string {

@@ -42,54 +42,8 @@ const PERIOD_UNITS = [
 ];
 
 export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, dynamicHeight }: NewApplicationsTimeSeriesChartProps) {
-  // Add defensive programming to prevent initialization errors
-  const [isInitialized, setIsInitialized] = useState(false);
-  
-  useEffect(() => {
-    // Mark as initialized after component mounts
-    setIsInitialized(true);
-  }, []);
-  
   // Use the new chart setup hook
   const { chartReady, isLoading: chartLoading, error: chartError } = useChartSetup();
-
-  // Add comprehensive error handling
-  useEffect(() => {
-    const originalError = console.error;
-    const originalWarn = console.warn;
-    
-    // Override console.error to catch getTime errors
-    console.error = (...args) => {
-      if (args[0] && typeof args[0] === 'string' && args[0].includes('getTime is not a function')) {
-        console.error('NewApplicationsTimeSeriesChart: Caught getTime error:', ...args);
-        console.error('NewApplicationsTimeSeriesChart: Component state:', { 
-          candidates: candidates?.length, 
-          isLoading, 
-          chartReady, 
-          chartError,
-          periodType,
-          periodUnit,
-          periodN,
-          dateRange
-        });
-        console.error('NewApplicationsTimeSeriesChart: Sample candidate data:', candidates?.slice(0, 3));
-      }
-      originalError.apply(console, args);
-    };
-
-    // Override console.warn to catch any warnings
-    console.warn = (...args) => {
-      if (args[0] && typeof args[0] === 'string' && args[0].includes('getTime')) {
-        console.warn('NewApplicationsTimeSeriesChart: Caught getTime warning:', ...args);
-      }
-      originalWarn.apply(console, args);
-    };
-
-    return () => {
-      console.error = originalError;
-      console.warn = originalWarn;
-    };
-  }, [candidates, isLoading, chartReady, chartError, periodType, periodUnit, periodN, dateRange]);
 
   // New state for period selection
   const [periodType, setPeriodType] = useState<'today'|'yesterday'|'lastNDays'|'this'|'last'|'pastN'|'custom'>('lastNDays');
@@ -110,57 +64,21 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
     let start: Date = now;
     let end: Date = now;
     let intervalFn: any = eachWeekOfInterval;
-    let formatFn: (date: Date) => string = (date) => {
-      try {
-        return isValidDate(date) ? format(date, 'MMM dd') : 'Invalid Date';
-      } catch (error) {
-        console.error('NewApplicationsTimeSeriesChart: Error in default format function:', error, date);
-        return 'Invalid Date';
-      }
-    };
+    let formatFn: (date: Date) => string = (date) => format(date, 'MMM dd');
     
     if (periodType === 'custom' && dateRange?.from && dateRange?.to) {
       start = dateRange.from;
       end = dateRange.to;
-      
-      // Validate custom date range
-      if (!isValidDate(start) || !isValidDate(end)) {
-        console.error('NewApplicationsTimeSeriesChart: Invalid custom date range:', { start, end });
-        start = new Date();
-        end = new Date();
-      }
-      
-      const daysDiff = Math.ceil(Math.abs(safeDateDiff(start, end)) / (1000 * 60 * 60 * 24));
+      const daysDiff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
       if (daysDiff <= 30) {
         intervalFn = eachDayOfInterval;
-        formatFn = (date: Date) => {
-          try {
-            return isValidDate(date) ? format(date, 'MMM dd') : 'Invalid Date';
-          } catch (error) {
-            console.error('NewApplicationsTimeSeriesChart: Error formatting date:', error, date);
-            return 'Invalid Date';
-          }
-        };
+        formatFn = (date: Date) => format(date, 'MMM dd');
       } else if (daysDiff <= 180) {
         intervalFn = eachWeekOfInterval;
-        formatFn = (date: Date) => {
-          try {
-            return isValidDate(date) ? `Week ${format(date, 'w')}` : 'Invalid Week';
-          } catch (error) {
-            console.error('NewApplicationsTimeSeriesChart: Error formatting week:', error, date);
-            return 'Invalid Week';
-          }
-        };
+        formatFn = (date: Date) => `Week ${format(date, 'w')}`;
       } else {
         intervalFn = eachMonthOfInterval;
-        formatFn = (date: Date) => {
-          try {
-            return isValidDate(date) ? format(date, 'MMM yyyy') : 'Invalid Month';
-          } catch (error) {
-            console.error('NewApplicationsTimeSeriesChart: Error formatting month:', error, date);
-            return 'Invalid Month';
-          }
-        };
+        formatFn = (date: Date) => format(date, 'MMM yyyy');
       }
     } else {
       let n = periodN;
@@ -262,62 +180,22 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
   }, [periodType, periodUnit, periodN, dateRange]);
 
   const chartData = useMemo(() => {
-    try {
-      console.log('NewApplicationsTimeSeriesChart: Starting chartData calculation', { 
-        candidatesCount: candidates?.length, 
-        startDate, 
-        endDate,
-        periodType,
-        periodUnit,
-        periodN
-      });
-    
     if (!candidates || candidates.length === 0) {
-      console.log('NewApplicationsTimeSeriesChart: No candidates, returning empty data');
       return { labels: [], datasets: [] };
     }
     
     // Validate that startDate and endDate are valid Date objects
     if (!isValidDate(startDate) || !isValidDate(endDate)) {
-      console.error('NewApplicationsTimeSeriesChart: Invalid date range:', { startDate, endDate });
-      return { labels: [], datasets: [] };
-    }
-    
-    // Additional safety check: ensure startDate is not after endDate
-    if (safeGetTime(startDate) > safeGetTime(endDate)) {
-      console.error('Start date is after end date:', { startDate, endDate });
+      console.error('Invalid date range:', { startDate, endDate });
       return { labels: [], datasets: [] };
     }
     
     // Use new startDate, endDate, intervalFunction, formatFunction
-    console.log('NewApplicationsTimeSeriesChart: Calling intervalFunction', { startDate, endDate, intervalFunction: intervalFunction.name });
-    let intervals;
-    try {
-      // Double-check that startDate and endDate are valid before calling interval function
-      if (!isValidDate(startDate) || !isValidDate(endDate)) {
-        console.error('NewApplicationsTimeSeriesChart: Invalid dates before intervalFunction call:', { startDate, endDate });
-        return { labels: [], datasets: [] };
-      }
-      
-      intervals = intervalFunction({ start: startDate, end: endDate });
-      console.log('NewApplicationsTimeSeriesChart: intervalFunction returned', { intervalsCount: intervals?.length, intervals });
-      
-      // Validate that all returned intervals are valid dates
-      if (Array.isArray(intervals)) {
-        const invalidIntervals = intervals.filter(interval => !isValidDate(interval));
-        if (invalidIntervals.length > 0) {
-          console.error('NewApplicationsTimeSeriesChart: intervalFunction returned invalid dates:', invalidIntervals);
-          return { labels: [], datasets: [] };
-        }
-      }
-    } catch (error) {
-      console.error('NewApplicationsTimeSeriesChart: Error calling intervalFunction:', error);
-      return { labels: [], datasets: [] };
-    }
+    const intervals = intervalFunction({ start: startDate, end: endDate });
     
     // Validate that intervals is an array and contains valid Date objects
     if (!Array.isArray(intervals)) {
-      console.error('NewApplicationsTimeSeriesChart: intervalFunction did not return an array:', intervals);
+      console.error('intervalFunction did not return an array:', intervals);
       return { labels: [], datasets: [] };
     }
     
@@ -336,7 +214,7 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
           console.error('Invalid dateRange dates:', { from: dateRange.from, to: dateRange.to });
           return { label: 'Invalid Date Range', count: 0, start: intervalStart, end: intervalStart };
         }
-        const daysDiff = Math.ceil(Math.abs(safeDateDiff(dateRange.from, dateRange.to)) / (1000 * 60 * 60 * 24));
+        const daysDiff = Math.ceil(safeDateDiff(dateRange.from, dateRange.to) / (1000 * 60 * 60 * 24));
         if (daysDiff <= 30) {
           intervalEnd = addDays(intervalStart, 1);
         } else if (daysDiff <= 180) {
@@ -346,12 +224,7 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
         }
       } else if (periodType === 'today' || periodType === 'yesterday') {
         // For today/yesterday, show hourly intervals
-        if (!isValidDate(intervalStart)) {
-          console.error('Invalid intervalStart for hourly calculation:', intervalStart);
-          intervalEnd = new Date();
-        } else {
-          intervalEnd = new Date(safeGetTime(intervalStart) + 60 * 60 * 1000); // Add 1 hour
-        }
+        intervalEnd = new Date(intervalStart.getTime() + 60 * 60 * 1000); // Add 1 hour
       } else if (periodType === 'lastNDays') {
         // For last N days, use daily intervals
         intervalEnd = addDays(intervalStart, 1);
@@ -384,27 +257,14 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
         if (!candidate.applicationDate) return false;
         try {
           const appDate = parseISO(candidate.applicationDate);
-          // Validate the parsed date
-          if (!isValidDate(appDate)) {
-            console.warn('NewApplicationsTimeSeriesChart: Invalid parsed application date:', candidate.applicationDate, appDate);
-            return false;
-          }
           return appDate >= intervalStart && appDate <= intervalEnd;
         } catch (error) {
-          console.error('NewApplicationsTimeSeriesChart: Error parsing application date:', candidate.applicationDate, error);
+          console.error('Error parsing application date:', candidate.applicationDate, error);
           return false;
         }
       }).length;
-      let label;
-      try {
-        label = formatFunction(intervalStart);
-      } catch (error) {
-        console.error('NewApplicationsTimeSeriesChart: Error formatting interval label:', error, intervalStart);
-        label = 'Invalid Date';
-      }
-      
       return {
-        label,
+        label: formatFunction(intervalStart),
         count,
         start: intervalStart,
         end: intervalEnd
@@ -413,7 +273,7 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
     // For comparison, just use previous period of same length
     const rangeLength = safeDateDiff(startDate, endDate);
     const comparisonStart = new Date(safeGetTime(startDate) - rangeLength);
-    const comparisonEnd = new Date(safeGetTime(startDate));
+    const comparisonEnd = startDate;
     
     // Validate comparison dates
     if (!isValidDate(comparisonStart) || !isValidDate(comparisonEnd)) {
@@ -442,7 +302,7 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
           console.error('Invalid dateRange dates in comparison:', { from: dateRange.from, to: dateRange.to });
           return { label: 'Invalid Date Range', count: 0, start: intervalStart, end: intervalStart };
         }
-        const daysDiff = Math.ceil(Math.abs(safeDateDiff(dateRange.from, dateRange.to)) / (1000 * 60 * 60 * 24));
+        const daysDiff = Math.ceil(safeDateDiff(dateRange.from, dateRange.to) / (1000 * 60 * 60 * 24));
         if (daysDiff <= 30) {
           intervalEnd = addDays(intervalStart, 1);
         } else if (daysDiff <= 180) {
@@ -452,12 +312,7 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
         }
       } else if (periodType === 'today' || periodType === 'yesterday') {
         // For today/yesterday, show hourly intervals
-        if (!isValidDate(intervalStart)) {
-          console.error('Invalid intervalStart for hourly calculation:', intervalStart);
-          intervalEnd = new Date();
-        } else {
-          intervalEnd = new Date(safeGetTime(intervalStart) + 60 * 60 * 1000); // Add 1 hour
-        }
+        intervalEnd = new Date(intervalStart.getTime() + 60 * 60 * 1000); // Add 1 hour
       } else if (periodType === 'lastNDays') {
         // For last N days, use daily intervals
         intervalEnd = addDays(intervalStart, 1);
@@ -490,14 +345,8 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
         if (!candidate.applicationDate) return false;
         try {
           const appDate = parseISO(candidate.applicationDate);
-          // Validate the parsed date
-          if (!isValidDate(appDate)) {
-            console.warn('Invalid parsed application date in comparison:', candidate.applicationDate, appDate);
-            return false;
-          }
           return appDate >= intervalStart && appDate <= intervalEnd;
-        } catch (error) {
-          console.error('Error parsing application date in comparison:', candidate.applicationDate, error);
+        } catch {
           return false;
         }
       }).length;
@@ -562,14 +411,10 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
        pointHoverBorderColor: '#ffffff',
        pointHoverBorderWidth: 2,
      });
-      return {
-        labels: currentPeriodCounts.map((item: any) => item.label),
-        datasets,
-      };
-    } catch (error) {
-      console.error('NewApplicationsTimeSeriesChart: Error in chartData calculation:', error);
-      return { labels: [], datasets: [] };
-    }
+    return {
+      labels: currentPeriodCounts.map((item: any) => item.label),
+      datasets,
+    };
   }, [candidates, startDate, endDate, intervalFunction, formatFunction, dateRange, periodType, periodUnit, periodN]);
 
   const totalApplications = useMemo(() => {
@@ -577,14 +422,8 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
       if (!candidate.applicationDate) return false;
       try {
         const appDate = parseISO(candidate.applicationDate);
-        // Validate the parsed date
-        if (!isValidDate(appDate)) {
-          console.warn('Invalid parsed application date in totalApplications:', candidate.applicationDate, appDate);
-          return false;
-        }
         return appDate >= startDate && appDate <= endDate;
-      } catch (error) {
-        console.error('Error parsing application date in totalApplications:', candidate.applicationDate, error);
+      } catch {
         return false;
       }
     }).length;
@@ -611,42 +450,8 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
     };
   }, [chartData]);
 
-  // Add error boundary wrapper
-  const ErrorBoundaryWrapper = ({ children }: { children: React.ReactNode }) => {
-    try {
-      return <>{children}</>;
-    } catch (error) {
-      console.error('NewApplicationsTimeSeriesChart: Error in render:', error);
-      return (
-        <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm">
-          <CardContent className="p-6">
-            <div className="text-center text-red-500">
-              <XCircle className="h-8 w-8 mx-auto mb-2" />
-              <p>Chart Error: {error instanceof Error ? error.message : 'Unknown error'}</p>
-            </div>
-          </CardContent>
-        </Card>
-      );
-    }
-  };
-
-  // Don't render until component is properly initialized
-  if (!isInitialized) {
-    return (
-      <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm">
-        <CardContent className="p-6">
-          <div className="text-center">
-            <Loader2 className="h-8 w-8 mx-auto mb-2 animate-spin" />
-            <p>Initializing chart...</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
-    <ErrorBoundaryWrapper>
-      <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm">
+    <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm">
       <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
       <CardHeader className="relative pb-3">
         <div className="flex items-center justify-between">
@@ -916,6 +721,5 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
         </div>
       </CardContent>
     </Card>
-    </ErrorBoundaryWrapper>
   );
 } 

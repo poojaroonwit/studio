@@ -15,7 +15,6 @@ import { getScoreRangesForChart, formatScoreWithGrade, getScoreColor } from "@/l
 import { formatCandidateName, formatCandidateNameWithLang } from "@/lib/candidateUtils";
 import { isToday } from 'date-fns';
 import parseISO from 'date-fns/parseISO';
-import { isValidDate, safeGetTime } from "@/lib/utils";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { signIn, useSession, signOut } from "next-auth/react";
@@ -69,60 +68,6 @@ export default function DashboardPageClient({
   initialStageIds,
   initialStageNames,
 }: DashboardPageClientProps) {
-  
-  // Add defensive programming to prevent initialization errors
-  const [isInitialized, setIsInitialized] = useState(false);
-  
-  useEffect(() => {
-    // Mark as initialized after component mounts
-    setIsInitialized(true);
-  }, []);
-  
-  // Add global error handler for getTime errors and initialization errors
-  useEffect(() => {
-    const originalError = console.error;
-    const originalWarn = console.warn;
-    
-    console.error = (...args) => {
-      if (args[0] && typeof args[0] === 'string') {
-        if (args[0].includes('getTime is not a function')) {
-          console.error('DashboardPageClient: Caught getTime error:', ...args);
-          console.error('DashboardPageClient: Stack trace:', new Error().stack);
-          console.error('DashboardPageClient: Component state:', {
-            initialCandidatesCount: initialCandidates?.length,
-            initialPositionsCount: initialPositions?.length,
-            initialUsersCount: initialUsers?.length,
-            initialStageIds,
-            initialStageNames
-          });
-        } else if (args[0].includes('Cannot access') && args[0].includes('before initialization')) {
-          console.error('DashboardPageClient: Caught initialization error:', ...args);
-          console.error('DashboardPageClient: Stack trace:', new Error().stack);
-          console.error('DashboardPageClient: Component state:', {
-            initialCandidatesCount: initialCandidates?.length,
-            initialPositionsCount: initialPositions?.length,
-            initialUsersCount: initialUsers?.length,
-            initialStageIds,
-            initialStageNames
-          });
-          console.error('DashboardPageClient: This is likely a circular dependency or hook order issue');
-        }
-      }
-      originalError.apply(console, args);
-    };
-
-    console.warn = (...args) => {
-      if (args[0] && typeof args[0] === 'string' && args[0].includes('Cannot access')) {
-        console.warn('DashboardPageClient: Caught initialization warning:', ...args);
-      }
-      originalWarn.apply(console, args);
-    };
-
-    return () => {
-      console.error = originalError;
-      console.warn = originalWarn;
-    };
-  }, [initialCandidates, initialPositions, initialUsers, initialStageIds, initialStageNames]);
   // Use stage IDs from props instead of fetching them
   const [stageIds, setStageIds] = useState<Record<string, string | undefined>>(initialStageIds);
   const [stageNames, setStageNames] = useState<Record<string, string>>(initialStageNames);
@@ -573,7 +518,6 @@ export default function DashboardPageClient({
       if (!stageIds.hired || c.status !== stageIds.hired || !c.applicationDate || typeof c.applicationDate !== 'string') return false;
       try {
         const appDate = parseISO(c.applicationDate);
-        if (!isValidDate(appDate)) return false;
         return appDate.getMonth() === now.getMonth() && appDate.getFullYear() === now.getFullYear();
       } catch { return false; }
     }).length;
@@ -582,7 +526,6 @@ export default function DashboardPageClient({
       if (!stageIds.rejected || c.status !== stageIds.rejected || !c.applicationDate || typeof c.applicationDate !== 'string') return false;
       try {
         const appDate = parseISO(c.applicationDate);
-        if (!isValidDate(appDate)) return false;
         return appDate.getMonth() === now.getMonth() && appDate.getFullYear() === now.getFullYear();
       } catch { return false; }
     }).length;
@@ -600,9 +543,7 @@ export default function DashboardPageClient({
     const newCandidatesTodayAdminList = safeAllCandidates.filter((c: Candidate) => {
       try {
         if (!c.applicationDate || typeof c.applicationDate !== 'string') return false;
-        const appDate = parseISO(c.applicationDate);
-        if (!isValidDate(appDate)) return false;
-        return isToday(appDate);
+        return isToday(parseISO(c.applicationDate));
       } catch { return false; }
     });
     
@@ -620,9 +561,7 @@ export default function DashboardPageClient({
     const newCandidatesAssignedToMeTodayList = myActiveCandidatesList.filter((c: Candidate) => {
       try {
         if (!c.applicationDate || typeof c.applicationDate !== 'string') return false;
-        const appDate = parseISO(c.applicationDate);
-        if (!isValidDate(appDate)) return false;
-        return isToday(appDate);
+        return isToday(parseISO(c.applicationDate));
       } catch { return false; }
     });
     
@@ -710,12 +649,6 @@ export default function DashboardPageClient({
 
   // Calculate Average Time to Hire (in days)
       const averageTimeToHire = useMemo(() => {
-      console.log('DashboardPageClient: Calculating averageTimeToHire', { 
-        filteredCandidatesCount: filteredCandidates?.length,
-        stageIds,
-        hiredStageId: stageIds.hired
-      });
-      
       const safeAllCandidates = Array.isArray(filteredCandidates)? filteredCandidates : [];
       const hiredCandidates = safeAllCandidates.filter((c: Candidate) => 
         stageIds.hired && c.statusId === stageIds.hired && c.applicationDate && typeof c.applicationDate === 'string'
@@ -726,34 +659,13 @@ export default function DashboardPageClient({
     const totalDays = hiredCandidates.reduce((total, candidate) => {
       try {
         const applicationDate = parseISO(candidate.applicationDate);
-        if (!isValidDate(applicationDate)) return total;
         // Find the last transition to 'Hired'
-        console.log('DashboardPageClient: Processing candidate transition history', { 
-          candidateId: candidate.id, 
-          transitionHistoryLength: candidate.transitionHistory?.length,
-          transitionHistory: candidate.transitionHistory
-        });
-        
         const hiredTransition = candidate.transitionHistory
           .filter(transition => stageIds.hired && transition.stage === stageIds.hired)
-          .sort((itemA, itemB) => {
-            try {
-              console.log('DashboardPageClient: Sorting transition dates', { itemA, itemB });
-              const dateA = new Date(itemA.date);
-              const dateB = new Date(itemB.date);
-              if (!isValidDate(dateA) || !isValidDate(dateB)) {
-                console.warn('DashboardPageClient: Invalid transition dates', { dateA, dateB });
-                return 0;
-              }
-              return safeGetTime(dateB) - safeGetTime(dateA);
-            } catch (error) {
-              console.error('DashboardPageClient: Error sorting transition dates:', error, { itemA, itemB });
-              return 0;
-            }
-          })[0];
+          .sort((itemA, itemB) => new Date(itemB.date).getTime() - new Date(itemA.date).getTime())[0];
         const hireDate = hiredTransition ? parseISO(hiredTransition.date) : null;
-        if (!hireDate || !isValidDate(hireDate)) return total;
-        const daysDiff = Math.ceil((safeGetTime(hireDate) - safeGetTime(applicationDate)) / (1000 * 60 * 60 * 24));
+        if (!hireDate) return total;
+        const daysDiff = Math.ceil((hireDate.getTime() - applicationDate.getTime()) / (1000 * 60 * 60 * 24));
         return total + Math.max(0, daysDiff); // Ensure non-negative values
       } catch {
         return total;
@@ -789,13 +701,12 @@ export default function DashboardPageClient({
   const recentApplications = useMemo(() => {
     const safeAllCandidates = Array.isArray(filteredCandidates)? filteredCandidates : [];
     const now = new Date();
-    const sevenDaysAgo = new Date(safeGetTime(now) - 7 * 24 * 60 * 60 * 1000);
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     
     return safeAllCandidates.filter((c: Candidate) => {
       if (!c.applicationDate || typeof c.applicationDate !== 'string') return false;
       try {
         const appDate = parseISO(c.applicationDate);
-        if (!isValidDate(appDate)) return false;
         return appDate >= sevenDaysAgo && appDate <= now;
       } catch { return false; }
     });
@@ -836,9 +747,8 @@ export default function DashboardPageClient({
       if (!c.applicationDate || typeof c.applicationDate !== 'string') return false;
       try {
         const appDate = parseISO(c.applicationDate);
-        if (!isValidDate(appDate)) return false;
         appDate.setHours(0, 0, 0, 0);
-        return safeGetTime(appDate) === safeGetTime(today);
+        return appDate.getTime() === today.getTime();
       } catch { 
         return false; 
       }
@@ -982,18 +892,6 @@ export default function DashboardPageClient({
     );
   }
 
-  // Don't render until component is properly initialized
-  if (!isInitialized) {
-    return (
-      <div className="flex h-screen w-screen items-center justify-center bg-background fixed inset-0 z-50">
-        <div className="text-center">
-          <Loader2 className="h-16 w-16 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">Initializing dashboard...</p>
-        </div>
-      </div>
-    );
-  }
-
   // Unified Dashboard - Show all metrics to everyone
   return (
     <div className="space-y-8 p-6">
@@ -1033,7 +931,7 @@ export default function DashboardPageClient({
                 label: "View All",
                 onClick: () => {
                   const today = new Date();
-                  const weekAgo = new Date(safeGetTime(today) - 7 * 24 * 60 * 60 * 1000);
+                  const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
                   const weekQuery = `applicationDateStart:${weekAgo.toISOString()} applicationDateEnd:${today.toISOString()}`;
                   router.push('/candidates?query=' + encodeURIComponent(weekQuery));
                 }

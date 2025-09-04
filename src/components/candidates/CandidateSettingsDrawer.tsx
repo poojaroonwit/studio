@@ -369,15 +369,7 @@ export function CandidateSettingsDrawer({
               )}
               
               {/* Action buttons */}
-              <div className="flex items-center justify-between w-full">
-                <Button 
-                  variant="ghost" 
-                  onClick={handleReset}
-                  disabled={isSaving || isLoading}
-                  className="text-muted-foreground"
-                >
-                  Reset to Defaults
-                </Button>
+              <div className="flex items-center justify-end w-full">
                 <div className="flex gap-2">
                   <Button 
                     variant="outline" 

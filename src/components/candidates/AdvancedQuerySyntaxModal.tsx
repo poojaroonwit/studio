@@ -290,13 +290,13 @@ export function AdvancedQuerySyntaxModal({ isOpen, onOpenChange }: AdvancedQuery
                     <h4 className="font-medium text-base">{category.name}</h4>
                     <p className="text-sm text-muted-foreground">{category.description}</p>
                   </div>
-                  <div className={category.name === 'Quick Commands' ? 'grid grid-cols-1 gap-2' : 'space-y-2'}>
+                  <div className="space-y-2">
                     {category.examples.map((example, exampleIndex) => (
                       <div key={exampleIndex} className={category.name === 'Quick Commands' 
-                        ? 'flex flex-col p-3 bg-muted/30 rounded-lg' 
+                        ? 'flex items-center justify-between p-3 bg-muted/30 rounded-lg' 
                         : 'flex items-center justify-between p-3 bg-muted/30 rounded-lg'
                       }>
-                        <div className={category.name === 'Quick Commands' ? 'w-full' : 'flex-1'}>
+                        <div className="flex-1">
                           <code className="text-sm font-mono bg-background px-2 py-1 rounded border">
                             {example.query}
                           </code>
@@ -306,7 +306,7 @@ export function AdvancedQuerySyntaxModal({ isOpen, onOpenChange }: AdvancedQuery
                           variant="ghost"
                           size="sm"
                           onClick={() => copyToClipboard(example.query, `${category.name}-${exampleIndex}`)}
-                          className={category.name === 'Quick Commands' ? 'mt-2 self-end' : 'ml-2'}
+                          className="ml-2"
                         >
                           {copiedExample === `${category.name}-${exampleIndex}` ? (
                             <Check className="h-4 w-4 text-green-600" />

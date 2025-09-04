@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import CandidateDetailView from './CandidateDetailView';
+import { useModalManager } from '@/lib/modal-manager';
 // Removed complex infinite loop prevention - using simple useEffect instead
 
 interface CandidateDetailModalProps {
@@ -14,6 +15,10 @@ interface CandidateDetailModalProps {
 export default function CandidateDetailModal({ candidateId, open, onClose }: CandidateDetailModalProps) {
   const [mounted, setMounted] = useState(false);
   const portalContainerRef = useRef<HTMLDivElement | null>(null);
+  
+  // Use modal manager for proper z-index handling
+  const modalId = `candidate-detail-${candidateId}`;
+  const { zIndex, overlayZIndex } = useModalManager(modalId, 'custom');
 
   // Add infinite loop prevention
   // Simple tracking for debugging (removed complex infinite loop prevention)
@@ -87,12 +92,16 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
 
   const modalContent = (
     <div
-      className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[40000] flex items-center justify-center p-4 pointer-events-auto"
+      className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center p-4 pointer-events-auto"
+      style={{ zIndex: overlayZIndex }}
       onClick={handleBackdropClick}
+      data-modal-overlay={modalId}
     >
       <div
-        className="w-full max-w-[95vw] h-full max-h-[95vh] flex flex-col bg-background rounded-lg shadow-2xl border border-border overflow-hidden relative pointer-events-auto z-[40001]"
+        className="w-full max-w-[95vw] h-full max-h-[95vh] flex flex-col bg-background rounded-lg shadow-2xl border border-border overflow-hidden relative pointer-events-auto"
+        style={{ zIndex }}
         onClick={handleModalClick}
+        data-modal-content={modalId}
       >
         <CandidateDetailView 
           candidateId={candidateId} 

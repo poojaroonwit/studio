@@ -1319,7 +1319,7 @@ export function CandidateFilters({
                   </AccordionTrigger>
                   <AccordionContent className="px-4 pb-4">
                     <div className="flex flex-col gap-3">
-                      <div className="space-y-2">
+                      <div className="space-y-1.5">
                         <Label htmlFor="ai-search" className="text-xs font-medium">Search Query</Label>
                         <div className="relative">
                           <Textarea
@@ -1369,7 +1369,7 @@ export function CandidateFilters({
                         </Button>
 
                         {isAiSearching && (
-                          <div className="space-y-2">
+                          <div className="space-y-1.5">
                             <div className="flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400">
                               <div className="flex space-x-1">
                                 <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
@@ -1414,14 +1414,14 @@ export function CandidateFilters({
                        </Button>
                      </div>
                    </AccordionTrigger>
-                                       <AccordionContent className="px-4 pb-4 overflow-visible">
-                      <div className="space-y-2">
-                    <div className="space-y-2">
+                                       <AccordionContent className="px-3 pb-3 overflow-visible">
+                      <div className="space-y-1.5">
+                    <div className="space-y-1.5">
                       <Label htmlFor="name-search" className="text-xs font-medium">Name</Label>
-                                           <div className="grid grid-cols-3 gap-2 w-full">
+                                           <div className="grid grid-cols-4 gap-1 w-full">
                         <Select value={nameOperator} onValueChange={v => setNameOperator(v as 'contains' | 'is' | 'startsWith' | 'endsWith')} disabled={false}>
                           <SelectTrigger 
-                            className="h-8 text-xs w-full col-span-1"
+                            className="h-7 text-xs w-full col-span-1 px-2"
                           >
                             <SelectValue />
                           </SelectTrigger>
@@ -1443,17 +1443,17 @@ export function CandidateFilters({
                              handleApplyStandardFilters();
                            }
                          }}
-                         className="h-8 text-sm col-span-2" 
+                         className="h-7 text-sm col-span-3 px-2" 
                          disabled={false}
                        />
                      </div>
                    </div>
                    <div className="space-y-2">
                                            <Label htmlFor="email-search" className="text-xs font-medium">Email</Label>
-                                           <div className="grid grid-cols-3 gap-2 w-full">
+                                           <div className="grid grid-cols-4 gap-1 w-full">
                         <Select value={emailOperator} onValueChange={v => setEmailOperator(v as 'contains' | 'is' | 'startsWith' | 'endsWith')} disabled={isLoading || isAiSearching}>
                           <SelectTrigger 
-                            className="h-8 text-xs w-full col-span-1"
+                            className="h-7 text-xs w-full col-span-1 px-2"
                           >
                             <SelectValue />
                           </SelectTrigger>
@@ -1475,17 +1475,17 @@ export function CandidateFilters({
                              handleApplyStandardFilters();
                            }
                          }}
-                         className="h-8 text-sm col-span-2" 
+                         className="h-7 text-sm col-span-3 px-2" 
                          disabled={isLoading || isAiSearching}
                        />
                      </div>
                    </div>
                    <div className="space-y-2">
                                            <Label htmlFor="phone-search" className="text-xs font-medium">Phone</Label>
-                                           <div className="grid grid-cols-3 gap-2 w-full">
+                                           <div className="grid grid-cols-4 gap-1 w-full">
                         <Select value={phoneOperator} onValueChange={v => setPhoneOperator(v as 'contains' | 'is' | 'startsWith' | 'endsWith')} disabled={isLoading || isAiSearching}>
                           <SelectTrigger 
-                            className="h-8 text-xs w-full col-span-1"
+                            className="h-7 text-xs w-full col-span-1 px-2"
                           >
                             <SelectValue />
                           </SelectTrigger>
@@ -1507,17 +1507,17 @@ export function CandidateFilters({
                              handleApplyStandardFilters();
                            }
                          }}
-                         className="h-8 text-sm col-span-2" 
+                         className="h-7 text-sm col-span-3 px-2" 
                          disabled={isLoading || isAiSearching}
                        />
                      </div>
                    </div>
                    <div className="space-y-2">
                                            <Label htmlFor="location-search" className="text-xs font-medium">Location</Label>
-                                           <div className="grid grid-cols-3 gap-2 w-full">
+                                           <div className="grid grid-cols-4 gap-1 w-full">
                         <Select value={locationOperator} onValueChange={v => setLocationOperator(v as 'contains' | 'is' | 'startsWith' | 'endsWith' | 'other')} disabled={isLoading || isAiSearching}>
                           <SelectTrigger 
-                            className="h-8 text-xs w-full col-span-1"
+                            className="h-7 text-xs w-full col-span-1 px-2"
                           >
                             <SelectValue />
                           </SelectTrigger>
@@ -1540,16 +1540,16 @@ export function CandidateFilters({
                              handleApplyStandardFilters();
                            }
                          }}
-                         className="h-8 text-sm col-span-2" 
+                         className="h-7 text-sm col-span-3 px-2" 
                          disabled={isLoading || isAiSearching}
                        />
                      </div>
                    </div>
                  </div>
-                <div className="space-y-2 mt-2">
+                <div className="space-y-1.5 mt-1.5">
                   <Label htmlFor="skills-search" className="text-xs font-medium">Skills Keywords</Label>
                   <div
-                    className="flex flex-wrap items-center gap-1 mt-1 min-h-[40px] border px-2 py-1 bg-background focus-within:ring-2 focus-within:ring-ring"
+                    className="flex flex-wrap items-center gap-1 mt-1 min-h-[32px] border px-2 py-1 bg-background focus-within:ring-2 focus-within:ring-ring"
                     style={{ cursor: isLoading || isAiSearching ? 'not-allowed' : 'text' }}
                     onClick={e => {
                       if (!isLoading && !isAiSearching) {
@@ -1687,8 +1687,8 @@ export function CandidateFilters({
                      </div>
                    </AccordionTrigger>
                                        <AccordionContent className="px-4 pb-4">
-                      <div className="space-y-2">
-                        <div className="space-y-2">
+                      <div className="space-y-1.5">
+                        <div className="space-y-1.5">
                           <Label htmlFor="position-select" className="text-xs">Position(s)</Label>
                          <div className="w-full min-w-full">
                            <PositionMultiSelectDropdown
@@ -1708,7 +1708,7 @@ export function CandidateFilters({
                            </div>
                          )}
                        </div>
-                       <div className="space-y-2">
+                       <div className="space-y-1.5">
                      <Label htmlFor="status-select" className="text-xs">Recruitment Pipeline</Label>
                      {safeAvailableStages.length === 0 ? (
                        <div className="p-2 border bg-muted/20">
@@ -1756,7 +1756,7 @@ export function CandidateFilters({
                        </div>
                      )}
                    </div>
-                                       <div className="space-y-2">
+                                       <div className="space-y-1.5">
                       <Label htmlFor="source-select" className="text-xs">Candidate Source(s)</Label>
                       <div className="w-full min-w-full">
                         <SourceMultiSelectDropdown
@@ -1803,7 +1803,7 @@ export function CandidateFilters({
                      </div>
                    </AccordionTrigger>
                                       <AccordionContent className="px-4 pb-4">
-                     <div className="space-y-2">
+                     <div className="space-y-1.5">
                    <div>
                     <Label className="text-xs font-medium pt-2">Experience Years</Label>
                     <div className="flex items-center gap-2 mt-2">

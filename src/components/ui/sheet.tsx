@@ -7,6 +7,7 @@ import { X } from "lucide-react"
 import { logIfInvalidSingleChild } from "./utils"
 
 import { cn } from "@/lib/utils"
+import { useModalManager } from "@/lib/modal-manager"
 
 const Sheet = SheetPrimitive.Root
 
@@ -65,24 +66,40 @@ interface SheetContentProps
 
 const SheetContent = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Content>,
-  SheetContentProps
->(({ side = "right", className, children, ...props }, ref) => (
-  <SheetPortal>
-    <SheetOverlay />
-    <SheetPrimitive.Content
-      ref={ref}
-      className={cn(sheetVariants({ side }), className)}
-      {...props}
-    >
-      <SheetPrimitive.Title className="sr-only">Sheet</SheetPrimitive.Title>
-      {children}
-      <SheetPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary">
-        <X className="h-4 w-4" />
-        <span className="sr-only">Close</span>
-      </SheetPrimitive.Close>
-    </SheetPrimitive.Content>
-  </SheetPortal>
-))
+  SheetContentProps & {
+    modalId?: string;
+  }
+>(({ side = "right", className, children, modalId, ...props }, ref) => {
+  // Generate a unique ID for this sheet if not provided
+  const id = modalId || React.useId();
+  const { zIndex, overlayZIndex } = useModalManager(id, 'sheet');
+
+  return (
+    <SheetPortal>
+      <SheetPrimitive.Overlay
+        className={cn(
+          "fixed inset-0 bg-black/20 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+          className
+        )}
+        style={{ zIndex: overlayZIndex }}
+      />
+      <SheetPrimitive.Content
+        ref={ref}
+        className={cn(sheetVariants({ side }), className)}
+        style={{ zIndex }}
+        data-modal-id={id}
+        {...props}
+      >
+        <SheetPrimitive.Title className="sr-only">Sheet</SheetPrimitive.Title>
+        {children}
+        <SheetPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary">
+          <X className="h-4 w-4" />
+          <span className="sr-only">Close</span>
+        </SheetPrimitive.Close>
+      </SheetPrimitive.Content>
+    </SheetPortal>
+  )
+})
 SheetContent.displayName = SheetPrimitive.Content.displayName
 
 const SheetHeader = ({

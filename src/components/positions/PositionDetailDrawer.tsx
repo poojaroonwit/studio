@@ -1369,7 +1369,11 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
           onOpenChange(open);
         }}
       >
-        <SheetContent side="right" className="w-[50vw] min-w-[800px] max-w-none p-0">
+        <SheetContent 
+          side="right" 
+          className="w-[50vw] min-w-[800px] max-w-none p-0"
+          modalId={`position-drawer-${positionId}`}
+        >
           <div className="h-full flex flex-col">
             <SheetHeader className="p-6 border-b">
               <SheetTitle className="flex items-center gap-2">

@@ -69,7 +69,7 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
     if (periodType === 'custom' && dateRange?.from && dateRange?.to) {
       start = dateRange.from;
       end = dateRange.to;
-      const daysDiff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+      const daysDiff = Math.ceil(Math.abs(safeDateDiff(start, end)) / (1000 * 60 * 60 * 24));
       if (daysDiff <= 30) {
         intervalFn = eachDayOfInterval;
         formatFn = (date: Date) => format(date, 'MMM dd');
@@ -191,7 +191,7 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
     }
     
     // Additional safety check: ensure startDate is not after endDate
-    if (startDate.getTime() > endDate.getTime()) {
+    if (safeGetTime(startDate) > safeGetTime(endDate)) {
       console.error('Start date is after end date:', { startDate, endDate });
       return { labels: [], datasets: [] };
     }
@@ -230,7 +230,12 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
         }
       } else if (periodType === 'today' || periodType === 'yesterday') {
         // For today/yesterday, show hourly intervals
-        intervalEnd = new Date(intervalStart.getTime() + 60 * 60 * 1000); // Add 1 hour
+        if (!isValidDate(intervalStart)) {
+          console.error('Invalid intervalStart for hourly calculation:', intervalStart);
+          intervalEnd = new Date();
+        } else {
+          intervalEnd = new Date(safeGetTime(intervalStart) + 60 * 60 * 1000); // Add 1 hour
+        }
       } else if (periodType === 'lastNDays') {
         // For last N days, use daily intervals
         intervalEnd = addDays(intervalStart, 1);
@@ -323,7 +328,12 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
         }
       } else if (periodType === 'today' || periodType === 'yesterday') {
         // For today/yesterday, show hourly intervals
-        intervalEnd = new Date(intervalStart.getTime() + 60 * 60 * 1000); // Add 1 hour
+        if (!isValidDate(intervalStart)) {
+          console.error('Invalid intervalStart for hourly calculation:', intervalStart);
+          intervalEnd = new Date();
+        } else {
+          intervalEnd = new Date(safeGetTime(intervalStart) + 60 * 60 * 1000); // Add 1 hour
+        }
       } else if (periodType === 'lastNDays') {
         // For last N days, use daily intervals
         intervalEnd = addDays(intervalStart, 1);

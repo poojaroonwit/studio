@@ -15,6 +15,7 @@ import { getScoreRangesForChart, formatScoreWithGrade, getScoreColor } from "@/l
 import { formatCandidateName, formatCandidateNameWithLang } from "@/lib/candidateUtils";
 import { isToday } from 'date-fns';
 import parseISO from 'date-fns/parseISO';
+import { isValidDate, safeGetTime } from "@/lib/utils";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { signIn, useSession, signOut } from "next-auth/react";
@@ -518,6 +519,7 @@ export default function DashboardPageClient({
       if (!stageIds.hired || c.status !== stageIds.hired || !c.applicationDate || typeof c.applicationDate !== 'string') return false;
       try {
         const appDate = parseISO(c.applicationDate);
+        if (!isValidDate(appDate)) return false;
         return appDate.getMonth() === now.getMonth() && appDate.getFullYear() === now.getFullYear();
       } catch { return false; }
     }).length;
@@ -526,6 +528,7 @@ export default function DashboardPageClient({
       if (!stageIds.rejected || c.status !== stageIds.rejected || !c.applicationDate || typeof c.applicationDate !== 'string') return false;
       try {
         const appDate = parseISO(c.applicationDate);
+        if (!isValidDate(appDate)) return false;
         return appDate.getMonth() === now.getMonth() && appDate.getFullYear() === now.getFullYear();
       } catch { return false; }
     }).length;
@@ -543,7 +546,9 @@ export default function DashboardPageClient({
     const newCandidatesTodayAdminList = safeAllCandidates.filter((c: Candidate) => {
       try {
         if (!c.applicationDate || typeof c.applicationDate !== 'string') return false;
-        return isToday(parseISO(c.applicationDate));
+        const appDate = parseISO(c.applicationDate);
+        if (!isValidDate(appDate)) return false;
+        return isToday(appDate);
       } catch { return false; }
     });
     
@@ -561,7 +566,9 @@ export default function DashboardPageClient({
     const newCandidatesAssignedToMeTodayList = myActiveCandidatesList.filter((c: Candidate) => {
       try {
         if (!c.applicationDate || typeof c.applicationDate !== 'string') return false;
-        return isToday(parseISO(c.applicationDate));
+        const appDate = parseISO(c.applicationDate);
+        if (!isValidDate(appDate)) return false;
+        return isToday(appDate);
       } catch { return false; }
     });
     
@@ -659,13 +666,23 @@ export default function DashboardPageClient({
     const totalDays = hiredCandidates.reduce((total, candidate) => {
       try {
         const applicationDate = parseISO(candidate.applicationDate);
+        if (!isValidDate(applicationDate)) return total;
         // Find the last transition to 'Hired'
         const hiredTransition = candidate.transitionHistory
           .filter(transition => stageIds.hired && transition.stage === stageIds.hired)
-          .sort((itemA, itemB) => new Date(itemB.date).getTime() - new Date(itemA.date).getTime())[0];
+          .sort((itemA, itemB) => {
+            try {
+              const dateA = new Date(itemA.date);
+              const dateB = new Date(itemB.date);
+              if (!isValidDate(dateA) || !isValidDate(dateB)) return 0;
+              return safeGetTime(dateB) - safeGetTime(dateA);
+            } catch {
+              return 0;
+            }
+          })[0];
         const hireDate = hiredTransition ? parseISO(hiredTransition.date) : null;
-        if (!hireDate) return total;
-        const daysDiff = Math.ceil((hireDate.getTime() - applicationDate.getTime()) / (1000 * 60 * 60 * 24));
+        if (!hireDate || !isValidDate(hireDate)) return total;
+        const daysDiff = Math.ceil((safeGetTime(hireDate) - safeGetTime(applicationDate)) / (1000 * 60 * 60 * 24));
         return total + Math.max(0, daysDiff); // Ensure non-negative values
       } catch {
         return total;
@@ -701,12 +718,13 @@ export default function DashboardPageClient({
   const recentApplications = useMemo(() => {
     const safeAllCandidates = Array.isArray(filteredCandidates)? filteredCandidates : [];
     const now = new Date();
-    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const sevenDaysAgo = new Date(safeGetTime(now) - 7 * 24 * 60 * 60 * 1000);
     
     return safeAllCandidates.filter((c: Candidate) => {
       if (!c.applicationDate || typeof c.applicationDate !== 'string') return false;
       try {
         const appDate = parseISO(c.applicationDate);
+        if (!isValidDate(appDate)) return false;
         return appDate >= sevenDaysAgo && appDate <= now;
       } catch { return false; }
     });
@@ -747,8 +765,9 @@ export default function DashboardPageClient({
       if (!c.applicationDate || typeof c.applicationDate !== 'string') return false;
       try {
         const appDate = parseISO(c.applicationDate);
+        if (!isValidDate(appDate)) return false;
         appDate.setHours(0, 0, 0, 0);
-        return appDate.getTime() === today.getTime();
+        return safeGetTime(appDate) === safeGetTime(today);
       } catch { 
         return false; 
       }
@@ -931,7 +950,7 @@ export default function DashboardPageClient({
                 label: "View All",
                 onClick: () => {
                   const today = new Date();
-                  const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+                  const weekAgo = new Date(safeGetTime(today) - 7 * 24 * 60 * 60 * 1000);
                   const weekQuery = `applicationDateStart:${weekAgo.toISOString()} applicationDateEnd:${today.toISOString()}`;
                   router.push('/candidates?query=' + encodeURIComponent(weekQuery));
                 }

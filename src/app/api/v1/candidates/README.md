@@ -35,9 +35,7 @@ When creating or updating candidates through the v1 API, recruiters are automati
 ## Endpoints
 
 ### POST /api/v1/candidates
-Create a new candidate with basic information or update an existing candidate if a duplicate is found.
-
-**Upsert Behavior**: If a candidate with the same email and positionId already exists, the existing candidate will be updated instead of creating a duplicate. If no positionId is provided, a new candidate will always be created.
+Create a new candidate with basic information.
 
 #### Request Body
 ```json
@@ -75,41 +73,38 @@ curl -X POST /api/v1/candidates \
   }'
 ```
 
-#### Response (201 Created / 200 Updated)
+#### Response (201 Created)
 ```json
 {
   "success": true,
-  "message": "Candidate created successfully" | "Candidate updated successfully",
-  "candidate": {
+  "data": {
     "id": "uuid",
-    "name": "John Doe",
+    "firstName": "John",
+    "lastName": "Doe", 
     "email": "john.doe@example.com",
     "phone": "+1234567890",
-    "status": "Applied",
-    "parsedData": {
-      "candidate_info": {
-        "personal_info": {
-          "firstname": "John",
-          "lastname": "Doe"
-        },
-        "contact_info": {
-          "email": "john.doe@example.com",
-          "phone": "+1234567890"
-        }
-      }
-    },
-    "applicationDate": "2024-01-01T00:00:00.000Z",
+    "location": "New York, NY",
+    "experience": "5 years in software development",
+    "education": "Bachelor's in Computer Science",
+    "skills": ["JavaScript", "React", "Node.js"],
+    "summary": "Experienced software developer with expertise in modern web technologies",
+    "source": "api",
+    "status": "active",
     "createdAt": "2024-01-01T00:00:00.000Z",
     "updatedAt": "2024-01-01T00:00:00.000Z",
-    "recruiterId": "uuid"
-  },
-  "isUpdate": false
+    "createdBy": {
+      "id": "uuid",
+      "name": "Admin User",
+      "email": "admin@example.com"
+    },
+    "updatedBy": {
+      "id": "uuid", 
+      "name": "Admin User",
+      "email": "admin@example.com"
+    }
+  }
 }
 ```
-
-**Response Codes**:
-- `201 Created`: New candidate was created
-- `200 OK`: Existing candidate was updated
 
 #### Error Responses
 
@@ -191,8 +186,7 @@ curl -X GET "/api/v1/candidates?page=1&limit=10&search=john&status=active"
 - This API focuses only on candidate basic information
 - Job applications and job matches are handled by separate APIs
 - Email addresses are automatically converted to lowercase
-- **Duplicate Prevention**: Candidates with the same email and positionId will be updated instead of creating duplicates
+- Duplicate email addresses are allowed for candidates
 - All string fields are trimmed of whitespace
 - The API uses Prisma for database operations
-- Authentication is handled via NextAuth sessions
-- The `isUpdate` field in the response indicates whether the candidate was created (false) or updated (true) 
+- Authentication is handled via NextAuth sessions 

@@ -153,13 +153,6 @@ export async function POST(request: NextRequest) {
   // Use email from payload, or default to unknown@email.com if missing
   const email = contactInfo.email || 'unknown@email.com';
   
-  // Debug logging for email extraction
-  console.log('Email extraction debug:', {
-    contactInfo_email: contactInfo.email,
-    extracted_email: email,
-    email_lowercase: email.toLowerCase()
-  });
-  
   // Always default to "Applied" stage regardless of input
   let resolvedStageId: string | null = null;
   
@@ -201,7 +194,6 @@ export async function POST(request: NextRequest) {
     job_matches: job_matches || candidateInfo.job_matches || []
   };
   const newCandidateId = uuidv4();
-  let isUpdate = false; // Declare isUpdate at function scope
 
   // Extract fitScore from candidate_info, candidate_info.job_applied, or top-level job_applied
   let fitScore = undefined;
@@ -213,32 +205,23 @@ export async function POST(request: NextRequest) {
     fitScore = Math.round(job_applied.fitScore);
   }
 
-  // Extract positionId - prioritize top-level job_applied, then candidate_info.job_applied, then job_matches
+  // Extract positionId from candidate_info.job_applied or job_matches, or from top-level job_applied/job_matches
   let positionId = null;
-  if (job_applied?.jobId) {
-    positionId = job_applied.jobId;
-  } else if (candidateInfo.job_applied?.jobId) {
+  if (candidateInfo.job_applied?.jobId) {
     positionId = candidateInfo.job_applied.jobId;
-  } else if (job_matches && Array.isArray(job_matches) && job_matches.length > 0) {
-    const matchWithJobId = job_matches.find((m: any) => m && m.jobId);
-    if (matchWithJobId) {
-      positionId = matchWithJobId.jobId;
-    }
+  } else if (job_applied?.jobId) {
+    positionId = job_applied.jobId;
   } else if (candidateInfo.job_matches && Array.isArray(candidateInfo.job_matches) && candidateInfo.job_matches.length > 0) {
     const matchWithJobId = candidateInfo.job_matches.find((m: any) => m && m.jobId);
     if (matchWithJobId) {
       positionId = matchWithJobId.jobId;
     }
+  } else if (job_matches && Array.isArray(job_matches) && job_matches.length > 0) {
+    const matchWithJobId = job_matches.find((m: any) => m && m.jobId);
+    if (matchWithJobId) {
+      positionId = matchWithJobId.jobId;
+    }
   }
-
-  // Debug logging for positionId extraction
-  console.log('PositionId extraction debug:', {
-    candidateInfo_job_applied: candidateInfo.job_applied,
-    top_level_job_applied: job_applied,
-    candidateInfo_job_matches: candidateInfo.job_matches,
-    top_level_job_matches: job_matches,
-    extracted_positionId: positionId
-  });
 
   // Validate positionId format if present
   if (positionId && typeof positionId === 'string') {
@@ -250,154 +233,56 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    // Check for existing candidate with same email and positionId
-    let existingCandidate = null;
+    const candidateData: any = {
+      id: newCandidateId,
+      name: name,
+      email: email.toLowerCase(),
+      phone: contactInfo.phone || null,
+      statusId: resolvedStageId,
+      fitScore: fitScore, // <-- always set top-level fitScore if present
+      parsedData: parsedData,
+      source: validationResult.data.sourceId ? { connect: { id: validationResult.data.sourceId } } : undefined,
+      subSource: validationResult.data.subSource || null,
+      applicationDate: createDateInTimezone(),
+      createdAt: createDateInTimezone(),
+      updatedAt: createDateInTimezone(),
+    };
+
+    // Only add position if positionId is valid
     if (positionId) {
-      console.log('Checking for existing candidate with:', {
-        email: email.toLowerCase(),
-        positionId: positionId
-      });
-      
-      // First, let's check if there are any candidates with the same email (for debugging)
-      const candidatesWithSameEmail = await prisma.candidate.findMany({
-        where: {
-          email: email.toLowerCase()
-        },
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          positionId: true
-        }
-      });
-      
-      console.log('All candidates with same email:', candidatesWithSameEmail);
-      
-      existingCandidate = await prisma.candidate.findFirst({
-        where: {
-          email: email.toLowerCase(),
-          positionId: positionId
-        },
-        include: {
-          recruiter: {
-            select: {
-              id: true,
-              name: true,
-              email: true
-            }
-          }
-        }
-      });
-      
-      console.log('Existing candidate found with same email AND positionId:', existingCandidate ? {
-        id: existingCandidate.id,
-        name: existingCandidate.name,
-        email: existingCandidate.email,
-        positionId: existingCandidate.positionId
-      } : 'None');
-    } else {
-      console.log('No positionId provided, will create new candidate');
+      candidateData.position = { connect: { id: positionId } };
     }
 
-    let candidate;
+    const newCandidate = await prisma.candidate.create({
+      data: candidateData,
+    });
 
-    if (existingCandidate) {
-      // Update existing candidate
-      console.log('UPDATING existing candidate:', existingCandidate.id);
-      isUpdate = true;
-      const updateData: any = {
-        name: name,
-        phone: contactInfo.phone || null,
-        statusId: resolvedStageId,
-        fitScore: fitScore,
-        parsedData: parsedData,
-        source: validationResult.data.sourceId ? { connect: { id: validationResult.data.sourceId } } : undefined,
-        subSource: validationResult.data.subSource || null,
-        updatedAt: createDateInTimezone(),
-      };
-
-      candidate = await prisma.candidate.update({
-        where: { id: existingCandidate.id },
-        data: updateData,
-        include: {
-          recruiter: {
-            select: {
-              id: true,
-              name: true,
-              email: true
-            }
-          }
-        }
-      });
-    } else {
-      // Create new candidate
-      console.log('CREATING new candidate with ID:', newCandidateId);
-      const candidateData: any = {
-        id: newCandidateId,
-        name: name,
-        email: email.toLowerCase(),
-        phone: contactInfo.phone || null,
-        statusId: resolvedStageId,
-        fitScore: fitScore, // <-- always set top-level fitScore if present
-        parsedData: parsedData,
-        source: validationResult.data.sourceId ? { connect: { id: validationResult.data.sourceId } } : undefined,
-        subSource: validationResult.data.subSource || null,
-        applicationDate: createDateInTimezone(),
-        createdAt: createDateInTimezone(),
-        updatedAt: createDateInTimezone(),
-      };
-
-      // Only add position if positionId is valid
-      if (positionId) {
-        candidateData.position = { connect: { id: positionId } };
-      }
-
-      candidate = await prisma.candidate.create({
-        data: candidateData,
-      });
-    }
-
-    // Create transition record
+    // Create initial transition record
     await prisma.transitionRecord.create({
       data: {
         id: uuidv4(),
-        candidate: { connect: { id: candidate.id } },
+        candidate: { connect: { id: newCandidateId } },
         stage: resolvedStageId,
-        notes: isUpdate ? 'Updated via API' : 'Initial creation via API',
+        notes: 'Initial creation via API',
         actingUser: { connect: { id: user.id } },
         date: createDateInTimezone(),
       },
     });
-
-    // Log audit for create or update
-    const auditMessage = isUpdate 
-      ? `Candidate '${name}' updated by ${user.name}.` 
-      : `Candidate '${name}' created by ${user.name}.`;
-    const auditAction = isUpdate 
-      ? 'API:V1:Candidates:Update' 
-      : 'API:V1:Candidates:Create';
+    await logAudit('AUDIT', `Candidate '${name}' created by ${user.name}.`, 'API:V1:Candidates:Create', user.id, { candidateId: newCandidateId, name, email, status: resolvedStageId });
     
-    await logAudit('AUDIT', auditMessage, auditAction, user.id, { 
-      candidateId: candidate.id, 
-      name, 
-      email, 
-      status: resolvedStageId,
-      isUpdate 
-    });
-    
-    // Check for warnings after candidate creation/update
+    // Check for warnings after candidate creation
     try {
-      await SimpleWarningService.createOrUpdateWarnings('candidate', candidate.id, user.id);
+      await SimpleWarningService.createOrUpdateWarnings('candidate', newCandidateId, user.id);
     } catch (warningError) {
-      console.error('Failed to check warnings for candidate:', warningError);
+      console.error('Failed to check warnings for new candidate:', warningError);
       // Don't fail the request if warning check fails
     }
     
-    // Auto-assign recruiter if candidate has a position and no existing recruiter
-    let finalCandidate = candidate;
-    if (positionId && !candidate.recruiterId) {
+    // Auto-assign recruiter if candidate has a position
+    let finalCandidate = newCandidate;
+    if (positionId) {
       try {
-        // console.log(`Attempting to auto-assign recruiter for candidate ${candidate.id} with positionId: ${positionId}`);
+        // console.log(`Attempting to auto-assign recruiter for candidate ${newCandidateId} with positionId: ${positionId}`);
         
         // Get position with recruiter using Prisma
         const position = await prisma.position.findUnique({
@@ -413,10 +298,12 @@ export async function POST(request: NextRequest) {
           }
         });
 
+ 
+
         if (position && position.recruiterId && position.recruiter) {
           // Update candidate with recruiter using Prisma
           const updatedCandidate = await prisma.candidate.update({
-            where: { id: candidate.id },
+            where: { id: newCandidateId },
             data: { 
               recruiter: { connect: { id: position.recruiterId } },
               updatedAt: createDateInTimezone()
@@ -436,7 +323,7 @@ export async function POST(request: NextRequest) {
           await prisma.transitionRecord.create({
             data: {
               id: uuidv4(),
-              candidate: { connect: { id: candidate.id } },
+              candidate: { connect: { id: newCandidateId } },
               position: positionId ? { connect: { id: positionId } } : undefined,
               stage: resolvedStageId,
               notes: `Recruiter auto-assigned from position: ${position.recruiter.name}`,
@@ -445,22 +332,21 @@ export async function POST(request: NextRequest) {
             },
           });
 
-          // Send notification to the assigned recruiter (only for new candidates)
-          if (!isUpdate) {
-            try {
-              await NotificationService.notifyCandidateAdded(
-                candidate.id,
-                name,
-                positionId,
-                position.title,
-                position.recruiterId,
-                user.id
-              );
-              // console.log(`✅ Notification sent to recruiter ${position.recruiter.name} for new candidate ${name}`);
-            } catch (notificationError) {
-              console.error('Failed to send candidate added notification:', notificationError);
-              // Don't fail the entire operation if notification fails
-            }
+ 
+          // Send notification to the assigned recruiter
+          try {
+            await NotificationService.notifyCandidateAdded(
+              newCandidateId,
+              name,
+              positionId,
+              position.title,
+              position.recruiterId,
+              user.id
+            );
+            // console.log(`✅ Notification sent to recruiter ${position.recruiter.name} for new candidate ${name}`);
+          } catch (notificationError) {
+            console.error('Failed to send candidate added notification:', notificationError);
+            // Don't fail the entire operation if notification fails
           }
           
           // Use the updated candidate for the response
@@ -471,13 +357,13 @@ export async function POST(request: NextRequest) {
           // console.log(`❌ Position ${positionId} not found in database`);
         }
       } catch (syncError) {
-        console.error('Failed to auto-assign recruiter after candidate creation/update:', syncError);
-        // Don't fail the candidate creation/update if sync fails
+        console.error('Failed to auto-assign recruiter after candidate creation:', syncError);
+        // Don't fail the candidate creation if sync fails
       }
     }
     
     return createSuccessResponse(request, {
-      message: isUpdate ? 'Candidate updated successfully' : 'Candidate created successfully',
+      message: 'Candidate created successfully',
       candidate: {
         id: finalCandidate.id,
         name: finalCandidate.name,
@@ -489,18 +375,12 @@ export async function POST(request: NextRequest) {
         createdAt: finalCandidate.createdAt ? new Date(finalCandidate.createdAt as any).toISOString() : new Date().toISOString(),
         updatedAt: finalCandidate.updatedAt ? new Date(finalCandidate.updatedAt as any).toISOString() : new Date().toISOString(),
         recruiterId: finalCandidate.recruiterId,
-      },
-      isUpdate: isUpdate
-    }, isUpdate ? 200 : 201);
+      }
+    }, 201);
 
   } catch (error: any) {
-    const errorAction = isUpdate ? 'API:V1:Candidates:Update' : 'API:V1:Candidates:Create';
-    const errorMessage = isUpdate 
-      ? `Failed to update candidate by ${user?.name || 'Unknown'}. Error: ${(error as Error).message}`
-      : `Failed to create candidate by ${user?.name || 'Unknown'}. Error: ${(error as Error).message}`;
-    
-    await logAudit('ERROR', errorMessage, errorAction, user?.id, { error: (error as Error).message, ...body });
-    return handleApiError(request, createInternalServerError(isUpdate ? 'Error updating candidate' : 'Error creating candidate', {
+    await logAudit('ERROR', `Failed to create candidate by ${user?.name || 'Unknown'}. Error: ${(error as Error).message}`, 'API:V1:Candidates:Create', user?.id, { error: (error as Error).message, ...body });
+    return handleApiError(request, createInternalServerError('Error creating candidate', {
       originalError: (error as Error).message,
       stack: (error as Error).stack,
     }));

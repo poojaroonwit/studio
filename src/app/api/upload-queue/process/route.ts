@@ -14,9 +14,8 @@ import os from 'os';
 
 export const dynamic = 'force-dynamic';
 
-// NEW: Infinite loop prevention constants
+// Processing constants
 const MAX_PROCESSING_TIME_MS = 30 * 60 * 1000; // 30 minutes
-const MAX_RETRY_ATTEMPTS = 3;
 const STUCK_JOB_TIMEOUT_HOURS = 1; // Reduced from 4 to 1 hour
 const RECENT_PROCESSING_TIMEOUT_MINUTES = 5; // Prevent reprocessing recent jobs
 
@@ -117,7 +116,7 @@ export async function POST(request: NextRequest) {
        AND completed_date > NOW() - INTERVAL '${RECENT_PROCESSING_TIMEOUT_MINUTES} minutes'`
     );
     
-    // NEW: Enhanced job selection with better duplicate prevention and retry limits
+    // Enhanced job selection with better duplicate prevention (no automatic retry)
     const res = await client.query(
       `UPDATE upload_queue
        SET status = 'inprocess', process_date = now(), updated_at = now()
@@ -137,12 +136,7 @@ export async function POST(request: NextRequest) {
              AND file_path IS NOT NULL
            )
          )
-         -- NEW: Prevent infinite retries
-         AND (
-           webhook_payload->>'retry_count' IS NULL 
-           OR (webhook_payload->>'retry_count')::int < ${MAX_RETRY_ATTEMPTS}
-         )
-         -- NEW: Prevent processing recently completed jobs
+         -- Prevent processing recently completed jobs
          AND (
            completed_date IS NULL
            OR completed_date < NOW() - INTERVAL '${RECENT_PROCESSING_TIMEOUT_MINUTES} minutes'
@@ -327,25 +321,8 @@ export async function POST(request: NextRequest) {
       error_details = 'Skipped - already processed by external webhook';
     } else {
       try {
-        // NEW: Increment retry count for tracking
-        const currentRetryCount = (job.webhook_payload?.retry_count || 0) + 1;
-        
-        console.log(`[RETRY] Processing job ${job.id} (attempt ${currentRetryCount}/${MAX_RETRY_ATTEMPTS})`);
-        
-        // Update the webhook_payload with the new retry count
-        const updatedWebhookPayload = {
-          ...(job.webhook_payload || {}),
-          retry_count: currentRetryCount,
-          last_retry_attempt: new Date().toISOString()
-        };
-        
-        await client.query(
-          `UPDATE upload_queue SET webhook_payload = $1 WHERE id = $2`,
-          [JSON.stringify(updatedWebhookPayload), job.id]
-        );
-        
-        // Update the job object with the new retry count
-        job.webhook_payload = updatedWebhookPayload;
+        // Process the job without automatic retry logic
+        console.log(`[PROCESS] Processing job ${job.id}`);
         
         // Use the same logic as processSingleUploadQueueJob for resume processing webhook
         const result = await processSingleUploadQueueJob(job, client);
@@ -355,12 +332,12 @@ export async function POST(request: NextRequest) {
         webhookResults = result.webhook_response || null;
         payload = result.job || null;
         
-        console.log(`[RETRY] Job ${job.id} retry result: ${status}`);
+        console.log(`[PROCESS] Job ${job.id} result: ${status}`);
       } catch (err) {
         status = 'failed';
         error = 'Resume processing webhook error';
         error_details = err instanceof Error ? err.message : String(err);
-        console.error(`[RETRY] Job ${job.id} retry failed:`, err);
+        console.error(`[PROCESS] Job ${job.id} failed:`, err);
       }
     }
 

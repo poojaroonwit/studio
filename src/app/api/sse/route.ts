@@ -1,6 +1,5 @@
 import { NextRequest } from 'next/server';
 import { handleUnifiedSSEConnection } from '@/lib/unified-connection-manager';
-import { checkSSEDatabaseHealth } from '@/lib/sse-db-wrapper';
 
 // Force dynamic rendering and disable static optimization
 export const dynamic = 'force-dynamic';
@@ -23,42 +22,15 @@ export async function OPTIONS() {
 
 export async function GET(request: NextRequest) {
   try {
-    // Pre-flight database health check to prevent 502 errors
-    const dbHealth = await checkSSEDatabaseHealth();
-    if (!dbHealth.healthy) {
-      console.error('[SSE] Database health check failed:', dbHealth.error);
-      return new Response(JSON.stringify({
-        error: 'Service temporarily unavailable',
-        message: 'Database connection issue - please try again in a moment',
-        details: dbHealth.error,
-        timestamp: new Date().toISOString(),
-        retryAfter: 30
-      }), {
-        status: 503, // Service Unavailable
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-          'Retry-After': '30',
-          'X-Error-Type': 'database-unavailable'
-        }
-      });
-    }
-
-    // Add timeout handling for the SSE connection
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-      controller.abort();
-    }, 300000); // 5 minutes timeout
-
-    // Handle request abort
-    request.signal.addEventListener('abort', () => {
-      clearTimeout(timeoutId);
-    });
-
-    const response = await handleUnifiedSSEConnection(request);
+    // Simple timeout wrapper to prevent hanging connections
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('SSE connection timeout')), 15000) // 15 second timeout
+    );
     
-    // Clear timeout on successful response
-    clearTimeout(timeoutId);
+    const ssePromise = handleUnifiedSSEConnection(request);
+    
+    // Race between SSE connection and timeout
+    const response = await Promise.race([ssePromise, timeoutPromise]);
     
     return response;
   } catch (error) {
@@ -70,7 +42,8 @@ export async function GET(request: NextRequest) {
       if (error.message.includes('timeout') || 
           error.message.includes('connection') ||
           error.message.includes('ECONNREFUSED') ||
-          error.message.includes('ENOTFOUND')) {
+          error.message.includes('ENOTFOUND') ||
+          error.message.includes('database')) {
         return new Response(JSON.stringify({
           error: 'Service temporarily unavailable',
           message: 'Database connection issue - please try again in a moment',
@@ -108,10 +81,10 @@ export async function GET(request: NextRequest) {
       }
       
       // Timeout errors
-      if (error.name === 'AbortError' || error.message.includes('timeout')) {
+      if (error.message.includes('timeout')) {
         return new Response(JSON.stringify({
           error: 'Connection timeout',
-          message: 'SSE connection timed out after 5 minutes',
+          message: 'SSE connection timed out - please try again',
           details: error.message,
           timestamp: new Date().toISOString()
         }), {

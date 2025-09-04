@@ -4,7 +4,6 @@
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { getPool } from '@/lib/db';
-import { checkSSEDatabaseHealth } from '@/lib/sse-db-wrapper';
 
 // User connection interface
 interface UserConnection {
@@ -274,66 +273,13 @@ export async function handleUnifiedSSEConnection(request: Request) {
       console.warn('[UNIFIED] Server timeout reached for SSE connection');
     }, 300000); // 5 minutes server timeout
 
-    // Authenticate user with comprehensive error handling and database connection protection
+    // Simple authentication without database health checks
     let session;
     try {
-      // Pre-check database health before attempting authentication
-      const dbHealth = await checkSSEDatabaseHealth();
-      if (!dbHealth.healthy) {
-        clearTimeout(serverTimeout);
-        console.error('[UNIFIED] Database health check failed before authentication:', dbHealth.error);
-        return new Response(JSON.stringify({
-          error: 'Service temporarily unavailable',
-          message: 'Database connection issue - please try again in a moment',
-          details: dbHealth.error,
-          timestamp: new Date().toISOString(),
-          retryAfter: 30
-        }), { 
-          status: 503, // Service Unavailable
-          headers: { 
-            'Content-Type': 'application/json',
-            'Retry-After': '30',
-            'X-Error-Type': 'database-unavailable'
-          }
-        });
-      }
-
-      // Add timeout wrapper for session authentication to prevent hanging
-      const sessionPromise = getServerSession(authOptions);
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Session authentication timeout')), 10000)
-      );
-      
-      session = await Promise.race([sessionPromise, timeoutPromise]);
+      session = await getServerSession(authOptions);
     } catch (sessionError) {
       clearTimeout(serverTimeout);
       console.error('[UNIFIED] Session authentication error:', sessionError);
-      
-      // Check if it's a database connection issue
-      const isDbError = sessionError instanceof Error && (
-        sessionError.message.includes('timeout') ||
-        sessionError.message.includes('connection') ||
-        sessionError.message.includes('ECONNREFUSED') ||
-        sessionError.message.includes('ENOTFOUND') ||
-        sessionError.message.includes('authentication timeout')
-      );
-      
-      if (isDbError) {
-        return new Response(JSON.stringify({
-          error: 'Service temporarily unavailable',
-          message: 'Database connection issue - please try again in a moment',
-          details: sessionError.message,
-          timestamp: new Date().toISOString(),
-          retryAfter: 30
-        }), { 
-          status: 503, // Service Unavailable instead of 401
-          headers: { 
-            'Content-Type': 'application/json',
-            'Retry-After': '30',
-            'X-Error-Type': 'database-connection'
-          }
-        });
-      }
       
       return new Response(JSON.stringify({
         error: 'Authentication failed',

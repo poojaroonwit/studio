@@ -5,9 +5,8 @@ import { processSingleUploadQueueJob } from '@/lib/uploadQueueProcessor';
 
 export const dynamic = 'force-dynamic';
 
-// NEW: Infinite loop prevention constants
+// Processing constants
 const MAX_PROCESSING_TIME_MS = 30 * 60 * 1000; // 30 minutes
-const MAX_RETRY_ATTEMPTS = 3;
 const STUCK_JOB_TIMEOUT_HOURS = 1; // Reduced from 4 to 1 hour
 const RECENT_PROCESSING_TIMEOUT_MINUTES = 5; // Prevent reprocessing recent jobs
 const MAX_CONCURRENT_JOBS = 10; // Maximum jobs to process in one batch
@@ -158,22 +157,9 @@ export async function POST(request: NextRequest) {
          AND completed_date > NOW() - INTERVAL '${RECENT_PROCESSING_TIMEOUT_MINUTES} minutes'`
       );
 
-      // NEW: Auto-retry failed jobs that haven't exceeded retry limit
-      await selectionClient.query(
-        `UPDATE upload_queue 
-         SET status = 'queued', process_date = NULL, updated_at = now(), error = NULL, error_details = NULL
-         WHERE status = 'failed' 
-         AND (
-           webhook_payload->>'retry_count' IS NULL 
-           OR (webhook_payload->>'retry_count')::int < ${MAX_RETRY_ATTEMPTS}
-         )
-         AND (
-           completed_date IS NULL
-           OR completed_date < NOW() - INTERVAL '${RECENT_PROCESSING_TIMEOUT_MINUTES} minutes'
-         )`
-      );
+      // Note: Automatic retry logic removed - failed jobs will remain failed until manually retried
 
-      // NEW: Enhanced job selection with better duplicate prevention and retry limits
+      // Enhanced job selection with better duplicate prevention (no automatic retry)
       const claimRes = await selectionClient.query(
         `UPDATE upload_queue
          SET status = 'inprocess', process_date = now(), updated_at = now()
@@ -203,12 +189,7 @@ export async function POST(request: NextRequest) {
              OR source = 'reprocess'
              OR webhook_payload->>'source' = 'reprocess'
            )
-           -- NEW: Prevent infinite retries
-           AND (
-             webhook_payload->>'retry_count' IS NULL 
-             OR (webhook_payload->>'retry_count')::int < ${MAX_RETRY_ATTEMPTS}
-           )
-           -- NEW: Prevent processing recently completed jobs
+           -- Prevent processing recently completed jobs
            AND (
              completed_date IS NULL
              OR completed_date < NOW() - INTERVAL '${RECENT_PROCESSING_TIMEOUT_MINUTES} minutes'
@@ -284,23 +265,7 @@ export async function POST(request: NextRequest) {
           }
         }
         
-        // NEW: Increment retry count for tracking
-        const currentRetryCount = (job.webhook_payload?.retry_count || 0) + 1;
-        
-        // Update the webhook_payload with the new retry count
-        const updatedWebhookPayload = {
-          ...(job.webhook_payload || {}),
-          retry_count: currentRetryCount,
-          last_retry_attempt: new Date().toISOString()
-        };
-        
-        await processingClient.query(
-          `UPDATE upload_queue SET webhook_payload = $1 WHERE id = $2`,
-          [JSON.stringify(updatedWebhookPayload), job.id]
-        );
-        
-        // Update the job object with the new retry count
-        job.webhook_payload = updatedWebhookPayload;
+        // Process job without automatic retry tracking
 
         const result = await processSingleUploadQueueJob(job, processingClient);
 

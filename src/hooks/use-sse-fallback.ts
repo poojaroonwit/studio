@@ -25,7 +25,6 @@ export function useSSEFallback(options: SSEFallbackOptions = {}) {
       return;
     }
 
-    console.log('[SSEFallback] Starting fallback polling');
     setIsPolling(true);
 
     intervalRef.current = setInterval(async () => {
@@ -35,10 +34,8 @@ export function useSSEFallback(options: SSEFallbackOptions = {}) {
         if (result.ok) {
           setLastPollTime(new Date());
         } else {
-          console.warn('[SSEFallback] Polling endpoint failed:', result.error);
         }
       } catch (error) {
-        console.warn('[SSEFallback] Polling error:', error);
       }
     }, fallbackIntervalMs);
   };
@@ -48,7 +45,6 @@ export function useSSEFallback(options: SSEFallbackOptions = {}) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
       setIsPolling(false);
-      console.log('[SSEFallback] Stopped fallback polling');
     }
   };
 

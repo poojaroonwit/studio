@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
 
@@ -27,14 +27,9 @@ export function useUserPresence() {
   // Update current user's presence
   const updatePresence = useCallback(async () => {
     if (!session?.user?.id || isUpdatingRef.current) {
-      console.log('[useUserPresence] Skipping presence update:', { 
-        hasUserId: !!session?.user?.id, 
-        isUpdating: isUpdatingRef.current 
-      });
       return;
     }
 
-    console.log('[useUserPresence] Updating presence for user:', session.user.id);
     isUpdatingRef.current = true;
     try {
       const response = await fetch('/api/realtime/presence', {
@@ -52,12 +47,9 @@ export function useUserPresence() {
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('[useUserPresence] Failed to update presence:', response.status, errorText);
       } else {
-        console.log('[useUserPresence] Presence updated successfully');
       }
     } catch (error) {
-      console.error('[useUserPresence] Failed to update presence:', error);
     } finally {
       isUpdatingRef.current = false;
     }
@@ -66,29 +58,23 @@ export function useUserPresence() {
   // Fetch all users' presence
   const fetchPresence = useCallback(async () => {
     if (!session?.user?.id) {
-      console.log('[useUserPresence] No session user ID, skipping fetch');
       return;
     }
 
-    console.log('[useUserPresence] Fetching presence data...');
     setIsLoading(true);
     setError(null);
     
     try {
       const response = await fetch('/api/realtime/presence');
-      console.log('[useUserPresence] Response status:', response.status);
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('[useUserPresence] Response not OK:', response.status, errorText);
         throw new Error(`Failed to fetch presence data: ${response.status} ${errorText}`);
       }
       
       const data = await response.json();
-      console.log('[useUserPresence] Received data:', data);
       setOnlineUsers(data.users || []);
     } catch (error) {
-      console.error('[useUserPresence] Failed to fetch presence:', error);
       setError((error as Error).message);
     } finally {
       setIsLoading(false);
@@ -106,7 +92,6 @@ export function useUserPresence() {
         body: JSON.stringify({ userId: session.user.id }),
       });
     } catch (error) {
-      console.error('Failed to remove presence:', error);
     }
   }, [session?.user?.id]);
 
@@ -183,12 +168,13 @@ export function useUserPresence() {
     };
   }, [removePresence]);
 
-  return {
+  // Memoize the return object to prevent unnecessary re-renders
+  return useMemo(() => ({
     onlineUsers,
     isLoading,
     error,
     updatePresence,
     fetchPresence,
     removePresence,
-  };
+  }), [onlineUsers, isLoading, error, updatePresence, fetchPresence, removePresence]);
 }

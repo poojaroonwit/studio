@@ -26,10 +26,8 @@ export function useEnhancedSSE() {
   // Start fallback polling when SSE fails
   useEffect(() => {
     if (isCircuitOpen || (error && retryCount >= 2)) {
-      console.log('[EnhancedSSE] SSE failed, starting fallback polling');
       startPolling();
     } else if (connected) {
-      console.log('[EnhancedSSE] SSE connected, stopping fallback polling');
       stopPolling();
     }
   }, [connected, error, retryCount, isCircuitOpen, startPolling, stopPolling]);

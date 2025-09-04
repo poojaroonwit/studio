@@ -201,7 +201,6 @@ export default function DashboardPageClient({
     
     // Prevent multiple simultaneous fetches
     if (isLoading) {
-      console.log('[Dashboard] Skipping fetch - already loading');
       return;
     }
     
@@ -275,7 +274,6 @@ export default function DashboardPageClient({
           try {
             // Defensive check to prevent filter errors
             if (!Array.isArray(backlogData)) {
-              console.warn('DashboardPageClient: backlogData is not an array:', backlogData);
               return [];
             }
             
@@ -283,12 +281,10 @@ export default function DashboardPageClient({
               try {
                 return c && !(stageIds.hired && c.status === stageIds.hired) && !(stageIds.rejected && c.status === stageIds.rejected);
               } catch (error) {
-                console.warn('DashboardPageClient: Error filtering backlog candidate:', error, c);
                 return false;
               }
             });
           } catch (error) {
-            console.error('DashboardPageClient: Error filtering backlog candidates:', error);
             return [];
           }
         })());
@@ -452,7 +448,6 @@ export default function DashboardPageClient({
       if (!mounted) return;
       
       if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
-        console.log('[Dashboard] SSE event received via shared connection:', event);
       }
       
       // Handle different event types with improved debouncing and rate limiting
@@ -462,13 +457,11 @@ export default function DashboardPageClient({
         // Rate limit updates to prevent excessive reloading
         if (now - lastUpdateTime < MIN_UPDATE_INTERVAL) {
           if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
-            console.log('[Dashboard] Update rate limited, skipping');
           }
           return;
         }
         
         if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
-          console.log('[Dashboard] Processing update event:', event.type);
         }
         
         // Mark that SSE has updated data
@@ -577,7 +570,6 @@ export default function DashboardPageClient({
       try {
         return c && c.recruiterId === session?.user?.id;
       } catch (error) {
-        console.warn('DashboardPageClient: Error filtering my action items:', error, c);
         return false;
       }
     });
@@ -1067,7 +1059,7 @@ export default function DashboardPageClient({
               description: "On process candidates",
               button: {
                 label: "View All",
-                onClick: () => router.push('/candidates?query=' + encodeURIComponent('status:Applied,Screening,Shortlisted,Interviewing,On%20Hold'))
+                onClick: () => router.push('/candidates?query=' + encodeURIComponent('status:Applied,Screening,Shortlisted,Interview Scheduled,Interviewing,Offer Extended,On Hold'))
               }
             },
             { 

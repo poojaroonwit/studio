@@ -78,6 +78,7 @@ export async function GET(
          baseQuery = `
             SELECT 
               c.*, 
+              rs.name as "status",
               p.id as "positionId", 
               p.title as "positionTitle", 
               p.department as "positionDepartment", 
@@ -90,6 +91,7 @@ export async function GET(
             FROM "Candidate" c
             LEFT JOIN "Position" p ON c."positionId" = p.id
             LEFT JOIN "User" r ON c."recruiterId" = r.id
+            LEFT JOIN "RecruitmentStage" rs ON c."statusId" = rs.id
             LEFT JOIN LATERAL (
               SELECT json_agg(
                 json_build_object(
@@ -120,6 +122,7 @@ export async function GET(
          baseQuery = `
             SELECT 
               c.*, 
+              rs.name as "status",
               p.id as "positionId", 
               p.title as "positionTitle", 
               p.department as "positionDepartment", 
@@ -132,6 +135,7 @@ export async function GET(
             FROM "Candidate" c
             LEFT JOIN "Position" p ON c."positionId" = p.id
             LEFT JOIN "User" r ON c."recruiterId" = r.id
+            LEFT JOIN "RecruitmentStage" rs ON c."statusId" = rs.id
             LEFT JOIN LATERAL (
               SELECT json_agg(
                 json_build_object(
@@ -363,6 +367,7 @@ export async function GET(
             positionLevel: row.positionLevel
           } : null,
           fitScore: normalizeFitScore(fitScore),
+          statusId: row.statusId,
           status: row.status,
           applicationDate: row.applicationDate ? row.applicationDate.toISOString() : new Date().toISOString(),
           recruiter: row.recruiterId ? {

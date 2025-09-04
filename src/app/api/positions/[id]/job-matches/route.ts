@@ -189,6 +189,7 @@ export async function GET(
           matchScore: normalizeFitScore(row.matchScore || 0),
           matchReasons: row.matchReasons || [],
           jobMatchId: row.jobMatchId,
+          statusId: row.statusId,
           status: row.statusName || 'Unknown',
           applicationDate: row.applicationDate ? row.applicationDate.toISOString() : new Date().toISOString(),
           recruiter: row.recruiterId ? {

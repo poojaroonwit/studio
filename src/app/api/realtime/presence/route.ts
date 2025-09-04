@@ -123,7 +123,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error updating presence:', error);
     return NextResponse.json({ 
       error: 'Failed to update presence',
       details: (error as Error).message 
@@ -157,7 +156,6 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error removing presence:', error);
     return NextResponse.json({ 
       error: 'Failed to remove presence',
       details: (error as Error).message 
@@ -196,7 +194,6 @@ export async function GET() {
 
     return NextResponse.json({ users });
   } catch (error) {
-    console.error('Error getting online users:', error);
     return NextResponse.json({ 
       error: 'Failed to get online users',
       details: (error as Error).message 

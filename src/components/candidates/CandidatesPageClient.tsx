@@ -8,6 +8,7 @@ import { getScoreRangesForChart } from '@/lib/scoreUtils';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Users, ServerCrash, Zap, Loader2, FileDown, FileUp, ChevronDown, FileSpreadsheet, ShieldAlert, Brain, Trash2 as BulkTrashIcon, Edit as BulkEditIcon, ChevronLeft, ChevronRight, ChevronsUpDown, Check, Briefcase, X, Filter, Search, Settings, MoreVertical, Trash2, FileEdit, Users as UsersIcon } from 'lucide-react';
 import { toast } from "react-hot-toast";
+import { getErrorMessage } from '@/lib/networkUtils';
 import { AddCandidateModal } from '@/components/candidates/AddCandidateModal';
 import { PositionDetailDrawer } from '@/components/positions/PositionDetailDrawer';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -436,7 +437,7 @@ export function CandidatesPageClient({
       }
       fetchAllCandidatesForCounts();
     } catch (error) {
-      toast.error((error as Error).message || 'Bulk delete failed');
+      toast.error(getErrorMessage(error));
     }
   }, [fetchTableData, filters, page, pageSize, fetchAllCandidatesForCounts]);
 
@@ -485,7 +486,7 @@ export function CandidatesPageClient({
       }
       fetchAllCandidatesForCounts();
     } catch (error) {
-      toast.error((error as Error).message || 'Bulk status change failed');
+      toast.error(getErrorMessage(error));
     }
   }, [fetchTableData, filters, page, pageSize, fetchAllCandidatesForCounts]);
 
@@ -517,7 +518,7 @@ export function CandidatesPageClient({
       }
       fetchAllCandidatesForCounts();
     } catch (error) {
-      toast.error((error as Error).message || 'Bulk recruiter assignment failed');
+      toast.error(getErrorMessage(error));
     }
   }, [fetchTableData, filters, page, pageSize, fetchAllCandidatesForCounts, availableRecruiter]);
 
@@ -1149,22 +1150,7 @@ export function CandidatesPageClient({
       toast.success(`Export completed successfully! File size: ${(blob.size / 1024).toFixed(1)} KB`);
     } catch (error) {
       console.error('Export error:', error);
-      
-      let errorMessage = 'Export failed. Please try again.';
-      
-      if (error instanceof Error) {
-        if (error.name === 'AbortError') {
-          errorMessage = 'Request timed out. Please try again.';
-        } else if (error.message.includes('fetch failed')) {
-          errorMessage = 'Network connection failed. Please check your internet connection and try again.';
-        } else if (error.message.includes('timeout')) {
-          errorMessage = 'Request timed out. The server took too long to respond. Please try again.';
-        } else {
-          errorMessage = error.message;
-        }
-      }
-      
-      toast.error(errorMessage);
+      toast.error(getErrorMessage(error));
     } finally {
       setTableLoading(false);
     }

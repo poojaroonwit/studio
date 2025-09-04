@@ -29,7 +29,7 @@ let config = {
   quietMode: process.env.PROCESSOR_QUIET_MODE === 'true' || false,
   maxConsecutiveErrors: 3,
   backoffMultiplier: 1.5,
-  maxBackoffMs: 600000,
+  maxBackoffMs: 60000, // Reduced from 10 minutes to 1 minute
   connectionTimeoutMs: parseInt(process.env.PROCESSOR_CONNECTION_TIMEOUT_MS) || 60000,
   requestTimeoutMs: parseInt(process.env.PROCESSOR_REQUEST_TIMEOUT_MS) || 180000,
   
@@ -47,6 +47,7 @@ let consecutiveErrors = 0;
 let currentBackoffMs = config.retryDelayMs;
 const startTime = Date.now();
 let lastProcessorCheck = Date.now();
+let lastSuccessfulRequest = Date.now();
 
 // Override baseUrl for local development if it's set to Docker service name
 if (config.baseUrl.includes('8021_fitscan_app:8021') || config.baseUrl.includes('172.21.0.2:8021')) {
@@ -201,15 +202,16 @@ async function processBatch() {
       const processedCount = response.data.processed_count || 0;
       const msgs = response.data.messages || [];
       
+      // Reset consecutive errors on any successful response (even if no jobs processed)
+      consecutiveErrors = 0;
+      currentBackoffMs = config.retryDelayMs;
+      lastSuccessfulRequest = Date.now();
+      
       // Only log if jobs were actually processed
       if (processedCount > 0) {
         log('INFO', `Processed ${processedCount} jobs (batch size: ${config.batchLimit}, max concurrent: ${config.maxConcurrentProcessors})`);
-        consecutiveErrors = 0;
-        currentBackoffMs = config.retryDelayMs;
       } else if (msgs.some(m => (m || '').includes('No queued jobs'))) {
         // Don't log empty batches to reduce noise
-        consecutiveErrors = 0;
-        currentBackoffMs = config.retryDelayMs;
       }
       
       return processedCount;
@@ -224,7 +226,7 @@ async function processBatch() {
     // Implement exponential backoff with fixed retry delay
     if (consecutiveErrors >= config.maxConsecutiveErrors) {
       currentBackoffMs = Math.min(currentBackoffMs * config.backoffMultiplier, config.maxBackoffMs);
-      log('WARN', `Too many consecutive errors, backing off for ${currentBackoffMs}ms`);
+      log('WARN', `Too many consecutive errors (${consecutiveErrors}), backing off for ${Math.round(currentBackoffMs/1000)}s`);
     }
     
     return 0;
@@ -239,16 +241,17 @@ async function processJob() {
     });
 
     if (response.status === 200) {
+      // Reset consecutive errors on any successful response
+      consecutiveErrors = 0;
+      currentBackoffMs = config.retryDelayMs;
+      lastSuccessfulRequest = Date.now();
+      
       // Check if the response indicates no queued jobs
       if (response.data && response.data.message === 'No queued jobs') {
         // Don't log empty single job attempts to reduce noise
-        consecutiveErrors = 0;
-        currentBackoffMs = config.retryDelayMs;
         return 0; // Return 0 to indicate no jobs were processed
       } else {
         log('INFO', 'Processed single job successfully');
-        consecutiveErrors = 0;
-        currentBackoffMs = config.retryDelayMs;
         return 1;
       }
     } else {
@@ -275,6 +278,15 @@ async function processLoop() {
       if (Date.now() - lastProcessorCheck > config.processorCheckInterval) {
         await updateConcurrentProcessorSetting();
         lastProcessorCheck = Date.now();
+      }
+      
+      // Safety mechanism: Reset backoff if no successful request for too long
+      const timeSinceLastSuccess = Date.now() - lastSuccessfulRequest;
+      if (timeSinceLastSuccess > 300000) { // 5 minutes
+        log('WARN', `No successful requests for ${Math.round(timeSinceLastSuccess/1000)}s, resetting backoff`);
+        consecutiveErrors = 0;
+        currentBackoffMs = config.retryDelayMs;
+        lastSuccessfulRequest = Date.now();
       }
       
       const count = await processBatch();

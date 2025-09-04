@@ -2,15 +2,16 @@
 
 ## Overview
 Real-time update frequencies have been optimized for maximum responsiveness:
-- **SSE Keepalive**: 1 second (optimized for real-time responsiveness)
-- **Fallback Polling**: 30 seconds (optimized from 10 seconds)  
+- **SSE Keepalive**: 500ms (optimized for ultra-fast real-time responsiveness)
+- **Fallback Polling**: 10 seconds (optimized from 30 seconds)  
 - **Inactive Connection Timeout**: 3 minutes (from 5 minutes)
+- **Taskboard Update Delay**: 500ms (reduced from 2+ seconds)
 
 ## Changes Made
 
 ### 1. SSE Keepalive Intervals
-- **Primary SSE** (`src/lib/simple-sse.ts`): 30s → **1s** (optimized for real-time)
-- **Unified SSE** → replaced by simple hub (`src/lib/realtime.ts`): **1s** keepalive
+- **Primary SSE** (`src/lib/simple-sse.ts`): 1s → **500ms** (optimized for ultra-fast real-time)
+- **Unified SSE** → replaced by simple hub (`src/lib/realtime.ts`): **500ms** keepalive
 
 ### 2. Connection Timeouts
 - **Primary SSE**: 120s → **180s** (3 minutes)
@@ -28,7 +29,7 @@ Real-time update frequencies have been optimized for maximum responsiveness:
 ### 4. Fallback Polling Intervals
 - **Candidates Page**: 5s → **30s** (optimized)
 - **Process Queue**: 5s → **30s** (optimized)
-- **My Tasks**: 30s → **30s** (optimized)
+- **My Tasks**: 30s → **10s** (optimized for faster responsiveness)
 - **User Presence**: 30s → **30s** (optimized)
 - **Sidebar Navigation**: 30s → **30s** (optimized)
 
@@ -44,27 +45,37 @@ Real-time update frequencies have been optimized for maximum responsiveness:
 ### 6. UI Update Debouncing
 - **Dashboard Updates**: 3s → **1s** (optimized for real-time)
 - **Real-time Status**: 5s → **1s** (optimized for real-time)
+
+### 7. Taskboard-Specific Optimizations
+- **SSE Update Interval**: 1000ms → **300ms** (ultra-fast real-time updates)
+- **SSE Debounce Timeout**: 1000ms → **200ms** (reduced delay)
+- **Fallback Polling**: 30s → **10s** (faster fallback)
+- **Database Query Timeout**: 25s → **10s** (faster response)
+- **API Timeout**: 10s → **6s** (faster client timeout)
+- **New Optimized Endpoint**: `/api/taskboard/candidates` (streamlined for taskboard)
+- **Initial Load Pagination**: All candidates → **200 candidates** (faster initial load)
 - **Minimum Update Interval**: 3s → **1s** (optimized for real-time)
 
-### 7. Global Settings
+### 8. Global Settings
 - **Minimum Fetch Interval**: 3s → **1s** (optimized for real-time)
 - **Global Event Limit**: 5/s → **1/s** (optimized for real-time)
 - **Batch Flush Interval**: 5s → **1s** (optimized for real-time)
 
 ## Benefits
 
-### ✅ **Maximum Real-time Performance**
-- Event frequency optimized to ~1/s for real-time responsiveness
+### ✅ **Ultra-Fast Real-time Performance**
+- Event frequency optimized to ~500ms for ultra-fast real-time responsiveness
 - Maximum responsiveness for user interactions
-- Real-time data synchronization
+- Real-time data synchronization with minimal delay
 
-### ✅ **Ultra-Responsive Updates**
-- Real-time updates every 1 second
-- Maximum user experience responsiveness
-- Immediate data synchronization
+### ✅ **Taskboard-Specific Optimizations**
+- Taskboard updates now respond in ~500ms (down from 2+ seconds)
+- Optimized database queries with faster timeouts
+- Dedicated API endpoint for taskboard performance
+- Reduced initial load time with pagination
 
 ### ✅ **Better Fallback Strategy**
-- 30-second polling when SSE fails
+- 10-second polling when SSE fails (reduced from 30 seconds)
 - Maintains responsiveness even during connection issues
 - Balanced resource usage
 

@@ -181,7 +181,7 @@ export function AdvancedQuerySyntaxModal({ isOpen, onOpenChange }: AdvancedQuery
                   Status names are automatically converted to UUIDs. Use these common status names:
                 </p>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                  {['Applied', 'Screening', 'Shortlisted', 'Interviewing', 'On Hold', 'Hired', 'Rejected', 'Withdrawn'].map(status => (
+                  {['Applied', 'Screening', 'Shortlisted', 'Interview Scheduled', 'Interviewing', 'Offer Extended', 'Offer Accepted', 'Hired', 'Rejected', 'On Hold'].map(status => (
                     <Badge key={status} variant="outline" className="text-xs bg-green-100 dark:bg-green-900/30 border-green-300 dark:border-green-700">
                       {status}
                     </Badge>

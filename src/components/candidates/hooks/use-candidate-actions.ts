@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { Candidate, CandidateStatus } from '@/lib/types';
 import { toast } from "react-hot-toast";
+import { getErrorMessage } from '@/lib/networkUtils';
 
 interface UseCandidateActionsProps {
   setFilteredCandidates: (candidates: Candidate[] | ((prev: Candidate[]) => Candidate[])) => void;
@@ -96,7 +97,7 @@ export function useCandidateActions({
       ));
       
       if (!suppressToast) {
-        toast.error((error as Error).message || 'Failed to update status', { id: candidateId });
+        toast.error(getErrorMessage(error), { id: candidateId });
       }
     }
   }, [setFilteredCandidates, setAllCandidatesForCounts, fetchTableData, filters, page, pageSize, aiMatchedCandidateIds]);
@@ -145,7 +146,7 @@ export function useCandidateActions({
       setFilteredCandidates(prev => [...prev, originalCandidate]);
       setAllCandidatesForCounts(prev => [...prev, originalCandidate]);
       
-      toast.error((error as Error).message || 'Failed to delete candidate', { id: candidateId });
+      toast.error(getErrorMessage(error), { id: candidateId });
     }
   }, [setFilteredCandidates, setAllCandidatesForCounts, fetchTableData, filters, page, pageSize, aiMatchedCandidateIds]);
 
@@ -219,7 +220,7 @@ export function useCandidateActions({
         )
       );
       
-      toast.error((error as Error).message || 'Failed to assign recruiter', { id: candidateId });
+      toast.error(getErrorMessage(error), { id: candidateId });
     }
   }, [setFilteredCandidates, setAllCandidatesForCounts, fetchTableData, filters, page, pageSize, aiMatchedCandidateIds]);
 
@@ -293,7 +294,7 @@ export function useCandidateActions({
         )
       );
       
-      toast.error((error as Error).message || 'Failed to assign source', { id: candidateId });
+      toast.error(getErrorMessage(error), { id: candidateId });
     }
   }, [setFilteredCandidates, setAllCandidatesForCounts, fetchTableData, filters, page, pageSize, aiMatchedCandidateIds]);
 

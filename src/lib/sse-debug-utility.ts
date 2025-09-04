@@ -97,7 +97,6 @@ export class SSEDebugUtility {
     // Monitor readyState changes
     this.monitorReadyState(eventSource, connectionId);
 
-    console.log(`[SSE Debug] Tracking new connection: ${url}`);
   }
 
   private updateConnectionInfo(connectionId: string, eventType: 'message' | 'error' | 'open'): void {
@@ -133,7 +132,6 @@ export class SSEDebugUtility {
         connection.readyState = newReadyState;
         connection.readyStateText = this.getReadyStateText(newReadyState);
         
-        console.log(`[SSE Debug] ${connection.url} readyState changed to: ${connection.readyStateText}`);
       }
 
       // Continue monitoring if connection is still active
@@ -175,7 +173,6 @@ export class SSEDebugUtility {
     connection.isHanging = hangingScore > 5;
 
     if (connection.isHanging && this.debugMode) {
-      console.warn(`[SSE Debug] Potential hanging connection detected: ${connection.url}`, {
         hangingScore: connection.hangingScore,
         timeSinceLastMessage,
         connectionAge,
@@ -213,7 +210,6 @@ export class SSEDebugUtility {
     });
 
     if (hangingCount > 0) {
-      console.warn(`[SSE Debug] Detected ${hangingCount} potentially hanging connections`);
     }
   }
 
@@ -249,7 +245,6 @@ export class SSEDebugUtility {
     };
 
     if (this.debugMode) {
-      console.log('[SSE Debug] Debug Report:', report);
     }
 
     return report;
@@ -257,12 +252,10 @@ export class SSEDebugUtility {
 
   public enableDebugMode(): void {
     this.debugMode = true;
-    console.log('[SSE Debug] Debug mode enabled');
   }
 
   public disableDebugMode(): void {
     this.debugMode = false;
-    console.log('[SSE Debug] Debug mode disabled');
   }
 
   public getConnectionStats(): { total: number; hanging: number; healthy: number } {
@@ -278,11 +271,9 @@ export class SSEDebugUtility {
   }
 
   public forceCloseHangingConnections(): void {
-    console.log('[SSE Debug] Force closing hanging connections...');
     
     this.connections.forEach((connection, connectionId) => {
       if (connection.isHanging) {
-        console.warn(`[SSE Debug] Force closing hanging connection: ${connection.url}`);
         this.connections.delete(connectionId);
       }
     });
@@ -298,13 +289,8 @@ export class SSEDebugUtility {
     const report = utility.getDetailedReport();
 
     console.group('🔍 SSE Connection Summary');
-    console.log(`Total Connections: ${stats.total}`);
-    console.log(`Healthy: ${stats.healthy}`);
-    console.log(`Potentially Hanging: ${stats.hanging}`);
     
     if (report.recommendations.length > 0) {
-      console.log('Recommendations:');
-      report.recommendations.forEach(rec => console.log(`- ${rec}`));
     }
     
     console.groupEnd();

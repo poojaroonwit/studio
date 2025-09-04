@@ -108,9 +108,10 @@ export function useCandidateSettings() {
       return;
     }
 
-    try {
-      setError(null);
+    setIsLoading(true);
+    setError(null);
 
+    try {
       const response = await fetch('/api/user-preferences', {
         method: 'POST',
         headers: {
@@ -123,7 +124,8 @@ export function useCandidateSettings() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to save settings');
+        const errorText = await response.text();
+        throw new Error(`Failed to save settings: ${response.status} ${response.statusText} - ${errorText}`);
       }
 
       // Update local state
@@ -132,6 +134,8 @@ export function useCandidateSettings() {
       console.error('Error saving candidate settings:', err);
       setError(err instanceof Error ? err.message : 'Failed to save settings');
       throw err; // Re-throw so the UI can handle it
+    } finally {
+      setIsLoading(false);
     }
   }, [session?.user?.id, status]);
 

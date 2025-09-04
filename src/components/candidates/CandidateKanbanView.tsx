@@ -19,6 +19,7 @@ import { getCandidatePersonalColor, getCandidateCardStyles } from "@/lib/persona
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
+import { getErrorMessage } from '@/lib/networkUtils';
 
 
 
@@ -652,7 +653,7 @@ export function CandidateRowKanbanView({
         // since we don't have access to the HeadcountWarningModal here
         toast.error(error.message, { duration: 8000 });
       } else {
-        toast.error(error?.message || 'Update failed', { id: candidate.id });
+        toast.error(getErrorMessage(error), { id: candidate.id });
       }
     }
   };
@@ -859,7 +860,7 @@ export function FlexibleKanbanView({
         // since we don't have access to the HeadcountWarningModal here
         toast.error(error.message, { duration: 8000 });
       } else {
-        toast.error(error?.message || 'Update failed', { id: candidate.id });
+        toast.error(getErrorMessage(error), { id: candidate.id });
       }
     }
   };
@@ -2366,7 +2367,7 @@ export function HorizontalStageKanbanView({
         // since we don't have access to the HeadcountWarningModal here
         toast.error(error.message, { duration: 8000 });
       } else {
-        toast.error(error?.message || 'Update failed', { id: candidate.id });
+        toast.error(getErrorMessage(error), { id: candidate.id });
       }
     }
   };

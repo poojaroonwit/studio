@@ -26,13 +26,11 @@ export function cleanupOfflineUsers() {
           userPresenceStore.delete(userId);
         }
       } catch (error) {
-        console.error(`Error cleaning up user ${userId}:`, error);
         // Remove corrupted entries
         userPresenceStore.delete(userId);
       }
     }
   } catch (error) {
-    console.error('Error in cleanupOfflineUsers:', error);
   }
 }
 
@@ -47,32 +45,27 @@ if (!__presenceGlobal.__presenceCleanupInterval) {
 export function setUserPresence(userId: string, presence: UserPresence) {
   try {
     if (!userId || !presence) {
-      console.error('Invalid userId or presence data:', { userId, presence });
       return;
     }
     
     // Validate presence data
     if (!presence.userName || !presence.userRole) {
-      console.error('Invalid presence data - missing required fields:', presence);
       return;
     }
     
     userPresenceStore.set(userId, presence);
   } catch (error) {
-    console.error('Error setting user presence:', error);
   }
 }
 
 export function getUserPresence(userId: string): UserPresence | undefined {
   try {
     if (!userId) {
-      console.error('Invalid userId provided to getUserPresence');
       return undefined;
     }
     
     return userPresenceStore.get(userId);
   } catch (error) {
-    console.error('Error getting user presence:', error);
     return undefined;
   }
 }
@@ -91,12 +84,10 @@ export function getAllUserPresence(): UserPresence[] {
         // Filter out any corrupted entries
         return presence && presence.userId && presence.userName;
       } catch (error) {
-        console.warn('PresenceStore: Error filtering presence entry:', error, presence);
         return false;
       }
     });
   } catch (error) {
-    console.error('Error getting all user presence:', error);
     return [];
   }
 }
@@ -104,20 +95,17 @@ export function getAllUserPresence(): UserPresence[] {
 export function removeUserPresence(userId: string) {
   try {
     if (!userId) {
-      console.error('Invalid userId provided to removeUserPresence');
       return;
     }
     
     userPresenceStore.delete(userId);
   } catch (error) {
-    console.error('Error removing user presence:', error);
   }
 }
 
 export function markUserOffline(userId: string) {
   try {
     if (!userId) {
-      console.error('Invalid userId provided to markUserOffline');
       return;
     }
     
@@ -128,14 +116,12 @@ export function markUserOffline(userId: string) {
       userPresenceStore.set(userId, existingPresence);
     }
   } catch (error) {
-    console.error('Error marking user offline:', error);
   }
 }
 
 export function updateUserPage(userId: string, currentPage: string) {
   try {
     if (!userId || !currentPage) {
-      console.error('Invalid userId or currentPage provided to updateUserPage:', { userId, currentPage });
       return;
     }
     
@@ -146,7 +132,6 @@ export function updateUserPage(userId: string, currentPage: string) {
       userPresenceStore.set(userId, existingPresence);
     }
   } catch (error) {
-    console.error('Error updating user page:', error);
   }
 }
 
@@ -159,7 +144,6 @@ export function getPresenceStoreStats() {
         const values = Array.from(userPresenceStore.values());
         // Defensive check to prevent filter errors
         if (!Array.isArray(values)) {
-          console.warn('PresenceStore: values is not an array:', values);
           return 0;
         }
         
@@ -167,12 +151,10 @@ export function getPresenceStoreStats() {
           try {
             return p && p.isOnline;
           } catch (error) {
-            console.warn('PresenceStore: Error filtering online presence:', error, p);
             return false;
           }
         }).length;
       } catch (error) {
-        console.error('PresenceStore: Error counting online users:', error);
         return 0;
       }
     })();
@@ -185,7 +167,6 @@ export function getPresenceStoreStats() {
       storeSize: userPresenceStore.size
     };
   } catch (error) {
-    console.error('Error getting presence store stats:', error);
     return {
       totalUsers: 0,
       onlineUsers: 0,

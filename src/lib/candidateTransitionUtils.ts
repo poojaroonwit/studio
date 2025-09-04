@@ -1,4 +1,5 @@
 import { toast } from 'react-hot-toast';
+import { getErrorMessage } from './networkUtils';
 
 export async function updateCandidateStatusWithNotes(candidateId: string, status: string, notes?: string, suppressToast?: boolean) {
   // Use the bulk endpoint for consistency
@@ -44,7 +45,7 @@ export async function updateCandidatesStatusBulk(candidateIds: string[], status:
   } catch (error: any) {
     console.error('Error in updateCandidatesStatusBulk:', error);
     if (!suppressToast) {
-      toast.error(error.message || 'Failed to update candidate(s).');
+      toast.error(getErrorMessage(error));
     }
     throw error;
   }

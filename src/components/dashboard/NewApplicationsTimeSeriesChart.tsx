@@ -27,6 +27,9 @@ type ComparisonPeriod = '12' | '24' | '36' | '48' | '60';
 
 // Add new types for period selection
 const PERIOD_TYPES = [
+  { label: 'Today', value: 'today' },
+  { label: 'Yesterday', value: 'yesterday' },
+  { label: 'Last N Days', value: 'lastNDays' },
   { label: 'This', value: 'this' },
   { label: 'Last', value: 'last' },
   { label: 'Past', value: 'pastN' },
@@ -43,12 +46,12 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
   const { chartReady, isLoading: chartLoading, error: chartError } = useChartSetup();
 
   // New state for period selection
-  const [periodType, setPeriodType] = useState<'this'|'last'|'pastN'|'custom'>('pastN');
+  const [periodType, setPeriodType] = useState<'today'|'yesterday'|'lastNDays'|'this'|'last'|'pastN'|'custom'>('lastNDays');
   const [periodUnit, setPeriodUnit] = useState<'week'|'month'|'year'>('week');
-  const [periodN, setPeriodN] = useState<number>(12);
+  const [periodN, setPeriodN] = useState<number>(7); // Default to 7 days for "Last N Days"
   const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
     const now = new Date();
-    const startDate = subMonths(now, 12);
+    const startDate = subWeeks(now, 1); // Default to last 7 days
     return {
       from: startDate,
       to: now
@@ -62,6 +65,7 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
     let end: Date = now;
     let intervalFn: any = eachWeekOfInterval;
     let formatFn: (date: Date) => string = (date) => format(date, 'MMM dd');
+    
     if (periodType === 'custom' && dateRange?.from && dateRange?.to) {
       start = dateRange.from;
       end = dateRange.to;
@@ -79,6 +83,43 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
     } else {
       let n = periodN;
       switch (periodType) {
+        case 'today':
+          start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+          // Create hourly intervals for today
+          intervalFn = () => {
+            const hours = [];
+            for (let i = 0; i < 24; i++) {
+              hours.push(new Date(start.getFullYear(), start.getMonth(), start.getDate(), i, 0, 0, 0));
+            }
+            return hours;
+          };
+          formatFn = (date: Date) => format(date, 'HH:mm');
+          break;
+        case 'yesterday':
+          const yesterday = new Date(now);
+          yesterday.setDate(yesterday.getDate() - 1);
+          start = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+          end = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59, 999);
+          // Create hourly intervals for yesterday
+          intervalFn = () => {
+            const hours = [];
+            for (let i = 0; i < 24; i++) {
+              hours.push(new Date(start.getFullYear(), start.getMonth(), start.getDate(), i, 0, 0, 0));
+            }
+            return hours;
+          };
+          formatFn = (date: Date) => format(date, 'HH:mm');
+          break;
+        case 'lastNDays':
+          start = new Date(now);
+          start.setDate(start.getDate() - n);
+          start.setHours(0, 0, 0, 0);
+          end = new Date(now);
+          end.setHours(23, 59, 59, 999);
+          intervalFn = eachDayOfInterval;
+          formatFn = (date: Date) => format(date, 'MMM dd');
+          break;
         case 'this':
           if (periodUnit === 'week') {
             start = startOfWeek(now);
@@ -157,6 +198,12 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
         } else {
           intervalEnd = endOfMonth(intervalStart);
         }
+      } else if (periodType === 'today' || periodType === 'yesterday') {
+        // For today/yesterday, show hourly intervals
+        intervalEnd = new Date(intervalStart.getTime() + 60 * 60 * 1000); // Add 1 hour
+      } else if (periodType === 'lastNDays') {
+        // For last N days, use daily intervals
+        intervalEnd = addDays(intervalStart, 1);
       } else {
         // For daily intervals (this week, last week), use end of day
         if (periodType === 'this' || periodType === 'last') {
@@ -215,6 +262,12 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
         } else {
           intervalEnd = endOfMonth(intervalStart);
         }
+      } else if (periodType === 'today' || periodType === 'yesterday') {
+        // For today/yesterday, show hourly intervals
+        intervalEnd = new Date(intervalStart.getTime() + 60 * 60 * 1000); // Add 1 hour
+      } else if (periodType === 'lastNDays') {
+        // For last N days, use daily intervals
+        intervalEnd = addDays(intervalStart, 1);
       } else {
         // For daily intervals (this week, last week), use end of day
         if (periodType === 'this' || periodType === 'last') {
@@ -374,17 +427,31 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
                 ))}
               </SelectContent>
             </Select>
+            {periodType === 'lastNDays' && (
+              <div className="flex items-center gap-1">
+                <input
+                  type="number"
+                  min={1}
+                  max={365}
+                  value={periodN}
+                  onChange={e => setPeriodN(Number(e.target.value))}
+                  className="w-16 h-8 text-xs border border-input bg-background text-foreground rounded-md px-2 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                  style={{ minWidth: 40 }}
+                />
+                <span className="text-xs text-muted-foreground">days</span>
+              </div>
+            )}
             {periodType === 'pastN' && (
               <div className="flex items-center gap-1">
-                                 <input
-                   type="number"
-                   min={1}
-                   max={100}
-                   value={periodN}
-                   onChange={e => setPeriodN(Number(e.target.value))}
-                   className="w-16 h-8 text-xs border border-input bg-background text-foreground rounded-md px-2 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                   style={{ minWidth: 40 }}
-                 />
+                <input
+                  type="number"
+                  min={1}
+                  max={100}
+                  value={periodN}
+                  onChange={e => setPeriodN(Number(e.target.value))}
+                  className="w-16 h-8 text-xs border border-input bg-background text-foreground rounded-md px-2 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                  style={{ minWidth: 40 }}
+                />
                 <Select value={periodUnit} onValueChange={v => setPeriodUnit(v as any)}>
                   <SelectTrigger className="w-28 h-8 text-xs">
                     <SelectValue />
@@ -397,7 +464,7 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
                 </Select>
               </div>
             )}
-            {periodType !== 'custom' && periodType !== 'pastN' && (
+            {periodType !== 'custom' && periodType !== 'pastN' && periodType !== 'today' && periodType !== 'yesterday' && periodType !== 'lastNDays' && (
               <Select value={periodUnit} onValueChange={v => setPeriodUnit(v as any)}>
                 <SelectTrigger className="w-28 h-8 text-xs">
                   <SelectValue />

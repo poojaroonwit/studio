@@ -1289,7 +1289,7 @@ export default function PositionsPageClient() {
       </div>
 
       {/* Realtime Connection Status */}
-      <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 px-3 py-2 rounded-md flex-shrink-0 mb-4">
+      {/* <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 px-3 py-2 rounded-md flex-shrink-0 mb-4">
         <div className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full border ${
           realtimeConnected 
             ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800' 
@@ -1303,7 +1303,7 @@ export default function PositionsPageClient() {
         <span className="text-xs text-muted-foreground">
           {realtimeConnected ? 'Realtime updates are active' : 'Realtime updates are offline'}
         </span>
-      </div>
+      </div> */}
 
       {/* Search Status Indicator */}
       {(searchTerm || statusFilter !== 'all' || departmentFilter !== 'all') && (

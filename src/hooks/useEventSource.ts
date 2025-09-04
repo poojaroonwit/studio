@@ -35,7 +35,6 @@ export function useEventSource(url: string, options: EventSourceOptions = {}) {
       try {
         eventSourceRef.current.close();
       } catch (e) {
-        console.warn('[EventSource] Error closing connection:', e);
       }
       eventSourceRef.current = null;
     }
@@ -56,7 +55,6 @@ export function useEventSource(url: string, options: EventSourceOptions = {}) {
     if (enableCircuitBreaker && isCircuitOpen) {
       const timeSinceLastError = Date.now() - lastErrorTimeRef.current;
       if (timeSinceLastError < 60000) { // 1 minute circuit breaker
-        console.warn('[EventSource] Circuit breaker open, skipping connection attempt');
         return;
       } else {
         setIsCircuitOpen(false);
@@ -66,7 +64,6 @@ export function useEventSource(url: string, options: EventSourceOptions = {}) {
 
     // Don't retry if we've exceeded max retries
     if (retryCount >= maxRetries) {
-      console.warn('[EventSource] Max retries exceeded, giving up');
       setError(`Connection failed after ${maxRetries} attempts`);
       setIsCircuitOpen(true);
       lastErrorTimeRef.current = Date.now();
@@ -76,14 +73,12 @@ export function useEventSource(url: string, options: EventSourceOptions = {}) {
     cleanup();
 
     try {
-      console.log(`[EventSource] Attempting connection to ${url} (attempt ${retryCount + 1}/${maxRetries + 1})`);
       
       const es = new EventSource(url, { withCredentials });
       eventSourceRef.current = es;
 
       // Set connection timeout
       timeoutRef.current = setTimeout(() => {
-        console.warn('[EventSource] Connection timeout, closing');
         cleanup();
         setConnected(false);
         setError('Connection timeout');
@@ -101,7 +96,6 @@ export function useEventSource(url: string, options: EventSourceOptions = {}) {
       }, timeoutMs);
 
       es.onopen = () => {
-        console.log('[EventSource] Connected successfully');
         cleanup(); // Clear timeout
         setConnected(true);
         setError(null);
@@ -110,7 +104,6 @@ export function useEventSource(url: string, options: EventSourceOptions = {}) {
       };
 
       es.onerror = (event) => {
-        console.warn('[EventSource] Connection error:', event);
         cleanup();
         setConnected(false);
         setError('Connection error');
@@ -137,7 +130,6 @@ export function useEventSource(url: string, options: EventSourceOptions = {}) {
       };
 
     } catch (error) {
-      console.error('[EventSource] Failed to create connection:', error);
       setError(`Failed to create connection: ${error}`);
       setConnected(false);
       
@@ -161,7 +153,6 @@ export function useEventSource(url: string, options: EventSourceOptions = {}) {
   }, [connect, cleanup]);
 
   const reconnect = useCallback(() => {
-    console.log('[EventSource] Manual reconnect requested');
     setRetryCount(0);
     setIsCircuitOpen(false);
     setError(null);

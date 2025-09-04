@@ -75,12 +75,10 @@ export function broadcastToAll(eventType: SSEEventType, data: any) {
 // Connection management
 export function addConnection(userId: string, controller: ReadableStreamDefaultController) {
   connections.set(userId, controller);
-  console.log(`[SSE] User ${userId} connected. Total connections: ${connections.size}`);
 }
 
 export function removeConnection(userId: string) {
   connections.delete(userId);
-  console.log(`[SSE] User ${userId} disconnected. Total connections: ${connections.size}`);
 }
 
 // Get connection stats
@@ -93,7 +91,6 @@ export function getConnectionStats() {
 
 // SSE Route Handler
 export async function handleSSEConnection(request: Request) {
-  console.log('[SSE] New connection request received');
   
   try {
     // Authenticate user
@@ -101,11 +98,9 @@ export async function handleSSEConnection(request: Request) {
     const userId = session?.user?.id;
 
     if (!userId) {
-      console.log('[SSE] Authentication failed - no user session');
       return new Response('Unauthorized', { status: 401 });
     }
 
-    console.log(`[SSE] User ${userId} authenticated successfully`);
 
     const encoder = new TextEncoder();
     let keepaliveInterval: NodeJS.Timeout;
@@ -113,7 +108,6 @@ export async function handleSSEConnection(request: Request) {
 
     const stream = new ReadableStream({
       start(controller) {
-        console.log(`[SSE] Starting stream for user ${userId}`);
         
         // Add connection
         addConnection(userId, controller);
@@ -128,7 +122,7 @@ export async function handleSSEConnection(request: Request) {
         });
         controller.enqueue(encoder.encode(`data: ${initialData}\n\n`));
 
-        // Send keepalive every 1 second
+        // Send keepalive every 500ms for faster real-time updates
         keepaliveInterval = setInterval(() => {
           try {
             const keepaliveData = JSON.stringify({
@@ -137,32 +131,26 @@ export async function handleSSEConnection(request: Request) {
               uptime: Date.now() - connectionStartTime
             });
             controller.enqueue(encoder.encode(`event: keepalive\ndata: ${keepaliveData}\n\n`));
-            console.log(`[SSE] Keepalive sent to user ${userId}`);
           } catch (error) {
-            console.error(`[SSE] Keepalive failed for user ${userId}:`, error);
             clearInterval(keepaliveInterval);
             removeConnection(userId);
           }
-        }, 1000);
+        }, 500); // Reduced from 1000ms to 500ms for faster real-time updates
 
         // Cleanup on connection close
         request.signal.addEventListener('abort', () => {
-          console.log(`[SSE] Connection aborted for user ${userId}`);
           clearInterval(keepaliveInterval);
           removeConnection(userId);
           try { controller.close(); } catch (e) {
-            console.error(`[SSE] Error closing controller for user ${userId}:`, e);
           }
         });
       },
       cancel() {
-        console.log(`[SSE] Stream cancelled for user ${userId}`);
         clearInterval(keepaliveInterval);
         removeConnection(userId);
       }
     });
 
-    console.log(`[SSE] Returning response for user ${userId}`);
 
     return new Response(stream, {
       headers: {
@@ -183,7 +171,6 @@ export async function handleSSEConnection(request: Request) {
       },
     });
   } catch (error) {
-    console.error('[SSE] Connection error:', error);
     return new Response('Internal Server Error', { status: 500 });
   }
 }

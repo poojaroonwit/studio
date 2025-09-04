@@ -160,7 +160,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     let mounted = true;
     let refreshTimeout: NodeJS.Timeout;
     let lastUpdateTime = 0;
-    const MIN_UPDATE_INTERVAL = 1000; // Minimum 1 second between updates
+    const MIN_UPDATE_INTERVAL = 300; // Reduced from 1000ms to 300ms for faster updates
     
     // Only subscribe to events if user is authenticated
     if (status !== 'authenticated' || !session?.user?.id) {
@@ -205,7 +205,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
               setRefreshTrigger(prev => prev + 1);
             }
           }
-        }, 1000); // 1 second debounce for better performance
+        }, 200); // Reduced from 1000ms to 200ms for much faster response
       }
     });
     
@@ -230,7 +230,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
           if (filters.stage) params.append('status', filters.stage);
           if (filters.recruiterId) params.append('recruiterId', filters.recruiterId);
           
-          const result = await safeFetch(`/api/candidates?${params.toString()}`, { timeoutMs: 10000 });
+          const result = await safeFetch(`/api/taskboard/candidates?${params.toString()}`, { timeoutMs: 6000 });
           if (result.ok && result.data) {
             setCandidates(Array.isArray(result.data) ? result.data : ((result.data as any)?.data || []));
           } else {
@@ -256,7 +256,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     }
   }, [realtimeConnected]);
 
-  // Add periodic refresh as fallback (every 10 seconds)
+  // Add periodic refresh as fallback (reduced from 30 to 10 seconds for better responsiveness)
   useEffect(() => {
     if (!session?.user?.id) return;
     
@@ -274,9 +274,9 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
             if (filters.stage) params.append('status', filters.stage);
             if (filters.recruiterId) params.append('recruiterId', filters.recruiterId);
             
-            const result = await safeFetch(`/api/candidates?${params.toString()}`, { timeoutMs: 10000 });
+            const result = await safeFetch(`/api/taskboard/candidates?${params.toString()}`, { timeoutMs: 6000 });
             if (result.ok && result.data) {
-              const newCandidates = Array.isArray(result.data) ? result.data : (result.data.data || []);
+              const newCandidates = Array.isArray(result.data) ? result.data : ((result.data as any)?.data || []);
             
               // Only update if the data has actually changed
               if (JSON.stringify(newCandidates.map((c: any) => ({ id: c.id, status: c.status, updatedAt: c.updatedAt }))) !== 
@@ -296,7 +296,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
         
         refreshCandidates();
       }
-    }, 30000); // 30 seconds
+    }, 10000); // Reduced from 30 seconds to 10 seconds for better responsiveness
     
     return () => clearInterval(interval);
   }, [session?.user?.id, loading, candidates, filters, realtimeConnected]);
@@ -475,16 +475,17 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     fetchTotalCount();
   }, []);
 
-  // Initial load of candidates (all candidates, no limit)
+  // Initial load of candidates (with pagination for better performance)
   useEffect(() => {
     const fetchCandidates = async () => {
       setLoading(true);
       try {
-        const result = await safeFetch('/api/candidates', { timeoutMs: 10000 }); // No limit - fetch all candidates
+        // Use optimized taskboard endpoint for faster loading
+        const result = await safeFetch('/api/taskboard/candidates?limit=200&page=1', { timeoutMs: 6000 });
         if (result.ok && result.data) {
-          setCandidates(Array.isArray(result.data) ? result.data : (result.data.data || []));
+          setCandidates(Array.isArray(result.data) ? result.data : ((result.data as any)?.data || []));
         } else {
-          console.warn('Skipping failed endpoint /api/candidates (all):', result.error || result.status);
+          console.warn('Skipping failed endpoint /api/candidates (initial):', result.error || result.status);
           setCandidates([]);
         }
       } catch (e) {
@@ -515,7 +516,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
           if (filters.recruiterId) params.append('recruiterId', filters.recruiterId);
           // No limit parameter - fetch all matching candidates
           
-          const result = await safeFetch(`/api/candidates?${params.toString()}`, { timeoutMs: 10000 });
+          const result = await safeFetch(`/api/taskboard/candidates?${params.toString()}`, { timeoutMs: 6000 });
           if (result.ok && result.data) {
             setCandidates(Array.isArray(result.data) ? result.data : ((result.data as any)?.data || []));
           } else {

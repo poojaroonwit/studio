@@ -8,6 +8,7 @@
 
 import { z } from 'zod';
 import { getPool } from '@/lib/db';
+import { isValidDate } from '@/lib/utils';
 import { logAudit } from '@/lib/auditLog';
 import { executeWithApiKeyFallback } from '@/lib/aiApiKeyManager';
 import type { Candidate, CandidateDetails, EducationEntry, ExperienceEntry, SkillEntry, JobSuitableEntry, TransitionRecord } from '@/lib/types';
@@ -44,7 +45,13 @@ async function createCandidateSummary(candidate: Candidate): Promise<string> {
   if (applicationDate) summaryParts.push(`Application Date: ${new Date(applicationDate).toLocaleDateString()}`);
   if (recruiter?.name) summaryParts.push(`Assigned Recruiter: ${recruiter.name}`);
   
-  const latestTransition = transitionHistory?.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+  const latestTransition = transitionHistory?.sort((a, b) => {
+    const dateA = new Date(a.date);
+    const dateB = new Date(b.date);
+    // Use safe date comparison to prevent getTime errors
+    if (!isValidDate(dateA) || !isValidDate(dateB)) return 0;
+    return dateB.getTime() - dateA.getTime();
+  })[0];
   if (latestTransition) {
     const stageName = await getRecruitmentStageName(latestTransition.stage) || latestTransition.stage;
     summaryParts.push(`Last Status Update: ${stageName} on ${new Date(latestTransition.date).toLocaleDateString()}`);

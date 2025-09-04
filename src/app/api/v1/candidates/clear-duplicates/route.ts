@@ -3,6 +3,7 @@ import { verifyApiToken } from '@/lib/auth';
 import { handleCors } from '@/lib/cors';
 import { logAudit } from '@/lib/auditLog';
 import prisma from '@/lib/prisma';
+import { isValidDate } from '@/lib/utils';
 
 export const runtime = 'nodejs';
 
@@ -194,9 +195,13 @@ export async function POST(req: NextRequest) {
 
     for (const group of duplicateGroups) {
       // Sort by creation date (earliest first) and keep the first one
-      const sortedCandidates = group.candidates.sort((a, b) => 
-        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-      );
+      const sortedCandidates = group.candidates.sort((a, b) => {
+        const dateA = new Date(a.createdAt);
+        const dateB = new Date(b.createdAt);
+        // Use safe date comparison to prevent getTime errors
+        if (!isValidDate(dateA) || !isValidDate(dateB)) return 0;
+        return dateA.getTime() - dateB.getTime();
+      });
       
       const keptCandidate = sortedCandidates[0];
       const toDelete = sortedCandidates.slice(1);

@@ -132,7 +132,7 @@ export default function CandidateImportModal({ isOpen, onOpenChange, onImportSuc
 
   return (
     <Dialog open={isOpen} onOpenChange={handleModalClose}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[800px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <UploadCloud className="h-5 w-5" />
@@ -144,55 +144,58 @@ export default function CandidateImportModal({ isOpen, onOpenChange, onImportSuc
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Template Download Section */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium">Step 1: Download Template</h3>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleDownloadTemplate}
-                disabled={isDownloadingTemplate}
-                className="flex items-center gap-2"
-              >
-                {isDownloadingTemplate ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Download className="h-4 w-4" />
-                )}
-                Download Template
-              </Button>
-            </div>
-            <div className="text-sm text-muted-foreground space-y-2">
-              <p>• Download the template to see the required format</p>
-              <p>• Fill in the data following the instructions</p>
-              <p>• Leave ID blank for new candidates, or provide existing ID for updates</p>
-            </div>
-          </div>
-
-          {/* File Upload Section */}
-          <div className="space-y-3">
-            <h3 className="text-sm font-medium">Step 2: Upload File</h3>
-            <FileUploadArea
-              accept=".xlsx,.xls,.csv"
-              multiple={false}
-              maxFileSize={10 * 1024 * 1024} // 10MB
-              onFilesChange={handleFileSelect}
-              dragActive={dragActive}
-              setDragActive={setDragActive}
-            />
-            
-            {selectedFile && (
-              <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-md">
-                <CheckCircle className="h-4 w-4 text-green-600" />
-                <span className="text-sm text-green-800">
-                  Selected: {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
-                </span>
+          {/* Two Column Layout */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Left Column - Template Download Section */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium">Step 1: Download Template</h3>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDownloadTemplate}
+                  disabled={isDownloadingTemplate}
+                  className="flex items-center gap-2"
+                >
+                  {isDownloadingTemplate ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4" />
+                  )}
+                  Download Template
+                </Button>
               </div>
-            )}
+              <div className="text-sm text-muted-foreground space-y-2">
+                <p>• Download the template to see the required format</p>
+                <p>• Fill in the data following the instructions</p>
+                <p>• Leave ID blank for new candidates, or provide existing ID for updates</p>
+              </div>
+            </div>
+
+            {/* Right Column - File Upload Section */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-medium">Step 2: Upload File</h3>
+              <FileUploadArea
+                accept=".xlsx,.xls,.csv"
+                multiple={false}
+                maxFileSize={10 * 1024 * 1024} // 10MB
+                onFilesChange={handleFileSelect}
+                dragActive={dragActive}
+                setDragActive={setDragActive}
+              />
+              
+              {selectedFile && (
+                <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-md">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <span className="text-sm text-green-800">
+                    Selected: {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Import Instructions */}
+          {/* Import Instructions - Full Width */}
           <div className="space-y-3">
             <h3 className="text-sm font-medium">Import Instructions</h3>
             <div className="text-sm text-muted-foreground space-y-2">

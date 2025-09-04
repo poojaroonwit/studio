@@ -16,9 +16,13 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
   const [mounted, setMounted] = useState(false);
   const portalContainerRef = useRef<HTMLDivElement | null>(null);
   
-  // Use modal manager for proper z-index handling
-  const modalId = candidateId ? `candidate-detail-${candidateId}` : 'candidate-detail-unknown';
-  const { zIndex, overlayZIndex } = useModalManager(modalId, 'custom');
+  // TEMPORARILY DISABLED: Modal manager for debugging
+  // const modalId = candidateId ? `candidate-detail-${candidateId}` : 'candidate-detail-unknown';
+  // const { zIndex, overlayZIndex } = useModalManager(modalId, 'custom');
+  
+  // Use fixed z-index values for testing
+  const zIndex = 60000;
+  const overlayZIndex = 59999;
 
   // Add infinite loop prevention
   // Simple tracking for debugging (removed complex infinite loop prevention)

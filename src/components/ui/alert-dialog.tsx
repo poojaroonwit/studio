@@ -34,9 +34,13 @@ const AlertDialogContent = React.forwardRef<
     modalId?: string;
   }
 >(({ className, modalId, ...props }, ref) => {
-  // Generate a unique ID for this modal if not provided
-  const id = modalId || `alert-dialog-${React.useId()}`;
-  const { zIndex, overlayZIndex } = useModalManager(id, 'alert-dialog');
+  // TEMPORARILY DISABLED: Modal manager for debugging
+  // const id = modalId || `alert-dialog-${React.useId()}`;
+  // const { zIndex, overlayZIndex } = useModalManager(id, 'alert-dialog');
+  
+  // Use fixed z-index values for testing
+  const zIndex = 50000;
+  const overlayZIndex = 49999;
 
   return (
     <AlertDialogPortal>

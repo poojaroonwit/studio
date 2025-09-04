@@ -16,7 +16,7 @@ interface ModalInstance {
 class ModalManager {
   private modals: Map<string, ModalInstance> = new Map();
   private globalOverlay: HTMLElement | null = null;
-  private nextZIndex = 10000;
+  private nextZIndex = 50000; // Increased base z-index to ensure modals are visible
 
   /**
    * Register a new modal instance
@@ -26,7 +26,7 @@ class ModalManager {
       // Safety check for undefined id
       if (!id || typeof id !== 'string') {
         console.warn('ModalManager.registerModal: Invalid id provided:', id);
-        return 10000; // Return default z-index
+        return 50000; // Return default z-index
       }
 
       const zIndex = this.nextZIndex;
@@ -42,7 +42,7 @@ class ModalManager {
       return zIndex;
     } catch (error) {
       console.warn('Error in ModalManager.registerModal:', error);
-      return 10000; // Return default z-index on error
+      return 50000; // Return default z-index on error
     }
   }
 
@@ -69,7 +69,7 @@ class ModalManager {
    */
   getModalZIndex(id: string): number {
     const modal = this.modals.get(id);
-    return modal?.zIndex || 10000;
+    return modal?.zIndex || 50000;
   }
 
   /**
@@ -77,7 +77,7 @@ class ModalManager {
    */
   getOverlayZIndex(id: string): number {
     const modal = this.modals.get(id);
-    return modal ? modal.zIndex - 1 : 9999;
+    return modal ? modal.zIndex - 1 : 49999;
   }
 
   /**
@@ -99,20 +99,10 @@ class ModalManager {
    * Create or update the global overlay
    */
   private updateGlobalOverlay(): void {
-    if (this.modals.size === 0) {
-      this.removeGlobalOverlay();
-      return;
-    }
-
-    if (!this.globalOverlay) {
-      this.createGlobalOverlay();
-    }
-
-    if (this.globalOverlay) {
-      // Set z-index to be just below the lowest modal
-      const lowestModalZIndex = Math.min(...Array.from(this.modals.values()).map(m => m.zIndex));
-      this.globalOverlay.style.zIndex = (lowestModalZIndex - 1).toString();
-    }
+    // DISABLED: Global overlay is causing modal visibility issues
+    // Each modal should handle its own overlay
+    this.removeGlobalOverlay();
+    return;
   }
 
   /**
@@ -149,7 +139,7 @@ class ModalManager {
   cleanup(): void {
     this.modals.clear();
     this.removeGlobalOverlay();
-    this.nextZIndex = 10000;
+    this.nextZIndex = 50000;
   }
 
   /**
@@ -170,7 +160,7 @@ export const modalManager = new ModalManager();
  * Hook to manage modal registration
  */
 export function useModalManager(id: string, type: ModalInstance['type']) {
-  const [zIndex, setZIndex] = React.useState(10000);
+  const [zIndex, setZIndex] = React.useState(50000);
 
   React.useEffect(() => {
     try {
@@ -193,7 +183,7 @@ export function useModalManager(id: string, type: ModalInstance['type']) {
     } catch (error) {
       console.warn('Error in useModalManager:', error);
       // Fallback to default z-index
-      setZIndex(10000);
+      setZIndex(50000);
     }
   }, [id, type]);
 
@@ -241,7 +231,11 @@ export function emergencyModalCleanup() {
   console.log('✅ Emergency modal cleanup completed');
 }
 
-// Make emergency cleanup available globally
+// Make emergency cleanup and debug functions available globally
 if (typeof window !== 'undefined') {
   (window as any).emergencyModalCleanup = emergencyModalCleanup;
+  (window as any).debugModalManager = () => {
+    console.log('Modal Manager Debug Info:', modalManager.getDebugInfo());
+    console.log('Current modals:', Array.from(modalManager['modals'].entries()));
+  };
 }

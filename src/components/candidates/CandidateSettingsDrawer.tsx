@@ -48,6 +48,7 @@ export interface CandidateSettings {
   // Table size settings
   defaultPageSize: number;
   tableHeight: number;
+  rowHeight: 'compact' | 'normal' | 'comfortable';
 }
 
 const defaultSettings: CandidateSettings = {
@@ -65,7 +66,8 @@ const defaultSettings: CandidateSettings = {
   fitScoreType: 'applied',
   fitScoreFilterMode: 'single',
   defaultPageSize: 50,
-  tableHeight: 600
+  tableHeight: 600,
+  rowHeight: 'normal'
 } as const;
 
 export function CandidateSettingsDrawer({
@@ -409,6 +411,28 @@ export function CandidateSettingsDrawer({
                   />
                   <div className="text-xs text-muted-foreground">
                     Height of the candidate table in pixels (300-1000px)
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="rowHeight" className="text-sm font-medium">
+                    Row Height
+                  </Label>
+                  <Select
+                    value={localSettings.rowHeight || 'normal'}
+                    onValueChange={(value: 'compact' | 'normal' | 'comfortable') => handleSettingChange('rowHeight', value)}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="compact">Compact</SelectItem>
+                      <SelectItem value="normal">Normal</SelectItem>
+                      <SelectItem value="comfortable">Comfortable</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <div className="text-xs text-muted-foreground">
+                    Adjust the height of table rows for better readability
                   </div>
                 </div>
               </CardContent>

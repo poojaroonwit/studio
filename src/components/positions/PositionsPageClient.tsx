@@ -1134,7 +1134,7 @@ export default function PositionsPageClient() {
     <div className="w-full h-full positions-page-container">
       <div className="flex flex-1 overflow-hidden">
         {/* Recruiter Filter Sidebar */}
-        <div className="w-80 flex-shrink-0 border-r border-border bg-background">
+        <div className="w-64 flex-shrink-0 border-r border-border bg-background">
           <div className="h-full overflow-hidden p-4">
             <RecruiterFilterSidebar
               selectedRecruiterId={selectedRecruiterId}

@@ -162,16 +162,7 @@
   visibility: hidden !important;
 }
 
-/* Force cleanup of any remaining modal elements */
-[data-radix-dialog-overlay]:not([data-state="open"]) {
-  display: none !important;
-  pointer-events: none !important;
-}
-
-[data-radix-dialog-content]:not([data-state="open"]) {
-  display: none !important;
-  pointer-events: none !important;
-}
+/* REMOVED: Aggressive CSS rules that might be hiding open modals */
 
 /* Ensure body is always clickable */
 body {
@@ -2449,9 +2440,9 @@ audio::-webkit-scrollbar-button {
 /* Responsive Filter Bar Styles */
 .responsive-filter-sidebar {
   transition: all 0.3s ease-in-out;
-  width: 288px;
-  min-width: 252px;
-  max-width: 360px;
+  width: 16rem; /* 256px - matches main sidebar */
+  min-width: 16rem;
+  max-width: 16rem;
   flex-shrink: 0;
   overflow: hidden;
   position: relative;
@@ -2490,17 +2481,17 @@ audio::-webkit-scrollbar-button {
 /* Ensure the filter sidebar is properly sized on all screen sizes */
 @media (max-width: 1024px) {
   .responsive-filter-sidebar {
-    width: 252px;
-    min-width: 252px;
-    max-width: 270px;
+    width: 16rem; /* 256px - matches main sidebar */
+    min-width: 16rem;
+    max-width: 16rem;
   }
 }
 
 @media (max-width: 768px) {
   .responsive-filter-sidebar {
-    width: 234px;
-    min-width: 234px;
-    max-width: 252px;
+    width: 16rem; /* 256px - matches main sidebar */
+    min-width: 16rem;
+    max-width: 16rem;
   }
 }
 
@@ -2560,9 +2551,9 @@ audio::-webkit-scrollbar-button {
 /* Tablet responsive adjustments */
 @media (min-width: 641px) and (max-width: 1024px) {
   .responsive-filter-sidebar {
-    width: 270px;
-    min-width: 252px;
-    max-width: 288px;
+    width: 16rem; /* 256px - matches main sidebar */
+    min-width: 16rem;
+    max-width: 16rem;
   }
   
   .filter-bar-container {
@@ -2573,9 +2564,9 @@ audio::-webkit-scrollbar-button {
 /* Desktop responsive adjustments */
 @media (min-width: 1025px) {
   .responsive-filter-sidebar {
-    width: 288px;
-    min-width: 288px;
-    max-width: 324px;
+    width: 16rem; /* 256px - matches main sidebar */
+    min-width: 16rem;
+    max-width: 16rem;
   }
   
   .filter-bar-container {
@@ -2586,9 +2577,9 @@ audio::-webkit-scrollbar-button {
 /* Large desktop adjustments */
 @media (min-width: 1440px) {
   .responsive-filter-sidebar {
-    width: 306px;
-    min-width: 306px;
-    max-width: 342px;
+    width: 16rem; /* 256px - matches main sidebar */
+    min-width: 16rem;
+    max-width: 16rem;
   }
 }
 

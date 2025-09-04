@@ -1,6 +1,7 @@
 import { useCallback, useRef, useEffect } from 'react';
 import { CandidateFilterValues } from '@/components/candidates/CandidateFilters';
 import { Candidate } from '@/lib/types';
+import { safeFetch } from '@/lib/safe-fetch';
 
 interface UseCandidateFetchingProps {
   sessionStatus: string;
@@ -120,17 +121,22 @@ export function useCandidateFetching({
       
       // console.log('🔍 API DEBUG: Making request to:', apiUrl);
       
-      const response = await fetch(apiUrl, {
+      const result = await safeFetch(apiUrl, {
         headers: {
           'Cache-Control': 'no-cache'
-        }
+        },
+        timeoutMs: 12000
       });
       
-      if (!response.ok) {
-        throw new Error(`Failed to fetch candidates: ${response.status} ${response.statusText}`);
+      if (!result.ok) {
+        console.warn('Skipping failed endpoint /api/candidates:', result.error || result.status);
+        setTableError(`Failed to fetch candidates: ${result.error}`);
+        setFilteredCandidates([]);
+        setTotal(0);
+        return;
       }
       
-      const data = await response.json();
+      const data = result.data;
       
       // Check if this is still the latest request
       if (latestRequestIdRef.current !== requestId) {

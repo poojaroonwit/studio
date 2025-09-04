@@ -12,6 +12,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { Clock, Loader2, CheckCircle, XCircle, Search, Filter, RefreshCw, AlertCircle, Info, Circle } from 'lucide-react';
 import { useEnhancedSSE, useEnhancedUploadQueueUpdates } from '@/hooks/use-enhanced-sse';
+import { safeFetch } from '@/lib/safe-fetch';
 
 interface QueueItem {
   id: string;
@@ -71,29 +72,24 @@ export function UploadQueueStatus() {
     setLoading(true);
     setErrorMessage(null);
     
-    try {
-      const params = new URLSearchParams({
-        page: currentPage.toString(),
-        pageSize: currentPageSize.toString(),
-        ...(searchTerm && { search: searchTerm }),
-        ...(statusFilter !== 'all' && { status: statusFilter })
-      });
+    const params = new URLSearchParams({
+      page: currentPage.toString(),
+      pageSize: currentPageSize.toString(),
+      ...(searchTerm && { search: searchTerm }),
+      ...(statusFilter !== 'all' && { status: statusFilter })
+    });
 
-      const response = await fetch(`/api/upload-queue?${params}`);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data: QueueResponse = await response.json();
-      setQueueData(data);
+    const result = await safeFetch<QueueResponse>(`/api/upload-queue?${params}`, { timeoutMs: 12000 });
+
+    if (result.ok && result.data) {
+      setQueueData(result.data);
       setLastUpdate(new Date());
-    } catch (error) {
-      console.error('Failed to fetch queue:', error);
-      setErrorMessage('Network error. Please check your connection and try again.');
-    } finally {
-      setLoading(false);
+    } else {
+      console.warn('Skipping failed endpoint /api/upload-queue:', result.error || result.status);
+      setErrorMessage('Some data failed to load. Showing last known values.');
     }
+
+    setLoading(false);
   }, [searchTerm, statusFilter]);
 
   useEffect(() => {

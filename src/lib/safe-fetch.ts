@@ -1,58 +1,68 @@
-// src/lib/safe-fetch.ts
-// Safe fetch helpers that never block the UI: per-request timeout and allSettled combinator
+/*
+  A safe fetch wrapper that:
+  - Adds a timeout via AbortController
+  - Never throws: returns a normalized result
+  - Allows callers to proceed gracefully when endpoints fail
+*/
 
-export type SafeFetchInit = RequestInit & { timeoutMs?: number };
-
-export async function fetchWithTimeout(input: RequestInfo | URL, init: SafeFetchInit = {}) {
-  const { timeoutMs = 5000, ...rest } = init;
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    const response = await fetch(input, { ...rest, signal: controller.signal });
-    return response;
-  } finally {
-    clearTimeout(timer);
-  }
+export interface SafeFetchOptions extends RequestInit {
+	timeoutMs?: number;
 }
 
-export async function safeJson<T = unknown>(input: RequestInfo | URL, init: SafeFetchInit = {}): Promise<{ ok: boolean; data?: T; status?: number; error?: string }> {
-  try {
-    const res = await fetchWithTimeout(input, init);
-    const status = res.status;
-    if (!res.ok) {
-      return { ok: false, status, error: res.statusText || `HTTP ${status}` };
-    }
-    // Best-effort JSON parse; if not JSON, return ok=false
-    try {
-      const json = (await res.json()) as T;
-      return { ok: true, data: json, status };
-    } catch (e: any) {
-      return { ok: false, status, error: 'Invalid JSON' };
-    }
-  } catch (e: any) {
-    const msg = e?.name === 'AbortError' ? 'timeout' : (e?.message || 'network error');
-    return { ok: false, error: msg };
-  }
+export interface SafeFetchResult<T = unknown> {
+	ok: boolean;
+	status: number | null;
+	data: T | null;
+	error: string | null;
 }
 
-export async function allSettledWithTimeout<T>(promises: Array<Promise<T>>, timeoutMs: number): Promise<PromiseSettledResult<T>[]> {
-  const timeout = new Promise<never>((_, reject) => {
-    const t = setTimeout(() => {
-      clearTimeout(t as any);
-      reject(new Error('batch timeout'));
-    }, timeoutMs);
-  });
+export async function safeFetch<T = unknown>(input: RequestInfo | URL, options: SafeFetchOptions = {}): Promise<SafeFetchResult<T>> {
+	const { timeoutMs = 15000, signal, ...rest } = options;
 
-  try {
-    return await Promise.race([
-      Promise.allSettled(promises),
-      timeout,
-    ]) as PromiseSettledResult<T>[];
-  } catch {
-    // On batch timeout, mark all as rejected generically
-    return promises.map(() => ({ status: 'rejected', reason: new Error('batch timeout') })) as PromiseSettledResult<T>[];
-  }
+	const controller = new AbortController();
+	const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+	try {
+		const response = await fetch(input, {
+			...rest,
+			signal: signal ?? controller.signal,
+		});
+
+		clearTimeout(timeoutId);
+
+		let data: any = null;
+		const contentType = response.headers.get('content-type') || '';
+		try {
+			if (contentType.includes('application/json')) {
+				data = await response.json();
+			} else if (contentType.startsWith('text/')) {
+				data = (await response.text()) as any;
+			}
+		} catch {
+			// Ignore body parse errors; treat as null
+		}
+
+		return {
+			ok: response.ok,
+			status: response.status,
+			data: (response.ok ? (data as T) : null),
+			error: response.ok ? null : `HTTP ${response.status}`,
+		};
+	} catch (error: any) {
+		clearTimeout(timeoutId);
+		const message = error?.name === 'AbortError' ? 'Request timeout' : (error?.message || 'Network error');
+		return {
+			ok: false,
+			status: null,
+			data: null,
+			error: message,
+		};
+	}
+}
+
+export async function safeAll<T = unknown>(promises: Array<Promise<SafeFetchResult<T>>>): Promise<SafeFetchResult<T>[]> {
+	const results = await Promise.allSettled(promises);
+	return results.map((r) => (r.status === 'fulfilled' ? r.value : { ok: false, status: null, data: null, error: 'Promise rejected' }));
 }
 
 

@@ -30,6 +30,7 @@ import CandidateDetailModal from '@/components/candidates/CandidateDetailModal';
 import { PositionSelectDropdown } from '@/components/candidates/PositionSelectDropdown';
 
 import { useSharedSSE } from '@/hooks/use-shared-sse';
+import { safeFetch, safeAll } from '@/lib/safe-fetch';
 import { getErrorMessage, retryWithBackoff, isRetryableError } from '@/lib/networkUtils';
 import { NetworkDiagnostics } from '@/components/ui/network-diagnostics';
 import { formatScoreWithGrade } from '@/lib/scoreUtils';
@@ -229,9 +230,13 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
           if (filters.stage) params.append('status', filters.stage);
           if (filters.recruiterId) params.append('recruiterId', filters.recruiterId);
           
-          const res = await fetch(`/api/candidates?${params.toString()}`);
-          const data = await res.json();
-          setCandidates(Array.isArray(data) ? data : (data.data || []));
+          const result = await safeFetch(`/api/candidates?${params.toString()}`, { timeoutMs: 10000 });
+          if (result.ok && result.data) {
+            setCandidates(Array.isArray(result.data) ? result.data : ((result.data as any)?.data || []));
+          } else {
+            console.warn('Skipping failed endpoint /api/candidates:', result.error || result.status);
+            setCandidates([]);
+          }
         } catch (e) {
           console.error('Error fetching candidates:', e);
         } finally {
@@ -269,15 +274,18 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
             if (filters.stage) params.append('status', filters.stage);
             if (filters.recruiterId) params.append('recruiterId', filters.recruiterId);
             
-            const res = await fetch(`/api/candidates?${params.toString()}`);
-            const data = await res.json();
-            const newCandidates = Array.isArray(data) ? data : (data.data || []);
+            const result = await safeFetch(`/api/candidates?${params.toString()}`, { timeoutMs: 10000 });
+            if (result.ok && result.data) {
+              const newCandidates = Array.isArray(result.data) ? result.data : (result.data.data || []);
             
-            // Only update if the data has actually changed
-            if (JSON.stringify(newCandidates.map((c: any) => ({ id: c.id, status: c.status, updatedAt: c.updatedAt }))) !== 
-                JSON.stringify(candidates.map((c: any) => ({ id: c.id, status: c.status, updatedAt: c.updatedAt })))) {
-              setCandidates(newCandidates);
-              console.log('[MyTasksPageClient] Periodic refresh updated candidates');
+              // Only update if the data has actually changed
+              if (JSON.stringify(newCandidates.map((c: any) => ({ id: c.id, status: c.status, updatedAt: c.updatedAt }))) !== 
+                  JSON.stringify(candidates.map((c: any) => ({ id: c.id, status: c.status, updatedAt: c.updatedAt })))) {
+                setCandidates(newCandidates);
+                console.log('[MyTasksPageClient] Periodic refresh updated candidates');
+              }
+            } else {
+              console.warn('Skipping failed endpoint /api/candidates (periodic):', result.error || result.status);
             }
           } catch (error) {
             console.error('[MyTasksPageClient] Error in periodic refresh:', error);
@@ -402,12 +410,14 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     const fetchMeta = async () => {
       setLoading(true);
       try {
-        const [stagesRes, recruitersRes, positionsRes] = await Promise.all([
-          fetch('/api/recruitment-stages'),
-          fetch('/api/users?role=Recruiter'),
-          fetch('/api/positions'),
+        const [stagesResult, recruitersResult, positionsResult] = await safeAll([
+          safeFetch('/api/recruitment-stages', { timeoutMs: 8000 }),
+          safeFetch('/api/users?role=Recruiter', { timeoutMs: 8000 }),
+          safeFetch('/api/positions', { timeoutMs: 8000 }),
         ]);
-        const stagesData = await stagesRes.json();
+        
+        if (stagesResult.ok && stagesResult.data) {
+          const stagesData = stagesResult.data;
         // Store stages with both ID and name for proper filtering
         const stageData = Array.isArray(stagesData) ? stagesData.map((s: any) => ({
           id: s.id,
@@ -418,13 +428,25 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
           colorBadge: s.color_badge,
           isSystem: s.is_system
         })) : [];
-        setStages(stageData);
-        const recruitersData = await recruitersRes.json();
-        // Handle the correct API response structure: { users: [...], pagination: {...} }
-        const recruitersArray = recruitersData?.users || [];
-        setRecruiter(Array.isArray(recruitersArray) ? recruitersArray : []);
-        const positionsData = await positionsRes.json();
-        setPositions(Array.isArray(positionsData.data) ? positionsData.data : []);
+          setStages(stageData);
+        } else {
+          console.warn('Skipping failed endpoint /api/recruitment-stages:', stagesResult.error || stagesResult.status);
+        }
+        
+        if (recruitersResult.ok && recruitersResult.data) {
+          // Handle the correct API response structure: { users: [...], pagination: {...} }
+          const recruitersArray = (recruitersResult.data as any)?.users || [];
+          setRecruiter(Array.isArray(recruitersArray) ? recruitersArray : []);
+        } else {
+          console.warn('Skipping failed endpoint /api/users (recruiters):', recruitersResult.error || recruitersResult.status);
+        }
+        
+        if (positionsResult.ok && positionsResult.data) {
+          setPositions(Array.isArray((positionsResult.data as any)?.data) ? (positionsResult.data as any).data : []);
+        } else {
+          console.warn('Skipping failed endpoint /api/positions:', positionsResult.error || positionsResult.status);
+        }
+        
         setMetadataLoaded(true);
       } catch (e) {
         console.error('Error fetching metadata:', e);
@@ -440,9 +462,12 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   useEffect(() => {
     const fetchTotalCount = async () => {
       try {
-        const res = await fetch('/api/candidates?forCounts=true');
-        const data = await res.json();
-        setTotalCandidates(data.total || 0);
+        const result = await safeFetch('/api/candidates?forCounts=true', { timeoutMs: 8000 });
+        if (result.ok && result.data) {
+          setTotalCandidates((result.data as any)?.total || 0);
+        } else {
+          console.warn('Skipping failed endpoint /api/candidates (counts):', result.error || result.status);
+        }
       } catch (e) {
         console.error('Error fetching total count:', e);
       }
@@ -455,9 +480,13 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     const fetchCandidates = async () => {
       setLoading(true);
       try {
-        const res = await fetch('/api/candidates'); // No limit - fetch all candidates
-        const data = await res.json();
-        setCandidates(Array.isArray(data) ? data : (data.data || []));
+        const result = await safeFetch('/api/candidates', { timeoutMs: 10000 }); // No limit - fetch all candidates
+        if (result.ok && result.data) {
+          setCandidates(Array.isArray(result.data) ? result.data : (result.data.data || []));
+        } else {
+          console.warn('Skipping failed endpoint /api/candidates (all):', result.error || result.status);
+          setCandidates([]);
+        }
       } catch (e) {
         console.error('Error fetching candidates:', e);
       } finally {
@@ -486,9 +515,13 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
           if (filters.recruiterId) params.append('recruiterId', filters.recruiterId);
           // No limit parameter - fetch all matching candidates
           
-          const res = await fetch(`/api/candidates?${params.toString()}`);
-          const data = await res.json();
-          setCandidates(Array.isArray(data) ? data : (data.data || []));
+          const result = await safeFetch(`/api/candidates?${params.toString()}`, { timeoutMs: 10000 });
+          if (result.ok && result.data) {
+            setCandidates(Array.isArray(result.data) ? result.data : ((result.data as any)?.data || []));
+          } else {
+            console.warn('Skipping failed endpoint /api/candidates (filtered):', result.error || result.status);
+            setCandidates([]);
+          }
         } catch (e) {
           console.error('Error fetching candidates:', e);
         } finally {
@@ -629,7 +662,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       toast.loading(`Moving ${candidate.name} to ${stageName}...`, { id: `move-${candidate.id}` });
       
       // Update the candidate status
-      const response = await fetch('/api/candidates/bulk-action', {
+      const result = await safeFetch('/api/candidates/bulk-action', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -637,17 +670,18 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
           candidateIds: [candidate.id],
           newStatus: newStatus
         }),
+        timeoutMs: 10000
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `Failed to update status: ${response.status}`);
+      if (!result.ok) {
+        console.warn('Skipping failed endpoint /api/candidates/bulk-action:', result.error || result.status);
+        throw new Error(`Failed to update status: ${result.error}`);
       }
 
-      const result = await response.json();
+      const responseData = result.data;
       
       // Only update local state if the API call was successful
-      if (result.updatedCount > 0) {
+      if ((responseData as any)?.updatedCount > 0) {
         // Update local state optimistically but let real-time updates handle the final state
         setCandidates((prev) =>
           prev.map((c) =>

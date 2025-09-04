@@ -44,6 +44,7 @@ import { checkSLAViolation, getSLABadgeVariant, formatSLAMessage, getSLARemainin
 import { Pagination } from '@/components/ui/pagination';
 import { useJobMatchFeature } from '@/hooks/useJobMatchFeature';
 import { useSharedSSE } from '@/hooks/use-shared-sse';
+import { safeFetch, safeAll } from '@/lib/safe-fetch';
 
 
 export default function PositionsPageClient() {
@@ -311,29 +312,23 @@ export default function PositionsPageClient() {
     ));
 
     try {
-      // Add timeout to prevent hanging requests
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-      
-      const response = await fetch(`/api/positions/${positionId}`, {
+      const result = await safeFetch(`/api/positions/${positionId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ recruiterId }),
         credentials: 'include',
-        signal: controller.signal,
+        timeoutMs: 8000
       });
 
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        const errorData = await response.text();
-        throw new Error(`Failed to update recruiter assignment: ${response.status} ${response.statusText}`);
+      if (!result.ok) {
+        console.warn('Skipping failed endpoint /api/positions/[id] (PUT):', result.error || result.status);
+        throw new Error(`Failed to update recruiter assignment: ${result.error}`);
       }
 
-      const responseData = await response.json();
+      const responseData = result.data;
       
       // Update the position with the actual API response data to ensure consistency
-      const updatedPosition = responseData.position;
+      const updatedPosition = (responseData as any)?.position;
       
       if (updatedPosition) {
         // Verify that the updated position has recruiterName when recruiterId is set
@@ -492,13 +487,14 @@ export default function PositionsPageClient() {
   const fetchAllDepartments = useCallback(async () => {
     setIsLoadingDepartments(true);
     try {
-      const response = await fetch('/api/positions/all');
+      const result = await safeFetch('/api/positions/all', { timeoutMs: 8000 });
       
-      if (!response.ok) {
-        throw new Error(`Failed to fetch departments: ${response.status} ${response.statusText}`);
+      if (!result.ok) {
+        console.warn('Skipping failed endpoint /api/positions/all:', result.error || result.status);
+        throw new Error(`Failed to fetch departments: ${result.error}`);
       }
       
-      const data = await response.json();
+      const data = result.data as any;
       
       if (!data.data || !Array.isArray(data.data)) {
         throw new Error('Invalid response format');
@@ -512,13 +508,15 @@ export default function PositionsPageClient() {
     } catch (error) {
       // If the main API fails, try the fallback endpoint
       try {
-        const fallbackResponse = await fetch('/api/positions?limit=1000');
-        if (fallbackResponse.ok) {
-          const fallbackData = await fallbackResponse.json();
-          const fallbackDepts = Array.from(new Set(fallbackData.data?.map((p: any) => p.department) || []))
+        const fallbackResult = await safeFetch('/api/positions?limit=1000', { timeoutMs: 8000 });
+        if (fallbackResult.ok && fallbackResult.data) {
+          const fallbackDepts = Array.from(new Set((fallbackResult.data as any)?.data?.map((p: any) => p.department) || []))
             .filter((d): d is string => typeof d === 'string' && !!d)
             .sort();
           setAllDepartments(fallbackDepts);
+        } else {
+          console.warn('Skipping failed fallback endpoint /api/positions:', fallbackResult.error || fallbackResult.status);
+          setAllDepartments([]);
         }
       } catch (fallbackError) {
         setAllDepartments([]);
@@ -562,12 +560,15 @@ export default function PositionsPageClient() {
       const url = `/api/positions?${query.toString()}`;
   
       
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error('Failed to fetch positions');
+      const result = await safeFetch(url, { timeoutMs: 12000 });
+      if (!result.ok) {
+        console.warn('Skipping failed endpoint /api/positions:', result.error || result.status);
+        setPositions([]);
+        setTotal(0);
+        return;
       }
       
-      const data = await response.json();
+      const data = result.data as any;
       const positionsData = data.data || [];
       
      
@@ -667,14 +668,15 @@ export default function PositionsPageClient() {
   const fetchRecruiterStats = useCallback(async () => {
     try {
       // Get recruiter headcount statistics
-      const recruiterStatsResponse = await fetch('/api/users/recruiter-headcount-stats');
+      const result = await safeFetch('/api/users/recruiter-headcount-stats', { timeoutMs: 8000 });
       
-      if (!recruiterStatsResponse.ok) {
-        const errorText = await recruiterStatsResponse.text();
-        throw new Error(`Failed to fetch recruiter stats: ${recruiterStatsResponse.status} ${errorText}`);
+      if (!result.ok) {
+        console.warn('Skipping failed endpoint /api/users/recruiter-headcount-stats:', result.error || result.status);
+        setAvailableRecruiter([]);
+        return;
       }
       
-      const recruiterStatsData = await recruiterStatsResponse.json();
+      const recruiterStatsData = result.data as any;
       
       // Set available recruiters with headcount data
       const availableRecruiterData = recruiterStatsData.recruiters.map((r: any) => ({ 
@@ -926,17 +928,19 @@ export default function PositionsPageClient() {
   // Handle add position
   const handleAddPosition = async (formData: AddPositionFormValues) => {
     try {
-      const response = await fetch('/api/positions', {
+      const result = await safeFetch('/api/positions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
+        timeoutMs: 10000
       });
       
-      if (!response.ok) {
-        throw new Error('Failed to add position');
+      if (!result.ok) {
+        console.warn('Skipping failed endpoint /api/positions (POST):', result.error || result.status);
+        throw new Error(`Failed to add position: ${result.error}`);
       }
       
-      const newPosition = await response.json();
+      const newPosition = result.data as any;
       setPositions(prev => [...prev, newPosition]);
       setIsAddModalOpen(false);
       toast.success('Position added successfully');
@@ -1026,12 +1030,14 @@ export default function PositionsPageClient() {
     if (!positionToDelete) return;
     
     try {
-      const response = await fetch(`/api/positions/${positionToDelete.id}`, {
+      const result = await safeFetch(`/api/positions/${positionToDelete.id}`, {
         method: 'DELETE',
+        timeoutMs: 8000
       });
       
-      if (!response.ok) {
-        throw new Error('Failed to delete position');
+      if (!result.ok) {
+        console.warn('Skipping failed endpoint /api/positions/[id] (DELETE):', result.error || result.status);
+        throw new Error(`Failed to delete position: ${result.error}`);
       }
       
       setPositions(prev => prev.filter(p => p.id !== positionToDelete.id));
@@ -1059,10 +1065,17 @@ export default function PositionsPageClient() {
   const handleBulkDelete = async () => {
     setShowBulkDeleteConfirm(false);
     try {
-      await Promise.all(selectedIds.map(async (id) => {
-        const response = await fetch(`/api/positions/${id}`, { method: 'DELETE' });
-        if (!response.ok) throw new Error('Failed to delete');
-      }));
+      const deletePromises = selectedIds.map(id => 
+        safeFetch(`/api/positions/${id}`, { method: 'DELETE', timeoutMs: 8000 })
+      );
+      const results = await safeAll(deletePromises);
+      
+      // Check if any deletions failed
+      const failedDeletions = results.filter(result => !result.ok);
+      if (failedDeletions.length > 0) {
+        console.warn('Some position deletions failed:', failedDeletions.map(r => r.error));
+        throw new Error('Failed to delete some positions');
+      }
       setPositions(prev => prev.filter(p => !selectedIds.includes(p.id)));
       setSelectedIds([]);
       toast.success('Selected positions deleted successfully');
@@ -1075,16 +1088,18 @@ export default function PositionsPageClient() {
 
   const handleExportPositions = async () => {
     try {
-      const response = await fetch('/api/positions/export', {
+      const result = await safeFetch('/api/positions/export', {
         method: 'GET',
+        timeoutMs: 15000
       });
       
-      if (!response.ok) {
-        throw new Error('Failed to export positions');
+      if (!result.ok) {
+        console.warn('Skipping failed endpoint /api/positions/export:', result.error || result.status);
+        throw new Error(`Failed to export positions: ${result.error}`);
       }
       
       // Create a blob from the response
-      const blob = await response.blob();
+      const blob = new Blob([result.data as BlobPart], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       
       // Create a download link
       const url = window.URL.createObjectURL(blob);

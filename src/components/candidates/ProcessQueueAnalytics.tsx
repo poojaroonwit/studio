@@ -20,6 +20,7 @@ import { useChartSetup } from '@/hooks/use-chart-setup';
 import { isDataLabelsAvailable } from '@/lib/chartjs-setup';
 import { DateRange } from 'react-day-picker';
 import { useEnhancedSSE } from '@/hooks/use-enhanced-sse';
+import { safeFetch } from '@/lib/safe-fetch';
 
 interface QueueItem {
   id: string;
@@ -120,13 +121,29 @@ export default function ProcessQueueAnalytics() {
       }
 
       const url = `/api/upload-queue?${params}`;
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error('Failed to fetch queue data');
+      const result = await safeFetch(url, { timeoutMs: 10000 });
+      if (!result.ok) {
+        console.warn('Skipping failed endpoint /api/upload-queue:', result.error || result.status);
+        setData({
+          totalItems: 0,
+          successCount: 0,
+          errorCount: 0,
+          pendingCount: 0,
+          processingCount: 0,
+          items: [],
+          errorAnalysis: [],
+          performanceMetrics: {
+            averageProcessingTime: 0,
+            totalProcessingTime: 0,
+            fastestProcessing: 0,
+            slowestProcessing: 0
+          }
+        });
+        return;
       }
       
-      const result = await response.json();
-      const queueData: QueueItem[] = result.data || [];
+      const responseData = result.data;
+      const queueData: QueueItem[] = (responseData as any)?.data || [];
       
       // Process data for analytics
       const processedData = processQueueData(queueData);
@@ -320,18 +337,20 @@ export default function ProcessQueueAnalytics() {
       // Add format parameter (CSV by default)
       params.append('format', 'csv');
       
-      const response = await fetch(`/api/upload-queue/error-analysis/export?${params.toString()}`, {
+      const result = await safeFetch(`/api/upload-queue/error-analysis/export?${params.toString()}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
+        timeoutMs: 15000
       });
       
-      if (!response.ok) {
-        throw new Error(`Export failed with status: ${response.status}`);
+      if (!result.ok) {
+        console.warn('Skipping failed endpoint /api/upload-queue/error-analysis/export:', result.error || result.status);
+        throw new Error(`Export failed: ${result.error}`);
       }
       
-      const blob = await response.blob();
+      const blob = new Blob([result.data as BlobPart], { type: 'text/csv' });
       
       if (blob.size === 0) {
         throw new Error('Export returned empty file');
@@ -470,18 +489,20 @@ export default function ProcessQueueAnalytics() {
       params.append('error_reason', encodeURIComponent(reason));
       params.append('format', 'csv');
       
-      const response = await fetch(`/api/upload-queue/error-analysis/export?${params.toString()}`, {
+      const result = await safeFetch(`/api/upload-queue/error-analysis/export?${params.toString()}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
+        timeoutMs: 15000
       });
       
-      if (!response.ok) {
-        throw new Error(`Export failed with status: ${response.status}`);
+      if (!result.ok) {
+        console.warn('Skipping failed endpoint /api/upload-queue/error-analysis/export (single):', result.error || result.status);
+        throw new Error(`Export failed: ${result.error}`);
       }
       
-      const blob = await response.blob();
+      const blob = new Blob([result.data as BlobPart], { type: 'text/csv' });
       
       if (blob.size === 0) {
         throw new Error('Export returned empty file');

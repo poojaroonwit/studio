@@ -39,6 +39,7 @@ import { CandidateSettingsDrawer } from './CandidateSettingsDrawer';
 import { useDynamicHeight } from '@/hooks/use-dynamic-height';
 import { useCandidateSettings } from '@/hooks/use-candidate-settings';
 import { useSharedSSE } from '@/hooks/use-shared-sse';
+import { safeFetch, safeAll } from '@/lib/safe-fetch';
 
 
 // Import our new hooks

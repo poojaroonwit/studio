@@ -3,6 +3,7 @@ import { Candidate, CandidateStatus, Position, RecruitmentStage, UserProfile, Ca
 import { CandidateFilterValues } from '@/components/candidates/CandidateFilters';
 import { toast } from 'react-hot-toast';
 import { normalizeFitScore } from '@/lib/scoreUtils';
+import { safeFetch, safeAll } from '@/lib/safe-fetch';
 // Removed useSafeEffect import - no longer needed
 
 
@@ -138,14 +139,13 @@ export function useCandidateData({
 
     try {
       stableSetIsLoading(true);
-      const response = await fetch('/api/candidates?limit=10000&includeCounts=true');
+      const result = await safeFetch('/api/candidates?limit=10000&includeCounts=true', { timeoutMs: 10000 });
       
-      if (response.ok) {
-        const data = await response.json();
-        const candidates = data.candidates || [];
+      if (result.ok && result.data) {
+        const candidates = result.data.candidates || [];
         stableSetAllCandidatesForCounts(candidates);
       } else {
-        console.error('Failed to fetch all candidates for counts');
+        console.warn('Skipping failed endpoint /api/candidates (counts):', result.error || result.status);
       }
     } catch (error) {
       console.error('Error fetching all candidates for counts:', error);
@@ -159,10 +159,11 @@ export function useCandidateData({
     if (sessionStatus !== 'authenticated') return;
 
     try {
-      const response = await fetch('/api/settings/candidate-sources');
-      if (response.ok) {
-        const data = await response.json();
-        stableSetAvailableSources(Array.isArray(data) ? data : (data.sources || []));
+      const result = await safeFetch('/api/settings/candidate-sources', { timeoutMs: 8000 });
+      if (result.ok && result.data) {
+        stableSetAvailableSources(Array.isArray(result.data) ? result.data : (result.data.sources || []));
+      } else {
+        console.warn('Skipping failed endpoint /api/settings/candidate-sources:', result.error || result.status);
       }
     } catch (error) {
       console.error('Error fetching sources:', error);
@@ -174,16 +175,17 @@ export function useCandidateData({
     if (sessionStatus !== 'authenticated') return;
 
     try {
-      const response = await fetch('/api/users?role=Recruiter');
-      if (response.ok) {
-        const data = await response.json();
-        const recruiters = (data.users || []).map((user: any) => ({
+      const result = await safeFetch('/api/users?role=Recruiter', { timeoutMs: 8000 });
+      if (result.ok && result.data) {
+        const recruiters = (result.data.users || []).map((user: any) => ({
           id: user.id,
           name: user.name,
           email: user.email,
           avatarUrl: user.avatarUrl
         }));
         stableSetAvailableRecruiter(recruiters);
+      } else {
+        console.warn('Skipping failed endpoint /api/users (recruiters):', result.error || result.status);
       }
     } catch (error) {
       console.error('Error fetching recruiters:', error);
@@ -234,15 +236,16 @@ export function useCandidateData({
 
       const url = `/api/candidates/fit-score-counts?${params.toString()}`;
       
-      const response = await fetch(url, {
+      const result = await safeFetch(url, {
         headers: {
           'Cache-Control': 'no-cache',
           'Pragma': 'no-cache'
-        }
+        },
+        timeoutMs: 8000
       });
       
-      if (response.ok) {
-        const data = await response.json();
+      if (result.ok && result.data) {
+        const data = result.data;
         
         // Smooth update: only change the numbers, not the entire object structure
         setDatabaseFitScoreCounts(prevCounts => {
@@ -304,19 +307,21 @@ export function useCandidateData({
     if (sessionStatus === 'authenticated' && safeInitialAvailablePositions.length === 0) {
       const fetchPositionsAndStages = async () => {
         try {
-          const [positionsResponse, stagesResponse] = await Promise.all([
-            fetch('/api/positions'),
-            fetch('/api/recruitment-stages')
+          const [positionsResult, stagesResult] = await safeAll([
+            safeFetch('/api/positions', { timeoutMs: 8000 }),
+            safeFetch('/api/recruitment-stages', { timeoutMs: 8000 })
           ]);
 
-          if (positionsResponse.ok) {
-            const positionsData = await positionsResponse.json();
-            setAvailablePositions(Array.isArray(positionsData) ? positionsData : (positionsData.positions || []));
+          if (positionsResult.ok && positionsResult.data) {
+            setAvailablePositions(Array.isArray(positionsResult.data) ? positionsResult.data : (positionsResult.data.positions || []));
+          } else {
+            console.warn('Skipping failed endpoint /api/positions:', positionsResult.error || positionsResult.status);
           }
 
-          if (stagesResponse.ok) {
-            const stagesData = await stagesResponse.json();
-            setAvailableStages(Array.isArray(stagesData) ? stagesData : (stagesData.stages || []));
+          if (stagesResult.ok && stagesResult.data) {
+            setAvailableStages(Array.isArray(stagesResult.data) ? stagesResult.data : (stagesResult.data.stages || []));
+          } else {
+            console.warn('Skipping failed endpoint /api/recruitment-stages:', stagesResult.error || stagesResult.status);
           }
         } catch (error) {
           console.error('Error fetching positions and stages:', error);
@@ -405,12 +410,12 @@ export function useCandidateData({
 
   const fetchCandidateById = useCallback(async (candidateId: string): Promise<Candidate | null> => {
     try {
-      const response = await fetch(`/api/candidates/${candidateId}`);
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+      const result = await safeFetch(`/api/candidates/${candidateId}`, { timeoutMs: 8000 });
+      if (!result.ok) {
+        console.warn('Skipping failed endpoint /api/candidates/[id]:', result.error || result.status);
         return null;
       }
-      return await response.json();
+      return result.data;
     } catch (error) {
       return null;
     }

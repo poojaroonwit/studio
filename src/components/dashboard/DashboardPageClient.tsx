@@ -21,7 +21,6 @@ import { signIn, useSession, signOut } from "next-auth/react";
 import { CandidatesPerPositionChart } from '@/components/dashboard/CandidatesPerPositionChart';
 import { useRouter } from 'next/navigation';
 import { toast } from "react-hot-toast";
-import { safeJson, allSettledWithTimeout } from '@/lib/safe-fetch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/candidates/CandidateKanbanView";
@@ -38,6 +37,7 @@ import { hasPermission } from '@/lib/permissions';
 import { useChartSetup } from '@/hooks/use-chart-setup';
 import { isDataLabelsAvailable } from '@/lib/chartjs-setup';
 import { useSharedSSE } from '@/hooks/use-shared-sse';
+import { safeFetch, safeAll } from '@/lib/safe-fetch';
 import { RealTimeStatus } from './RealTimeStatus';
 
 
@@ -212,7 +212,7 @@ export default function DashboardPageClient({
     const userId = session.user.id;
 
     try {
-      const fetchOptions = { credentials: 'include' as const };
+      const fetchOptions = { credentials: 'include' as const, timeoutMs: 10000 };
       const promises = [];
       // Check permissions to determine what data to fetch
       const canViewAllCandidates = hasPermission(session?.user, 'CANDIDATES_VIEW');
@@ -223,62 +223,54 @@ export default function DashboardPageClient({
                               hasPermission(session?.user, 'USERS_PERMISSIONS_MANAGE');
       
       if (canViewAllCandidates) {
-        promises.push(fetch('/api/candidates', fetchOptions));
+        promises.push(safeFetch('/api/candidates', fetchOptions));
       } else {
         // User can only see their assigned candidates
-        promises.push(fetch(`/api/candidates?assignedRecruiterId=${userId}`, fetchOptions));
+        promises.push(safeFetch(`/api/candidates?assignedRecruiterId=${userId}`, fetchOptions));
       }
       
       if (canViewAllUsers) {
-        promises.push(fetch('/api/users', fetchOptions));
+        promises.push(safeFetch('/api/users', fetchOptions));
       } else {
-        promises.push(Promise.resolve(null));
+        promises.push(Promise.resolve({ ok: false, status: null, data: null, error: 'No permission' }));
       }
       
       // For backlog candidates, use the same logic as main candidates
       if (canViewAllCandidates) {
-        promises.push(fetch('/api/candidates', fetchOptions));
+        promises.push(safeFetch('/api/candidates', fetchOptions));
       } else {
-        promises.push(fetch(`/api/candidates?assignedRecruiterId=${userId}`, fetchOptions));
+        promises.push(safeFetch(`/api/candidates?assignedRecruiterId=${userId}`, fetchOptions));
       }
-      promises.push(fetch('/api/positions', fetchOptions));
+      promises.push(safeFetch('/api/positions', fetchOptions));
 
-      const settled = await allSettledWithTimeout(promises, 7000);
-      const [candResSet, usersResSet, backlogResSet, posResSet] = settled;
-      const candidatesResOrNull = candResSet.status === 'fulfilled' ? candResSet.value as Response : null;
-      const usersResOrNull = usersResSet.status === 'fulfilled' ? usersResSet.value as Response : null;
-      const myBacklogCandidatesResOrNull = backlogResSet.status === 'fulfilled' ? backlogResSet.value as Response : null;
-      const positionsRes = posResSet.status === 'fulfilled' ? posResSet.value as Response : null;
+      const [candidatesRes, usersRes, myBacklogCandidatesRes, positionsRes] = await safeAll(promises);
 
-      if (candidatesResOrNull && !candidatesResOrNull.ok) {
-        const errorText = candidatesResOrNull.statusText || `Status: ${candidatesResOrNull.status}`;
-        accumulatedFetchError += `Failed to fetch candidates: ${errorText}. `;
+      if (!candidatesRes.ok) {
+        console.warn('Skipping failed endpoint /api/candidates:', candidatesRes.error || candidatesRes.status);
+        accumulatedFetchError += `Failed to fetch candidates: ${candidatesRes.error}. `;
         if (canViewAllCandidates) setFilteredCandidates([]); else setMyAssignedCandidates([]);
-      } else if (candidatesResOrNull) {
-        const response = await candidatesResOrNull.json();
-        const candidatesData: Candidate[] = Array.isArray(response.data) ? response.data : (Array.isArray(response) ? response : []);
+      } else if (candidatesRes.data) {
+        const candidatesData: Candidate[] = Array.isArray((candidatesRes.data as any)?.data) ? (candidatesRes.data as any).data : (Array.isArray(candidatesRes.data) ? candidatesRes.data : []);
         if (canViewAllCandidates) setFilteredCandidates(candidatesData); else setMyAssignedCandidates(candidatesData);
       }
 
-      if (usersResOrNull && !usersResOrNull.ok) { 
-        const errorText = usersResOrNull.statusText || `Status: ${usersResOrNull.status}`;
-        accumulatedFetchError += `Failed to fetch users: ${errorText}. `;
+      if (!usersRes.ok) { 
+        console.warn('Skipping failed endpoint /api/users:', usersRes.error || usersRes.status);
+        accumulatedFetchError += `Failed to fetch users: ${usersRes.error}. `;
         setAllUsers([]); 
       }
-      else if (usersResOrNull) { 
-        const usersData = await usersResOrNull.json();
-        setAllUsers(Array.isArray(usersData) ? usersData : []);
+      else if (usersRes.data) { 
+        setAllUsers(Array.isArray(usersRes.data) ? usersRes.data : []);
       }
 
-      if (myBacklogCandidatesResOrNull && !myBacklogCandidatesResOrNull.ok) { 
-        const errorText = myBacklogCandidatesResOrNull.statusText || `Status: ${myBacklogCandidatesResOrNull.status}`;
-        accumulatedFetchError += `Failed to fetch backlog candidates: ${errorText}. `;
+      if (!myBacklogCandidatesRes.ok) { 
+        console.warn('Skipping failed endpoint /api/candidates (backlog):', myBacklogCandidatesRes.error || myBacklogCandidatesRes.status);
+        accumulatedFetchError += `Failed to fetch backlog candidates: ${myBacklogCandidatesRes.error}. `;
         // On error, safely reset backlog candidates to an empty list
         setMyBacklogCandidates([]);
       }
-      else if (myBacklogCandidatesResOrNull) {
-        const response = await myBacklogCandidatesResOrNull.json();
-        const backlogData: Candidate[] = Array.isArray(response.data) ? response.data : (Array.isArray(response) ? response : []);
+      else if (myBacklogCandidatesRes.data) {
+        const backlogData: Candidate[] = Array.isArray((myBacklogCandidatesRes.data as any)?.data) ? (myBacklogCandidatesRes.data as any).data : (Array.isArray(myBacklogCandidatesRes.data) ? myBacklogCandidatesRes.data : []);
         setMyBacklogCandidates((() => {
           try {
             // Defensive check to prevent filter errors
@@ -302,14 +294,13 @@ export default function DashboardPageClient({
         })());
       }
 
-      if (!positionsRes || !positionsRes.ok) { 
-        const errorText = positionsRes?.statusText || `Status: ${positionsRes?.status}`;
-        accumulatedFetchError += `Failed to fetch positions: ${errorText}. `;
+      if (!positionsRes.ok) { 
+        console.warn('Skipping failed endpoint /api/positions:', positionsRes.error || positionsRes.status);
+        accumulatedFetchError += `Failed to fetch positions: ${positionsRes.error}. `;
         setAllPositions([]); 
       }
-      else { 
-        const response = await positionsRes.json();
-        const positionsData = Array.isArray(response.data) ? response.data : (Array.isArray(response) ? response : []);
+      else if (positionsRes.data) { 
+        const positionsData = Array.isArray((positionsRes.data as any)?.data) ? (positionsRes.data as any).data : (Array.isArray(positionsRes.data) ? positionsRes.data : []);
         setAllPositions(positionsData);
       }
 

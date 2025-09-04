@@ -35,7 +35,7 @@ const AlertDialogContent = React.forwardRef<
   }
 >(({ className, modalId, ...props }, ref) => {
   // TEMPORARILY DISABLED: Modal manager for debugging
-  // const id = modalId || `alert-dialog-${React.useId()}`;
+  const id = modalId || `alert-dialog-${React.useId()}`;
   // const { zIndex, overlayZIndex } = useModalManager(id, 'alert-dialog');
   
   // Use fixed z-index values for testing

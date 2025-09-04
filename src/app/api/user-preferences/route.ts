@@ -76,6 +76,9 @@ export async function GET(request: NextRequest) {
         showHorizontalFitScoreFilters: boolean;
         fitScoreType: 'applied' | 'matching';
         fitScoreFilterMode: 'single' | 'multi';
+        defaultPageSize: number;
+        tableHeight: number;
+        rowHeight: 'compact' | 'normal' | 'comfortable';
       };
     } = {
       taskBoard: {
@@ -130,6 +133,9 @@ export async function GET(request: NextRequest) {
         showHorizontalFitScoreFilters: true,
         fitScoreType: 'applied',
         fitScoreFilterMode: 'single',
+        defaultPageSize: 50,
+        tableHeight: 600,
+        rowHeight: 'normal',
       }
     };
 
@@ -271,6 +277,15 @@ export async function GET(request: NextRequest) {
               break;
             case 'fitScoreFilterMode':
               transformedPreferences.candidates.fitScoreFilterMode = value as 'single' | 'multi';
+              break;
+            case 'defaultPageSize':
+              transformedPreferences.candidates.defaultPageSize = parseInt(value) || 50;
+              break;
+            case 'tableHeight':
+              transformedPreferences.candidates.tableHeight = parseInt(value) || 600;
+              break;
+            case 'rowHeight':
+              transformedPreferences.candidates.rowHeight = value as 'compact' | 'normal' | 'comfortable';
               break;
           }
         } else if (pref.modelType === 'sidebar') {

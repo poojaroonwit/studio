@@ -71,7 +71,7 @@ const SheetContent = React.forwardRef<
   }
 >(({ side = "right", className, children, modalId, ...props }, ref) => {
   // TEMPORARILY DISABLED: Modal manager for debugging
-  // const id = modalId || `sheet-${React.useId()}`;
+  const id = modalId || `sheet-${React.useId()}`;
   // const { zIndex, overlayZIndex } = useModalManager(id, 'sheet');
   
   // Use fixed z-index values for testing

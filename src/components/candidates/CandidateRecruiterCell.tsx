@@ -194,7 +194,7 @@ export function CandidateRecruiterCell({
               <div className="h-4 w-4 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
                 <UserPlus className="h-2 w-2 text-gray-500" />
               </div>
-              <span className="text-sm text-muted-foreground">Assign recruiter</span>
+              <span className="text-sm text-muted-foreground">Unassigned</span>
               <ChevronDown className="h-3 w-3 text-muted-foreground ml-auto" />
             </div>
           )}

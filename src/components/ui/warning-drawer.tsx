@@ -926,6 +926,7 @@ export function WarningDrawer({ isOpen, onClose }: WarningDrawerProps) {
           }
         }}
         positionId={selectedPositionId}
+        modalId="warning-drawer-position-drawer"
       />
 
       {/* Candidate Detail Modal */}

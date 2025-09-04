@@ -5,7 +5,7 @@ import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog"
 
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
-import { useModalManager } from "@/lib/modal-manager"
+import { zIndexManager, useZIndexManager } from "@/lib/z-index-manager"
 
 const AlertDialog = AlertDialogPrimitive.Root
 
@@ -15,17 +15,35 @@ const AlertDialogPortal = AlertDialogPrimitive.Portal
 
 const AlertDialogOverlay = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Overlay>,
-  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Overlay>
->(({ className, ...props }, ref) => (
-  <AlertDialogPrimitive.Overlay
-    className={cn(
-      "fixed inset-0 z-[30000] bg-black/20 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-      className
-    )}
-    {...props}
-    ref={ref}
-  />
-))
+  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Overlay> & {
+    modalId?: string;
+  }
+>(({ className, modalId, ...props }, ref) => {
+  const [zIndex, setZIndex] = React.useState(10001);
+  
+  React.useEffect(() => {
+    if (modalId) {
+      const { overlayZIndex } = zIndexManager.registerModal(modalId, 'alert-dialog');
+      setZIndex(overlayZIndex);
+      
+      return () => {
+        zIndexManager.unregisterModal(modalId);
+      };
+    }
+  }, [modalId]);
+
+  return (
+    <AlertDialogPrimitive.Overlay
+      className={cn(
+        "fixed inset-0 bg-black/20 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+        className
+      )}
+      style={{ zIndex }}
+      {...props}
+      ref={ref}
+    />
+  );
+})
 AlertDialogOverlay.displayName = AlertDialogPrimitive.Overlay.displayName
 
 const AlertDialogContent = React.forwardRef<
@@ -34,19 +52,18 @@ const AlertDialogContent = React.forwardRef<
     modalId?: string;
   }
 >(({ className, modalId, ...props }, ref) => {
-  // Use dynamic modal manager for proper z-index sequencing
-  const id = modalId || `alert-dialog-${React.useId()}`;
-  const { zIndex, overlayZIndex } = useModalManager(id, 'alert-dialog');
+  const [zIndex, setZIndex] = React.useState(10002);
+  
+  React.useEffect(() => {
+    if (modalId) {
+      const { contentZIndex } = zIndexManager.registerModal(modalId, 'alert-dialog');
+      setZIndex(contentZIndex);
+    }
+  }, [modalId]);
 
   return (
     <AlertDialogPortal>
-      <AlertDialogPrimitive.Overlay
-        className={cn(
-          "fixed inset-0 bg-black/20 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-          className
-        )}
-        style={{ zIndex: overlayZIndex }}
-      />
+      <AlertDialogOverlay modalId={modalId} />
       <AlertDialogPrimitive.Content
         ref={ref}
         className={cn(
@@ -54,11 +71,10 @@ const AlertDialogContent = React.forwardRef<
           className
         )}
         style={{ zIndex }}
-        data-modal-id={id}
         {...props}
       />
     </AlertDialogPortal>
-  )
+  );
 })
 AlertDialogContent.displayName = AlertDialogPrimitive.Content.displayName
 

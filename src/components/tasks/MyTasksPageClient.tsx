@@ -1174,9 +1174,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                   tasks={convertCandidatesToTasks(displayedCandidates)}
                   stages={convertStagesToTaskStages(filteredStages)}
                   onMoveTask={handleMoveTask}
-                  onTaskClick={(task) => {
-                    setSelectedTask(task.originalCandidate);
-                  }}
+                  onTaskClick={(task) => setSelectedTask(task.originalCandidate)}
                   cardPreferences={{
                     cardWidth: memoizedPreferences.cardWidth,
                     customCardWidth: memoizedPreferences.customCardWidth,
@@ -1255,13 +1253,15 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
 
       {/* Modals */}
       {selectedTask && (
-        <CandidateDetailModal
-          candidateId={selectedTask.id}
-          open={!!selectedTask}
-          onClose={() => {
-            setSelectedTask(null);
-          }}
-        />
+        <>
+          <CandidateDetailModal
+            candidateId={selectedTask.id}
+            open={!!selectedTask}
+            onClose={() => {
+              setSelectedTask(null);
+            }}
+          />
+        </>
       )}
 
       {/* Card Settings Drawer */}

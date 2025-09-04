@@ -54,9 +54,10 @@ interface PositionDetailDrawerProps {
   onOpenChange: (open: boolean) => void;
   positionId: string | null;
   initialEditMode?: boolean;
+  modalId?: string;
 }
 
-export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initialEditMode = false }: PositionDetailDrawerProps) {
+export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initialEditMode = false, modalId }: PositionDetailDrawerProps) {
   const { data: session, status: sessionStatus } = useSession();
   const { isJobMatchEnabled } = useJobMatchFeature();
   
@@ -488,7 +489,6 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
 
   // Handle candidate click
   const handleCandidateClick = (candidateId: string) => {
-    console.log('PositionDetailDrawer: handleCandidateClick called with:', candidateId);
     setSelectedCandidateId(candidateId);
     setIsCandidateModalOpen(true);
   };
@@ -1363,19 +1363,14 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       <Sheet 
         open={isOpen} 
         onOpenChange={(open) => {
-          // If closing the drawer and candidate modal is open, close the candidate modal first
+          // Prevent closing the drawer when the candidate modal is open
           if (!open && isCandidateModalOpen) {
-            setIsCandidateModalOpen(false);
-            setSelectedCandidateId(null);
+            return;
           }
           onOpenChange(open);
         }}
       >
-        <SheetContent 
-          side="right" 
-          className="w-[50vw] min-w-[800px] max-w-none p-0"
-          modalId={positionId ? `position-drawer-${positionId}` : 'position-drawer-unknown'}
-        >
+        <SheetContent side="right" className="w-[50vw] min-w-[800px] max-w-none p-0" modalId={modalId}>
           <div className="h-full flex flex-col">
             <SheetHeader className="p-6 border-b">
               <SheetTitle className="flex items-center gap-2">

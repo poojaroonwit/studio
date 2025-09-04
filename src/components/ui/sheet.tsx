@@ -7,7 +7,7 @@ import { X } from "lucide-react"
 import { logIfInvalidSingleChild } from "./utils"
 
 import { cn } from "@/lib/utils"
-import { useModalManager } from "@/lib/modal-manager"
+import { zIndexManager, useZIndexManager } from "@/lib/z-index-manager"
 
 const Sheet = SheetPrimitive.Root
 
@@ -28,21 +28,39 @@ const SheetPortal = SheetPrimitive.Portal
 
 const SheetOverlay = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Overlay>,
-  React.ComponentPropsWithoutRef<typeof SheetPrimitive.Overlay>
->(({ className, ...props }, ref) => (
-  <SheetPrimitive.Overlay
-    className={cn(
-      "fixed inset-0 z-[10000] bg-black/20 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-      className
-    )}
-    {...props}
-    ref={ref}
-  />
-))
+  React.ComponentPropsWithoutRef<typeof SheetPrimitive.Overlay> & {
+    modalId?: string;
+  }
+>(({ className, modalId, ...props }, ref) => {
+  const [zIndex, setZIndex] = React.useState(10000);
+  
+  React.useEffect(() => {
+    if (modalId) {
+      const { overlayZIndex } = zIndexManager.registerModal(modalId, 'sheet');
+      setZIndex(overlayZIndex);
+      
+      return () => {
+        zIndexManager.unregisterModal(modalId);
+      };
+    }
+  }, [modalId]);
+
+  return (
+    <SheetPrimitive.Overlay
+      className={cn(
+        "fixed inset-0 bg-black/20 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+        className
+      )}
+      style={{ zIndex }}
+      {...props}
+      ref={ref}
+    />
+  );
+})
 SheetOverlay.displayName = SheetPrimitive.Overlay.displayName
 
 const sheetVariants = cva(
-  "fixed z-[10001] gap-4 bg-background p-6 shadow-lg transition ease-in-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:duration-500",
+  "fixed gap-4 bg-background p-6 shadow-lg transition ease-in-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:duration-500",
   {
     variants: {
       side: {
@@ -62,32 +80,30 @@ const sheetVariants = cva(
 
 interface SheetContentProps
   extends React.ComponentPropsWithoutRef<typeof SheetPrimitive.Content>,
-    VariantProps<typeof sheetVariants> {}
+    VariantProps<typeof sheetVariants> {
+  modalId?: string;
+}
 
 const SheetContent = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Content>,
-  SheetContentProps & {
-    modalId?: string;
-  }
->(({ side = "right", className, children, modalId, ...props }, ref) => {
-  // Use dynamic modal manager for proper z-index sequencing
-  const id = modalId || `sheet-${React.useId()}`;
-  const { zIndex, overlayZIndex } = useModalManager(id, 'sheet');
+  SheetContentProps
+>(({ side = "right", className, modalId, children, ...props }, ref) => {
+  const [zIndex, setZIndex] = React.useState(10001);
+  
+  React.useEffect(() => {
+    if (modalId) {
+      const { contentZIndex } = zIndexManager.registerModal(modalId, 'sheet');
+      setZIndex(contentZIndex);
+    }
+  }, [modalId]);
 
   return (
     <SheetPortal>
-      <SheetPrimitive.Overlay
-        className={cn(
-          "fixed inset-0 bg-black/20 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-          className
-        )}
-        style={{ zIndex: overlayZIndex }}
-      />
+      <SheetOverlay modalId={modalId} />
       <SheetPrimitive.Content
         ref={ref}
         className={cn(sheetVariants({ side }), className)}
         style={{ zIndex }}
-        data-modal-id={id}
         {...props}
       >
         <SheetPrimitive.Title className="sr-only">Sheet</SheetPrimitive.Title>
@@ -98,7 +114,7 @@ const SheetContent = React.forwardRef<
         </SheetPrimitive.Close>
       </SheetPrimitive.Content>
     </SheetPortal>
-  )
+  );
 })
 SheetContent.displayName = SheetPrimitive.Content.displayName
 

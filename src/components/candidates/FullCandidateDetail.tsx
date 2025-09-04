@@ -958,6 +958,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
           }
         }}
         positionId={selectedPositionId}
+        modalId="candidate-detail-position-drawer"
       />
  
       {/* Floating Save/Cancel buttons when editing */}

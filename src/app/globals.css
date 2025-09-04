@@ -107,132 +107,14 @@
   animation: notificationPulse 2s ease-in-out infinite;
 }
 
-/* 
- * MODAL MANAGER SYSTEM:
- * 
- * The modal manager now handles z-index assignment dynamically to prevent
- * overlay stacking issues. Each modal gets a unique z-index that's higher
- * than the previous one, ensuring proper layering without conflicts.
- * 
- * Modal types: dialog, alert-dialog, sheet, custom
- * Each modal gets: overlayZIndex = modalZIndex - 1, contentZIndex = modalZIndex
- */
-
-/* Modal manager overlay - single global overlay */
-[data-modal-manager-overlay] {
-  pointer-events: auto !important;
+/* Dynamic z-index values are now managed by the z-index manager */
+/* These rules are kept for fallback but should not be needed */
+[data-radix-dialog-overlay] {
+  z-index: 10000;
 }
 
-/* Modal content elements with dynamic z-index */
-[data-modal-content] {
-  pointer-events: auto !important;
-}
-
-[data-modal-overlay] {
-  pointer-events: auto !important;
-  width: 100vw !important;
-  height: 100vh !important;
-  left: 0 !important;
-  top: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  position: fixed !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  border: none !important;
-  box-sizing: border-box !important;
-}
-
-/* Ensure modal elements with data-modal-id get proper layering */
-[data-modal-id] {
-  pointer-events: auto !important;
-}
-
-/* Ensure portal containers don't constrain modal overlays */
-[data-candidate-modal-portal],
-[data-portal-container] {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  width: 100vw !important;
-  height: 100vh !important;
-  pointer-events: none !important;
-  z-index: 1 !important;
-}
-
-/* Force all fixed inset-0 elements to cover full screen */
-.fixed.inset-0 {
-  width: 100vw !important;
-  height: 100vh !important;
-  left: 0 !important;
-  top: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  position: fixed !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  border: none !important;
-  box-sizing: border-box !important;
-}
-
-/* Force all modal overlays to cover full screen regardless of parent constraints */
-.fixed.inset-0.bg-black\/20,
-.fixed.inset-0.bg-black\/20.backdrop-blur-sm {
-  width: 100vw !important;
-  height: 100vh !important;
-  left: 0 !important;
-  top: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  position: fixed !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  border: none !important;
-  box-sizing: border-box !important;
-  transform: none !important;
-}
-
-/* Sheet components should have higher z-index than regular modals */
-[data-modal-id*="position-drawer"] {
-  /* Position drawers get higher z-index automatically via modal manager */
-}
-
-/* Candidate detail modals should have highest z-index */
-[data-modal-id*="candidate-detail"] {
-  /* Candidate detail modals get highest z-index automatically via modal manager */
-}
-
-/* Ensure all modal overlays cover full screen */
-[data-radix-dialog-overlay],
-[data-radix-alert-dialog-overlay],
-[data-radix-sheet-overlay] {
-  width: 100vw !important;
-  height: 100vh !important;
-  left: 0 !important;
-  top: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  position: fixed !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  border: none !important;
-  box-sizing: border-box !important;
-}
-
-/* Force all elements with backdrop-blur-sm to cover full screen */
-.fixed.inset-0.backdrop-blur-sm {
-  width: 100vw !important;
-  height: 100vh !important;
-  left: 0 !important;
-  top: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  position: fixed !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  border: none !important;
-  box-sizing: border-box !important;
-  transform: none !important;
+[data-radix-dialog-content] {
+  z-index: 10001;
 }
 
 /* Ensure dialog overlays are properly removed when closed */
@@ -250,18 +132,20 @@
   visibility: hidden !important;
 }
 
-/* REMOVED: Aggressive CSS rules that might be hiding open modals */
+/* Force cleanup of any remaining modal elements */
+[data-radix-dialog-overlay]:not([data-state="open"]) {
+  display: none !important;
+  pointer-events: none !important;
+}
 
-/* Ensure html and body don't constrain overlays */
-html, body {
+[data-radix-dialog-content]:not([data-state="open"]) {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+/* Ensure body is always clickable */
+body {
   pointer-events: auto !important;
-  width: 100% !important;
-  height: 100% !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  overflow-x: visible !important;
-  position: relative !important;
-  box-sizing: border-box !important;
 }
 
 /* Prevent any fixed overlays from blocking interactions when closed */
@@ -270,13 +154,13 @@ html, body {
   pointer-events: none !important;
 }
 
-/* Alert dialog z-index hierarchy - higher than regular dialogs */
+/* Dynamic z-index values are now managed by the z-index manager */
 [data-radix-alert-dialog-overlay] {
-  z-index: 30000 !important;
+  z-index: 10000;
 }
 
 [data-radix-alert-dialog-content] {
-  z-index: 30001 !important;
+  z-index: 10001;
 }
 
 /* Warning pulse animation */
@@ -2230,43 +2114,6 @@ audio::-webkit-scrollbar-button {
   max-height: calc(100vh - 100px);
 }
 
-/* Custom row height styles for candidate table */
-.candidate-table-row-compact {
-  height: 40px !important;
-}
-
-.candidate-table-row-compact td {
-  height: 40px !important;
-  min-height: 40px !important;
-  max-height: 40px !important;
-  padding: 4px 8px !important;
-  vertical-align: middle !important;
-}
-
-.candidate-table-row-normal {
-  height: 56px !important;
-}
-
-.candidate-table-row-normal td {
-  height: 56px !important;
-  min-height: 56px !important;
-  max-height: 56px !important;
-  padding: 8px 8px !important;
-  vertical-align: middle !important;
-}
-
-.candidate-table-row-comfortable {
-  height: 72px !important;
-}
-
-.candidate-table-row-comfortable td {
-  height: 72px !important;
-  min-height: 72px !important;
-  max-height: 72px !important;
-  padding: 12px 8px !important;
-  vertical-align: middle !important;
-}
-
 /* Responsive table wrapper */
 .table-wrapper-responsive {
   display: flex;
@@ -2572,9 +2419,9 @@ audio::-webkit-scrollbar-button {
 /* Responsive Filter Bar Styles */
 .responsive-filter-sidebar {
   transition: all 0.3s ease-in-out;
-  width: 16rem; /* 256px - matches main sidebar */
-  min-width: 16rem;
-  max-width: 16rem;
+  width: 288px;
+  min-width: 252px;
+  max-width: 360px;
   flex-shrink: 0;
   overflow: hidden;
   position: relative;
@@ -2613,17 +2460,17 @@ audio::-webkit-scrollbar-button {
 /* Ensure the filter sidebar is properly sized on all screen sizes */
 @media (max-width: 1024px) {
   .responsive-filter-sidebar {
-    width: 16rem; /* 256px - matches main sidebar */
-    min-width: 16rem;
-    max-width: 16rem;
+    width: 252px;
+    min-width: 252px;
+    max-width: 270px;
   }
 }
 
 @media (max-width: 768px) {
   .responsive-filter-sidebar {
-    width: 16rem; /* 256px - matches main sidebar */
-    min-width: 16rem;
-    max-width: 16rem;
+    width: 234px;
+    min-width: 234px;
+    max-width: 252px;
   }
 }
 
@@ -2683,9 +2530,9 @@ audio::-webkit-scrollbar-button {
 /* Tablet responsive adjustments */
 @media (min-width: 641px) and (max-width: 1024px) {
   .responsive-filter-sidebar {
-    width: 16rem; /* 256px - matches main sidebar */
-    min-width: 16rem;
-    max-width: 16rem;
+    width: 270px;
+    min-width: 252px;
+    max-width: 288px;
   }
   
   .filter-bar-container {
@@ -2696,9 +2543,9 @@ audio::-webkit-scrollbar-button {
 /* Desktop responsive adjustments */
 @media (min-width: 1025px) {
   .responsive-filter-sidebar {
-    width: 16rem; /* 256px - matches main sidebar */
-    min-width: 16rem;
-    max-width: 16rem;
+    width: 288px;
+    min-width: 288px;
+    max-width: 324px;
   }
   
   .filter-bar-container {
@@ -2709,9 +2556,9 @@ audio::-webkit-scrollbar-button {
 /* Large desktop adjustments */
 @media (min-width: 1440px) {
   .responsive-filter-sidebar {
-    width: 16rem; /* 256px - matches main sidebar */
-    min-width: 16rem;
-    max-width: 16rem;
+    width: 306px;
+    min-width: 306px;
+    max-width: 342px;
   }
 }
 

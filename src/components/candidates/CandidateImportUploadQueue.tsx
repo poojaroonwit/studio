@@ -23,6 +23,7 @@ import { useRealtimeCollaboration } from '@/hooks/use-realtime-collaboration';
 import { toast } from 'react-hot-toast';
 import { format } from 'date-fns';
 import { DateRange } from 'react-day-picker';
+import { safeGetDateFromRange } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 
 interface QueueItem {
@@ -146,22 +147,25 @@ export default function CandidateImportUploadQueue() {
       });
 
       // Handle dateRange based on selected filter type
-      if (dateRange?.from) {
+      const fromDate = safeGetDateFromRange(dateRange, 'from');
+      const toDate = safeGetDateFromRange(dateRange, 'to');
+      
+      if (fromDate) {
         if (dateFilterType === 'create') {
-          params.append('date_start', dateRange.from.toISOString());
+          params.append('date_start', fromDate.toISOString());
         } else if (dateFilterType === 'process') {
-          params.append('process_date_start', dateRange.from.toISOString());
+          params.append('process_date_start', fromDate.toISOString());
         } else if (dateFilterType === 'complete') {
-          params.append('completed_date_start', dateRange.from.toISOString());
+          params.append('completed_date_start', fromDate.toISOString());
         }
       }
-      if (dateRange?.to) {
+      if (toDate) {
         if (dateFilterType === 'create') {
-          params.append('date_end', dateRange.to.toISOString());
+          params.append('date_end', toDate.toISOString());
         } else if (dateFilterType === 'process') {
-          params.append('process_date_end', dateRange.to.toISOString());
+          params.append('process_date_end', toDate.toISOString());
         } else if (dateFilterType === 'complete') {
-          params.append('completed_date_end', dateRange.to.toISOString());
+          params.append('completed_date_end', toDate.toISOString());
         }
       }
 
@@ -1255,17 +1259,22 @@ export default function CandidateImportUploadQueue() {
                       )}
                     >
                       <CalendarIcon className="mr-1 h-3 w-3" />
-                      {dateRange?.from ? (
-                        dateRange.to ? (
-                          <>
-                            {format(dateRange.from, "MMM dd")} - {format(dateRange.to, "MMM dd")}
-                          </>
-                        ) : (
-                          format(dateRange.from, "MMM dd")
-                        )
-                      ) : (
-                        <span>Date</span>
-                      )}
+                      {(() => {
+                        const fromDate = safeGetDateFromRange(dateRange, 'from');
+                        const toDate = safeGetDateFromRange(dateRange, 'to');
+                        
+                        if (fromDate && toDate) {
+                          return (
+                            <>
+                              {format(fromDate, "MMM dd")} - {format(toDate, "MMM dd")}
+                            </>
+                          );
+                        } else if (fromDate) {
+                          return format(fromDate, "MMM dd");
+                        } else {
+                          return <span>Date</span>;
+                        }
+                      })()}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">

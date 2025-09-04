@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Loader2, Clock, FileText, AlertTriangle, TrendingUp, Database, CalendarIcon, Filter, X, Download, FileSpreadsheet } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { formatFileSize, formatDate, calculateDuration } from '@/lib/utils';
+import { formatFileSize, formatDate, calculateDuration, safeGetDateFromRange } from '@/lib/utils';
 import { Line, Scatter } from 'react-chartjs-2';
 import { useChartSetup } from '@/hooks/use-chart-setup';
 import { isDataLabelsAvailable } from '@/lib/chartjs-setup';
@@ -125,18 +125,14 @@ export default function ProcessQueueAnalytics() {
       if (!result.ok) {
         console.warn('Skipping failed endpoint /api/upload-queue:', result.error || result.status);
         setData({
-          totalItems: 0,
-          successCount: 0,
-          errorCount: 0,
-          pendingCount: 0,
-          processingCount: 0,
-          items: [],
-          errorAnalysis: [],
-          performanceMetrics: {
-            averageProcessingTime: 0,
-            totalProcessingTime: 0,
-            fastestProcessing: 0,
-            slowestProcessing: 0
+          scatterData: [],
+          stats: {
+            totalJobs: 0,
+            avgDuration: 0,
+            avgDurationByType: [],
+            jobsByType: [],
+            errorsByReason: [],
+            fileSizeRanges: []
           }
         });
         return;
@@ -324,11 +320,14 @@ export default function ProcessQueueAnalytics() {
       // Build query parameters from current filters
       const params = new URLSearchParams();
       
-      if (dateRange?.from) {
-        params.append('date_start', dateRange.from.toISOString());
+      const fromDate = safeGetDateFromRange(dateRange, 'from');
+      const toDate = safeGetDateFromRange(dateRange, 'to');
+      
+      if (fromDate) {
+        params.append('date_start', fromDate.toISOString());
       }
-      if (dateRange?.to) {
-        params.append('date_end', dateRange.to.toISOString());
+      if (toDate) {
+        params.append('date_end', toDate.toISOString());
       }
       if (statusFilter && statusFilter !== 'all') {
         params.append('status', statusFilter);
@@ -475,11 +474,14 @@ export default function ProcessQueueAnalytics() {
       // Build query parameters from current filters
       const params = new URLSearchParams();
       
-      if (dateRange?.from) {
-        params.append('date_start', dateRange.from.toISOString());
+      const fromDate = safeGetDateFromRange(dateRange, 'from');
+      const toDate = safeGetDateFromRange(dateRange, 'to');
+      
+      if (fromDate) {
+        params.append('date_start', fromDate.toISOString());
       }
-      if (dateRange?.to) {
-        params.append('date_end', dateRange.to.toISOString());
+      if (toDate) {
+        params.append('date_end', toDate.toISOString());
       }
       if (statusFilter && statusFilter !== 'all') {
         params.append('status', statusFilter);
@@ -638,17 +640,22 @@ export default function ProcessQueueAnalytics() {
                     )}
                   >
                     <CalendarIcon className="mr-2 h-3 w-3" />
-                    {dateRange?.from ? (
-                      dateRange.to ? (
-                        <>
-                          {format(dateRange.from, "MMM dd, yyyy")} - {format(dateRange.to, "MMM dd, yyyy")}
-                        </>
-                      ) : (
-                        format(dateRange.from, "MMM dd, yyyy")
-                      )
-                    ) : (
-                      <span>Last 30 days</span>
-                    )}
+                    {(() => {
+                      const fromDate = safeGetDateFromRange(dateRange, 'from');
+                      const toDate = safeGetDateFromRange(dateRange, 'to');
+                      
+                      if (fromDate && toDate) {
+                        return (
+                          <>
+                            {format(fromDate, "MMM dd, yyyy")} - {format(toDate, "MMM dd, yyyy")}
+                          </>
+                        );
+                      } else if (fromDate) {
+                        return format(fromDate, "MMM dd, yyyy");
+                      } else {
+                        return <span>Last 30 days</span>;
+                      }
+                    })()}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">

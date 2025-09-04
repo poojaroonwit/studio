@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { format } from "date-fns"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -117,6 +118,68 @@ export function formatDate(date: string | Date | null): string {
  */
 export function isValidDate(date: any): date is Date {
   return date instanceof Date && !isNaN(date.getTime());
+}
+
+/**
+ * Safely converts a value to a Date object
+ */
+export function safeToDate(value: any): Date | null {
+  if (value instanceof Date) {
+    return isValidDate(value) ? value : null;
+  }
+  
+  if (typeof value === 'string' || typeof value === 'number') {
+    const date = new Date(value);
+    return isValidDate(date) ? date : null;
+  }
+  
+  return null;
+}
+
+/**
+ * Safely gets a Date object from a date range property
+ */
+export function safeGetDateFromRange(dateRange: any, property: 'from' | 'to'): Date | null {
+  if (!dateRange || typeof dateRange !== 'object') {
+    return null;
+  }
+  
+  const value = dateRange[property];
+  return safeToDate(value);
+}
+
+/**
+ * Safely formats a date with fallback
+ */
+export function safeFormatDate(date: any, formatStr: string, fallback: string = '-'): string {
+  const dateObj = safeToDate(date);
+  if (!dateObj) {
+    return fallback;
+  }
+  
+  try {
+    return format(dateObj, formatStr);
+  } catch (error) {
+    console.warn('safeFormatDate: Error formatting date', { date, formatStr, error });
+    return fallback;
+  }
+}
+
+/**
+ * Safely calls getTime() on a date with fallback
+ */
+export function safeGetTimeWithFallback(date: any, fallback: number = 0): number {
+  const dateObj = safeToDate(date);
+  if (!dateObj) {
+    return fallback;
+  }
+  
+  try {
+    return dateObj.getTime();
+  } catch (error) {
+    console.warn('safeGetTimeWithFallback: Error getting time', { date, error });
+    return fallback;
+  }
 }
 
 /**

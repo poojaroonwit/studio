@@ -11,7 +11,7 @@ import { Loader2, TrendingUp, CalendarIcon, XCircle } from "lucide-react";
 import type { Candidate } from "@/lib/types";
 import { format, subMonths, subWeeks, subYears, startOfMonth, startOfWeek, startOfYear, endOfMonth, endOfWeek, endOfYear, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, eachYearOfInterval, addDays } from 'date-fns';
 import parseISO from 'date-fns/parseISO';
-import { cn, isValidDate, safeGetTime, safeDateDiff } from "@/lib/utils";
+import { cn, isValidDate, safeGetTime, safeDateDiff, safeGetDateFromRange } from "@/lib/utils";
 import { DateRange } from 'react-day-picker';
 import { useChartSetup } from '@/hooks/use-chart-setup';
 import { isDataLabelsAvailable } from '@/lib/chartjs-setup';
@@ -67,18 +67,25 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
     let formatFn: (date: Date) => string = (date) => format(date, 'MMM dd');
     
     if (periodType === 'custom' && dateRange?.from && dateRange?.to) {
-      start = dateRange.from;
-      end = dateRange.to;
-      const daysDiff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-      if (daysDiff <= 30) {
-        intervalFn = eachDayOfInterval;
-        formatFn = (date: Date) => format(date, 'MMM dd');
-      } else if (daysDiff <= 180) {
-        intervalFn = eachWeekOfInterval;
-        formatFn = (date: Date) => `Week ${format(date, 'w')}`;
+      const fromDate = safeGetDateFromRange(dateRange, 'from');
+      const toDate = safeGetDateFromRange(dateRange, 'to');
+      
+      if (fromDate && toDate) {
+        start = fromDate;
+        end = toDate;
+        const daysDiff = Math.ceil(safeDateDiff(start, end) / (1000 * 60 * 60 * 24));
+        if (daysDiff <= 30) {
+          intervalFn = eachDayOfInterval;
+          formatFn = (date: Date) => format(date, 'MMM dd');
+        } else if (daysDiff <= 180) {
+          intervalFn = eachWeekOfInterval;
+          formatFn = (date: Date) => `Week ${format(date, 'w')}`;
+        } else {
+          intervalFn = eachMonthOfInterval;
+          formatFn = (date: Date) => format(date, 'MMM yyyy');
+        }
       } else {
-        intervalFn = eachMonthOfInterval;
-        formatFn = (date: Date) => format(date, 'MMM yyyy');
+        console.warn('Invalid date range provided, falling back to default period');
       }
     } else {
       let n = periodN;
@@ -209,12 +216,14 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
       let intervalEnd: Date;
       // Use same logic as before for intervalEnd
       if (periodType === 'custom' && dateRange?.from && dateRange?.to) {
-        // Validate dateRange dates before using getTime()
-        if (!isValidDate(dateRange.from) || !isValidDate(dateRange.to)) {
+        const fromDate = safeGetDateFromRange(dateRange, 'from');
+        const toDate = safeGetDateFromRange(dateRange, 'to');
+        
+        if (!fromDate || !toDate) {
           console.error('Invalid dateRange dates:', { from: dateRange.from, to: dateRange.to });
           return { label: 'Invalid Date Range', count: 0, start: intervalStart, end: intervalStart };
         }
-        const daysDiff = Math.ceil(safeDateDiff(dateRange.from, dateRange.to) / (1000 * 60 * 60 * 24));
+        const daysDiff = Math.ceil(safeDateDiff(fromDate, toDate) / (1000 * 60 * 60 * 24));
         if (daysDiff <= 30) {
           intervalEnd = addDays(intervalStart, 1);
         } else if (daysDiff <= 180) {
@@ -297,12 +306,14 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
       }
       let intervalEnd: Date;
       if (periodType === 'custom' && dateRange?.from && dateRange?.to) {
-        // Validate dateRange dates before using getTime()
-        if (!isValidDate(dateRange.from) || !isValidDate(dateRange.to)) {
+        const fromDate = safeGetDateFromRange(dateRange, 'from');
+        const toDate = safeGetDateFromRange(dateRange, 'to');
+        
+        if (!fromDate || !toDate) {
           console.error('Invalid dateRange dates in comparison:', { from: dateRange.from, to: dateRange.to });
           return { label: 'Invalid Date Range', count: 0, start: intervalStart, end: intervalStart };
         }
-        const daysDiff = Math.ceil(safeDateDiff(dateRange.from, dateRange.to) / (1000 * 60 * 60 * 24));
+        const daysDiff = Math.ceil(safeDateDiff(fromDate, toDate) / (1000 * 60 * 60 * 24));
         if (daysDiff <= 30) {
           intervalEnd = addDays(intervalStart, 1);
         } else if (daysDiff <= 180) {
@@ -536,19 +547,24 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
                   >
                     <CalendarIcon className="h-4 w-4 text-blue-500" />
                     <span className="whitespace-nowrap">
-                      {dateRange?.from ? (
-                        dateRange.to ? (
-                          <>
-                            <span className="font-semibold text-blue-700">{format(dateRange.from, "MMM dd, yyyy")}</span>
-                            <span className="mx-1 text-blue-400">–</span>
-                            <span className="font-semibold text-blue-700">{format(dateRange.to, "MMM dd, yyyy")}</span>
-                          </>
-                        ) : (
-                          <span className="font-semibold text-blue-700">{format(dateRange.from, "MMM dd, yyyy")}</span>
-                        )
-                      ) : (
-                        <span className="text-blue-400">Pick a date range</span>
-                      )}
+                      {(() => {
+                        const fromDate = safeGetDateFromRange(dateRange, 'from');
+                        const toDate = safeGetDateFromRange(dateRange, 'to');
+                        
+                        if (fromDate && toDate) {
+                          return (
+                            <>
+                              <span className="font-semibold text-blue-700">{format(fromDate, "MMM dd, yyyy")}</span>
+                              <span className="mx-1 text-blue-400">–</span>
+                              <span className="font-semibold text-blue-700">{format(toDate, "MMM dd, yyyy")}</span>
+                            </>
+                          );
+                        } else if (fromDate) {
+                          return <span className="font-semibold text-blue-700">{format(fromDate, "MMM dd, yyyy")}</span>;
+                        } else {
+                          return <span className="text-blue-400">Pick a date range</span>;
+                        }
+                      })()}
                     </span>
                   </button>
                 </PopoverTrigger>

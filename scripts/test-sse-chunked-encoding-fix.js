@@ -13,7 +13,7 @@ const http = require('http');
 const { URL } = require('url');
 
 // Configuration
-const DEFAULT_URL = 'https://dev-ncc-cv-screening.qsncc.com/api/sse';
+const DEFAULT_URL = 'http://localhost:8021/api/sse';
 const DEFAULT_TIMEOUT = 60000; // 60 seconds
 const DEFAULT_RETRIES = 3;
 const KEEPALIVE_INTERVAL = 15000; // 15 seconds (should match server)

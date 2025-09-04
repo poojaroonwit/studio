@@ -232,25 +232,18 @@ export class EnhancedSSEManager {
         }
       }
 
-      // Enhanced retry logic for chunked encoding errors
-      if (endpoint.lastErrorEventType === 'chunked_encoding_error') {
-        // For chunked encoding errors, try a few more times with longer delays
-        if (endpoint.retryCount < 5) {
-          this.warn(`[Enhanced SSE Manager] ${endpoint.name} chunked encoding error - will retry (${endpoint.retryCount}/5)`);
-          // Schedule retry with exponential backoff for chunked encoding errors
-          setTimeout(() => {
-            if (endpoint.enabled) {
-              this.connectToEndpoint(endpointId);
-            }
-          }, Math.min(5000 * Math.pow(2, endpoint.retryCount), 30000)); // 5s, 10s, 20s, 30s max
-        } else {
-          endpoint.enabled = false;
-          this.warn(`[Enhanced SSE Manager] ${endpoint.name} disabled after ${endpoint.retryCount} chunked encoding errors`);
-        }
+      // Enhanced retry logic for connection errors
+      if (endpoint.retryCount < 5) {
+        this.warn(`[Enhanced SSE Manager] ${endpoint.name} connection error - will retry (${endpoint.retryCount}/5)`);
+        // Schedule retry with exponential backoff
+        setTimeout(() => {
+          if (endpoint.enabled) {
+            this.connectToEndpoint(endpointId);
+          }
+        }, Math.min(5000 * Math.pow(2, endpoint.retryCount), 30000)); // 5s, 10s, 20s, 30s max
       } else {
-        // For other errors, disable immediately
         endpoint.enabled = false;
-        this.warn(`[Enhanced SSE Manager] ${endpoint.name} disabled after error (no retry policy)`);
+        this.warn(`[Enhanced SSE Manager] ${endpoint.name} disabled after ${endpoint.retryCount} errors`);
       }
     }
   }
@@ -283,18 +276,14 @@ export class EnhancedSSEManager {
           endpoint.lastErrorEventType = 'eventsource_error';
           endpoint.lastErrorLocation = endpoint.url;
           
-          // Enhanced error detection for chunked encoding issues
+          // Enhanced error detection for connection issues
           let errorMessage = `EventSource error: ${error.type || 'unknown'}`;
-          let isChunkedError = false;
           
-          // Check for chunked encoding errors specifically
+          // Check for connection errors
           if (error.type === 'error' && eventSource.readyState === EventSource.CLOSED) {
-            // This is likely a chunked encoding error
-            isChunkedError = true;
-            errorMessage = 'Chunked encoding error detected - connection interrupted';
-            endpoint.lastErrorEventType = 'chunked_encoding_error';
+            errorMessage = 'Connection closed - server may be unavailable';
+            endpoint.lastErrorEventType = 'connection_closed';
           } else if (error.type === 'error' && eventSource.readyState === EventSource.CONNECTING) {
-            // Connection is trying to reconnect, might be network issue
             errorMessage = 'Connection interrupted - attempting to reconnect';
             endpoint.lastErrorEventType = 'connection_interrupted';
           }
@@ -302,11 +291,6 @@ export class EnhancedSSEManager {
           endpoint.lastError = errorMessage;
           clearTimeout(connectionTimeout);
           eventSource.close();
-          
-          // Log specific error type for debugging
-          if (isChunkedError) {
-            this.error(`[Enhanced SSE Manager] ${endpoint.name} chunked encoding error detected`);
-          }
           
           reject(new Error(errorMessage));
         };

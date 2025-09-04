@@ -318,8 +318,8 @@ export default function CandidateImportUploadQueue() {
         eventSource.onerror = (error) => {
           setSseConnected(false);
           
-          // Enhanced error detection for chunked encoding issues
-          const isChunkedError = error.type === 'error' && 
+          // Enhanced error detection for connection issues
+          const isConnectionError = error.type === 'error' && 
             (eventSource?.readyState === EventSource.CLOSED || eventSource?.readyState === EventSource.CONNECTING);
           
           const isNetworkError = error.type === 'error' && 
@@ -329,8 +329,8 @@ export default function CandidateImportUploadQueue() {
           if (eventSource && eventSource.readyState === EventSource.CONNECTING) {
             setSseError('Connecting...');
           } else if (eventSource && eventSource.readyState === EventSource.CLOSED) {
-            if (isChunkedError) {
-              setSseError('Connection interrupted (chunked encoding error) - retrying...');
+            if (isConnectionError) {
+              setSseError('Connection interrupted - retrying...');
             } else {
               setSseError('Connection closed - check authentication');
             }

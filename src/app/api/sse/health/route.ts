@@ -55,9 +55,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Add general SSE recommendations
-    healthData.recommendations.push('Ensure nginx is configured with proper SSE settings');
-    healthData.recommendations.push('Check for network interruptions or proxy timeouts');
+    healthData.recommendations.push('Check for network interruptions');
     healthData.recommendations.push('Verify server is running and accessible');
+    healthData.recommendations.push('Ensure Next.js server is running on port 8021');
 
     return new Response(JSON.stringify(healthData, null, 2), {
       status: 200,

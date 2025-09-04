@@ -962,7 +962,7 @@ export default function PositionsPageClient() {
     let mounted = true;
     let refreshTimeout: NodeJS.Timeout;
     let lastUpdateTime = 0;
-    const MIN_UPDATE_INTERVAL = 2000; // Minimum 2 seconds between updates
+    const MIN_UPDATE_INTERVAL = 1000; // Minimum 1 second between updates
     
     // Only subscribe to events if user is authenticated
     if (status !== 'authenticated' || !session?.user?.id) {
@@ -1007,7 +1007,7 @@ export default function PositionsPageClient() {
               fetchRecruiterStats();
             }
           }
-        }, 2000); // 2 second debounce for better performance
+        }, 1000); // 1 second debounce for better performance
       }
     });
     

@@ -336,7 +336,7 @@ export async function handleUnifiedSSEConnection(request: Request) {
           return;
         }
 
-        // Send keepalive every 15 seconds for optimal stability and chunked encoding prevention
+        // Send keepalive every 1 second for optimal stability
         keepaliveInterval = setInterval(() => {
           if (!connectionAlive) {
             clearInterval(keepaliveInterval);
@@ -351,7 +351,7 @@ export async function handleUnifiedSSEConnection(request: Request) {
               connectionId: `${userId}-${Date.now()}`
             });
             
-            // Use proper SSE format with explicit event type to prevent chunked encoding issues
+            // Use proper SSE format with explicit event type
             const keepaliveMessage = `event: keepalive\ndata: ${keepaliveData}\n\n`;
             controller.enqueue(encoder.encode(keepaliveMessage));
             
@@ -368,7 +368,7 @@ export async function handleUnifiedSSEConnection(request: Request) {
             clearInterval(keepaliveInterval);
             removeUserConnection(userId);
           }
-        }, 15000); // 15 seconds for optimal stability and chunked encoding prevention
+        }, 1000); // 1 second for optimal stability
 
         // Store keepalive interval reference
         const connection = userConnections.get(userId);
@@ -407,16 +407,12 @@ export async function handleUnifiedSSEConnection(request: Request) {
         'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         'Access-Control-Allow-Credentials': 'true',
         'X-Accel-Buffering': 'no',
-        'Keep-Alive': 'timeout=300, max=1000', // 5 minutes timeout to match nginx
+        'Keep-Alive': 'timeout=300, max=1000', // 5 minutes timeout
         'X-Frame-Options': 'DENY',
         'X-Content-Type-Options': 'nosniff',
-        // Enhanced headers to prevent chunked encoding issues
+        // Enhanced headers for SSE stability
         'Accept-Ranges': 'none',
         'X-DNS-Prefetch-Control': 'off',
-        // Force identity encoding to prevent chunked encoding
-        'Content-Encoding': 'identity',
-        'Transfer-Encoding': 'identity',
-        'Accept-Encoding': 'identity',
         // Additional stability headers
         'X-Connection-Type': 'sse-stream',
         'X-Stream-Mode': 'continuous'

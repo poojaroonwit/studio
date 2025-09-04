@@ -160,7 +160,7 @@ export function broadcastDashboardUpdateIfChanged(
   const trackerKey = 'dashboard_data';
   
   if (hasDataChanged(trackerKey, data, {
-    minBroadcastInterval: options.minBroadcastInterval || 5000, // 5 seconds for dashboard (was 1 second)
+    minBroadcastInterval: options.minBroadcastInterval || 1000, // 1 second for dashboard
     ignoreFields: ['timestamp', 'last_updated', ...(options.ignoreFields || [])]
   })) {
     console.log('[DataChange] Broadcasting dashboard update');
@@ -188,7 +188,7 @@ export function broadcastBatchUpdateIfChanged(
   };
   
   if (hasDataChanged(trackerKey, batchData, {
-    minBroadcastInterval: options.minBroadcastInterval || 5000, // 5 seconds for batch updates (was 1 second)
+    minBroadcastInterval: options.minBroadcastInterval || 1000, // 1 second for batch updates
     ignoreFields: ['timestamp', ...(options.ignoreFields || [])]
   })) {
     console.log(`[DataChange] Broadcasting ${itemType} batch update:`, items.length, 'items');

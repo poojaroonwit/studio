@@ -290,9 +290,9 @@ Options:
   --help                Show this help message
 
 Examples:
-  node test-sse-connection-enhanced.js https://dev-ncc-cv-screening.qsncc.com/api/sse
-  node test-sse-connection-enhanced.js http://localhost:3000/api/sse --timeout 60000
-  node test-sse-connection-enhanced.js https://example.com/sse --retries 5 --keepalive 30000
+  node test-sse-connection-enhanced.js http://localhost:8021/api/sse
+  node test-sse-connection-enhanced.js http://localhost:8021/api/sse --timeout 60000
+  node test-sse-connection-enhanced.js http://localhost:8021/api/sse --retries 5 --keepalive 30000
 `);
     process.exit(0);
   }

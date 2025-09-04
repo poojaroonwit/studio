@@ -273,147 +273,127 @@ export async function handleUnifiedSSEConnection(request: Request) {
       console.warn('[UNIFIED] Server timeout reached for SSE connection');
     }, 300000); // 5 minutes server timeout
 
-    // Simple authentication without database health checks
-    let session;
-    try {
-      session = await getServerSession(authOptions);
-    } catch (sessionError) {
-      clearTimeout(serverTimeout);
-      console.error('[UNIFIED] Session authentication error:', sessionError);
-      
-      return new Response(JSON.stringify({
-        error: 'Authentication failed',
-        message: 'Session validation error',
-        details: sessionError instanceof Error ? sessionError.message : 'Unknown error',
-        timestamp: new Date().toISOString()
-      }), { 
-        status: 401,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
-    
-    const userId = (session as any)?.user?.id;
-
-    if (!userId) {
-      clearTimeout(serverTimeout);
-      console.log('[UNIFIED] Authentication failed - no user session');
-      return new Response(JSON.stringify({
-        error: 'Authentication required',
-        message: 'No valid user session found',
-        timestamp: new Date().toISOString()
-      }), { 
-        status: 401,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
-
-    // Check if user already has a connection
-    if (userConnections.has(userId)) {
-      console.log(`[UNIFIED] User ${userId} already has a connection, replacing old one`);
-      removeUserConnection(userId);
-    }
-
-    console.log(`[UNIFIED] User ${userId} authenticated successfully`);
-
     const encoder = new TextEncoder();
     let keepaliveInterval: NodeJS.Timeout;
     let connectionAlive = true;
+    let resolvedUserId: string | null = null;
 
     const stream = new ReadableStream({
       start(controller) {
-        // console.log(`[UNIFIED] Starting unified stream for user ${userId}`);
-
-        // Add connection
-        addUserConnection(userId, controller);
-        // console.log(`[UNIFIED] User ${userId} SSE connection established`);
-
-        // Send an immediate comment frame to encourage early flush through proxies
+        // Immediately flush a comment frame so proxies consider the response started
         try {
-          controller.enqueue(encoder.encode(`: ping ${Date.now()}\n\n`));
+          controller.enqueue(encoder.encode(`: open ${Date.now()}\n\n`));
         } catch (e) {
-          console.error(`[UNIFIED] Failed to send warm-up frame for user ${userId}:`, e);
+          console.error('[UNIFIED] Failed to send warm-up frame:', e);
         }
 
-        // Send initial connection confirmation
-        const initialData = JSON.stringify({
-          type: 'connected',
-          message: 'Unified SSE connection established',
-          timestamp: new Date().toISOString(),
-          userId,
-          connectionId: `${userId}-${Date.now()}`,
-          features: ['candidates', 'positions', 'notifications', 'upload_queue', 'dashboard']
-        });
-
-        try {
-          controller.enqueue(encoder.encode(`data: ${initialData}\n\n`));
-        } catch (error) {
-          console.error(`[UNIFIED] Failed to send initial data to user ${userId}:`, error);
-          connectionAlive = false;
-          return;
-        }
-
-        // Send keepalive every 1 second for optimal stability
-        keepaliveInterval = setInterval(() => {
-          if (!connectionAlive) {
-            clearInterval(keepaliveInterval);
-            return;
-          }
-          
+        // Authenticate asynchronously to avoid blocking headers flush
+        ;(async () => {
           try {
-            const keepaliveData = JSON.stringify({
-              type: 'keepalive',
-              timestamp: new Date().toISOString(),
-              uptime: Date.now() - userConnections.get(userId)!.connectionStartTime,
-              connectionId: `${userId}-${Date.now()}`
-            });
-            
-            // Use proper SSE format with explicit event type
-            const keepaliveMessage = `event: keepalive\ndata: ${keepaliveData}\n\n`;
-            controller.enqueue(encoder.encode(keepaliveMessage));
-            
-            // Update last activity
-            const connection = userConnections.get(userId);
-            if (connection) {
-              connection.lastActivity = Date.now();
+            const session = await getServerSession(authOptions);
+            const userId = (session as any)?.user?.id as string | undefined;
+
+            if (!userId) {
+              // Send auth error event and close
+              const authErr = {
+                type: 'authentication_error',
+                message: 'No valid user session found',
+                timestamp: new Date().toISOString()
+              };
+              try { controller.enqueue(encoder.encode(`event: authentication_error\ndata: ${JSON.stringify(authErr)}\n\n`)); } catch {}
+              connectionAlive = false;
+              clearTimeout(serverTimeout);
+              try { controller.close(); } catch {}
+              return;
             }
-            
-            // console.log(`[UNIFIED] Keepalive sent to user ${userId}`);
-          } catch (error) {
-            console.error(`[UNIFIED] Keepalive failed for user ${userId}:`, error);
+
+            resolvedUserId = userId;
+
+            // If an old connection exists, replace it
+            if (userConnections.has(userId)) {
+              console.log(`[UNIFIED] User ${userId} already has a connection, replacing old one`);
+              removeUserConnection(userId);
+            }
+
+            // Register connection only after successful auth
+            addUserConnection(userId, controller);
+
+            // Initial payload
+            const initialData = JSON.stringify({
+              type: 'connected',
+              message: 'Unified SSE connection established',
+              timestamp: new Date().toISOString(),
+              userId,
+              connectionId: `${userId}-${Date.now()}`,
+              features: ['candidates', 'positions', 'notifications', 'upload_queue', 'dashboard']
+            });
+            try { controller.enqueue(encoder.encode(`data: ${initialData}\n\n`)); } catch {}
+
+            // Keepalive loop
+            keepaliveInterval = setInterval(() => {
+              if (!connectionAlive) {
+                clearInterval(keepaliveInterval);
+                return;
+              }
+              try {
+                const keepaliveData = JSON.stringify({
+                  type: 'keepalive',
+                  timestamp: new Date().toISOString(),
+                  uptime: resolvedUserId && userConnections.get(resolvedUserId) ? Date.now() - userConnections.get(resolvedUserId)!.connectionStartTime : 0,
+                  connectionId: `${resolvedUserId || 'unknown'}-${Date.now()}`
+                });
+                const keepaliveMessage = `event: keepalive\ndata: ${keepaliveData}\n\n`;
+                controller.enqueue(encoder.encode(keepaliveMessage));
+                if (resolvedUserId) {
+                  const connection = userConnections.get(resolvedUserId);
+                  if (connection) connection.lastActivity = Date.now();
+                }
+              } catch (error) {
+                console.error('[UNIFIED] Keepalive failed:', error);
+                connectionAlive = false;
+                clearInterval(keepaliveInterval);
+                if (resolvedUserId) removeUserConnection(resolvedUserId);
+              }
+            }, 1000);
+
+            // Link interval to connection object
+            if (resolvedUserId) {
+              const connection = userConnections.get(resolvedUserId);
+              if (connection) connection.keepaliveInterval = keepaliveInterval;
+            }
+          } catch (sessionError) {
+            console.error('[UNIFIED] Session authentication error (async):', sessionError);
+            const authErr = {
+              type: 'authentication_error',
+              message: sessionError instanceof Error ? sessionError.message : 'Authentication failed',
+              timestamp: new Date().toISOString()
+            };
+            try { controller.enqueue(encoder.encode(`event: authentication_error\ndata: ${JSON.stringify(authErr)}\n\n`)); } catch {}
             connectionAlive = false;
             clearInterval(keepaliveInterval);
-            removeUserConnection(userId);
+            clearTimeout(serverTimeout);
+            try { controller.close(); } catch {}
           }
-        }, 1000); // 1 second for optimal stability
-
-        // Store keepalive interval reference
-        const connection = userConnections.get(userId);
-        if (connection) {
-          connection.keepaliveInterval = keepaliveInterval;
-        }
+        })();
 
         // Cleanup on connection close
         request.signal.addEventListener('abort', () => {
-          // console.log(`[UNIFIED] Connection aborted for user ${userId}`);
           connectionAlive = false;
           clearInterval(keepaliveInterval);
           clearTimeout(serverTimeout);
-          removeUserConnection(userId);
+          if (resolvedUserId) removeUserConnection(resolvedUserId);
           try { controller.close(); } catch (e) {
-            console.error(`[UNIFIED] Error closing controller for user ${userId}:`, e);
+            console.error('[UNIFIED] Error closing controller:', e);
           }
         });
       },
       cancel() {
-        // console.log(`[UNIFIED] Stream cancelled for user ${userId}`);
         connectionAlive = false;
         clearInterval(keepaliveInterval);
         clearTimeout(serverTimeout);
-        removeUserConnection(userId);
+        if (resolvedUserId) removeUserConnection(resolvedUserId);
       }
     });
-
-    // console.log(`[UNIFIED] Returning unified response for user ${userId}`);
 
     return new Response(stream, {
       headers: {
@@ -425,18 +405,14 @@ export async function handleUnifiedSSEConnection(request: Request) {
         'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         'Access-Control-Allow-Credentials': 'true',
         'X-Accel-Buffering': 'no',
-        'Keep-Alive': 'timeout=300, max=1000', // 5 minutes timeout
+        'Keep-Alive': 'timeout=300, max=1000',
         'X-Frame-Options': 'DENY',
         'X-Content-Type-Options': 'nosniff',
-        // Enhanced headers for SSE stability
         'Accept-Ranges': 'none',
         'X-DNS-Prefetch-Control': 'off',
-        // Additional stability headers
         'X-Connection-Type': 'sse-stream',
-        'X-Stream-Mode': 'continuous',
-        // CRITICAL: Disable chunked encoding for SSE streams
-        'Transfer-Encoding': 'identity',
-        'Content-Length': '0' // Set to 0 for streaming responses
+        'X-Stream-Mode': 'continuous'
+        // Intentionally omit Content-Length/Transfer-Encoding for streaming compatibility
       },
     });
   } catch (error) {

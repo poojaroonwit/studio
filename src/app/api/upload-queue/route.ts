@@ -149,6 +149,8 @@ export async function GET(request: NextRequest) {
   const processDateStart = url.searchParams.get('process_date_start');
   const processDateEnd = url.searchParams.get('process_date_end');
   const positionId = url.searchParams.get('position_id');
+  const sortField = url.searchParams.get('sort_field') || 'upload_date';
+  const sortDirection = url.searchParams.get('sort_direction') || 'desc';
 
   // Validate pagination parameters (no upper limit on records)
   const safeLimit = Math.max(limit, 1); // Minimum 1, no maximum limit
@@ -196,15 +198,24 @@ export async function GET(request: NextRequest) {
   const client = await getPool().connect();
   try {
     // Set a longer statement timeout for this specific request to prevent 504 errors
-          await client.query('SET statement_timeout = \'60000ms\''); // 60 seconds (increased from 15)
+    await client.query('SET statement_timeout = \'60000ms\''); // 60 seconds (increased from 15)
+    
+    // Debug logging
+    console.log(`[UploadQueue API] Request from user ${actingUserName} (${actingUserId})`);
+    console.log(`[UploadQueue API] Query params: limit=${limit}, offset=${offset}, fileName=${fileName}, status=${status}, sortField=${sortField}, sortDirection=${sortDirection}`);
 
+    // Validate sort field to prevent SQL injection
+    const allowedSortFields = ['upload_date', 'file_name', 'status', 'file_size', 'process_date', 'completed_date'];
+    const safeSortField = allowedSortFields.includes(sortField) ? sortField : 'upload_date';
+    const safeSortDirection = sortDirection.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
+    
     // Main query - only fetches records for the current page using LIMIT and OFFSET
     const dataRes = await client.query(
       `SELECT uq.*, p.title as position_title 
        FROM upload_queue uq 
        LEFT JOIN "Position" p ON uq.position_id = p.id 
        ${whereSQL} 
-       ORDER BY uq.upload_date DESC 
+       ORDER BY uq.${safeSortField} ${safeSortDirection} 
        LIMIT $${paramIdx++} OFFSET $${paramIdx++}`,
       values
     );
@@ -232,6 +243,10 @@ export async function GET(request: NextRequest) {
       success: Number(summary.success) || 0,
       error: Number(summary.error) || 0,
     };
+    
+    // Debug logging for results
+    console.log(`[UploadQueue API] Query results: ${dataRes.rows.length} records, total: ${totalCount}`);
+    console.log(`[UploadQueue API] Summary: queued=${safeSummary.queued}, inprocess=${safeSummary.inprocess}, success=${safeSummary.success}, error=${safeSummary.error}`);
 
     // Add url field to each job
     const jobsWithUrl = dataRes.rows.map(job => ({

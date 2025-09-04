@@ -209,13 +209,13 @@ export function UnifiedRealtimeStatus({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600">Messages Sent</span>
-                <span className="text-sm font-medium">{(messageCount || 0).toLocaleString()}</span>
+                <span className="text-sm font-medium">{messageCount.toLocaleString()}</span>
               </div>
               
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600">Errors</span>
                 <span className={cn("text-sm font-medium", getErrorRateColor())}>
-                  {(errorCount || 0).toLocaleString()}
+                  {errorCount.toLocaleString()}
                 </span>
               </div>
               

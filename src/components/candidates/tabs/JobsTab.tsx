@@ -59,26 +59,21 @@ export const JobsTab: React.FC<JobsTabProps> = ({
             <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Job Applied</h2>
             {jobAppliedOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
           </button>
-          <div className="flex items-center gap-2">
-            {appliedFitScore !== null && appliedFitScore !== undefined && typeof appliedFitScore === 'number' && !isNaN(appliedFitScore) && (
-              <ScoreBadge score={appliedFitScore} className="text-xs" />
-            )}
-            {appliedJobId && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onCopyJobApplied}
-                className="h-8 w-8 p-0"
-                title="Copy job applied information"
-              >
-                {copiedJobApplied ? (
-                  <Check className="h-4 w-4 text-green-600" />
-                ) : (
-                  <Copy className="h-4 w-4" />
-                )}
-              </Button>
-            )}
-          </div>
+          {appliedJobId && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onCopyJobApplied}
+              className="h-8 w-8 p-0"
+              title="Copy job applied information"
+            >
+              {copiedJobApplied ? (
+                <Check className="h-4 w-4 text-green-600" />
+              ) : (
+                <Copy className="h-4 w-4" />
+              )}
+            </Button>
+          )}
         </div>
         {jobAppliedOpen && (
           <div className="space-y-4 transition-all duration-200">
@@ -222,8 +217,10 @@ export const JobsTab: React.FC<JobsTabProps> = ({
                             <div className="flex items-center justify-between">
                               <h4 className="font-semibold">{displayTitle}</h4>
                               <div className="flex items-center gap-2">
-                                {match.fitScore !== undefined && match.fitScore !== null && typeof match.fitScore === 'number' && !isNaN(match.fitScore) && (
-                                  <ScoreBadge score={match.fitScore} />
+                                {match.fitScore !== undefined && match.fitScore !== null && (
+                                  <ScoreBadge score={match.fitScore}>
+                                    {formatScoreWithGrade(match.fitScore)}
+                                  </ScoreBadge>
                                 )}
                                 {canManageJobMatches && (
                                   <Button

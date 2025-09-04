@@ -465,12 +465,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
 
   // Job applied data
   const appliedJobId = candidate?.positionId;
-  const appliedFitScore = candidate?.fitScore !== null && candidate?.fitScore !== undefined 
-    ? (() => {
-        const score = typeof candidate.fitScore === 'number' ? candidate.fitScore : Number(candidate.fitScore);
-        return !isNaN(score) ? score : null;
-      })()
-    : null;
+  const appliedFitScore = candidate?.fitScore;
   const appliedJustification = candidate?.assignmentJustification
     ? (Array.isArray(candidate.assignmentJustification)
         ? candidate.assignmentJustification.filter(Boolean)
@@ -489,7 +484,9 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
       appliedJobBadge = (
         <div className="flex items-center gap-2">
           {hasFitScore && (
-            <ScoreBadge score={appliedFitScore} className="text-sm" />
+            <ScoreBadge score={appliedFitScore} className="text-sm">
+              {formatScoreWithGrade(appliedFitScore)}
+            </ScoreBadge>
           )}
           {hasGrade && appliedPosition?.grade && (
             <Badge

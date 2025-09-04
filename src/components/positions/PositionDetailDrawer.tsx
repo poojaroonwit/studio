@@ -894,8 +894,10 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                 </div>
               </TableCell>
               <TableCell>
-                {candidate.fitScore !== undefined && candidate.fitScore !== null && typeof candidate.fitScore === 'number' && !isNaN(candidate.fitScore) ? (
-                  <ScoreBadge score={candidate.fitScore} />
+                {candidate.fitScore !== undefined && candidate.fitScore !== null ? (
+                  <ScoreBadge score={candidate.fitScore}>
+                    {formatScoreWithGrade(candidate.fitScore)}
+                  </ScoreBadge>
                 ) : (
                   <Badge variant="outline">No Score</Badge>
                 )}
@@ -1055,8 +1057,10 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                 </div>
               </TableCell>
               <TableCell>
-                {candidate.fitScore !== undefined && candidate.fitScore !== null && typeof candidate.fitScore === 'number' && !isNaN(candidate.fitScore) ? (
-                  <ScoreBadge score={candidate.fitScore} />
+                {candidate.fitScore !== undefined && candidate.fitScore !== null ? (
+                  <ScoreBadge score={candidate.fitScore}>
+                    {formatScoreWithGrade(candidate.fitScore)}
+                  </ScoreBadge>
                 ) : (
                   <Badge variant="outline">No Score</Badge>
                 )}
@@ -1247,8 +1251,10 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                           </div>
                         </TableCell>
                         <TableCell>
-                          {candidate.fitScore !== undefined && candidate.fitScore !== null && typeof candidate.fitScore === 'number' && !isNaN(candidate.fitScore) ? (
-                            <ScoreBadge score={candidate.fitScore} />
+                          {candidate.fitScore !== undefined && candidate.fitScore !== null ? (
+                            <ScoreBadge score={candidate.fitScore}>
+                              {formatScoreWithGrade(candidate.fitScore)}
+                            </ScoreBadge>
                           ) : (
                             <Badge variant="outline">No Score</Badge>
                           )}

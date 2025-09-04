@@ -193,8 +193,10 @@ export const TaskCard: React.FC<TaskCardProps> = ({
             
             {/* Fit Score */}
             <div className="flex items-center gap-1">
-              {(!cardPreferences || cardPreferences.showFitScore) && task.fitScore !== undefined && task.fitScore !== null && typeof task.fitScore === 'number' && !isNaN(task.fitScore) && (
-                <ScoreBadge score={task.fitScore} className="text-xs" />
+              {(!cardPreferences || cardPreferences.showFitScore) && task.fitScore !== undefined && task.fitScore !== null && (
+                <ScoreBadge score={task.fitScore} className="text-xs">
+                  {formatScoreWithGrade(task.fitScore)}
+                </ScoreBadge>
               )}
             </div>
           </div>

@@ -10,11 +10,27 @@ const port = process.env.PORT || 8021;
 const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
 
+// Server timeout configuration for SSE endpoints
+const SERVER_TIMEOUT = 300000; // 5 minutes
+const KEEP_ALIVE_TIMEOUT = 65000; // 65 seconds
+const HEADERS_TIMEOUT = 66000; // 66 seconds
+
 app.prepare().then(() => {
-  createServer(async (req, res) => {
+  const server = createServer(async (req, res) => {
     try {
       const parsedUrl = parse(req.url, true);
       const { pathname } = parsedUrl;
+
+      // Special handling for SSE endpoints
+      if (pathname === '/api/sse' || pathname.startsWith('/api/sse/')) {
+        // Set longer timeout for SSE connections
+        req.setTimeout(SERVER_TIMEOUT);
+        res.setTimeout(SERVER_TIMEOUT);
+        
+        // Set SSE-specific headers
+        res.setHeader('Connection', 'keep-alive');
+        res.setHeader('Keep-Alive', `timeout=${KEEP_ALIVE_TIMEOUT}, max=1000`);
+      }
 
       // Set proper MIME types for static assets
       if (pathname.startsWith('/_next/static/css/')) {
@@ -45,7 +61,14 @@ app.prepare().then(() => {
       res.statusCode = 500;
       res.end('internal server error');
     }
-  })
+  });
+
+  // Configure server timeouts
+  server.timeout = SERVER_TIMEOUT;
+  server.keepAliveTimeout = KEEP_ALIVE_TIMEOUT;
+  server.headersTimeout = HEADERS_TIMEOUT;
+
+  server
     .once('error', (err) => {
       console.error(err);
       process.exit(1);

@@ -268,11 +268,17 @@ export async function handleUnifiedSSEConnection(request: Request) {
   console.log('[UNIFIED] New SSE connection request received');
   
   try {
+    // Set server timeout for SSE connections
+    const serverTimeout = setTimeout(() => {
+      console.warn('[UNIFIED] Server timeout reached for SSE connection');
+    }, 300000); // 5 minutes server timeout
+
     // Authenticate user with better error handling
     let session;
     try {
       session = await getServerSession(authOptions);
     } catch (sessionError) {
+      clearTimeout(serverTimeout);
       console.error('[UNIFIED] Session authentication error:', sessionError);
       return new Response(JSON.stringify({
         error: 'Authentication failed',
@@ -287,6 +293,7 @@ export async function handleUnifiedSSEConnection(request: Request) {
     const userId = session?.user?.id;
 
     if (!userId) {
+      clearTimeout(serverTimeout);
       console.log('[UNIFIED] Authentication failed - no user session');
       return new Response(JSON.stringify({
         error: 'Authentication required',
@@ -381,6 +388,7 @@ export async function handleUnifiedSSEConnection(request: Request) {
           // console.log(`[UNIFIED] Connection aborted for user ${userId}`);
           connectionAlive = false;
           clearInterval(keepaliveInterval);
+          clearTimeout(serverTimeout);
           removeUserConnection(userId);
           try { controller.close(); } catch (e) {
             console.error(`[UNIFIED] Error closing controller for user ${userId}:`, e);
@@ -391,6 +399,7 @@ export async function handleUnifiedSSEConnection(request: Request) {
         // console.log(`[UNIFIED] Stream cancelled for user ${userId}`);
         connectionAlive = false;
         clearInterval(keepaliveInterval);
+        clearTimeout(serverTimeout);
         removeUserConnection(userId);
       }
     });

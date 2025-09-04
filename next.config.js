@@ -67,6 +67,12 @@ const nextConfig = {
     // },
   },
   
+  // Server configuration for SSE endpoints
+  serverRuntimeConfig: {
+    // Increase timeout for long-running connections
+    apiTimeout: 300000, // 5 minutes
+  },
+  
   // Allow cross-origin requests in development
   allowedDevOrigins: ['192.168.1.36'],
   

@@ -42,6 +42,14 @@ const PERIOD_UNITS = [
 ];
 
 export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, dynamicHeight }: NewApplicationsTimeSeriesChartProps) {
+  // Add defensive programming to prevent initialization errors
+  const [isInitialized, setIsInitialized] = useState(false);
+  
+  useEffect(() => {
+    // Mark as initialized after component mounts
+    setIsInitialized(true);
+  }, []);
+  
   // Use the new chart setup hook
   const { chartReady, isLoading: chartLoading, error: chartError } = useChartSetup();
 
@@ -621,6 +629,20 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
       );
     }
   };
+
+  // Don't render until component is properly initialized
+  if (!isInitialized) {
+    return (
+      <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm">
+        <CardContent className="p-6">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 mx-auto mb-2 animate-spin" />
+            <p>Initializing chart...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <ErrorBoundaryWrapper>

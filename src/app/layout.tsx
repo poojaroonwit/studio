@@ -85,6 +85,74 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         {/* Ramda polyfill is now handled by RamdaPolyfillInitializer component */}
+        {/* Global error handler for initialization errors */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                const originalError = console.error;
+                const originalWarn = console.warn;
+                
+                console.error = function(...args) {
+                  if (args[0] && typeof args[0] === 'string') {
+                    if (args[0].includes('Cannot access') && args[0].includes('before initialization')) {
+                      console.error('Global: Caught initialization error:', ...args);
+                      console.error('Global: Stack trace:', new Error().stack);
+                      console.error('Global: This is likely a circular dependency or hook order issue');
+                    } else if (args[0].includes('getTime is not a function')) {
+                      console.error('Global: Caught getTime error:', ...args);
+                      console.error('Global: Stack trace:', new Error().stack);
+                    }
+                  }
+                  originalError.apply(console, args);
+                };
+                
+                console.warn = function(...args) {
+                  if (args[0] && typeof args[0] === 'string' && args[0].includes('Cannot access')) {
+                    console.warn('Global: Caught initialization warning:', ...args);
+                  }
+                  originalWarn.apply(console, args);
+                };
+                
+                // Global error handler for unhandled errors
+                window.addEventListener('error', function(event) {
+                  if (event.error && event.error.message) {
+                    if (event.error.message.includes('Cannot access') && event.error.message.includes('before initialization')) {
+                      console.error('Global: Unhandled initialization error:', event.error);
+                      console.error('Global: Error details:', {
+                        message: event.error.message,
+                        stack: event.error.stack,
+                        filename: event.filename,
+                        lineno: event.lineno,
+                        colno: event.colno
+                      });
+                    } else if (event.error.message.includes('getTime is not a function')) {
+                      console.error('Global: Unhandled getTime error:', event.error);
+                      console.error('Global: Error details:', {
+                        message: event.error.message,
+                        stack: event.error.stack,
+                        filename: event.filename,
+                        lineno: event.lineno,
+                        colno: event.colno
+                      });
+                    }
+                  }
+                });
+                
+                // Global error handler for unhandled promise rejections
+                window.addEventListener('unhandledrejection', function(event) {
+                  if (event.reason && event.reason.message) {
+                    if (event.reason.message.includes('Cannot access') && event.reason.message.includes('before initialization')) {
+                      console.error('Global: Unhandled promise rejection (initialization error):', event.reason);
+                    } else if (event.reason.message.includes('getTime is not a function')) {
+                      console.error('Global: Unhandled promise rejection (getTime error):', event.reason);
+                    }
+                  }
+                });
+              })();
+            `
+          }}
+        />
       </head>
       <body className={`${inter.variable} ${ibmPlexSansThai.variable} ${notoSansThai.variable}`}>
         <ErrorBoundary>

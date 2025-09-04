@@ -70,26 +70,57 @@ export default function DashboardPageClient({
   initialStageNames,
 }: DashboardPageClientProps) {
   
-  // Add global error handler for getTime errors
+  // Add defensive programming to prevent initialization errors
+  const [isInitialized, setIsInitialized] = useState(false);
+  
+  useEffect(() => {
+    // Mark as initialized after component mounts
+    setIsInitialized(true);
+  }, []);
+  
+  // Add global error handler for getTime errors and initialization errors
   useEffect(() => {
     const originalError = console.error;
+    const originalWarn = console.warn;
+    
     console.error = (...args) => {
-      if (args[0] && typeof args[0] === 'string' && args[0].includes('getTime is not a function')) {
-        console.error('DashboardPageClient: Caught getTime error:', ...args);
-        console.error('DashboardPageClient: Stack trace:', new Error().stack);
-        console.error('DashboardPageClient: Component state:', {
-          initialCandidatesCount: initialCandidates?.length,
-          initialPositionsCount: initialPositions?.length,
-          initialUsersCount: initialUsers?.length,
-          initialStageIds,
-          initialStageNames
-        });
+      if (args[0] && typeof args[0] === 'string') {
+        if (args[0].includes('getTime is not a function')) {
+          console.error('DashboardPageClient: Caught getTime error:', ...args);
+          console.error('DashboardPageClient: Stack trace:', new Error().stack);
+          console.error('DashboardPageClient: Component state:', {
+            initialCandidatesCount: initialCandidates?.length,
+            initialPositionsCount: initialPositions?.length,
+            initialUsersCount: initialUsers?.length,
+            initialStageIds,
+            initialStageNames
+          });
+        } else if (args[0].includes('Cannot access') && args[0].includes('before initialization')) {
+          console.error('DashboardPageClient: Caught initialization error:', ...args);
+          console.error('DashboardPageClient: Stack trace:', new Error().stack);
+          console.error('DashboardPageClient: Component state:', {
+            initialCandidatesCount: initialCandidates?.length,
+            initialPositionsCount: initialPositions?.length,
+            initialUsersCount: initialUsers?.length,
+            initialStageIds,
+            initialStageNames
+          });
+          console.error('DashboardPageClient: This is likely a circular dependency or hook order issue');
+        }
       }
       originalError.apply(console, args);
     };
 
+    console.warn = (...args) => {
+      if (args[0] && typeof args[0] === 'string' && args[0].includes('Cannot access')) {
+        console.warn('DashboardPageClient: Caught initialization warning:', ...args);
+      }
+      originalWarn.apply(console, args);
+    };
+
     return () => {
       console.error = originalError;
+      console.warn = originalWarn;
     };
   }, [initialCandidates, initialPositions, initialUsers, initialStageIds, initialStageNames]);
   // Use stage IDs from props instead of fetching them
@@ -947,6 +978,18 @@ export default function DashboardPageClient({
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-background fixed inset-0 z-50">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Don't render until component is properly initialized
+  if (!isInitialized) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-background fixed inset-0 z-50">
+        <div className="text-center">
+          <Loader2 className="h-16 w-16 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Initializing dashboard...</p>
+        </div>
       </div>
     );
   }

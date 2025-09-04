@@ -194,8 +194,16 @@ export default function ProcessQueueAnalytics() {
 
     queueData.forEach(item => {
       if (item.process_date && item.completed_date) {
-        const processTime = new Date(item.process_date).getTime();
-        const completedTime = new Date(item.completed_date).getTime();
+        const processDate = new Date(item.process_date);
+        const completedDate = new Date(item.completed_date);
+        
+        // Check if dates are valid before calling getTime()
+        if (isNaN(processDate.getTime()) || isNaN(completedDate.getTime())) {
+          return; // Skip invalid dates
+        }
+        
+        const processTime = processDate.getTime();
+        const completedTime = completedDate.getTime();
         const duration = (completedTime - processTime) / (1000 * 60); // minutes
         
         scatterData.push({
@@ -232,7 +240,15 @@ export default function ProcessQueueAnalytics() {
       // Track by type (status)
       const currentType = typeMap.get(item.status) || { totalDuration: 0, count: 0 };
       if (item.process_date && item.completed_date) {
-        const duration = (new Date(item.completed_date).getTime() - new Date(item.process_date).getTime()) / (1000 * 60);
+        const processDate = new Date(item.process_date);
+        const completedDate = new Date(item.completed_date);
+        
+        // Check if dates are valid before calling getTime()
+        if (isNaN(processDate.getTime()) || isNaN(completedDate.getTime())) {
+          return; // Skip invalid dates
+        }
+        
+        const duration = (completedDate.getTime() - processDate.getTime()) / (1000 * 60);
         typeMap.set(item.status, {
           totalDuration: currentType.totalDuration + duration,
           count: currentType.count + 1

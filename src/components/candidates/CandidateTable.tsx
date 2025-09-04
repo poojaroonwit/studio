@@ -271,7 +271,15 @@ export function CandidateTable({
       if (candidate.updatedAt) activities.push({ date: candidate.updatedAt, type: 'updated', candidate });
       if (candidate.createdAt) activities.push({ date: candidate.createdAt, type: 'created', candidate });
       return activities;
-    }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    }).sort((a, b) => {
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+      // Check if dates are valid before calling getTime()
+      if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) {
+        return 0; // If either date is invalid, treat as equal
+      }
+      return dateB.getTime() - dateA.getTime();
+    });
   };
 
 

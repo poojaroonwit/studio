@@ -183,7 +183,13 @@ export async function getAllSLAPositions(recruiterId?: string): Promise<SLAPosit
       
       const slaResult = checkSLAViolation(position);
       const daysRemaining = slaResult && !slaResult.isViolated 
-        ? Math.max(0, slaResult.slaDays - Math.floor((new Date().getTime() - new Date(position.hiringDate!).getTime()) / (1000 * 60 * 60 * 24)))
+        ? (() => {
+            const hiringDate = new Date(position.hiringDate!);
+            if (isNaN(hiringDate.getTime())) {
+              return 0; // Invalid hiring date
+            }
+            return Math.max(0, slaResult.slaDays - Math.floor((new Date().getTime() - hiringDate.getTime()) / (1000 * 60 * 60 * 24)));
+          })()
         : 0;
       
       let status: 'on_track' | 'warning' | 'critical' | 'urgent' = 'on_track';

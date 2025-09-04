@@ -44,7 +44,15 @@ async function createCandidateSummary(candidate: Candidate): Promise<string> {
   if (applicationDate) summaryParts.push(`Application Date: ${new Date(applicationDate).toLocaleDateString()}`);
   if (recruiter?.name) summaryParts.push(`Assigned Recruiter: ${recruiter.name}`);
   
-  const latestTransition = transitionHistory?.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+  const latestTransition = transitionHistory?.sort((a, b) => {
+    const dateA = new Date(a.date);
+    const dateB = new Date(b.date);
+    // Check if dates are valid before calling getTime()
+    if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) {
+      return 0; // If either date is invalid, treat as equal
+    }
+    return dateB.getTime() - dateA.getTime();
+  })[0];
   if (latestTransition) {
     const stageName = await getRecruitmentStageName(latestTransition.stage) || latestTransition.stage;
     summaryParts.push(`Last Status Update: ${stageName} on ${new Date(latestTransition.date).toLocaleDateString()}`);

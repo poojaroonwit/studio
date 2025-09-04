@@ -97,7 +97,15 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         time: r.uploadedAt,
         note: r.fileName,
       })),
-    ].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
+    ].sort((a, b) => {
+      const dateA = new Date(a.time);
+      const dateB = new Date(b.time);
+      // Check if dates are valid before calling getTime()
+      if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) {
+        return 0; // If either date is invalid, treat as equal
+      }
+      return dateB.getTime() - dateA.getTime();
+    });
 
     return new Response(JSON.stringify({ data: logs }), {
       status: 200,

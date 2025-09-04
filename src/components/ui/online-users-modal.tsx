@@ -28,7 +28,14 @@ export function OnlineUsersModal({ isOpen, onClose, onlineUsers }: OnlineUsersMo
 
   const formatLastSeen = (lastSeen: Date) => {
     const now = new Date();
-    const diffInSeconds = Math.floor((now.getTime() - lastSeen.getTime()) / 1000);
+    
+    // Ensure lastSeen is a valid Date object
+    const lastSeenDate = lastSeen instanceof Date ? lastSeen : new Date(lastSeen);
+    if (isNaN(lastSeenDate.getTime())) {
+      return 'Unknown';
+    }
+    
+    const diffInSeconds = Math.floor((now.getTime() - lastSeenDate.getTime()) / 1000);
     
     if (diffInSeconds < 60) {
       return 'Just now';

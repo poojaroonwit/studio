@@ -659,12 +659,27 @@ export default function DashboardPageClient({
     const totalDays = hiredCandidates.reduce((total, candidate) => {
       try {
         const applicationDate = parseISO(candidate.applicationDate);
+        // Validate application date
+        if (!applicationDate || isNaN(applicationDate.getTime())) {
+          return total;
+        }
+        
         // Find the last transition to 'Hired'
         const hiredTransition = candidate.transitionHistory
           .filter(transition => stageIds.hired && transition.stage === stageIds.hired)
-          .sort((itemA, itemB) => new Date(itemB.date).getTime() - new Date(itemA.date).getTime())[0];
+          .sort((itemA, itemB) => {
+            const dateA = new Date(itemA.date);
+            const dateB = new Date(itemB.date);
+            // Check if dates are valid before calling getTime()
+            if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) {
+              return 0; // If either date is invalid, treat as equal
+            }
+            return dateB.getTime() - dateA.getTime();
+          })[0];
+        
         const hireDate = hiredTransition ? parseISO(hiredTransition.date) : null;
-        if (!hireDate) return total;
+        if (!hireDate || isNaN(hireDate.getTime())) return total;
+        
         const daysDiff = Math.ceil((hireDate.getTime() - applicationDate.getTime()) / (1000 * 60 * 60 * 24));
         return total + Math.max(0, daysDiff); // Ensure non-negative values
       } catch {
@@ -747,6 +762,9 @@ export default function DashboardPageClient({
       if (!c.applicationDate || typeof c.applicationDate !== 'string') return false;
       try {
         const appDate = parseISO(c.applicationDate);
+        if (!appDate || isNaN(appDate.getTime())) {
+          return false;
+        }
         appDate.setHours(0, 0, 0, 0);
         return appDate.getTime() === today.getTime();
       } catch { 

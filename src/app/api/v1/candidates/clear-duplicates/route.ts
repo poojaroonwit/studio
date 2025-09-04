@@ -194,9 +194,15 @@ export async function POST(req: NextRequest) {
 
     for (const group of duplicateGroups) {
       // Sort by creation date (earliest first) and keep the first one
-      const sortedCandidates = group.candidates.sort((a, b) => 
-        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-      );
+      const sortedCandidates = group.candidates.sort((a, b) => {
+        const dateA = new Date(a.createdAt);
+        const dateB = new Date(b.createdAt);
+        // Check if dates are valid before calling getTime()
+        if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) {
+          return 0; // If either date is invalid, treat as equal
+        }
+        return dateA.getTime() - dateB.getTime();
+      });
       
       const keptCandidate = sortedCandidates[0];
       const toDelete = sortedCandidates.slice(1);

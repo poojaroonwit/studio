@@ -54,8 +54,16 @@ const CandidateResumesSection: React.FC<CandidateResumesSectionProps> = ({ candi
   // onResumesChange callback is used to trigger manual refresh after user actions
 
   const sortedAttachments = Array.isArray(resumes) ? [...resumes].sort((a, b) => {
-    const dateA = new Date(a.updatedAt).getTime();
-    const dateB = new Date(b.updatedAt).getTime();
+    const parsedDateA = new Date(a.updatedAt);
+    const parsedDateB = new Date(b.updatedAt);
+    
+    // Check if dates are valid before calling getTime()
+    if (isNaN(parsedDateA.getTime()) || isNaN(parsedDateB.getTime())) {
+      return 0; // If either date is invalid, treat as equal
+    }
+    
+    const dateA = parsedDateA.getTime();
+    const dateB = parsedDateB.getTime();
     return sortDesc ? dateB - dateA : dateA - dateB;
   }) : [];
 

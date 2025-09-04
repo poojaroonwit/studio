@@ -225,7 +225,16 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
     const dateA = (a as any).createdAt || (a as any).time;
     const dateB = (b as any).createdAt || (b as any).time;
     if (!dateA || !dateB) return 0;
-    return new Date(dateB).getTime() - new Date(dateA).getTime(); // Sort newest first
+    
+    const parsedDateA = new Date(dateA);
+    const parsedDateB = new Date(dateB);
+    
+    // Check if dates are valid before calling getTime()
+    if (isNaN(parsedDateA.getTime()) || isNaN(parsedDateB.getTime())) {
+      return 0; // If either date is invalid, treat as equal
+    }
+    
+    return parsedDateB.getTime() - parsedDateA.getTime(); // Sort newest first
   });
 
   // Drag-and-drop handlers

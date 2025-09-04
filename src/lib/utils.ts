@@ -204,6 +204,40 @@ export function safeDateDiff(startDate: any, endDate: any, fallback: number = 0)
   return endDate.getTime() - startDate.getTime();
 }
 
+/**
+ * Safely compares two dates for sorting purposes
+ * Returns -1, 0, or 1 for proper sorting
+ */
+export function safeDateCompare(dateA: any, dateB: any, sortDesc: boolean = true): number {
+  const parsedDateA = safeToDate(dateA);
+  const parsedDateB = safeToDate(dateB);
+  
+  if (!parsedDateA || !parsedDateB) {
+    return 0; // Treat invalid dates as equal
+  }
+  
+  const timeA = parsedDateA.getTime();
+  const timeB = parsedDateB.getTime();
+  
+  if (timeA === timeB) return 0;
+  return sortDesc ? (timeB - timeA) : (timeA - timeB);
+}
+
+/**
+ * Safely sorts an array of objects by a date field
+ */
+export function safeSortByDate<T>(
+  array: T[], 
+  dateField: keyof T, 
+  sortDesc: boolean = true
+): T[] {
+  return [...array].sort((a, b) => {
+    const dateA = a[dateField];
+    const dateB = b[dateField];
+    return safeDateCompare(dateA, dateB, sortDesc);
+  });
+}
+
 export function calculateDuration(startDate: string | Date | null, endDate: string | Date | null): string {
   if (!startDate || !endDate) return '-';
   

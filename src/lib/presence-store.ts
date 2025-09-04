@@ -21,7 +21,15 @@ export function cleanupOfflineUsers() {
     const now = new Date();
     for (const [userId, presence] of userPresenceStore.entries()) {
       try {
-        const timeSinceLastSeen = now.getTime() - presence.lastSeen.getTime();
+        // Ensure lastSeen is a valid Date object
+        const lastSeenDate = presence.lastSeen instanceof Date ? presence.lastSeen : new Date(presence.lastSeen);
+        if (isNaN(lastSeenDate.getTime())) {
+          // Remove entries with invalid dates
+          userPresenceStore.delete(userId);
+          return;
+        }
+        
+        const timeSinceLastSeen = now.getTime() - lastSeenDate.getTime();
         if (timeSinceLastSeen > OFFLINE_THRESHOLD) {
           userPresenceStore.delete(userId);
         }

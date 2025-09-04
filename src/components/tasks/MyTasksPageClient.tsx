@@ -29,8 +29,7 @@ import { toast } from 'react-hot-toast';
 import CandidateDetailModal from '@/components/candidates/CandidateDetailModal';
 import { PositionSelectDropdown } from '@/components/candidates/PositionSelectDropdown';
 
-import { useEnhancedSSE } from '@/hooks/use-enhanced-sse';
-import { useRealtimeCollaboration } from '@/hooks/use-realtime-collaboration';
+import { useSharedSSE } from '@/hooks/use-shared-sse';
 import { getErrorMessage, retryWithBackoff, isRetryableError } from '@/lib/networkUtils';
 import { NetworkDiagnostics } from '@/components/ui/network-diagnostics';
 import { formatScoreWithGrade } from '@/lib/scoreUtils';
@@ -83,6 +82,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   const [showNetworkDiagnostics, setShowNetworkDiagnostics] = useState(false);
   const [hasNetworkError, setHasNetworkError] = useState(false);
   const [realtimeStatus, setRealtimeStatus] = useState<'connected' | 'disconnected' | 'refreshing'>('disconnected');
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const { data: session, status } = useSession();
   const router = useRouter();
   const [metadataLoaded, setMetadataLoaded] = useState(false);
@@ -152,15 +152,95 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     // Handle notifications if needed
   }, []);
 
-  // Simple SSE hook
-  const { isConnected: realtimeConnected } = useEnhancedSSE();
+  // Use shared SSE connection for realtime updates (aligned with dashboard, position page, and position sidebar)
+  const { isConnected: realtimeConnected, subscribeToEvents } = useSharedSSE();
+  
+  useEffect(() => {
+    let mounted = true;
+    let refreshTimeout: NodeJS.Timeout;
+    let lastUpdateTime = 0;
+    const MIN_UPDATE_INTERVAL = 2000; // Minimum 2 seconds between updates
+    
+    // Only subscribe to events if user is authenticated
+    if (status !== 'authenticated' || !session?.user?.id) {
+      return;
+    }
+    
+    // Subscribe to shared SSE events
+    const unsubscribe = subscribeToEvents((event) => {
+      if (!mounted) return;
+      
+      if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+        console.log('[MyTasksPage] SSE event received via shared connection:', event);
+      }
+      
+      // Handle different event types with improved debouncing and rate limiting
+      if (event.type === 'candidate_update' || event.type === 'position_update' || event.type === 'dashboard_update') {
+        const now = Date.now();
+        
+        // Rate limit updates to prevent excessive reloading
+        if (now - lastUpdateTime < MIN_UPDATE_INTERVAL) {
+          if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+            console.log('[MyTasksPage] Update rate limited, skipping');
+          }
+          return;
+        }
+        
+        if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+          console.log('[MyTasksPage] Processing update event:', event.type);
+        }
+        
+        // Clear existing timeout and set new one to prevent rapid successive calls
+        if (refreshTimeout) {
+          clearTimeout(refreshTimeout);
+        }
+        
+        refreshTimeout = setTimeout(() => {
+          if (mounted && status === 'authenticated' && session?.user?.id) {
+            lastUpdateTime = Date.now();
+            // Only fetch if not currently loading
+            if (!loading) {
+              // Trigger a refresh by updating the refresh trigger
+              setRefreshTrigger(prev => prev + 1);
+            }
+          }
+        }, 2000); // 2 second debounce for better performance
+      }
+    });
+    
+    return () => {
+      mounted = false;
+      if (refreshTimeout) {
+        clearTimeout(refreshTimeout);
+      }
+      unsubscribe();
+    };
+  }, [status, session?.user?.id, loading, subscribeToEvents]);
 
-  // Use real-time collaboration hook to properly handle SSE events
-  useRealtimeCollaboration({
-    onCandidateUpdate: handleCandidateUpdate,
-    onPositionUpdate: handlePositionUpdate,
-    showNotifications: true
-  });
+  // Handle refresh trigger from realtime updates
+  useEffect(() => {
+    if (refreshTrigger > 0) {
+      const fetchCandidates = async () => {
+        setLoading(true);
+        try {
+          const params = new URLSearchParams();
+          if (filters.name) params.append('name', filters.name);
+          if (filters.positionId) params.append('positionId', filters.positionId);
+          if (filters.stage) params.append('status', filters.stage);
+          if (filters.recruiterId) params.append('recruiterId', filters.recruiterId);
+          
+          const res = await fetch(`/api/candidates?${params.toString()}`);
+          const data = await res.json();
+          setCandidates(Array.isArray(data) ? data : (data.data || []));
+        } catch (e) {
+          console.error('Error fetching candidates:', e);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchCandidates();
+    }
+  }, [refreshTrigger, filters.name, filters.positionId, filters.stage, filters.recruiterId]);
 
   // Update real-time status based on SSE connection
   useEffect(() => {

@@ -443,7 +443,7 @@ export default function DashboardPageClient({
     let mounted = true;
     let refreshTimeout: NodeJS.Timeout;
     let lastUpdateTime = 0;
-    const MIN_UPDATE_INTERVAL = 3000; // Minimum 3 seconds between updates
+    const MIN_UPDATE_INTERVAL = 2000; // Minimum 2 seconds between updates
     
     // Only subscribe to events if user is authenticated
     if (status !== 'authenticated' || !session?.user?.id) {
@@ -490,7 +490,7 @@ export default function DashboardPageClient({
               fetchDataClientSide();
             }
           }
-        }, 3000); // 3 second debounce for better performance
+        }, 2000); // 2 second debounce for better performance
       }
     });
     

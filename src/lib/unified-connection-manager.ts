@@ -412,8 +412,14 @@ export async function handleUnifiedSSEConnection(request: Request) {
         'X-Content-Type-Options': 'nosniff',
         // Enhanced headers to prevent chunked encoding issues
         'Accept-Ranges': 'none',
-        'X-DNS-Prefetch-Control': 'off'
-        // Explicitly removed Transfer-Encoding: chunked to prevent conflicts with nginx
+        'X-DNS-Prefetch-Control': 'off',
+        // Force identity encoding to prevent chunked encoding
+        'Content-Encoding': 'identity',
+        'Transfer-Encoding': 'identity',
+        'Accept-Encoding': 'identity',
+        // Additional stability headers
+        'X-Connection-Type': 'sse-stream',
+        'X-Stream-Mode': 'continuous'
       },
     });
   } catch (error) {

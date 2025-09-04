@@ -7,6 +7,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Briefcase, Loader2, RotateCcw } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { PositionDetailDrawer } from '@/components/positions/PositionDetailDrawer';
+import { useSharedSSE } from '@/hooks/use-shared-sse';
 import { cn } from '@/lib/utils';
 import { SidebarMenuButton } from '@/components/ui/sidebar';
  
@@ -44,7 +45,6 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
   const [isPositionDrawerOpen, setIsPositionDrawerOpen] = useState(false);
   const [visibleCount, setVisibleCount] = useState(5);
   const [sseConnected, setSseConnected] = useState(false);
-  const sseRef = React.useRef<EventSource | null>(null);
   const refreshTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -53,132 +53,73 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
     }
   }, [session?.user?.id, session?.user?.role]);
 
-  // Subscribe to SSE position updates and debounce-refresh list
+  // Use shared SSE connection for realtime updates (aligned with candidate page and dashboard)
+  const { isConnected: sharedSseConnected, subscribeToEvents } = useSharedSSE();
+  
   useEffect(() => {
-    if (!session?.user?.id) return;
+    setSseConnected(sharedSseConnected);
+  }, [sharedSseConnected]);
 
-    const establishSSEConnection = () => {
-      try {
-        const es = new EventSource('/api/sse');
-        sseRef.current = es;
-
-        es.onopen = () => {
-          setSseConnected(true);
-          setError(null); // Clear any previous errors
-          // Reset retry count on successful connection
-          sessionStorage.removeItem('sseRetryCount');
-        };
-
-        es.onerror = (error) => {
-          setSseConnected(false);
-          
-          // Enhanced error detection for chunked encoding issues
-          const isChunkedError = error.type === 'error' && 
-            (es.readyState === EventSource.CLOSED || es.readyState === EventSource.CONNECTING);
-          
-          // Check for specific network errors that indicate chunked encoding issues
-          const isNetworkError = error.type === 'error' && 
-            (es.readyState === EventSource.CLOSED || 
-             navigator.onLine === false);
-          
-          let errorMessage = 'SSE connection failed. Please check your authentication and network connection.';
-          
-          if (isChunkedError || isNetworkError) {
-            errorMessage = 'Connection interrupted. Attempting to reconnect...';
-          }
-          
-          setError(errorMessage);
-          
-          // Enhanced reconnection logic with exponential backoff and better error handling
-          const retryCount = parseInt(sessionStorage.getItem('sseRetryCount') || '0');
-          const maxRetries = 15; // Increased max retries
-          const baseDelay = 1000; // 1 second
-          const retryDelay = Math.min(baseDelay * Math.pow(1.5, retryCount), 30000); // Max 30 seconds, gentler backoff
-          
-          if (retryCount < maxRetries) {
-            sessionStorage.setItem('sseRetryCount', (retryCount + 1).toString());
-            
-            // Close existing connection before retrying
-            if (sseRef.current) {
-              sseRef.current.close();
-              sseRef.current = null;
-            }
-            
-            setTimeout(() => {
-              establishSSEConnection();
-            }, retryDelay);
-          } else {
-            setError('Connection failed - max retries reached. Please refresh the page.');
-            sessionStorage.removeItem('sseRetryCount');
-            
-            // Fallback to polling after max retries
-            // You can implement polling fallback here if needed
-          }
-        };
-
-        const handlePositionUpdate = (event: MessageEvent) => {
-          try {
-            const payload = JSON.parse(event.data || '{}');
-            // If event carries a position and it's open or recruiter changed, refresh list
-            if (payload && (payload.position || payload.data?.position)) {
-              if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
-              refreshTimerRef.current = setTimeout(() => {
-                fetchAssignedPositions();
-              }, 500);
-            }
-            // Also refresh when position list is updated (includes deletions and headcount changes)
-            if (payload && (payload.action === 'list_updated' || payload.action === 'deleted')) {
-              if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
-              refreshTimerRef.current = setTimeout(() => {
-                fetchAssignedPositions();
-              }, 500);
-            }
-          } catch (error) {
-          }
-        };
-
-        const handleDashboardUpdate = (event: MessageEvent) => {
-          try {
-            const payload = JSON.parse(event.data || '{}');
-            // Refresh when dashboard updates occur (includes statistics and headcount changes)
-            if (payload && payload.type === 'dashboard_update') {
-              if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
-              refreshTimerRef.current = setTimeout(() => {
-                fetchAssignedPositions();
-              }, 2000);
-            }
-          } catch (error) {
-          }
-        };
-
-        es.addEventListener('position_update', handlePositionUpdate);
-        es.addEventListener('dashboard_update', handleDashboardUpdate);
+  useEffect(() => {
+    let mounted = true;
+    let refreshTimeout: NodeJS.Timeout;
+    let lastUpdateTime = 0;
+    const MIN_UPDATE_INTERVAL = 2000; // Minimum 2 seconds between updates
+    
+    // Only subscribe to events if user is authenticated
+    if (!session?.user?.id) {
+      return;
+    }
+    
+    // Subscribe to shared SSE events
+    const unsubscribe = subscribeToEvents((event) => {
+      if (!mounted) return;
+      
+      if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+        console.log('[AssignedPositionsSidebar] SSE event received via shared connection:', event);
+      }
+      
+      // Handle different event types with improved debouncing and rate limiting
+      if (event.type === 'position_update' || event.type === 'dashboard_update') {
+        const now = Date.now();
         
-        // Add general message listener to catch any events
-        es.onmessage = (event) => {
-          // General message handling removed
-        };
-
-      } catch (error) {
-        setSseConnected(false);
-        setError('Failed to establish real-time connection. Manual refresh still available.');
+        // Rate limit updates to prevent excessive reloading
+        if (now - lastUpdateTime < MIN_UPDATE_INTERVAL) {
+          if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+            console.log('[AssignedPositionsSidebar] Update rate limited, skipping');
+          }
+          return;
+        }
+        
+        if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+          console.log('[AssignedPositionsSidebar] Processing update event:', event.type);
+        }
+        
+        // Clear existing timeout and set new one to prevent rapid successive calls
+        if (refreshTimeout) {
+          clearTimeout(refreshTimeout);
+        }
+        
+        refreshTimeout = setTimeout(() => {
+          if (mounted && session?.user?.id) {
+            lastUpdateTime = Date.now();
+            // Only fetch if not currently loading
+            if (!isLoading) {
+              fetchAssignedPositions();
+            }
+          }
+        }, 2000); // 2 second debounce for better performance
       }
-    };
-
-    // Start the connection
-    establishSSEConnection();
-
+    });
+    
     return () => {
-      if (sseRef.current) {
-        sseRef.current.close();
-        sseRef.current = null;
+      mounted = false;
+      if (refreshTimeout) {
+        clearTimeout(refreshTimeout);
       }
-      if (refreshTimerRef.current) {
-        clearTimeout(refreshTimerRef.current);
-        refreshTimerRef.current = null;
-      }
+      unsubscribe();
     };
-  }, [session?.user?.id]);
+  }, [session?.user?.id, isLoading, subscribeToEvents]);
 
   const fetchAssignedPositions = async () => {
     if (!session?.user?.id) return;

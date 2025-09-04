@@ -44,7 +44,7 @@ import { checkSLAViolation, getSLABadgeVariant, formatSLAMessage, getSLARemainin
 import { Pagination } from '@/components/ui/pagination';
 import { useJobMatchFeature } from '@/hooks/useJobMatchFeature';
 import { enhancedSSEManager } from '@/lib/enhanced-sse-manager';
-import { useRealtimeCollaboration } from '@/hooks/use-realtime-collaboration';
+import { useSharedSSE } from '@/hooks/use-shared-sse';
 
 
 export default function PositionsPageClient() {
@@ -102,7 +102,7 @@ export default function PositionsPageClient() {
   const [vacantFromOpenPositions, setVacantFromOpenPositions] = useState({ vacant: 0, totalOpen: 0 });
 
   const [isLoadingDepartments, setIsLoadingDepartments] = useState(false);
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   
   // Placeholder for realtime collaboration hook - will be moved after function definitions
   
@@ -955,54 +955,70 @@ export default function PositionsPageClient() {
     }
   };
 
-  // Add realtime collaboration hook for position updates (after function definitions)
-  const { isConnected: realtimeConnected } = useRealtimeCollaboration({
-    onPositionUpdate: (updateData) => {
-      console.log('[PositionsPage] Received position update:', updateData);
-      
-      // Handle realtime position updates
-      if (updateData.position) {
-        const updatedPosition = updateData.position;
-        
-        // Update the positions list with the new data
-        setPositions(prevPositions => {
-          const existingIndex = prevPositions.findIndex(p => p.id === updatedPosition.id);
-          if (existingIndex !== -1) {
-            // Update existing position
-            const updated = [...prevPositions];
-            updated[existingIndex] = { ...updated[existingIndex], ...updatedPosition };
-            console.log('[PositionsPage] Updated existing position:', updatedPosition.id);
-            return updated;
-          } else if (updateData.action === 'created') {
-            // Add new position
-            console.log('[PositionsPage] Added new position:', updatedPosition.id);
-            return [...prevPositions, updatedPosition];
-          } else if (updateData.action === 'deleted') {
-            // Remove deleted position
-            console.log('[PositionsPage] Removed deleted position:', updatedPosition.id);
-            return prevPositions.filter(p => p.id !== updatedPosition.id);
-          }
-          return prevPositions;
-        });
-
-        // Refresh statistics and recruiter stats if needed
-        if (updateData.action === 'created' || updateData.action === 'deleted') {
-          // Refresh data after creation/deletion
-          console.log('[PositionsPage] Refreshing data after', updateData.action);
-          setTimeout(() => {
-            fetchPositions(false);
-            fetchRecruiterStats();
-          }, 500);
-        }
-      } else if (updateData.action === 'list_updated') {
-        // Refresh the entire list when a list update is broadcasted
-        console.log('[PositionsPage] Refreshing list after list update');
-        setTimeout(() => {
-          fetchPositions(false);
-        }, 500);
-      }
+  // Use shared SSE connection for realtime updates (aligned with candidate page and dashboard)
+  const { isConnected: realtimeConnected, subscribeToEvents } = useSharedSSE();
+  
+  useEffect(() => {
+    let mounted = true;
+    let refreshTimeout: NodeJS.Timeout;
+    let lastUpdateTime = 0;
+    const MIN_UPDATE_INTERVAL = 2000; // Minimum 2 seconds between updates
+    
+    // Only subscribe to events if user is authenticated
+    if (status !== 'authenticated' || !session?.user?.id) {
+      return;
     }
-  });
+    
+    // Subscribe to shared SSE events
+    const unsubscribe = subscribeToEvents((event) => {
+      if (!mounted) return;
+      
+      if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+        console.log('[PositionsPage] SSE event received via shared connection:', event);
+      }
+      
+      // Handle different event types with improved debouncing and rate limiting
+      if (event.type === 'position_update' || event.type === 'dashboard_update') {
+        const now = Date.now();
+        
+        // Rate limit updates to prevent excessive reloading
+        if (now - lastUpdateTime < MIN_UPDATE_INTERVAL) {
+          if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+            console.log('[PositionsPage] Update rate limited, skipping');
+          }
+          return;
+        }
+        
+        if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+          console.log('[PositionsPage] Processing update event:', event.type);
+        }
+        
+        // Clear existing timeout and set new one to prevent rapid successive calls
+        if (refreshTimeout) {
+          clearTimeout(refreshTimeout);
+        }
+        
+        refreshTimeout = setTimeout(() => {
+          if (mounted && status === 'authenticated' && session?.user?.id) {
+            lastUpdateTime = Date.now();
+            // Only fetch if not currently loading
+            if (!isLoading) {
+              fetchPositions(false);
+              fetchRecruiterStats();
+            }
+          }
+        }, 2000); // 2 second debounce for better performance
+      }
+    });
+    
+    return () => {
+      mounted = false;
+      if (refreshTimeout) {
+        clearTimeout(refreshTimeout);
+      }
+      unsubscribe();
+    };
+  }, [status, session?.user?.id, isLoading, subscribeToEvents]);
 
 
 

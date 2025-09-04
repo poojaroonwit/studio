@@ -117,12 +117,12 @@ const usePendingCount = () => {
           }
           
           // Fallback to periodic polling if SSE fails
-          fallbackTimeoutRef.current = setInterval(fetchPendingCount, 10000); // 10 second fallback
+          fallbackTimeoutRef.current = setInterval(fetchPendingCount, 30000); // 30 second fallback
         };
 
       } catch (error) {
         // Fallback to periodic polling if SSE is not available
-        fallbackTimeoutRef.current = setInterval(fetchPendingCount, 10000); // 10 second fallback
+        fallbackTimeoutRef.current = setInterval(fetchPendingCount, 30000); // 30 second fallback
       }
     }
 

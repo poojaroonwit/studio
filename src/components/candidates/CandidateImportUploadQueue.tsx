@@ -219,14 +219,18 @@ export default function CandidateImportUploadQueue() {
           } else {
             reconnectSSE();
           }
-        }, 5000); // Check every 5 seconds (reduced from 10s)
+        }, 30000); // Check every 30 seconds for better performance
 
         // Add specific event listeners for upload queue updates
         if (eventSource) {
           eventSource.addEventListener('upload_queue_update', (event) => {
             try {
               const data = JSON.parse(event.data);
-              setSseEventCount(prev => prev + 1);
+              
+              // Only count meaningful upload queue updates, not keepalive events
+              if (data.type === 'upload_queue_update' && data.summary) {
+                setSseEventCount(prev => prev + 1);
+              }
               
               // Refresh queue data
               fetchQueue(page, pageSize);
@@ -314,13 +318,28 @@ export default function CandidateImportUploadQueue() {
         eventSource.onerror = (error) => {
           setSseConnected(false);
           
-          // Provide more specific error messages based on readyState
+          // Enhanced error detection for chunked encoding issues
+          const isChunkedError = error.type === 'error' && 
+            (eventSource?.readyState === EventSource.CLOSED || eventSource?.readyState === EventSource.CONNECTING);
+          
+          const isNetworkError = error.type === 'error' && 
+            (eventSource?.readyState === EventSource.CLOSED || navigator.onLine === false);
+          
+          // Provide more specific error messages based on error type and readyState
           if (eventSource && eventSource.readyState === EventSource.CONNECTING) {
             setSseError('Connecting...');
           } else if (eventSource && eventSource.readyState === EventSource.CLOSED) {
-            setSseError('Connection closed - check authentication');
+            if (isChunkedError) {
+              setSseError('Connection interrupted (chunked encoding error) - retrying...');
+            } else {
+              setSseError('Connection closed - check authentication');
+            }
           } else {
-            setSseError('Connection failed - retrying...');
+            if (isNetworkError) {
+              setSseError('Network error - retrying...');
+            } else {
+              setSseError('Connection failed - retrying...');
+            }
           }
           
           // Enhanced reconnection logic with exponential backoff
@@ -328,17 +347,30 @@ export default function CandidateImportUploadQueue() {
           
           // Calculate retry delay with exponential backoff (max 30 seconds)
           const retryCount = parseInt(sessionStorage.getItem('sseRetryCount') || '0');
-          const maxRetries = 10;
+          const maxRetries = 15; // Increased from 10 to 15 for better resilience
           const baseDelay = 1000; // 1 second
-          const retryDelay = Math.min(baseDelay * Math.pow(2, retryCount), 30000);
+          const retryDelay = Math.min(baseDelay * Math.pow(1.5, retryCount), 30000); // Gentler backoff
           
           if (retryCount < maxRetries) {
             sessionStorage.setItem('sseRetryCount', (retryCount + 1).toString());
+            
+            // Close existing connection before retrying to prevent hanging connections
+            if (eventSource) {
+              try {
+                eventSource.close();
+                eventSource = null;
+              } catch (closeError) {
+                console.warn('Error closing EventSource before retry:', closeError);
+              }
+            }
+            
             reconnectTimeout = setTimeout(() => {
+              console.log(`Attempting SSE reconnection (attempt ${retryCount + 1}/${maxRetries})...`);
               connectSSE();
             }, retryDelay);
           } else {
-            setSseError('Connection failed - max retries reached');
+            console.error('Max SSE reconnection attempts reached');
+            setSseError('Connection failed - max retries reached. Please refresh the page.');
             sessionStorage.removeItem('sseRetryCount');
           }
         };

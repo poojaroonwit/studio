@@ -336,7 +336,7 @@ export async function handleUnifiedSSEConnection(request: Request) {
           return;
         }
 
-        // Send keepalive every 30 seconds for better stability (was 15 seconds, was 1 second)
+        // Send keepalive every 15 seconds for optimal stability and chunked encoding prevention
         keepaliveInterval = setInterval(() => {
           if (!connectionAlive) {
             clearInterval(keepaliveInterval);
@@ -347,9 +347,13 @@ export async function handleUnifiedSSEConnection(request: Request) {
             const keepaliveData = JSON.stringify({
               type: 'keepalive',
               timestamp: new Date().toISOString(),
-              uptime: Date.now() - userConnections.get(userId)!.connectionStartTime
+              uptime: Date.now() - userConnections.get(userId)!.connectionStartTime,
+              connectionId: `${userId}-${Date.now()}`
             });
-            controller.enqueue(encoder.encode(`event: keepalive\ndata: ${keepaliveData}\n\n`));
+            
+            // Use proper SSE format with explicit event type to prevent chunked encoding issues
+            const keepaliveMessage = `event: keepalive\ndata: ${keepaliveData}\n\n`;
+            controller.enqueue(encoder.encode(keepaliveMessage));
             
             // Update last activity
             const connection = userConnections.get(userId);
@@ -364,7 +368,7 @@ export async function handleUnifiedSSEConnection(request: Request) {
             clearInterval(keepaliveInterval);
             removeUserConnection(userId);
           }
-        }, 30000); // 30 seconds for better stability
+        }, 15000); // 15 seconds for optimal stability and chunked encoding prevention
 
         // Store keepalive interval reference
         const connection = userConnections.get(userId);
@@ -395,7 +399,7 @@ export async function handleUnifiedSSEConnection(request: Request) {
 
     return new Response(stream, {
       headers: {
-        'Content-Type': 'text/event-stream',
+        'Content-Type': 'text/event-stream; charset=utf-8',
         'Cache-Control': 'no-cache, no-transform',
         'Connection': 'keep-alive',
         'Access-Control-Allow-Origin': '*',
@@ -405,8 +409,11 @@ export async function handleUnifiedSSEConnection(request: Request) {
         'X-Accel-Buffering': 'no',
         'Keep-Alive': 'timeout=300, max=1000', // 5 minutes timeout to match nginx
         'X-Frame-Options': 'DENY',
-        'X-Content-Type-Options': 'nosniff'
-        // Removed Transfer-Encoding: chunked to prevent conflicts with nginx
+        'X-Content-Type-Options': 'nosniff',
+        // Enhanced headers to prevent chunked encoding issues
+        'Accept-Ranges': 'none',
+        'X-DNS-Prefetch-Control': 'off'
+        // Explicitly removed Transfer-Encoding: chunked to prevent conflicts with nginx
       },
     });
   } catch (error) {

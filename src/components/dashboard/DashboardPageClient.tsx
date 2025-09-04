@@ -36,7 +36,7 @@ import { cn } from '@/lib/utils';
 import { hasPermission } from '@/lib/permissions';
 import { useChartSetup } from '@/hooks/use-chart-setup';
 import { isDataLabelsAvailable } from '@/lib/chartjs-setup';
-import { createEventSource, closeEventSource } from '@/lib/event-source-utils';
+import { useSharedSSE } from '@/hooks/use-shared-sse';
 import { RealTimeStatus } from './RealTimeStatus';
 
 
@@ -432,96 +432,76 @@ export default function DashboardPageClient({
     }
   }, [status, session?.user?.id, initialCandidates, initialPositions, initialUsers]);
 
+  // Use shared SSE connection instead of creating a separate one
+  const { isConnected: sseConnected, subscribeToEvents } = useSharedSSE();
+  
+  useEffect(() => {
+    setDashboardRealtimeConnected(sseConnected);
+  }, [sseConnected]);
+
   useEffect(() => {
     let mounted = true;
     let refreshTimeout: NodeJS.Timeout;
     let lastUpdateTime = 0;
     const MIN_UPDATE_INTERVAL = 3000; // Minimum 3 seconds between updates
     
-    // Only create EventSource if user is authenticated
+    // Only subscribe to events if user is authenticated
     if (status !== 'authenticated' || !session?.user?.id) {
       return;
     }
     
-    // Re-enabled EventSource for real-time dashboard updates
-    const eventSource = createEventSource('/api/sse');
-    
-    eventSource.onmessage = (event) => {
-      if (mounted) {
-        try {
-          const data = JSON.parse(event.data);
+    // Subscribe to shared SSE events
+    const unsubscribe = subscribeToEvents((event) => {
+      if (!mounted) return;
+      
+      if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+        console.log('[Dashboard] SSE event received via shared connection:', event);
+      }
+      
+      // Handle different event types with improved debouncing and rate limiting
+      if (event.type === 'candidate_update' || event.type === 'position_update' || event.type === 'dashboard_update') {
+        const now = Date.now();
+        
+        // Rate limit updates to prevent excessive reloading
+        if (now - lastUpdateTime < MIN_UPDATE_INTERVAL) {
           if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
-            // eslint-disable-next-line no-console
-            console.log('[Dashboard] SSE event received:', data);
+            console.log('[Dashboard] Update rate limited, skipping');
           }
-          
-          // Handle different event types with improved debouncing and rate limiting
-          if (data.type === 'candidate_update' || data.type === 'position_update' || data.type === 'dashboard_update') {
-            const now = Date.now();
-            
-            // Rate limit updates to prevent excessive reloading
-            if (now - lastUpdateTime < MIN_UPDATE_INTERVAL) {
-              if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
-                console.log('[Dashboard] Update rate limited, skipping');
-              }
-              return;
-            }
-            
-            if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
-              // eslint-disable-next-line no-console
-              console.log('[Dashboard] Processing update event:', data.type);
-            }
-            
-            // Mark that SSE has updated data
-            setHasSSEUpdated(true);
-            
-            // Clear existing timeout and set new one to prevent rapid successive calls
-            if (refreshTimeout) {
-              clearTimeout(refreshTimeout);
-            }
-            
-            refreshTimeout = setTimeout(() => {
-              if (mounted && status === 'authenticated' && session?.user?.id) {
-                lastUpdateTime = Date.now();
-                // Only fetch if we don't have recent data and not currently loading
-                if (!isLoading) {
-                  fetchDataClientSide();
-                }
-              }
-            }, 3000); // 3 second debounce for better performance
-          }
-        } catch (error) {
-          if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
-            // eslint-disable-next-line no-console
-            console.error('[Dashboard] Error parsing SSE event:', error);
-          }
+          return;
         }
+        
+        if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+          console.log('[Dashboard] Processing update event:', event.type);
+        }
+        
+        // Mark that SSE has updated data
+        setHasSSEUpdated(true);
+        
+        // Clear existing timeout and set new one to prevent rapid successive calls
+        if (refreshTimeout) {
+          clearTimeout(refreshTimeout);
+        }
+        
+        refreshTimeout = setTimeout(() => {
+          if (mounted && status === 'authenticated' && session?.user?.id) {
+            lastUpdateTime = Date.now();
+            // Only fetch if we don't have recent data and not currently loading
+            if (!isLoading) {
+              fetchDataClientSide();
+            }
+          }
+        }, 3000); // 3 second debounce for better performance
       }
-    };
-    
-    eventSource.onerror = (error) => {
-      if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
-        // eslint-disable-next-line no-console
-        console.error('[Dashboard] EventSource error:', error);
-      }
-    };
-    
-    eventSource.onopen = () => {
-      if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
-        // eslint-disable-next-line no-console
-        console.log('[Dashboard] EventSource connected');
-      }
-      setDashboardRealtimeConnected(true);
-    };
+    });
     
     return () => {
       mounted = false;
       if (refreshTimeout) {
         clearTimeout(refreshTimeout);
       }
-      closeEventSource(eventSource);
+      unsubscribe();
     };
-  }, [status, session?.user?.id, isLoading]); // Added isLoading to dependencies
+  }, [status, session?.user?.id, isLoading, subscribeToEvents]); // Added subscribeToEvents to dependencies
 
   // Optimized dashboard computations - combined related calculations to reduce render overhead
   const dashboardStats = useMemo(() => {

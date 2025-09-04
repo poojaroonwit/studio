@@ -56,6 +56,15 @@ export class EnhancedSSEManager {
     console.error(...args);
   }
 
+  private getReadyStateText(readyState: number): string {
+    switch (readyState) {
+      case EventSource.CONNECTING: return 'CONNECTING';
+      case EventSource.OPEN: return 'OPEN';
+      case EventSource.CLOSED: return 'CLOSED';
+      default: return 'UNKNOWN';
+    }
+  }
+
   constructor() {
     this.initializeEndpoints();
   }
@@ -272,37 +281,52 @@ export class EnhancedSSEManager {
         };
 
         eventSource.onerror = (error) => {
-          this.error(`[Enhanced SSE Manager] ${endpoint.name} EventSource error:`, error);
+          this.error(`[Enhanced SSE Manager] ${endpoint.name} EventSource error:`, {
+            type: error.type,
+            readyState: eventSource.readyState,
+            readyStateText: this.getReadyStateText(eventSource.readyState),
+            url: endpoint.url,
+            timestamp: new Date().toISOString()
+          });
+          
           endpoint.lastErrorEventType = 'eventsource_error';
           endpoint.lastErrorLocation = endpoint.url;
           
           // Enhanced error detection for connection issues
           let errorMessage = `EventSource error: ${error.type || 'unknown'}`;
           let shouldRetry = true;
+          let retryDelay = 1000; // Default retry delay
           
-          // Check for connection errors
+          // Check for connection errors based on readyState
           if (error.type === 'error' && eventSource.readyState === EventSource.CLOSED) {
             errorMessage = 'Connection closed - server may be unavailable (502/503 error)';
             endpoint.lastErrorEventType = 'connection_closed';
-            // Don't retry immediately for server errors - wait longer
-            shouldRetry = false;
+            // For CLOSED state, wait longer before retry
+            retryDelay = 5000;
+            shouldRetry = true; // Still retry, but with longer delay
           } else if (error.type === 'error' && eventSource.readyState === EventSource.CONNECTING) {
             errorMessage = 'Connection interrupted - attempting to reconnect';
             endpoint.lastErrorEventType = 'connection_interrupted';
+            retryDelay = 2000; // Shorter delay for connection interruption
+          } else if (error.type === 'error' && eventSource.readyState === EventSource.OPEN) {
+            errorMessage = 'Connection error while open - unexpected';
+            endpoint.lastErrorEventType = 'connection_error_open';
+            retryDelay = 3000;
           }
           
           endpoint.lastError = errorMessage;
           endpoint.isHanging = false; // Reset hanging flag on error
           clearTimeout(connectionTimeout);
-          eventSource.close();
           
-          // For server errors (502/503), don't reject immediately - let retry logic handle it
-          if (shouldRetry) {
-            reject(new Error(errorMessage));
-          } else {
-            // For server errors, resolve with error info to trigger retry logic
-            resolve();
+          // Close the connection properly
+          try {
+            eventSource.close();
+          } catch (closeError) {
+            this.error(`[Enhanced SSE Manager] Error closing EventSource:`, closeError);
           }
+          
+          // Always reject to trigger retry logic, but with appropriate delay
+          reject(new Error(`${errorMessage} (retry in ${retryDelay}ms)`));
         };
 
         eventSource.onmessage = (event) => {
@@ -410,7 +434,10 @@ export class EnhancedSSEManager {
         id: endpoint.id,
         name: endpoint.name,
         url: endpoint.url,
+        priority: endpoint.priority,
         enabled: endpoint.enabled,
+        maxRetries: endpoint.maxRetries,
+        connectionTimeout: endpoint.connectionTimeout,
         isConnected: endpoint.isConnected,
         lastError: endpoint.lastError,
         lastErrorTime: endpoint.lastErrorTime,
@@ -443,15 +470,15 @@ export class EnhancedSSEManager {
 
     // Add recommendations based on current state
     if (debugInfo.endpoints.some(e => !e.enabled && e.lastError)) {
-      debugInfo.recommendations.push('Some endpoints are disabled due to errors. Check server logs for details.');
+      (debugInfo.recommendations as string[]).push('Some endpoints are disabled due to errors. Check server logs for details.');
     }
     
     if (debugInfo.endpoints.some(e => e.isHanging)) {
-      debugInfo.recommendations.push('Some endpoints may have hanging connections. Consider increasing timeout values.');
+      (debugInfo.recommendations as string[]).push('Some endpoints may have hanging connections. Consider increasing timeout values.');
     }
     
-    if (debugInfo.subscriberCount === 0) {
-      debugInfo.recommendations.push('No active subscribers. SSE connections may not be needed.');
+    if (debugInfo.managerState.subscriberCount === 0) {
+      (debugInfo.recommendations as string[]).push('No active subscribers. SSE connections may not be needed.');
     }
 
     return debugInfo;

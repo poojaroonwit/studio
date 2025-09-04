@@ -73,6 +73,7 @@ export default function CandidateImportUploadQueue() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [positionFilter, setPositionFilter] = useState<string>('all');
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [dateFilterType, setDateFilterType] = useState<'create' | 'process' | 'complete'>('create');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
@@ -144,12 +145,24 @@ export default function CandidateImportUploadQueue() {
         sort_direction: sortDirection
       });
 
-      // Handle dateRange separately since it's an object
+      // Handle dateRange based on selected filter type
       if (dateRange?.from) {
-        params.append('date_start', dateRange.from.toISOString());
+        if (dateFilterType === 'create') {
+          params.append('date_start', dateRange.from.toISOString());
+        } else if (dateFilterType === 'process') {
+          params.append('process_date_start', dateRange.from.toISOString());
+        } else if (dateFilterType === 'complete') {
+          params.append('completed_date_start', dateRange.from.toISOString());
+        }
       }
       if (dateRange?.to) {
-        params.append('date_end', dateRange.to.toISOString());
+        if (dateFilterType === 'create') {
+          params.append('date_end', dateRange.to.toISOString());
+        } else if (dateFilterType === 'process') {
+          params.append('process_date_end', dateRange.to.toISOString());
+        } else if (dateFilterType === 'complete') {
+          params.append('completed_date_end', dateRange.to.toISOString());
+        }
       }
 
       const response = await fetch(`/api/upload-queue?${params}`);
@@ -170,7 +183,7 @@ export default function CandidateImportUploadQueue() {
     } finally {
       setLoading(false);
     }
-  }, [searchTerm, statusFilter, positionFilter, dateRange]);
+  }, [searchTerm, statusFilter, positionFilter, dateRange, dateFilterType]);
 
   useEffect(() => {
     fetchPositions();
@@ -510,6 +523,12 @@ export default function CandidateImportUploadQueue() {
     fetchQueue(1, pageSize);
   };
 
+  const handleDateFilterTypeChange = (type: 'create' | 'process' | 'complete') => {
+    setDateFilterType(type);
+    setPage(1);
+    fetchQueue(1, pageSize);
+  };
+
   const clearDateRange = () => {
     setDateRange(undefined);
     setPage(1);
@@ -522,6 +541,7 @@ export default function CandidateImportUploadQueue() {
     setPositionFilter('all');
     setPositionSearchTerm('');
     setDateRange(undefined);
+    setDateFilterType('create');
     setPage(1);
     fetchQueue(1, pageSize);
   };
@@ -1130,7 +1150,7 @@ export default function CandidateImportUploadQueue() {
       {/* Filters */}
       <div className="p-3 border-b border-border/50">
         <div className="flex items-center justify-end mb-3">
-                      {(searchTerm || statusFilter !== 'all' || positionFilter !== 'all' || positionSearchTerm || dateRange) && (
+                      {(searchTerm || statusFilter !== 'all' || positionFilter !== 'all' || positionSearchTerm || dateRange || dateFilterType !== 'create') && (
             <Button
               variant="ghost"
               size="sm"
@@ -1142,7 +1162,7 @@ export default function CandidateImportUploadQueue() {
             </Button>
           )}
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
+        <div className="grid grid-cols-2 md:grid-cols-7 gap-2">
             <div className="space-y-1">
               <Label htmlFor="search" className="text-xs text-muted-foreground">Search</Label>
               <div className="flex space-x-1">
@@ -1206,7 +1226,24 @@ export default function CandidateImportUploadQueue() {
             </div>
 
             <div className="space-y-1">
-              <Label htmlFor="dateRange" className="text-xs text-muted-foreground">Date</Label>
+              <Label htmlFor="dateFilterType" className="text-xs text-muted-foreground">Date Type</Label>
+              <Select value={dateFilterType} onValueChange={handleDateFilterTypeChange}>
+                <SelectTrigger className="h-7 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="create">Create Date</SelectItem>
+                  <SelectItem value="process">Process Date</SelectItem>
+                  <SelectItem value="complete">Complete Date</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="dateRange" className="text-xs text-muted-foreground">
+                {dateFilterType === 'create' ? 'Create Date' : 
+                 dateFilterType === 'process' ? 'Process Date' : 'Complete Date'}
+              </Label>
               <div className="flex space-x-1">
                 <Popover>
                   <PopoverTrigger asChild>

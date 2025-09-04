@@ -140,14 +140,21 @@ export async function POST(request: NextRequest) {
 
   const { candidate_info, educationData, experienceData, job_applied, job_matches } = validationResult.data;
   
-  // Handle optional fields with defaults - use validated data structure
+  // Validate required fields from payload
   const candidateInfo = candidate_info as any;
   const personalInfo = candidateInfo.personal_info || {};
   const contactInfo = candidateInfo.contact_info || {};
-  const name = personalInfo.firstname && personalInfo.lastname 
-    ? `${personalInfo.firstname} ${personalInfo.lastname}` 
-    : 'Unknown Candidate';
-  const email = contactInfo.email || 'no-email@example.com';
+  
+  // Only email is required
+  if (!contactInfo.email) {
+    return handleApiError(request, createValidationError('Email is required'));
+  }
+  
+  // Use firstname and lastname from payload, or empty strings if not provided
+  const firstname = personalInfo.firstname || '';
+  const lastname = personalInfo.lastname || '';
+  const name = `${firstname} ${lastname}`.trim() || 'Candidate';
+  const email = contactInfo.email;
   
   // Always default to "Applied" stage regardless of input
   let resolvedStageId: string | null = null;
@@ -229,22 +236,28 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const candidateData: any = {
+      id: newCandidateId,
+      name: name,
+      email: email.toLowerCase(),
+      phone: contactInfo.phone || null,
+      statusId: resolvedStageId,
+      fitScore: fitScore, // <-- always set top-level fitScore if present
+      parsedData: parsedData,
+      source: validationResult.data.sourceId ? { connect: { id: validationResult.data.sourceId } } : undefined,
+      subSource: validationResult.data.subSource || null,
+      applicationDate: createDateInTimezone(),
+      createdAt: createDateInTimezone(),
+      updatedAt: createDateInTimezone(),
+    };
+
+    // Only add position if positionId is valid
+    if (positionId) {
+      candidateData.position = { connect: { id: positionId } };
+    }
+
     const newCandidate = await prisma.candidate.create({
-      data: {
-        id: newCandidateId,
-        name: name,
-        email: email.toLowerCase(),
-        phone: contactInfo.phone || null,
-        position: positionId ? { connect: { id: positionId } } : undefined,
-        statusId: resolvedStageId,
-        fitScore: fitScore, // <-- always set top-level fitScore if present
-        parsedData: parsedData,
-        source: validationResult.data.sourceId ? { connect: { id: validationResult.data.sourceId } } : undefined,
-        subSource: validationResult.data.subSource || null,
-        applicationDate: createDateInTimezone(),
-        createdAt: createDateInTimezone(),
-        updatedAt: createDateInTimezone(),
-      },
+      data: candidateData,
     });
 
     // Create initial transition record

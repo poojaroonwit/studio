@@ -278,21 +278,31 @@ export class EnhancedSSEManager {
           
           // Enhanced error detection for connection issues
           let errorMessage = `EventSource error: ${error.type || 'unknown'}`;
+          let shouldRetry = true;
           
           // Check for connection errors
           if (error.type === 'error' && eventSource.readyState === EventSource.CLOSED) {
-            errorMessage = 'Connection closed - server may be unavailable';
+            errorMessage = 'Connection closed - server may be unavailable (502/503 error)';
             endpoint.lastErrorEventType = 'connection_closed';
+            // Don't retry immediately for server errors - wait longer
+            shouldRetry = false;
           } else if (error.type === 'error' && eventSource.readyState === EventSource.CONNECTING) {
             errorMessage = 'Connection interrupted - attempting to reconnect';
             endpoint.lastErrorEventType = 'connection_interrupted';
           }
           
           endpoint.lastError = errorMessage;
+          endpoint.isHanging = false; // Reset hanging flag on error
           clearTimeout(connectionTimeout);
           eventSource.close();
           
-          reject(new Error(errorMessage));
+          // For server errors (502/503), don't reject immediately - let retry logic handle it
+          if (shouldRetry) {
+            reject(new Error(errorMessage));
+          } else {
+            // For server errors, resolve with error info to trigger retry logic
+            resolve();
+          }
         };
 
         eventSource.onmessage = (event) => {

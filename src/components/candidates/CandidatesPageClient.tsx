@@ -349,6 +349,23 @@ export function CandidatesPageClient({
       if (event.type === 'candidate_update' || event.type === 'position_update' || event.type === 'dashboard_update') {
         const now = Date.now();
         
+        // Handle candidate deletion events differently to avoid 404 errors
+        if (event.type === 'candidate_update' && event.data?.action === 'deleted') {
+          if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+            console.log('[CandidatesPage] Candidate deletion event received, removing from local state');
+          }
+          
+          // For deletion events, just remove the candidate from local state without fetching
+          const deletedCandidateId = event.data.candidateId;
+          if (deletedCandidateId) {
+            setFilteredCandidates(prev => prev.filter(c => c.id !== deletedCandidateId));
+            setAllCandidatesForCounts(prev => prev.filter(c => c.id !== deletedCandidateId));
+            // Update total count
+            setTotal(prev => Math.max(0, prev - 1));
+          }
+          return; // Don't trigger full refresh for deletion events
+        }
+        
         // Rate limit updates to prevent excessive reloading
         if (now - lastUpdateTime < MIN_UPDATE_INTERVAL) {
           if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {

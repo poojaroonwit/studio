@@ -44,6 +44,20 @@ import { MINIO_PUBLIC_BASE_URL, MINIO_BUCKET } from '@/lib/minio-constants';
  *           format: date-time
  *         description: Filter by process end date (ISO string)
  *         example: "2024-01-01T23:59:59.999Z"
+ *       - in: query
+ *         name: completed_date_start
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: Filter by completed start date (ISO string)
+ *         example: "2024-01-01T00:00:00.000Z"
+ *       - in: query
+ *         name: completed_date_end
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: Filter by completed end date (ISO string)
+ *         example: "2024-01-01T23:59:59.999Z"
  *     responses:
  *       200:
  *         description: Paginated upload queue
@@ -148,6 +162,8 @@ export async function GET(request: NextRequest) {
   const dateEnd = url.searchParams.get('date_end');
   const processDateStart = url.searchParams.get('process_date_start');
   const processDateEnd = url.searchParams.get('process_date_end');
+  const completedDateStart = url.searchParams.get('completed_date_start');
+  const completedDateEnd = url.searchParams.get('completed_date_end');
   const positionId = url.searchParams.get('position_id');
   const sortField = url.searchParams.get('sort_field') || 'upload_date';
   const sortDirection = url.searchParams.get('sort_direction') || 'desc';
@@ -185,6 +201,14 @@ export async function GET(request: NextRequest) {
     whereClauses.push(`process_date <= $${paramIdx++}`);
     values.push(processDateEnd);
   }
+  if (completedDateStart) {
+    whereClauses.push(`completed_date >= $${paramIdx++}`);
+    values.push(completedDateStart);
+  }
+  if (completedDateEnd) {
+    whereClauses.push(`completed_date <= $${paramIdx++}`);
+    values.push(completedDateEnd);
+  }
   if (positionId) {
     whereClauses.push(`position_id = $${paramIdx++}`);
     values.push(positionId);
@@ -205,8 +229,20 @@ export async function GET(request: NextRequest) {
     console.log(`[UploadQueue API] Query params: limit=${limit}, offset=${offset}, fileName=${fileName}, status=${status}, sortField=${sortField}, sortDirection=${sortDirection}`);
 
     // Validate sort field to prevent SQL injection
-    const allowedSortFields = ['upload_date', 'file_name', 'status', 'file_size', 'process_date', 'completed_date'];
-    const safeSortField = allowedSortFields.includes(sortField) ? sortField : 'upload_date';
+    // Map UI fields to actual SQL expressions/columns
+    const allowedSortFieldsMap: Record<string, string> = {
+      id: 'uq.id',
+      upload_date: 'uq.upload_date',
+      file_name: 'uq.file_name',
+      status: 'uq.status',
+      file_size: 'uq.file_size',
+      process_date: 'uq.process_date',
+      completed_date: 'uq.completed_date',
+      position_title: 'p.title',
+      // Duration in seconds; null-safe to 0 so rows without duration group at start when ASC
+      duration: "COALESCE(EXTRACT(EPOCH FROM (uq.completed_date - uq.process_date)), 0)"
+    };
+    const safeSortExpr = allowedSortFieldsMap[sortField] || 'uq.upload_date';
     const safeSortDirection = sortDirection.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
     
     // Main query - only fetches records for the current page using LIMIT and OFFSET
@@ -215,7 +251,7 @@ export async function GET(request: NextRequest) {
        FROM upload_queue uq 
        LEFT JOIN "Position" p ON uq.position_id = p.id 
        ${whereSQL} 
-       ORDER BY uq.${safeSortField} ${safeSortDirection} 
+       ORDER BY ${safeSortExpr} ${safeSortDirection} 
        LIMIT $${paramIdx++} OFFSET $${paramIdx++}`,
       values
     );

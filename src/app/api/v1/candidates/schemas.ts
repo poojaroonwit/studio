@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 const contactInfoSchema = z.object({
-  email: z.string(), // required
+  email: z.string().min(1, "Email is required"),
   phone: z.string().optional(),
 }).strict();
 
@@ -33,7 +33,7 @@ const skillsEntrySchema = z.object({
 export const candidateInfoSchema = z.union([
   z.object({
     contact_info: contactInfoSchema, // required
-    personal_info: personalInfoSchema.optional(),
+    personal_info: personalInfoSchema, // required
     cv_language: z.string().optional(),
     skills: z.array(skillsEntrySchema).optional(),
     job_suitable: z.array(jobSuitableEntrySchema).optional(),

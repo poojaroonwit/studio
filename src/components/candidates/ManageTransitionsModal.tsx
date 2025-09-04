@@ -36,6 +36,7 @@ import { format } from 'date-fns';
 import parseISO from 'date-fns/parseISO';
 import { toast } from "react-hot-toast";
 import { cn } from "@/lib/utils";
+import { useToastManager } from "@/hooks/use-toast-manager";
 
 import CandidateCommentsSection from './CandidateCommentsSection';
 import { StageSelect } from './StageSelect';
@@ -82,6 +83,11 @@ export function ManageTransitionsModal({
   const [stages, setStages] = useState<RecruitmentStage[]>(initialAvailableStages || []);
   const [currentStageName, setCurrentStageName] = useState<string>('');
   const [deletingStageName, setDeletingStageName] = useState<string>('');
+
+  // Initialize toast manager for better toast handling
+  const { success: showSuccessToast, error: showErrorToast, loading: showLoadingToast } = useToastManager({
+    deduplicationWindowMs: 2000
+  });
 
   // Refs for cleanup and preventing memory leaks
   const modalCloseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -185,11 +191,14 @@ export function ManageTransitionsModal({
     const noChangeCondition = data.newStatus === (candidate.statusId || candidate.status) && !trimmedNotes;
     
     if (noChangeCondition) {
-        toast("Please select a new status or add notes to create a transition.");
+        showErrorToast("Please select a new status or add notes to create a transition.");
         return;
     }
 
     setIsSaving(true);
+    
+    // Show loading toast
+    const loadingToastId = showLoadingToast("Saving transition...");
     
     // Create abort controller for this request
     const controller = new AbortController();
@@ -207,6 +216,7 @@ export function ManageTransitionsModal({
             if (result === false || result === undefined) {
                 console.log('ManageTransitionsModal - Update was blocked, not proceeding with success flow');
                 setIsSaving(false); // Reset saving state
+                toast.dismiss(loadingToastId); // Dismiss loading toast
                 return; // Don't show success toast or close modal
             }
         } else {
@@ -215,6 +225,9 @@ export function ManageTransitionsModal({
         }
         
         if (!isMountedRef.current) return;
+        
+        // Dismiss loading toast
+        toast.dismiss(loadingToastId);
         
         // Reset form and state
         form.reset({ newStatus: data.newStatus, notes: '' }); 
@@ -229,27 +242,39 @@ export function ManageTransitionsModal({
             onCommentsChange();
         }
         
-        // Show success message and close modal
-        toast.success("Candidate details updated successfully.");
+        // Show success message with better styling
+        showSuccessToast("Transition saved successfully!", {
+          duration: 3000,
+          icon: "✅"
+        });
         
-        // Close modal - simplified approach
-        onOpenChange(false);
+        // Add a small delay before closing modal for better UX
+        setTimeout(() => {
+          if (isMountedRef.current) {
+            onOpenChange(false);
+          }
+        }, 500);
         
     } catch (error) {
         if (!isMountedRef.current) return;
         
+        // Dismiss loading toast
+        toast.dismiss(loadingToastId);
+        
         console.error('Transition save error:', error);
         
-        // Handle all errors
+        // Handle all errors with better messaging
         const errorMessage = error instanceof Error ? error.message : 'Failed to save transition. Please try again.';
-        toast.error(errorMessage);
+        showErrorToast(errorMessage, {
+          duration: 5000
+        });
     } finally {
         if (isMountedRef.current) {
             setIsSaving(false);
         }
         abortControllerRef.current = null;
     }
-  }, [candidate, onUpdateCandidate, onRefreshCandidateData, onCommentsChange, onOpenChange, form]);
+  }, [candidate, onUpdateCandidate, onRefreshCandidateData, onCommentsChange, onOpenChange, form, showSuccessToast, showErrorToast, showLoadingToast]);
 
   const handleEditNotesClick = useCallback((transition: TransitionRecord) => {
     if (!isMountedRef.current) return;

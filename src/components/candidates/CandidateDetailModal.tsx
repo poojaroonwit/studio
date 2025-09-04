@@ -17,7 +17,7 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
   const portalContainerRef = useRef<HTMLDivElement | null>(null);
   
   // TEMPORARILY DISABLED: Modal manager for debugging
-  // const modalId = candidateId ? `candidate-detail-${candidateId}` : 'candidate-detail-unknown';
+  const modalId = candidateId ? `candidate-detail-${candidateId}` : 'candidate-detail-unknown';
   // const { zIndex, overlayZIndex } = useModalManager(modalId, 'custom');
   
   // Use fixed z-index values for testing

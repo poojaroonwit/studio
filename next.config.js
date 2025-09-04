@@ -145,10 +145,6 @@ const nextConfig = {
             value: 'keep-alive',
           },
           {
-            key: 'Transfer-Encoding',
-            value: 'identity',
-          },
-          {
             key: 'X-Accel-Buffering',
             value: 'no',
           },

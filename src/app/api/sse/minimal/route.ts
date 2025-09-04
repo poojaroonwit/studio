@@ -63,9 +63,7 @@ export async function GET(request: NextRequest) {
         'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         'Access-Control-Allow-Credentials': 'true',
         'X-Accel-Buffering': 'no',
-        // CRITICAL: Disable chunked encoding for SSE streams
-        'Transfer-Encoding': 'identity',
-        'Content-Length': '0'
+        // Note: Keep proxy-friendly headers only; avoid Transfer-Encoding and Content-Length
       },
     });
   } catch (error) {

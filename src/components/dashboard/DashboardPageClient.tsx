@@ -21,6 +21,7 @@ import { signIn, useSession, signOut } from "next-auth/react";
 import { CandidatesPerPositionChart } from '@/components/dashboard/CandidatesPerPositionChart';
 import { useRouter } from 'next/navigation';
 import { toast } from "react-hot-toast";
+import { safeJson, allSettledWithTimeout } from '@/lib/safe-fetch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/candidates/CandidateKanbanView";
@@ -242,7 +243,12 @@ export default function DashboardPageClient({
       }
       promises.push(fetch('/api/positions', fetchOptions));
 
-      const [candidatesResOrNull, usersResOrNull, myBacklogCandidatesResOrNull, positionsRes] = await Promise.all(promises);
+      const settled = await allSettledWithTimeout(promises, 7000);
+      const [candResSet, usersResSet, backlogResSet, posResSet] = settled;
+      const candidatesResOrNull = candResSet.status === 'fulfilled' ? candResSet.value as Response : null;
+      const usersResOrNull = usersResSet.status === 'fulfilled' ? usersResSet.value as Response : null;
+      const myBacklogCandidatesResOrNull = backlogResSet.status === 'fulfilled' ? backlogResSet.value as Response : null;
+      const positionsRes = posResSet.status === 'fulfilled' ? posResSet.value as Response : null;
 
       if (candidatesResOrNull && !candidatesResOrNull.ok) {
         const errorText = candidatesResOrNull.statusText || `Status: ${candidatesResOrNull.status}`;

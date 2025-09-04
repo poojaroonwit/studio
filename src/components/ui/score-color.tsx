@@ -19,7 +19,10 @@ export const SCORE_COLOR_STOPS: ScoreColorInfo[] = [
 ];
 
 export function getScoreColorInfo(score: number | null | undefined): ScoreColorInfo {
-  if (score === null || score === undefined || isNaN(Number(score))) return SCORE_COLOR_STOPS[0];
+  // Return default if score is invalid
+  if (score === null || score === undefined || isNaN(Number(score))) {
+    return SCORE_COLOR_STOPS[0];
+  }
   
   let normalized = 0;
   if (typeof score === 'number') {
@@ -32,9 +35,18 @@ export function getScoreColorInfo(score: number | null | undefined): ScoreColorI
     return SCORE_COLOR_STOPS[0];
   }
   
-  for (const stop of SCORE_COLOR_STOPS) {
-    if (normalized >= stop.min && normalized <= stop.max) return stop;
+  // Ensure normalized is within valid range
+  if (normalized < 0 || normalized > 100) {
+    return SCORE_COLOR_STOPS[0];
   }
+  
+  for (const stop of SCORE_COLOR_STOPS) {
+    if (normalized >= stop.min && normalized <= stop.max) {
+      return stop;
+    }
+  }
+  
+  // Fallback to default
   return SCORE_COLOR_STOPS[0];
 }
 
@@ -44,9 +56,33 @@ export function ScoreBadge({ score, className = '', children }: { score: number 
     return null;
   }
   
+  // Additional type checking
+  if (typeof score !== 'number' || isNaN(score)) {
+    console.warn('ScoreBadge: Invalid score value:', score, typeof score);
+    return null;
+  }
+  
   const info = getScoreColorInfo(score);
+  
+  // Additional safety check for info
+  if (!info || !info.label) {
+    console.warn('ScoreBadge: Invalid info object:', info);
+    return null;
+  }
+  
+  // Ensure all className parts are valid strings
+  const bgClass = info.bg || '';
+  const textClass = info.text || '';
+  const additionalClass = className || '';
+  
+  // Additional safety check for label
+  if (typeof info.label !== 'string') {
+    console.warn('ScoreBadge: Invalid label type:', info.label, typeof info.label);
+    return null;
+  }
+  
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${info.bg} ${info.text} ${className}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${bgClass} ${textClass} ${additionalClass}`.trim()}>
       {children ?? info.label}
     </span>
   );

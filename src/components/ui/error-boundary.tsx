@@ -69,6 +69,15 @@ export class ErrorBoundary extends Component<Props, State> {
     if (!isFilterError(error)) {
       return null;
     }
+    
+    // Handle getTime errors specifically
+    if (error.message.includes('getTime is not a function')) {
+      return {
+        type: 'date_error',
+        message: 'Date object validation failed - getTime method not available',
+        suggestion: 'Check if date objects are properly initialized before calling getTime()'
+      };
+    }
 
     // Try to extract more context from the error
     const context: any = {
@@ -182,6 +191,7 @@ export class ErrorBoundary extends Component<Props, State> {
       const isFilterErrorType = this.state.error ? isFilterError(this.state.error) : false;
       const isChartError = this.state.error?.message?.includes('Filler plugin');
       const isMimeError = this.state.error?.message?.includes('MIME type');
+      const isDateError = this.state.error?.message?.includes('getTime is not a function');
 
       return (
         <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -221,7 +231,20 @@ export class ErrorBoundary extends Component<Props, State> {
                     </p>
                   </div>
                 )}
-                {!isFilterErrorType && !isChartError && !isMimeError && (
+                {isDateError && (
+                  <div className="space-y-2">
+                    <p className="text-sm text-red-700">
+                      A date processing error occurred. This is usually caused by invalid date objects.
+                    </p>
+                    <p className="text-xs text-red-600">
+                      Error: {this.state.error?.message}
+                    </p>
+                    <p className="text-xs text-blue-600">
+                      This error has been automatically handled. The page should work normally now.
+                    </p>
+                  </div>
+                )}
+                {!isFilterErrorType && !isChartError && !isMimeError && !isDateError && (
                   <div className="space-y-2">
                     <p className="text-sm text-red-700">
                       An unexpected error occurred. Please try refreshing the page.

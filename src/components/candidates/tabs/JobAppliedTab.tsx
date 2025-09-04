@@ -14,6 +14,7 @@ interface JobAppliedTabProps {
   appliedFitScore: number | null;
   appliedJustification: string[];
   appliedJobBadge: React.ReactNode;
+  onOpenPositionDrawer: (positionId: string) => void;
 }
 
 export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
@@ -25,7 +26,8 @@ export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
   appliedJobId,
   appliedFitScore,
   appliedJustification,
-  appliedJobBadge
+  appliedJobBadge,
+  onOpenPositionDrawer
 }) => {
   return (
     <div className="space-y-4">
@@ -68,6 +70,7 @@ export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
               onMouseLeave={(e) => {
                 e.currentTarget.style.filter = 'brightness(1)';
               }}
+              onClick={() => onOpenPositionDrawer(appliedJobId)}
             >
                 <div className="mb-1">
                   <h4 className="font-semibold text-foreground text-lg">
@@ -109,7 +112,6 @@ export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
                     </div>
                   </div>
                 )}
-              
             </div>
           ) : (
             <div className="text-center py-8 text-muted-foreground">

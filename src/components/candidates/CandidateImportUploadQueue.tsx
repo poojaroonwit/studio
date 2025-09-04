@@ -1424,13 +1424,14 @@ export default function CandidateImportUploadQueue() {
                 <SortableHeader field="process_date">Process Date</SortableHeader>
                 <SortableHeader field="completed_date">Complete Date</SortableHeader>
                 <SortableHeader field="duration">Duration</SortableHeader>
+                <TableHead className="text-right">Actions</TableHead>
 
               </TableRow>
             </TableHeader>
             <TableBody>
               {!queueData?.data || queueData.data.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center py-8">
+                  <TableCell colSpan={11} className="text-center py-8">
                     <div className="flex flex-col items-center gap-2">
                       <Info className="h-8 w-8 text-muted-foreground" />
                       <p className="text-muted-foreground">No queue items found</p>

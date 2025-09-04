@@ -51,12 +51,30 @@ export function AdvancedQuerySyntaxModal({ isOpen, onOpenChange }: AdvancedQuery
 
   const examples = [
     {
+      name: 'Quick Commands',
+      description: 'Common search patterns for immediate use',
+      examples: [
+        { query: 'minFitScore:80', description: 'High-priority candidates (≥80% fit score)' },
+        { query: 'status:Applied,Screening', description: 'Active candidates in early stages' },
+        { query: 'recruiterId:unassigned', description: 'Unassigned candidates needing attention' },
+        { query: 'status:Off', description: 'Candidates with no status assigned' },
+        { query: 'applicationDateStart:2024-01-15', description: 'Candidates who applied today' },
+        { query: 'applicationDateStart:2024-01-08', description: 'Candidates who applied this week' },
+        { query: 'status:Offer Extended,Offer Accepted,Hired', description: 'Candidates in final hiring stages' },
+        { query: 'status:Interviewing,Offer Extended,Offer Accepted,Hired', description: 'Candidates in hiring pipeline' },
+        { query: 'positionId:not-applied', description: 'Candidates without applied positions' },
+        { query: 'recruiterId:unassigned', description: 'Candidates without assigned recruiter' },
+        { query: 'minExperienceYears:5 skills:React,Python', description: 'Senior developers with key skills' },
+      ]
+    },
+    {
       name: 'Basic Search',
       description: 'Search by name, email, or phone',
       examples: [
         { query: 'name:John', description: 'Find candidates named John' },
         { query: 'email:john@example.com', description: 'Find candidate with specific email' },
         { query: 'phone:+1234567890', description: 'Find candidate with specific phone' },
+        { query: 'name:John email:gmail.com', description: 'Find John with Gmail address' },
       ]
     },
     {
@@ -67,6 +85,7 @@ export function AdvancedQuerySyntaxModal({ isOpen, onOpenChange }: AdvancedQuery
         { query: 'skills:Python,JavaScript', description: 'Find candidates with multiple skills' },
         { query: 'minExperienceYears:5', description: 'Find candidates with at least 5 years experience' },
         { query: 'maxExperienceYears:10', description: 'Find candidates with maximum 10 years experience' },
+        { query: 'minExperienceYears:3 maxExperienceYears:7', description: 'Mid-level candidates (3-7 years)' },
       ]
     },
     {
@@ -76,6 +95,8 @@ export function AdvancedQuerySyntaxModal({ isOpen, onOpenChange }: AdvancedQuery
         { query: 'minFitScore:80', description: 'Find candidates with fit score ≥ 80%' },
         { query: 'maxFitScore:30', description: 'Find candidates with fit score ≤ 30%' },
         { query: 'minFitScore:70 maxFitScore:90', description: 'Find candidates with fit score between 70-90%' },
+        { query: 'minMatchingJobFitScore:75', description: 'Find candidates with good matching job fit' },
+        { query: 'maxMatchingJobFitScore:50', description: 'Find candidates with low matching job fit' },
       ]
     },
     {
@@ -84,7 +105,9 @@ export function AdvancedQuerySyntaxModal({ isOpen, onOpenChange }: AdvancedQuery
       examples: [
         { query: 'status:Applied', description: 'Find candidates with Applied status' },
         { query: 'status:Applied,Screening', description: 'Find candidates with multiple statuses' },
-        { query: 'position:Software Engineer', description: 'Find candidates for specific position' },
+        { query: 'positionId:pos1,pos2', description: 'Find candidates for specific positions (by ID)' },
+        { query: 'status:Interviewing,Offer Extended', description: 'Candidates in final stages' },
+        { query: 'status:Rejected,On Hold', description: 'Candidates not moving forward' },
       ]
     },
     {
@@ -92,16 +115,54 @@ export function AdvancedQuerySyntaxModal({ isOpen, onOpenChange }: AdvancedQuery
       description: 'Search by location and education',
       examples: [
         { query: 'location:New York', description: 'Find candidates in New York' },
+        { query: 'location:Bangkok locationOperator:contains', description: 'Find candidates in Bangkok area' },
         { query: 'education:MBA', description: 'Find candidates with MBA degree' },
         { query: 'education:Computer Science', description: 'Find candidates with specific major' },
+        { query: 'location:San Francisco education:Engineering', description: 'Engineers in San Francisco' },
       ]
     },
     {
       name: 'Recruiter & Source',
       description: 'Search by assigned recruiter and source',
       examples: [
-        { query: 'recruiter:John Smith', description: 'Find candidates assigned to John Smith' },
-        { query: 'source:LinkedIn', description: 'Find candidates from LinkedIn' },
+        { query: 'recruiterId:recruiter123', description: 'Find candidates assigned to specific recruiter' },
+        { query: 'recruiterId:unassigned', description: 'Find unassigned candidates' },
+        { query: 'selectedSourceIds:source1,source2', description: 'Find candidates from specific sources' },
+        { query: 'recruiterId:recruiter123 status:Applied', description: 'Applied candidates for specific recruiter' },
+      ]
+    },
+    {
+      name: 'Time-Based Queries',
+      description: 'Search by application dates and time periods',
+      examples: [
+        { query: 'applicationDateStart:2024-01-15', description: 'Candidates who applied today' },
+        { query: 'applicationDateStart:2024-01-08', description: 'Candidates who applied this week' },
+        { query: 'applicationDateStart:2024-01-01', description: 'Candidates who applied after Jan 1, 2024' },
+        { query: 'applicationDateEnd:2024-01-31', description: 'Candidates who applied before Jan 31, 2024' },
+        { query: 'applicationDateStart:2024-01-01 applicationDateEnd:2024-01-31', description: 'Candidates who applied in January 2024' },
+        { query: 'applicationDateStart:2024-01-01 status:Applied', description: 'Recent applications' },
+      ]
+    },
+    {
+      name: 'Hiring Pipeline',
+      description: 'Search by hiring stages and status',
+      examples: [
+        { query: 'status:Offer Extended,Offer Accepted,Hired', description: 'Candidates in final hiring stages' },
+        { query: 'status:Interviewing,Offer Extended,Offer Accepted,Hired', description: 'Candidates in hiring pipeline' },
+        { query: 'status:Interviewing', description: 'Candidates currently being interviewed' },
+        { query: 'status:Offer Extended', description: 'Candidates with pending offers' },
+        { query: 'status:Hired', description: 'Successfully hired candidates' },
+      ]
+    },
+    {
+      name: 'Assignment & Status',
+      description: 'Search by recruiter assignment and application status',
+      examples: [
+        { query: 'recruiterId:unassigned', description: 'Candidates without assigned recruiter' },
+        { query: 'positionId:not-applied', description: 'Candidates without applied positions' },
+        { query: 'status:Off', description: 'Candidates with no status assigned' },
+        { query: 'status:Applied,Screening', description: 'Candidates in early stages' },
+        { query: 'status:Rejected,On Hold', description: 'Candidates not moving forward' },
       ]
     },
     {
@@ -110,7 +171,9 @@ export function AdvancedQuerySyntaxModal({ isOpen, onOpenChange }: AdvancedQuery
       examples: [
         { query: 'minFitScore:80 status:Applied skills:React', description: 'High-fit React developers who applied' },
         { query: 'location:San Francisco minExperienceYears:3 skills:Python,JavaScript', description: 'Experienced developers in SF with Python/JS skills' },
-        { query: 'minFitScore:70 maxFitScore:90 status:Screening position:Senior Engineer', description: 'Senior engineers in screening with good fit scores' },
+        { query: 'minFitScore:70 maxFitScore:90 status:Screening positionId:senior-engineer', description: 'Senior engineers in screening with good fit scores' },
+        { query: 'recruiterId:unassigned minFitScore:60 status:Applied', description: 'High-potential unassigned candidates' },
+        { query: 'applicationDateStart:2024-01-01 minExperienceYears:5 skills:AI,Machine Learning', description: 'Recent senior AI/ML candidates' },
       ]
     }
   ];
@@ -147,25 +210,34 @@ export function AdvancedQuerySyntaxModal({ isOpen, onOpenChange }: AdvancedQuery
           {/* Available Fields */}
           <div>
             <h3 className="font-semibold text-lg mb-3">🔍 Available Search Fields</h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {[
-                { field: 'name', description: 'Candidate name' },
-                { field: 'email', description: 'Email address' },
-                { field: 'phone', description: 'Phone number' },
-                { field: 'skills', description: 'Skills (comma-separated)' },
-                { field: 'location', description: 'Location' },
-                { field: 'status', description: 'Application status' },
-                { field: 'position', description: 'Position title' },
-                { field: 'recruiter', description: 'Assigned recruiter' },
-                { field: 'education', description: 'Education/degree' },
-                { field: 'minFitScore', description: 'Minimum fit score (%)' },
-                { field: 'maxFitScore', description: 'Maximum fit score (%)' },
-                { field: 'minExperienceYears', description: 'Minimum experience years' },
-                { field: 'maxExperienceYears', description: 'Maximum experience years' },
+                { field: 'name', description: 'Candidate name', example: 'name:John' },
+                { field: 'email', description: 'Email address', example: 'email:john@example.com' },
+                { field: 'phone', description: 'Phone number', example: 'phone:+1234567890' },
+                { field: 'skills', description: 'Skills (comma-separated)', example: 'skills:React,Python' },
+                { field: 'location', description: 'Location', example: 'location:New York' },
+                { field: 'status', description: 'Application status', example: 'status:Applied,Screening' },
+                { field: 'positionId', description: 'Position ID(s)', example: 'positionId:pos1,pos2' },
+                { field: 'recruiterId', description: 'Recruiter ID', example: 'recruiterId:recruiter123' },
+                { field: 'selectedSourceIds', description: 'Source ID(s)', example: 'selectedSourceIds:source1,source2' },
+                { field: 'education', description: 'Education/degree', example: 'education:MBA' },
+                { field: 'minFitScore', description: 'Minimum fit score (%)', example: 'minFitScore:80' },
+                { field: 'maxFitScore', description: 'Maximum fit score (%)', example: 'maxFitScore:30' },
+                { field: 'minMatchingJobFitScore', description: 'Min matching job fit (%)', example: 'minMatchingJobFitScore:75' },
+                { field: 'maxMatchingJobFitScore', description: 'Max matching job fit (%)', example: 'maxMatchingJobFitScore:50' },
+                { field: 'minExperienceYears', description: 'Minimum experience years', example: 'minExperienceYears:5' },
+                { field: 'maxExperienceYears', description: 'Maximum experience years', example: 'maxExperienceYears:10' },
+                { field: 'applicationDateStart', description: 'Application date from', example: 'applicationDateStart:2024-01-01' },
+                { field: 'applicationDateEnd', description: 'Application date to', example: 'applicationDateEnd:2024-01-31' },
+                { field: 'locationOperator', description: 'Location search type', example: 'locationOperator:contains' },
               ].map((item) => (
                 <div key={item.field} className="bg-muted/50 p-3 rounded-lg border">
                   <Badge variant="secondary" className="text-xs mb-1">{item.field}</Badge>
-                  <p className="text-xs text-muted-foreground">{item.description}</p>
+                  <p className="text-xs text-muted-foreground mb-2">{item.description}</p>
+                  <code className="text-xs bg-background px-1 py-0.5 rounded border text-blue-600">
+                    {item.example}
+                  </code>
                 </div>
               ))}
             </div>
@@ -247,6 +319,41 @@ export function AdvancedQuerySyntaxModal({ isOpen, onOpenChange }: AdvancedQuery
             </div>
           </div>
 
+          {/* Keyboard Shortcuts */}
+          <div className="bg-purple-50 dark:bg-purple-950/20 p-4 rounded-lg border border-purple-200 dark:border-purple-800">
+            <h3 className="font-semibold text-purple-900 dark:text-purple-100 mb-2">⌨️ Keyboard Shortcuts</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-purple-800 dark:text-purple-200">Apply Query</span>
+                  <kbd className="px-2 py-1 bg-purple-100 dark:bg-purple-900 text-xs rounded border">Enter</kbd>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-purple-800 dark:text-purple-200">Clear Query</span>
+                  <kbd className="px-2 py-1 bg-purple-100 dark:bg-purple-900 text-xs rounded border">Ctrl+Backspace</kbd>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-purple-800 dark:text-purple-200">Open Syntax Guide</span>
+                  <kbd className="px-2 py-1 bg-purple-100 dark:bg-purple-900 text-xs rounded border">Ctrl+?</kbd>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-purple-800 dark:text-purple-200">Quick Commands</span>
+                  <kbd className="px-2 py-1 bg-purple-100 dark:bg-purple-900 text-xs rounded border">Ctrl+Space</kbd>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-purple-800 dark:text-purple-200">Copy Query</span>
+                  <kbd className="px-2 py-1 bg-purple-100 dark:bg-purple-900 text-xs rounded border">Ctrl+C</kbd>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-purple-800 dark:text-purple-200">Paste Query</span>
+                  <kbd className="px-2 py-1 bg-purple-100 dark:bg-purple-900 text-xs rounded border">Ctrl+V</kbd>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Tips */}
           <div className="bg-amber-50 dark:bg-amber-950/20 p-4 rounded-lg border border-amber-200 dark:border-amber-800">
             <h3 className="font-semibold text-amber-900 dark:text-amber-100 mb-2">💡 Pro Tips</h3>
@@ -256,6 +363,8 @@ export function AdvancedQuerySyntaxModal({ isOpen, onOpenChange }: AdvancedQuery
               <li>• Fit scores are percentages (0-100), not decimals</li>
               <li>• Text searches are case-insensitive</li>
               <li>• Use quotes for values with spaces: <code className="bg-amber-100 dark:bg-amber-900 px-1 rounded">name:"John Smith"</code></li>
+              <li>• Use <code className="bg-amber-100 dark:bg-amber-900 px-1 rounded">unassigned</code> to find records without assignment</li>
+              <li>• Date format: <code className="bg-amber-100 dark:bg-amber-900 px-1 rounded">YYYY-MM-DD</code> (e.g., 2024-01-15)</li>
             </ul>
           </div>
         </div>

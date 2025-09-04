@@ -281,7 +281,13 @@ export function RecruitmentPipelineCard({
                            <Popover open={openPopoverIdx === index}>
                              <PopoverTrigger asChild>
                                <div
-                                 className="absolute inset-0 cursor-pointer"
+                                 className="absolute top-0 left-0 right-0 bottom-0 cursor-pointer"
+                                 style={{ 
+                                   top: '0px', 
+                                   left: '4px', 
+                                   right: '4px', 
+                                   bottom: '20px' 
+                                 }}
                                  onMouseEnter={() => setOpenPopoverIdx(index)}
                                  onMouseLeave={() => setOpenPopoverIdx(null)}
                                />

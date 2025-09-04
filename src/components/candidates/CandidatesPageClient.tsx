@@ -524,7 +524,8 @@ export function CandidatesPageClient({
 
   const {
     isAiSearching,
-    handleAiSearch
+    handleAiSearch,
+    cancelAiSearch
   } = useCandidateAiSearch({
     setFilteredCandidates,
     setAiMatchedCandidateIds: stableSetAiMatchedCandidateIds,
@@ -1494,6 +1495,7 @@ export function CandidatesPageClient({
                       initialFilters={filters}
                       onFilterChange={onFilterChange}
                       onAiSearch={handleAiSearch}
+                      onCancelAiSearch={cancelAiSearch}
                       availablePositions={effectivePositions}
                       availableStages={effectiveStages}
                       availableRecruiter={effectiveRecruiter}

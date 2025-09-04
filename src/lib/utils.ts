@@ -112,6 +112,35 @@ export function formatDate(date: string | Date | null): string {
   }
 }
 
+/**
+ * Safely validates if a value is a valid Date object
+ */
+export function isValidDate(date: any): date is Date {
+  return date instanceof Date && !isNaN(date.getTime());
+}
+
+/**
+ * Safely gets the time value from a date, with fallback
+ */
+export function safeGetTime(date: any, fallback: number = 0): number {
+  if (!isValidDate(date)) {
+    console.warn('safeGetTime: Invalid date provided', date);
+    return fallback;
+  }
+  return date.getTime();
+}
+
+/**
+ * Safely calculates the difference between two dates in milliseconds
+ */
+export function safeDateDiff(startDate: any, endDate: any, fallback: number = 0): number {
+  if (!isValidDate(startDate) || !isValidDate(endDate)) {
+    console.warn('safeDateDiff: Invalid dates provided', { startDate, endDate });
+    return fallback;
+  }
+  return endDate.getTime() - startDate.getTime();
+}
+
 export function calculateDuration(startDate: string | Date | null, endDate: string | Date | null): string {
   if (!startDate || !endDate) return '-';
   
@@ -119,7 +148,10 @@ export function calculateDuration(startDate: string | Date | null, endDate: stri
     const start = typeof startDate === 'string' ? new Date(startDate) : startDate;
     const end = typeof endDate === 'string' ? new Date(endDate) : endDate;
     
-    const diffMs = end.getTime() - start.getTime();
+    // Use safe date operations
+    const diffMs = safeDateDiff(start, end);
+    if (diffMs === 0) return '-'; // Invalid dates
+    
     const diffMinutes = Math.floor(diffMs / (1000 * 60));
     
     if (diffMinutes < 1) return '< 1m';
@@ -131,6 +163,7 @@ export function calculateDuration(startDate: string | Date | null, endDate: stri
     if (minutes === 0) return `${hours}h`;
     return `${hours}h ${minutes}m`;
   } catch (error) {
+    console.error('Error calculating duration:', error);
     return '-';
   }
 }

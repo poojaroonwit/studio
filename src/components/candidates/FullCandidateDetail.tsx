@@ -22,6 +22,7 @@ import ReprocessModal from './ReprocessModal';
 import { GenerativeAIModal } from './GenerativeAIModal';
 import CandidateAttachmentUploadModal from './CandidateAttachmentUploadModal';
 import { HeadcountWarningModal } from './HeadcountWarningModal';
+import { PositionDetailDrawer } from '@/components/positions/PositionDetailDrawer';
 import { useJobMatchFeature } from '@/hooks/useJobMatchFeature';
 
 // Import hooks
@@ -69,6 +70,10 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
   const [isGenerativeAIModalOpen, setIsGenerativeAIModalOpen] = useState(false);
   const [isHeadcountWarningModalOpen, setIsHeadcountWarningModalOpen] = useState(false);
   
+  // Position drawer state
+  const [isPositionDrawerOpen, setIsPositionDrawerOpen] = useState(false);
+  const [selectedPositionId, setSelectedPositionId] = useState<string | null>(null);
+  
   // Headcount warning state
   const [headcountWarningData, setHeadcountWarningData] = useState<{
     candidateName: string;
@@ -81,6 +86,12 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
   
   // Add state to track when headcount warning was shown to prevent immediate reopening of transitions modal
   const [headcountWarningShownTime, setHeadcountWarningShownTime] = useState<number | null>(null);
+
+  // Function to open position drawer
+  const handleOpenPositionDrawer = (positionId: string) => {
+    setSelectedPositionId(positionId);
+    setIsPositionDrawerOpen(true);
+  };
 
   // Wrap setHeadcountWarningData to add debugging
   const setHeadcountWarningDataWithDebug = (data: typeof headcountWarningData) => {
@@ -647,6 +658,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                 appliedFitScore={appliedFitScore}
                 appliedJustification={appliedJustification}
                 appliedJobBadge={appliedJobBadge}
+                onOpenPositionDrawer={handleOpenPositionDrawer}
                 // Pass form control and field arrays to tabs for editing
                 control={control}
                 register={register}
@@ -899,6 +911,18 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
           errorMessage={headcountWarningData.errorMessage}
         />
       )}
+
+      {/* Position Detail Drawer */}
+      <PositionDetailDrawer
+        isOpen={isPositionDrawerOpen}
+        onOpenChange={(open) => {
+          setIsPositionDrawerOpen(open);
+          if (!open) {
+            setSelectedPositionId(null);
+          }
+        }}
+        positionId={selectedPositionId}
+      />
  
       {/* Floating Save/Cancel buttons when editing */}
       {isEditing && (

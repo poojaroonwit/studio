@@ -25,8 +25,6 @@ export function useCandidateAiSearch({
   // Initialize state with a function to ensure proper initialization in Strict Mode
   const [isAiSearching, setIsAiSearching] = useState(() => false);
   const abortControllerRef = useRef<AbortController | null>(null);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const abortTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Memoize the filteredCandidates to ensure stable reference
   const memoizedFilteredCandidates = useMemo(() => filteredCandidates, [filteredCandidates]);
@@ -39,12 +37,6 @@ export function useCandidateAiSearch({
       isMountedRef.current = false;
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
-      }
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-      if (abortTimeoutRef.current) {
-        clearTimeout(abortTimeoutRef.current);
       }
     };
   }, []);
@@ -72,22 +64,8 @@ export function useCandidateAiSearch({
       return;
     }
     
-    // Add timeout for AI search
-    timeoutRef.current = setTimeout(() => {
-      if (isMountedRef.current) {
-        setIsAiSearching(false);
-        setIsAiSearchActive(false);
-        toast.error("AI search timed out. Please try again with a more specific query.");
-      }
-    }, 5000); // 5 second timeout
-    
     try {
       abortControllerRef.current = new AbortController();
-      // Clear any existing abort timeout before setting a new one
-      if (abortTimeoutRef.current) {
-        clearTimeout(abortTimeoutRef.current);
-      }
-      abortTimeoutRef.current = setTimeout(() => abortControllerRef.current?.abort(), 5000); // 5 second timeout for fetch
       
       const response = await fetch('/api/ai/search-candidates', {
         method: 'POST',
@@ -95,15 +73,6 @@ export function useCandidateAiSearch({
         body: JSON.stringify({ query: aiQuery }),
         signal: abortControllerRef.current?.signal,
       });
-      
-      if (abortTimeoutRef.current) {
-        clearTimeout(abortTimeoutRef.current);
-        abortTimeoutRef.current = null;
-      }
-      
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current); // Clear timeout on successful response
-      }
       
       // Check if component is still mounted before processing response
       if (!isMountedRef.current) {
@@ -196,12 +165,8 @@ export function useCandidateAiSearch({
         }
       }
     } catch (error) {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current); // Clear timeout on error
-      }
-      
       if (error instanceof Error && error.name === 'AbortError') {
-        toast.error("AI search request was cancelled due to timeout. Please try again.");
+        toast.error("AI search request was cancelled.");
       } else {
         toast.error((error as Error).message);
       }
@@ -226,8 +191,22 @@ export function useCandidateAiSearch({
     }
   }, [setFilteredCandidates, setAiMatchedCandidateIds, setAiSearchReasoning, setAiRecordCount, setIsAiSearchActive, memoizedFilteredCandidates]);
 
+  const cancelAiSearch = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    if (isMountedRef.current) {
+      setIsAiSearching(false);
+      setIsAiSearchActive(false);
+      setAiMatchedCandidateIds(null);
+      setAiSearchReasoning(null);
+      setAiRecordCount(0);
+    }
+  }, [setIsAiSearchActive, setAiMatchedCandidateIds, setAiSearchReasoning, setAiRecordCount]);
+
   return {
     isAiSearching,
-    handleAiSearch
+    handleAiSearch,
+    cancelAiSearch
   };
 }

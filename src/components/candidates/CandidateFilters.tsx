@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandInput, CommandList, CommandItem } from '@/components/ui/command';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Calendar } from '@/components/ui/calendar';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
@@ -86,12 +86,15 @@ import {
   Briefcase,
   Trash2,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  AlertTriangle,
+  Calendar
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { DateRange } from 'react-day-picker';
+import { toast } from 'react-hot-toast';
 import { PositionMultiSelectDropdown } from './PositionMultiSelectDropdown';
 import { RecruiterMultiSelectDropdown } from './RecruiterMultiSelectDropdown';
 import { StatusMultiSelectDropdown } from './StatusMultiSelectDropdown';
@@ -151,6 +154,7 @@ interface CandidateFiltersProps {
   initialFilters?: CandidateFilterValues;
   onFilterChange: (filters: CandidateFilterValues) => void;
   onAiSearch: (query: string) => void;
+  onCancelAiSearch?: () => void;
   onClearAllFilters: () => void;
   availablePositions: Position[];
   availableStages: RecruitmentStage[];
@@ -170,6 +174,7 @@ export function CandidateFilters({
     initialFilters = {},
     onFilterChange,
     onAiSearch,
+    onCancelAiSearch,
     onClearAllFilters,
     availablePositions,
     availableStages,
@@ -239,6 +244,9 @@ export function CandidateFilters({
   const [advancedQueryInput, setAdvancedQueryInput] = useState('');
   const [activeTab, setActiveTab] = useState<'filters' | 'advanced'>('filters');
   const [isAdvancedQuerySyntaxModalOpen, setIsAdvancedQuerySyntaxModalOpen] = useState(false);
+  const [queryHistory, setQueryHistory] = useState<string[]>([]);
+  const [showQueryHistory, setShowQueryHistory] = useState(false);
+  const [queryValidationError, setQueryValidationError] = useState<string | null>(null);
   const [queryExamples] = useState([
     {
       name: "High Priority Candidates",
@@ -502,7 +510,7 @@ export function CandidateFilters({
         clearTimeout(urlFiltersTimeoutRef.current);
       }
     };
-  }, [], 'componentInitialization', 5); // Only run once on mount
+  }, []); // Only run once on mount
 
   // Cleanup all timeouts on component unmount
   useEffect(() => {
@@ -551,6 +559,81 @@ export function CandidateFilters({
   const skillOptions = [
     'React', 'Python', 'AWS', 'Java', 'SQL', 'JavaScript', 'TypeScript', 'Node.js', 'Docker', 'Kubernetes', 'C#', 'C++', 'Go', 'Ruby', 'PHP', 'HTML', 'CSS', 'Angular', 'Vue', 'Swift', 'Objective-C', 'Scala', 'Perl', 'R', 'MATLAB', 'Azure', 'GCP', 'Linux', 'Windows', 'iOS', 'Android', 'Flutter', 'Spring', 'Django', 'Flask', 'Express', 'MongoDB', 'PostgreSQL', 'MySQL', 'Redis', 'GraphQL', 'REST', 'SOAP', 'Jenkins', 'CI/CD', 'Terraform', 'Ansible', 'Puppet', 'Figma', 'Sketch', 'Zeplin', 'Jira', 'Confluence', 'Salesforce', 'SAP', 'PowerBI', 'Tableau', 'Excel', 'Other'
   ];
+
+  // Validate advanced query syntax
+  const validateAdvancedQuery = (query: string): { isValid: boolean; error?: string; suggestions?: string[] } => {
+    if (!query.trim()) {
+      return { isValid: true };
+    }
+
+    const parts = query.split(' ').filter(part => part.includes(':'));
+    const validFields = [
+      'name', 'email', 'phone', 'skills', 'location', 'status', 'positionId', 'recruiterId', 
+      'selectedSourceIds', 'education', 'minFitScore', 'maxFitScore', 'minMatchingJobFitScore', 
+      'maxMatchingJobFitScore', 'minExperienceYears', 'maxExperienceYears', 'applicationDateStart', 
+      'applicationDateEnd', 'locationOperator'
+    ];
+
+    for (const part of parts) {
+      const colonIndex = part.indexOf(':');
+      if (colonIndex === -1) {
+        return { 
+          isValid: false, 
+          error: `Invalid syntax: "${part}". Use format "field:value"`,
+          suggestions: ['Use format field:value (e.g., name:John)']
+        };
+      }
+
+      const key = part.substring(0, colonIndex);
+      const value = part.substring(colonIndex + 1);
+      
+      if (!key || !value) {
+        return { 
+          isValid: false, 
+          error: `Empty field or value in "${part}"`,
+          suggestions: ['Ensure both field and value are provided (e.g., name:John)']
+        };
+      }
+
+      if (!validFields.includes(key.toLowerCase())) {
+        const suggestions = validFields.filter(field => 
+          field.toLowerCase().includes(key.toLowerCase()) || 
+          key.toLowerCase().includes(field.toLowerCase())
+        );
+        return { 
+          isValid: false, 
+          error: `Unknown field: "${key}"`,
+          suggestions: suggestions.length > 0 ? [`Did you mean: ${suggestions.join(', ')}?`] : [`Valid fields: ${validFields.slice(0, 5).join(', ')}...`]
+        };
+      }
+
+      // Validate numeric fields
+      if (['minFitScore', 'maxFitScore', 'minMatchingJobFitScore', 'maxMatchingJobFitScore', 'minExperienceYears', 'maxExperienceYears'].includes(key.toLowerCase())) {
+        const numValue = parseInt(value, 10);
+        if (isNaN(numValue) || numValue < 0) {
+          return { 
+            isValid: false, 
+            error: `Invalid number for "${key}": "${value}"`,
+            suggestions: ['Use a positive number (e.g., 80 for 80%)']
+          };
+        }
+      }
+
+      // Validate date fields
+      if (['applicationDateStart', 'applicationDateEnd'].includes(key.toLowerCase())) {
+        const dateValue = new Date(value);
+        if (isNaN(dateValue.getTime())) {
+          return { 
+            isValid: false, 
+            error: `Invalid date for "${key}": "${value}"`,
+            suggestions: ['Use format YYYY-MM-DD (e.g., 2024-01-15)']
+          };
+        }
+      }
+    }
+
+    return { isValid: true };
+  };
 
   // Parse advanced query string into filter values
   const parseAdvancedQuery = (query: string): Partial<CandidateFilterValues> => {
@@ -698,6 +781,13 @@ export function CandidateFilters({
   const handleApplyAdvancedQuery = () => {
     if (!advancedQueryInput.trim()) return;
     
+    // Add to query history (avoid duplicates)
+    const trimmedQuery = advancedQueryInput.trim();
+    setQueryHistory(prev => {
+      const filtered = prev.filter(q => q !== trimmedQuery);
+      return [trimmedQuery, ...filtered].slice(0, 10); // Keep last 10 queries
+    });
+    
     const parsedFilters = parseAdvancedQuery(advancedQueryInput);
     
     // Update local state to reflect the parsed filters
@@ -726,6 +816,9 @@ export function CandidateFilters({
       locationOperator: parsedFilters.locationOperator,
       aiSearchQuery: undefined,
     });
+    
+    // Show success message
+    toast.success('Advanced query applied successfully!');
   };
 
   // Load example query
@@ -1257,15 +1350,15 @@ export function CandidateFilters({
                       </div>
                       <div className="space-y-3">
                         <Button
-                          onClick={handleAiSearchClick}
-                          disabled={!aiSearchQueryInput.trim() || isLoading || isAiSearching}
-                          className={cn("w-full transition-all duration-300", isAiSearching && "bg-blue-600 hover:bg-blue-700 shadow-lg")}
+                          onClick={isAiSearching ? onCancelAiSearch : handleAiSearchClick}
+                          disabled={!isAiSearching && (!aiSearchQueryInput.trim() || isLoading)}
+                          className={cn("w-full transition-all duration-300", isAiSearching && "bg-red-600 hover:bg-red-700 shadow-lg")}
                           size="sm"
                         >
                           {isAiSearching ? (
                             <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Searching...
+                              <X className="mr-2 h-4 w-4" />
+                              Cancel Search
                             </>
                           ) : (
                             <>
@@ -1846,39 +1939,240 @@ export function CandidateFilters({
                     </Button>
                   </div>
                   <div className="flex gap-2 px-4">
-                    <Textarea
-                      placeholder="e.g., minFitScore:80 status:Applied,Screening"
-                      value={advancedQueryInput}
-                      onChange={(e) => setAdvancedQueryInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-                          return;
-                        }
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          if (advancedQueryInput.trim()) {
-                            handleApplyAdvancedQuery();
+                    <div className="flex-1">
+                      <Textarea
+                        placeholder="e.g., minFitScore:80 status:Applied,Screening"
+                        value={advancedQueryInput}
+                        onChange={(e) => {
+                          setAdvancedQueryInput(e.target.value);
+                          // Real-time validation
+                          const validation = validateAdvancedQuery(e.target.value);
+                          setQueryValidationError(validation.isValid ? null : validation.error || null);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                            return;
                           }
-                        }
-                      }}
-                      className="flex-1 min-h-[80px]"
-                      disabled={false}
-                    />
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            if (advancedQueryInput.trim()) {
+                              const validation = validateAdvancedQuery(advancedQueryInput);
+                              if (validation.isValid) {
+                                handleApplyAdvancedQuery();
+                              } else {
+                                setQueryValidationError(validation.error || null);
+                              }
+                            }
+                          }
+                          if (e.key === '?' && (e.ctrlKey || e.metaKey)) {
+                            e.preventDefault();
+                            setIsAdvancedQuerySyntaxModalOpen(true);
+                          }
+                          if (e.key === ' ' && (e.ctrlKey || e.metaKey)) {
+                            e.preventDefault();
+                            setShowQueryHistory(!showQueryHistory);
+                          }
+                          if (e.key === 'Backspace' && (e.ctrlKey || e.metaKey)) {
+                            e.preventDefault();
+                            setAdvancedQueryInput('');
+                            setQueryValidationError(null);
+                            if (onClearAllFilters) {
+                              onClearAllFilters();
+                            }
+                          }
+                        }}
+                        className={cn(
+                          "flex-1 min-h-[80px]",
+                          queryValidationError && "border-red-500 focus:border-red-500"
+                        )}
+                        disabled={false}
+                      />
+                      {queryValidationError && (
+                        <div className="mt-1 p-2 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded text-xs text-red-700 dark:text-red-300">
+                          <div className="flex items-center gap-1 mb-1">
+                            <AlertTriangle className="h-3 w-3" />
+                            <span className="font-medium">Query Error</span>
+                          </div>
+                          <p>{queryValidationError}</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                                     <div className="flex gap-2 pt-2 mx-4">
+                  
+                  {/* Quick Command Buttons */}
+                  <div className="px-4 pb-2">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Label className="text-xs font-medium text-muted-foreground">Quick Commands</Label>
+                      <div className="flex-1 h-px bg-border"></div>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                      {[
+                        { 
+                          label: 'High Priority', 
+                          query: 'minFitScore:80', 
+                          description: 'Candidates with ≥80% fit score',
+                          icon: <Star className="h-3 w-3" />
+                        },
+                        { 
+                          label: 'Active Pipeline', 
+                          query: 'status:Applied,Screening', 
+                          description: 'Candidates in early stages',
+                          icon: <Play className="h-3 w-3" />
+                        },
+                        { 
+                          label: 'Unassigned', 
+                          query: 'recruiterId:unassigned', 
+                          description: 'Candidates needing assignment',
+                          icon: <UserX className="h-3 w-3" />
+                        },
+                        { 
+                          label: 'No Status', 
+                          query: 'status:Off', 
+                          description: 'Candidates without status',
+                          icon: <AlertTriangle className="h-3 w-3" />
+                        },
+                        { 
+                          label: 'Applied Today', 
+                          query: `applicationDateStart:${new Date().toISOString().slice(0, 10)}`, 
+                          description: 'Candidates who applied today',
+                          icon: <Calendar className="h-3 w-3" />
+                        },
+                        { 
+                          label: 'Applied This Week', 
+                          query: `applicationDateStart:${new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)}`, 
+                          description: 'Candidates who applied this week',
+                          icon: <Calendar className="h-3 w-3" />
+                        },
+                        { 
+                          label: 'Hiring Today', 
+                          query: 'status:Offer Extended,Offer Accepted,Hired', 
+                          description: 'Candidates in final hiring stages',
+                          icon: <UserCheck className="h-3 w-3" />
+                        },
+                        { 
+                          label: 'Hiring This Week', 
+                          query: 'status:Interviewing,Offer Extended,Offer Accepted,Hired', 
+                          description: 'Candidates in hiring pipeline',
+                          icon: <UserCheck className="h-3 w-3" />
+                        },
+                        { 
+                          label: 'No Applied Job', 
+                          query: 'positionId:not-applied', 
+                          description: 'Candidates without applied positions',
+                          icon: <UserMinus className="h-3 w-3" />
+                        },
+                        { 
+                          label: 'Unassigned Recruiter', 
+                          query: 'recruiterId:unassigned', 
+                          description: 'Candidates without assigned recruiter',
+                          icon: <UserX className="h-3 w-3" />
+                        },
+                        { 
+                          label: 'Updated Today', 
+                          query: `applicationDateStart:${new Date().toISOString().slice(0, 10)}`, 
+                          description: 'Candidates updated today',
+                          icon: <RefreshCw className="h-3 w-3" />
+                        },
+                        { 
+                          label: 'Senior Devs', 
+                          query: 'minExperienceYears:5 skills:React,Python', 
+                          description: 'Experienced developers',
+                          icon: <Code className="h-3 w-3" />
+                        },
+                      ].map((cmd, index) => (
+                        <Button
+                          key={index}
+                          variant="outline"
+                          size="sm"
+                          className="h-auto p-2 flex flex-col items-start gap-1 text-left hover:bg-muted/50"
+                          onClick={() => {
+                            setAdvancedQueryInput(cmd.query);
+                            // Auto-apply the query
+                            setTimeout(() => {
+                              handleApplyAdvancedQuery();
+                            }, 100);
+                          }}
+                        >
+                          <div className="flex items-center gap-1 w-full">
+                            {cmd.icon}
+                            <span className="text-xs font-medium truncate">{cmd.label}</span>
+                          </div>
+                          <span className="text-xs text-muted-foreground leading-tight">{cmd.description}</span>
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {/* Query History */}
+                  {queryHistory.length > 0 && (
+                    <div className="px-4 pb-2">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Label className="text-xs font-medium text-muted-foreground">Recent Queries</Label>
+                        <div className="flex-1 h-px bg-border"></div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-2 text-xs"
+                          onClick={() => setShowQueryHistory(!showQueryHistory)}
+                        >
+                          {showQueryHistory ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                        </Button>
+                      </div>
+                      {showQueryHistory && (
+                        <div className="space-y-1 max-h-32 overflow-y-auto">
+                          {queryHistory.map((query, index) => (
+                            <div
+                              key={index}
+                              className="flex items-center gap-2 p-2 bg-muted/30 rounded text-xs hover:bg-muted/50 cursor-pointer"
+                              onClick={() => {
+                                setAdvancedQueryInput(query);
+                                setTimeout(() => {
+                                  handleApplyAdvancedQuery();
+                                }, 100);
+                              }}
+                            >
+                              <Clock className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                              <code className="flex-1 truncate text-blue-600">{query}</code>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-4 w-4 p-0 hover:bg-muted"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setQueryHistory(prev => prev.filter((_, i) => i !== index));
+                                }}
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  <div className="flex gap-2 pt-2 mx-4">
                    <Button
-                     onClick={handleApplyAdvancedQuery}
-                     disabled={!advancedQueryInput.trim()}
+                     onClick={() => {
+                       const validation = validateAdvancedQuery(advancedQueryInput);
+                       if (validation.isValid) {
+                         handleApplyAdvancedQuery();
+                       } else {
+                         setQueryValidationError(validation.error || null);
+                       }
+                     }}
+                     disabled={!advancedQueryInput.trim() || !!queryValidationError}
                      className="flex-1"
                      size="sm"
                    >
                      <Play className="mr-2 h-4 w-4" />
-                     Apply Query
+                     {queryValidationError ? 'Fix Query' : 'Apply Query'}
                    </Button>
                    <Button
                      variant="outline"
                      onClick={() => {
                        setAdvancedQueryInput('');
+                       setQueryValidationError(null);
                        if (onClearAllFilters) {
                          onClearAllFilters();
                        }

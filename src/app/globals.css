@@ -2418,9 +2418,9 @@ audio::-webkit-scrollbar-button {
 /* Responsive Filter Bar Styles */
 .responsive-filter-sidebar {
   transition: all 0.3s ease-in-out;
-  width: 320px;
-  min-width: 280px;
-  max-width: 400px;
+  width: 288px;
+  min-width: 252px;
+  max-width: 360px;
   flex-shrink: 0;
   overflow: hidden;
   position: relative;
@@ -2459,17 +2459,17 @@ audio::-webkit-scrollbar-button {
 /* Ensure the filter sidebar is properly sized on all screen sizes */
 @media (max-width: 1024px) {
   .responsive-filter-sidebar {
-    width: 280px;
-    min-width: 280px;
-    max-width: 300px;
+    width: 252px;
+    min-width: 252px;
+    max-width: 270px;
   }
 }
 
 @media (max-width: 768px) {
   .responsive-filter-sidebar {
-    width: 260px;
-    min-width: 260px;
-    max-width: 280px;
+    width: 234px;
+    min-width: 234px;
+    max-width: 252px;
   }
 }
 
@@ -2529,9 +2529,9 @@ audio::-webkit-scrollbar-button {
 /* Tablet responsive adjustments */
 @media (min-width: 641px) and (max-width: 1024px) {
   .responsive-filter-sidebar {
-    width: 300px;
-    min-width: 280px;
-    max-width: 320px;
+    width: 270px;
+    min-width: 252px;
+    max-width: 288px;
   }
   
   .filter-bar-container {
@@ -2542,9 +2542,9 @@ audio::-webkit-scrollbar-button {
 /* Desktop responsive adjustments */
 @media (min-width: 1025px) {
   .responsive-filter-sidebar {
-    width: 320px;
-    min-width: 320px;
-    max-width: 360px;
+    width: 288px;
+    min-width: 288px;
+    max-width: 324px;
   }
   
   .filter-bar-container {
@@ -2555,9 +2555,9 @@ audio::-webkit-scrollbar-button {
 /* Large desktop adjustments */
 @media (min-width: 1440px) {
   .responsive-filter-sidebar {
-    width: 340px;
-    min-width: 340px;
-    max-width: 380px;
+    width: 306px;
+    min-width: 306px;
+    max-width: 342px;
   }
 }
 

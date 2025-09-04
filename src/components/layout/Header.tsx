@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useSession, signOut, signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { UserAvatarCompact } from "@/components/ui/user-avatar";
@@ -115,6 +115,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
   const router = useRouter();
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
+  const mountedRef = useRef(false);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
   const [fullUserData, setFullUserData] = useState<UserProfile | null>(null);
@@ -185,7 +186,10 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
   ]);
 
   useEffect(() => {
-    setMounted(true);
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      setMounted(true);
+    }
   }, []);
 
 
@@ -382,9 +386,9 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
     }
   }, [session?.user?.id]);
 
-  // Only show loading skeleton if not mounted or if we're loading and have no session data
-  // This prevents the avatar from disappearing during session updates
-  if (!mounted) { 
+  // Use a more robust mounting strategy to prevent double rendering in StrictMode
+  // Only render the actual header once we're fully mounted and have session data
+  if (!mounted || status === "loading") { 
     return (
       <header className="flex h-16 items-center justify-between border-b bg-card px-4 md:px-6 sticky top-0 z-30">
         <div className="flex items-center gap-2">

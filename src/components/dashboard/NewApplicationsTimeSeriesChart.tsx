@@ -11,7 +11,7 @@ import { Loader2, TrendingUp, CalendarIcon, XCircle } from "lucide-react";
 import type { Candidate } from "@/lib/types";
 import { format, subMonths, subWeeks, subYears, startOfMonth, startOfWeek, startOfYear, endOfMonth, endOfWeek, endOfYear, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, eachYearOfInterval, addDays } from 'date-fns';
 import parseISO from 'date-fns/parseISO';
-import { cn } from "@/lib/utils";
+import { cn, isValidDate, safeGetTime, safeDateDiff } from "@/lib/utils";
 import { DateRange } from 'react-day-picker';
 import { useChartSetup } from '@/hooks/use-chart-setup';
 import { isDataLabelsAvailable } from '@/lib/chartjs-setup';
@@ -183,14 +183,38 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
     if (!candidates || candidates.length === 0) {
       return { labels: [], datasets: [] };
     }
+    
+    // Validate that startDate and endDate are valid Date objects
+    if (!isValidDate(startDate) || !isValidDate(endDate)) {
+      console.error('Invalid date range:', { startDate, endDate });
+      return { labels: [], datasets: [] };
+    }
+    
     // Use new startDate, endDate, intervalFunction, formatFunction
     const intervals = intervalFunction({ start: startDate, end: endDate });
+    
+    // Validate that intervals is an array and contains valid Date objects
+    if (!Array.isArray(intervals)) {
+      console.error('intervalFunction did not return an array:', intervals);
+      return { labels: [], datasets: [] };
+    }
+    
     // Count applications for current period
     const currentPeriodCounts = intervals.map((intervalStart: Date) => {
+      // Validate that intervalStart is a valid Date object
+      if (!isValidDate(intervalStart)) {
+        console.error('Invalid intervalStart:', intervalStart);
+        return { label: 'Invalid Date', count: 0, start: new Date(), end: new Date() };
+      }
       let intervalEnd: Date;
       // Use same logic as before for intervalEnd
       if (periodType === 'custom' && dateRange?.from && dateRange?.to) {
-        const daysDiff = Math.ceil((dateRange.to.getTime() - dateRange.from.getTime()) / (1000 * 60 * 60 * 24));
+        // Validate dateRange dates before using getTime()
+        if (!isValidDate(dateRange.from) || !isValidDate(dateRange.to)) {
+          console.error('Invalid dateRange dates:', { from: dateRange.from, to: dateRange.to });
+          return { label: 'Invalid Date Range', count: 0, start: intervalStart, end: intervalStart };
+        }
+        const daysDiff = Math.ceil(safeDateDiff(dateRange.from, dateRange.to) / (1000 * 60 * 60 * 24));
         if (daysDiff <= 30) {
           intervalEnd = addDays(intervalStart, 1);
         } else if (daysDiff <= 180) {
@@ -247,14 +271,38 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
       };
     });
     // For comparison, just use previous period of same length
-    const rangeLength = endDate.getTime() - startDate.getTime();
-    const comparisonStart = new Date(startDate.getTime() - rangeLength);
+    const rangeLength = safeDateDiff(startDate, endDate);
+    const comparisonStart = new Date(safeGetTime(startDate) - rangeLength);
     const comparisonEnd = startDate;
+    
+    // Validate comparison dates
+    if (!isValidDate(comparisonStart) || !isValidDate(comparisonEnd)) {
+      console.error('Invalid comparison dates:', { comparisonStart, comparisonEnd });
+      return { labels: [], datasets: [] };
+    }
+    
     const comparisonIntervals = intervalFunction({ start: comparisonStart, end: comparisonEnd });
+    
+    // Validate comparison intervals
+    if (!Array.isArray(comparisonIntervals)) {
+      console.error('intervalFunction did not return an array for comparison:', comparisonIntervals);
+      return { labels: [], datasets: [] };
+    }
+    
     const comparisonData = comparisonIntervals.map((intervalStart: Date) => {
+      // Validate that intervalStart is a valid Date object
+      if (!isValidDate(intervalStart)) {
+        console.error('Invalid comparison intervalStart:', intervalStart);
+        return { label: 'Invalid Date', count: 0, start: new Date(), end: new Date() };
+      }
       let intervalEnd: Date;
       if (periodType === 'custom' && dateRange?.from && dateRange?.to) {
-        const daysDiff = Math.ceil((dateRange.to.getTime() - dateRange.from.getTime()) / (1000 * 60 * 60 * 24));
+        // Validate dateRange dates before using getTime()
+        if (!isValidDate(dateRange.from) || !isValidDate(dateRange.to)) {
+          console.error('Invalid dateRange dates in comparison:', { from: dateRange.from, to: dateRange.to });
+          return { label: 'Invalid Date Range', count: 0, start: intervalStart, end: intervalStart };
+        }
+        const daysDiff = Math.ceil(safeDateDiff(dateRange.from, dateRange.to) / (1000 * 60 * 60 * 24));
         if (daysDiff <= 30) {
           intervalEnd = addDays(intervalStart, 1);
         } else if (daysDiff <= 180) {

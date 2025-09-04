@@ -26,6 +26,7 @@ interface CandidateTabsContentProps {
   appliedFitScore: number | null;
   appliedJustification: string[];
   appliedJobBadge: React.ReactNode;
+  onOpenPositionDrawer: (positionId: string) => void;
   // Form props
   register?: any;
   errors?: any;
@@ -70,6 +71,7 @@ export const CandidateTabsContent: React.FC<CandidateTabsContentProps> = ({
   appliedFitScore,
   appliedJustification,
   appliedJobBadge,
+  onOpenPositionDrawer,
   // Form props
   register,
   errors,
@@ -115,6 +117,7 @@ export const CandidateTabsContent: React.FC<CandidateTabsContentProps> = ({
             appliedFitScore={appliedFitScore}
             appliedJustification={appliedJustification}
             appliedJobBadge={appliedJobBadge}
+            onOpenPositionDrawer={onOpenPositionDrawer}
           />
           {isJobMatchEnabled && (
             <JobMatchTab

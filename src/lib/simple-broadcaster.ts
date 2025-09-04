@@ -10,6 +10,7 @@ import {
   broadcastDashboardUpdateIfChanged,
   forceBroadcast 
 } from './data-change-tracker';
+import { broadcastHighPriority, broadcastMediumPriority, broadcastLowPriority } from './aggressive-sse-optimizer';
 
 // Candidate-related broadcasts
 export function broadcastCandidateUpdate(candidate: any, actingUserId?: string) {
@@ -18,8 +19,8 @@ export function broadcastCandidateUpdate(candidate: any, actingUserId?: string) 
 }
 
 export function broadcastCandidateCreated(candidate: any, actingUserId?: string) {
-  // Force broadcast for new candidates (always meaningful)
-  forceBroadcast('candidate_update', {
+  // High priority for new candidates (always meaningful)
+  broadcastHighPriority('candidate_update', {
     candidate,
     actingUserId,
     action: 'created',
@@ -28,8 +29,8 @@ export function broadcastCandidateCreated(candidate: any, actingUserId?: string)
 }
 
 export function broadcastCandidateDeleted(candidateId: string, actingUserId?: string) {
-  // Force broadcast for deletions (always meaningful)
-  forceBroadcast('candidate_update', {
+  // High priority for deletions (always meaningful)
+  broadcastHighPriority('candidate_update', {
     candidateId,
     actingUserId,
     action: 'deleted',
@@ -38,8 +39,8 @@ export function broadcastCandidateDeleted(candidateId: string, actingUserId?: st
 }
 
 export function broadcastCandidateStatusChanged(candidate: any, oldStatus: string, newStatus: string, actingUserId?: string) {
-  // Force broadcast for status changes (always meaningful)
-  forceBroadcast('candidate_update', {
+  // High priority for status changes (always meaningful)
+  broadcastHighPriority('candidate_update', {
     candidate,
     actingUserId,
     action: 'status_changed',
@@ -56,8 +57,8 @@ export function broadcastPositionUpdate(position: any, actingUserId?: string) {
 }
 
 export function broadcastPositionCreated(position: any, actingUserId?: string) {
-  // Force broadcast for new positions (always meaningful)
-  forceBroadcast('position_update', {
+  // High priority for new positions (always meaningful)
+  broadcastHighPriority('position_update', {
     position,
     actingUserId,
     action: 'created',
@@ -66,8 +67,8 @@ export function broadcastPositionCreated(position: any, actingUserId?: string) {
 }
 
 export function broadcastPositionDeleted(positionId: string, actingUserId?: string) {
-  // Force broadcast for deletions (always meaningful)
-  forceBroadcast('position_update', {
+  // High priority for deletions (always meaningful)
+  broadcastHighPriority('position_update', {
     positionId,
     actingUserId,
     action: 'deleted',
@@ -76,8 +77,8 @@ export function broadcastPositionDeleted(positionId: string, actingUserId?: stri
 }
 
 export function broadcastPositionListUpdated() {
-  // Force broadcast for list updates (always meaningful)
-  forceBroadcast('position_update', {
+  // Medium priority for list updates
+  broadcastMediumPriority('position_update', {
     action: 'list_updated',
     timestamp: new Date().toISOString()
   });

@@ -198,7 +198,17 @@ export function ManageTransitionsModal({
     try {
         // Call the onUpdateCandidate function
         if (onUpdateCandidate) {
-            await onUpdateCandidate(candidate.id, data.newStatus, trimmedNotes, true);
+            console.log('ManageTransitionsModal - Calling onUpdateCandidate...');
+            const result = await onUpdateCandidate(candidate.id, data.newStatus, trimmedNotes, true);
+            console.log('ManageTransitionsModal - onUpdateCandidate result:', result);
+            
+            // Check if the update was blocked (e.g., by headcount warning)
+            // If onUpdateCandidate returns undefined or false, it means the update was blocked
+            if (result === false || result === undefined) {
+                console.log('ManageTransitionsModal - Update was blocked, not proceeding with success flow');
+                setIsSaving(false); // Reset saving state
+                return; // Don't show success toast or close modal
+            }
         } else {
             console.error('onUpdateCandidate function is not provided');
             throw new Error('Update function not available');

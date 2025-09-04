@@ -30,6 +30,20 @@ import { MINIO_PUBLIC_BASE_URL, MINIO_BUCKET } from '@/lib/minio-constants';
  *           default: 0
  *         description: Offset for pagination
  *         example: 0
+ *       - in: query
+ *         name: process_date_start
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: Filter by process start date (ISO string)
+ *         example: "2024-01-01T00:00:00.000Z"
+ *       - in: query
+ *         name: process_date_end
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: Filter by process end date (ISO string)
+ *         example: "2024-01-01T23:59:59.999Z"
  *     responses:
  *       200:
  *         description: Paginated upload queue
@@ -132,6 +146,8 @@ export async function GET(request: NextRequest) {
   const status = url.searchParams.get('status');
   const dateStart = url.searchParams.get('date_start');
   const dateEnd = url.searchParams.get('date_end');
+  const processDateStart = url.searchParams.get('process_date_start');
+  const processDateEnd = url.searchParams.get('process_date_end');
   const positionId = url.searchParams.get('position_id');
 
   // Validate pagination parameters (no upper limit on records)
@@ -158,6 +174,14 @@ export async function GET(request: NextRequest) {
   if (dateEnd) {
     whereClauses.push(`upload_date <= $${paramIdx++}`);
     values.push(dateEnd);
+  }
+  if (processDateStart) {
+    whereClauses.push(`process_date >= $${paramIdx++}`);
+    values.push(processDateStart);
+  }
+  if (processDateEnd) {
+    whereClauses.push(`process_date <= $${paramIdx++}`);
+    values.push(processDateEnd);
   }
   if (positionId) {
     whereClauses.push(`position_id = $${paramIdx++}`);

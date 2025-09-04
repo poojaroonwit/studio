@@ -23,7 +23,7 @@ const os = require('os');
 let dynamicConfig = {
   baseUrl: process.env.PROCESSOR_URL || 'http://localhost:8021',
   apiKey: process.env.PROCESSOR_API_KEY || 'dev-key',
-  intervalMs: parseInt(process.env.PROCESSOR_INTERVAL_MS) || 5000, // ✅ Reduced to 5000 (5 seconds)
+  intervalMs: parseInt(process.env.PROCESSOR_INTERVAL_MS) || 2000, // ✅ Reduced to 2000 (2 seconds)
   logIntervalMs: parseInt(process.env.LOG_INTERVAL_MS) || 60000,
   batchLimit: parseInt(process.env.PROCESSOR_BATCH_LIMIT) || 1, // ✅ Reduced from 3 to 1
   maxRetries: 3,

@@ -455,7 +455,7 @@ export default function DashboardPageClient({
                   fetchDataClientSide();
                 }
               }
-            }, 1000); // Increased debounce to 1 second
+            }, 500); // Reduced debounce to 500ms (from 1 second)
           }
         } catch (error) {
           if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {

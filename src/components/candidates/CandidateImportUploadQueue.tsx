@@ -202,7 +202,7 @@ export default function CandidateImportUploadQueue() {
           } else {
             reconnectSSE();
           }
-        }, 10000); // Check every 10 seconds
+        }, 5000); // Check every 5 seconds (reduced from 10s)
 
         // Add specific event listeners for upload queue updates
         if (eventSource) {
@@ -377,7 +377,7 @@ export default function CandidateImportUploadQueue() {
         console.log('[Process Queue] Fallback polling refresh');
         fetchQueue(page, pageSize);
         setLastUpdate(new Date());
-      }, 10000); // Poll every 10 seconds when SSE is down
+      }, 5000); // Poll every 5 seconds when SSE is down (reduced from 10s)
       
       return () => clearInterval(interval);
     } else {

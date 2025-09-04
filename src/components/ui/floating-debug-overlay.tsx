@@ -153,7 +153,7 @@ export function FloatingDebugOverlay({ isVisible, onClose }: FloatingDebugOverla
     if (!isVisible) return;
     
     fetchMetrics();
-    const interval = setInterval(fetchMetrics, 5000);
+    const interval = setInterval(fetchMetrics, 30000); // 30 seconds to reduce events
     
     return () => clearInterval(interval);
   }, [isVisible]);

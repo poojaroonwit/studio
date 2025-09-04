@@ -292,18 +292,18 @@ export default function UploadQueueSettingsPage() {
                 <Input
                   id="processorIntervalMs"
                   type="number"
-                  min="5000"
+                  min="2000"
                   max="300000"
                   step="5000"
                   value={settings.processorIntervalMs}
                   onChange={(e) => setSettings(prev => ({
                     ...prev,
-                                          processorIntervalMs: parseInt(e.target.value) || 5000
+                                          processorIntervalMs: parseInt(e.target.value) || 2000
                   }))}
-                  placeholder="5000"
+                  placeholder="2000"
                 />
                 <p className="text-sm text-muted-foreground">
-                  How often to check for new jobs (5s - 5m)
+                  How often to check for new jobs (2s - 5m)
                 </p>
               </div>
               

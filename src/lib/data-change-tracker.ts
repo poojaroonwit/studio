@@ -3,6 +3,7 @@
 
 import { broadcastToAll, broadcastToUser } from './unified-connection-manager';
 import type { UnifiedEventType } from './unified-connection-manager';
+import { broadcastLowPriority, broadcastMediumPriority, broadcastHighPriority } from './aggressive-sse-optimizer';
 
 // Change tracking interfaces
 interface DataSnapshot {
@@ -97,7 +98,7 @@ export function broadcastCandidateUpdateIfChanged(
     ignoreFields: ['updated_at', 'last_activity', ...(options.ignoreFields || [])]
   })) {
     console.log('[DataChange] Broadcasting candidate update:', candidate.id);
-    broadcastToAll('candidate_update', {
+    broadcastMediumPriority('candidate_update', {
       candidate,
       actingUserId,
       action: 'updated',
@@ -120,7 +121,7 @@ export function broadcastPositionUpdateIfChanged(
     ignoreFields: ['updated_at', 'last_activity', ...(options.ignoreFields || [])]
   })) {
     console.log('[DataChange] Broadcasting position update:', position.id);
-    broadcastToAll('position_update', {
+    broadcastMediumPriority('position_update', {
       position,
       actingUserId,
       action: 'updated',
@@ -142,7 +143,7 @@ export function broadcastUploadQueueUpdateIfChanged(
     ignoreFields: ['timestamp', ...(options.ignoreFields || [])]
   })) {
     console.log('[DataChange] Broadcasting upload queue update:', summary);
-    broadcastToAll('upload_queue_update', {
+    broadcastLowPriority('upload_queue_update', {
       type: 'queue',
       summary,
       timestamp: new Date().toISOString()
@@ -159,11 +160,11 @@ export function broadcastDashboardUpdateIfChanged(
   const trackerKey = 'dashboard_data';
   
   if (hasDataChanged(trackerKey, data, {
-    minBroadcastInterval: options.minBroadcastInterval || 10000, // 10 seconds for dashboard
+    minBroadcastInterval: options.minBroadcastInterval || 3000, // 3 seconds for dashboard (reduced from 10s)
     ignoreFields: ['timestamp', 'last_updated', ...(options.ignoreFields || [])]
   })) {
     console.log('[DataChange] Broadcasting dashboard update');
-    broadcastToAll('dashboard_update', {
+    broadcastLowPriority('dashboard_update', {
       ...data,
       timestamp: new Date().toISOString()
     });
@@ -187,7 +188,7 @@ export function broadcastBatchUpdateIfChanged(
   };
   
   if (hasDataChanged(trackerKey, batchData, {
-    minBroadcastInterval: options.minBroadcastInterval || 5000,
+    minBroadcastInterval: options.minBroadcastInterval || 2000, // 2 seconds for batch updates (reduced from 5s)
     ignoreFields: ['timestamp', ...(options.ignoreFields || [])]
   })) {
     console.log(`[DataChange] Broadcasting ${itemType} batch update:`, items.length, 'items');

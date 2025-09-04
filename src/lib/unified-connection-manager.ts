@@ -308,6 +308,7 @@ export async function handleUnifiedSSEConnection(request: Request) {
 
     const encoder = new TextEncoder();
     let keepaliveInterval: NodeJS.Timeout;
+    let connectionAlive = true;
 
     const stream = new ReadableStream({
       start(controller) {
@@ -326,10 +327,22 @@ export async function handleUnifiedSSEConnection(request: Request) {
           connectionId: `${userId}-${Date.now()}`,
           features: ['candidates', 'positions', 'notifications', 'upload_queue', 'dashboard']
         });
-        controller.enqueue(encoder.encode(`data: ${initialData}\n\n`));
+        
+        try {
+          controller.enqueue(encoder.encode(`data: ${initialData}\n\n`));
+        } catch (error) {
+          console.error(`[UNIFIED] Failed to send initial data to user ${userId}:`, error);
+          connectionAlive = false;
+          return;
+        }
 
-        // Send keepalive every 30 seconds (reduced from 5 seconds)
+        // Send keepalive every 60 seconds (aggressively reduced for minimal events)
         keepaliveInterval = setInterval(() => {
+          if (!connectionAlive) {
+            clearInterval(keepaliveInterval);
+            return;
+          }
+          
           try {
             const keepaliveData = JSON.stringify({
               type: 'keepalive',
@@ -347,10 +360,11 @@ export async function handleUnifiedSSEConnection(request: Request) {
             // console.log(`[UNIFIED] Keepalive sent to user ${userId}`);
           } catch (error) {
             console.error(`[UNIFIED] Keepalive failed for user ${userId}:`, error);
+            connectionAlive = false;
             clearInterval(keepaliveInterval);
             removeUserConnection(userId);
           }
-        }, 30000); // 30 seconds instead of 5 seconds
+        }, 60000); // 60 seconds for minimal events
 
         // Store keepalive interval reference
         const connection = userConnections.get(userId);
@@ -361,6 +375,7 @@ export async function handleUnifiedSSEConnection(request: Request) {
         // Cleanup on connection close
         request.signal.addEventListener('abort', () => {
           // console.log(`[UNIFIED] Connection aborted for user ${userId}`);
+          connectionAlive = false;
           clearInterval(keepaliveInterval);
           removeUserConnection(userId);
           try { controller.close(); } catch (e) {
@@ -370,6 +385,7 @@ export async function handleUnifiedSSEConnection(request: Request) {
       },
       cancel() {
         // console.log(`[UNIFIED] Stream cancelled for user ${userId}`);
+        connectionAlive = false;
         clearInterval(keepaliveInterval);
         removeUserConnection(userId);
       }
@@ -387,9 +403,11 @@ export async function handleUnifiedSSEConnection(request: Request) {
         'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         'Access-Control-Allow-Credentials': 'true',
         'X-Accel-Buffering': 'no',
-        'Keep-Alive': 'timeout=120, max=1000',
+        'Keep-Alive': 'timeout=300, max=1000', // Increased timeout to 5 minutes
         'X-Frame-Options': 'DENY',
         'X-Content-Type-Options': 'nosniff',
+        // Add specific headers to prevent chunked encoding issues
+        'Transfer-Encoding': 'chunked'
       },
     });
   } catch (error) {
@@ -398,10 +416,10 @@ export async function handleUnifiedSSEConnection(request: Request) {
   }
 }
 
-// Cleanup inactive connections (run every 30 seconds)
+// Cleanup inactive connections (run every 60 seconds instead of 30)
 export function cleanupInactiveConnections() {
   const now = Date.now();
-  const inactiveTimeout = 2 * 60 * 1000; // 2 minutes instead of 5 seconds
+  const inactiveTimeout = 5 * 60 * 1000; // 5 minutes instead of 2 minutes for better stability
   
   for (const [userId, connection] of userConnections.entries()) {
     if (now - connection.lastActivity > inactiveTimeout) {
@@ -411,10 +429,10 @@ export function cleanupInactiveConnections() {
   }
 }
 
-// Start cleanup interval (every 30 seconds)
-setInterval(cleanupInactiveConnections, 30000); // Every 30 seconds
+// Start cleanup interval (every 60 seconds instead of 30)
+setInterval(cleanupInactiveConnections, 60000); // Every 60 seconds
 
-// Start periodic cleanup (every 30 seconds)
+// Start periodic cleanup (every 60 seconds instead of 30)
 let cleanupInterval: NodeJS.Timeout | null = null;
 
 export function startPeriodicCleanup() {
@@ -428,7 +446,7 @@ export function startPeriodicCleanup() {
     } catch (error) {
       console.error('[UNIFIED] Error in periodic cleanup:', error);
     }
-  }, 30000); // Every 30 seconds
+  }, 60000); // Every 60 seconds instead of 30 seconds
   
 
 }

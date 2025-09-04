@@ -161,6 +161,57 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     showNotifications: true
   });
 
+  // Update real-time status based on SSE connection
+  useEffect(() => {
+    if (realtimeConnected) {
+      setRealtimeStatus('connected');
+    } else {
+      setRealtimeStatus('disconnected');
+    }
+  }, [realtimeConnected]);
+
+  // Add periodic refresh as fallback (every 30 seconds)
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    
+    const interval = setInterval(() => {
+      // Only refresh if not currently loading and we have candidates
+      if (!loading && candidates.length > 0) {
+        console.log('[MyTasksPageClient] Periodic refresh triggered');
+        setRealtimeStatus('refreshing');
+        
+        const refreshCandidates = async () => {
+          try {
+            const params = new URLSearchParams();
+            if (filters.name) params.append('name', filters.name);
+            if (filters.positionId) params.append('positionId', filters.positionId);
+            if (filters.stage) params.append('status', filters.stage);
+            if (filters.recruiterId) params.append('recruiterId', filters.recruiterId);
+            
+            const res = await fetch(`/api/candidates?${params.toString()}`);
+            const data = await res.json();
+            const newCandidates = Array.isArray(data) ? data : (data.data || []);
+            
+            // Only update if the data has actually changed
+            if (JSON.stringify(newCandidates.map((c: any) => ({ id: c.id, status: c.status, updatedAt: c.updatedAt }))) !== 
+                JSON.stringify(candidates.map((c: any) => ({ id: c.id, status: c.status, updatedAt: c.updatedAt })))) {
+              setCandidates(newCandidates);
+              console.log('[MyTasksPageClient] Periodic refresh updated candidates');
+            }
+          } catch (error) {
+            console.error('[MyTasksPageClient] Error in periodic refresh:', error);
+          } finally {
+            setRealtimeStatus(realtimeConnected ? 'connected' : 'disconnected');
+          }
+        };
+        
+        refreshCandidates();
+      }
+    }, 30000); // 30 seconds
+    
+    return () => clearInterval(interval);
+  }, [session?.user?.id, loading, candidates, filters, realtimeConnected]);
+
 
 
 

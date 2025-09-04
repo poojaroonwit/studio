@@ -689,6 +689,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
         candidate={candidate}
         availableStages={availableStages}
         onUpdateCandidate={async (candidateId: string, status: string, notes?: string, suppressToast?: boolean) => {
+          console.log('FullCandidateDetail - onUpdateCandidate called with:', { candidateId, status, notes, suppressToast });
           // Store original state for potential reversion
           const originalCandidate = candidate;
           const originalTransitionHistory = transitionHistory;
@@ -738,10 +739,10 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                   headcountModalOpenTimeRef.current = Date.now();
                   setIsHeadcountWarningModalOpen(true);
                   
-                  // IMPORTANT: Return early to prevent status update
-                  console.log('FullCandidateDetail - Status change blocked - returning early');
+                  // IMPORTANT: Return false to indicate the update was blocked
+                  console.log('FullCandidateDetail - Status change blocked - returning false');
                   console.log('FullCandidateDetail - Status update blocked, modal should be open');
-                  return;
+                  return false;
                 } else {
                   console.log('FullCandidateDetail - Headcount available, proceeding with status update');
                 }
@@ -749,7 +750,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                 console.error('Error validating headcount availability:', validationError);
                 // If validation fails, show error and don't proceed
                 toast.error('Failed to validate headcount availability. Please try again.');
-                return;
+                return false;
               }
             }
             
@@ -787,8 +788,12 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
             if (!suppressToast) {
               toast.success(`Candidate status updated to "${status}".`);
             }
+            
+            // Return true to indicate successful completion
+            console.log('FullCandidateDetail - onUpdateCandidate completed successfully, returning true');
+            return true;
                      } catch (error: any) {
-             console.error('Error updating candidate status:', error);
+             console.error('FullCandidateDetail - Error updating candidate status:', error);
              
              // For any errors, revert optimistic updates
              if (originalCandidate) {
@@ -803,6 +808,9 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
              if (!suppressToast) {
                toast.error(error?.message || 'Failed to update status.');
              }
+             
+             // Return false to indicate failure
+             return false;
            }
         }}
         onRefreshCandidateData={async (candidateId: string) => {

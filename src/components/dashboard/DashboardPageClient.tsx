@@ -1036,7 +1036,9 @@ export default function DashboardPageClient({
                           <span className="text-lg">...</span>
                         </div>
                       ) : (
-                        stat.value.toLocaleString()
+                        (stat.value !== null && stat.value !== undefined) 
+                          ? stat.value.toLocaleString()
+                          : '0'
                       )}
                     </div>
                     {!isLoading && (
@@ -1154,7 +1156,9 @@ export default function DashboardPageClient({
                           <span className="text-lg">...</span>
                         </div>
                       ) : (
-                        stat.value.toLocaleString(undefined, { minimumFractionDigits: stat.title === "Avg Time to Hire" ? 2 : 0, maximumFractionDigits: stat.title === "Avg Time to Hire" ? 2 : 0 })
+                        (stat.value !== null && stat.value !== undefined) 
+                          ? stat.value.toLocaleString(undefined, { minimumFractionDigits: stat.title === "Avg Time to Hire" ? 2 : 0, maximumFractionDigits: stat.title === "Avg Time to Hire" ? 2 : 0 })
+                          : '0'
                       )}
                     </div>
                     {!isLoading && (

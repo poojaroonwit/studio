@@ -62,6 +62,11 @@ export function ScoreBadge({ score, className = '', children }: { score: number 
     return null;
   }
   
+  // Debug logging for development
+  if (process.env.NODE_ENV === 'development') {
+    console.log('ScoreBadge: Processing score:', score, typeof score);
+  }
+  
   const info = getScoreColorInfo(score);
   
   // Additional safety check for info

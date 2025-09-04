@@ -1,13 +1,43 @@
 import { useEventSource } from '@/hooks/useEventSource';
+import { useSSEFallback } from '@/hooks/use-sse-fallback';
+import { useEffect } from 'react';
 
-// Lightweight compatibility hook mapped to the new simple EventSource
+// Lightweight compatibility hook mapped to the new robust EventSource
 export function useEnhancedSSE() {
-  const { connected, lastEvent } = useEventSource('/api/sse');
+  const { 
+    connected, 
+    lastEvent, 
+    error, 
+    retryCount, 
+    isCircuitOpen,
+    reconnect 
+  } = useEventSource('/api/sse', {
+    timeoutMs: 20000, // 20 second timeout for SSE
+    maxRetries: 2, // Only 2 retries to prevent infinite loops
+    retryDelayMs: 10000, // 10 second delay between retries
+    enableCircuitBreaker: true
+  });
+
+  const { startPolling, stopPolling, isPolling } = useSSEFallback({
+    fallbackIntervalMs: 30000, // 30 second polling
+    enableFallback: true
+  });
+
+  // Start fallback polling when SSE fails
+  useEffect(() => {
+    if (isCircuitOpen || (error && retryCount >= 2)) {
+      console.log('[EnhancedSSE] SSE failed, starting fallback polling');
+      startPolling();
+    } else if (connected) {
+      console.log('[EnhancedSSE] SSE connected, stopping fallback polling');
+      stopPolling();
+    }
+  }, [connected, error, retryCount, isCircuitOpen, startPolling, stopPolling]);
 
   const connectionStatus = {
     totalEndpoints: 1,
     connectedEndpoints: connected ? 1 : 0,
-    failedEndpoints: 0,
+    failedEndpoints: connected ? 0 : 1,
     disabledEndpoints: 0,
     endpoints: [
       {
@@ -15,18 +45,20 @@ export function useEnhancedSSE() {
         name: 'Main SSE',
         url: '/api/sse',
         isConnected: connected,
-        lastError: null,
+        lastError: error,
         lastErrorEventType: null,
         lastErrorLocation: null,
+        retryCount,
+        isCircuitOpen
       }
     ]
   } as any;
 
   return {
-    isConnected: connected,
+    isConnected: connected || isPolling, // Consider polling as connected
     isFullyConnected: connected,
-    hasFailures: false,
-    isConnecting: false,
+    hasFailures: !!error || isCircuitOpen,
+    isConnecting: retryCount > 0 && !connected,
 
     connectionStatus,
     totalEndpoints: connectionStatus.totalEndpoints,
@@ -36,14 +68,14 @@ export function useEnhancedSSE() {
 
     // No-ops for legacy API
     getEndpointDetails: (_id: string) => connectionStatus.endpoints[0],
-    isEndpointConnected: (_id: string) => connected,
+    isEndpointConnected: (_id: string) => connected || isPolling,
     toggleEndpoint: (_id: string, _enabled: boolean) => {},
     reconnectEndpoint: (_id: string) => {},
     connect: () => {},
     disconnect: () => {},
-    reconnect: () => {},
+    reconnect,
 
-    error: null,
+    error: isPolling ? 'Using fallback polling' : error,
     lastMessage: lastEvent
   };
 }

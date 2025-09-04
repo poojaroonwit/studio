@@ -49,7 +49,24 @@ function initializeGlobalSSE() {
   try {
     globalEventSource = new EventSource('/api/sse');
     
+    // Set a timeout to prevent hanging connections
+    const connectionTimeout = setTimeout(() => {
+      if (globalEventSource && !globalState.isConnected) {
+        console.warn('[SharedSSE] Connection timeout, closing');
+        try {
+          globalEventSource.close();
+        } catch (e) {
+          console.warn('[SharedSSE] Error closing timed out connection:', e);
+        }
+        globalEventSource = null;
+        globalState.isConnected = false;
+        globalState.error = 'Connection timeout';
+        notifyStateListeners();
+      }
+    }, 15000); // 15 second timeout
+    
     globalEventSource.onopen = () => {
+      clearTimeout(connectionTimeout); // Clear the timeout since we connected
       globalState.isConnected = true;
       globalState.error = null;
       globalState.lastUpdate = new Date().toLocaleTimeString();
@@ -102,9 +119,21 @@ function initializeGlobalSSE() {
     });
 
     globalEventSource.onerror = (error) => {
+      clearTimeout(connectionTimeout); // Clear the timeout
+      console.warn('[SharedSSE] Connection error:', error);
       globalState.isConnected = false;
       globalState.error = 'Connection error';
       notifyStateListeners();
+      
+      // Close the connection to prevent infinite retry loops
+      try {
+        if (globalEventSource) {
+          globalEventSource.close();
+        }
+      } catch (e) {
+        console.warn('[SharedSSE] Error closing failed connection:', e);
+      }
+      globalEventSource = null;
     };
 
   } catch (error) {

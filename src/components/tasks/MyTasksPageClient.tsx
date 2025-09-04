@@ -208,7 +208,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
         
         refreshCandidates();
       }
-    }, 10000); // 10 seconds
+    }, 30000); // 30 seconds
     
     return () => clearInterval(interval);
   }, [session?.user?.id, loading, candidates, filters, realtimeConnected]);

@@ -14,6 +14,7 @@ interface RealtimeCollaborationOptions {
   onPositionUpdate?: (position: any) => void;
   onPositionListUpdate?: () => void;
   onPositionStatisticsUpdate?: (statistics: any) => void;
+  onUploadQueueUpdate?: (updateData: any) => void;
   showNotifications?: boolean;
   /** Whether to show error toast notifications (defaults to showNotifications value) */
   showErrorNotifications?: boolean;
@@ -39,6 +40,7 @@ export function useRealtimeCollaboration(options: RealtimeCollaborationOptions =
     onPositionUpdate,
     onPositionListUpdate,
     onPositionStatisticsUpdate,
+    onUploadQueueUpdate,
     showNotifications = true,
     showErrorNotifications,
     errorToastCooldownMs = 60000,
@@ -138,8 +140,24 @@ export function useRealtimeCollaboration(options: RealtimeCollaborationOptions =
           showNotification(`Position "${position.title}" updated`, '💼');
         }
       }
+      
+      if (data.type === 'upload_queue_update') {
+        // Call the callback if provided
+        if (onUploadQueueUpdate) {
+          onUploadQueueUpdate(eventData);
+        }
+        
+        // Show notification for upload queue updates
+        if (eventData.action === 'completed' && eventData.fileName) {
+          showNotification(`Upload "${eventData.fileName}" completed`, '✅');
+        } else if (eventData.action === 'failed' && eventData.fileName) {
+          showNotification(`Upload "${eventData.fileName}" failed`, '❌');
+        } else if (eventData.action === 'started' && eventData.fileName) {
+          showNotification(`Upload "${eventData.fileName}" started`, '📤');
+        }
+      }
     }
-  }, [lastMessage, isConnected, onCandidateUpdate, onPositionUpdate, session?.user?.id, showNotification]);
+  }, [lastMessage, isConnected, onCandidateUpdate, onPositionUpdate, onUploadQueueUpdate, session?.user?.id, showNotification]);
 
   return {
     isConnected,

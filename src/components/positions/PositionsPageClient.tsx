@@ -44,6 +44,7 @@ import { checkSLAViolation, getSLABadgeVariant, formatSLAMessage, getSLARemainin
 import { Pagination } from '@/components/ui/pagination';
 import { useJobMatchFeature } from '@/hooks/useJobMatchFeature';
 import { enhancedSSEManager } from '@/lib/enhanced-sse-manager';
+import { useRealtimeCollaboration } from '@/hooks/use-realtime-collaboration';
 
 
 export default function PositionsPageClient() {
@@ -103,23 +104,25 @@ export default function PositionsPageClient() {
   const [isLoadingDepartments, setIsLoadingDepartments] = useState(false);
   const { data: session } = useSession();
   
-      // FIXED: Stabilize callback functions to prevent infinite loops
-      const handlePositionUpdate = useCallback((updatedPosition: any) => {
-        setPositions(prevPositions => {
-          const existingIndex = prevPositions.findIndex(p => p.id === updatedPosition.id);
-          if (existingIndex !== -1) {
-            const updated = [...prevPositions];
-            updated[existingIndex] = { ...updated[existingIndex], ...updatedPosition };
-            return updated;
-          } else {
-            return [...prevPositions, updatedPosition];
-          }
-        });
-      }, []);
+  // Placeholder for realtime collaboration hook - will be moved after function definitions
+  
+  // FIXED: Stabilize callback functions to prevent infinite loops
+  const handlePositionUpdate = useCallback((updatedPosition: any) => {
+    setPositions(prevPositions => {
+      const existingIndex = prevPositions.findIndex(p => p.id === updatedPosition.id);
+      if (existingIndex !== -1) {
+        const updated = [...prevPositions];
+        updated[existingIndex] = { ...updated[existingIndex], ...updatedPosition };
+        return updated;
+      } else {
+        return [...prevPositions, updatedPosition];
+      }
+    });
+  }, []);
 
-      const handleNotificationUpdate = useCallback((notification: any) => {
-        // Handle position-related notifications
-      }, []);
+  const handleNotificationUpdate = useCallback((notification: any) => {
+    // Handle position-related notifications
+  }, []);
   
   // Debounce/search refs
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -616,7 +619,7 @@ export default function PositionsPageClient() {
   }, [fetchPositions]);
 
   // Simple SSE hook
-  const { isConnected: realtimeConnected } = useEnhancedSSE();
+  const { isConnected: enhancedSSEConnected } = useEnhancedSSE();
 
   // Calculate vacant headcount from open positions
   useEffect(() => {
@@ -952,6 +955,55 @@ export default function PositionsPageClient() {
     }
   };
 
+  // Add realtime collaboration hook for position updates (after function definitions)
+  const { isConnected: realtimeConnected } = useRealtimeCollaboration({
+    onPositionUpdate: (updateData) => {
+      console.log('[PositionsPage] Received position update:', updateData);
+      
+      // Handle realtime position updates
+      if (updateData.position) {
+        const updatedPosition = updateData.position;
+        
+        // Update the positions list with the new data
+        setPositions(prevPositions => {
+          const existingIndex = prevPositions.findIndex(p => p.id === updatedPosition.id);
+          if (existingIndex !== -1) {
+            // Update existing position
+            const updated = [...prevPositions];
+            updated[existingIndex] = { ...updated[existingIndex], ...updatedPosition };
+            console.log('[PositionsPage] Updated existing position:', updatedPosition.id);
+            return updated;
+          } else if (updateData.action === 'created') {
+            // Add new position
+            console.log('[PositionsPage] Added new position:', updatedPosition.id);
+            return [...prevPositions, updatedPosition];
+          } else if (updateData.action === 'deleted') {
+            // Remove deleted position
+            console.log('[PositionsPage] Removed deleted position:', updatedPosition.id);
+            return prevPositions.filter(p => p.id !== updatedPosition.id);
+          }
+          return prevPositions;
+        });
+
+        // Refresh statistics and recruiter stats if needed
+        if (updateData.action === 'created' || updateData.action === 'deleted') {
+          // Refresh data after creation/deletion
+          console.log('[PositionsPage] Refreshing data after', updateData.action);
+          setTimeout(() => {
+            fetchPositions(false);
+            fetchRecruiterStats();
+          }, 500);
+        }
+      } else if (updateData.action === 'list_updated') {
+        // Refresh the entire list when a list update is broadcasted
+        console.log('[PositionsPage] Refreshing list after list update');
+        setTimeout(() => {
+          fetchPositions(false);
+        }, 500);
+      }
+    }
+  });
+
 
 
   // Handle delete position
@@ -1204,6 +1256,23 @@ export default function PositionsPageClient() {
             </DropdownMenu>
           </div>
         )}
+      </div>
+
+      {/* Realtime Connection Status */}
+      <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 px-3 py-2 rounded-md flex-shrink-0 mb-4">
+        <div className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full border ${
+          realtimeConnected 
+            ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800' 
+            : 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800'
+        }`}>
+          <div className={`w-2 h-2 rounded-full ${
+            realtimeConnected ? 'bg-green-500' : 'bg-red-500'
+          }`} />
+          <span>{realtimeConnected ? 'Live Updates' : 'Offline'}</span>
+        </div>
+        <span className="text-xs text-muted-foreground">
+          {realtimeConnected ? 'Realtime updates are active' : 'Realtime updates are offline'}
+        </span>
       </div>
 
       {/* Search Status Indicator */}

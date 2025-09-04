@@ -77,8 +77,8 @@ export function broadcastPositionDeleted(positionId: string, actingUserId?: stri
 }
 
 export function broadcastPositionListUpdated() {
-  // Medium priority for list updates
-  broadcastMediumPriority('position_update', {
+  // High priority for list updates
+  broadcastHighPriority('position_update', {
     action: 'list_updated',
     timestamp: new Date().toISOString()
   });

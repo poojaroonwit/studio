@@ -19,6 +19,7 @@ import { Clock, Loader2, CheckCircle, XCircle, Search, Filter, AlertCircle, Info
 import { FileViewerModal } from '@/components/ui/file-viewer-modal';
 
 import { useEnhancedSSE, useEnhancedUploadQueueUpdates } from '@/hooks/use-enhanced-sse';
+import { useRealtimeCollaboration } from '@/hooks/use-realtime-collaboration';
 import { toast } from 'react-hot-toast';
 import { format } from 'date-fns';
 import { DateRange } from 'react-day-picker';
@@ -96,6 +97,23 @@ export default function CandidateImportUploadQueue() {
   const [sseConnected, setSseConnected] = useState(false);
   const [sseError, setSseError] = useState<string | null>(null);
   const [sseEventCount, setSseEventCount] = useState(0);
+
+  // Add realtime collaboration hook for upload queue updates
+  const { isConnected: realtimeConnected } = useRealtimeCollaboration({
+    onUploadQueueUpdate: (updateData: any) => {
+      console.log('[ProcessQueue] Received upload queue update:', updateData);
+      
+      // Handle upload queue updates
+      if (updateData.type === 'queue' || updateData.action) {
+        console.log('[ProcessQueue] Refreshing queue data after update');
+        // Refresh the queue data
+        setTimeout(() => {
+          fetchQueue(page, pageSize);
+          setLastUpdate(new Date());
+        }, 100); // Small delay to ensure server has processed the update
+      }
+    }
+  });
 
   // SSE connection status display
 
@@ -189,7 +207,6 @@ export default function CandidateImportUploadQueue() {
         eventSource = new EventSource('/api/sse');
         
         eventSource.onopen = () => {
-          console.log('[Process Queue] SSE connection established');
           setSseConnected(true);
           setSseError(null);
           // Reset retry count on successful connection
@@ -237,7 +254,6 @@ export default function CandidateImportUploadQueue() {
           eventSource.addEventListener('queue', (event) => {
             try {
               const data = JSON.parse(event.data);
-              console.log('[Process Queue] SSE queue event received:', data);
               setSseEventCount(prev => prev + 1);
               
               // Refresh queue data
@@ -258,7 +274,6 @@ export default function CandidateImportUploadQueue() {
                 });
               }
             } catch (error) {
-              console.error('[Process Queue] Error parsing queue event:', error);
             }
           });
         }
@@ -274,7 +289,6 @@ export default function CandidateImportUploadQueue() {
                 (data.data && data.data.type === 'upload_queue_update') ||
                 (data.data && data.data.type === 'queue')) {
               
-              console.log('[Process Queue] Queue update received, refreshing data...');
               fetchQueue(page, pageSize);
               setLastUpdate(new Date());
               
@@ -294,12 +308,10 @@ export default function CandidateImportUploadQueue() {
               }
             }
           } catch (error) {
-            console.error('[Process Queue] Error parsing SSE message:', error);
           }
         };
 
         eventSource.onerror = (error) => {
-          console.error('[Process Queue] SSE connection error:', error);
           setSseConnected(false);
           
           // Provide more specific error messages based on readyState
@@ -323,18 +335,15 @@ export default function CandidateImportUploadQueue() {
           if (retryCount < maxRetries) {
             sessionStorage.setItem('sseRetryCount', (retryCount + 1).toString());
             reconnectTimeout = setTimeout(() => {
-              console.log(`[Process Queue] Attempting SSE reconnection (attempt ${retryCount + 1}/${maxRetries})...`);
               connectSSE();
             }, retryDelay);
           } else {
-            console.error('[Process Queue] Max SSE reconnection attempts reached');
             setSseError('Connection failed - max retries reached');
             sessionStorage.removeItem('sseRetryCount');
           }
         };
 
       } catch (error) {
-        console.error('[Process Queue] Failed to create SSE connection:', error);
         setSseError('Failed to create SSE connection');
       }
     };
@@ -370,42 +379,22 @@ export default function CandidateImportUploadQueue() {
 
   // Fallback polling when SSE is not connected
   useEffect(() => {
-    if (!sseConnected) {
-      console.log('[Process Queue] SSE not connected, using fallback polling every 10 seconds');
+    if (!realtimeConnected) {
       const interval = setInterval(() => {
-        console.log('[Process Queue] Fallback polling refresh');
         fetchQueue(page, pageSize);
         setLastUpdate(new Date());
       }, 10000); // Poll every 10 seconds when SSE is down
       
       return () => clearInterval(interval);
     } else {
-      console.log('[Process Queue] SSE connected, fallback polling disabled');
     }
-  }, [sseConnected, fetchQueue, page, pageSize]);
+  }, [realtimeConnected, fetchQueue, page, pageSize]);
 
   // Debug SSE connection status
   useEffect(() => {
     // SSE status monitoring removed
   }, [sseConnected, sseError, sseEventCount]);
 
-  // Debug queue data to help troubleshoot retry button visibility
-  useEffect(() => {
-    if (queueData?.data) {
-      console.log('[Process Queue] Queue data loaded:', {
-        totalItems: queueData.data.length,
-        statusCounts: queueData.data.reduce((acc, item) => {
-          acc[item.status] = (acc[item.status] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>),
-        failedItems: queueData.data.filter(item => item.status === 'failed').map(item => ({
-          id: item.id,
-          fileName: item.file_name,
-          status: item.status
-        }))
-      });
-    }
-  }, [queueData]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -901,20 +890,19 @@ export default function CandidateImportUploadQueue() {
             {/* Real-time Connection Status */}
             <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg border">
               <div className="flex items-center space-x-2">
-                <div className={`w-2 h-2 rounded-full ${sseConnected ? 'bg-green-500' : 'bg-red-500'}`} />
+                <div className={`w-2 h-2 rounded-full ${realtimeConnected ? 'bg-green-500' : 'bg-red-500'}`} />
                 <span className="text-sm font-medium">
-                  {sseConnected ? 'Real-time Updates Active' : 'Real-time Updates Offline'}
+                  {realtimeConnected ? 'Updates Active' : 'Real-time Updates Offline'}
                 </span>
-                {!sseConnected && (
+                {!realtimeConnected && (
                   <span className="text-xs text-muted-foreground">
-                    (SSE: {sseError || 'Disconnected'})
+                    (SSE: Disconnected)
                   </span>
                 )}
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => {
-                    console.log('[Process Queue] Testing SSE connection...');
                     // Force a test by refreshing the queue
                     fetchQueue(page, pageSize);
                     setLastUpdate(new Date());
@@ -929,12 +917,11 @@ export default function CandidateImportUploadQueue() {
               <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                 <span>Events: {sseEventCount}</span>
                 <span>Last updated: {lastUpdate ? formatDate(lastUpdate.toISOString()) : 'Never'}</span>
-                {!sseConnected && (
+                {!realtimeConnected && (
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => {
-                      console.log('[Process Queue] Manual refresh requested');
                       fetchQueue(page, pageSize);
                       setLastUpdate(new Date());
                     }}

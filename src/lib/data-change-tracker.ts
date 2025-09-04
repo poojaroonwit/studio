@@ -121,7 +121,7 @@ export function broadcastPositionUpdateIfChanged(
     ignoreFields: ['updated_at', 'last_activity', ...(options.ignoreFields || [])]
   })) {
     console.log('[DataChange] Broadcasting position update:', position.id);
-    broadcastMediumPriority('position_update', {
+    broadcastHighPriority('position_update', {
       position,
       actingUserId,
       action: 'updated',
@@ -143,7 +143,7 @@ export function broadcastUploadQueueUpdateIfChanged(
     ignoreFields: ['timestamp', ...(options.ignoreFields || [])]
   })) {
     console.log('[DataChange] Broadcasting upload queue update:', summary);
-    broadcastLowPriority('upload_queue_update', {
+    broadcastHighPriority('upload_queue_update', {
       type: 'queue',
       summary,
       timestamp: new Date().toISOString()
@@ -160,7 +160,7 @@ export function broadcastDashboardUpdateIfChanged(
   const trackerKey = 'dashboard_data';
   
   if (hasDataChanged(trackerKey, data, {
-    minBroadcastInterval: options.minBroadcastInterval || 1000, // 1 second for dashboard
+    minBroadcastInterval: options.minBroadcastInterval || 5000, // 5 seconds for dashboard (was 1 second)
     ignoreFields: ['timestamp', 'last_updated', ...(options.ignoreFields || [])]
   })) {
     console.log('[DataChange] Broadcasting dashboard update');
@@ -188,7 +188,7 @@ export function broadcastBatchUpdateIfChanged(
   };
   
   if (hasDataChanged(trackerKey, batchData, {
-    minBroadcastInterval: options.minBroadcastInterval || 1000, // 1 second for batch updates
+    minBroadcastInterval: options.minBroadcastInterval || 5000, // 5 seconds for batch updates (was 1 second)
     ignoreFields: ['timestamp', ...(options.ignoreFields || [])]
   })) {
     console.log(`[DataChange] Broadcasting ${itemType} batch update:`, items.length, 'items');

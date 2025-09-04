@@ -179,11 +179,11 @@ export default {
   		},
   				fontFamily: {
 			'sidebar': 'var(--sidebar-font-family)',
-			'inter': ['Inter', 'Segoe UI', 'Roboto', 'Arial', 'Helvetica', 'sans-serif'],
-			'ibm-plex-sans-thai': ['IBM Plex Sans Thai', 'Inter', 'Noto Sans Thai', 'Tahoma', 'Arial', 'Helvetica', 'sans-serif'],
-			'thai': ['IBM Plex Sans Thai', 'Inter', 'Noto Sans Thai', 'Tahoma', 'Arial', 'Helvetica', 'sans-serif'],
-			'english': ['Inter', 'Segoe UI', 'Roboto', 'Arial', 'Helvetica', 'sans-serif'],
-			'sans': 'var(--font-family-primary)',
+			'inter': ['var(--font-inter)', 'Segoe UI', 'Roboto', 'Arial', 'Helvetica', 'sans-serif'],
+			'ibm-plex-sans-thai': ['var(--font-ibm-plex-sans-thai)', 'var(--font-inter)', 'var(--font-noto-sans-thai)', 'Tahoma', 'Arial', 'Helvetica', 'sans-serif'],
+			'thai': ['var(--font-ibm-plex-sans-thai)', 'var(--font-inter)', 'var(--font-noto-sans-thai)', 'Tahoma', 'Arial', 'Helvetica', 'sans-serif'],
+			'english': ['var(--font-inter)', 'Segoe UI', 'Roboto', 'Arial', 'Helvetica', 'sans-serif'],
+			'sans': ['var(--font-inter)', 'var(--font-ibm-plex-sans-thai)', 'var(--font-noto-sans-thai)', 'Segoe UI', 'Roboto', 'Arial', 'Helvetica', 'sans-serif'],
 		},
   		padding: {
   			'sidebar-x': 'var(--sidebar-padding-x)',

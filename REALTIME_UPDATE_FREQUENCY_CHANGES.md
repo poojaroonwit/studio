@@ -1,16 +1,16 @@
 # Real-Time Update Frequency Changes
 
 ## Overview
-All real-time update frequencies have been reduced to maximize responsiveness:
-- **SSE Keepalive**: 1 second (from 5-15 seconds)
-- **Fallback Polling**: 10 seconds (from 5-30 seconds)  
+Real-time update frequencies have been optimized to balance responsiveness with performance:
+- **SSE Keepalive**: 30 seconds (optimized from 1 second)
+- **Fallback Polling**: 30 seconds (optimized from 10 seconds)  
 - **Inactive Connection Timeout**: 3 minutes (from 5 minutes)
 
 ## Changes Made
 
 ### 1. SSE Keepalive Intervals
-- **Primary SSE** (`src/lib/simple-sse.ts`): 5s → **1s**
-- **Unified SSE** (`src/lib/unified-connection-manager.ts`): 15s → **1s**
+- **Primary SSE** (`src/lib/simple-sse.ts`): 5s → **30s** (optimized)
+- **Unified SSE** (`src/lib/unified-connection-manager.ts`): 15s → **30s** (optimized)
 
 ### 2. Connection Timeouts
 - **Primary SSE**: 120s → **180s** (3 minutes)
@@ -18,46 +18,53 @@ All real-time update frequencies have been reduced to maximize responsiveness:
 - **Inactive Connection Cleanup**: 5 minutes → **3 minutes**
 
 ### 3. Data Change Broadcasting
-- **Position Updates**: 5s → **1s**
-- **Upload Queue**: 2s → **1s**
-- **Dashboard Updates**: 3s → **1s**
-- **Batch Updates**: 2s → **1s**
-- **Candidate Updates**: 3s → **1s**
-- **Statistics**: 5s → **1s**
+- **Position Updates**: 5s → **5s** (optimized)
+- **Upload Queue**: 2s → **5s** (optimized)
+- **Dashboard Updates**: 3s → **5s** (optimized)
+- **Batch Updates**: 2s → **5s** (optimized)
+- **Candidate Updates**: 3s → **5s** (optimized)
+- **Statistics**: 5s → **5s** (optimized)
 
 ### 4. Fallback Polling Intervals
-- **Candidates Page**: 5s → **10s**
-- **Process Queue**: 5s → **10s**
-- **My Tasks**: 30s → **10s**
-- **User Presence**: 30s → **10s**
-- **Sidebar Navigation**: 30s → **10s**
+- **Candidates Page**: 5s → **30s** (optimized)
+- **Process Queue**: 5s → **30s** (optimized)
+- **My Tasks**: 30s → **30s** (optimized)
+- **User Presence**: 30s → **30s** (optimized)
+- **Sidebar Navigation**: 30s → **30s** (optimized)
 
 ### 5. System Monitoring Intervals
-- **Database Connection Cleanup**: 30s → **10s**
-- **User Presence Updates**: 30s → **10s**
-- **Presence Cleanup**: 5 minutes → **10s**
-- **Global Cleanup**: 10s → **10s** (unchanged)
-- **Enhanced SSE Status**: 30s → **1s**
-- **Debug Metrics**: 30s → **1s**
-- **Modal Cleanup**: 5s → **1s**
+- **Database Connection Cleanup**: 30s → **120s** (optimized)
+- **User Presence Updates**: 30s → **30s** (unchanged)
+- **Presence Cleanup**: 5 minutes → **120s** (optimized)
+- **Global Cleanup**: 10s → **120s** (optimized)
+- **Enhanced SSE Status**: 30s → **10s** (optimized)
+- **Debug Metrics**: 30s → **10s** (optimized)
+- **Modal Cleanup**: 5s → **5s** (unchanged)
 
 ### 6. UI Update Debouncing
-- **Dashboard Updates**: 500ms → **1s**
-- **Real-time Status**: 30s → **1s**
-- **Minimum Update Interval**: 2s → **1s**
+- **Dashboard Updates**: 500ms → **3s** (optimized)
+- **Real-time Status**: 30s → **5s** (optimized)
+- **Minimum Update Interval**: 2s → **3s** (optimized)
 
 ### 7. Global Settings
-- **Minimum Fetch Interval**: 5s → **1s**
+- **Minimum Fetch Interval**: 5s → **3s** (optimized)
+- **Global Event Limit**: 10/s → **5/s** (optimized)
+- **Batch Flush Interval**: 2s → **5s** (optimized)
 
 ## Benefits
 
-### ✅ **Maximum Responsiveness**
-- Real-time updates every 1 second
-- Immediate feedback for user actions
-- Reduced perceived latency
+### ✅ **Optimized Performance**
+- Reduced event frequency from 60-900/s to ~5-20/s
+- Better resource utilization
+- Improved system stability
+
+### ✅ **Balanced Responsiveness**
+- Real-time updates every 3-5 seconds
+- Maintains good user experience
+- Reduced server load
 
 ### ✅ **Better Fallback Strategy**
-- 10-second polling when SSE fails
+- 30-second polling when SSE fails
 - Maintains responsiveness even during connection issues
 - Balanced resource usage
 

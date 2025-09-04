@@ -13,11 +13,6 @@ export function FontLoader({ children }: FontLoaderProps) {
     // Check if fonts are available
     const checkFonts = async () => {
       try {
-        // Check if fonts are available
-        const thaiFontAvailable = await document.fonts.check('1em "IBM Plex Sans Thai"');
-        const interFontAvailable = await document.fonts.check('1em "Inter"');
-        const notoThaiFontAvailable = await document.fonts.check('1em "Noto Sans Thai"');
-
         // Wait for fonts to load
         await document.fonts.ready;
         
@@ -28,13 +23,14 @@ export function FontLoader({ children }: FontLoaderProps) {
         
         // Log which Thai font is actually being used
         const testElement = document.createElement('div');
-        testElement.style.fontFamily = 'IBM Plex Sans Thai, Inter, Noto Sans Thai, Tahoma, Arial, Helvetica, sans-serif';
+        testElement.style.fontFamily = 'var(--font-ibm-plex-sans-thai), var(--font-inter), var(--font-noto-sans-thai), Tahoma, Arial, Helvetica, sans-serif';
         testElement.style.position = 'absolute';
         testElement.style.visibility = 'hidden';
         testElement.textContent = 'สวัสดี';
         document.body.appendChild(testElement);
         
         const computedFont = window.getComputedStyle(testElement).fontFamily;
+        console.log('Computed font family:', computedFont);
         
         document.body.removeChild(testElement);
       } catch (error) {

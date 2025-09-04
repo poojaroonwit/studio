@@ -197,8 +197,8 @@ export function useEnhancedSSE() {
   useEffect(() => {
     if (!isInitializedRef.current) return;
     
-    // Update status every 5 seconds
-          statusUpdateIntervalRef.current = setInterval(updateConnectionStatus, 1000); // 1 second for maximum responsiveness
+    // Update status every 10 seconds
+    statusUpdateIntervalRef.current = setInterval(updateConnectionStatus, 10000); // 10 seconds for better performance
 
     return () => {
       if (statusUpdateIntervalRef.current) {

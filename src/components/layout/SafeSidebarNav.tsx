@@ -86,7 +86,6 @@ const usePendingCount = () => {
         eventSourceRef.current = eventSource;
 
         eventSource.onopen = () => {
-          console.log('[Sidebar] SSE connection established for pending count');
         };
 
         eventSource.onmessage = (event) => {
@@ -98,7 +97,6 @@ const usePendingCount = () => {
               const { queued, inprocess } = data.summary;
               const newPendingCount = Number(queued || 0) + Number(inprocess || 0);
               setPendingCount(newPendingCount);
-              console.log('[Sidebar] Pending count updated via SSE:', newPendingCount);
             }
             
             // Listen for general queue updates
@@ -106,23 +104,16 @@ const usePendingCount = () => {
               const { queued, inprocess } = data.summary;
               const newPendingCount = Number(queued || 0) + Number(inprocess || 0);
               setPendingCount(newPendingCount);
-              console.log('[Sidebar] Pending count updated via SSE:', newPendingCount);
             }
           } catch (error) {
-            console.error('[Sidebar] Error parsing SSE message:', error);
           }
         };
 
         eventSource.onerror = (error) => {
-          console.warn('[Sidebar] SSE connection error, falling back to polling:', error);
-          
           // Provide more specific error information
           if (eventSource.readyState === EventSource.CONNECTING) {
-            console.warn('[Sidebar] SSE connection is still connecting...');
           } else if (eventSource.readyState === EventSource.CLOSED) {
-            console.warn('[Sidebar] SSE connection closed - likely authentication issue');
           } else {
-            console.warn('[Sidebar] SSE connection failed - network or server issue');
           }
           
           // Fallback to periodic polling if SSE fails
@@ -130,7 +121,6 @@ const usePendingCount = () => {
         };
 
       } catch (error) {
-        console.error('[Sidebar] Failed to establish SSE connection:', error);
         // Fallback to periodic polling if SSE is not available
         fallbackTimeoutRef.current = setInterval(fetchPendingCount, 10000); // 10 second fallback
       }

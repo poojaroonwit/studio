@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import type { Candidate, Position, CandidateStatus, UserProfile } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CandidateAvatarCompact } from "@/components/ui/candidate-avatar";
-import { Users, Briefcase, CheckCircle2, UserPlus, FileWarning, UserRoundSearch, ServerCrash, Loader2, ListChecks, CalendarClock, Users2, BarChart3, AlertTriangle, Clock, Star, Target, Code, CalendarIcon, X, Timer, XCircle, ArrowRight, RefreshCw } from "lucide-react";
+import { Users, Briefcase, CheckCircle2, UserPlus, FileWarning, UserRoundSearch, ServerCrash, Loader2, ListChecks, CalendarClock, Users2, BarChart3, AlertTriangle, Clock, Star, Target, Code, CalendarIcon, X, Timer, XCircle, ArrowRight } from "lucide-react";
 import { getScoreRangesForChart, formatScoreWithGrade, getScoreColor } from "@/lib/scoreUtils";
 import { formatCandidateName, formatCandidateNameWithLang } from "@/lib/candidateUtils";
 import { isToday } from 'date-fns';
@@ -188,16 +188,7 @@ export default function DashboardPageClient({
   // Check if user can view all candidates (for conditional rendering)
   const canViewAllCandidates = hasPermission(session?.user, 'CANDIDATES_VIEW');
 
-  // Function to manually refresh data and reset animation state
-  const handleManualRefresh = useCallback(() => {
-    setIsPageRefresh(true);
-    setHasSSEUpdated(false);
-    // Reset the page refresh state after a short delay
-    setTimeout(() => {
-      setIsPageRefresh(false);
-    }, 100);
-    fetchDataClientSide();
-  }, []);
+
 
   // Function to re-fetch data on client if needed (e.g., after an action or for a refresh button)
   const fetchDataClientSide = useCallback(async () => {
@@ -445,7 +436,7 @@ export default function DashboardPageClient({
     let mounted = true;
     let refreshTimeout: NodeJS.Timeout;
     let lastUpdateTime = 0;
-    const MIN_UPDATE_INTERVAL = 1000; // Minimum 1 second between updates
+    const MIN_UPDATE_INTERVAL = 3000; // Minimum 3 seconds between updates
     
     // Only create EventSource if user is authenticated
     if (status !== 'authenticated' || !session?.user?.id) {
@@ -497,7 +488,7 @@ export default function DashboardPageClient({
                   fetchDataClientSide();
                 }
               }
-            }, 1000); // 1 second debounce for better responsiveness
+            }, 3000); // 3 second debounce for better performance
           }
         } catch (error) {
           if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
@@ -900,7 +891,6 @@ export default function DashboardPageClient({
             onClick={() => window.location.reload()} 
             className="btn-hover-primary-gradient"
           >
-            <RefreshCw className="h-4 w-4 mr-2" />
             Reload Page
           </Button>
           <Button onClick={() => router.push('/')} variant="outline">
@@ -952,16 +942,6 @@ export default function DashboardPageClient({
               <span>Live updates active</span>
             </div>
           )}
-          <Button
-            onClick={handleManualRefresh}
-            variant="outline"
-            size="sm"
-            className="flex items-center space-x-2 hover:bg-primary hover:text-primary-foreground transition-colors"
-            title="Refresh dashboard data and play animations"
-          >
-            <RefreshCw className="h-4 w-4" />
-            <span>Refresh</span>
-          </Button>
           <RealTimeStatus onDataUpdate={fetchDataClientSide} />
         </div>
       </div>

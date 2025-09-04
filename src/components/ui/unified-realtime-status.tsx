@@ -241,7 +241,7 @@ export function UnifiedRealtimeStatus({
             )}
             <span className="text-sm text-gray-600">
               {isConnected 
-                ? `Real-time updates active with ${connectedUsers} users online`
+                ? `Updates active with ${connectedUsers} users online`
                 : isReconnecting 
                 ? `Attempting to reconnect (attempt ${reconnectAttempts})`
                 : 'Real-time connection lost'

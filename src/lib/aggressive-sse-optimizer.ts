@@ -12,7 +12,7 @@ interface EventThrottle {
 }
 
 const eventThrottles = new Map<string, EventThrottle>();
-const GLOBAL_EVENT_LIMIT = 10; // Max 10 events per second globally
+const GLOBAL_EVENT_LIMIT = 5; // Max 5 events per second globally (reduced from 10)
 const GLOBAL_WINDOW_MS = 1000; // 1 second window
 
 // Event batching
@@ -25,7 +25,7 @@ interface BatchedEvent {
 }
 
 const eventBatch = new Map<string, BatchedEvent[]>();
-const BATCH_FLUSH_INTERVAL = 2000; // Flush every 2 seconds
+const BATCH_FLUSH_INTERVAL = 5000; // Flush every 5 seconds (increased from 2s)
 const MAX_BATCH_SIZE = 50; // Max 50 events per batch
 
 // Priority-based event handling
@@ -75,9 +75,22 @@ function addToBatch(event: BatchedEvent): void {
   
   if (existingIndex >= 0) {
     // Update existing event with higher priority
+    const existingPriority = batch[existingIndex].priority;
+    const newPriority = event.priority;
+    
+    // Determine higher priority (high > medium > low)
+    let higherPriority: 'high' | 'medium' | 'low';
+    if (newPriority === 'high' || existingPriority === 'high') {
+      higherPriority = 'high';
+    } else if (newPriority === 'medium' || existingPriority === 'medium') {
+      higherPriority = 'medium';
+    } else {
+      higherPriority = 'low';
+    }
+    
     batch[existingIndex] = {
       ...event,
-      priority: Math.max(batch[existingIndex].priority, event.priority) as 'high' | 'medium' | 'low'
+      priority: higherPriority
     };
   } else {
     batch.push(event);

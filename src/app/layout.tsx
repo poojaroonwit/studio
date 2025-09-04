@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react';
-import { Inter } from 'next/font/google';
+import { Inter, IBM_Plex_Sans_Thai, Noto_Sans_Thai } from 'next/font/google';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { ClientProviders } from '@/components/providers/ClientProviders';
@@ -10,7 +10,25 @@ import { FontPreloader } from '@/components/ui/FontPreloader';
 import { ResizeObserverInitializer } from '@/components/ui/ResizeObserverInitializer';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 
-const inter = Inter({ subsets: ['latin'] });
+const inter = Inter({ 
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-inter'
+});
+
+const ibmPlexSansThai = IBM_Plex_Sans_Thai({
+  subsets: ['thai'],
+  weight: ['400', '500', '600', '700'],
+  display: 'swap',
+  variable: '--font-ibm-plex-sans-thai'
+});
+
+const notoSansThai = Noto_Sans_Thai({
+  subsets: ['thai'],
+  weight: ['400', '500', '600', '700'],
+  display: 'swap',
+  variable: '--font-noto-sans-thai'
+});
 
 export const metadata = {
   title: 'FitScan - AI-Powered Recruitment Platform',
@@ -66,12 +84,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {/* Font preloading for better performance */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&display=swap" crossOrigin="anonymous" />
-        <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&display=swap" crossOrigin="anonymous" />
-        <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:ital,wght@0,500;0,600;0,700;1,400;1,500;1,600;1,700&display=swap" crossOrigin="anonymous" />
         {/* Ramda polyfill is now handled by RamdaPolyfillInitializer component */}
       </head>
-      <body>
+      <body className={`${inter.variable} ${ibmPlexSansThai.variable} ${notoSansThai.variable}`}>
         <ErrorBoundary>
           <ResizeObserverInitializer />
           <FontPreloader />

@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Save, Loader2, User, UserPlus, Lock, Shield, Mail, Palette, Users, Edit3, Briefcase, RotateCcw } from 'lucide-react';
+import { Save, Loader2, User, UserPlus, Lock, Shield, Mail, Palette, Users, Edit3 } from 'lucide-react';
 import Image from 'next/image';
 import { signIn, useSession } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
@@ -454,18 +454,7 @@ export function UnifiedUserModal({
                       <Shield className="h-4 w-4" />
                       Account Settings
                     </div>
-                    <div
-                      onClick={() => setActiveTab('assigned-positions')}
-                      className={cn(
-                        "flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer rounded-lg",
-                        activeTab === 'assigned-positions'
-                          ? "text-primary bg-primary/10 border border-primary/20"
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-                      )}
-                    >
-                      <Briefcase className="h-4 w-4" />
-                      Assigned Positions
-                    </div>
+
                                          <div
                        onClick={() => setActiveTab('security')}
                        className={cn(
@@ -846,27 +835,7 @@ export function UnifiedUserModal({
                     </ScrollArea>
                   )}
 
-                  {activeTab === 'assigned-positions' && (
-                    <ScrollArea className="h-full">
-                      <div className="space-y-6 p-6">
-                        {/* Assigned Positions */}
-                        <div className="space-y-4">
-                          <div>
-                            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                              <Briefcase className="h-5 w-5 text-primary" />
-                              Assigned Positions
-                            </h3>
-                            <p className="text-sm text-slate-600 dark:text-slate-400">
-                              View and manage positions assigned to this user
-                            </p>
-                          </div>
-                          <div className="space-y-6">
-                            <AssignedPositionsContent mode={mode} user={user} />
-                          </div>
-                        </div>
-                      </div>
-                    </ScrollArea>
-                  )}
+
 
                   {activeTab === 'security' && (
                     <ScrollArea className="h-full">
@@ -988,207 +957,8 @@ export function UnifiedUserModal({
   );
 }
 
-// Assigned Positions Content Component
-interface AssignedPositionsContentProps {
-  mode: ModalMode;
-  user?: UserProfile | null;
-}
 
-function AssignedPositionsContent({ mode, user }: AssignedPositionsContentProps) {
-  const { data: session } = useSession();
-  const [positions, setPositions] = useState<Array<{
-    id: string;
-    title: string;
-    department: string;
-    positionLevel?: string;
-    isOpen?: boolean;
-    gradeSlaDays?: number | null;
-    headcount: {
-      total: number;
-      vacant: number;
-      filled: number;
-    };
-    grade?: {
-      name: string;
-      color: string;
-    };
-    createdAt?: string;
-    updatedAt?: string;
-  }>>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  // Check permissions
-  const modulePermissions = session?.user?.modulePermissions || [];
-  const canEditPositions = modulePermissions.includes('POSITIONS_EDIT_BASIC') || false;
-  const isAdmin = session?.user?.role === 'Admin';
-  const isRecruiter = session?.user?.role === 'Recruiter';
-  const canEdit = isAdmin || canEditPositions || isRecruiter;
 
-  // Fetch assigned positions
-  useEffect(() => {
-    if (user?.id && (mode === 'profile' || mode === 'edit')) {
-      fetchAssignedPositions();
-    }
-  }, [user?.id, mode]);
 
-  const fetchAssignedPositions = async () => {
-    if (!user?.id) return;
-    
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const response = await fetch(`/api/positions/recruiter-assigned?recruiterId=${user.id}`, {
-        credentials: 'include',
-        headers: { 'Accept': 'application/json' }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch assigned positions (${response.status})`);
-      }
-      
-      const data = await response.json();
-      setPositions(data.data || []);
-    } catch (err) {
-      setError((err as Error).message);
-      console.error('Error fetching assigned positions:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
-  if (mode === 'create') {
-    return (
-      <div className="text-center py-8">
-        <p className="text-slate-500 dark:text-slate-400">
-          Assigned positions will be available after the user is created and assigned to positions.
-        </p>
-      </div>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <div className="text-center py-8">
-        <div className="flex items-center justify-center">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
-          <span className="ml-2 text-slate-500 dark:text-slate-400">Loading assigned positions...</span>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-red-500 dark:text-red-400">Error loading positions: {error}</p>
-        <Button 
-          variant="outline" 
-          onClick={fetchAssignedPositions}
-          className="mt-2"
-        >
-          <RotateCcw className="h-4 w-4 mr-2" />
-          Retry
-        </Button>
-      </div>
-    );
-  }
-
-  if (positions.length === 0) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-slate-500 dark:text-slate-400">
-          No assigned positions found.
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100">
-            Assigned Positions ({positions.length})
-          </h3>
-          <p className="text-sm text-slate-600 dark:text-slate-400">
-            {canEdit ? 'You can edit these positions.' : 'View-only access to assigned positions.'}
-          </p>
-        </div>
-        <Button 
-          variant="outline" 
-          onClick={fetchAssignedPositions}
-          size="sm"
-        >
-          <RotateCcw className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
-      </div>
-
-      <div className="space-y-4">
-        {positions.map((position) => (
-          <div 
-            key={position.id} 
-            className="rounded-lg border border-slate-200 dark:border-slate-700 p-4 space-y-3"
-          >
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <h4 className="font-medium text-slate-900 dark:text-slate-100">
-                  {position.title}
-                </h4>
-                <p className="text-sm text-slate-600 dark:text-slate-400">
-                  {position.department}
-                  {position.positionLevel && ` • ${position.positionLevel}`}
-                </p>
-              </div>
-              {position.grade && (
-                <Badge 
-                  variant="secondary" 
-                  style={{ backgroundColor: position.grade.color + '20', color: position.grade.color }}
-                >
-                  {position.grade.name}
-                </Badge>
-              )}
-            </div>
-
-            <div className="grid grid-cols-3 gap-4 text-sm">
-              <div>
-                <span className="text-slate-500 dark:text-slate-400">Total:</span>
-                <span className="ml-2 font-medium">{position.headcount.total}</span>
-              </div>
-              <div>
-                <span className="text-slate-600 dark:text-slate-400">Vacant:</span>
-                <span className="ml-2 font-medium text-orange-600 dark:text-orange-400">
-                  {position.headcount.vacant}
-                </span>
-              </div>
-              <div>
-                <span className="text-slate-500 dark:text-slate-400">Filled:</span>
-                <span className="ml-2 font-medium text-green-600 dark:text-green-400">
-                  {position.headcount.filled}
-                </span>
-              </div>
-            </div>
-
-            {canEdit && (
-              <div className="pt-2 border-t border-slate-200 dark:border-slate-700">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => {
-                    // Open position edit modal or navigate to position edit page
-                    window.open(`/positions/${position.id}`, '_blank');
-                  }}
-                >
-                  <Edit3 className="h-4 w-4 mr-2" />
-                  Edit Position
-                </Button>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}

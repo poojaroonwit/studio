@@ -10,28 +10,23 @@ export function FontPreloader() {
         strategy="beforeInteractive"
         dangerouslySetInnerHTML={{
           __html: `
-            // Font preloading script
+            // Font loading optimization script
             (function() {
-              // Preload critical fonts
-              const fontLinks = [
-                'https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&display=swap',
-                'https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&display=swap',
-                'https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&display=swap'
-              ];
-              
-              fontLinks.forEach(href => {
-                const link = document.createElement('link');
-                link.rel = 'stylesheet';
-                link.href = href;
-                link.crossOrigin = 'anonymous';
-                document.head.appendChild(link);
-              });
-              
-              // Check font availability
+              // Check font availability and add loaded class
               if ('fonts' in document) {
                 document.fonts.ready.then(function() {
                   document.documentElement.classList.add('fonts-loaded');
                 });
+                
+                // Also add the class immediately if fonts are already loaded
+                if (document.fonts.status === 'loaded') {
+                  document.documentElement.classList.add('fonts-loaded');
+                }
+              } else {
+                // Fallback for browsers without font loading API
+                setTimeout(function() {
+                  document.documentElement.classList.add('fonts-loaded');
+                }, 100);
               }
             })();
           `,

@@ -59,12 +59,10 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
 
     const establishSSEConnection = () => {
       try {
-        console.log('[AssignedPositionsSidebar] Establishing SSE connection...');
         const es = new EventSource('/api/sse');
         sseRef.current = es;
 
         es.onopen = () => {
-          console.log('[AssignedPositionsSidebar] SSE connection established successfully');
           setSseConnected(true);
           setError(null); // Clear any previous errors
           // Reset retry count on successful connection
@@ -72,7 +70,6 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
         };
 
         es.onerror = (error) => {
-          console.error('[AssignedPositionsSidebar] SSE connection error:', error);
           setSseConnected(false);
           
           // Enhanced error detection for chunked encoding issues
@@ -88,7 +85,6 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
           
           if (isChunkedError || isNetworkError) {
             errorMessage = 'Connection interrupted. Attempting to reconnect...';
-            console.log('[AssignedPositionsSidebar] Detected connection interruption, will attempt reconnection');
           }
           
           setError(errorMessage);
@@ -109,27 +105,22 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
             }
             
             setTimeout(() => {
-              console.log(`[AssignedPositionsSidebar] Attempting SSE reconnection (attempt ${retryCount + 1}/${maxRetries})...`);
               establishSSEConnection();
             }, retryDelay);
           } else {
-            console.error('[AssignedPositionsSidebar] Max SSE reconnection attempts reached');
             setError('Connection failed - max retries reached. Please refresh the page.');
             sessionStorage.removeItem('sseRetryCount');
             
             // Fallback to polling after max retries
-            console.log('[AssignedPositionsSidebar] Falling back to polling mode');
             // You can implement polling fallback here if needed
           }
         };
 
         const handlePositionUpdate = (event: MessageEvent) => {
           try {
-            console.log('[AssignedPositionsSidebar] Received position_update event:', event.data);
             const payload = JSON.parse(event.data || '{}');
             // If event carries a position and it's open or recruiter changed, refresh list
             if (payload && (payload.position || payload.data?.position)) {
-              console.log('[AssignedPositionsSidebar] Refreshing due to position update');
               if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
               refreshTimerRef.current = setTimeout(() => {
                 fetchAssignedPositions();
@@ -137,31 +128,26 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
             }
             // Also refresh when position list is updated (includes deletions and headcount changes)
             if (payload && (payload.action === 'list_updated' || payload.action === 'deleted')) {
-              console.log('[AssignedPositionsSidebar] Refreshing due to list update:', payload.action);
               if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
               refreshTimerRef.current = setTimeout(() => {
                 fetchAssignedPositions();
               }, 500);
             }
           } catch (error) {
-            console.error('[AssignedPositionsSidebar] Error parsing position_update event:', error);
           }
         };
 
         const handleDashboardUpdate = (event: MessageEvent) => {
           try {
-            console.log('[AssignedPositionsSidebar] Received dashboard_update event:', event.data);
             const payload = JSON.parse(event.data || '{}');
             // Refresh when dashboard updates occur (includes statistics and headcount changes)
             if (payload && payload.type === 'dashboard_update') {
-              console.log('[AssignedPositionsSidebar] Refreshing due to dashboard update');
               if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
               refreshTimerRef.current = setTimeout(() => {
                 fetchAssignedPositions();
-              }, 500);
+              }, 2000);
             }
           } catch (error) {
-            console.error('[AssignedPositionsSidebar] Error parsing dashboard_update event:', error);
           }
         };
 
@@ -174,7 +160,6 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
         };
 
       } catch (error) {
-        console.error('[AssignedPositionsSidebar] Failed to establish SSE connection:', error);
         setSseConnected(false);
         setError('Failed to establish real-time connection. Manual refresh still available.');
       }
@@ -198,7 +183,6 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
   const fetchAssignedPositions = async () => {
     if (!session?.user?.id) return;
     
-    console.log('[AssignedPositionsSidebar] Fetching assigned positions for user:', session.user.id);
     setIsLoading(true);
     setError(null);
     
@@ -221,7 +205,6 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
       }
       
       const data = await response.json();
-      console.log('[AssignedPositionsSidebar] Received positions data:', data);
       setPositions(data.data || []);
       setVisibleCount(5);
     } catch (err) {

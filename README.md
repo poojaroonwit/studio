@@ -552,3 +552,21 @@ If you encounter this issue, it's likely due to authentication problems. Here's 
 - Health check: `http://localhost:8021/api/health`
 - Session check: `http://localhost:8021/api/auth/session`
 - Login page: `http://localhost:8021/auth/signin` 
+
+## Realtime (SSE)
+
+The app uses a simple Server-Sent Events hub:
+
+- Server: `src/lib/realtime.ts` exposes `subscribe(request)` and `broadcast(data, event?)`.
+- Route: `src/app/api/sse/route.ts` returns `subscribe(request)`.
+- Client: use `useEventSource('/api/sse')` from `src/hooks/useEventSource.ts`.
+
+Example broadcast:
+
+```ts
+import { broadcast } from '@/lib/realtime';
+
+broadcast({ type: 'notification', message: 'hello' }, 'notification');
+```
+
+Legacy managers (unified/enhanced/robust) were removed in favor of this simpler model. 

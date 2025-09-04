@@ -1,8 +1,8 @@
 // Simple Broadcasting Utility
 // Easy way to send SSE events from anywhere in your application
 
-import { broadcastToAll, broadcastToUser } from './unified-connection-manager';
-import type { UnifiedEventType } from './unified-connection-manager';
+import { broadcast as broadcastAll } from './realtime';
+type UnifiedEventType = string;
 import { 
   broadcastCandidateUpdateIfChanged, 
   broadcastPositionUpdateIfChanged, 
@@ -96,51 +96,50 @@ export function broadcastPositionStatisticsUpdated(statistics: any) {
 export function broadcastNotification(message: string, type: string = 'info', targetUserId?: string) {
   const notification = {
     message,
-    type,
+    level: type,
     timestamp: new Date().toISOString()
   };
-
-  if (targetUserId) {
-    broadcastToUser(targetUserId, 'notification', notification);
-  } else {
-    broadcastToAll('notification', notification);
-  }
+  // Simplified: global broadcast only
+  broadcastAll({ type: 'notification', ...notification }, 'notification');
 }
 
-export function broadcastSystemNotification(message: string, type: string = 'info') {
-  broadcastToAll('notification', {
+export function broadcastSystemNotification(message: string, level: string = 'info') {
+  broadcastAll({ type: 'notification',
     message,
-    type,
+    level,
     source: 'system',
     timestamp: new Date().toISOString()
-  });
+  }, 'notification');
 }
 
 // Upload queue broadcasts
 export function broadcastUploadStarted(fileName: string, userId: string) {
-  broadcastToUser(userId, 'upload_queue_update', {
+  broadcastAll({ type: 'upload_queue_update',
     action: 'started',
     fileName,
-    timestamp: new Date().toISOString()
-  });
+    timestamp: new Date().toISOString(),
+    userId
+  }, 'upload_queue_update');
 }
 
 export function broadcastUploadCompleted(fileName: string, userId: string, result: any) {
-  broadcastToUser(userId, 'upload_queue_update', {
+  broadcastAll({ type: 'upload_queue_update',
     action: 'completed',
     fileName,
     result,
-    timestamp: new Date().toISOString()
-  });
+    timestamp: new Date().toISOString(),
+    userId
+  }, 'upload_queue_update');
 }
 
 export function broadcastUploadFailed(fileName: string, userId: string, error: string) {
-  broadcastToUser(userId, 'upload_queue_update', {
+  broadcastAll({ type: 'upload_queue_update',
     action: 'failed',
     fileName,
     error,
-    timestamp: new Date().toISOString()
-  });
+    timestamp: new Date().toISOString(),
+    userId
+  }, 'upload_queue_update');
 }
 
 // Dashboard broadcasts
@@ -151,11 +150,8 @@ export function broadcastDashboardUpdate(data: any) {
 
 // Generic broadcast function
 export function broadcast(eventType: UnifiedEventType, data: any, targetUserId?: string) {
-  if (targetUserId) {
-    broadcastToUser(targetUserId, eventType, data);
-  } else {
-    broadcastToAll(eventType, data);
-  }
+  // Lightweight path: global broadcast only
+  if (!targetUserId) broadcastAll({ type: eventType, ...data }, eventType);
 }
 
 // Batch broadcast for multiple events

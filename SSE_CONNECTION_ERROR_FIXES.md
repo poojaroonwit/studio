@@ -24,12 +24,12 @@ The application was experiencing SSE (Server-Sent Events) connection errors with
 - **Session Storage**: Tracks retry count across page refreshes
 - **Success Reset**: Retry count resets on successful connection
 
-### 2. Improved Authentication Handling (`unified-connection-manager.ts`)
+### 2. Simplified Connection Handling (`realtime.ts`)
 - **Detailed Error Responses**: JSON responses with error details and timestamps
 - **Better Session Validation**: Enhanced error handling for session failures
 - **Structured Error Messages**: Consistent error format across all endpoints
 
-### 3. Enhanced SSE Manager (`enhanced-sse-manager.ts`)
+### 3. Client Hook (`useEventSource`)
 - **Better Error Logging**: More detailed error information including error types
 - **Error State Tracking**: Stores last error details for debugging
 - **Improved Error Messages**: More descriptive error messages for troubleshooting
@@ -45,7 +45,7 @@ The application was experiencing SSE (Server-Sent Events) connection errors with
 - **Troubleshooting Guide**: Provides specific recommendations based on test results
 - **Error Diagnosis**: Helps identify common connection issues
 
-### 6. SSE Connection Utilities (`sse-connection-utils.ts`)
+### 6. SSE Utilities (native EventSource)
 - **Robust Connection Manager**: Complete SSE connection management class
 - **Exponential Backoff**: Configurable retry logic with backoff
 - **Connection Health Monitoring**: Keepalive checks every 30 seconds
@@ -120,8 +120,7 @@ const retryDelay = Math.min(baseDelay * Math.pow(2, retryCount), maxDelay);
 ## Files Modified
 
 - `src/components/candidates/CandidateImportUploadQueue.tsx`
-- `src/lib/unified-connection-manager.ts`
-- `src/lib/enhanced-sse-manager.ts`
+- `src/lib/realtime.ts`
 - `src/components/layout/SafeSidebarNav.tsx`
 - `src/app/api/sse/test-connection/route.ts` (new)
 - `src/lib/sse-connection-utils.ts` (new)

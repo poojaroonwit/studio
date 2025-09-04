@@ -1,8 +1,8 @@
 // Aggressive SSE Optimizer - Dramatically reduce event frequency
 // This implements strict rate limiting and event batching
 
-import { broadcastToAll, broadcastToUser } from './unified-connection-manager';
-import type { UnifiedEventType } from './unified-connection-manager';
+import { broadcast } from './realtime';
+type UnifiedEventType = string;
 
 // Global event throttling
 interface EventThrottle {
@@ -129,10 +129,8 @@ function flushEventBatches(): void {
       // Send events
       for (const event of eventsToSend) {
         if (canSendEvent(event.type)) {
-          if (event.targetUserId) {
-            broadcastToUser(event.targetUserId, event.type, event.data);
-          } else {
-            broadcastToAll(event.type, event.data);
+          if (!event.targetUserId) {
+            broadcast({ type: event.type, ...event.data }, event.type);
           }
         }
       }
@@ -224,10 +222,8 @@ export function forceBroadcast(
   data: any, 
   targetUserId?: string
 ): void {
-  if (targetUserId) {
-    broadcastToUser(targetUserId, eventType, data);
-  } else {
-    broadcastToAll(eventType, data);
+  if (!targetUserId) {
+    broadcast({ type: eventType, ...data }, eventType);
   }
 }
 

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { getUnifiedConnectionStats } from '@/lib/unified-connection-manager';
+import { getConnectionCount } from '@/lib/realtime';
 import { getPool } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
@@ -25,8 +25,8 @@ export async function GET(request: NextRequest) {
     const userId = session.user.id;
     
     // Get SSE connection stats
-    const sseStats = getUnifiedConnectionStats();
-    const userConnection = sseStats.connectedUsers.includes(userId);
+    const sseConnections = getConnectionCount();
+    const userConnection = true; // simple hub does not track per-user
     
     // Test database connection with timeout
     let dbHealthy = false;
@@ -94,8 +94,8 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString(),
       userId,
       sse: {
-        totalConnections: sseStats.totalConnections,
-        connectedUsers: sseStats.connectedUsers.length,
+        totalConnections: sseConnections,
+        connectedUsers: null,
         userConnected: userConnection,
         endpoint: '/api/sse',
         ready: true

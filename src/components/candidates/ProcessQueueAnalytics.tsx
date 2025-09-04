@@ -20,7 +20,6 @@ import { useChartSetup } from '@/hooks/use-chart-setup';
 import { isDataLabelsAvailable } from '@/lib/chartjs-setup';
 import { DateRange } from 'react-day-picker';
 import { useEnhancedSSE } from '@/hooks/use-enhanced-sse';
-import { enhancedSSEManager } from '@/lib/enhanced-sse-manager';
 
 interface QueueItem {
   id: string;
@@ -80,33 +79,11 @@ export default function ProcessQueueAnalytics() {
   // SSE hook for realtime updates
   const { isConnected: realtimeConnected } = useEnhancedSSE();
 
-  // Add SSE event listeners for realtime analytics updates
+  // Refresh analytics on SSE connection changes
   useEffect(() => {
-    if (!realtimeConnected) return;
-
-    const handleSSEEvent = (event: any) => {
-      try {
-        if (event.type === 'upload_queue_update') {
-          const eventData = event.data;
-          
-          // Refresh analytics data when queue updates occur
-          if (eventData.type === 'queue' || eventData.summary) {
-            console.log('[ProcessQueueAnalytics] Received upload queue update, refreshing analytics...');
-            fetchAnalyticsData();
-          }
-        }
-      } catch (error) {
-        console.error('Error handling SSE upload queue update:', error);
-      }
-    };
-
-    // Add event listener to the enhanced SSE manager
-    enhancedSSEManager.addEventListener(handleSSEEvent);
-    
-    return () => {
-      enhancedSSEManager.removeEventListener(handleSSEEvent);
-    };
-
+    if (realtimeConnected) {
+      fetchAnalyticsData();
+    }
   }, [realtimeConnected]);
 
   useEffect(() => {

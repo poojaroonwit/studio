@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { emergencyConnectionReset } from '@/lib/unified-connection-manager';
+// Simple hub has no per-user state; provide a no-op reset for compatibility
 import { hasAnyPermission } from '@/lib/permissions';
 
 export async function POST(request: NextRequest) {
@@ -30,7 +30,6 @@ export async function POST(request: NextRequest) {
 
     // Perform emergency reset
     console.warn(`[API] Emergency connection reset requested by user ${session.user.id}`);
-    emergencyConnectionReset();
 
     return NextResponse.json({
       success: true,

@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { RobustSSEManager, createRobustSSE } from '@/lib/robust-sse-manager';
 
 interface ConnectionInfo {
   url: string;
@@ -12,54 +11,31 @@ interface ConnectionInfo {
 }
 
 export default function RobustSSETest() {
-  const [sseManager, setSseManager] = useState<RobustSSEManager | null>(null);
+  const [sseManager, setSseManager] = useState<any>(null);
   const [connectionInfo, setConnectionInfo] = useState<ConnectionInfo | null>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const [debugMode, setDebugMode] = useState(true);
 
   useEffect(() => {
-    // Create robust SSE manager
-    const manager = createRobustSSE({
-      url: '/api/sse',
-      retryDelay: 2000,
-      maxRetries: 5,
-      debugMode: debugMode,
-      onOpen: () => {
-        console.log('✅ SSE Connection opened');
-        setIsConnected(true);
-        addMessage('✅ Connection opened', 'success');
-      },
-      onMessage: (data) => {
-        console.log('📨 SSE Message received:', data);
-        addMessage(`📨 Message: ${JSON.stringify(data)}`, 'info');
-      },
-      onError: (error) => {
-        console.error('❌ SSE Error:', error);
-        setIsConnected(false);
-        addMessage(`❌ Error: ${error}`, 'error');
-      },
-      onClose: () => {
-        console.log('🔌 SSE Connection closed');
-        setIsConnected(false);
-        addMessage('🔌 Connection closed', 'warning');
-      }
-    });
-
-    setSseManager(manager);
+    // Minimal EventSource for debug
+    const es = new EventSource('/api/sse');
+    setSseManager(es);
 
     // Update connection info periodically
     const interval = setInterval(() => {
-      if (manager) {
-        const info = manager.getConnectionInfo();
-        setConnectionInfo(info);
-        setIsConnected(manager.isConnected());
-      }
+      setConnectionInfo(prev => prev || {
+        url: '/api/sse',
+        state: {},
+        eventSourceReadyState: es.readyState,
+        eventSourceReadyStateText: es.readyState === 0 ? 'CONNECTING' : es.readyState === 1 ? 'OPEN' : 'CLOSED',
+        connectionAge: 0
+      });
     }, 1000);
 
     return () => {
       clearInterval(interval);
-      manager.disconnect();
+      es.close();
     };
   }, [debugMode]);
 
@@ -72,17 +48,9 @@ export default function RobustSSETest() {
     }]);
   };
 
-  const connect = () => {
-    if (sseManager) {
-      sseManager.connect();
-    }
-  };
+  const connect = () => {};
 
-  const disconnect = () => {
-    if (sseManager) {
-      sseManager.disconnect();
-    }
-  };
+  const disconnect = () => { if (sseManager) sseManager.close(); };
 
   const getStateColor = (state: string) => {
     switch (state) {

@@ -71,7 +71,7 @@ export async function withSSEDbConnection<T>(
 - Connection time tracking
 - Pool statistics monitoring
 
-### 3. Enhanced Unified Connection Manager (`src/lib/unified-connection-manager.ts`)
+### 3. Simple SSE Hub (`src/lib/realtime.ts`)
 
 **Authentication with Database Protection:**
 ```typescript
@@ -236,8 +236,8 @@ if (isDbError) {
 ## Files Modified
 
 1. **`src/app/api/sse/route.ts`** - Enhanced route handler with health checks
-2. **`src/lib/unified-connection-manager.ts`** - Database-protected authentication
-3. **`src/lib/sse-db-wrapper.ts`** - New database connection wrapper
+2. **`src/lib/realtime.ts`** - Lightweight hub with global broadcast
+3. **`src/lib/sse-db-wrapper.ts`** - (legacy) replaced by simple hub usage
 4. **`src/app/api/sse/health/route.ts`** - New health check endpoint
 5. **`SSE_502_COMPREHENSIVE_FIX.md`** - This documentation
 

@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import enhancedSSEManager from '@/lib/enhanced-sse-manager';
-import { getUnifiedConnectionStats } from '@/lib/unified-connection-manager';
+import { getConnectionCount } from '@/lib/realtime';
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,9 +11,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get SSE debug information
-    const sseDebugInfo = enhancedSSEManager.getDetailedDebugInfo();
-    const unifiedStats = getUnifiedConnectionStats();
+    const totalConnections = getConnectionCount();
 
     // Check if SSE debug mode is enabled
     const isDebugMode = process.env.NEXT_PUBLIC_SSE_DEBUG === '1';
@@ -30,10 +27,8 @@ export async function GET(request: NextRequest) {
         NEXT_PUBLIC_SSE_DEBUG: isDebugMode,
         APP_PORT: process.env.APP_PORT
       },
-      enhancedSSE: sseDebugInfo,
-      unifiedSSE: unifiedStats,
+      sse: { totalConnections },
       recommendations: [
-        ...sseDebugInfo.recommendations,
         isDebugMode ? 'SSE debug mode is enabled - check browser console for detailed logs' : 'Set NEXT_PUBLIC_SSE_DEBUG=1 to enable detailed SSE logging',
         'Check server logs for any authentication or connection errors',
         'Verify the /api/sse endpoint is accessible and responding correctly'

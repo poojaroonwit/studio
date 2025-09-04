@@ -55,7 +55,7 @@ const timeoutId = setTimeout(() => {
 - Enhanced error responses for timeout scenarios
 - Proper CORS headers for error responses
 
-### 2. Updated Unified Connection Manager (`src/lib/unified-connection-manager.ts`)
+### 2. Switched to Simple SSE Hub (`src/lib/realtime.ts`)
 
 Enhanced server-side timeout management:
 
@@ -160,7 +160,7 @@ serverRuntimeConfig: {
 ## Files Modified
 
 1. **`src/app/api/sse/route.ts`** - Enhanced route handler with timeout management
-2. **`src/lib/unified-connection-manager.ts`** - Added server timeout handling
+2. **`src/lib/realtime.ts`** - Minimal stream with keepalive comments
 3. **`server.js`** - Updated server configuration with SSE-specific timeouts
 4. **`next.config.js`** - Added server runtime configuration
 5. **`SSE_502_BAD_GATEWAY_FIX.md`** - This documentation file

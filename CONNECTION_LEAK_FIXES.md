@@ -38,7 +38,7 @@ The application was experiencing "too many connections" errors due to database c
 ```
 
 ### 2. **Improved Connection Management**
-**File:** `src/lib/unified-connection-manager.ts`
+**File:** `src/lib/realtime.ts`
 
 **Improvements:**
 - Added proper error handling in `getUserDbClient()`
@@ -69,7 +69,7 @@ Shows:
 
 ### 3. **Connection Monitoring Functions**
 ```typescript
-import { getConnectionDebugInfo, emergencyConnectionReset } from '@/lib/unified-connection-manager';
+import { getConnectionCount } from '@/lib/realtime';
 
 // Get current connection status
 const info = getConnectionDebugInfo();
@@ -206,7 +206,7 @@ Add to your monitoring:
 ## Files Modified
 
 - `src/app/api/upload-queue/sse/broadcastUploadQueueUpdate.ts` - Fixed client release
-- `src/lib/unified-connection-manager.ts` - Enhanced connection management
+- `src/lib/realtime.ts` - Simple connection hub
 - `scripts/debug-connections.js` - New debug script
 - `src/app/api/debug/connections/route.ts` - New monitoring endpoint
 - `src/app/api/debug/connections/reset/route.ts` - Emergency reset endpoint

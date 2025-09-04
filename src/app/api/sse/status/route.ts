@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
-import { getUnifiedConnectionStats } from '@/lib/unified-connection-manager';
+import { getConnectionCount } from '@/lib/realtime';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,29 +34,13 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: NextRequest) {
   try {
-    // Simple authentication check without database calls
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ 
-        error: 'Unauthorized',
-        message: 'Authentication required'
-      }, { 
-        status: 401,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
-        }
-      });
-    }
-
-    // Get SSE connection stats without database calls
-    const connectionStats = getUnifiedConnectionStats();
-    
+    // Public, zero-auth, zero-DB status for reliability behind proxies
+    const totalConnections = getConnectionCount();
     const sseStatus = {
-      status: connectionStats.totalConnections > 0 ? 'connected' : 'disconnected',
+      status: totalConnections > 0 ? 'connected' : 'disconnected',
       lastUpdate: new Date().toISOString(),
-      activeConnections: connectionStats.totalConnections,
-      connectedUsers: connectionStats.connectedUsers.length,
+      activeConnections: totalConnections,
+      connectedUsers: null,
       timestamp: new Date().toISOString(),
       serverTime: new Date().toLocaleTimeString()
     };

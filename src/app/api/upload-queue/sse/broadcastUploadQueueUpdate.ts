@@ -1,5 +1,5 @@
 import { getPool } from '@/lib/db';
-import { broadcastToAll } from '@/lib/unified-connection-manager';
+import { broadcast } from '@/lib/realtime';
 import { broadcastUploadQueueUpdateIfChanged } from '@/lib/data-change-tracker';
 
 // Keep the old controllers for backward compatibility during transition
@@ -141,9 +141,9 @@ export async function broadcastUploadQueueUpdate() {
         error: Number(summary.error) || 0,
       };
       
-      // Use smart change detection - only broadcast if summary actually changed
+      // Broadcast summary via simple hub (keep change detection)
       broadcastUploadQueueUpdateIfChanged(safeSummary, {
-        minBroadcastInterval: 2000, // 2 seconds minimum between broadcasts
+        minBroadcastInterval: 2000,
         ignoreFields: ['timestamp']
       });
     } finally {

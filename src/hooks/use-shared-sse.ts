@@ -2,7 +2,7 @@
 // This prevents multiple SSE connections and reduces event frequency
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { createEventSource, closeEventSource } from '@/lib/event-source-utils';
+// Use native EventSource directly
 
 interface SSEEvent {
   type: string;
@@ -47,7 +47,7 @@ function initializeGlobalSSE() {
   }
 
   try {
-    globalEventSource = createEventSource('/api/sse');
+    globalEventSource = new EventSource('/api/sse');
     
     globalEventSource.onopen = () => {
       globalState.isConnected = true;
@@ -116,7 +116,7 @@ function initializeGlobalSSE() {
 // Cleanup global SSE connection
 function cleanupGlobalSSE() {
   if (globalEventSource) {
-    closeEventSource(globalEventSource);
+    try { globalEventSource.close(); } catch {}
     globalEventSource = null;
     globalState.isConnected = false;
     globalState.error = null;

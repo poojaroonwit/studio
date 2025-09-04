@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUnifiedConnectionStats, getConnectionDebugInfo } from '@/lib/unified-connection-manager';
+import { getConnectionCount } from '@/lib/realtime';
 import { getPool, getConnectionUsageStats, emergencyConnectionCleanup } from '@/lib/db';
 import { hasAnyPermission } from '@/lib/permissions';
 import { getServerSession } from 'next-auth/next';
@@ -19,9 +19,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
     }
 
-    // Get SSE connection info
-    const sseInfo = getUnifiedConnectionStats();
-    const sseDebugInfo = getConnectionDebugInfo();
+    // Get SSE connection info (simplified)
+    const sseInfo = { totalConnections: getConnectionCount() };
+    const sseDebugInfo = { info: 'simple-hub', totalConnections: sseInfo.totalConnections };
 
     // Get database connection info
     let dbInfo: any = { error: 'Database not accessible' };

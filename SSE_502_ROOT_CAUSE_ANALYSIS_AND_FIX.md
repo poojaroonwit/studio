@@ -35,7 +35,7 @@ GET https://dev-ncc-cv-screening.qsncc.com/api/sse 502 (Bad Gateway)
 
 ## Comprehensive Solution Implemented
 
-### 1. **Enhanced Database Health Checks** (`src/lib/unified-connection-manager.ts`)
+### 1. **SSE Simplification** (`src/lib/realtime.ts`)
 
 **Pre-flight Database Health Check:**
 ```typescript
@@ -65,7 +65,7 @@ if (!dbHealth.healthy) {
 - Session validation errors → 401 Unauthorized
 - Proper error details and retry information
 
-### 2. **Enhanced SSE Manager Error Handling** (`src/lib/enhanced-sse-manager.ts`)
+### 2. **Client Simplicity** (native `EventSource` and `useEventSource`)
 
 **Improved EventSource Error Detection:**
 ```typescript

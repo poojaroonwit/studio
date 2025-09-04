@@ -1,7 +1,4 @@
 import { NextRequest } from 'next/server';
-import { getUploadQueueDataForUser, broadcastToUser } from '@/lib/unified-connection-manager';
-import { getServerSession } from 'next-auth/next';
-import { authOptions, validateUserSession } from '@/lib/auth';
 
 export const dynamic = "force-dynamic";
 

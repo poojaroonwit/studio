@@ -43,7 +43,6 @@ import { useEnhancedSSE } from '@/hooks/use-enhanced-sse';
 import { checkSLAViolation, getSLABadgeVariant, formatSLAMessage, getSLARemainingDays } from '@/lib/slaUtils';
 import { Pagination } from '@/components/ui/pagination';
 import { useJobMatchFeature } from '@/hooks/useJobMatchFeature';
-import { enhancedSSEManager } from '@/lib/enhanced-sse-manager';
 import { useSharedSSE } from '@/hooks/use-shared-sse';
 
 

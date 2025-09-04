@@ -49,7 +49,7 @@ Fixed the following SSE endpoints:
 - `/api/sse` (main SSE endpoint)
 - `/api/sse/test-connection` (test endpoint)
 - `/api/warnings/stream` (warnings stream)
-- All endpoints in `unified-connection-manager.ts`
+- All endpoints now handled via `src/lib/realtime.ts`
 - All endpoints in `simple-sse.ts`
 
 ### 3. Next.js Configuration
@@ -80,8 +80,8 @@ Updated the custom server (`server.js`) to handle SSE responses properly and pre
 
 ## Files Modified
 
-1. **`src/lib/unified-connection-manager.ts`**
-   - Added `Transfer-Encoding: identity` header
+1. **`src/lib/realtime.ts`**
+   - Ensures `Transfer-Encoding: identity` and proper SSE headers
    - Added `Content-Length: 0` header
 
 2. **`src/lib/simple-sse.ts`**

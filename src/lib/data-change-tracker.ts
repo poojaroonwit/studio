@@ -1,8 +1,8 @@
 // Data Change Detection System for SSE Events
 // Only broadcasts when there are actual meaningful changes
 
-import { broadcastToAll, broadcastToUser } from './unified-connection-manager';
-import type { UnifiedEventType } from './unified-connection-manager';
+import { broadcast as broadcastAll } from './realtime';
+type UnifiedEventType = string;
 import { broadcastLowPriority, broadcastMediumPriority, broadcastHighPriority } from './aggressive-sse-optimizer';
 
 // Change tracking interfaces
@@ -192,12 +192,7 @@ export function broadcastBatchUpdateIfChanged(
     ignoreFields: ['timestamp', ...(options.ignoreFields || [])]
   })) {
     console.log(`[DataChange] Broadcasting ${itemType} batch update:`, items.length, 'items');
-    broadcastToAll(`${itemType}_update` as UnifiedEventType, {
-      items,
-      actingUserId,
-      action: 'batch_updated',
-      timestamp: new Date().toISOString()
-    });
+    broadcastAll({ type: `${itemType}_update`, items, actingUserId, action: 'batch_updated', timestamp: new Date().toISOString() }, `${itemType}_update`);
   } else {
     console.log(`[DataChange] Skipping ${itemType} batch update - no meaningful change`);
   }
@@ -206,10 +201,8 @@ export function broadcastBatchUpdateIfChanged(
 // Force broadcast (bypass change detection)
 export function forceBroadcast(eventType: UnifiedEventType, data: any, targetUserId?: string) {
   console.log('[DataChange] Force broadcasting:', eventType);
-  if (targetUserId) {
-    broadcastToUser(targetUserId, eventType, data);
-  } else {
-    broadcastToAll(eventType, data);
+  if (!targetUserId) {
+    broadcastAll({ type: eventType, ...data }, eventType);
   }
 }
 

@@ -10,7 +10,7 @@ Real-time update frequencies have been optimized for maximum responsiveness:
 
 ### 1. SSE Keepalive Intervals
 - **Primary SSE** (`src/lib/simple-sse.ts`): 30s → **1s** (optimized for real-time)
-- **Unified SSE** (`src/lib/unified-connection-manager.ts`): 15s → **1s** (optimized for real-time)
+- **Unified SSE** → replaced by simple hub (`src/lib/realtime.ts`): **1s** keepalive
 
 ### 2. Connection Timeouts
 - **Primary SSE**: 120s → **180s** (3 minutes)
@@ -110,7 +110,7 @@ If performance issues arise, consider:
 ## Files Modified
 
 - `src/lib/simple-sse.ts`
-- `src/lib/unified-connection-manager.ts`
+- `src/lib/realtime.ts`
 - `src/lib/data-change-tracker.ts`
 - `src/lib/simple-broadcaster.ts`
 - `src/components/dashboard/RealTimeStatus.tsx`

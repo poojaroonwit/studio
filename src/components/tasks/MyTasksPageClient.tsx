@@ -82,10 +82,11 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   const [isCardSettingsOpen, setIsCardSettingsOpen] = useState(false);
   const [showNetworkDiagnostics, setShowNetworkDiagnostics] = useState(false);
   const [hasNetworkError, setHasNetworkError] = useState(false);
+  const [realtimeStatus, setRealtimeStatus] = useState<'connected' | 'disconnected' | 'refreshing'>('disconnected');
   const { data: session, status } = useSession();
   const router = useRouter();
   const [metadataLoaded, setMetadataLoaded] = useState(false);
-    const [totalCandidates, setTotalCandidates] = useState(0);
+  const [totalCandidates, setTotalCandidates] = useState(0);
   
   // Admin users can access my-tasks page - no automatic redirect
   
@@ -993,6 +994,20 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                 </Button>
               )}
 
+              {/* Realtime Status Indicator */}
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <div className={cn(
+                  "w-2 h-2 rounded-full",
+                  realtimeStatus === 'connected' ? "bg-green-500" : 
+                  realtimeStatus === 'refreshing' ? "bg-yellow-500" : 
+                  "bg-red-500"
+                )} />
+                <span className="hidden sm:inline">
+                  {realtimeStatus === 'connected' ? 'Live' : 
+                   realtimeStatus === 'refreshing' ? 'Refreshing' : 
+                   'Offline'}
+                </span>
+              </div>
 
             </div>
           </div>

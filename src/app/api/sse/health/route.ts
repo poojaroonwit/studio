@@ -1,95 +1,81 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
+import { NextRequest } from 'next/server';
+import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { getUnifiedConnectionStats, getConnectionDebugInfo } from '@/lib/unified-connection-manager';
+import { userConnections } from '@/lib/unified-connection-manager';
 
 export const dynamic = 'force-dynamic';
 
-/**
- * SSE Health Check Endpoint
- * Provides real-time information about SSE connection health and status
- */
 export async function GET(request: NextRequest) {
   try {
     // Check authentication
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
-      return NextResponse.json({ 
+      return new Response(JSON.stringify({
         error: 'Authentication required',
-        message: 'Please log in to check SSE health',
+        message: 'No valid user session found',
         timestamp: new Date().toISOString()
-      }, { status: 401 });
+      }), { 
+        status: 401,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
 
     const userId = session.user.id;
-    const userEmail = session.user.email;
-
-    // Get connection statistics
-    const connectionStats = getUnifiedConnectionStats();
-    const connectionDebug = getConnectionDebugInfo();
-
-    // Check if user has an active connection
-    const userConnection = connectionDebug.connections.find(conn => conn.userId === userId);
-    const isUserConnected = !!userConnection;
-
-    // Health check results
-    const healthResults = {
+    const userConnection = userConnections.get(userId);
+    
+    // Get connection health information
+    const healthData = {
+      status: 'healthy',
       timestamp: new Date().toISOString(),
-      user: {
-        id: userId,
-        email: userEmail,
-        isConnected: isUserConnected
+      userId,
+      connection: userConnection ? {
+        isConnected: true,
+        connectionStartTime: userConnection.connectionStartTime,
+        lastActivity: userConnection.lastActivity,
+        uptime: Date.now() - userConnection.connectionStartTime,
+        hasKeepaliveInterval: !!userConnection.keepaliveInterval
+      } : {
+        isConnected: false,
+        message: 'No active connection found'
       },
-      connection: {
-        status: isUserConnected ? 'connected' : 'disconnected',
-        details: userConnection || null
-      },
-      system: {
-        totalConnections: connectionStats.totalConnections,
-        connectedUsers: connectionStats.connectedUsers.length,
-        uptime: process.uptime(),
-        memoryUsage: process.memoryUsage(),
-        nodeVersion: process.version
-      },
-      recommendations: isUserConnected ? [
-        'SSE connection is healthy',
-        'Monitor for any connection drops',
-        'Check browser console for errors if issues persist'
-      ] : [
-        'SSE connection is not active',
-        'Try refreshing the page',
-        'Check browser console for connection errors',
-        'Verify network connectivity'
-      ],
-      troubleshooting: {
-        commonIssues: [
-          'Chunked encoding errors - usually indicate connection interruption',
-          'Authentication failures - check session validity',
-          'Network timeouts - verify server accessibility',
-          'Browser blocking - check browser settings and extensions'
-        ],
-        nextSteps: [
-          'Enable browser developer tools and check console',
-          'Check network tab for failed requests',
-          'Try connecting from a different browser or incognito mode',
-          'Verify server is running and accessible'
-        ]
-      }
+      recommendations: []
     };
 
-    return NextResponse.json(healthResults);
+    // Add recommendations based on connection state
+    if (!userConnection) {
+      healthData.recommendations.push('Establish new SSE connection');
+    } else {
+      const uptime = Date.now() - userConnection.connectionStartTime;
+      if (uptime > 300000) { // 5 minutes
+        healthData.recommendations.push('Connection is stable (running for over 5 minutes)');
+      }
+      if (!userConnection.keepaliveInterval) {
+        healthData.recommendations.push('Keepalive interval not set - connection may be unstable');
+      }
+    }
+
+    // Add general SSE recommendations
+    healthData.recommendations.push('Ensure nginx is configured with proper SSE settings');
+    healthData.recommendations.push('Check for network interruptions or proxy timeouts');
+    healthData.recommendations.push('Verify server is running and accessible');
+
+    return new Response(JSON.stringify(healthData, null, 2), {
+      status: 200,
+      headers: { 
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate'
+      }
+    });
 
   } catch (error) {
     console.error('[SSE Health] Error:', error);
-    return NextResponse.json({
+    return new Response(JSON.stringify({
       error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error',
-      timestamp: new Date().toISOString(),
-      recommendations: [
-        'Check server logs for detailed error information',
-        'Verify database connection is working',
-        'Check if all required environment variables are set'
-      ]
-    }, { status: 500 });
+      message: 'Failed to check SSE health',
+      timestamp: new Date().toISOString()
+    }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 }

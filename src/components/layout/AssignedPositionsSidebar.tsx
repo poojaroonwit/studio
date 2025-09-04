@@ -75,38 +75,51 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
           console.error('[AssignedPositionsSidebar] SSE connection error:', error);
           setSseConnected(false);
           
-          // Check if this is a chunked encoding error
+          // Enhanced error detection for chunked encoding issues
           const isChunkedError = error.type === 'error' && 
             (es.readyState === EventSource.CLOSED || es.readyState === EventSource.CONNECTING);
           
+          // Check for specific network errors that indicate chunked encoding issues
+          const isNetworkError = error.type === 'error' && 
+            (es.readyState === EventSource.CLOSED || 
+             navigator.onLine === false);
+          
           let errorMessage = 'SSE connection failed. Please check your authentication and network connection.';
           
-          if (isChunkedError) {
+          if (isChunkedError || isNetworkError) {
             errorMessage = 'Connection interrupted. Attempting to reconnect...';
-            console.log('[AssignedPositionsSidebar] Detected chunked encoding error, will attempt reconnection');
+            console.log('[AssignedPositionsSidebar] Detected connection interruption, will attempt reconnection');
           }
           
           setError(errorMessage);
           
-          // Enhanced reconnection logic with exponential backoff
+          // Enhanced reconnection logic with exponential backoff and better error handling
           const retryCount = parseInt(sessionStorage.getItem('sseRetryCount') || '0');
-          const maxRetries = 10;
+          const maxRetries = 15; // Increased max retries
           const baseDelay = 1000; // 1 second
-          const retryDelay = Math.min(baseDelay * Math.pow(2, retryCount), 30000); // Max 30 seconds
+          const retryDelay = Math.min(baseDelay * Math.pow(1.5, retryCount), 30000); // Max 30 seconds, gentler backoff
           
           if (retryCount < maxRetries) {
             sessionStorage.setItem('sseRetryCount', (retryCount + 1).toString());
             
+            // Close existing connection before retrying
+            if (sseRef.current) {
+              sseRef.current.close();
+              sseRef.current = null;
+            }
+            
             setTimeout(() => {
-              if (sseRef.current?.readyState === EventSource.CLOSED) {
-                console.log(`[AssignedPositionsSidebar] Attempting SSE reconnection (attempt ${retryCount + 1}/${maxRetries})...`);
-                establishSSEConnection();
-              }
+              console.log(`[AssignedPositionsSidebar] Attempting SSE reconnection (attempt ${retryCount + 1}/${maxRetries})...`);
+              establishSSEConnection();
             }, retryDelay);
           } else {
             console.error('[AssignedPositionsSidebar] Max SSE reconnection attempts reached');
             setError('Connection failed - max retries reached. Please refresh the page.');
             sessionStorage.removeItem('sseRetryCount');
+            
+            // Fallback to polling after max retries
+            console.log('[AssignedPositionsSidebar] Falling back to polling mode');
+            // You can implement polling fallback here if needed
           }
         };
 

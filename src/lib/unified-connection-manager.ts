@@ -336,7 +336,7 @@ export async function handleUnifiedSSEConnection(request: Request) {
           return;
         }
 
-        // Send keepalive every 60 seconds (aggressively reduced for minimal events)
+        // Send keepalive every 15 seconds for better connection stability
         keepaliveInterval = setInterval(() => {
           if (!connectionAlive) {
             clearInterval(keepaliveInterval);
@@ -364,7 +364,7 @@ export async function handleUnifiedSSEConnection(request: Request) {
             clearInterval(keepaliveInterval);
             removeUserConnection(userId);
           }
-        }, 60000); // 60 seconds for minimal events
+        }, 15000); // 15 seconds for better stability
 
         // Store keepalive interval reference
         const connection = userConnections.get(userId);
@@ -403,11 +403,10 @@ export async function handleUnifiedSSEConnection(request: Request) {
         'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         'Access-Control-Allow-Credentials': 'true',
         'X-Accel-Buffering': 'no',
-        'Keep-Alive': 'timeout=300, max=1000', // Increased timeout to 5 minutes
+        'Keep-Alive': 'timeout=300, max=1000', // 5 minutes timeout
         'X-Frame-Options': 'DENY',
-        'X-Content-Type-Options': 'nosniff',
-        // Add specific headers to prevent chunked encoding issues
-        'Transfer-Encoding': 'chunked'
+        'X-Content-Type-Options': 'nosniff'
+        // Removed Transfer-Encoding: chunked to prevent conflicts with nginx
       },
     });
   } catch (error) {

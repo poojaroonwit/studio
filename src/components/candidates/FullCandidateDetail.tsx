@@ -78,6 +78,9 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
 
   // Add a ref to track when the modal was opened to prevent premature closing
   const headcountModalOpenTimeRef = useRef<number | null>(null);
+  
+  // Add state to track when headcount warning was shown to prevent immediate reopening of transitions modal
+  const [headcountWarningShownTime, setHeadcountWarningShownTime] = useState<number | null>(null);
 
   // Wrap setHeadcountWarningData to add debugging
   const setHeadcountWarningDataWithDebug = (data: typeof headcountWarningData) => {
@@ -111,6 +114,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
     setIsHeadcountWarningModalOpen(false);
     setHeadcountWarningDataWithDebug(null);
     headcountModalOpenTimeRef.current = null;
+    setHeadcountWarningShownTime(null);
   }, []);
 
   // Add additional debugging to track when modal state changes
@@ -122,6 +126,18 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
       timestamp: new Date().toISOString()
     });
   }, [isHeadcountWarningModalOpen, headcountWarningData]);
+  
+  // Auto-clear headcount warning timestamp after 5 seconds to allow transitions modal to be reopened
+  useEffect(() => {
+    if (headcountWarningShownTime) {
+      const timer = setTimeout(() => {
+        setHeadcountWarningShownTime(null);
+        console.log('FullCandidateDetail - Auto-clearing headcount warning timestamp');
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [headcountWarningShownTime]);
   
   // Selection states
   const [preselectedStage, setPreselectedStage] = useState<string | null>(null);
@@ -259,6 +275,13 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
   // Event handlers
 
   const openManageTransitionsModal = (stageName?: string) => {
+    // Prevent opening transitions modal if headcount warning was recently shown (within last 3 seconds)
+    if (headcountWarningShownTime && (Date.now() - headcountWarningShownTime) < 3000) {
+      console.log('FullCandidateDetail - Preventing transitions modal from opening - headcount warning was recently shown');
+      toast.error('Please resolve the headcount constraint before changing candidate status.');
+      return;
+    }
+    
     setPreselectedStage(stageName || candidate?.status || availableStages[0]?.name || null);
     setIsTransitionsModalOpen(true);
   };
@@ -725,6 +748,10 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                 if (!validationResult.canHire) {
                   console.log('FullCandidateDetail - Headcount not available, showing warning modal and blocking status change');
                   
+                  // Close the ManageTransitionsModal when showing headcount warning
+                  setIsTransitionsModalOpen(false);
+                  setPreselectedStage(null);
+                  
                   // Get position title for the warning
                   const positionTitle = allDbPositions.find(p => p.id === candidate.positionId)?.title;
                   
@@ -737,6 +764,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                   
                   // Open modal to block the status change
                   headcountModalOpenTimeRef.current = Date.now();
+                  setHeadcountWarningShownTime(Date.now());
                   setIsHeadcountWarningModalOpen(true);
                   
                   // IMPORTANT: Return false to indicate the update was blocked
@@ -869,14 +897,6 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
           candidateName={headcountWarningData.candidateName}
           positionTitle={headcountWarningData.positionTitle}
           errorMessage={headcountWarningData.errorMessage}
-          onProceed={() => {
-            console.log('HeadcountWarningModal - Proceed clicked, attempting to force hire');
-            // Here you could implement logic to force hire the candidate
-            // For now, just close the modal
-            headcountModalOpenTimeRef.current = null;
-            setIsHeadcountWarningModalOpen(false);
-            setHeadcountWarningDataWithDebug(null);
-          }}
         />
       )}
  

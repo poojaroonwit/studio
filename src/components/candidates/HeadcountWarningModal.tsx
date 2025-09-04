@@ -18,7 +18,6 @@ interface HeadcountWarningModalProps {
   candidateName: string;
   positionTitle?: string;
   errorMessage: string;
-  onProceed?: () => void;
   candidate?: any; // Add candidate prop for position ID access
 }
 
@@ -27,8 +26,7 @@ export function HeadcountWarningModal({
   onClose,
   candidateName,
   positionTitle,
-  errorMessage,
-  onProceed
+  errorMessage
 }: HeadcountWarningModalProps) {
   // Add debugging to track modal state changes
   React.useEffect(() => {
@@ -193,19 +191,6 @@ export function HeadcountWarningModal({
           <Button variant="outline" onClick={handleClose}>
             Close
           </Button>
-          {onProceed && !isNoPosition && (
-            <Button 
-              variant="destructive" 
-              onClick={() => {
-                console.log('HeadcountWarningModal - Proceed button clicked');
-                shouldStayOpenRef.current = false;
-                onProceed();
-                onClose();
-              }}
-            >
-              Proceed Anyway (Not Recommended)
-            </Button>
-          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

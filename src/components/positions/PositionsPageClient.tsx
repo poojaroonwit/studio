@@ -89,7 +89,7 @@ export default function PositionsPageClient() {
     return 1;
   });
   
-  const [pageSize, setPageSize] = useState(preferences.pageSize);
+  const [pageSize, setPageSize] = useState(preferences.pageSize || 10);
   const [total, setTotal] = useState(0);
   const [statistics, setStatistics] = useState({ total: 0, open: 0, closed: 0 });
   const [allDepartments, setAllDepartments] = useState<string[]>([]);
@@ -1441,7 +1441,7 @@ export default function PositionsPageClient() {
           )}
           
           {/* Scrollable Table Container */}
-          <div className="positions-table-scroll table-scrollbar">
+          <div className="positions-table-scroll table-scrollbar" style={{ maxHeight: '400px' }}>
             <Table className="min-w-full table-content-expandable">
             <TableHeader className="table-sticky-header">
               <TableRow>
@@ -1566,7 +1566,7 @@ export default function PositionsPageClient() {
                       aria-label={`Select position ${position.title}`}
                     />
                   </TableCell>
-                  <TableCell className="font-medium min-w-[150px]">
+                  <TableCell className="font-medium min-w-[120px]">
                     <div className="flex flex-col">
                       <button
                         onClick={() => {
@@ -1739,7 +1739,7 @@ export default function PositionsPageClient() {
               setPage(1);
               updateURL(1, newPageSize);
             }}
-            pageSizeOptions={[10, 20, 50, 100]}
+            pageSizeOptions={[5, 10, 20, 50]}
             showPageSizeSelector={true}
             className="mt-4"
           />

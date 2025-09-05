@@ -29,6 +29,15 @@ export function ZoomControl({
     // Apply zoom using CSS zoom property for browser-like behavior
     document.documentElement.style.zoom = zoom.toString();
     
+    // Ensure proper height scaling with zoom
+    const html = document.documentElement;
+    const body = document.body;
+    
+    // Set explicit height to ensure proper scaling
+    html.style.height = '100vh';
+    body.style.height = '100vh';
+    body.style.minHeight = '100vh';
+    
     // Store zoom level in localStorage
     localStorage.setItem('app-zoom-level', zoom.toString());
   }, [zoom]);
@@ -65,6 +74,22 @@ export function ZoomControl({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  // Handle window resize to maintain proper height scaling
+  useEffect(() => {
+    const handleResize = () => {
+      if (zoom !== 1.0) {
+        const html = document.documentElement;
+        const body = document.body;
+        html.style.height = '100vh';
+        body.style.height = '100vh';
+        body.style.minHeight = '100vh';
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [zoom]);
 
   const handleZoomIn = () => {
     setZoom(prev => Math.min(prev + step, maxZoom));
@@ -222,6 +247,13 @@ export function useZoom() {
          const zoomLevel = preferences.zoomLevel || 1.0;
          setZoom(zoomLevel);
          document.documentElement.style.zoom = zoomLevel.toString();
+         
+         // Ensure proper height scaling with zoom
+         const html = document.documentElement;
+         const body = document.body;
+         html.style.height = '100vh';
+         body.style.height = '100vh';
+         body.style.minHeight = '100vh';
         } else {
           // Fallback to localStorage
           const savedZoom = localStorage.getItem('app-zoom-level');
@@ -248,6 +280,13 @@ export function useZoom() {
   const setZoomLevel = async (level: number) => {
     setZoom(level);
     document.documentElement.style.zoom = level.toString();
+    
+    // Ensure proper height scaling with zoom
+    const html = document.documentElement;
+    const body = document.body;
+    html.style.height = '100vh';
+    body.style.height = '100vh';
+    body.style.minHeight = '100vh';
     
     // Save to localStorage as backup
     localStorage.setItem('app-zoom-level', level.toString());
@@ -297,6 +336,22 @@ export function useZoom() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [zoom]);
+
+  // Handle window resize to maintain proper height scaling
+  useEffect(() => {
+    const handleResize = () => {
+      if (zoom !== 1.0) {
+        const html = document.documentElement;
+        const body = document.body;
+        html.style.height = '100vh';
+        body.style.height = '100vh';
+        body.style.minHeight = '100vh';
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, [zoom]);
 
   return {

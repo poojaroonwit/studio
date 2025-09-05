@@ -6,20 +6,23 @@ The application now behaves exactly like browser zoom (Ctrl + Plus/Minus) with t
 
 ### **How It Works:**
 1. **CSS Zoom Property**: Uses `document.documentElement.style.zoom` for true browser-like behavior
-2. **Keyboard Shortcuts**: 
+2. **Proper Height Scaling**: Ensures both width and height scale proportionally to fit viewport
+3. **Keyboard Shortcuts**: 
    - `Ctrl + Plus` (or `Ctrl + =`): Zoom in
    - `Ctrl + Minus`: Zoom out  
    - `Ctrl + 0`: Reset to 100%
-3. **Smooth Transitions**: 0.2s ease-in-out transition for smooth zoom changes
-4. **Proper Scaling**: Entire page scales uniformly, just like browser zoom
+4. **Smooth Transitions**: 0.2s ease-in-out transition for smooth zoom changes
+5. **Viewport Fitting**: Page height automatically adjusts to fit the viewport when zoomed
 
 ### **Key Features:**
 
 #### **1. True Browser Zoom Behavior**
-- ✅ Entire page scales uniformly
+- ✅ Entire page scales uniformly (both width and height)
 - ✅ All elements maintain their relative positions
 - ✅ Text, images, and UI elements scale proportionally
+- ✅ Page height automatically fits viewport when zoomed
 - ✅ No layout breaking or content overflow issues
+- ✅ Proper viewport fitting on all screen sizes
 
 #### **2. Keyboard Shortcuts**
 - ✅ `Ctrl + Plus` / `Ctrl + =`: Zoom in by 10%
@@ -48,8 +51,15 @@ The application now behaves exactly like browser zoom (Ctrl + Plus/Minus) with t
 ### **Technical Implementation:**
 
 ```typescript
-// Apply zoom using CSS zoom property
+// Apply zoom using CSS zoom property with proper height scaling
 document.documentElement.style.zoom = zoomLevel.toString();
+
+// Ensure proper height scaling with zoom
+const html = document.documentElement;
+const body = document.body;
+html.style.height = '100vh';
+body.style.height = '100vh';
+body.style.minHeight = '100vh';
 
 // Keyboard shortcuts
 useEffect(() => {
@@ -69,6 +79,21 @@ useEffect(() => {
   };
   window.addEventListener('keydown', handleKeyDown);
   return () => window.removeEventListener('keydown', handleKeyDown);
+}, [zoom]);
+
+// Handle window resize to maintain proper height scaling
+useEffect(() => {
+  const handleResize = () => {
+    if (zoom !== 1.0) {
+      const html = document.documentElement;
+      const body = document.body;
+      html.style.height = '100vh';
+      body.style.height = '100vh';
+      body.style.minHeight = '100vh';
+    }
+  };
+  window.addEventListener('resize', handleResize);
+  return () => window.removeEventListener('resize', handleResize);
 }, [zoom]);
 ```
 

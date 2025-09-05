@@ -1932,7 +1932,7 @@ audio::-webkit-scrollbar-button {
 
 .table-dynamic-width th:nth-child(2),
 .table-dynamic-width td:nth-child(2) {
-  min-width: 150px; /* Title column */
+  min-width: 120px; /* Title column */
 }
 
 .table-dynamic-width th:nth-child(4),
@@ -2820,10 +2820,12 @@ body:has(.zoom-controls) {
   overflow-x: hidden;
 }
 
-/* Browser-like zoom behavior */
+/* Browser-like zoom behavior with proper height scaling */
 html {
   zoom: 1;
   transition: zoom 0.2s ease-in-out;
+  height: 100%;
+  width: 100%;
 }
 
 /* Ensure proper zoom behavior on all elements */
@@ -2831,10 +2833,31 @@ html {
   box-sizing: border-box;
 }
 
-/* Prevent zoom from breaking layout */
+/* Prevent zoom from breaking layout and ensure proper height scaling */
 body {
   min-height: 100vh;
+  height: 100vh;
+  width: 100%;
   overflow-x: auto;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+}
+
+/* Ensure the main app container scales properly */
+#__next {
+  height: 100%;
+  width: 100%;
+}
+
+/* Fix for zoom height scaling */
+html[style*="zoom"] {
+  height: 100vh;
+}
+
+html[style*="zoom"] body {
+  height: 100vh;
+  min-height: 100vh;
 }
 
 /* Ensure body zoom doesn't interfere with layout */

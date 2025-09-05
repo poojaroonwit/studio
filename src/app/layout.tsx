@@ -9,6 +9,7 @@ import { FontLoader } from '@/components/ui/FontLoader';
 import { FontPreloader } from '@/components/ui/FontPreloader';
 import { ResizeObserverInitializer } from '@/components/ui/ResizeObserverInitializer';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
+import { ZoomDebug } from '@/components/debug/ZoomDebug';
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -99,15 +100,52 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                         const zoomLevel = parseFloat(savedZoom);
                         if (zoomLevel >= 0.5 && zoomLevel <= 1.5) {
                           document.documentElement.style.zoom = zoomLevel.toString();
+                          console.log('Applied saved zoom:', zoomLevel);
                         } else {
                           // Set default to 90% if saved value is invalid
                           document.documentElement.style.zoom = '0.9';
                           localStorage.setItem('app-zoom-level', '0.9');
+                          console.log('Applied default zoom: 0.9 (invalid saved value)');
                         }
                       } else {
                         // Set default to 90% if no saved value
                         document.documentElement.style.zoom = '0.9';
                         localStorage.setItem('app-zoom-level', '0.9');
+                        console.log('Applied default zoom: 0.9 (no saved value)');
+                      }
+                      
+                      // Debug: Log current zoom and body height
+                      setTimeout(() => {
+                        console.log('=== ZOOM DEBUG INFO ===');
+                        console.log('Current zoom:', document.documentElement.style.zoom);
+                        console.log('Body height:', document.body.style.height);
+                        console.log('Body min-height:', document.body.style.minHeight);
+                        console.log('HTML height:', document.documentElement.style.height);
+                        console.log('Window height:', window.innerHeight);
+                        console.log('Document height:', document.documentElement.scrollHeight);
+                        console.log('Body computed height:', getComputedStyle(document.body).height);
+                        console.log('HTML computed height:', getComputedStyle(document.documentElement).height);
+                        
+                        // Force apply styles
+                        document.documentElement.style.setProperty('height', '100%', 'important');
+                        document.body.style.setProperty('height', '100%', 'important');
+                        document.body.style.setProperty('min-height', '100%', 'important');
+                        console.log('Forced height styles applied');
+                        
+                        // Update visual indicator
+                        const zoomValueElement = document.getElementById('zoom-value');
+                        if (zoomValueElement) {
+                          zoomValueElement.textContent = document.documentElement.style.zoom || '0.9';
+                        }
+                        console.log('========================');
+                      }, 100);
+                      
+                      // Helper function to update zoom indicator
+                      function updateZoomIndicator(zoomValue) {
+                        const zoomValueElement = document.getElementById('zoom-value');
+                        if (zoomValueElement) {
+                          zoomValueElement.textContent = zoomValue;
+                        }
                       }
                       
                       // Global keyboard shortcuts
@@ -120,15 +158,18 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                             const newZoom = Math.min(currentZoom + 0.1, 1.5);
                             document.documentElement.style.zoom = newZoom.toString();
                             localStorage.setItem('app-zoom-level', newZoom.toString());
+                            updateZoomIndicator(newZoom.toString());
                           } else if (event.key === '-') {
                             event.preventDefault();
                             const newZoom = Math.max(currentZoom - 0.1, 0.5);
                             document.documentElement.style.zoom = newZoom.toString();
                             localStorage.setItem('app-zoom-level', newZoom.toString());
+                            updateZoomIndicator(newZoom.toString());
                           } else if (event.key === '0') {
                             event.preventDefault();
                             document.documentElement.style.zoom = '0.9';
                             localStorage.setItem('app-zoom-level', '0.9');
+                            updateZoomIndicator('0.9');
                           }
                         }
                       });
@@ -144,11 +185,17 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <ErrorBoundary>
           <ResizeObserverInitializer />
           <FontPreloader />
+          <ZoomDebug />
           <FontLoader>
             <ClientProviders session={session}>
               {children}
             </ClientProviders>
           </FontLoader>
+          
+          {/* Zoom Test Indicator */}
+          <div className="fixed top-4 right-4 bg-red-500 text-white px-2 py-1 rounded text-xs font-mono z-50" id="zoom-test-indicator">
+            ZOOM: <span id="zoom-value">0.9</span>
+          </div>
         </ErrorBoundary>
       </body>
     </html>

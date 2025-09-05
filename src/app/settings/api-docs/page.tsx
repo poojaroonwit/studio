@@ -58,7 +58,7 @@ export default function ApiDocsPage() {
           Interactive API documentation for the Studio recruitment management system
         </p>
       </div>
-      <div style={{ height: 'calc(100vh - 120px)' }}>
+      <div style={{ height: 'calc(100% - 120px)', minHeight: '400px' }}>
         <SwaggerUI 
           spec={swaggerSpec.spec}
           docExpansion="list"

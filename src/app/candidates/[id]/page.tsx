@@ -19,7 +19,7 @@ export default function CandidateDetailPage() {
   // Loading state while session is being determined
   if (sessionStatus === 'loading') {
     return (
-      <div className="flex h-[calc(100vh-8rem)] items-center justify-center">
+      <div className="flex h-[calc(100%-8rem)] min-h-[400px] items-center justify-center">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
       </div>
     );

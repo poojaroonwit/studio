@@ -29,6 +29,20 @@ export function ZoomControl({
     // Apply zoom using CSS zoom property for browser-like behavior
     document.documentElement.style.zoom = zoom.toString();
     
+    // Ensure height is properly filled to prevent white space
+    const html = document.documentElement;
+    const body = document.body;
+    const nextApp = document.getElementById('__next');
+    
+    // Force height to fill viewport
+    html.style.height = '100vh';
+    body.style.height = '100vh';
+    body.style.minHeight = '100vh';
+    if (nextApp) {
+      nextApp.style.height = '100vh';
+      nextApp.style.minHeight = '100vh';
+    }
+    
     // Store zoom level in localStorage
     localStorage.setItem('app-zoom-level', zoom.toString());
   }, [zoom]);
@@ -42,6 +56,18 @@ export function ZoomControl({
         setZoom(parsedZoom);
         // Apply zoom immediately on page load
         document.documentElement.style.zoom = parsedZoom.toString();
+        
+        // Ensure height is properly filled to prevent white space
+        const html = document.documentElement;
+        const body = document.body;
+        const nextApp = document.getElementById('__next');
+        html.style.height = '100vh';
+        body.style.height = '100vh';
+        body.style.minHeight = '100vh';
+        if (nextApp) {
+          nextApp.style.height = '100vh';
+          nextApp.style.minHeight = '100vh';
+        }
       }
     }
   }, [minZoom, maxZoom]);
@@ -215,6 +241,18 @@ export function useZoom() {
           setZoom(zoomLevel);
           // Apply zoom immediately on page load
           document.documentElement.style.zoom = zoomLevel.toString();
+          
+          // Ensure height is properly filled to prevent white space
+          const html = document.documentElement;
+          const body = document.body;
+          const nextApp = document.getElementById('__next');
+          html.style.height = '100vh';
+          body.style.height = '100vh';
+          body.style.minHeight = '100vh';
+          if (nextApp) {
+            nextApp.style.height = '100vh';
+            nextApp.style.minHeight = '100vh';
+          }
         }
         setIsLoading(false);
         return;
@@ -227,6 +265,18 @@ export function useZoom() {
           const zoomLevel = preferences.zoomLevel || 1.0;
           setZoom(zoomLevel);
           document.documentElement.style.zoom = zoomLevel.toString();
+          
+          // Ensure height is properly filled to prevent white space
+          const html = document.documentElement;
+          const body = document.body;
+          const nextApp = document.getElementById('__next');
+          html.style.height = '100vh';
+          body.style.height = '100vh';
+          body.style.minHeight = '100vh';
+          if (nextApp) {
+            nextApp.style.height = '100vh';
+            nextApp.style.minHeight = '100vh';
+          }
         } else {
           // Fallback to localStorage
           const savedZoom = localStorage.getItem('app-zoom-level');
@@ -252,6 +302,18 @@ export function useZoom() {
   const setZoomLevel = async (level: number) => {
     setZoom(level);
     document.documentElement.style.zoom = level.toString();
+    
+    // Ensure height is properly filled to prevent white space
+    const html = document.documentElement;
+    const body = document.body;
+    const nextApp = document.getElementById('__next');
+    html.style.height = '100vh';
+    body.style.height = '100vh';
+    body.style.minHeight = '100vh';
+    if (nextApp) {
+      nextApp.style.height = '100vh';
+      nextApp.style.minHeight = '100vh';
+    }
     
     // Save to localStorage as backup
     localStorage.setItem('app-zoom-level', level.toString());

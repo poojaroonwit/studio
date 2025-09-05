@@ -2824,6 +2824,7 @@ body:has(.zoom-controls) {
 html {
   zoom: 1;
   transition: zoom 0.2s ease-in-out;
+  height: 100vh;
 }
 
 /* Ensure proper zoom behavior on all elements */
@@ -2834,7 +2835,29 @@ html {
 /* Prevent zoom from breaking layout */
 body {
   min-height: 100vh;
+  height: 100vh;
   background-color: hsl(var(--background));
+}
+
+/* Ensure main app container fills height */
+#__next {
+  height: 100vh;
+  min-height: 100vh;
+}
+
+/* Fix height for zoomed states */
+html[style*="zoom"] {
+  height: 100vh;
+}
+
+html[style*="zoom"] body {
+  height: 100vh;
+  min-height: 100vh;
+}
+
+html[style*="zoom"] #__next {
+  height: 100vh;
+  min-height: 100vh;
 }
 
 /* Ensure body zoom doesn't interfere with layout */

@@ -2823,12 +2823,17 @@ body:has(.zoom-controls) {
 /* Normal browser zoom behavior - compatible with transform zoom */
 html {
   height: 100%;
+  width: 100%;
   /* Allow transform to work properly */
-  transform-origin: top left;
+  transform-origin: top left !important;
+  /* Ensure transform is not overridden */
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
 }
 
 body {
   height: 100%;
+  width: 100%;
   min-height: 100vh;
   /* Simple fix: ensure body always fills the viewport */
   min-height: 100vh;
@@ -2836,14 +2841,38 @@ body {
   /* Fix for zoom out white space - ensure body fills viewport even when zoomed */
   min-height: 100vh !important;
   /* Allow transform to work properly */
-  transform-origin: top left;
+  transform-origin: top left !important;
+  /* Ensure transform is not overridden */
+  overflow-x: hidden !important;
+  position: relative !important;
 }
 
 /* Fix for zoom scaling issues */
 #__next {
   height: 100%;
+  width: 100%;
   min-height: 100vh;
   min-height: 100dvh; /* Fallback for browsers that support it */
   /* Allow transform to work properly */
-  transform-origin: top left;
+  transform-origin: top left !important;
+  /* Ensure transform works */
+  position: relative !important;
+}
+
+/* Force zoom effect to be visible */
+html[style*="transform"] {
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+}
+
+body[style*="transform"] {
+  overflow-x: hidden !important;
+  position: relative !important;
+}
+
+/* Ensure zoom controls don't interfere */
+.zoom-controls {
+  position: fixed !important;
+  z-index: 999999 !important;
+  pointer-events: auto !important;
 }

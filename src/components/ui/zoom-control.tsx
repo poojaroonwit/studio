@@ -166,11 +166,22 @@ export function ZoomControl({
     console.log('Computed transform:', computedStyle.transform);
     console.log('Computed zoom:', computedStyle.zoom);
     
+    // Check for CSS conflicts
+    console.log('=== CSS CONFLICT CHECK ===');
+    console.log('Body overflow:', window.getComputedStyle(document.body).overflow);
+    console.log('Body width:', window.getComputedStyle(document.body).width);
+    console.log('Body height:', window.getComputedStyle(document.body).height);
+    console.log('HTML overflow:', window.getComputedStyle(document.documentElement).overflow);
+    console.log('HTML width:', window.getComputedStyle(document.documentElement).width);
+    console.log('HTML height:', window.getComputedStyle(document.documentElement).height);
+    
     // Test direct DOM manipulation with visual feedback
     console.log('Testing direct DOM manipulation...');
     document.documentElement.style.transform = 'scale(1.5)';
     document.documentElement.style.transformOrigin = 'top left';
     document.documentElement.style.overflow = 'hidden';
+    document.documentElement.style.width = '100vw';
+    document.documentElement.style.height = '100vh';
     console.log('Direct transform applied:', document.documentElement.style.transform);
     
     // Check if transform is actually applied
@@ -178,6 +189,8 @@ export function ZoomControl({
       const newComputedStyle = window.getComputedStyle(document.documentElement);
       console.log('After direct transform - Computed transform:', newComputedStyle.transform);
       console.log('After direct transform - Inline transform:', document.documentElement.style.transform);
+      console.log('After direct transform - Computed width:', newComputedStyle.width);
+      console.log('After direct transform - Computed height:', newComputedStyle.height);
     }, 100);
     
     if (window.setZoom) {
@@ -193,6 +206,8 @@ export function ZoomControl({
         const finalComputedStyle = window.getComputedStyle(document.documentElement);
         console.log('Final computed transform:', finalComputedStyle.transform);
         console.log('Final computed zoom:', finalComputedStyle.zoom);
+        console.log('Final computed width:', finalComputedStyle.width);
+        console.log('Final computed height:', finalComputedStyle.height);
         
         // Test if the page actually looks different
         console.log('Page should now be zoomed to 120%');

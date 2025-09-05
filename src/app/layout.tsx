@@ -87,6 +87,60 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         {/* Ramda polyfill is now handled by RamdaPolyfillInitializer component */}
+        {/* Apply zoom immediately on page load to prevent flash */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  const savedZoom = localStorage.getItem('app-zoom-level');
+                  if (savedZoom) {
+                    const zoomLevel = parseFloat(savedZoom);
+                    if (zoomLevel >= 0.5 && zoomLevel <= 1.5) {
+                      document.documentElement.style.zoom = zoomLevel.toString();
+                      
+                      // Apply proportional scaling immediately
+                      const viewportWidth = window.innerWidth;
+                      const viewportHeight = window.innerHeight;
+                      const scaledWidth = viewportWidth / zoomLevel;
+                      const scaledHeight = viewportHeight / zoomLevel;
+                      
+                      document.documentElement.style.width = scaledWidth + 'px';
+                      document.documentElement.style.height = scaledHeight + 'px';
+                      document.body.style.width = scaledWidth + 'px';
+                      document.body.style.height = scaledHeight + 'px';
+                      document.body.style.minWidth = scaledWidth + 'px';
+                      document.body.style.minHeight = scaledHeight + 'px';
+                      document.body.style.maxWidth = scaledWidth + 'px';
+                      document.body.style.maxHeight = scaledHeight + 'px';
+                      
+                      // Handle window resize to maintain zoom
+                      window.addEventListener('resize', function() {
+                        if (zoomLevel !== 1.0) {
+                          const newViewportWidth = window.innerWidth;
+                          const newViewportHeight = window.innerHeight;
+                          const newScaledWidth = newViewportWidth / zoomLevel;
+                          const newScaledHeight = newViewportHeight / zoomLevel;
+                          
+                          document.documentElement.style.width = newScaledWidth + 'px';
+                          document.documentElement.style.height = newScaledHeight + 'px';
+                          document.body.style.width = newScaledWidth + 'px';
+                          document.body.style.height = newScaledHeight + 'px';
+                          document.body.style.minWidth = newScaledWidth + 'px';
+                          document.body.style.minHeight = newScaledHeight + 'px';
+                          document.body.style.maxWidth = newScaledWidth + 'px';
+                          document.body.style.maxHeight = newScaledHeight + 'px';
+                        }
+                      });
+                    }
+                  }
+                } catch (e) {
+                  console.warn('Failed to apply initial zoom:', e);
+                }
+              })();
+            `,
+          }}
+        />
       </head>
       <body className={`${inter.variable} ${ibmPlexSansThai.variable} ${notoSansThai.variable}`}>
         <ErrorBoundary>

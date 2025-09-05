@@ -1932,7 +1932,7 @@ audio::-webkit-scrollbar-button {
 
 .table-dynamic-width th:nth-child(2),
 .table-dynamic-width td:nth-child(2) {
-  min-width: 120px; /* Title column */
+  min-width: 150px; /* Title column */
 }
 
 .table-dynamic-width th:nth-child(4),
@@ -2820,12 +2820,12 @@ body:has(.zoom-controls) {
   overflow-x: hidden;
 }
 
-/* Browser-like zoom behavior with dynamic height scaling */
+/* Browser-like zoom behavior with proportional width and height scaling */
 html {
   zoom: 1;
   transition: zoom 0.2s ease-in-out;
-  height: 100vh;
   width: 100vw;
+  height: 100vh;
   overflow: hidden;
 }
 
@@ -2834,52 +2834,42 @@ html {
   box-sizing: border-box;
 }
 
-/* Dynamic height scaling that matches zoom level */
+/* Proportional width and height scaling */
 body {
-  height: 100vh;
   width: 100vw;
+  height: 100vh;
   margin: 0;
   padding: 0;
   overflow: hidden;
   position: relative;
 }
 
-/* Ensure the main app container scales properly */
+/* Ensure the main app container scales proportionally */
 #__next {
-  height: 100vh;
   width: 100vw;
+  height: 100vh;
   overflow: hidden;
 }
 
-/* Dynamic height adjustment based on zoom level */
+/* Proportional scaling for all zoom levels */
 html[style*="zoom"] {
+  width: 100vw;
   height: 100vh;
   overflow: hidden;
 }
 
 html[style*="zoom"] body {
+  width: 100vw;
   height: 100vh;
   overflow: hidden;
 }
 
-/* Ensure all containers respect the dynamic height */
+/* Ensure all containers respect proportional scaling */
 .app-container, .main-layout, .sidebar-container {
+  width: 100vw;
   height: 100vh;
   overflow: hidden;
 }
-
-/* Dynamic height calculation for zoom levels */
-html[style*="zoom: 0.5"] body { height: 200vh; }
-html[style*="zoom: 0.6"] body { height: 166.67vh; }
-html[style*="zoom: 0.7"] body { height: 142.86vh; }
-html[style*="zoom: 0.8"] body { height: 125vh; }
-html[style*="zoom: 0.9"] body { height: 111.11vh; }
-html[style*="zoom: 1.0"] body { height: 100vh; }
-html[style*="zoom: 1.1"] body { height: 90.91vh; }
-html[style*="zoom: 1.2"] body { height: 83.33vh; }
-html[style*="zoom: 1.3"] body { height: 76.92vh; }
-html[style*="zoom: 1.4"] body { height: 71.43vh; }
-html[style*="zoom: 1.5"] body { height: 66.67vh; }
 
 /* Ensure body zoom doesn't interfere with layout */
 body {

@@ -92,11 +92,15 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           dangerouslySetInnerHTML={{
             __html: `
                    (function() {
+                     console.log('=== ZOOM SCRIPT STARTING ===');
+                     console.log('Script is executing...');
+                     
                      function initializeZoom() {
                        try {
                          console.log('=== ZOOM SCRIPT INITIALIZING ===');
                          console.log('Document ready state:', document.readyState);
                          console.log('Document element exists:', !!document.documentElement);
+                         console.log('Window object exists:', !!window);
                        
                        // Set default zoom to 0.9 (90%) so 100% zoom appears as 90% size
                        const DEFAULT_ZOOM = 0.9;
@@ -124,43 +128,31 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                        if (zoomLevel >= 0.5 && zoomLevel <= 1.5) {
                          console.log('Applying initial zoom:', zoomLevel);
                          
-                         // Use CSS custom property to override any conflicting transforms
-                         document.documentElement.style.setProperty('--zoom-scale', zoomLevel.toString());
-                         document.documentElement.style.setProperty('transform', 'scale(var(--zoom-scale))', 'important');
-                         document.documentElement.style.setProperty('transform-origin', 'top left', 'important');
-                         document.documentElement.style.setProperty('overflow', 'hidden', 'important');
-                         
-                         // Also set inline style as backup
-                         document.documentElement.style.transform = 'scale(' + zoomLevel + ') !important';
-                         document.documentElement.style.transformOrigin = 'top left !important';
-                         document.documentElement.style.overflow = 'hidden !important';
-                         
-                         // Ensure body doesn't interfere
-                         document.body.style.overflow = 'hidden';
-                         document.body.style.width = '100vw';
-                         document.body.style.height = '100vh';
-                         
-                         // Also try CSS zoom as backup
+                         // Simple approach: just use CSS zoom property which is more reliable
                          try {
                            document.documentElement.style.zoom = zoomLevel.toString();
+                           console.log('Initial CSS zoom applied successfully:', zoomLevel);
                          } catch (e) {
-                           console.log('CSS zoom not supported, using transform only');
+                           console.log('CSS zoom not supported, trying transform fallback');
+                           
+                           // Fallback to transform only if CSS zoom fails
+                           document.documentElement.style.transform = 'scale(' + zoomLevel + ')';
+                           document.documentElement.style.transformOrigin = 'top left';
                          }
                          
-                         // Fix white space by calculating proper height based on zoom
-                         fixZoomWhiteSpace(zoomLevel);
                          // Save the zoom level if it wasn't saved before
                          if (!savedZoom) {
                            localStorage.setItem('app-zoom-level', zoomLevel.toString());
                          }
-                         console.log('Initial zoom applied:', zoomLevel, 'transform:', document.documentElement.style.transform);
+                         console.log('Initial zoom applied:', zoomLevel);
                          
-                         // Verify the transform is actually applied
+                         // Verify the zoom is actually applied
                          setTimeout(() => {
                            const computedStyle = window.getComputedStyle(document.documentElement);
+                           console.log('Initial computed zoom:', computedStyle.zoom);
                            console.log('Initial computed transform:', computedStyle.transform);
+                           console.log('Initial inline zoom:', document.documentElement.style.zoom);
                            console.log('Initial inline transform:', document.documentElement.style.transform);
-                           console.log('Initial CSS custom property:', computedStyle.getPropertyValue('--zoom-scale'));
                          }, 50);
                        }
                        
@@ -190,62 +182,52 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                          }
                        });
                        
-                       // Expose zoom functions globally for avatar dropdown
+                       
+                       // Expose zoom functions globally
                        window.setZoom = function(zoom) {
                          if (zoom >= 0.5 && zoom <= 1.5) {
                            console.log('setZoom called with:', zoom);
                            
-                           // Use CSS custom property to override any conflicting transforms
-                           document.documentElement.style.setProperty('--zoom-scale', zoom.toString());
-                           document.documentElement.style.setProperty('transform', 'scale(var(--zoom-scale))', 'important');
-                           document.documentElement.style.setProperty('transform-origin', 'top left', 'important');
-                           document.documentElement.style.setProperty('overflow', 'hidden', 'important');
-                           
-                           // Also set inline style as backup
-                           document.documentElement.style.transform = 'scale(' + zoom + ') !important';
-                           document.documentElement.style.transformOrigin = 'top left !important';
-                           document.documentElement.style.overflow = 'hidden !important';
-                           
-                           // Ensure body doesn't interfere
-                           document.body.style.overflow = 'hidden';
-                           document.body.style.width = '100vw';
-                           document.body.style.height = '100vh';
-                           
-                           // Also try CSS zoom as backup
+                           // Simple approach: just use CSS zoom property which is more reliable
                            try {
                              document.documentElement.style.zoom = zoom.toString();
+                             console.log('CSS zoom applied successfully:', zoom);
                            } catch (e) {
-                             console.log('CSS zoom not supported, using transform only');
+                             console.log('CSS zoom not supported, trying transform fallback');
+                             
+                             // Fallback to transform only if CSS zoom fails
+                             document.documentElement.style.transform = 'scale(' + zoom + ')';
+                             document.documentElement.style.transformOrigin = 'top left';
                            }
                            
-                           fixZoomWhiteSpace(zoom);
                            localStorage.setItem('app-zoom-level', zoom.toString());
                            window.dispatchEvent(new CustomEvent('zoomChanged', { detail: { zoom: zoom } }));
-                           console.log('Zoom applied:', zoom, 'transform:', document.documentElement.style.transform);
+                           console.log('Zoom applied:', zoom);
                            
-                           // Verify the transform is actually applied
+                           // Verify the zoom is actually applied
                            setTimeout(() => {
                              const computedStyle = window.getComputedStyle(document.documentElement);
+                             console.log('Computed zoom after setZoom:', computedStyle.zoom);
                              console.log('Computed transform after setZoom:', computedStyle.transform);
+                             console.log('Inline zoom after setZoom:', document.documentElement.style.zoom);
                              console.log('Inline transform after setZoom:', document.documentElement.style.transform);
-                             console.log('CSS custom property:', computedStyle.getPropertyValue('--zoom-scale'));
                            }, 50);
                          }
                        };
                        
                        window.getZoom = function() {
-                         // Try to get zoom from transform scale first (primary method)
+                         // Try to get zoom from CSS zoom property first (primary method)
+                         const zoomValue = document.documentElement.style.zoom;
+                         if (zoomValue) {
+                           return parseFloat(zoomValue);
+                         }
+                         // Fallback to transform scale
                          const transform = document.documentElement.style.transform;
                          if (transform && transform.indexOf('scale(') !== -1) {
                            const match = transform.match(/scale\\(([^)]+)\\)/);
                            if (match) {
                              return parseFloat(match[1]);
                            }
-                         }
-                         // Fallback to CSS zoom property
-                         const zoomValue = document.documentElement.style.zoom;
-                         if (zoomValue) {
-                           return parseFloat(zoomValue);
                          }
                          return DEFAULT_ZOOM;
                        };
@@ -259,16 +241,32 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                          console.log('=== ZOOM SCRIPT COMPLETED ===');
                          console.log('window.setZoom available:', typeof window.setZoom);
                          console.log('window.getZoom available:', typeof window.getZoom);
+                         
+                         // Test the functions immediately
+                         if (window.setZoom) {
+                           console.log('Testing window.setZoom immediately...');
+                           window.setZoom(0.9);
+                         } else {
+                           console.error('window.setZoom is NOT available after initialization!');
+                         }
                        } catch (e) {
-                         console.warn('Failed to initialize zoom:', e);
+                         console.error('Failed to initialize zoom:', e);
+                         console.error('Error details:', e.message, e.stack);
                        }
                      }
                      
                      // Run immediately if DOM is ready, otherwise wait
-                     if (document.readyState === 'loading') {
-                       document.addEventListener('DOMContentLoaded', initializeZoom);
-                     } else {
-                       initializeZoom();
+                     try {
+                       if (document.readyState === 'loading') {
+                         console.log('DOM is loading, waiting for DOMContentLoaded...');
+                         document.addEventListener('DOMContentLoaded', initializeZoom);
+                       } else {
+                         console.log('DOM is ready, initializing immediately...');
+                         initializeZoom();
+                       }
+                     } catch (e) {
+                       console.error('Error in script execution:', e);
+                       console.error('Error details:', e.message, e.stack);
                      }
                    })();
             `,

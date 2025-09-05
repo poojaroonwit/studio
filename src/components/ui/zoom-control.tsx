@@ -296,34 +296,62 @@ export function ZoomControl({
         COMPREHENSIVE TEST
       </Button>
       
-      {/* Browser support test button */}
+      {/* Deep diagnostic button */}
       <Button
         onClick={() => {
-          console.log('=== BROWSER SUPPORT TEST ===');
-          console.log('CSS Transform support:', CSS.supports('transform', 'scale(1.5)'));
-          console.log('CSS Zoom support:', CSS.supports('zoom', '1.5'));
-          console.log('CSS Transform-origin support:', CSS.supports('transform-origin', 'top left'));
+          console.log('=== DEEP DIAGNOSTIC TEST ===');
+          console.log('Browser:', navigator.userAgent);
+          console.log('Current URL:', window.location.href);
+          console.log('Document ready state:', document.readyState);
           
-          // Test if transform is supported
-          const testDiv = document.createElement('div');
-          testDiv.style.transform = 'scale(1.5)';
-          console.log('Transform applied to test div:', testDiv.style.transform);
+          // Check if zoom functions exist
+          console.log('window.setZoom type:', typeof window.setZoom);
+          console.log('window.getZoom type:', typeof window.getZoom);
           
-          // Test if zoom is supported
-          const testDiv2 = document.createElement('div');
-          testDiv2.style.zoom = '1.5';
-          console.log('Zoom applied to test div:', testDiv2.style.zoom);
+          // Check current DOM state
+          console.log('HTML element:', document.documentElement);
+          console.log('HTML style transform:', document.documentElement.style.transform);
+          console.log('HTML style zoom:', document.documentElement.style.zoom);
+          console.log('Body element:', document.body);
+          console.log('Body style transform:', document.body.style.transform);
+          console.log('Body style zoom:', document.body.style.zoom);
           
-          // Test current page transform
-          console.log('Current page transform:', document.documentElement.style.transform);
-          console.log('Current page zoom:', document.documentElement.style.zoom);
+          // Check computed styles
+          const htmlComputed = window.getComputedStyle(document.documentElement);
+          const bodyComputed = window.getComputedStyle(document.body);
+          console.log('HTML computed transform:', htmlComputed.transform);
+          console.log('HTML computed zoom:', htmlComputed.zoom);
+          console.log('Body computed transform:', bodyComputed.transform);
+          console.log('Body computed zoom:', bodyComputed.zoom);
+          
+          // Check localStorage
+          console.log('localStorage zoom:', localStorage.getItem('app-zoom-level'));
+          
+          // Test if functions actually work
+          if (window.setZoom) {
+            console.log('Testing window.setZoom(1.3)...');
+            window.setZoom(1.3);
+            setTimeout(() => {
+              console.log('After setZoom(1.3):');
+              console.log('HTML style transform:', document.documentElement.style.transform);
+              console.log('HTML style zoom:', document.documentElement.style.zoom);
+              console.log('HTML computed transform:', window.getComputedStyle(document.documentElement).transform);
+              console.log('HTML computed zoom:', window.getComputedStyle(document.documentElement).zoom);
+              console.log('window.getZoom():', window.getZoom ? window.getZoom() : 'not available');
+            }, 100);
+          } else {
+            console.error('window.setZoom is NOT AVAILABLE!');
+          }
+          
+          // Check for any error messages
+          console.log('Checking for any JavaScript errors...');
         }}
         size="sm"
         variant="outline"
         className="mb-2 shadow-lg"
-        title="Test Browser Support"
+        title="Deep Diagnostic Test"
       >
-        BROWSER TEST
+        DEEP DIAGNOSTIC
       </Button>
       
       {/* Simple test slider */}

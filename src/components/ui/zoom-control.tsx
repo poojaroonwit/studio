@@ -40,10 +40,22 @@ export function ZoomControl({
       return fallbackZoom;
     };
     
-    const initialZoom = getCurrentZoom();
-    console.log('Initial zoom set to:', initialZoom);
-    if (initialZoom >= minZoom && initialZoom <= maxZoom) {
-      setZoom(initialZoom);
+    // Wait for the global zoom functions to be available
+    const initializeZoom = () => {
+      const initialZoom = getCurrentZoom();
+      console.log('Initial zoom set to:', initialZoom);
+      if (initialZoom >= minZoom && initialZoom <= maxZoom) {
+        setZoom(initialZoom);
+      }
+    };
+    
+    // Try immediately
+    initializeZoom();
+    
+    // If window.getZoom is not available, retry after a short delay
+    if (!window.getZoom) {
+      console.log('window.getZoom not available, retrying in 100ms...');
+      setTimeout(initializeZoom, 100);
     }
     
     // Listen for zoom changes from keyboard shortcuts
@@ -119,8 +131,11 @@ export function ZoomControl({
   };
 
   if (isMinimized) {
+    console.log('ZoomControl: Component is minimized, not rendering');
     return null;
   }
+  
+  console.log('ZoomControl: Rendering component, zoom:', zoom, 'isVisible:', isVisible);
 
   // Test function to verify global zoom functions
   const testGlobalZoom = () => {
@@ -130,6 +145,14 @@ export function ZoomControl({
     console.log('Current DOM zoom style:', document.documentElement.style.zoom);
     console.log('Current DOM transform style:', document.documentElement.style.transform);
     console.log('Current localStorage zoom:', localStorage.getItem('app-zoom-level'));
+    console.log('Document element:', document.documentElement);
+    console.log('Document body:', document.body);
+    
+    // Test direct DOM manipulation
+    console.log('Testing direct DOM manipulation...');
+    document.documentElement.style.transform = 'scale(1.5)';
+    document.documentElement.style.transformOrigin = 'top left';
+    console.log('Direct transform applied:', document.documentElement.style.transform);
     
     if (window.setZoom) {
       console.log('Testing window.setZoom with 1.2...');
@@ -139,7 +162,12 @@ export function ZoomControl({
         console.log('DOM zoom style:', document.documentElement.style.zoom);
         console.log('DOM transform style:', document.documentElement.style.transform);
         console.log('window.getZoom():', window.getZoom ? window.getZoom() : 'not available');
+        
+        // Test if the page actually looks different
+        console.log('Page should now be zoomed to 120%');
       }, 100);
+    } else {
+      console.error('window.setZoom is not available!');
     }
   };
 

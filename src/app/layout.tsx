@@ -92,8 +92,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           dangerouslySetInnerHTML={{
             __html: `
                    (function() {
-                     try {
-                       console.log('=== ZOOM SCRIPT INITIALIZING ===');
+                     function initializeZoom() {
+                       try {
+                         console.log('=== ZOOM SCRIPT INITIALIZING ===');
+                         console.log('Document ready state:', document.readyState);
+                         console.log('Document element exists:', !!document.documentElement);
+                       
                        // Set default zoom to 0.9 (90%) so 100% zoom appears as 90% size
                        const DEFAULT_ZOOM = 0.9;
                        
@@ -212,11 +216,19 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                          (window as any).getZoom = window.getZoom;
                        }
                        
-                       console.log('=== ZOOM SCRIPT COMPLETED ===');
-                       console.log('window.setZoom available:', typeof window.setZoom);
-                       console.log('window.getZoom available:', typeof window.getZoom);
-                     } catch (e) {
-                       console.warn('Failed to initialize zoom:', e);
+                         console.log('=== ZOOM SCRIPT COMPLETED ===');
+                         console.log('window.setZoom available:', typeof window.setZoom);
+                         console.log('window.getZoom available:', typeof window.getZoom);
+                       } catch (e) {
+                         console.warn('Failed to initialize zoom:', e);
+                       }
+                     }
+                     
+                     // Run immediately if DOM is ready, otherwise wait
+                     if (document.readyState === 'loading') {
+                       document.addEventListener('DOMContentLoaded', initializeZoom);
+                     } else {
+                       initializeZoom();
                      }
                    })();
             `,

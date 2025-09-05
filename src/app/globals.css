@@ -2040,7 +2040,7 @@ audio::-webkit-scrollbar-button {
   scrollbar-width: thin;
   scrollbar-color: hsl(var(--muted-foreground)) transparent;
   position: relative;
-  max-height: calc(100vh - 200px);
+  max-height: calc(100% - 200px);
 }
 
 /* Ensure table content wrapper doesn't interfere with sticky */
@@ -2094,9 +2094,9 @@ audio::-webkit-scrollbar-button {
 }
 
 .table-height-viewport {
-  height: calc(100vh - 200px);
+  height: calc(100% - 200px);
   min-height: 400px;
-  max-height: calc(100vh - 100px);
+  max-height: calc(100% - 100px);
 }
 
 /* Responsive table wrapper */
@@ -2183,7 +2183,7 @@ audio::-webkit-scrollbar-button {
 /* Ensure table body can scroll */
 .table-content-expandable tbody {
   overflow-y: auto;
-  max-height: calc(100vh - 600px);
+  max-height: calc(100% - 600px);
 }
 
 /* Positions page layout improvements */
@@ -2215,7 +2215,7 @@ audio::-webkit-scrollbar-button {
   overflow: auto;
   scrollbar-width: thin;
   scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
-  max-height: calc(100vh);
+  max-height: 100%;
 }
 
 .positions-table-scroll::-webkit-scrollbar {
@@ -2245,7 +2245,7 @@ audio::-webkit-scrollbar-button {
   
   /* Adjust table height for mobile */
   .positions-table-container .table-container-responsive {
-    height: calc(100vh - 300px) !important;
+    height: calc(100% - 300px) !important;
     min-height: 300px !important;
   }
   
@@ -2288,7 +2288,7 @@ audio::-webkit-scrollbar-button {
   
   /* Adjust table height for very small screens */
   .positions-table-container .table-container-responsive {
-    height: calc(100vh - 250px) !important;
+    height: calc(100% - 250px) !important;
     min-height: 250px !important;
   }
   
@@ -2503,7 +2503,7 @@ audio::-webkit-scrollbar-button {
     top: 0;
     left: 0;
     z-index: 50;
-    height: 100vh;
+    height: 100%;
   }
   
   .filter-bar-container {
@@ -2806,7 +2806,7 @@ audio::-webkit-scrollbar-button {
   padding: 1rem;
   box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
   min-width: 200px;
-  max-height: calc(100vh - 2rem);
+  max-height: calc(100% - 2rem);
   overflow-y: auto;
 }
 

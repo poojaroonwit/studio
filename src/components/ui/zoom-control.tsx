@@ -122,6 +122,27 @@ export function ZoomControl({
     return null;
   }
 
+  // Test function to verify global zoom functions
+  const testGlobalZoom = () => {
+    console.log('=== ZOOM DEBUG TEST ===');
+    console.log('window.setZoom exists:', typeof window.setZoom);
+    console.log('window.getZoom exists:', typeof window.getZoom);
+    console.log('Current DOM zoom style:', document.documentElement.style.zoom);
+    console.log('Current DOM transform style:', document.documentElement.style.transform);
+    console.log('Current localStorage zoom:', localStorage.getItem('app-zoom-level'));
+    
+    if (window.setZoom) {
+      console.log('Testing window.setZoom with 1.2...');
+      window.setZoom(1.2);
+      setTimeout(() => {
+        console.log('After setZoom(1.2):');
+        console.log('DOM zoom style:', document.documentElement.style.zoom);
+        console.log('DOM transform style:', document.documentElement.style.transform);
+        console.log('window.getZoom():', window.getZoom ? window.getZoom() : 'not available');
+      }, 100);
+    }
+  };
+
   return (
     <div className={cn("fixed bottom-4 right-4 z-50", className)}>
       <Button
@@ -132,6 +153,17 @@ export function ZoomControl({
         title={`Toggle Zoom Controls - Current: ${Math.round(zoom * 100)}%`}
       >
         <ZoomIn className="w-4 h-4" />
+      </Button>
+      
+      {/* Debug test button */}
+      <Button
+        onClick={testGlobalZoom}
+        size="sm"
+        variant="destructive"
+        className="mb-2 shadow-lg"
+        title="Test Global Zoom Functions"
+      >
+        TEST
       </Button>
 
       {isVisible && (

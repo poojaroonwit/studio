@@ -82,17 +82,18 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="en">
       <head>
         {/* Viewport configuration */}
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=5.0" />
         {/* Font preloading for better performance */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         {/* Ramda polyfill is now handled by RamdaPolyfillInitializer component */}
         {/* Apply zoom immediately on page load to prevent flash */}
-                                         <script
-               dangerouslySetInnerHTML={{
-                 __html: `
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
                    (function() {
                      try {
+                       console.log('=== ZOOM SCRIPT INITIALIZING ===');
                        // Set default zoom to 0.9 (90%) so 100% zoom appears as 90% size
                        const DEFAULT_ZOOM = 0.9;
                        
@@ -117,21 +118,26 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                        
                        // Ensure zoom is within valid range (0.5 to 1.5)
                        if (zoomLevel >= 0.5 && zoomLevel <= 1.5) {
-                         // Try CSS zoom first, fallback to transform
-                         if (document.documentElement.style.zoom !== undefined) {
-                           document.documentElement.style.zoom = zoomLevel.toString();
-                         } else {
-                                                    // Fallback to transform for better browser support
+                         console.log('Applying initial zoom:', zoomLevel);
+                         
+                         // Always use transform for better browser support
                          document.documentElement.style.transform = 'scale(' + zoomLevel + ')';
                          document.documentElement.style.transformOrigin = 'top left';
+                         
+                         // Also try CSS zoom as backup
+                         try {
+                           document.documentElement.style.zoom = zoomLevel.toString();
+                         } catch (e) {
+                           console.log('CSS zoom not supported, using transform only');
                          }
+                         
                          // Fix white space by calculating proper height based on zoom
                          fixZoomWhiteSpace(zoomLevel);
                          // Save the zoom level if it wasn't saved before
                          if (!savedZoom) {
                            localStorage.setItem('app-zoom-level', zoomLevel.toString());
                          }
-                         console.log('Initial zoom applied:', zoomLevel, 'using method:', document.documentElement.style.zoom !== undefined ? 'zoom' : 'transform');
+                         console.log('Initial zoom applied:', zoomLevel, 'transform:', document.documentElement.style.transform);
                        }
                        
                        // Global keyboard shortcuts
@@ -163,34 +169,39 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                        // Expose zoom functions globally for avatar dropdown
                        window.setZoom = function(zoom) {
                          if (zoom >= 0.5 && zoom <= 1.5) {
-                           // Try CSS zoom first, fallback to transform
-                           if (document.documentElement.style.zoom !== undefined) {
+                           console.log('setZoom called with:', zoom);
+                           
+                           // Always use transform for better browser support
+                           document.documentElement.style.transform = 'scale(' + zoom + ')';
+                           document.documentElement.style.transformOrigin = 'top left';
+                           
+                           // Also try CSS zoom as backup
+                           try {
                              document.documentElement.style.zoom = zoom.toString();
-                           } else {
-                             // Fallback to transform for better browser support
-                             document.documentElement.style.transform = 'scale(' + zoom + ')';
-                             document.documentElement.style.transformOrigin = 'top left';
+                           } catch (e) {
+                             console.log('CSS zoom not supported, using transform only');
                            }
+                           
                            fixZoomWhiteSpace(zoom);
                            localStorage.setItem('app-zoom-level', zoom.toString());
                            window.dispatchEvent(new CustomEvent('zoomChanged', { detail: { zoom: zoom } }));
-                           console.log('Zoom set to:', zoom, 'using method:', document.documentElement.style.zoom !== undefined ? 'zoom' : 'transform');
+                           console.log('Zoom applied:', zoom, 'transform:', document.documentElement.style.transform);
                          }
                        };
                        
                        window.getZoom = function() {
-                         // Try to get zoom from CSS zoom property first
-                         const zoomValue = document.documentElement.style.zoom;
-                         if (zoomValue) {
-                           return parseFloat(zoomValue);
-                         }
-                         // Fallback to transform scale
+                         // Try to get zoom from transform scale first (primary method)
                          const transform = document.documentElement.style.transform;
                          if (transform && transform.indexOf('scale(') !== -1) {
                            const match = transform.match(/scale\\(([^)]+)\\)/);
                            if (match) {
                              return parseFloat(match[1]);
                            }
+                         }
+                         // Fallback to CSS zoom property
+                         const zoomValue = document.documentElement.style.zoom;
+                         if (zoomValue) {
+                           return parseFloat(zoomValue);
                          }
                          return DEFAULT_ZOOM;
                        };
@@ -200,13 +211,17 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                          (window as any).setZoom = window.setZoom;
                          (window as any).getZoom = window.getZoom;
                        }
+                       
+                       console.log('=== ZOOM SCRIPT COMPLETED ===');
+                       console.log('window.setZoom available:', typeof window.setZoom);
+                       console.log('window.getZoom available:', typeof window.getZoom);
                      } catch (e) {
                        console.warn('Failed to initialize zoom:', e);
                      }
                    })();
-                 `,
-               }}
-             />
+            `,
+          }}
+        />
       </head>
       <body className={`${inter.variable} ${ibmPlexSansThai.variable} ${notoSansThai.variable}`}>
         <ErrorBoundary>

@@ -111,9 +111,11 @@ export function ZoomControl({
 
   const handleSliderChange = (value: number[]) => {
     const newZoom = value[0];
+    console.log('Slider changed to:', newZoom, 'value array:', value);
     setZoom(newZoom);
     // Use the global zoom function to sync with keyboard shortcuts
     if (window.setZoom) {
+      console.log('Calling window.setZoom with slider value:', newZoom);
       window.setZoom(newZoom);
     } else {
       console.warn('window.setZoom is not available');
@@ -195,7 +197,7 @@ export function ZoomControl({
       </Button>
 
       {isVisible && (
-        <div className="bg-background border border-border rounded-lg p-4 shadow-lg min-w-[200px] mb-4">
+        <div className="bg-background border border-border rounded-lg p-4 shadow-lg min-w-[200px] mb-4" style={{zIndex: 9999}}>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">Zoom: {Math.round(zoom * 100)}%</span>
@@ -220,13 +222,18 @@ export function ZoomControl({
             </div>
 
             <div className="space-y-2">
+              <div className="text-xs text-muted-foreground">
+                Slider: {zoom.toFixed(2)} (min: {minZoom}, max: {maxZoom}, step: {step})
+              </div>
               <Slider
                 value={[zoom]}
                 onValueChange={handleSliderChange}
+                onValueCommit={(value) => console.log('Slider value committed:', value)}
                 min={minZoom}
                 max={maxZoom}
                 step={step}
                 className="w-full"
+                style={{pointerEvents: 'auto'}}
               />
               <div className="flex justify-between text-xs text-muted-foreground">
                 <span>{Math.round(minZoom * 100)}%</span>

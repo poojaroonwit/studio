@@ -16,7 +16,9 @@ export function ZoomControlCompact({ className }: ZoomControlCompactProps) {
 
   const handleZoomChange = (value: number[]) => {
     console.log('ZoomControlCompact: handleZoomChange called with:', value[0]);
+    console.log('ZoomControlCompact: Current zoom before change:', zoom);
     setZoom(value[0]);
+    console.log('ZoomControlCompact: setZoom called with:', value[0]);
   };
 
   const quickZoomOptions = [
@@ -73,10 +75,12 @@ export function ZoomControlCompact({ className }: ZoomControlCompactProps) {
           <Slider
             value={[zoom]}
             onValueChange={handleZoomChange}
+            onValueCommit={(value) => console.log('Compact Slider value committed:', value)}
             min={0.5}
             max={1.5}
             step={0.05}
             className="w-full"
+            style={{pointerEvents: 'auto'}}
           />
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>50%</span>

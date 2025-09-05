@@ -391,7 +391,7 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
       <LayoutContainer 
         layout="flex" 
         direction="row"
-        className="h-screen bg-background overflow-hidden min-h-screen"
+        className="h-screen bg-background overflow-hidden"
         data-testid="app-layout"
       >
         <Sidebar collapsible="icon" className="border-r border-border" data-testid="sidebar">

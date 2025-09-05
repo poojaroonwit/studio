@@ -25,19 +25,10 @@ export function ZoomControl({
   const [isVisible, setIsVisible] = useState(false);
   const [isMinimized, setIsMinimized] = useState(true);
 
-  // Enhanced zoom application with layout fixes
+  // Simple zoom application
   useEffect(() => {
     document.documentElement.style.zoom = zoom.toString();
     localStorage.setItem('app-zoom-level', zoom.toString());
-    
-    // Force layout recalculation to prevent white space
-    setTimeout(() => {
-      document.body.style.height = '100vh';
-      document.documentElement.style.height = '100vh';
-      
-      // Trigger a reflow to ensure proper rendering
-      document.body.offsetHeight;
-    }, 0);
   }, [zoom]);
 
   // Load saved zoom on mount
@@ -179,15 +170,6 @@ export function useZoom() {
     setZoom(level);
     document.documentElement.style.zoom = level.toString();
     localStorage.setItem('app-zoom-level', level.toString());
-    
-    // Force layout recalculation to prevent white space
-    setTimeout(() => {
-      document.body.style.height = '100vh';
-      document.documentElement.style.height = '100vh';
-      
-      // Trigger a reflow to ensure proper rendering
-      document.body.offsetHeight;
-    }, 0);
   };
 
   const resetZoom = () => {

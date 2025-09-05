@@ -154,7 +154,8 @@ export function ZoomControl({
 
   // Test function to verify global zoom functions
   const testGlobalZoom = () => {
-    console.log('=== ZOOM DEBUG TEST ===');
+    console.log('=== COMPREHENSIVE ZOOM DEBUG TEST ===');
+    console.log('Browser:', navigator.userAgent);
     console.log('window.setZoom exists:', typeof window.setZoom);
     console.log('window.getZoom exists:', typeof window.getZoom);
     console.log('Current DOM zoom style:', document.documentElement.style.zoom);
@@ -175,47 +176,101 @@ export function ZoomControl({
     console.log('HTML width:', window.getComputedStyle(document.documentElement).width);
     console.log('HTML height:', window.getComputedStyle(document.documentElement).height);
     
-    // Test direct DOM manipulation with visual feedback
-    console.log('Testing direct DOM manipulation...');
+    // Test multiple zoom methods
+    console.log('=== TESTING MULTIPLE ZOOM METHODS ===');
+    
+    // Method 1: Direct transform on html
+    console.log('Method 1: Direct transform on html');
     document.documentElement.style.transform = 'scale(1.5)';
     document.documentElement.style.transformOrigin = 'top left';
     document.documentElement.style.overflow = 'hidden';
     document.documentElement.style.width = '100vw';
     document.documentElement.style.height = '100vh';
-    console.log('Direct transform applied:', document.documentElement.style.transform);
+    console.log('HTML transform applied:', document.documentElement.style.transform);
     
-    // Check if transform is actually applied
     setTimeout(() => {
-      const newComputedStyle = window.getComputedStyle(document.documentElement);
-      console.log('After direct transform - Computed transform:', newComputedStyle.transform);
-      console.log('After direct transform - Inline transform:', document.documentElement.style.transform);
-      console.log('After direct transform - Computed width:', newComputedStyle.width);
-      console.log('After direct transform - Computed height:', newComputedStyle.height);
+      const htmlStyle = window.getComputedStyle(document.documentElement);
+      console.log('HTML computed transform:', htmlStyle.transform);
+      console.log('HTML computed width:', htmlStyle.width);
+      console.log('HTML computed height:', htmlStyle.height);
     }, 100);
     
-    if (window.setZoom) {
-      console.log('Testing window.setZoom with 1.2...');
-      window.setZoom(1.2);
+    // Method 2: Transform on body
+    setTimeout(() => {
+      console.log('Method 2: Transform on body');
+      document.body.style.transform = 'scale(1.3)';
+      document.body.style.transformOrigin = 'top left';
+      document.body.style.overflow = 'hidden';
+      console.log('Body transform applied:', document.body.style.transform);
+      
       setTimeout(() => {
-        console.log('After setZoom(1.2):');
-        console.log('DOM zoom style:', document.documentElement.style.zoom);
-        console.log('DOM transform style:', document.documentElement.style.transform);
-        console.log('window.getZoom():', window.getZoom ? window.getZoom() : 'not available');
-        
-        // Check computed styles after setZoom
-        const finalComputedStyle = window.getComputedStyle(document.documentElement);
-        console.log('Final computed transform:', finalComputedStyle.transform);
-        console.log('Final computed zoom:', finalComputedStyle.zoom);
-        console.log('Final computed width:', finalComputedStyle.width);
-        console.log('Final computed height:', finalComputedStyle.height);
-        
-        // Test if the page actually looks different
-        console.log('Page should now be zoomed to 120%');
-        console.log('If you can see the page is larger, the zoom is working!');
+        const bodyStyle = window.getComputedStyle(document.body);
+        console.log('Body computed transform:', bodyStyle.transform);
+        console.log('Body computed width:', bodyStyle.width);
+        console.log('Body computed height:', bodyStyle.height);
       }, 100);
-    } else {
-      console.error('window.setZoom is not available!');
-    }
+    }, 200);
+    
+    // Method 3: Transform on #__next
+    setTimeout(() => {
+      console.log('Method 3: Transform on #__next');
+      const nextElement = document.getElementById('__next');
+      if (nextElement) {
+        nextElement.style.transform = 'scale(1.2)';
+        nextElement.style.transformOrigin = 'top left';
+        console.log('#__next transform applied:', nextElement.style.transform);
+        
+        setTimeout(() => {
+          const nextStyle = window.getComputedStyle(nextElement);
+          console.log('#__next computed transform:', nextStyle.transform);
+        }, 100);
+      } else {
+        console.log('#__next element not found');
+      }
+    }, 400);
+    
+    // Method 4: CSS zoom property
+    setTimeout(() => {
+      console.log('Method 4: CSS zoom property');
+      document.documentElement.style.zoom = '1.4';
+      console.log('CSS zoom applied:', document.documentElement.style.zoom);
+      
+      setTimeout(() => {
+        const zoomStyle = window.getComputedStyle(document.documentElement);
+        console.log('CSS zoom computed:', zoomStyle.zoom);
+      }, 100);
+    }, 600);
+    
+    // Method 5: window.setZoom
+    setTimeout(() => {
+      if (window.setZoom) {
+        console.log('Method 5: window.setZoom');
+        window.setZoom(1.1);
+        setTimeout(() => {
+          console.log('After window.setZoom(1.1):');
+          console.log('DOM zoom style:', document.documentElement.style.zoom);
+          console.log('DOM transform style:', document.documentElement.style.transform);
+          console.log('window.getZoom():', window.getZoom ? window.getZoom() : 'not available');
+          
+          const finalComputedStyle = window.getComputedStyle(document.documentElement);
+          console.log('Final computed transform:', finalComputedStyle.transform);
+          console.log('Final computed zoom:', finalComputedStyle.zoom);
+        }, 100);
+      } else {
+        console.error('window.setZoom is not available!');
+      }
+    }, 800);
+    
+    // Final check
+    setTimeout(() => {
+      console.log('=== FINAL STATE CHECK ===');
+      console.log('HTML inline transform:', document.documentElement.style.transform);
+      console.log('HTML inline zoom:', document.documentElement.style.zoom);
+      console.log('Body inline transform:', document.body.style.transform);
+      console.log('HTML computed transform:', window.getComputedStyle(document.documentElement).transform);
+      console.log('Body computed transform:', window.getComputedStyle(document.body).transform);
+      console.log('Page should be visually different now!');
+    }, 1000);
   };
 
   return (
@@ -238,7 +293,37 @@ export function ZoomControl({
         className="mb-2 shadow-lg"
         title="Test Global Zoom Functions"
       >
-        TEST
+        COMPREHENSIVE TEST
+      </Button>
+      
+      {/* Browser support test button */}
+      <Button
+        onClick={() => {
+          console.log('=== BROWSER SUPPORT TEST ===');
+          console.log('CSS Transform support:', CSS.supports('transform', 'scale(1.5)'));
+          console.log('CSS Zoom support:', CSS.supports('zoom', '1.5'));
+          console.log('CSS Transform-origin support:', CSS.supports('transform-origin', 'top left'));
+          
+          // Test if transform is supported
+          const testDiv = document.createElement('div');
+          testDiv.style.transform = 'scale(1.5)';
+          console.log('Transform applied to test div:', testDiv.style.transform);
+          
+          // Test if zoom is supported
+          const testDiv2 = document.createElement('div');
+          testDiv2.style.zoom = '1.5';
+          console.log('Zoom applied to test div:', testDiv2.style.zoom);
+          
+          // Test current page transform
+          console.log('Current page transform:', document.documentElement.style.transform);
+          console.log('Current page zoom:', document.documentElement.style.zoom);
+        }}
+        size="sm"
+        variant="outline"
+        className="mb-2 shadow-lg"
+        title="Test Browser Support"
+      >
+        BROWSER TEST
       </Button>
       
       {/* Simple test slider */}

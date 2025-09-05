@@ -2824,15 +2824,70 @@ body:has(.zoom-controls) {
 html {
   zoom: 1;
   height: 100%;
+  /* Ensure html takes full height even when zoomed */
+  min-height: 100vh;
 }
 
 body {
   height: 100%;
   min-height: 100vh;
+  /* Prevent white space when zoomed out */
+  overflow-x: hidden;
 }
 
 /* Fix for zoom scaling issues */
 #__next {
   height: 100%;
   min-height: 100vh;
+  /* Ensure Next.js root takes full height */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Fix for zoom-related white space issues */
+html[style*="zoom"] {
+  /* When zoom is applied, ensure full height coverage */
+  height: 100vh !important;
+  min-height: 100vh !important;
+}
+
+html[style*="zoom"] body {
+  /* When zoomed, ensure body fills the viewport */
+  height: 100vh !important;
+  min-height: 100vh !important;
+}
+
+html[style*="zoom"] #__next {
+  /* When zoomed, ensure Next.js root fills the viewport */
+  height: 100vh !important;
+  min-height: 100vh !important;
+}
+
+/* Additional fixes for zoom-related layout issues */
+html[style*="zoom"] [data-testid="app-layout"] {
+  /* Ensure main layout fills viewport when zoomed */
+  height: 100vh !important;
+  min-height: 100vh !important;
+}
+
+/* Fix for zoom control positioning */
+html[style*="zoom"] .zoom-controls {
+  /* Ensure zoom control stays properly positioned */
+  position: fixed !important;
+  bottom: 1rem !important;
+  right: 1rem !important;
+  z-index: 9999 !important;
+}
+
+/* Prevent content from being cut off when zoomed */
+html[style*="zoom"] .overflow-auto {
+  /* Ensure scrollable content works properly when zoomed */
+  overflow: auto !important;
+}
+
+/* Fix for sidebar height when zoomed */
+html[style*="zoom"] [data-sidebar="sidebar"] {
+  /* Ensure sidebar takes full height when zoomed */
+  height: 100vh !important;
+  min-height: 100vh !important;
 }

@@ -88,25 +88,49 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         {/* Ramda polyfill is now handled by RamdaPolyfillInitializer component */}
         {/* Apply zoom immediately on page load to prevent flash */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                try {
-                  const savedZoom = localStorage.getItem('app-zoom-level');
-                  if (savedZoom) {
-                    const zoomLevel = parseFloat(savedZoom);
-                    if (zoomLevel >= 0.5 && zoomLevel <= 1.5) {
-                      document.documentElement.style.zoom = zoomLevel.toString();
+                    <script
+              dangerouslySetInnerHTML={{
+                __html: `
+                  (function() {
+                    try {
+                      // Apply saved zoom level immediately
+                      const savedZoom = localStorage.getItem('app-zoom-level');
+                      if (savedZoom) {
+                        const zoomLevel = parseFloat(savedZoom);
+                        if (zoomLevel >= 0.5 && zoomLevel <= 1.5) {
+                          document.documentElement.style.zoom = zoomLevel.toString();
+                        }
+                      }
+                      
+                      // Global keyboard shortcuts
+                      document.addEventListener('keydown', function(event) {
+                        if (event.ctrlKey || event.metaKey) {
+                          const currentZoom = parseFloat(document.documentElement.style.zoom || '1');
+                          
+                          if (event.key === '+' || event.key === '=') {
+                            event.preventDefault();
+                            const newZoom = Math.min(currentZoom + 0.1, 1.5);
+                            document.documentElement.style.zoom = newZoom.toString();
+                            localStorage.setItem('app-zoom-level', newZoom.toString());
+                          } else if (event.key === '-') {
+                            event.preventDefault();
+                            const newZoom = Math.max(currentZoom - 0.1, 0.5);
+                            document.documentElement.style.zoom = newZoom.toString();
+                            localStorage.setItem('app-zoom-level', newZoom.toString());
+                          } else if (event.key === '0') {
+                            event.preventDefault();
+                            document.documentElement.style.zoom = '1';
+                            localStorage.setItem('app-zoom-level', '1');
+                          }
+                        }
+                      });
+                    } catch (e) {
+                      console.warn('Failed to initialize zoom:', e);
                     }
-                  }
-                } catch (e) {
-                  console.warn('Failed to apply initial zoom:', e);
-                }
-              })();
-            `,
-          }}
-        />
+                  })();
+                `,
+              }}
+            />
       </head>
       <body className={`${inter.variable} ${ibmPlexSansThai.variable} ${notoSansThai.variable}`}>
         <ErrorBoundary>

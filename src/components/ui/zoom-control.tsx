@@ -25,51 +25,30 @@ export function ZoomControl({
   const [isVisible, setIsVisible] = useState(false);
   const [isMinimized, setIsMinimized] = useState(true);
 
+  // Simple zoom application
   useEffect(() => {
-    // Normal browser zoom behavior
     document.documentElement.style.zoom = zoom.toString();
     localStorage.setItem('app-zoom-level', zoom.toString());
   }, [zoom]);
 
+  // Load saved zoom on mount
   useEffect(() => {
-    // Load saved zoom level
     const savedZoom = localStorage.getItem('app-zoom-level');
     if (savedZoom) {
       const parsedZoom = parseFloat(savedZoom);
       if (parsedZoom >= minZoom && parsedZoom <= maxZoom) {
         setZoom(parsedZoom);
-        document.documentElement.style.zoom = parsedZoom.toString();
       }
     }
   }, [minZoom, maxZoom]);
 
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.ctrlKey || event.metaKey) {
-        if (event.key === '+' || event.key === '=') {
-          event.preventDefault();
-          handleZoomIn();
-        } else if (event.key === '-') {
-          event.preventDefault();
-          handleZoomOut();
-        } else if (event.key === '0') {
-          event.preventDefault();
-          handleReset();
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
 
   const handleZoomIn = () => {
-    setZoom(prev => Math.min(prev + step, maxZoom));
+    setZoom(Math.min(zoom + step, maxZoom));
   };
 
   const handleZoomOut = () => {
-    setZoom(prev => Math.max(prev - step, minZoom));
+    setZoom(Math.max(zoom - step, minZoom));
   };
 
   const handleReset = () => {
@@ -183,12 +162,11 @@ export function useZoom() {
     if (savedZoom) {
       const zoomLevel = parseFloat(savedZoom);
       setZoom(zoomLevel);
-      document.documentElement.style.zoom = zoomLevel.toString();
     }
     setIsLoading(false);
   }, []);
 
-  const setZoomLevel = async (level: number) => {
+  const setZoomLevel = (level: number) => {
     setZoom(level);
     document.documentElement.style.zoom = level.toString();
     localStorage.setItem('app-zoom-level', level.toString());
@@ -197,27 +175,6 @@ export function useZoom() {
   const resetZoom = () => {
     setZoomLevel(1.0);
   };
-
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.ctrlKey || event.metaKey) {
-        if (event.key === '+' || event.key === '=') {
-          event.preventDefault();
-          setZoomLevel(Math.min(zoom + 0.1, 1.5));
-        } else if (event.key === '-') {
-          event.preventDefault();
-          setZoomLevel(Math.max(zoom - 0.1, 0.5));
-        } else if (event.key === '0') {
-          event.preventDefault();
-          resetZoom();
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [zoom]);
 
   return {
     zoom,

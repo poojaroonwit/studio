@@ -6,6 +6,7 @@ import { LoadingProvider } from '@/contexts/LoadingContext';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import { WarningProvider } from '@/contexts/WarningContext';
 import { GlobalSettingsProvider } from '@/contexts/GlobalSettingsContext';
+import { ZIndexProvider } from '@/contexts/ZIndexContext';
 import { RamdaPolyfillInitializer } from '@/components/ui/RamdaPolyfillInitializer';
 import { AppLayout } from '@/components/layout/AppLayout';
 import ToastClient from '@/components/ui/ToastClient';
@@ -18,17 +19,19 @@ interface ClientProvidersProps {
 export function ClientProviders({ children, session }: ClientProvidersProps) {
   return (
     <SessionProvider session={session}>
-      <LoadingProvider>
-        <NotificationProvider>
-          <WarningProvider>
-            <GlobalSettingsProvider>
-              <RamdaPolyfillInitializer />
-              <AppLayout>{children}</AppLayout>
-              <ToastClient />
-            </GlobalSettingsProvider>
-          </WarningProvider>
-        </NotificationProvider>
-      </LoadingProvider>
+      <ZIndexProvider>
+        <LoadingProvider>
+          <NotificationProvider>
+            <WarningProvider>
+              <GlobalSettingsProvider>
+                <RamdaPolyfillInitializer />
+                <AppLayout>{children}</AppLayout>
+                <ToastClient />
+              </GlobalSettingsProvider>
+            </WarningProvider>
+          </NotificationProvider>
+        </LoadingProvider>
+      </ZIndexProvider>
     </SessionProvider>
   );
 }

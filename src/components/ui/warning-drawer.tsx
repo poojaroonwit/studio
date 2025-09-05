@@ -833,6 +833,7 @@ export function WarningDrawer({ isOpen, onClose }: WarningDrawerProps) {
     <Sheet open={isOpen} onOpenChange={onClose}>
       <SheetContent 
         className="overflow-y-auto"
+        sheetId="warning-drawer"
         style={{ 
           width: '50vw', 
           minWidth: '400px', 

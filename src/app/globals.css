@@ -107,14 +107,7 @@
   animation: notificationPulse 2s ease-in-out infinite;
 }
 
-/* Force all dialogs to have very high z-index to appear above drawers */
-[data-radix-dialog-overlay] {
-  z-index: 99999 !important;
-}
-
-[data-radix-dialog-content] {
-  z-index: 100000 !important;
-}
+/* Dynamic z-index is now handled by ZIndexContext - removing static overrides */
 
 /* Ensure dialog overlays are properly removed when closed */
 [data-radix-dialog-overlay][data-state="closed"] {
@@ -153,14 +146,7 @@ body {
   pointer-events: none !important;
 }
 
-/* Force all alert dialogs to have very high z-index */
-[data-radix-alert-dialog-overlay] {
-  z-index: 99999 !important;
-}
-
-[data-radix-alert-dialog-content] {
-  z-index: 100000 !important;
-}
+/* Alert dialogs now use dynamic z-index from ZIndexContext */
 
 /* Warning pulse animation */
 @keyframes warning-pulse {

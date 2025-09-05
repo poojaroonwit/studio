@@ -89,7 +89,7 @@ export default function PositionsPageClient() {
     return 1;
   });
   
-  const [pageSize, setPageSize] = useState(preferences.pageSize || 10);
+  const [pageSize, setPageSize] = useState(preferences.pageSize);
   const [total, setTotal] = useState(0);
   const [statistics, setStatistics] = useState({ total: 0, open: 0, closed: 0 });
   const [allDepartments, setAllDepartments] = useState<string[]>([]);
@@ -1441,7 +1441,7 @@ export default function PositionsPageClient() {
           )}
           
           {/* Scrollable Table Container */}
-          <div className="positions-table-scroll table-scrollbar" style={{ maxHeight: '400px' }}>
+          <div className="positions-table-scroll table-scrollbar">
             <Table className="min-w-full table-content-expandable">
             <TableHeader className="table-sticky-header">
               <TableRow>
@@ -1739,7 +1739,7 @@ export default function PositionsPageClient() {
               setPage(1);
               updateURL(1, newPageSize);
             }}
-            pageSizeOptions={[5, 10, 20, 50]}
+            pageSizeOptions={[10, 20, 50, 100]}
             showPageSizeSelector={true}
             className="mt-4"
           />

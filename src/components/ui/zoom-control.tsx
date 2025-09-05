@@ -29,35 +29,6 @@ export function ZoomControl({
     // Apply zoom using CSS zoom property for browser-like behavior
     document.documentElement.style.zoom = zoom.toString();
     
-    // Calculate and apply proportional height scaling
-    const html = document.documentElement;
-    const body = document.body;
-    
-    // Get current viewport dimensions
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-    
-    // Calculate scaled dimensions (width and height scale proportionally)
-    const scaledWidth = viewportWidth / zoom;
-    const scaledHeight = viewportHeight / zoom;
-    
-    // Apply proportional scaling to both width and height
-    html.style.width = `${scaledWidth}px`;
-    html.style.height = `${scaledHeight}px`;
-    html.style.position = 'fixed';
-    html.style.top = '0';
-    html.style.left = '0';
-    body.style.width = `${scaledWidth}px`;
-    body.style.height = `${scaledHeight}px`;
-    body.style.minWidth = `${scaledWidth}px`;
-    body.style.minHeight = `${scaledHeight}px`;
-    body.style.maxWidth = `${scaledWidth}px`;
-    body.style.maxHeight = `${scaledHeight}px`;
-    body.style.position = 'fixed';
-    body.style.top = '0';
-    body.style.left = '0';
-    body.style.backgroundColor = 'hsl(var(--background))';
-    
     // Store zoom level in localStorage
     localStorage.setItem('app-zoom-level', zoom.toString());
   }, [zoom]);
@@ -71,30 +42,6 @@ export function ZoomControl({
         setZoom(parsedZoom);
         // Apply zoom immediately on page load
         document.documentElement.style.zoom = parsedZoom.toString();
-        
-        // Apply proportional scaling immediately
-        const html = document.documentElement;
-        const body = document.body;
-        const viewportWidth = window.innerWidth;
-        const viewportHeight = window.innerHeight;
-        const scaledWidth = viewportWidth / parsedZoom;
-        const scaledHeight = viewportHeight / parsedZoom;
-        
-        html.style.width = `${scaledWidth}px`;
-        html.style.height = `${scaledHeight}px`;
-        html.style.position = 'fixed';
-        html.style.top = '0';
-        html.style.left = '0';
-        body.style.width = `${scaledWidth}px`;
-        body.style.height = `${scaledHeight}px`;
-        body.style.minWidth = `${scaledWidth}px`;
-        body.style.minHeight = `${scaledHeight}px`;
-        body.style.maxWidth = `${scaledWidth}px`;
-        body.style.maxHeight = `${scaledHeight}px`;
-        body.style.position = 'fixed';
-        body.style.top = '0';
-        body.style.left = '0';
-        body.style.backgroundColor = 'hsl(var(--background))';
       }
     }
   }, [minZoom, maxZoom]);
@@ -120,41 +67,6 @@ export function ZoomControl({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
-
-  // Handle window resize to maintain proportional scaling
-  useEffect(() => {
-    const handleResize = () => {
-      if (zoom !== 1.0) {
-        const html = document.documentElement;
-        const body = document.body;
-        
-        // Recalculate proportional dimensions on resize
-        const viewportWidth = window.innerWidth;
-        const viewportHeight = window.innerHeight;
-        const scaledWidth = viewportWidth / zoom;
-        const scaledHeight = viewportHeight / zoom;
-        
-        html.style.width = `${scaledWidth}px`;
-        html.style.height = `${scaledHeight}px`;
-        html.style.position = 'fixed';
-        html.style.top = '0';
-        html.style.left = '0';
-        body.style.width = `${scaledWidth}px`;
-        body.style.height = `${scaledHeight}px`;
-        body.style.minWidth = `${scaledWidth}px`;
-        body.style.minHeight = `${scaledHeight}px`;
-        body.style.maxWidth = `${scaledWidth}px`;
-        body.style.maxHeight = `${scaledHeight}px`;
-        body.style.position = 'fixed';
-        body.style.top = '0';
-        body.style.left = '0';
-        body.style.backgroundColor = 'hsl(var(--background))';
-      }
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [zoom]);
 
   const handleZoomIn = () => {
     setZoom(prev => Math.min(prev + step, maxZoom));
@@ -303,23 +215,6 @@ export function useZoom() {
           setZoom(zoomLevel);
           // Apply zoom immediately on page load
           document.documentElement.style.zoom = zoomLevel.toString();
-          
-          // Apply proportional scaling immediately
-          const html = document.documentElement;
-          const body = document.body;
-          const viewportWidth = window.innerWidth;
-          const viewportHeight = window.innerHeight;
-          const scaledWidth = viewportWidth / zoomLevel;
-          const scaledHeight = viewportHeight / zoomLevel;
-          
-          html.style.width = `${scaledWidth}px`;
-          html.style.height = `${scaledHeight}px`;
-          body.style.width = `${scaledWidth}px`;
-          body.style.height = `${scaledHeight}px`;
-          body.style.minWidth = `${scaledWidth}px`;
-          body.style.minHeight = `${scaledHeight}px`;
-          body.style.maxWidth = `${scaledWidth}px`;
-          body.style.maxHeight = `${scaledHeight}px`;
         }
         setIsLoading(false);
         return;
@@ -328,27 +223,10 @@ export function useZoom() {
       try {
         const response = await fetch(`/api/users/${userId}/zoom-preferences`);
         if (response.ok) {
-                   const preferences = await response.json();
-         const zoomLevel = preferences.zoomLevel || 1.0;
-         setZoom(zoomLevel);
-         document.documentElement.style.zoom = zoomLevel.toString();
-         
-         // Apply proportional height scaling
-         const html = document.documentElement;
-         const body = document.body;
-         const viewportWidth = window.innerWidth;
-         const viewportHeight = window.innerHeight;
-         const scaledWidth = viewportWidth / zoomLevel;
-         const scaledHeight = viewportHeight / zoomLevel;
-         
-         html.style.width = `${scaledWidth}px`;
-         html.style.height = `${scaledHeight}px`;
-         body.style.width = `${scaledWidth}px`;
-         body.style.height = `${scaledHeight}px`;
-         body.style.minWidth = `${scaledWidth}px`;
-         body.style.minHeight = `${scaledHeight}px`;
-         body.style.maxWidth = `${scaledWidth}px`;
-         body.style.maxHeight = `${scaledHeight}px`;
+          const preferences = await response.json();
+          const zoomLevel = preferences.zoomLevel || 1.0;
+          setZoom(zoomLevel);
+          document.documentElement.style.zoom = zoomLevel.toString();
         } else {
           // Fallback to localStorage
           const savedZoom = localStorage.getItem('app-zoom-level');
@@ -371,27 +249,9 @@ export function useZoom() {
     loadZoomPreferences();
   }, [userId]);
 
-
   const setZoomLevel = async (level: number) => {
     setZoom(level);
     document.documentElement.style.zoom = level.toString();
-    
-    // Apply proportional height scaling
-    const html = document.documentElement;
-    const body = document.body;
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-    const scaledWidth = viewportWidth / level;
-    const scaledHeight = viewportHeight / level;
-    
-    html.style.width = `${scaledWidth}px`;
-    html.style.height = `${scaledHeight}px`;
-    body.style.width = `${scaledWidth}px`;
-    body.style.height = `${scaledHeight}px`;
-    body.style.minWidth = `${scaledWidth}px`;
-    body.style.minHeight = `${scaledHeight}px`;
-    body.style.maxWidth = `${scaledWidth}px`;
-    body.style.maxHeight = `${scaledHeight}px`;
     
     // Save to localStorage as backup
     localStorage.setItem('app-zoom-level', level.toString());
@@ -441,41 +301,6 @@ export function useZoom() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [zoom]);
-
-  // Handle window resize to maintain proportional scaling
-  useEffect(() => {
-    const handleResize = () => {
-      if (zoom !== 1.0) {
-        const html = document.documentElement;
-        const body = document.body;
-        
-        // Recalculate proportional dimensions on resize
-        const viewportWidth = window.innerWidth;
-        const viewportHeight = window.innerHeight;
-        const scaledWidth = viewportWidth / zoom;
-        const scaledHeight = viewportHeight / zoom;
-        
-        html.style.width = `${scaledWidth}px`;
-        html.style.height = `${scaledHeight}px`;
-        html.style.position = 'fixed';
-        html.style.top = '0';
-        html.style.left = '0';
-        body.style.width = `${scaledWidth}px`;
-        body.style.height = `${scaledHeight}px`;
-        body.style.minWidth = `${scaledWidth}px`;
-        body.style.minHeight = `${scaledHeight}px`;
-        body.style.maxWidth = `${scaledWidth}px`;
-        body.style.maxHeight = `${scaledHeight}px`;
-        body.style.position = 'fixed';
-        body.style.top = '0';
-        body.style.left = '0';
-        body.style.backgroundColor = 'hsl(var(--background))';
-      }
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
   }, [zoom]);
 
   return {

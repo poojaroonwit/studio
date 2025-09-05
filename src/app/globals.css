@@ -2828,26 +2828,50 @@ body:has(.zoom-controls) {
 
 .app-zoom-75 {
   transform: scale(0.75);
+  transform-origin: top left;
 }
 
 .app-zoom-80 {
   transform: scale(0.8);
+  transform-origin: top left;
 }
 
 .app-zoom-90 {
   transform: scale(0.9);
+  transform-origin: top left;
 }
 
 .app-zoom-100 {
   transform: scale(1);
+  transform-origin: top left;
 }
 
 .app-zoom-110 {
   transform: scale(1.1);
+  transform-origin: top left;
 }
 
 .app-zoom-125 {
   transform: scale(1.25);
+  transform-origin: top left;
+}
+
+/* Ensure body zoom doesn't interfere with layout */
+body {
+  transform-origin: top left;
+  transition: transform 0.2s ease-in-out;
+}
+
+/* Fix for zoom height issues */
+html, body {
+  overflow-x: auto;
+  overflow-y: auto;
+}
+
+/* Ensure proper scrolling when zoomed */
+body.zoomed {
+  min-height: 100vh;
+  width: 100%;
 }
 
 /* Responsive zoom adjustments */

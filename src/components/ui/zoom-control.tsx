@@ -111,12 +111,25 @@ export function ZoomControl({
 
   const handleSliderChange = (value: number[]) => {
     const newZoom = value[0];
+    console.log('=== HANDLE SLIDER CHANGE DEBUG ===');
     console.log('Slider changed to:', newZoom, 'value array:', value);
+    console.log('Current zoom state:', zoom);
+    console.log('window.setZoom exists:', typeof window.setZoom);
+    console.log('DOM transform before setZoom:', document.documentElement.style.transform);
+    
     setZoom(newZoom);
     // Use the global zoom function to sync with keyboard shortcuts
     if (window.setZoom) {
       console.log('Calling window.setZoom with slider value:', newZoom);
       window.setZoom(newZoom);
+      
+      // Check if it actually changed
+      setTimeout(() => {
+        console.log('DOM transform after setZoom:', document.documentElement.style.transform);
+        const computedStyle = window.getComputedStyle(document.documentElement);
+        console.log('Computed transform after setZoom:', computedStyle.transform);
+        console.log('Page should now be at', Math.round(newZoom * 100) + '%');
+      }, 100);
     } else {
       console.warn('window.setZoom is not available');
     }
@@ -224,10 +237,25 @@ export function ZoomControl({
           value={zoom}
           onChange={(e) => {
             const newZoom = parseFloat(e.target.value);
+            console.log('=== SIMPLE SLIDER DEBUG ===');
             console.log('Simple slider changed to:', newZoom);
+            console.log('window.setZoom exists:', typeof window.setZoom);
+            console.log('Current DOM transform before:', document.documentElement.style.transform);
+            
             setZoom(newZoom);
             if (window.setZoom) {
+              console.log('Calling window.setZoom with:', newZoom);
               window.setZoom(newZoom);
+              
+              // Check if it actually changed
+              setTimeout(() => {
+                console.log('DOM transform after setZoom:', document.documentElement.style.transform);
+                const computedStyle = window.getComputedStyle(document.documentElement);
+                console.log('Computed transform after setZoom:', computedStyle.transform);
+                console.log('Page should now be at', Math.round(newZoom * 100) + '%');
+              }, 100);
+            } else {
+              console.error('window.setZoom is not available!');
             }
           }}
           className="w-full"
@@ -272,10 +300,20 @@ export function ZoomControl({
                 <Slider
                   value={[zoom]}
                   onValueChange={(value) => {
+                    console.log('=== RADIX SLIDER DEBUG ===');
                     console.log('Radix Slider onValueChange:', value);
+                    console.log('window.setZoom exists:', typeof window.setZoom);
+                    console.log('Current DOM transform before:', document.documentElement.style.transform);
                     handleSliderChange(value);
                   }}
-                  onValueCommit={(value) => console.log('Radix Slider value committed:', value)}
+                  onValueCommit={(value) => {
+                    console.log('Radix Slider value committed:', value);
+                    // Check final state
+                    setTimeout(() => {
+                      const computedStyle = window.getComputedStyle(document.documentElement);
+                      console.log('Final computed transform after commit:', computedStyle.transform);
+                    }, 100);
+                  }}
                   min={minZoom}
                   max={maxZoom}
                   step={step}

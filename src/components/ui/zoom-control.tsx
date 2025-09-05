@@ -16,7 +16,7 @@ interface ZoomControlProps {
 
 export function ZoomControl({ 
   className,
-  defaultZoom = 1.0,
+  defaultZoom = 0.9,
   minZoom = 0.5,
   maxZoom = 1.5,
   step = 0.1
@@ -154,7 +154,7 @@ export function ZoomControl({
 
 // Simple hook for zoom control
 export function useZoom() {
-  const [zoom, setZoom] = useState(1.0);
+  const [zoom, setZoom] = useState(0.9);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -173,7 +173,7 @@ export function useZoom() {
   };
 
   const resetZoom = () => {
-    setZoomLevel(1.0);
+    setZoomLevel(0.9);
   };
 
   return {

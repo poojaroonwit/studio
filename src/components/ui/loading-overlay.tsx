@@ -152,7 +152,7 @@ export function PageLoading({
   size?: 'sm' | 'md' | 'lg';
 }) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
+    <div className="h-full min-h-screen flex items-center justify-center bg-background">
       <div className="text-center space-y-4">
         <Loader2 className={cn(
           'animate-spin text-primary mx-auto',

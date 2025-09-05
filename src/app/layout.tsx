@@ -93,19 +93,27 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 __html: `
                   (function() {
                     try {
-                      // Apply saved zoom level immediately
+                      // Apply saved zoom level immediately, default to 90%
                       const savedZoom = localStorage.getItem('app-zoom-level');
                       if (savedZoom) {
                         const zoomLevel = parseFloat(savedZoom);
                         if (zoomLevel >= 0.5 && zoomLevel <= 1.5) {
                           document.documentElement.style.zoom = zoomLevel.toString();
+                        } else {
+                          // Set default to 90% if saved value is invalid
+                          document.documentElement.style.zoom = '0.9';
+                          localStorage.setItem('app-zoom-level', '0.9');
                         }
+                      } else {
+                        // Set default to 90% if no saved value
+                        document.documentElement.style.zoom = '0.9';
+                        localStorage.setItem('app-zoom-level', '0.9');
                       }
                       
                       // Global keyboard shortcuts
                       document.addEventListener('keydown', function(event) {
                         if (event.ctrlKey || event.metaKey) {
-                          const currentZoom = parseFloat(document.documentElement.style.zoom || '1');
+                          const currentZoom = parseFloat(document.documentElement.style.zoom || '0.9');
                           
                           if (event.key === '+' || event.key === '=') {
                             event.preventDefault();
@@ -119,8 +127,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                             localStorage.setItem('app-zoom-level', newZoom.toString());
                           } else if (event.key === '0') {
                             event.preventDefault();
-                            document.documentElement.style.zoom = '1';
-                            localStorage.setItem('app-zoom-level', '1');
+                            document.documentElement.style.zoom = '0.9';
+                            localStorage.setItem('app-zoom-level', '0.9');
                           }
                         }
                       });

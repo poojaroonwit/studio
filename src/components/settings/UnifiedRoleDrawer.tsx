@@ -622,7 +622,7 @@ export function UnifiedRoleDrawer({
   return (
     <>
       <Sheet open={isOpen} onOpenChange={onOpenChange}>
-        <SheetContent className="w-full max-w-[85vw] sm:max-w-[80vw] md:max-w-[75vw] lg:max-w-[70vw] xl:max-w-[900px] h-screen flex flex-col p-0">
+        <SheetContent className="w-full max-w-[85vw] sm:max-w-[80vw] md:max-w-[75vw] lg:max-w-[70vw] xl:max-w-[900px] h-full min-h-screen flex flex-col p-0">
           <UnifiedRoleDrawerErrorBoundary>
             <SheetHeader className="flex-shrink-0 p-6 pb-4">
                           <SheetTitle className="flex items-center gap-2">

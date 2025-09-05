@@ -946,7 +946,7 @@ export function FlexibleKanbanView({
       return !columnsToShow.includes(colValue);
     });
     return (
-      <div className="w-full h-[calc(100vh-200px)] bg-muted/30 rounded-lg p-4 flex gap-4">
+      <div className="w-full h-[calc(100%-200px)] min-h-[400px] bg-muted/30 rounded-lg p-4 flex gap-4">
         {columnsToShow.map((colValue) => {
           const colCandidates = candidates.filter(candidate =>
             getFieldValue(candidate, columnField) === colValue
@@ -1126,7 +1126,7 @@ export function FlexibleKanbanView({
 
   if (showSingleRow) {
     return (
-      <div className="w-full h-[calc(100vh-200px)] bg-muted/30 rounded-lg p-4 flex flex-col gap-4 overflow-y-auto">
+      <div className="w-full h-[calc(100%-200px)] min-h-[400px] bg-muted/30 rounded-lg p-4 flex flex-col gap-4 overflow-y-auto">
         <div className="flex flex-row flex-wrap gap-3">
           {candidates.map(candidate => (
             <div
@@ -1168,7 +1168,7 @@ export function FlexibleKanbanView({
       return !effectiveColumnValues.includes(colVal);
     });
     return (
-      <div className="w-full h-[calc(100vh-200px)] bg-muted/30 rounded-lg p-4 flex gap-4">
+      <div className="w-full h-[calc(100%-200px)] min-h-[400px] bg-muted/30 rounded-lg p-4 flex gap-4">
         {effectiveColumnValues.map((colValue) => (
           <div key={colValue} className="flex flex-col h-full" style={{ flex: '1 1 0%' }}>
             <Card className="flex flex-col h-full shadow-sm border border-border bg-card">
@@ -1361,7 +1361,7 @@ export function FlexibleKanbanView({
       return value === colValue;
     });
     return (
-      <div className="w-full h-[calc(100vh-200px)] bg-muted/30 rounded-lg p-4 flex flex-col items-center justify-center overflow-y-auto">
+      <div className="w-full h-[calc(100%-200px)] min-h-[400px] bg-muted/30 rounded-lg p-4 flex flex-col items-center justify-center overflow-y-auto">
         <SingleRowCandidateView
           candidates={colCandidates}
           onCardClick={onCardClick}
@@ -1375,7 +1375,7 @@ export function FlexibleKanbanView({
 
   // Grouped row layout (no columns)
   return (
-    <div className="w-full h-[calc(100vh-200px)] bg-muted/30 rounded-lg p-4 flex flex-col gap-4 overflow-y-auto">
+    <div className="w-full h-[calc(100%-200px)] min-h-[400px] bg-muted/30 rounded-lg p-4 flex flex-col gap-4 overflow-y-auto">
       <div className="grid grid-cols-1 gap-4">
         {rowValuesToShow.map(rowValue => {
           // If fallback, show all candidates
@@ -1812,7 +1812,7 @@ export function SingleRowKanbanView({
   if (filteredCandidates.length === 0) {
     return (
       <>
-        <div className="w-full h-[calc(100vh-200px)] p-4 flex items-center justify-center">
+        <div className="w-full h-[calc(100%-200px)] min-h-[400px] p-4 flex items-center justify-center">
           <div className="text-center">
             <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center">
               <Users className="w-8 h-8 text-muted-foreground" />
@@ -1839,7 +1839,7 @@ export function SingleRowKanbanView({
   }
   return (
     <>
-      <div className="w-full h-[calc(100vh-200px)] bg-muted/30 rounded-lg p-4 flex items-center justify-center">
+      <div className="w-full h-[calc(100%-200px)] min-h-[400px] bg-muted/30 rounded-lg p-4 flex items-center justify-center">
         <div className="w-full max-w-4xl">
           {/* Navigation Header */}
           <div className="flex items-center justify-between mb-6">
@@ -2051,7 +2051,7 @@ export function MultiRecruiterKanbanView({ candidates, stages, recruiters, onMov
 
 
   return (
-    <div className="w-full h-[calc(100vh-200px)] bg-muted/30 rounded-lg p-4 flex gap-4">
+    <div className="w-full h-[calc(100%-200px)] min-h-[400px] bg-muted/30 rounded-lg p-4 flex gap-4">
       {recruiters.map((recruiter: any) => (
         <div key={recruiter.id} className="flex-shrink-0 w-80 flex flex-col h-full">
           <Card className="flex flex-col h-full shadow-sm border border-border bg-card">
@@ -2454,7 +2454,7 @@ export function HorizontalStageKanbanView({
   const showScrollButtons = columnsToShow.length > 2;
 
   return (
-    <div className="w-full h-[calc(100vh-200px)] bg-muted/30 rounded-lg p-4">
+    <div className="w-full h-[calc(100%-200px)] min-h-[400px] bg-muted/30 rounded-lg p-4">
       {/* Navigation Controls */}
       {showScrollButtons && (
         <div className="flex items-center justify-between mb-4">

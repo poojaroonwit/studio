@@ -2822,7 +2822,7 @@ body:has(.zoom-controls) {
 
 /* Normal browser zoom behavior */
 html {
-  zoom: 1;
+  zoom: 0.9;
   height: 100%;
 }
 

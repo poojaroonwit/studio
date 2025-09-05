@@ -194,7 +194,7 @@ export class ErrorBoundary extends Component<Props, State> {
       const isDateError = this.state.error?.message?.includes('getTime is not a function');
 
       return (
-        <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <div className="h-full min-h-screen flex items-center justify-center bg-background p-4">
           <div className="max-w-md w-full space-y-4">
             <Alert variant="destructive" className="border-red-200 bg-red-50">
               <AlertTriangle className="h-4 w-4" />

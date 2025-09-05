@@ -2526,7 +2526,7 @@ export function CandidatesPageClient({
   // Centralized error UI for auth/permission
   if (authError || sessionStatus === 'unauthenticated') {
     return (
-      <div className="flex flex-col items-center justify-center h-[calc(100vh-10rem)] text-center p-4">
+      <div className="flex flex-col items-center justify-center h-[calc(100%-10rem)] min-h-[400px] text-center p-4">
         <ServerCrash className="w-16 h-16 text-destructive mb-4" />
         <h2 className="text-2xl font-semibold text-foreground mb-2">Authentication Error</h2>
         <p className="text-muted-foreground mb-4 max-w-md">You need to be signed in to view candidates.</p>
@@ -2536,7 +2536,7 @@ export function CandidatesPageClient({
   }
   if (permissionError) {
     return (
-      <div className="flex flex-col items-center justify-center h-[calc(100vh-10rem)] text-center p-4">
+      <div className="flex flex-col items-center justify-center h-[calc(100%-10rem)] min-h-[400px] text-center p-4">
         <ShieldAlert className="w-16 h-16 text-destructive mb-4" />
         <h2 className="text-2xl font-semibold text-foreground mb-2">Permission Denied</h2>
         <p className="text-muted-foreground mb-4 max-w-md">You do not have permission to view candidates. Please contact your administrator if you believe this is an error.</p>
@@ -2545,12 +2545,12 @@ export function CandidatesPageClient({
   }
   // Only show full-screen loader on initial load, not during filter updates
   if (isLoading && !hasInitialDataFetch) {
-    return ( <div className="flex h-screen w-screen items-center justify-center bg-background fixed inset-0 z-50"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div> );
+    return ( <div className="flex h-full min-h-screen w-full items-center justify-center bg-background fixed inset-0 z-50"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div> );
   }
   if (fetchError && !isLoading) {
     const isMissingTableError = fetchError.toLowerCase().includes("relation") && fetchError.toLowerCase().includes("does not exist");
     return (
-      <div className="flex flex-col items-center justify-center h-[calc(100vh-10rem)] text-center p-4">
+      <div className="flex flex-col items-center justify-center h-[calc(100%-10rem)] min-h-[400px] text-center p-4">
         <ServerCrash className="w-16 h-16 text-destructive mb-4" />
         <h2 className="text-2xl font-semibold text-foreground mb-2">Error Loading Candidates</h2>
         <p className="text-muted-foreground mb-4 max-w-md">{fetchError}</p>
@@ -2570,7 +2570,7 @@ export function CandidatesPageClient({
     <div className="flex h-full relative">
       {/* Filter Sidebar */}
       {candidateSettings.showFilters && (
-        <aside ref={sidebarFilterRef} className="w-80 min-w-[250px] border-r bg-card dark:bg-background transition-all flex flex-col h-screen responsive-filter-sidebar">
+        <aside ref={sidebarFilterRef} className="w-80 min-w-[250px] border-r bg-card dark:bg-background transition-all flex flex-col h-full min-h-screen responsive-filter-sidebar">
           <div className="flex justify-between items-center p-2 border-b flex-shrink-0">
             <span className="font-bold text-lg">Filters</span>
             <button

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCcw, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ZoomControlProps {
@@ -23,6 +23,7 @@ export function ZoomControl({
 }: ZoomControlProps) {
   const [zoom, setZoom] = useState(defaultZoom);
   const [isVisible, setIsVisible] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(true);
 
   useEffect(() => {
     // Apply zoom to the document
@@ -61,7 +62,18 @@ export function ZoomControl({
 
   const toggleVisibility = () => {
     setIsVisible(prev => !prev);
+    setIsMinimized(false);
   };
+
+  const minimizeControl = () => {
+    setIsMinimized(true);
+    setIsVisible(false);
+  };
+
+  // Hide the floating control by default since we now have it in the dropdown
+  if (isMinimized) {
+    return null;
+  }
 
   return (
     <div className={cn("fixed bottom-4 right-4 z-50", className)}>
@@ -78,18 +90,28 @@ export function ZoomControl({
 
       {/* Zoom Controls Panel */}
       {isVisible && (
-        <div className="bg-background border border-border rounded-lg p-4 shadow-lg min-w-[200px]">
+        <div className="bg-background border border-border rounded-lg p-4 shadow-lg min-w-[200px] mb-4">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">Zoom: {Math.round(zoom * 100)}%</span>
-              <Button
-                onClick={handleReset}
-                size="sm"
-                variant="ghost"
-                title="Reset to 100%"
-              >
-                <RotateCcw className="w-3 h-3" />
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button
+                  onClick={handleReset}
+                  size="sm"
+                  variant="ghost"
+                  title="Reset to 100%"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                </Button>
+                <Button
+                  onClick={minimizeControl}
+                  size="sm"
+                  variant="ghost"
+                  title="Close"
+                >
+                  <X className="w-3 h-3" />
+                </Button>
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -134,21 +156,97 @@ export function ZoomControl({
   );
 }
 
-// Hook for programmatic zoom control
+// Hook for programmatic zoom control with server-side storage
 export function useZoom() {
   const [zoom, setZoom] = useState(1.0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
 
+  // Get user ID from session
   useEffect(() => {
-    const savedZoom = localStorage.getItem('app-zoom-level');
-    if (savedZoom) {
-      setZoom(parseFloat(savedZoom));
-    }
+    const getUserId = async () => {
+      try {
+        const response = await fetch('/api/auth/session');
+        if (response.ok) {
+          const session = await response.json();
+          if (session?.user?.id) {
+            setUserId(session.user.id);
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to get user session:', error);
+      }
+    };
+    getUserId();
   }, []);
 
-  const setZoomLevel = (level: number) => {
+  // Load zoom preferences from server
+  useEffect(() => {
+    const loadZoomPreferences = async () => {
+      if (!userId) {
+        // Fallback to localStorage if no user ID
+        const savedZoom = localStorage.getItem('app-zoom-level');
+        if (savedZoom) {
+          setZoom(parseFloat(savedZoom));
+        }
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/users/${userId}/zoom-preferences`);
+        if (response.ok) {
+          const preferences = await response.json();
+          setZoom(preferences.zoomLevel || 1.0);
+          document.documentElement.style.zoom = (preferences.zoomLevel || 1.0).toString();
+        } else {
+          // Fallback to localStorage
+          const savedZoom = localStorage.getItem('app-zoom-level');
+          if (savedZoom) {
+            setZoom(parseFloat(savedZoom));
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to load zoom preferences from server:', error);
+        // Fallback to localStorage
+        const savedZoom = localStorage.getItem('app-zoom-level');
+        if (savedZoom) {
+          setZoom(parseFloat(savedZoom));
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadZoomPreferences();
+  }, [userId]);
+
+  const setZoomLevel = async (level: number) => {
     setZoom(level);
     document.documentElement.style.zoom = level.toString();
+    
+    // Save to localStorage as backup
     localStorage.setItem('app-zoom-level', level.toString());
+
+    // Save to server if user is logged in
+    if (userId) {
+      try {
+        await fetch(`/api/users/${userId}/zoom-preferences`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            zoomLevel: level,
+            autoZoom: false, // Keep existing values
+            rememberZoom: true,
+            mobileZoom: 0.9,
+          }),
+        });
+      } catch (error) {
+        console.warn('Failed to save zoom preferences to server:', error);
+      }
+    }
   };
 
   const resetZoom = () => {
@@ -158,6 +256,8 @@ export function useZoom() {
   return {
     zoom,
     setZoom: setZoomLevel,
-    resetZoom
+    resetZoom,
+    isLoading,
+    isServerStorage: !!userId,
   };
 }

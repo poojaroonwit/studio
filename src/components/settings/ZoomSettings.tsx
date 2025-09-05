@@ -15,10 +15,11 @@ interface ZoomSettingsProps {
 }
 
 export function ZoomSettings({ className }: ZoomSettingsProps) {
-  const { zoom, setZoom, resetZoom } = useZoom();
+  const { zoom, setZoom, resetZoom, isLoading, isServerStorage } = useZoom();
   const [autoZoom, setAutoZoom] = useState(false);
   const [rememberZoom, setRememberZoom] = useState(true);
   const [mobileZoom, setMobileZoom] = useState(0.9);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     // Load settings from localStorage
@@ -202,10 +203,12 @@ export function ZoomSettings({ className }: ZoomSettingsProps) {
         <div className="p-3 bg-muted/50 rounded-lg">
           <div className="text-sm font-medium mb-1">Current Settings</div>
           <div className="text-xs text-muted-foreground space-y-1">
-            <div>• Zoom Level: {Math.round(zoom * 100)}%</div>
+            <div>• Zoom Level: {isLoading ? 'Loading...' : `${Math.round(zoom * 100)}%`}</div>
             <div>• Auto-adjust: {autoZoom ? 'Enabled' : 'Disabled'}</div>
             <div>• Remember settings: {rememberZoom ? 'Yes' : 'No'}</div>
             {autoZoom && <div>• Mobile zoom: {Math.round(mobileZoom * 100)}%</div>}
+            <div>• Storage: {isServerStorage ? 'Server (synced)' : 'Local only'}</div>
+            {isSaving && <div className="text-blue-500">• Saving...</div>}
           </div>
         </div>
       </CardContent>

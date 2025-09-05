@@ -87,188 +87,31 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         {/* Ramda polyfill is now handled by RamdaPolyfillInitializer component */}
-        {/* Apply zoom immediately on page load to prevent flash */}
+        {/* Simple zoom script */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
-                   (function() {
-                     console.log('=== ZOOM SCRIPT STARTING ===');
-                     console.log('Script is executing...');
-                     
-                     function initializeZoom() {
-                       try {
-                         console.log('=== ZOOM SCRIPT INITIALIZING ===');
-                         console.log('Document ready state:', document.readyState);
-                         console.log('Document element exists:', !!document.documentElement);
-                         console.log('Window object exists:', !!window);
-                       
-                       // Set default zoom to 0.9 (90%) so 100% zoom appears as 90% size
-                       const DEFAULT_ZOOM = 0.9;
-                       
-                       // Function to fix white space by adjusting body height based on zoom
-                       function fixZoomWhiteSpace(zoomLevel) {
-                         // Calculate the proper height based on zoom level
-                         const viewportHeight = window.innerHeight;
-                         const scaledHeight = viewportHeight / zoomLevel;
-                         document.body.style.minHeight = scaledHeight + 'px';
-                         document.documentElement.style.minHeight = scaledHeight + 'px';
-                       }
-                       
-                       // Listen for window resize to recalculate height
-                       window.addEventListener('resize', function() {
-                         const currentZoom = parseFloat(document.documentElement.style.zoom || DEFAULT_ZOOM);
-                         fixZoomWhiteSpace(currentZoom);
-                       });
-                       
-                       // Apply saved zoom level immediately, or use default
-                       const savedZoom = localStorage.getItem('app-zoom-level');
-                       let zoomLevel = savedZoom ? parseFloat(savedZoom) : DEFAULT_ZOOM;
-                       
-                       // Ensure zoom is within valid range (0.5 to 1.5)
-                       if (zoomLevel >= 0.5 && zoomLevel <= 1.5) {
-                         console.log('Applying initial zoom:', zoomLevel);
-                         
-                         // Simple approach: just use CSS zoom property which is more reliable
-                         try {
-                           document.documentElement.style.zoom = zoomLevel.toString();
-                           console.log('Initial CSS zoom applied successfully:', zoomLevel);
-                         } catch (e) {
-                           console.log('CSS zoom not supported, trying transform fallback');
-                           
-                           // Fallback to transform only if CSS zoom fails
-                           document.documentElement.style.transform = 'scale(' + zoomLevel + ')';
-                           document.documentElement.style.transformOrigin = 'top left';
-                         }
-                         
-                         // Save the zoom level if it wasn't saved before
-                         if (!savedZoom) {
-                           localStorage.setItem('app-zoom-level', zoomLevel.toString());
-                         }
-                         console.log('Initial zoom applied:', zoomLevel);
-                         
-                         // Verify the zoom is actually applied
-                         setTimeout(() => {
-                           const computedStyle = window.getComputedStyle(document.documentElement);
-                           console.log('Initial computed zoom:', computedStyle.zoom);
-                           console.log('Initial computed transform:', computedStyle.transform);
-                           console.log('Initial inline zoom:', document.documentElement.style.zoom);
-                           console.log('Initial inline transform:', document.documentElement.style.transform);
-                         }, 50);
-                       }
-                       
-                       // Global keyboard shortcuts
-                       document.addEventListener('keydown', function(event) {
-                         if (event.ctrlKey || event.metaKey) {
-                           const currentZoom = window.getZoom ? window.getZoom() : DEFAULT_ZOOM;
-                           
-                           if (event.key === '+' || event.key === '=') {
-                             event.preventDefault();
-                             const newZoom = Math.min(currentZoom + 0.1, 1.5);
-                             if (window.setZoom) {
-                               window.setZoom(newZoom);
-                             }
-                           } else if (event.key === '-') {
-                             event.preventDefault();
-                             const newZoom = Math.max(currentZoom - 0.1, 0.5);
-                             if (window.setZoom) {
-                               window.setZoom(newZoom);
-                             }
-                           } else if (event.key === '0') {
-                             event.preventDefault();
-                             if (window.setZoom) {
-                               window.setZoom(DEFAULT_ZOOM);
-                             }
-                           }
-                         }
-                       });
-                       
-                       
-                       // Expose zoom functions globally
-                       window.setZoom = function(zoom) {
-                         if (zoom >= 0.5 && zoom <= 1.5) {
-                           console.log('setZoom called with:', zoom);
-                           
-                           // Simple approach: just use CSS zoom property which is more reliable
-                           try {
-                             document.documentElement.style.zoom = zoom.toString();
-                             console.log('CSS zoom applied successfully:', zoom);
-                           } catch (e) {
-                             console.log('CSS zoom not supported, trying transform fallback');
-                             
-                             // Fallback to transform only if CSS zoom fails
-                             document.documentElement.style.transform = 'scale(' + zoom + ')';
-                             document.documentElement.style.transformOrigin = 'top left';
-                           }
-                           
-                           localStorage.setItem('app-zoom-level', zoom.toString());
-                           window.dispatchEvent(new CustomEvent('zoomChanged', { detail: { zoom: zoom } }));
-                           console.log('Zoom applied:', zoom);
-                           
-                           // Verify the zoom is actually applied
-                           setTimeout(() => {
-                             const computedStyle = window.getComputedStyle(document.documentElement);
-                             console.log('Computed zoom after setZoom:', computedStyle.zoom);
-                             console.log('Computed transform after setZoom:', computedStyle.transform);
-                             console.log('Inline zoom after setZoom:', document.documentElement.style.zoom);
-                             console.log('Inline transform after setZoom:', document.documentElement.style.transform);
-                           }, 50);
-                         }
-                       };
-                       
-                       window.getZoom = function() {
-                         // Try to get zoom from CSS zoom property first (primary method)
-                         const zoomValue = document.documentElement.style.zoom;
-                         if (zoomValue) {
-                           return parseFloat(zoomValue);
-                         }
-                         // Fallback to transform scale
-                         const transform = document.documentElement.style.transform;
-                         if (transform && transform.indexOf('scale(') !== -1) {
-                           const match = transform.match(/scale\\(([^)]+)\\)/);
-                           if (match) {
-                             return parseFloat(match[1]);
-                           }
-                         }
-                         return DEFAULT_ZOOM;
-                       };
-                       
-                       // TypeScript declarations for global functions
-                       if (typeof window !== 'undefined') {
-                         (window as any).setZoom = window.setZoom;
-                         (window as any).getZoom = window.getZoom;
-                       }
-                       
-                         console.log('=== ZOOM SCRIPT COMPLETED ===');
-                         console.log('window.setZoom available:', typeof window.setZoom);
-                         console.log('window.getZoom available:', typeof window.getZoom);
-                         
-                         // Test the functions immediately
-                         if (window.setZoom) {
-                           console.log('Testing window.setZoom immediately...');
-                           window.setZoom(0.9);
-                         } else {
-                           console.error('window.setZoom is NOT available after initialization!');
-                         }
-                       } catch (e) {
-                         console.error('Failed to initialize zoom:', e);
-                         console.error('Error details:', e.message, e.stack);
-                       }
-                     }
-                     
-                     // Run immediately if DOM is ready, otherwise wait
-                     try {
-                       if (document.readyState === 'loading') {
-                         console.log('DOM is loading, waiting for DOMContentLoaded...');
-                         document.addEventListener('DOMContentLoaded', initializeZoom);
-                       } else {
-                         console.log('DOM is ready, initializing immediately...');
-                         initializeZoom();
-                       }
-                     } catch (e) {
-                       console.error('Error in script execution:', e);
-                       console.error('Error details:', e.message, e.stack);
-                     }
-                   })();
+              // Simple zoom functions
+              window.setZoom = function(zoom) {
+                if (zoom >= 0.5 && zoom <= 1.5) {
+                  document.documentElement.style.zoom = zoom.toString();
+                  localStorage.setItem('app-zoom-level', zoom.toString());
+                  window.dispatchEvent(new CustomEvent('zoomChanged', { detail: { zoom: zoom } }));
+                }
+              };
+              
+              window.getZoom = function() {
+                const zoom = document.documentElement.style.zoom;
+                return zoom ? parseFloat(zoom) : 0.9;
+              };
+              
+              // Apply saved zoom on load
+              const savedZoom = localStorage.getItem('app-zoom-level');
+              if (savedZoom) {
+                document.documentElement.style.zoom = savedZoom;
+              } else {
+                document.documentElement.style.zoom = '0.9';
+              }
             `,
           }}
         />

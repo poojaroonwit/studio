@@ -29,14 +29,19 @@ export function ZoomControl({
     // Apply zoom using CSS zoom property for browser-like behavior
     document.documentElement.style.zoom = zoom.toString();
     
-    // Ensure proper height scaling with zoom
+    // Calculate dynamic height based on zoom level
+    const viewportHeight = window.innerHeight;
+    const scaledHeight = viewportHeight / zoom;
+    
+    // Apply dynamic height scaling
     const html = document.documentElement;
     const body = document.body;
     
-    // Set explicit height to ensure proper scaling
-    html.style.height = '100vh';
-    body.style.height = '100vh';
-    body.style.minHeight = '100vh';
+    // Set dynamic height that scales with zoom
+    html.style.height = `${scaledHeight}px`;
+    body.style.height = `${scaledHeight}px`;
+    body.style.minHeight = `${scaledHeight}px`;
+    body.style.maxHeight = `${scaledHeight}px`;
     
     // Store zoom level in localStorage
     localStorage.setItem('app-zoom-level', zoom.toString());
@@ -78,13 +83,17 @@ export function ZoomControl({
   // Handle window resize to maintain proper height scaling
   useEffect(() => {
     const handleResize = () => {
-      if (zoom !== 1.0) {
-        const html = document.documentElement;
-        const body = document.body;
-        html.style.height = '100vh';
-        body.style.height = '100vh';
-        body.style.minHeight = '100vh';
-      }
+      // Recalculate dynamic height based on current zoom and new viewport
+      const viewportHeight = window.innerHeight;
+      const scaledHeight = viewportHeight / zoom;
+      
+      const html = document.documentElement;
+      const body = document.body;
+      
+      html.style.height = `${scaledHeight}px`;
+      body.style.height = `${scaledHeight}px`;
+      body.style.minHeight = `${scaledHeight}px`;
+      body.style.maxHeight = `${scaledHeight}px`;
     };
 
     window.addEventListener('resize', handleResize);
@@ -248,12 +257,17 @@ export function useZoom() {
          setZoom(zoomLevel);
          document.documentElement.style.zoom = zoomLevel.toString();
          
-         // Ensure proper height scaling with zoom
+         // Calculate dynamic height based on zoom level
+         const viewportHeight = window.innerHeight;
+         const scaledHeight = viewportHeight / zoomLevel;
+         
+         // Apply dynamic height scaling
          const html = document.documentElement;
          const body = document.body;
-         html.style.height = '100vh';
-         body.style.height = '100vh';
-         body.style.minHeight = '100vh';
+         html.style.height = `${scaledHeight}px`;
+         body.style.height = `${scaledHeight}px`;
+         body.style.minHeight = `${scaledHeight}px`;
+         body.style.maxHeight = `${scaledHeight}px`;
         } else {
           // Fallback to localStorage
           const savedZoom = localStorage.getItem('app-zoom-level');
@@ -281,12 +295,17 @@ export function useZoom() {
     setZoom(level);
     document.documentElement.style.zoom = level.toString();
     
-    // Ensure proper height scaling with zoom
+    // Calculate dynamic height based on zoom level
+    const viewportHeight = window.innerHeight;
+    const scaledHeight = viewportHeight / level;
+    
+    // Apply dynamic height scaling
     const html = document.documentElement;
     const body = document.body;
-    html.style.height = '100vh';
-    body.style.height = '100vh';
-    body.style.minHeight = '100vh';
+    html.style.height = `${scaledHeight}px`;
+    body.style.height = `${scaledHeight}px`;
+    body.style.minHeight = `${scaledHeight}px`;
+    body.style.maxHeight = `${scaledHeight}px`;
     
     // Save to localStorage as backup
     localStorage.setItem('app-zoom-level', level.toString());
@@ -341,13 +360,17 @@ export function useZoom() {
   // Handle window resize to maintain proper height scaling
   useEffect(() => {
     const handleResize = () => {
-      if (zoom !== 1.0) {
-        const html = document.documentElement;
-        const body = document.body;
-        html.style.height = '100vh';
-        body.style.height = '100vh';
-        body.style.minHeight = '100vh';
-      }
+      // Recalculate dynamic height based on current zoom and new viewport
+      const viewportHeight = window.innerHeight;
+      const scaledHeight = viewportHeight / zoom;
+      
+      const html = document.documentElement;
+      const body = document.body;
+      
+      html.style.height = `${scaledHeight}px`;
+      body.style.height = `${scaledHeight}px`;
+      body.style.minHeight = `${scaledHeight}px`;
+      body.style.maxHeight = `${scaledHeight}px`;
     };
 
     window.addEventListener('resize', handleResize);

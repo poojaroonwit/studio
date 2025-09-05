@@ -26,36 +26,8 @@ export function ZoomControl({
   const [isMinimized, setIsMinimized] = useState(true);
 
   useEffect(() => {
-    // Apply zoom using CSS transform for better height handling
-    const body = document.body;
-    const html = document.documentElement;
-    
-    // Remove any existing zoom classes
-    body.classList.remove('app-zoom-75', 'app-zoom-80', 'app-zoom-90', 'app-zoom-100', 'app-zoom-110', 'app-zoom-125');
-    
-    // Apply appropriate zoom class based on zoom level
-    if (zoom <= 0.75) {
-      body.classList.add('app-zoom-75');
-    } else if (zoom <= 0.8) {
-      body.classList.add('app-zoom-80');
-    } else if (zoom <= 0.9) {
-      body.classList.add('app-zoom-90');
-    } else if (zoom <= 1.0) {
-      body.classList.add('app-zoom-100');
-    } else if (zoom <= 1.1) {
-      body.classList.add('app-zoom-110');
-    } else {
-      body.classList.add('app-zoom-125');
-    }
-    
-    // Also apply direct transform for precise zoom levels
-    body.style.transform = `scale(${zoom})`;
-    body.style.transformOrigin = 'top left';
-    
-    // Adjust viewport height dynamically
-    const scaledHeight = window.innerHeight / zoom;
-    html.style.height = `${scaledHeight}px`;
-    body.style.height = `${scaledHeight}px`;
+    // Apply zoom using CSS zoom property for browser-like behavior
+    document.documentElement.style.zoom = zoom.toString();
     
     // Store zoom level in localStorage
     localStorage.setItem('app-zoom-level', zoom.toString());
@@ -72,35 +44,28 @@ export function ZoomControl({
     }
   }, [minZoom, maxZoom]);
 
-  // Handle window resize to adjust height dynamically
+  // Add keyboard shortcuts for zoom (Ctrl + Plus/Minus)
   useEffect(() => {
-    const handleResize = () => {
-      if (zoom !== 1.0) {
-        const body = document.body;
-        const html = document.documentElement;
-        const scaledHeight = window.innerHeight / zoom;
-        html.style.height = `${scaledHeight}px`;
-        body.style.height = `${scaledHeight}px`;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Check if Ctrl (or Cmd on Mac) is pressed
+      if (event.ctrlKey || event.metaKey) {
+        if (event.key === '+' || event.key === '=') {
+          event.preventDefault();
+          handleZoomIn();
+        } else if (event.key === '-') {
+          event.preventDefault();
+          handleZoomOut();
+        } else if (event.key === '0') {
+          event.preventDefault();
+          handleReset();
+        }
       }
     };
 
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [zoom]);
-
-  // Cleanup effect to reset zoom on unmount
-  useEffect(() => {
-    return () => {
-      // Reset zoom when component unmounts
-      const body = document.body;
-      const html = document.documentElement;
-      body.style.transform = '';
-      body.style.transformOrigin = '';
-      html.style.height = '';
-      body.style.height = '';
-      body.classList.remove('app-zoom-75', 'app-zoom-80', 'app-zoom-90', 'app-zoom-100', 'app-zoom-110', 'app-zoom-125');
-    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
 
   const handleZoomIn = () => {
     setZoom(prev => Math.min(prev + step, maxZoom));
@@ -257,17 +222,6 @@ export function useZoom() {
           const preferences = await response.json();
           const zoomLevel = preferences.zoomLevel || 1.0;
           setZoom(zoomLevel);
-          
-          // Apply zoom using CSS transform
-          const body = document.body;
-          const html = document.documentElement;
-          body.style.transform = `scale(${zoomLevel})`;
-          body.style.transformOrigin = 'top left';
-          
-          // Adjust viewport height dynamically
-          const scaledHeight = window.innerHeight / zoomLevel;
-          html.style.height = `${scaledHeight}px`;
-          body.style.height = `${scaledHeight}px`;
         } else {
           // Fallback to localStorage
           const savedZoom = localStorage.getItem('app-zoom-level');
@@ -290,33 +244,9 @@ export function useZoom() {
     loadZoomPreferences();
   }, [userId]);
 
-  // Cleanup effect to reset zoom on unmount
-  useEffect(() => {
-    return () => {
-      // Reset zoom when component unmounts
-      const body = document.body;
-      const html = document.documentElement;
-      body.style.transform = '';
-      body.style.transformOrigin = '';
-      html.style.height = '';
-      body.style.height = '';
-      body.classList.remove('app-zoom-75', 'app-zoom-80', 'app-zoom-90', 'app-zoom-100', 'app-zoom-110', 'app-zoom-125');
-    };
-  }, []);
 
   const setZoomLevel = async (level: number) => {
     setZoom(level);
-    
-    // Apply zoom using CSS transform for better height handling
-    const body = document.body;
-    const html = document.documentElement;
-    body.style.transform = `scale(${level})`;
-    body.style.transformOrigin = 'top left';
-    
-    // Adjust viewport height dynamically
-    const scaledHeight = window.innerHeight / level;
-    html.style.height = `${scaledHeight}px`;
-    body.style.height = `${scaledHeight}px`;
     
     // Save to localStorage as backup
     localStorage.setItem('app-zoom-level', level.toString());
@@ -345,6 +275,28 @@ export function useZoom() {
   const resetZoom = () => {
     setZoomLevel(1.0);
   };
+
+  // Add keyboard shortcuts for zoom (Ctrl + Plus/Minus)
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Check if Ctrl (or Cmd on Mac) is pressed
+      if (event.ctrlKey || event.metaKey) {
+        if (event.key === '+' || event.key === '=') {
+          event.preventDefault();
+          setZoomLevel(Math.min(zoom + 0.1, 1.5));
+        } else if (event.key === '-') {
+          event.preventDefault();
+          setZoomLevel(Math.max(zoom - 0.1, 0.5));
+        } else if (event.key === '0') {
+          event.preventDefault();
+          resetZoom();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [zoom]);
 
   return {
     zoom,

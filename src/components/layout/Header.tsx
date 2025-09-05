@@ -391,7 +391,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
   // Only render the actual header once we're fully mounted and have session data
   if (!mounted || status === "loading") { 
     return (
-      <header className="flex h-16 items-center justify-between border-b bg-card px-4 md:px-6 sticky top-0 z-30">
+      <header className="flex h-16 items-center justify-between border-b bg-card px-4 md:px-6 sticky top-0 z-40">
         <div className="flex items-center gap-2">
           <div className="h-8 w-8 rounded-md bg-muted animate-pulse" />
           <div className="h-6 w-32 rounded bg-muted animate-pulse" />
@@ -406,7 +406,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
 
   return (
     <>
-      <header className="flex h-16 items-center justify-between border-b bg-card px-4 md:px-6 sticky top-0 z-30">
+      <header className="flex h-16 items-center justify-between border-b bg-card px-4 md:px-6 sticky top-0 z-40">
         <div className={`flex items-center gap-2 ${!open ? 'ml-5' : ''}`}>
           <Breadcrumb items={getBreadcrumbItems(pathname, showLogoOnly)} />
         </div>

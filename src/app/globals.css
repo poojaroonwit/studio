@@ -2820,52 +2820,30 @@ body:has(.zoom-controls) {
   overflow-x: hidden;
 }
 
-/* Alternative zoom methods using CSS transform */
-.app-zoom-container {
-  transform-origin: top left;
-  transition: transform 0.2s ease-in-out;
+/* Browser-like zoom behavior - clean implementation */
+html {
+  width: 100%;
+  height: 100%;
 }
 
-.app-zoom-75 {
-  transform: scale(0.75);
-  transform-origin: top left;
-}
-
-.app-zoom-80 {
-  transform: scale(0.8);
-  transform-origin: top left;
-}
-
-.app-zoom-90 {
-  transform: scale(0.9);
-  transform-origin: top left;
-}
-
-.app-zoom-100 {
-  transform: scale(1);
-  transform-origin: top left;
-}
-
-.app-zoom-110 {
-  transform: scale(1.1);
-  transform-origin: top left;
-}
-
-.app-zoom-125 {
-  transform: scale(1.25);
-  transform-origin: top left;
-}
-
-/* Ensure body zoom doesn't interfere with layout */
 body {
-  transform-origin: top left;
-  transition: transform 0.2s ease-in-out;
-}
-
-/* Fix for zoom height issues */
-html, body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
   overflow-x: auto;
   overflow-y: auto;
+}
+
+/* Ensure zoom works like browser zoom - full screen behavior */
+html[style*="zoom"] {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+body[style*="zoom"] {
+  width: 100% !important;
+  height: 100% !important;
 }
 
 /* Ensure proper scrolling when zoomed */

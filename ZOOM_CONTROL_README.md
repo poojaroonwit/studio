@@ -4,11 +4,11 @@ This document explains the zoom control functionality that has been added to red
 
 ## Features Added
 
-### 1. Viewport Meta Tag
-- Added to `src/app/layout.tsx`
-- Sets initial zoom to 80% (`initial-scale=0.8`)
-- Allows user scaling (`user-scalable=yes`)
-- Maximum scale limited to 100% (`maximum-scale=1.0`)
+### 1. Browser-Like Zoom Behavior
+- Uses CSS `zoom` property for native browser zoom behavior
+- Full screen width and height maintained at all zoom levels
+- Behaves exactly like browser zoom (Ctrl + Plus/Minus)
+- No layout breaking or height issues
 
 ### 2. Dynamic Zoom Control Component
 - **File**: `src/components/ui/zoom-control.tsx`
@@ -43,7 +43,11 @@ This document explains the zoom control functionality that has been added to red
 
 1. **Quick Access**: Look for the zoom icon in the bottom-right corner of the application
 2. **Settings**: Go to Settings page to access comprehensive zoom controls
-3. **Keyboard Shortcuts**: Use browser's built-in zoom (Ctrl/Cmd + Plus/Minus)
+3. **Keyboard Shortcuts**: 
+   - **Ctrl/Cmd + Plus** (+): Zoom in
+   - **Ctrl/Cmd + Minus** (-): Zoom out  
+   - **Ctrl/Cmd + 0**: Reset to 100%
+4. **Avatar Dropdown**: Access zoom controls from the user avatar menu (top-right)
 
 ### For Developers
 

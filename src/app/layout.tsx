@@ -124,10 +124,16 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                        if (zoomLevel >= 0.5 && zoomLevel <= 1.5) {
                          console.log('Applying initial zoom:', zoomLevel);
                          
-                         // Always use transform for better browser support
-                         document.documentElement.style.transform = 'scale(' + zoomLevel + ')';
-                         document.documentElement.style.transformOrigin = 'top left';
-                         document.documentElement.style.overflow = 'hidden';
+                         // Use CSS custom property to override any conflicting transforms
+                         document.documentElement.style.setProperty('--zoom-scale', zoomLevel.toString());
+                         document.documentElement.style.setProperty('transform', 'scale(var(--zoom-scale))', 'important');
+                         document.documentElement.style.setProperty('transform-origin', 'top left', 'important');
+                         document.documentElement.style.setProperty('overflow', 'hidden', 'important');
+                         
+                         // Also set inline style as backup
+                         document.documentElement.style.transform = 'scale(' + zoomLevel + ') !important';
+                         document.documentElement.style.transformOrigin = 'top left !important';
+                         document.documentElement.style.overflow = 'hidden !important';
                          
                          // Ensure body doesn't interfere
                          document.body.style.overflow = 'hidden';
@@ -154,6 +160,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                            const computedStyle = window.getComputedStyle(document.documentElement);
                            console.log('Initial computed transform:', computedStyle.transform);
                            console.log('Initial inline transform:', document.documentElement.style.transform);
+                           console.log('Initial CSS custom property:', computedStyle.getPropertyValue('--zoom-scale'));
                          }, 50);
                        }
                        
@@ -188,10 +195,16 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                          if (zoom >= 0.5 && zoom <= 1.5) {
                            console.log('setZoom called with:', zoom);
                            
-                           // Always use transform for better browser support
-                           document.documentElement.style.transform = 'scale(' + zoom + ')';
-                           document.documentElement.style.transformOrigin = 'top left';
-                           document.documentElement.style.overflow = 'hidden';
+                           // Use CSS custom property to override any conflicting transforms
+                           document.documentElement.style.setProperty('--zoom-scale', zoom.toString());
+                           document.documentElement.style.setProperty('transform', 'scale(var(--zoom-scale))', 'important');
+                           document.documentElement.style.setProperty('transform-origin', 'top left', 'important');
+                           document.documentElement.style.setProperty('overflow', 'hidden', 'important');
+                           
+                           // Also set inline style as backup
+                           document.documentElement.style.transform = 'scale(' + zoom + ') !important';
+                           document.documentElement.style.transformOrigin = 'top left !important';
+                           document.documentElement.style.overflow = 'hidden !important';
                            
                            // Ensure body doesn't interfere
                            document.body.style.overflow = 'hidden';
@@ -215,6 +228,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                              const computedStyle = window.getComputedStyle(document.documentElement);
                              console.log('Computed transform after setZoom:', computedStyle.transform);
                              console.log('Inline transform after setZoom:', document.documentElement.style.transform);
+                             console.log('CSS custom property:', computedStyle.getPropertyValue('--zoom-scale'));
                            }, 50);
                          }
                        };

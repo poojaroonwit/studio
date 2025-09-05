@@ -54,10 +54,6 @@ export function ZoomControl({
     // Use the global zoom function to sync with keyboard shortcuts
     if (window.setZoom) {
       window.setZoom(newZoom);
-    } else {
-      document.documentElement.style.zoom = newZoom.toString();
-      document.body.style.minHeight = '100vh';
-      localStorage.setItem('app-zoom-level', newZoom.toString());
     }
   };
 
@@ -67,10 +63,6 @@ export function ZoomControl({
     // Use the global zoom function to sync with keyboard shortcuts
     if (window.setZoom) {
       window.setZoom(newZoom);
-    } else {
-      document.documentElement.style.zoom = newZoom.toString();
-      document.body.style.minHeight = '100vh';
-      localStorage.setItem('app-zoom-level', newZoom.toString());
     }
   };
 
@@ -79,10 +71,6 @@ export function ZoomControl({
     // Use the global zoom function to sync with keyboard shortcuts
     if (window.setZoom) {
       window.setZoom(defaultZoom);
-    } else {
-      document.documentElement.style.zoom = defaultZoom.toString();
-      document.body.style.minHeight = '100vh';
-      localStorage.setItem('app-zoom-level', defaultZoom.toString());
     }
   };
 
@@ -92,10 +80,6 @@ export function ZoomControl({
     // Use the global zoom function to sync with keyboard shortcuts
     if (window.setZoom) {
       window.setZoom(newZoom);
-    } else {
-      document.documentElement.style.zoom = newZoom.toString();
-      document.body.style.minHeight = '100vh';
-      localStorage.setItem('app-zoom-level', newZoom.toString());
     }
   };
 
@@ -222,10 +206,6 @@ export function useZoom() {
     // Use the global zoom function to sync with keyboard shortcuts
     if (window.setZoom) {
       window.setZoom(level);
-    } else {
-      document.documentElement.style.zoom = level.toString();
-      document.body.style.minHeight = '100vh';
-      localStorage.setItem('app-zoom-level', level.toString());
     }
   };
 

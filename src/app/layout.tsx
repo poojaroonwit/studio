@@ -96,6 +96,21 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                        // Set default zoom to 0.9 (90%) so 100% zoom appears as 90% size
                        const DEFAULT_ZOOM = 0.9;
                        
+                       // Function to fix white space by adjusting body height based on zoom
+                       function fixZoomWhiteSpace(zoomLevel) {
+                         // Calculate the proper height based on zoom level
+                         const viewportHeight = window.innerHeight;
+                         const scaledHeight = viewportHeight / zoomLevel;
+                         document.body.style.minHeight = scaledHeight + 'px';
+                         document.documentElement.style.minHeight = scaledHeight + 'px';
+                       }
+                       
+                       // Listen for window resize to recalculate height
+                       window.addEventListener('resize', function() {
+                         const currentZoom = parseFloat(document.documentElement.style.zoom || DEFAULT_ZOOM);
+                         fixZoomWhiteSpace(currentZoom);
+                       });
+                       
                        // Apply saved zoom level immediately, or use default
                        const savedZoom = localStorage.getItem('app-zoom-level');
                        let zoomLevel = savedZoom ? parseFloat(savedZoom) : DEFAULT_ZOOM;
@@ -103,8 +118,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                        // Ensure zoom is within valid range (0.5 to 1.5)
                        if (zoomLevel >= 0.5 && zoomLevel <= 1.5) {
                          document.documentElement.style.zoom = zoomLevel.toString();
-                         // Fix white space by ensuring body height fills viewport
-                         document.body.style.minHeight = '100vh';
+                         // Fix white space by calculating proper height based on zoom
+                         fixZoomWhiteSpace(zoomLevel);
                          // Save the zoom level if it wasn't saved before
                          if (!savedZoom) {
                            localStorage.setItem('app-zoom-level', zoomLevel.toString());
@@ -120,8 +135,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                              event.preventDefault();
                              const newZoom = Math.min(currentZoom + 0.1, 1.5);
                              document.documentElement.style.zoom = newZoom.toString();
-                             // Fix white space by ensuring body height fills viewport
-                             document.body.style.minHeight = '100vh';
+                             // Fix white space by calculating proper height based on zoom
+                             fixZoomWhiteSpace(newZoom);
                              localStorage.setItem('app-zoom-level', newZoom.toString());
                              // Dispatch zoom change event for avatar dropdown sync
                              window.dispatchEvent(new CustomEvent('zoomChanged', { detail: { zoom: newZoom } }));
@@ -129,16 +144,16 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                              event.preventDefault();
                              const newZoom = Math.max(currentZoom - 0.1, 0.5);
                              document.documentElement.style.zoom = newZoom.toString();
-                             // Fix white space by ensuring body height fills viewport
-                             document.body.style.minHeight = '100vh';
+                             // Fix white space by calculating proper height based on zoom
+                             fixZoomWhiteSpace(newZoom);
                              localStorage.setItem('app-zoom-level', newZoom.toString());
                              // Dispatch zoom change event for avatar dropdown sync
                              window.dispatchEvent(new CustomEvent('zoomChanged', { detail: { zoom: newZoom } }));
                            } else if (event.key === '0') {
                              event.preventDefault();
                              document.documentElement.style.zoom = DEFAULT_ZOOM.toString();
-                             // Fix white space by ensuring body height fills viewport
-                             document.body.style.minHeight = '100vh';
+                             // Fix white space by calculating proper height based on zoom
+                             fixZoomWhiteSpace(DEFAULT_ZOOM);
                              localStorage.setItem('app-zoom-level', DEFAULT_ZOOM.toString());
                              // Dispatch zoom change event for avatar dropdown sync
                              window.dispatchEvent(new CustomEvent('zoomChanged', { detail: { zoom: DEFAULT_ZOOM } }));
@@ -150,7 +165,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                        window.setZoom = function(zoom) {
                          if (zoom >= 0.5 && zoom <= 1.5) {
                            document.documentElement.style.zoom = zoom.toString();
-                           document.body.style.minHeight = '100vh';
+                           fixZoomWhiteSpace(zoom);
                            localStorage.setItem('app-zoom-level', zoom.toString());
                            window.dispatchEvent(new CustomEvent('zoomChanged', { detail: { zoom: zoom } }));
                          }

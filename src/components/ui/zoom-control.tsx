@@ -66,7 +66,6 @@ export function ZoomControl({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-
   const handleZoomIn = () => {
     setZoom(prev => Math.min(prev + step, maxZoom));
   };
@@ -219,9 +218,10 @@ export function useZoom() {
       try {
         const response = await fetch(`/api/users/${userId}/zoom-preferences`);
         if (response.ok) {
-          const preferences = await response.json();
-          const zoomLevel = preferences.zoomLevel || 1.0;
-          setZoom(zoomLevel);
+                   const preferences = await response.json();
+         const zoomLevel = preferences.zoomLevel || 1.0;
+         setZoom(zoomLevel);
+         document.documentElement.style.zoom = zoomLevel.toString();
         } else {
           // Fallback to localStorage
           const savedZoom = localStorage.getItem('app-zoom-level');
@@ -247,6 +247,7 @@ export function useZoom() {
 
   const setZoomLevel = async (level: number) => {
     setZoom(level);
+    document.documentElement.style.zoom = level.toString();
     
     // Save to localStorage as backup
     localStorage.setItem('app-zoom-level', level.toString());

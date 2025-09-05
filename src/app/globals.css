@@ -2824,11 +2824,6 @@ body:has(.zoom-controls) {
 html {
   zoom: 1;
   transition: zoom 0.2s ease-in-out;
-  width: 100vw;
-  height: 100vh;
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
 }
 
 /* Ensure proper zoom behavior on all elements */
@@ -2836,44 +2831,9 @@ html {
   box-sizing: border-box;
 }
 
-/* Full viewport coverage to prevent white space */
+/* Prevent zoom from breaking layout */
 body {
-  width: 100vw;
-  height: 100vh;
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-  background-color: hsl(var(--background));
-  position: relative;
-}
-
-/* Ensure the main app container fills viewport */
-#__next {
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
-  position: relative;
-}
-
-/* Ensure all containers fill viewport properly */
-.app-container, .main-layout, .sidebar-container {
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
-  position: relative;
-}
-
-/* Prevent white space at bottom on zoom out */
-html[style*="zoom"] {
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
-}
-
-html[style*="zoom"] body {
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
+  min-height: 100vh;
   background-color: hsl(var(--background));
 }
 

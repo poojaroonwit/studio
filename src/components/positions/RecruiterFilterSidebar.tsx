@@ -83,7 +83,7 @@ export function RecruiterFilterSidebar({
         </div>
       </div>
 
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-y-auto custom-scrollbar">
         <nav className="space-y-1">
           {/* All Recruiter Option - Always show when no search or search matches */}
           {(!searchTerm.trim() || 'all recruiters'.includes(searchTerm.toLowerCase())) && (

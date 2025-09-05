@@ -98,17 +98,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                     const zoomLevel = parseFloat(savedZoom);
                     if (zoomLevel >= 0.5 && zoomLevel <= 1.5) {
                       document.documentElement.style.zoom = zoomLevel.toString();
-                      
-                      // Ensure viewport is properly filled to prevent white space
-                      const html = document.documentElement;
-                      const body = document.body;
-                      html.style.width = '100vw';
-                      html.style.height = '100vh';
-                      html.style.overflow = 'hidden';
-                      body.style.width = '100vw';
-                      body.style.height = '100vh';
-                      body.style.overflow = 'hidden';
-                      body.style.backgroundColor = 'hsl(var(--background))';
                     }
                   }
                 } catch (e) {

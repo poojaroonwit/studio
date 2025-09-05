@@ -28,6 +28,8 @@ export function ZoomControl({
   // Simple zoom application
   useEffect(() => {
     document.documentElement.style.zoom = zoom.toString();
+    // Fix white space by ensuring body height fills viewport
+    document.body.style.minHeight = '100vh';
     localStorage.setItem('app-zoom-level', zoom.toString());
   }, [zoom]);
 
@@ -169,6 +171,8 @@ export function useZoom() {
   const setZoomLevel = (level: number) => {
     setZoom(level);
     document.documentElement.style.zoom = level.toString();
+    // Fix white space by ensuring body height fills viewport
+    document.body.style.minHeight = '100vh';
     localStorage.setItem('app-zoom-level', level.toString());
   };
 

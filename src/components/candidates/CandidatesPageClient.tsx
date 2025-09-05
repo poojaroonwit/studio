@@ -1701,6 +1701,7 @@ export function CandidatesPageClient({
                 onBulkChangeStatus={handleBulkChangeStatus}
                 onBulkAssignRecruiter={handleBulkAssignRecruiter}
                 settings={candidateSettings}
+                tableHeight={tableHeight}
               />
             </div>
 

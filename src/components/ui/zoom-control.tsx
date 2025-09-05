@@ -23,12 +23,20 @@ export function ZoomControl({
 }: ZoomControlProps) {
   const [zoom, setZoom] = useState(defaultZoom);
   const [isVisible, setIsVisible] = useState(false);
-  const [isMinimized, setIsMinimized] = useState(true);
+  const [isMinimized, setIsMinimized] = useState(false);
 
   // Load saved zoom on mount and listen for keyboard zoom changes
   useEffect(() => {
-    const savedZoom = localStorage.getItem('app-zoom-level');
-    const initialZoom = savedZoom ? parseFloat(savedZoom) : defaultZoom;
+    // Get the current zoom level from the DOM
+    const getCurrentZoom = () => {
+      if (window.getZoom) {
+        return window.getZoom();
+      }
+      const savedZoom = localStorage.getItem('app-zoom-level');
+      return savedZoom ? parseFloat(savedZoom) : defaultZoom;
+    };
+    
+    const initialZoom = getCurrentZoom();
     if (initialZoom >= minZoom && initialZoom <= maxZoom) {
       setZoom(initialZoom);
     }
@@ -54,6 +62,8 @@ export function ZoomControl({
     // Use the global zoom function to sync with keyboard shortcuts
     if (window.setZoom) {
       window.setZoom(newZoom);
+    } else {
+      console.warn('window.setZoom is not available');
     }
   };
 
@@ -63,6 +73,8 @@ export function ZoomControl({
     // Use the global zoom function to sync with keyboard shortcuts
     if (window.setZoom) {
       window.setZoom(newZoom);
+    } else {
+      console.warn('window.setZoom is not available');
     }
   };
 
@@ -71,6 +83,8 @@ export function ZoomControl({
     // Use the global zoom function to sync with keyboard shortcuts
     if (window.setZoom) {
       window.setZoom(defaultZoom);
+    } else {
+      console.warn('window.setZoom is not available');
     }
   };
 
@@ -80,6 +94,8 @@ export function ZoomControl({
     // Use the global zoom function to sync with keyboard shortcuts
     if (window.setZoom) {
       window.setZoom(newZoom);
+    } else {
+      console.warn('window.setZoom is not available');
     }
   };
 
@@ -182,8 +198,16 @@ export function useZoom() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const savedZoom = localStorage.getItem('app-zoom-level');
-    const initialZoom = savedZoom ? parseFloat(savedZoom) : 0.9;
+    // Get the current zoom level from the DOM
+    const getCurrentZoom = () => {
+      if (window.getZoom) {
+        return window.getZoom();
+      }
+      const savedZoom = localStorage.getItem('app-zoom-level');
+      return savedZoom ? parseFloat(savedZoom) : 0.9;
+    };
+    
+    const initialZoom = getCurrentZoom();
     setZoom(initialZoom);
     setIsLoading(false);
     

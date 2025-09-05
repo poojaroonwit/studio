@@ -2822,30 +2822,22 @@ body:has(.zoom-controls) {
 
 /* Normal browser zoom behavior */
 html {
-  zoom: 1;
   height: 100%;
 }
 
 body {
   height: 100%;
   min-height: 100vh;
-  /* Fix for zoom out white space issue */
-  min-height: 100dvh; /* Use dynamic viewport height for better zoom support */
-  /* Additional fix for zoom scaling */
-  min-height: calc(100vh * var(--zoom-scale, 1));
+  /* Simple fix: ensure body always fills the viewport */
+  min-height: 100vh;
+  min-height: 100dvh; /* Fallback for browsers that support it */
+  /* Fix for zoom out white space - ensure body fills viewport even when zoomed */
+  min-height: 100vh !important;
 }
 
 /* Fix for zoom scaling issues */
 #__next {
   height: 100%;
   min-height: 100vh;
-  /* Ensure content fills viewport properly when zoomed */
-  min-height: 100dvh;
-  /* Additional fix for zoom scaling */
-  min-height: calc(100vh * var(--zoom-scale, 1));
-}
-
-/* CSS custom property for zoom scale - will be set by JavaScript */
-:root {
-  --zoom-scale: 1;
+  min-height: 100dvh; /* Fallback for browsers that support it */
 }

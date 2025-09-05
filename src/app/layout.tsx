@@ -99,8 +99,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                         const zoomLevel = parseFloat(savedZoom);
                         if (zoomLevel >= 0.5 && zoomLevel <= 1.5) {
                           document.documentElement.style.zoom = zoomLevel.toString();
-                          // Set CSS custom property for zoom scale
-                          document.documentElement.style.setProperty('--zoom-scale', zoomLevel.toString());
+                          // Fix white space by ensuring body height fills viewport
+                          document.body.style.minHeight = '100vh';
                         }
                       }
                       
@@ -113,18 +113,21 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                             event.preventDefault();
                             const newZoom = Math.min(currentZoom + 0.1, 1.5);
                             document.documentElement.style.zoom = newZoom.toString();
-                            document.documentElement.style.setProperty('--zoom-scale', newZoom.toString());
+                            // Fix white space by ensuring body height fills viewport
+                            document.body.style.minHeight = '100vh';
                             localStorage.setItem('app-zoom-level', newZoom.toString());
                           } else if (event.key === '-') {
                             event.preventDefault();
                             const newZoom = Math.max(currentZoom - 0.1, 0.5);
                             document.documentElement.style.zoom = newZoom.toString();
-                            document.documentElement.style.setProperty('--zoom-scale', newZoom.toString());
+                            // Fix white space by ensuring body height fills viewport
+                            document.body.style.minHeight = '100vh';
                             localStorage.setItem('app-zoom-level', newZoom.toString());
                           } else if (event.key === '0') {
                             event.preventDefault();
                             document.documentElement.style.zoom = '1';
-                            document.documentElement.style.setProperty('--zoom-scale', '1');
+                            // Fix white space by ensuring body height fills viewport
+                            document.body.style.minHeight = '100vh';
                             localStorage.setItem('app-zoom-level', '1');
                           }
                         }

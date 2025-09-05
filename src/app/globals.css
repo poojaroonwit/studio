@@ -2820,78 +2820,7 @@ body:has(.zoom-controls) {
   overflow-x: hidden;
 }
 
-/* Browser-like zoom behavior */
+/* Normal browser zoom behavior */
 html {
   zoom: 1;
-  transition: zoom 0.2s ease-in-out;
-  height: 100vh;
-}
-
-/* Ensure proper zoom behavior on all elements */
-* {
-  box-sizing: border-box;
-}
-
-/* Prevent zoom from breaking layout */
-body {
-  min-height: 100vh;
-  height: 100vh;
-  background-color: hsl(var(--background));
-}
-
-/* Ensure main app container fills height */
-#__next {
-  height: 100vh;
-  min-height: 100vh;
-}
-
-/* Fix height for zoomed states */
-html[style*="zoom"] {
-  height: 100vh;
-}
-
-html[style*="zoom"] body {
-  height: 100vh;
-  min-height: 100vh;
-}
-
-html[style*="zoom"] #__next {
-  height: 100vh;
-  min-height: 100vh;
-}
-
-/* Ensure body zoom doesn't interfere with layout */
-body {
-  transform-origin: top left;
-  transition: transform 0.2s ease-in-out;
-}
-
-/* Fix for zoom height issues */
-html, body {
-  overflow-x: auto;
-  overflow-y: auto;
-}
-
-/* Ensure proper scrolling when zoomed */
-body.zoomed {
-  min-height: 100vh;
-  width: 100%;
-}
-
-/* Responsive zoom adjustments */
-@media (max-width: 768px) {
-  .zoom-controls {
-    bottom: 0.5rem;
-    right: 0.5rem;
-    min-width: 180px;
-    padding: 0.75rem;
-  }
-}
-
-/* Ensure zoom doesn't break layout on small screens */
-@media (max-width: 640px) {
-  .app-zoom-75,
-  .app-zoom-80 {
-    transform: scale(0.85); /* Minimum usable scale on mobile */
-  }
 }

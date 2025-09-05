@@ -26,7 +26,7 @@ export function ZoomControl({
   const [isMinimized, setIsMinimized] = useState(true);
 
   useEffect(() => {
-    // Simple zoom application
+    // Normal browser zoom behavior
     document.documentElement.style.zoom = zoom.toString();
     localStorage.setItem('app-zoom-level', zoom.toString());
   }, [zoom]);

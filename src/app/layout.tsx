@@ -81,64 +81,97 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en">
       <head>
-        {/* Viewport configuration for screen size control */}
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover" />
+        {/* Viewport configuration */}
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         {/* Font preloading for better performance */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         {/* Ramda polyfill is now handled by RamdaPolyfillInitializer component */}
         {/* Apply zoom immediately on page load to prevent flash */}
-                    <script
-              dangerouslySetInnerHTML={{
-                __html: `
-                  (function() {
-                    try {
-                      // Apply saved zoom level immediately
-                      const savedZoom = localStorage.getItem('app-zoom-level');
-                      if (savedZoom) {
-                        const zoomLevel = parseFloat(savedZoom);
-                        if (zoomLevel >= 0.5 && zoomLevel <= 1.5) {
-                          document.documentElement.style.zoom = zoomLevel.toString();
-                          // Fix white space by ensuring body height fills viewport
-                          document.body.style.minHeight = '100vh';
-                        }
-                      }
-                      
-                      // Global keyboard shortcuts
-                      document.addEventListener('keydown', function(event) {
-                        if (event.ctrlKey || event.metaKey) {
-                          const currentZoom = parseFloat(document.documentElement.style.zoom || '1');
-                          
-                          if (event.key === '+' || event.key === '=') {
-                            event.preventDefault();
-                            const newZoom = Math.min(currentZoom + 0.1, 1.5);
-                            document.documentElement.style.zoom = newZoom.toString();
-                            // Fix white space by ensuring body height fills viewport
-                            document.body.style.minHeight = '100vh';
-                            localStorage.setItem('app-zoom-level', newZoom.toString());
-                          } else if (event.key === '-') {
-                            event.preventDefault();
-                            const newZoom = Math.max(currentZoom - 0.1, 0.5);
-                            document.documentElement.style.zoom = newZoom.toString();
-                            // Fix white space by ensuring body height fills viewport
-                            document.body.style.minHeight = '100vh';
-                            localStorage.setItem('app-zoom-level', newZoom.toString());
-                          } else if (event.key === '0') {
-                            event.preventDefault();
-                            document.documentElement.style.zoom = '1';
-                            // Fix white space by ensuring body height fills viewport
-                            document.body.style.minHeight = '100vh';
-                            localStorage.setItem('app-zoom-level', '1');
-                          }
-                        }
-                      });
-                    } catch (e) {
-                      console.warn('Failed to initialize zoom:', e);
-                    }
-                  })();
-                `,
-              }}
-            />
+                                         <script
+               dangerouslySetInnerHTML={{
+                 __html: `
+                   (function() {
+                     try {
+                       // Set default zoom to 0.9 (90%) so 100% zoom appears as 90% size
+                       const DEFAULT_ZOOM = 0.9;
+                       
+                       // Apply saved zoom level immediately, or use default
+                       const savedZoom = localStorage.getItem('app-zoom-level');
+                       let zoomLevel = savedZoom ? parseFloat(savedZoom) : DEFAULT_ZOOM;
+                       
+                       // Ensure zoom is within valid range (0.5 to 1.5)
+                       if (zoomLevel >= 0.5 && zoomLevel <= 1.5) {
+                         document.documentElement.style.zoom = zoomLevel.toString();
+                         // Fix white space by ensuring body height fills viewport
+                         document.body.style.minHeight = '100vh';
+                         // Save the zoom level if it wasn't saved before
+                         if (!savedZoom) {
+                           localStorage.setItem('app-zoom-level', zoomLevel.toString());
+                         }
+                       }
+                       
+                       // Global keyboard shortcuts
+                       document.addEventListener('keydown', function(event) {
+                         if (event.ctrlKey || event.metaKey) {
+                           const currentZoom = parseFloat(document.documentElement.style.zoom || DEFAULT_ZOOM);
+                           
+                           if (event.key === '+' || event.key === '=') {
+                             event.preventDefault();
+                             const newZoom = Math.min(currentZoom + 0.1, 1.5);
+                             document.documentElement.style.zoom = newZoom.toString();
+                             // Fix white space by ensuring body height fills viewport
+                             document.body.style.minHeight = '100vh';
+                             localStorage.setItem('app-zoom-level', newZoom.toString());
+                             // Dispatch zoom change event for avatar dropdown sync
+                             window.dispatchEvent(new CustomEvent('zoomChanged', { detail: { zoom: newZoom } }));
+                           } else if (event.key === '-') {
+                             event.preventDefault();
+                             const newZoom = Math.max(currentZoom - 0.1, 0.5);
+                             document.documentElement.style.zoom = newZoom.toString();
+                             // Fix white space by ensuring body height fills viewport
+                             document.body.style.minHeight = '100vh';
+                             localStorage.setItem('app-zoom-level', newZoom.toString());
+                             // Dispatch zoom change event for avatar dropdown sync
+                             window.dispatchEvent(new CustomEvent('zoomChanged', { detail: { zoom: newZoom } }));
+                           } else if (event.key === '0') {
+                             event.preventDefault();
+                             document.documentElement.style.zoom = DEFAULT_ZOOM.toString();
+                             // Fix white space by ensuring body height fills viewport
+                             document.body.style.minHeight = '100vh';
+                             localStorage.setItem('app-zoom-level', DEFAULT_ZOOM.toString());
+                             // Dispatch zoom change event for avatar dropdown sync
+                             window.dispatchEvent(new CustomEvent('zoomChanged', { detail: { zoom: DEFAULT_ZOOM } }));
+                           }
+                         }
+                       });
+                       
+                       // Expose zoom functions globally for avatar dropdown
+                       window.setZoom = function(zoom) {
+                         if (zoom >= 0.5 && zoom <= 1.5) {
+                           document.documentElement.style.zoom = zoom.toString();
+                           document.body.style.minHeight = '100vh';
+                           localStorage.setItem('app-zoom-level', zoom.toString());
+                           window.dispatchEvent(new CustomEvent('zoomChanged', { detail: { zoom: zoom } }));
+                         }
+                       };
+                       
+                       window.getZoom = function() {
+                         return parseFloat(document.documentElement.style.zoom || DEFAULT_ZOOM);
+                       };
+                       
+                       // TypeScript declarations for global functions
+                       if (typeof window !== 'undefined') {
+                         (window as any).setZoom = window.setZoom;
+                         (window as any).getZoom = window.getZoom;
+                       }
+                     } catch (e) {
+                       console.warn('Failed to initialize zoom:', e);
+                     }
+                   })();
+                 `,
+               }}
+             />
       </head>
       <body className={`${inter.variable} ${ibmPlexSansThai.variable} ${notoSansThai.variable}`}>
         <ErrorBoundary>

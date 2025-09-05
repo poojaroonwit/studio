@@ -16,7 +16,7 @@ interface ZoomControlProps {
 
 export function ZoomControl({ 
   className,
-  defaultZoom = 1.0,
+  defaultZoom = 0.9, // Changed default to 0.9 (90%)
   minZoom = 0.5,
   maxZoom = 1.5,
   step = 0.1
@@ -25,40 +25,78 @@ export function ZoomControl({
   const [isVisible, setIsVisible] = useState(false);
   const [isMinimized, setIsMinimized] = useState(true);
 
-  // Simple zoom application
-  useEffect(() => {
-    document.documentElement.style.zoom = zoom.toString();
-    // Fix white space by ensuring body height fills viewport
-    document.body.style.minHeight = '100vh';
-    localStorage.setItem('app-zoom-level', zoom.toString());
-  }, [zoom]);
-
-  // Load saved zoom on mount
+  // Load saved zoom on mount and listen for keyboard zoom changes
   useEffect(() => {
     const savedZoom = localStorage.getItem('app-zoom-level');
-    if (savedZoom) {
-      const parsedZoom = parseFloat(savedZoom);
-      if (parsedZoom >= minZoom && parsedZoom <= maxZoom) {
-        setZoom(parsedZoom);
-      }
+    const initialZoom = savedZoom ? parseFloat(savedZoom) : defaultZoom;
+    if (initialZoom >= minZoom && initialZoom <= maxZoom) {
+      setZoom(initialZoom);
     }
-  }, [minZoom, maxZoom]);
+    
+    // Listen for zoom changes from keyboard shortcuts
+    const handleZoomChange = (event: CustomEvent) => {
+      if (event.detail && event.detail.zoom) {
+        setZoom(event.detail.zoom);
+      }
+    };
+    
+    window.addEventListener('zoomChanged', handleZoomChange as EventListener);
+    
+    return () => {
+      window.removeEventListener('zoomChanged', handleZoomChange as EventListener);
+    };
+  }, [minZoom, maxZoom, defaultZoom]);
 
 
   const handleZoomIn = () => {
-    setZoom(Math.min(zoom + step, maxZoom));
+    const newZoom = Math.min(zoom + step, maxZoom);
+    setZoom(newZoom);
+    // Use the global zoom function to sync with keyboard shortcuts
+    if (window.setZoom) {
+      window.setZoom(newZoom);
+    } else {
+      document.documentElement.style.zoom = newZoom.toString();
+      document.body.style.minHeight = '100vh';
+      localStorage.setItem('app-zoom-level', newZoom.toString());
+    }
   };
 
   const handleZoomOut = () => {
-    setZoom(Math.max(zoom - step, minZoom));
+    const newZoom = Math.max(zoom - step, minZoom);
+    setZoom(newZoom);
+    // Use the global zoom function to sync with keyboard shortcuts
+    if (window.setZoom) {
+      window.setZoom(newZoom);
+    } else {
+      document.documentElement.style.zoom = newZoom.toString();
+      document.body.style.minHeight = '100vh';
+      localStorage.setItem('app-zoom-level', newZoom.toString());
+    }
   };
 
   const handleReset = () => {
     setZoom(defaultZoom);
+    // Use the global zoom function to sync with keyboard shortcuts
+    if (window.setZoom) {
+      window.setZoom(defaultZoom);
+    } else {
+      document.documentElement.style.zoom = defaultZoom.toString();
+      document.body.style.minHeight = '100vh';
+      localStorage.setItem('app-zoom-level', defaultZoom.toString());
+    }
   };
 
   const handleSliderChange = (value: number[]) => {
-    setZoom(value[0]);
+    const newZoom = value[0];
+    setZoom(newZoom);
+    // Use the global zoom function to sync with keyboard shortcuts
+    if (window.setZoom) {
+      window.setZoom(newZoom);
+    } else {
+      document.documentElement.style.zoom = newZoom.toString();
+      document.body.style.minHeight = '100vh';
+      localStorage.setItem('app-zoom-level', newZoom.toString());
+    }
   };
 
   const toggleVisibility = () => {
@@ -97,7 +135,7 @@ export function ZoomControl({
                   onClick={handleReset}
                   size="sm"
                   variant="ghost"
-                  title="Reset to 100%"
+                  title="Reset to 90%"
                 >
                   <RotateCcw className="w-3 h-3" />
                 </Button>
@@ -156,28 +194,43 @@ export function ZoomControl({
 
 // Simple hook for zoom control
 export function useZoom() {
-  const [zoom, setZoom] = useState(1.0);
+  const [zoom, setZoom] = useState(0.9); // Changed default to 0.9 (90%)
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const savedZoom = localStorage.getItem('app-zoom-level');
-    if (savedZoom) {
-      const zoomLevel = parseFloat(savedZoom);
-      setZoom(zoomLevel);
-    }
+    const initialZoom = savedZoom ? parseFloat(savedZoom) : 0.9;
+    setZoom(initialZoom);
     setIsLoading(false);
+    
+    // Listen for zoom changes from keyboard shortcuts
+    const handleZoomChange = (event: CustomEvent) => {
+      if (event.detail && event.detail.zoom) {
+        setZoom(event.detail.zoom);
+      }
+    };
+    
+    window.addEventListener('zoomChanged', handleZoomChange as EventListener);
+    
+    return () => {
+      window.removeEventListener('zoomChanged', handleZoomChange as EventListener);
+    };
   }, []);
 
   const setZoomLevel = (level: number) => {
     setZoom(level);
-    document.documentElement.style.zoom = level.toString();
-    // Fix white space by ensuring body height fills viewport
-    document.body.style.minHeight = '100vh';
-    localStorage.setItem('app-zoom-level', level.toString());
+    // Use the global zoom function to sync with keyboard shortcuts
+    if (window.setZoom) {
+      window.setZoom(level);
+    } else {
+      document.documentElement.style.zoom = level.toString();
+      document.body.style.minHeight = '100vh';
+      localStorage.setItem('app-zoom-level', level.toString());
+    }
   };
 
   const resetZoom = () => {
-    setZoomLevel(1.0);
+    setZoomLevel(0.9); // Reset to 90% instead of 100%
   };
 
   return {

@@ -127,6 +127,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                          // Always use transform for better browser support
                          document.documentElement.style.transform = 'scale(' + zoomLevel + ')';
                          document.documentElement.style.transformOrigin = 'top left';
+                         document.documentElement.style.overflow = 'hidden';
+                         
+                         // Ensure body doesn't interfere
+                         document.body.style.overflow = 'hidden';
+                         document.body.style.width = '100vw';
+                         document.body.style.height = '100vh';
                          
                          // Also try CSS zoom as backup
                          try {
@@ -142,6 +148,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                            localStorage.setItem('app-zoom-level', zoomLevel.toString());
                          }
                          console.log('Initial zoom applied:', zoomLevel, 'transform:', document.documentElement.style.transform);
+                         
+                         // Verify the transform is actually applied
+                         setTimeout(() => {
+                           const computedStyle = window.getComputedStyle(document.documentElement);
+                           console.log('Initial computed transform:', computedStyle.transform);
+                           console.log('Initial inline transform:', document.documentElement.style.transform);
+                         }, 50);
                        }
                        
                        // Global keyboard shortcuts
@@ -178,6 +191,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                            // Always use transform for better browser support
                            document.documentElement.style.transform = 'scale(' + zoom + ')';
                            document.documentElement.style.transformOrigin = 'top left';
+                           document.documentElement.style.overflow = 'hidden';
+                           
+                           // Ensure body doesn't interfere
+                           document.body.style.overflow = 'hidden';
+                           document.body.style.width = '100vw';
+                           document.body.style.height = '100vh';
                            
                            // Also try CSS zoom as backup
                            try {
@@ -190,6 +209,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                            localStorage.setItem('app-zoom-level', zoom.toString());
                            window.dispatchEvent(new CustomEvent('zoomChanged', { detail: { zoom: zoom } }));
                            console.log('Zoom applied:', zoom, 'transform:', document.documentElement.style.transform);
+                           
+                           // Verify the transform is actually applied
+                           setTimeout(() => {
+                             const computedStyle = window.getComputedStyle(document.documentElement);
+                             console.log('Computed transform after setZoom:', computedStyle.transform);
+                             console.log('Inline transform after setZoom:', document.documentElement.style.transform);
+                           }, 50);
                          }
                        };
                        

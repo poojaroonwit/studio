@@ -137,7 +137,7 @@ export function ZoomControl({
     return null;
   }
   
-  console.log('ZoomControl: Rendering component, zoom:', zoom, 'isVisible:', isVisible);
+  console.log('ZoomControl: Rendering component, zoom:', zoom, 'isVisible:', isVisible, 'isMinimized:', isMinimized);
 
   // Test function to verify global zoom functions
   const testGlobalZoom = () => {
@@ -147,14 +147,25 @@ export function ZoomControl({
     console.log('Current DOM zoom style:', document.documentElement.style.zoom);
     console.log('Current DOM transform style:', document.documentElement.style.transform);
     console.log('Current localStorage zoom:', localStorage.getItem('app-zoom-level'));
-    console.log('Document element:', document.documentElement);
-    console.log('Document body:', document.body);
     
-    // Test direct DOM manipulation
+    // Check computed styles
+    const computedStyle = window.getComputedStyle(document.documentElement);
+    console.log('Computed transform:', computedStyle.transform);
+    console.log('Computed zoom:', computedStyle.zoom);
+    
+    // Test direct DOM manipulation with visual feedback
     console.log('Testing direct DOM manipulation...');
     document.documentElement.style.transform = 'scale(1.5)';
     document.documentElement.style.transformOrigin = 'top left';
+    document.documentElement.style.overflow = 'hidden';
     console.log('Direct transform applied:', document.documentElement.style.transform);
+    
+    // Check if transform is actually applied
+    setTimeout(() => {
+      const newComputedStyle = window.getComputedStyle(document.documentElement);
+      console.log('After direct transform - Computed transform:', newComputedStyle.transform);
+      console.log('After direct transform - Inline transform:', document.documentElement.style.transform);
+    }, 100);
     
     if (window.setZoom) {
       console.log('Testing window.setZoom with 1.2...');
@@ -165,8 +176,14 @@ export function ZoomControl({
         console.log('DOM transform style:', document.documentElement.style.transform);
         console.log('window.getZoom():', window.getZoom ? window.getZoom() : 'not available');
         
+        // Check computed styles after setZoom
+        const finalComputedStyle = window.getComputedStyle(document.documentElement);
+        console.log('Final computed transform:', finalComputedStyle.transform);
+        console.log('Final computed zoom:', finalComputedStyle.zoom);
+        
         // Test if the page actually looks different
         console.log('Page should now be zoomed to 120%');
+        console.log('If you can see the page is larger, the zoom is working!');
       }, 100);
     } else {
       console.error('window.setZoom is not available!');
@@ -174,7 +191,7 @@ export function ZoomControl({
   };
 
   return (
-    <div className={cn("fixed bottom-4 right-4 z-50", className)}>
+    <div className={cn("fixed bottom-4 right-4", className)} style={{zIndex: 99999}}>
       <Button
         onClick={toggleVisibility}
         size="sm"
@@ -195,8 +212,31 @@ export function ZoomControl({
       >
         TEST
       </Button>
+      
+      {/* Simple test slider */}
+      <div className="mb-2 p-2 bg-red-100 border border-red-300 rounded">
+        <div className="text-xs text-red-600 mb-1">Simple Test Slider:</div>
+        <input
+          type="range"
+          min="0.5"
+          max="1.5"
+          step="0.1"
+          value={zoom}
+          onChange={(e) => {
+            const newZoom = parseFloat(e.target.value);
+            console.log('Simple slider changed to:', newZoom);
+            setZoom(newZoom);
+            if (window.setZoom) {
+              window.setZoom(newZoom);
+            }
+          }}
+          className="w-full"
+          style={{pointerEvents: 'auto'}}
+        />
+        <div className="text-xs text-red-600">Value: {zoom.toFixed(2)}</div>
+      </div>
 
-      {isVisible && (
+      {(isVisible || true) && (
         <div className="bg-background border border-border rounded-lg p-4 shadow-lg min-w-[200px] mb-4" style={{zIndex: 9999}}>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -225,16 +265,26 @@ export function ZoomControl({
               <div className="text-xs text-muted-foreground">
                 Slider: {zoom.toFixed(2)} (min: {minZoom}, max: {maxZoom}, step: {step})
               </div>
-              <Slider
-                value={[zoom]}
-                onValueChange={handleSliderChange}
-                onValueCommit={(value) => console.log('Slider value committed:', value)}
-                min={minZoom}
-                max={maxZoom}
-                step={step}
-                className="w-full"
-                style={{pointerEvents: 'auto'}}
-              />
+              
+              {/* Test if Radix Slider is working */}
+              <div className="p-2 bg-blue-100 border border-blue-300 rounded mb-2">
+                <div className="text-xs text-blue-600 mb-1">Radix UI Slider Test:</div>
+                <Slider
+                  value={[zoom]}
+                  onValueChange={(value) => {
+                    console.log('Radix Slider onValueChange:', value);
+                    handleSliderChange(value);
+                  }}
+                  onValueCommit={(value) => console.log('Radix Slider value committed:', value)}
+                  min={minZoom}
+                  max={maxZoom}
+                  step={step}
+                  className="w-full"
+                  style={{pointerEvents: 'auto', zIndex: 10000}}
+                />
+                <div className="text-xs text-blue-600">Radix Value: {zoom.toFixed(2)}</div>
+              </div>
+              
               <div className="flex justify-between text-xs text-muted-foreground">
                 <span>{Math.round(minZoom * 100)}%</span>
                 <span>{Math.round(maxZoom * 100)}%</span>

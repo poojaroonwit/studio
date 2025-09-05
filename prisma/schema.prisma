@@ -405,6 +405,10 @@ model SystemPreference {
   value     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@unique([userId, key])
+  @@index([userId])
+  @@index([key])
 }
 
 model CandidateComment {

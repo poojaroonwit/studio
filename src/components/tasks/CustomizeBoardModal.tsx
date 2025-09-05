@@ -595,7 +595,7 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl w-full max-h-[90%] min-h-[400px] flex flex-col gap-6 p-0 overflow-visible">
+      <DialogContent className="max-w-3xl w-full max-h-[90vh] flex flex-col gap-6 p-0 overflow-visible">
         <DialogHeader className="p-6 pb-0 border-b flex-shrink-0 bg-card rounded-t-xl">
           <DialogTitle className="flex items-center gap-2 text-2xl">
             <Settings className="w-6 h-6" />

@@ -849,12 +849,12 @@ export default function DashboardPageClient({
   }, [status, session, canViewDashboard, router]);
 
   if (!canViewDashboard) {
-    return <div className="flex items-center justify-center h-full min-h-screen">Redirecting to My Tasks...</div>;
+    return <div className="flex items-center justify-center h-screen">Redirecting to My Tasks...</div>;
   }
   // Remove stray closing brace and ensure this is inside a function/component body
   if (authError) {
     return (
-      <div className="flex flex-col items-center justify-center h-[calc(100%-10rem)] min-h-[400px] text-center p-4">
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-10rem)] text-center p-4">
         <ServerCrash className="w-16 h-16 text-destructive mb-4" />
         <h2 className="text-2xl font-semibold text-foreground mb-2">Authentication Error</h2>
         <p className="text-muted-foreground mb-4 max-w-md">{fetchError || "You need to be signed in to view the dashboard."}</p>
@@ -867,7 +867,7 @@ export default function DashboardPageClient({
 
   if (permissionError) {
     return (
-      <div className="flex flex-col items-center justify-center h-[calc(100%-10rem)] min-h-[400px] text-center p-4">
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-10rem)] text-center p-4">
         <ServerCrash className="w-16 h-16 text-destructive mb-4" />
         <h2 className="text-2xl font-semibold text-foreground mb-2">Permission Issue Detected</h2>
         <p className="text-muted-foreground mb-4 max-w-md">
@@ -890,7 +890,7 @@ export default function DashboardPageClient({
 
   if (fetchError && !isLoading && initialFetchError) {
     return (
-      <div className="flex flex-col items-center justify-center h-[calc(100%-10rem)] min-h-[400px] text-center">
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-10rem)] text-center">
         <ServerCrash className="w-16 h-16 text-destructive mb-4" />
         <h2 className="text-2xl font-semibold text-foreground mb-2">Data Loading Error</h2>
         <p className="text-muted-foreground mb-6 max-w-md">
@@ -904,7 +904,7 @@ export default function DashboardPageClient({
   // Show loading state only for initial load, not for statistics calculations
   if (isLoading && (!filteredCandidates.length && !allPositions.length)) {
     return (
-      <div className="flex h-full min-h-screen w-full items-center justify-center bg-background fixed inset-0 z-50">
+      <div className="flex h-screen w-screen items-center justify-center bg-background fixed inset-0 z-50">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
       </div>
     );

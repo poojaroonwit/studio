@@ -1488,29 +1488,8 @@ export function CandidatesPageClient({
         <div className="flex-1 flex overflow-hidden">
           {/* Filters Sidebar */}
           {showFilters && (
-            <div 
-              className="responsive-filter-sidebar border-r bg-background overflow-hidden flex flex-col"
-              style={{ backgroundColor: 'hsl(var(--background))' }}
-            >
-              {/* Filter Sidebar Header */}
-              <div 
-                className="flex justify-between items-center p-3 border-b bg-background flex-shrink-0"
-                style={{ backgroundColor: 'hsl(var(--background))' }}
-              >
-                <span className="font-semibold text-lg">Filters</span>
-                <Button
-                  onClick={() => setShowFilters(false)}
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0"
-                  title="Hide Filters"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-              
-              {/* Filter Content */}
-              <div className="flex-1 overflow-y-auto">
+            <div className="responsive-filter-sidebar border-r bg-background overflow-hidden">
+              <div className="h-full overflow-y-auto">
                 {(() => {
                   const advancedQuery = searchParams.get('query') || undefined;
                   return (
@@ -1533,22 +1512,6 @@ export function CandidatesPageClient({
                   );
                 })()}
               </div>
-            </div>
-          )}
-
-          {/* Show Filters Button when sidebar is hidden */}
-          {!showFilters && (
-            <div className="flex items-start pt-4 pl-4">
-              <Button
-                onClick={() => setShowFilters(true)}
-                variant="outline"
-                size="sm"
-                className="h-8 px-3"
-                title="Show Filters"
-              >
-                <Filter className="mr-2 h-4 w-4" />
-                Show Filters
-              </Button>
             </div>
           )}
 
@@ -1591,17 +1554,6 @@ export function CandidatesPageClient({
                     </div>
                     
                     <div className="flex items-center space-x-3 ml-3">
-                      <Button
-                        onClick={() => setShowFilters(!showFilters)}
-                        variant="outline"
-                        size="sm"
-                        className="mb-2 h-8 px-3"
-                        title={showFilters ? "Hide Filters" : "Show Filters"}
-                      >
-                        <Filter className="mr-2 h-4 w-4" />
-                        {showFilters ? "Hide Filters" : "Show Filters"}
-                      </Button>
-                      
                       <Button
                         onClick={() => setIsBulkUploadModalOpen(true)}
                         disabled={isLoading || tableLoading}

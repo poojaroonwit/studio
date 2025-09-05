@@ -30,13 +30,18 @@ export function ZoomControl({
     // Get the current zoom level from the DOM
     const getCurrentZoom = () => {
       if (window.getZoom) {
-        return window.getZoom();
+        const zoom = window.getZoom();
+        console.log('Got zoom from window.getZoom():', zoom);
+        return zoom;
       }
       const savedZoom = localStorage.getItem('app-zoom-level');
-      return savedZoom ? parseFloat(savedZoom) : defaultZoom;
+      const fallbackZoom = savedZoom ? parseFloat(savedZoom) : defaultZoom;
+      console.log('Using fallback zoom:', fallbackZoom, 'savedZoom:', savedZoom);
+      return fallbackZoom;
     };
     
     const initialZoom = getCurrentZoom();
+    console.log('Initial zoom set to:', initialZoom);
     if (initialZoom >= minZoom && initialZoom <= maxZoom) {
       setZoom(initialZoom);
     }
@@ -58,9 +63,11 @@ export function ZoomControl({
 
   const handleZoomIn = () => {
     const newZoom = Math.min(zoom + step, maxZoom);
+    console.log('Zoom In clicked - Current zoom:', zoom, 'New zoom:', newZoom);
     setZoom(newZoom);
     // Use the global zoom function to sync with keyboard shortcuts
     if (window.setZoom) {
+      console.log('Calling window.setZoom with:', newZoom);
       window.setZoom(newZoom);
     } else {
       console.warn('window.setZoom is not available');
@@ -69,9 +76,11 @@ export function ZoomControl({
 
   const handleZoomOut = () => {
     const newZoom = Math.max(zoom - step, minZoom);
+    console.log('Zoom Out clicked - Current zoom:', zoom, 'New zoom:', newZoom);
     setZoom(newZoom);
     // Use the global zoom function to sync with keyboard shortcuts
     if (window.setZoom) {
+      console.log('Calling window.setZoom with:', newZoom);
       window.setZoom(newZoom);
     } else {
       console.warn('window.setZoom is not available');
@@ -120,7 +129,7 @@ export function ZoomControl({
         size="sm"
         variant="outline"
         className="mb-2 shadow-lg"
-        title="Toggle Zoom Controls"
+        title={`Toggle Zoom Controls - Current: ${Math.round(zoom * 100)}%`}
       >
         <ZoomIn className="w-4 h-4" />
       </Button>

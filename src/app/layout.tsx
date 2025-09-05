@@ -117,46 +117,45 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                        
                        // Ensure zoom is within valid range (0.5 to 1.5)
                        if (zoomLevel >= 0.5 && zoomLevel <= 1.5) {
-                         document.documentElement.style.zoom = zoomLevel.toString();
+                         // Try CSS zoom first, fallback to transform
+                         if (document.documentElement.style.zoom !== undefined) {
+                           document.documentElement.style.zoom = zoomLevel.toString();
+                         } else {
+                                                    // Fallback to transform for better browser support
+                         document.documentElement.style.transform = 'scale(' + zoomLevel + ')';
+                         document.documentElement.style.transformOrigin = 'top left';
+                         }
                          // Fix white space by calculating proper height based on zoom
                          fixZoomWhiteSpace(zoomLevel);
                          // Save the zoom level if it wasn't saved before
                          if (!savedZoom) {
                            localStorage.setItem('app-zoom-level', zoomLevel.toString());
                          }
+                         console.log('Initial zoom applied:', zoomLevel, 'using method:', document.documentElement.style.zoom !== undefined ? 'zoom' : 'transform');
                        }
                        
                        // Global keyboard shortcuts
                        document.addEventListener('keydown', function(event) {
                          if (event.ctrlKey || event.metaKey) {
-                           const currentZoom = parseFloat(document.documentElement.style.zoom || DEFAULT_ZOOM);
+                           const currentZoom = window.getZoom ? window.getZoom() : DEFAULT_ZOOM;
                            
                            if (event.key === '+' || event.key === '=') {
                              event.preventDefault();
                              const newZoom = Math.min(currentZoom + 0.1, 1.5);
-                             document.documentElement.style.zoom = newZoom.toString();
-                             // Fix white space by calculating proper height based on zoom
-                             fixZoomWhiteSpace(newZoom);
-                             localStorage.setItem('app-zoom-level', newZoom.toString());
-                             // Dispatch zoom change event for avatar dropdown sync
-                             window.dispatchEvent(new CustomEvent('zoomChanged', { detail: { zoom: newZoom } }));
+                             if (window.setZoom) {
+                               window.setZoom(newZoom);
+                             }
                            } else if (event.key === '-') {
                              event.preventDefault();
                              const newZoom = Math.max(currentZoom - 0.1, 0.5);
-                             document.documentElement.style.zoom = newZoom.toString();
-                             // Fix white space by calculating proper height based on zoom
-                             fixZoomWhiteSpace(newZoom);
-                             localStorage.setItem('app-zoom-level', newZoom.toString());
-                             // Dispatch zoom change event for avatar dropdown sync
-                             window.dispatchEvent(new CustomEvent('zoomChanged', { detail: { zoom: newZoom } }));
+                             if (window.setZoom) {
+                               window.setZoom(newZoom);
+                             }
                            } else if (event.key === '0') {
                              event.preventDefault();
-                             document.documentElement.style.zoom = DEFAULT_ZOOM.toString();
-                             // Fix white space by calculating proper height based on zoom
-                             fixZoomWhiteSpace(DEFAULT_ZOOM);
-                             localStorage.setItem('app-zoom-level', DEFAULT_ZOOM.toString());
-                             // Dispatch zoom change event for avatar dropdown sync
-                             window.dispatchEvent(new CustomEvent('zoomChanged', { detail: { zoom: DEFAULT_ZOOM } }));
+                             if (window.setZoom) {
+                               window.setZoom(DEFAULT_ZOOM);
+                             }
                            }
                          }
                        });
@@ -164,15 +163,36 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                        // Expose zoom functions globally for avatar dropdown
                        window.setZoom = function(zoom) {
                          if (zoom >= 0.5 && zoom <= 1.5) {
-                           document.documentElement.style.zoom = zoom.toString();
+                           // Try CSS zoom first, fallback to transform
+                           if (document.documentElement.style.zoom !== undefined) {
+                             document.documentElement.style.zoom = zoom.toString();
+                           } else {
+                             // Fallback to transform for better browser support
+                             document.documentElement.style.transform = 'scale(' + zoom + ')';
+                             document.documentElement.style.transformOrigin = 'top left';
+                           }
                            fixZoomWhiteSpace(zoom);
                            localStorage.setItem('app-zoom-level', zoom.toString());
                            window.dispatchEvent(new CustomEvent('zoomChanged', { detail: { zoom: zoom } }));
+                           console.log('Zoom set to:', zoom, 'using method:', document.documentElement.style.zoom !== undefined ? 'zoom' : 'transform');
                          }
                        };
                        
                        window.getZoom = function() {
-                         return parseFloat(document.documentElement.style.zoom || DEFAULT_ZOOM);
+                         // Try to get zoom from CSS zoom property first
+                         const zoomValue = document.documentElement.style.zoom;
+                         if (zoomValue) {
+                           return parseFloat(zoomValue);
+                         }
+                         // Fallback to transform scale
+                         const transform = document.documentElement.style.transform;
+                         if (transform && transform.indexOf('scale(') !== -1) {
+                           const match = transform.match(/scale\\(([^)]+)\\)/);
+                           if (match) {
+                             return parseFloat(match[1]);
+                           }
+                         }
+                         return DEFAULT_ZOOM;
                        };
                        
                        // TypeScript declarations for global functions

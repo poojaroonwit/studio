@@ -2828,11 +2828,11 @@ html {
 
 body {
   height: 100%;
-  min-height: 100vh;
+  min-height: 100%;
 }
 
 /* Fix for zoom scaling issues */
 #__next {
   height: 100%;
-  min-height: 100vh;
+  min-height: 100%;
 }

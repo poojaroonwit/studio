@@ -18,10 +18,10 @@ function Calendar({
     <div className="max-h-80 overflow-y-auto">
       <DayPicker
         showOutsideDays={showOutsideDays}
-        numberOfMonths={1}
+        numberOfMonths={2}
         className={cn("p-2", className)}
         classNames={{
-          months: "flex flex-col",
+          months: "flex flex-row gap-4",
           month: "space-y-2",
           caption: "flex justify-center pt-1 relative items-center mb-2",
           caption_label: "text-xs font-semibold text-foreground",

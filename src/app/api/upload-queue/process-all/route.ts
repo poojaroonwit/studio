@@ -45,11 +45,19 @@ export async function POST(request: NextRequest) {
     let maxConcurrent = 5;
     try {
       const setting = await getSystemSetting('maxConcurrentProcessors');
-      if (setting && !isNaN(Number(setting))) {
+      if (setting && !isNaN(Number(setting)) && Number(setting) > 0) {
         maxConcurrent = Number(setting);
+      } else {
+        console.warn(`[Process-All] Invalid maxConcurrentProcessors setting: ${setting}, using default: ${maxConcurrent}`);
       }
     } catch (error) {
-      console.warn('[Process-All] Failed to get maxConcurrentProcessors setting:', error);
+      console.error('[Process-All] Failed to get maxConcurrentProcessors setting:', error);
+    }
+
+    // Validate maxConcurrent is not 0
+    if (maxConcurrent <= 0) {
+      console.error('[Process-All] maxConcurrentProcessors is 0 or negative, forcing to 1');
+      maxConcurrent = 1;
     }
 
     // NEW: Enhanced stuck job reset with better logic
@@ -115,9 +123,9 @@ export async function POST(request: NextRequest) {
     try {
       await selectionClient.query('BEGIN');
 
-      // Check current in-process count
+      // Check current in-process count with SKIP LOCKED
       const countRes = await selectionClient.query(
-        `SELECT id FROM upload_queue WHERE status = 'inprocess' FOR UPDATE`
+        `SELECT id FROM upload_queue WHERE status = 'inprocess' FOR UPDATE SKIP LOCKED`
       );
       const currentInProgress = countRes.rowCount;
   
@@ -159,7 +167,7 @@ export async function POST(request: NextRequest) {
 
       // Note: Automatic retry logic removed - failed jobs will remain failed until manually retried
 
-      // Enhanced job selection with better duplicate prevention (no automatic retry)
+      // Enhanced job selection - NO AUTOMATIC RETRY
       const claimRes = await selectionClient.query(
         `UPDATE upload_queue
          SET status = 'inprocess', process_date = now(), updated_at = now()
@@ -171,10 +179,10 @@ export async function POST(request: NextRequest) {
              source = 'reprocess' 
              OR webhook_payload->>'source' = 'reprocess'
              OR (
-               -- For non-reprocess jobs, ensure file_path hasn't been processed before
+               -- For non-reprocess jobs, ensure file_path hasn't been successfully processed before
                file_path NOT IN (
                  SELECT file_path FROM upload_queue 
-                 WHERE status IN ('success', 'failed')
+                 WHERE status = 'success'
                  AND file_path IS NOT NULL
                  AND file_path != ''
                )

@@ -107,12 +107,19 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                       
                       document.documentElement.style.width = scaledWidth + 'px';
                       document.documentElement.style.height = scaledHeight + 'px';
+                      document.documentElement.style.position = 'fixed';
+                      document.documentElement.style.top = '0';
+                      document.documentElement.style.left = '0';
                       document.body.style.width = scaledWidth + 'px';
                       document.body.style.height = scaledHeight + 'px';
                       document.body.style.minWidth = scaledWidth + 'px';
                       document.body.style.minHeight = scaledHeight + 'px';
                       document.body.style.maxWidth = scaledWidth + 'px';
                       document.body.style.maxHeight = scaledHeight + 'px';
+                      document.body.style.position = 'fixed';
+                      document.body.style.top = '0';
+                      document.body.style.left = '0';
+                      document.body.style.backgroundColor = 'hsl(var(--background))';
                       
                       // Handle window resize to maintain zoom
                       window.addEventListener('resize', function() {
@@ -124,12 +131,19 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                           
                           document.documentElement.style.width = newScaledWidth + 'px';
                           document.documentElement.style.height = newScaledHeight + 'px';
+                          document.documentElement.style.position = 'fixed';
+                          document.documentElement.style.top = '0';
+                          document.documentElement.style.left = '0';
                           document.body.style.width = newScaledWidth + 'px';
                           document.body.style.height = newScaledHeight + 'px';
                           document.body.style.minWidth = newScaledWidth + 'px';
                           document.body.style.minHeight = newScaledHeight + 'px';
                           document.body.style.maxWidth = newScaledWidth + 'px';
                           document.body.style.maxHeight = newScaledHeight + 'px';
+                          document.body.style.position = 'fixed';
+                          document.body.style.top = '0';
+                          document.body.style.left = '0';
+                          document.body.style.backgroundColor = 'hsl(var(--background))';
                         }
                       });
                     }

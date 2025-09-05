@@ -44,12 +44,19 @@ export function ZoomControl({
     // Apply proportional scaling to both width and height
     html.style.width = `${scaledWidth}px`;
     html.style.height = `${scaledHeight}px`;
+    html.style.position = 'fixed';
+    html.style.top = '0';
+    html.style.left = '0';
     body.style.width = `${scaledWidth}px`;
     body.style.height = `${scaledHeight}px`;
     body.style.minWidth = `${scaledWidth}px`;
     body.style.minHeight = `${scaledHeight}px`;
     body.style.maxWidth = `${scaledWidth}px`;
     body.style.maxHeight = `${scaledHeight}px`;
+    body.style.position = 'fixed';
+    body.style.top = '0';
+    body.style.left = '0';
+    body.style.backgroundColor = 'hsl(var(--background))';
     
     // Store zoom level in localStorage
     localStorage.setItem('app-zoom-level', zoom.toString());
@@ -75,12 +82,19 @@ export function ZoomControl({
         
         html.style.width = `${scaledWidth}px`;
         html.style.height = `${scaledHeight}px`;
+        html.style.position = 'fixed';
+        html.style.top = '0';
+        html.style.left = '0';
         body.style.width = `${scaledWidth}px`;
         body.style.height = `${scaledHeight}px`;
         body.style.minWidth = `${scaledWidth}px`;
         body.style.minHeight = `${scaledHeight}px`;
         body.style.maxWidth = `${scaledWidth}px`;
         body.style.maxHeight = `${scaledHeight}px`;
+        body.style.position = 'fixed';
+        body.style.top = '0';
+        body.style.left = '0';
+        body.style.backgroundColor = 'hsl(var(--background))';
       }
     }
   }, [minZoom, maxZoom]);
@@ -122,12 +136,19 @@ export function ZoomControl({
         
         html.style.width = `${scaledWidth}px`;
         html.style.height = `${scaledHeight}px`;
+        html.style.position = 'fixed';
+        html.style.top = '0';
+        html.style.left = '0';
         body.style.width = `${scaledWidth}px`;
         body.style.height = `${scaledHeight}px`;
         body.style.minWidth = `${scaledWidth}px`;
         body.style.minHeight = `${scaledHeight}px`;
         body.style.maxWidth = `${scaledWidth}px`;
         body.style.maxHeight = `${scaledHeight}px`;
+        body.style.position = 'fixed';
+        body.style.top = '0';
+        body.style.left = '0';
+        body.style.backgroundColor = 'hsl(var(--background))';
       }
     };
 
@@ -437,12 +458,19 @@ export function useZoom() {
         
         html.style.width = `${scaledWidth}px`;
         html.style.height = `${scaledHeight}px`;
+        html.style.position = 'fixed';
+        html.style.top = '0';
+        html.style.left = '0';
         body.style.width = `${scaledWidth}px`;
         body.style.height = `${scaledHeight}px`;
         body.style.minWidth = `${scaledWidth}px`;
         body.style.minHeight = `${scaledHeight}px`;
         body.style.maxWidth = `${scaledWidth}px`;
         body.style.maxHeight = `${scaledHeight}px`;
+        body.style.position = 'fixed';
+        body.style.top = '0';
+        body.style.left = '0';
+        body.style.backgroundColor = 'hsl(var(--background))';
       }
     };
 

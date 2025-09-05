@@ -8,7 +8,6 @@ import { hasPermission, checkPermission } from '@/lib/permissions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import './settings.css';
-import { ZoomSettings } from '@/components/settings/ZoomSettings';
 
 import { 
   Settings,
@@ -32,7 +31,6 @@ import {
   Globe,
   BarChart3,
   AlertTriangle,
-  Monitor,
 
 } from 'lucide-react';
 import type { PlatformModuleId } from '@/lib/types';
@@ -272,11 +270,6 @@ function SettingsPageContent() {
       {/* Settings Grid */}
       <div className="flex-1 p-6 pt-0 overflow-y-auto">
         <div className="space-y-6">
-          {/* Zoom Settings - Always visible */}
-          <ZoomSettings className="mb-6" />
-          
-          <Separator className="my-6" />
-          
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {accessibleItems.map((item) => (
               <Card 

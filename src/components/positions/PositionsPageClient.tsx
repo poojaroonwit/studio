@@ -1566,7 +1566,7 @@ export default function PositionsPageClient() {
                       aria-label={`Select position ${position.title}`}
                     />
                   </TableCell>
-                  <TableCell className="font-medium min-w-[120px]">
+                  <TableCell className="font-medium min-w-[150px]">
                     <div className="flex flex-col">
                       <button
                         onClick={() => {

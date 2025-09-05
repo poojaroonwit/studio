@@ -239,7 +239,23 @@ export async function POST(request: NextRequest) {
   }
   
   if (!hasPermission) {
-    return NextResponse.json({ message: 'Forbidden: Insufficient permissions to perform this bulk candidate action' }, { status: 403 });
+    let specificMessage = 'Forbidden: Insufficient permissions to perform this bulk candidate action';
+    
+    switch (actionType) {
+      case 'change_status':
+        specificMessage = 'Forbidden: You do not have permission to update candidate status. Please contact your administrator to request the "CANDIDATES_PIPELINE_STAGE_BULK_UPDATE" permission.';
+        break;
+      case 'assign_recruiter':
+        specificMessage = 'Forbidden: You do not have permission to assign recruiters to candidates. Please contact your administrator to request the "CANDIDATES_RECRUITER_ASSIGN" permission.';
+        break;
+      case 'delete':
+        specificMessage = 'Forbidden: You do not have permission to delete candidates. Please contact your administrator to request the "CANDIDATES_DELETE" permission.';
+        break;
+      default:
+        specificMessage = 'Forbidden: You do not have permission to perform this action on candidates. Please contact your administrator.';
+    }
+    
+    return NextResponse.json({ message: specificMessage }, { status: 403 });
   }
 
   // Validate the request body

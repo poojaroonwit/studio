@@ -2005,7 +2005,7 @@ export function CandidateFilters({
                       <Label className="text-xs font-medium text-muted-foreground">Quick Commands</Label>
                       <div className="flex-1 h-px bg-border"></div>
                     </div>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    <div className="space-y-1">
                       {[
                         { 
                           label: 'High Priority', 
@@ -2082,9 +2082,9 @@ export function CandidateFilters({
                       ].map((cmd, index) => (
                         <Button
                           key={index}
-                          variant="outline"
+                          variant="ghost"
                           size="sm"
-                          className="h-auto p-2 flex flex-col items-start gap-1 text-left hover:bg-muted/50"
+                          className="w-full h-auto p-2 flex items-center justify-start gap-2 text-left hover:bg-muted/50"
                           onClick={() => {
                             setAdvancedQueryInput(cmd.query);
                             // Auto-apply the query
@@ -2093,11 +2093,13 @@ export function CandidateFilters({
                             }, 100);
                           }}
                         >
-                          <div className="flex items-center gap-1 w-full">
+                          <div className="flex-shrink-0">
                             {cmd.icon}
-                            <span className="text-xs font-medium truncate">{cmd.label}</span>
                           </div>
-                          <span className="text-xs text-muted-foreground leading-tight">{cmd.description}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs font-medium truncate">{cmd.label}</div>
+                            <div className="text-xs text-muted-foreground truncate">{cmd.description}</div>
+                          </div>
                         </Button>
                       ))}
                     </div>

@@ -619,7 +619,8 @@ export function CandidateRowKanbanView({
         
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
-          throw new Error(data.message || 'Failed to update status');
+          const statusText = res.status === 403 ? 'Access denied' : `HTTP ${res.status}`;
+          throw new Error(data.message || `Failed to update candidate status: ${statusText}`);
         }
         
         const result = await res.json();
@@ -826,7 +827,8 @@ export function FlexibleKanbanView({
         
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
-          throw new Error(data.message || 'Failed to update status');
+          const statusText = res.status === 403 ? 'Access denied' : `HTTP ${res.status}`;
+          throw new Error(data.message || `Failed to update candidate status: ${statusText}`);
         }
         
         const result = await res.json();
@@ -2333,7 +2335,8 @@ export function HorizontalStageKanbanView({
         
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
-          throw new Error(data.message || 'Failed to update status');
+          const statusText = res.status === 403 ? 'Access denied' : `HTTP ${res.status}`;
+          throw new Error(data.message || `Failed to update candidate status: ${statusText}`);
         }
         
         const result = await res.json();

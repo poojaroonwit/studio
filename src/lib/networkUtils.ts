@@ -263,7 +263,7 @@ export function getErrorMessage(error: any): string {
   }
   
   if (status === 403) {
-    return 'No permission';
+    return 'Access denied. You do not have permission to perform this action. Please contact your administrator if you believe this is an error.';
   }
   
   if (status === 404) {

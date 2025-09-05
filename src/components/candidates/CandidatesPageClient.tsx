@@ -1833,7 +1833,7 @@ export function CandidatesPageClient({
                     className="h-8 px-3 hover:bg-muted/50 transition-colors duration-200"
                   >
                     <ChevronLeft className="h-3.5 w-3.5 text-muted-foreground mr-2" />
-                    Previous
+          
                   </Button>
                   
                   <span className="text-sm text-muted-foreground min-w-[80px] text-center">
@@ -1862,7 +1862,6 @@ export function CandidatesPageClient({
                     size="sm"
                     className="h-8 px-3 hover:bg-muted/50 transition-colors duration-200"
                   >
-                    Next
                     <ChevronRight className="h-3.5 w-3.5 text-muted-foreground ml-2" />
                   </Button>
                 </div>

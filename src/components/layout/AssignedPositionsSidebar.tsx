@@ -238,14 +238,14 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
           </>
         )}
 
-        <ScrollArea className={cn("h-[300px]", variant === 'compact' ? "px-0" : "px-3") }>
-          <div className="relative">
+        <ScrollArea className={cn("h-[300px] min-w-0", variant === 'compact' ? "px-0" : "px-3") }>
+          <div className="relative min-w-0">
             {/* Common tree pattern: subtle vertical rail + node dots */}
-            <ul className={cn("mt-2 space-y-1 pl-0", variant === 'compact' ? "mt-1" : "") }>
+            <ul className={cn("mt-2 space-y-1 pl-0 min-w-0", variant === 'compact' ? "mt-1" : "") }>
               {positions.slice(0, visibleCount).map((position, idx) => (
                 <li key={position.id} className="relative">
                   <div
-                    className={cn("flex items-stretch gap-1")}
+                    className={cn("flex items-stretch gap-1 min-w-0")}
                   >
                     {/* Timeline column (smaller center point + continuous vertical line) */}
                     <div className="relative flex flex-col items-center justify-center w-6 h-7">
@@ -262,12 +262,12 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
  
                     {/* Content row */}
                     <SidebarMenuButton
-                      className="w-full justify-start h-7 pr-1"
+                      className="w-full justify-start h-7 pr-1 min-w-0"
                       size="default"
                       onClick={() => handlePositionClick(position.id)}
                       title={position.title}
                     >
-                      <span className="flex-1 min-w-0 text-sm overflow-hidden text-ellipsis whitespace-nowrap">
+                      <span className="flex-1 min-w-0 text-sm overflow-hidden text-ellipsis whitespace-nowrap block">
                         {position.title}
                       </span>
                       

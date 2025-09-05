@@ -28,7 +28,8 @@ export async function updateCandidatesStatusBulk(candidateIds: string[], status:
     
     if (!response.ok) {
       console.error('Bulk action failed:', result);
-      throw new Error(result.message || 'status update failed');
+      const statusText = response.status === 403 ? 'Access denied' : `HTTP ${response.status}`;
+      throw new Error(result.message || `Candidate status update failed: ${statusText}`);
     }
     
     // Check for rejected candidates (this should not happen with our new upfront validation)

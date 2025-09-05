@@ -526,7 +526,7 @@ const SafeSidebarNavComponent = React.memo(() => {
           {/* Assigned positions inside the SidebarMenu list */}
           {sidebarPreferences?.showAssignedPositions && (
             <SidebarMenuItem>
-              <div className="px-2">
+              <div className="px-2 min-w-0">
                 <AssignedPositionsSidebar variant="compact" />
               </div>
             </SidebarMenuItem>

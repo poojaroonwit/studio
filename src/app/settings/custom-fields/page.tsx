@@ -198,7 +198,7 @@ export default function CustomFieldsPage() {
 
   if (sessionStatus === 'loading' || (isLoading && !fetchError && definitions.length === 0 && sessionStatus === 'authenticated')) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-background fixed inset-0 z-50">
+      <div className="flex w-screen items-center justify-center bg-background fixed inset-0 z-50">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
       </div>
     );

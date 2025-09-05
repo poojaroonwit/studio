@@ -227,7 +227,7 @@ export default function SystemStatusPage() {
 
   if (sessionStatus === 'loading' || (sessionStatus === 'unauthenticated' && pathname !== '/auth/signin' && !pathname.startsWith('/_next/')) || !isClient) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-background fixed inset-0 z-50">
+      <div className="flex w-screen items-center justify-center bg-background fixed inset-0 z-50">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
       </div>
     );

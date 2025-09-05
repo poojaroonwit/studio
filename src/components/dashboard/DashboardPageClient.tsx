@@ -904,7 +904,7 @@ export default function DashboardPageClient({
   // Show loading state only for initial load, not for statistics calculations
   if (isLoading && (!filteredCandidates.length && !allPositions.length)) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-background fixed inset-0 z-50">
+      <div className="flex w-screen items-center justify-center bg-background fixed inset-0 z-50">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
       </div>
     );

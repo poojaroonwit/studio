@@ -96,8 +96,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 if (zoom >= 0.5 && zoom <= 1.5) {
                   document.documentElement.style.zoom = zoom.toString();
                   document.documentElement.style.overflow = 'hidden';
+                  document.documentElement.style.height = '100vh';
                   document.body.style.overflow = 'hidden';
                   document.body.style.height = '100vh';
+                  document.body.style.margin = '0';
+                  document.body.style.padding = '0';
                   localStorage.setItem('app-zoom-level', zoom.toString());
                   window.dispatchEvent(new CustomEvent('zoomChanged', { detail: { zoom: zoom } }));
                 }
@@ -113,13 +116,19 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               if (savedZoom) {
                 document.documentElement.style.zoom = savedZoom;
                 document.documentElement.style.overflow = 'hidden';
+                document.documentElement.style.height = '100vh';
                 document.body.style.overflow = 'hidden';
                 document.body.style.height = '100vh';
+                document.body.style.margin = '0';
+                document.body.style.padding = '0';
               } else {
                 document.documentElement.style.zoom = '0.9';
                 document.documentElement.style.overflow = 'hidden';
+                document.documentElement.style.height = '100vh';
                 document.body.style.overflow = 'hidden';
                 document.body.style.height = '100vh';
+                document.body.style.margin = '0';
+                document.body.style.padding = '0';
               }
             `,
           }}

@@ -306,7 +306,7 @@ export default function RecruitmentStagesPage() {
   };
 
   if (sessionStatus === 'loading' || (isLoading && !fetchError && stages.length === 0)) {
-    return ( <div className="flex h-screen w-screen items-center justify-center bg-background fixed inset-0 z-50"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div> );
+    return ( <div className="flex w-screen items-center justify-center bg-background fixed inset-0 z-50"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div> );
   }
 
   if (fetchError) {

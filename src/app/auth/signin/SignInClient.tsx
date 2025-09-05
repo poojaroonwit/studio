@@ -430,7 +430,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
 
   if (status === "loading" || !isClient) {
     return (
-      <div className="flex h-full min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-100 to-sky-100 dark:from-slate-900 dark:to-sky-900 p-4">
+      <div className="flex h-full min-flex-col items-center justify-center bg-gradient-to-br from-slate-100 to-sky-100 dark:from-slate-900 dark:to-sky-900 p-4">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
         <p className="mt-4 text-muted-foreground">Loading authentication...</p>
       </div>
@@ -439,7 +439,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
   
   if (status === "authenticated") {
     return (
-       <div className="flex h-full min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-100 to-sky-100 dark:from-slate-900 dark:to-sky-900 p-4">
+       <div className="flex h-full min-flex-col items-center justify-center bg-gradient-to-br from-slate-100 to-sky-100 dark:from-slate-900 dark:to-sky-900 p-4">
         <p className="text-lg font-medium">Redirecting to dashboard...</p>
         <Loader2 className="h-8 w-8 animate-spin text-primary mt-2" />
         <p className="mt-2 text-sm text-muted-foreground">Please wait while we redirect you</p>
@@ -503,7 +503,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
     // Get the background image URL from settings
     const loginBgImageUrl = initialSettings?.find(s => s.key === 'loginPageBackgroundImageUrl')?.value || null;
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'row' }} className="h-full min-h-screen flex flex-row">
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'row' }} className="h-full min-flex flex-row">
         {/* Left column: Image from settings, centered and contained, with overlay */}
         <div className="hidden lg:flex flex-col items-center justify-center relative basis-[60%] max-w-[60%] bg-muted overflow-hidden">
           {loginBgImageUrl && (
@@ -594,7 +594,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
 
   // Default: center box layout
   return (
-    <div style={loginPageStyle} className="h-full min-h-screen flex flex-col items-center justify-center p-4">
+    <div style={loginPageStyle} className="h-full min-flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md">
         {loginPageContent && (
           <div className="mb-8 text-center" dangerouslySetInnerHTML={{ __html: sanitizeHtml(loginPageContent) }} />

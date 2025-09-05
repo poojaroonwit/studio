@@ -2823,4 +2823,16 @@ body:has(.zoom-controls) {
 /* Normal browser zoom behavior */
 html {
   zoom: 1;
+  height: 100%;
+}
+
+body {
+  height: 100%;
+  min-height: 100vh;
+}
+
+/* Fix for zoom scaling issues */
+#__next {
+  height: 100%;
+  min-height: 100vh;
 }

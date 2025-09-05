@@ -179,7 +179,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
         
         // Determine login page style
         const newStyle: React.CSSProperties = {
-          minHeight: '100%',
+          minHeight: '100vh',
           display: 'flex',
           flexDirection: loginLayoutTypeSetting === '2column' ? 'row' : 'column',
           alignItems: 'center',
@@ -224,7 +224,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
               let loginPageLogoSizeSetting: number = parseInt(initialSettings.find(s => s.key === LOGIN_PAGE_LOGO_SIZE_KEY)?.value || DEFAULT_LOGIN_PAGE_LOGO_SIZE.toString());
       // Set style
       const newStyle: React.CSSProperties = {
-        minHeight: '100%',
+        minHeight: '100vh',
         display: 'flex',
         flexDirection: loginLayoutTypeSetting === '2column' ? 'row' : 'column',
         alignItems: 'center',
@@ -500,7 +500,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
     // Get the background image URL from settings
     const loginBgImageUrl = initialSettings?.find(s => s.key === 'loginPageBackgroundImageUrl')?.value || null;
     return (
-      <div style={{ minHeight: '100%', display: 'flex', flexDirection: 'row' }} className="h-full min-h-screen flex flex-row">
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'row' }} className="min-h-screen flex flex-row">
         {/* Left column: Image from settings, centered and contained, with overlay */}
         <div className="hidden lg:flex flex-col items-center justify-center relative basis-[60%] max-w-[60%] bg-muted overflow-hidden">
           {loginBgImageUrl && (

@@ -392,6 +392,7 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
         layout="flex" 
         direction="row"
         className="h-full min-h-screen bg-background overflow-hidden"
+        style={{ backgroundColor: 'hsl(var(--background))' }}
         data-testid="app-layout"
       >
         <Sidebar collapsible="icon" className="border-r border-border" data-testid="sidebar">

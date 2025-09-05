@@ -29,12 +29,6 @@ export function ZoomControl({
   useEffect(() => {
     document.documentElement.style.zoom = zoom.toString();
     localStorage.setItem('app-zoom-level', zoom.toString());
-    
-    // Update visual indicator
-    const zoomValueElement = document.getElementById('zoom-value');
-    if (zoomValueElement) {
-      zoomValueElement.textContent = zoom.toString();
-    }
   }, [zoom]);
 
   // Load saved zoom on mount
@@ -176,12 +170,6 @@ export function useZoom() {
     setZoom(level);
     document.documentElement.style.zoom = level.toString();
     localStorage.setItem('app-zoom-level', level.toString());
-    
-    // Update visual indicator
-    const zoomValueElement = document.getElementById('zoom-value');
-    if (zoomValueElement) {
-      zoomValueElement.textContent = level.toString();
-    }
   };
 
   const resetZoom = () => {

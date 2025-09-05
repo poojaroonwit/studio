@@ -743,24 +743,6 @@ audio::-webkit-scrollbar-button {
   }
 }
 
-/* Override Tailwind base layer for zoom compatibility */
-@layer base {
-  html {
-    zoom: 0.9 !important;
-    height: 100% !important;
-  }
-  
-  body {
-    height: 100% !important;
-    min-height: 100% !important;
-  }
-  
-  #__next {
-    height: 100% !important;
-    min-height: 100% !important;
-  }
-}
-
 /* Updated styles for sidebar and active menu item */
 @layer components {
   /* Sidebar base style for light theme - Light Gray Gradient */
@@ -2838,55 +2820,62 @@ body:has(.zoom-controls) {
   overflow-x: hidden;
 }
 
-/* Normal browser zoom behavior - Force override */
+/* Normal browser zoom behavior */
 html {
-  zoom: 0.9 !important;
-  height: 100% !important;
+  zoom: 0.9;
+  height: 100%;
 }
 
 body {
-  height: 100% !important;
-  min-height: 100% !important;
+  height: 100%;
+  min-height: 100vh;
+  background-color: hsl(var(--background));
 }
 
-/* Fix for zoom scaling issues - Force override */
+/* Fix for zoom scaling issues */
 #__next {
-  height: 100% !important;
-  min-height: 100% !important;
+  height: 100%;
+  min-height: 100vh;
 }
 
-/* Force all viewport units to be percentage-based for zoom compatibility */
+/* Fix sidebar background scaling with zoom */
+[data-sidebar="sidebar"] {
+  background-color: hsl(var(--background));
+  background-image: none !important;
+}
+
+/* Ensure sidebar content fills properly */
+[data-sidebar="sidebar"] * {
+  background-color: transparent;
+}
+
+/* Fix filter sidebar background */
+.responsive-filter-sidebar {
+  background-color: hsl(var(--background)) !important;
+  background-image: none !important;
+}
+
+/* Ensure all sidebar elements have proper background */
+.responsive-filter-sidebar * {
+  background-color: transparent;
+}
+
+/* Fix all container backgrounds to scale with zoom */
+.flex, .flex-1, .flex-col, .flex-row {
+  background-color: hsl(var(--background));
+}
+
+/* Ensure main content areas have proper background */
+.main-content, .table-area, .content-area {
+  background-color: hsl(var(--background));
+}
+
+/* Fix any remaining white space issues */
 * {
-  box-sizing: border-box;
+  background-color: inherit;
 }
 
-/* Override any remaining viewport units */
-html, body, #__next, main, .main-layout, .app-layout {
-  min-height: 100% !important;
-  height: 100% !important;
-}
-
-/* Force override for all layout containers */
-[data-testid="app-layout"],
-.layout-container,
-.main-layout,
-.app-layout {
-  min-height: 100% !important;
-  height: 100% !important;
-}
-
-/* Force override for sidebar */
-[data-sidebar="sidebar"],
-.sidebar,
-.sidebar-content {
-  min-height: 100% !important;
-  height: 100% !important;
-}
-
-/* Force override for main content areas */
-main,
-.main-content,
-.content-area {
-  min-height: 100% !important;
-  height: 100% !important;
+/* Ensure proper background inheritance */
+html, body, #__next, [data-nextjs-page-router-viewport] {
+  background-color: hsl(var(--background)) !important;
 }

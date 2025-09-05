@@ -1488,9 +1488,15 @@ export function CandidatesPageClient({
         <div className="flex-1 flex overflow-hidden">
           {/* Filters Sidebar */}
           {showFilters && (
-            <div className="responsive-filter-sidebar border-r bg-background overflow-hidden flex flex-col">
+            <div 
+              className="responsive-filter-sidebar border-r bg-background overflow-hidden flex flex-col"
+              style={{ backgroundColor: 'hsl(var(--background))' }}
+            >
               {/* Filter Sidebar Header */}
-              <div className="flex justify-between items-center p-3 border-b bg-background flex-shrink-0">
+              <div 
+                className="flex justify-between items-center p-3 border-b bg-background flex-shrink-0"
+                style={{ backgroundColor: 'hsl(var(--background))' }}
+              >
                 <span className="font-semibold text-lg">Filters</span>
                 <Button
                   onClick={() => setShowFilters(false)}

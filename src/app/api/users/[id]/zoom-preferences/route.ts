@@ -6,7 +6,7 @@ import { prisma } from '@/lib/prisma';
 // GET user's zoom preferences
 export async function GET(
   request: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -16,14 +16,14 @@ export async function GET(
     }
 
     // Users can only access their own preferences
-    if (session.user.id !== params.userId) {
+    if (session.user.id !== params.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     // Get zoom preferences from SystemPreference table
     const preferences = await prisma.systemPreference.findMany({
       where: {
-        userId: params.userId,
+        userId: params.id,
         key: {
           startsWith: 'zoom_'
         }
@@ -68,7 +68,7 @@ export async function GET(
 // PUT update user's zoom preferences
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -78,7 +78,7 @@ export async function PUT(
     }
 
     // Users can only update their own preferences
-    if (session.user.id !== params.userId) {
+    if (session.user.id !== params.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -113,7 +113,7 @@ export async function PUT(
         prisma.systemPreference.upsert({
           where: {
             userId_key: {
-              userId: params.userId,
+              userId: params.id,
               key: pref.key,
             },
           },
@@ -122,7 +122,7 @@ export async function PUT(
             updatedAt: new Date(),
           },
           create: {
-            userId: params.userId,
+            userId: params.id,
             key: pref.key,
             value: pref.value,
           },

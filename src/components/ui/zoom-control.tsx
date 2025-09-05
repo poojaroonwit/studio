@@ -235,10 +235,14 @@ export function useZoom() {
   }, []);
 
   const setZoomLevel = (level: number) => {
+    console.log('useZoom: setZoomLevel called with:', level);
     setZoom(level);
     // Use the global zoom function to sync with keyboard shortcuts
     if (window.setZoom) {
+      console.log('useZoom: Calling window.setZoom with:', level);
       window.setZoom(level);
+    } else {
+      console.warn('useZoom: window.setZoom is not available');
     }
   };
 

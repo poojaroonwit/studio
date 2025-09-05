@@ -15,6 +15,7 @@ export function ZoomControlCompact({ className }: ZoomControlCompactProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const handleZoomChange = (value: number[]) => {
+    console.log('ZoomControlCompact: handleZoomChange called with:', value[0]);
     setZoom(value[0]);
   };
 
@@ -52,7 +53,12 @@ export function ZoomControlCompact({ className }: ZoomControlCompactProps) {
               key={option.value}
               variant={Math.abs(zoom - option.value) < 0.01 ? "default" : "outline"}
               size="sm"
-              onClick={() => setZoom(option.value)}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('ZoomControlCompact: Quick zoom button clicked:', option.label, option.value);
+                setZoom(option.value);
+              }}
               className="h-6 px-2 text-xs"
             >
               {option.label}

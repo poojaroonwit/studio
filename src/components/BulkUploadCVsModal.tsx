@@ -17,6 +17,7 @@ import { PositionMultiSelectDropdown } from "@/components/candidates/PositionMul
 import { FileViewerModal } from "@/components/ui/file-viewer-modal";
 import { hasAnyPermission } from '@/lib/permissions';
 import type { CandidateSource } from '@/lib/types';
+import { createPortal } from 'react-dom';
 
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 
@@ -49,6 +50,7 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
     updatedAt?: string;
     fileSize?: number;
   } | null>(null);
+  const modalContentRef = useRef<HTMLDivElement>(null);
   
   // Memoize the permission check to prevent unnecessary re-renders
   const canBulkUpload = useMemo(() => {
@@ -416,9 +418,11 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
   return (
     <Dialog open={isOpen} onOpenChange={handleModalClose}>
       <DialogContent 
+        ref={modalContentRef}
         className="max-w-4xl w-full !z-[99999]" 
         onEscapeKeyDown={(e) => e.preventDefault()}
         onOpenAutoFocus={(e) => e.preventDefault()}
+        style={{ zIndex: 99999 }}
       >
         <DialogHeader>
           <DialogTitle>Process Queue</DialogTitle>
@@ -431,22 +435,24 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
           <div>
             <Label htmlFor="position-select">Assign to Position</Label>
             <div className="mt-2">
-              <PositionMultiSelectDropdown
-                selectedIds={selectedPositionIds}
-                onSelectionChange={handlePositionChange}
-                placeholder="Select a position..."
-                disabled={uploading}
-                showOpenStatus={true}
-                filterOpenOnly={false}
-                singleSelect={true}
-              />
+              <div style={{ zIndex: 9999999 }}>
+                <PositionMultiSelectDropdown
+                  selectedIds={selectedPositionIds}
+                  onSelectionChange={handlePositionChange}
+                  placeholder="Select a position..."
+                  disabled={uploading}
+                  showOpenStatus={true}
+                  filterOpenOnly={false}
+                  singleSelect={true}
+                />
+              </div>
             </div>
           </div>
 
           {/* Source Selection */}
           <div>
             <Label htmlFor="source-select">Source</Label>
-            <div className="mt-2">
+            <div className="mt-2" style={{ zIndex: 9999999 }}>
               <Select
                 value={selectedSourceId}
                 onValueChange={setSelectedSourceId}
@@ -455,7 +461,12 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
                 <SelectTrigger>
                   <SelectValue placeholder="Select a source..." />
                 </SelectTrigger>
-                <SelectContent className="z-[99999]">
+                <SelectContent 
+                  className="z-[9999999]" 
+                  position="popper"
+                  sideOffset={4}
+                  style={{ zIndex: 9999999 }}
+                >
                   {availableSources.map((source) => (
                     <SelectItem key={source.id} value={source.id}>
                       {source.name}

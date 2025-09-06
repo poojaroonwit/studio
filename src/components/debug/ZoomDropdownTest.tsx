@@ -124,6 +124,8 @@ export function ZoomDropdownTest() {
           <li>At 120% zoom, dropdown content should appear larger</li>
           <li><strong>Z-INDEX FIX:</strong> Avatar dropdown should appear above the header/top menu</li>
           <li>All dropdowns should be visible and not hidden behind other elements</li>
+          <li><strong>LAYERING FIX:</strong> Dropdowns should layer properly (Popover > Dropdown Menu > Select)</li>
+          <li>Try opening multiple dropdowns to test proper layering hierarchy</li>
         </ol>
       </div>
     </div>

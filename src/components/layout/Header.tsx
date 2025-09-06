@@ -299,40 +299,64 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
     setCurrentScreenSize(size);
     
     // Simulate keyboard shortcuts to change browser zoom
-    const currentZoom = window.devicePixelRatio || 1;
     const targetZoom = size / 100;
-    const zoomDifference = targetZoom - currentZoom;
     
-    // Calculate how many Ctrl+Plus or Ctrl+Minus we need to simulate
-    const steps = Math.round(zoomDifference / 0.1); // Each step is 10%
+    // Calculate how many steps we need (each step is typically 10% in browsers)
+    const currentZoom = 1.0; // Assume starting from 100%
+    const steps = Math.round((targetZoom - currentZoom) / 0.1);
     
     if (steps > 0) {
       // Need to zoom in (Ctrl+Plus)
       for (let i = 0; i < steps; i++) {
         setTimeout(() => {
+          // Create a more complete keyboard event
           const event = new KeyboardEvent('keydown', {
             key: '=',
             code: 'Equal',
+            keyCode: 187,
+            which: 187,
             ctrlKey: true,
-            bubbles: true
+            metaKey: false,
+            shiftKey: false,
+            altKey: false,
+            bubbles: true,
+            cancelable: true,
+            composed: true
           });
+          
+          // Dispatch to both document and window
           document.dispatchEvent(event);
-        }, i * 50); // Small delay between events
+          window.dispatchEvent(event);
+        }, i * 150);
       }
     } else if (steps < 0) {
       // Need to zoom out (Ctrl+Minus)
       for (let i = 0; i < Math.abs(steps); i++) {
         setTimeout(() => {
+          // Create a more complete keyboard event
           const event = new KeyboardEvent('keydown', {
             key: '-',
             code: 'Minus',
+            keyCode: 189,
+            which: 189,
             ctrlKey: true,
-            bubbles: true
+            metaKey: false,
+            shiftKey: false,
+            altKey: false,
+            bubbles: true,
+            cancelable: true,
+            composed: true
           });
+          
+          // Dispatch to both document and window
           document.dispatchEvent(event);
-        }, i * 50); // Small delay between events
+          window.dispatchEvent(event);
+        }, i * 150);
       }
     }
+    
+    // Show feedback
+    toast.success(`Screen size set to ${size}%`);
   }, []);
 
   const handleEditProfile = useCallback(async (data: UserFormValues) => {
@@ -507,7 +531,6 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
                       <DropdownMenuSub>
                         <DropdownMenuSubTrigger className="text-xs px-2 py-1 h-6">
                           {currentScreenSize}%
-                          <ChevronDown className="ml-1 h-3 w-3" />
                         </DropdownMenuSubTrigger>
                         <DropdownMenuSubContent>
                           <DropdownMenuItem onSelect={() => handleScreenSizeChange(75)}>

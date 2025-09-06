@@ -91,26 +91,41 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              // Simple zoom functions
+              // Simple zoom functions using transform for better dropdown positioning
               window.setZoom = function(zoom) {
                 if (zoom >= 0.5 && zoom <= 1.5) {
-                  document.documentElement.style.zoom = zoom.toString();
+                  // Use transform instead of zoom for better compatibility with Radix UI
+                  document.documentElement.style.transform = 'scale(' + zoom + ')';
+                  document.documentElement.style.transformOrigin = 'top left';
+                  document.documentElement.style.width = (100 / zoom) + '%';
+                  document.documentElement.style.height = (100 / zoom) + '%';
                   localStorage.setItem('app-zoom-level', zoom.toString());
                   window.dispatchEvent(new CustomEvent('zoomChanged', { detail: { zoom: zoom } }));
                 }
               };
               
               window.getZoom = function() {
-                const zoom = document.documentElement.style.zoom;
-                return zoom ? parseFloat(zoom) : 0.9;
+                const transform = document.documentElement.style.transform;
+                if (transform && transform.includes('scale(')) {
+                  const match = transform.match(/scale\\(([^)]+)\\)/);
+                  return match ? parseFloat(match[1]) : 0.9;
+                }
+                return 0.9;
               };
               
               // Apply saved zoom on load
               const savedZoom = localStorage.getItem('app-zoom-level');
               if (savedZoom) {
-                document.documentElement.style.zoom = savedZoom;
+                const zoom = parseFloat(savedZoom);
+                document.documentElement.style.transform = 'scale(' + zoom + ')';
+                document.documentElement.style.transformOrigin = 'top left';
+                document.documentElement.style.width = (100 / zoom) + '%';
+                document.documentElement.style.height = (100 / zoom) + '%';
               } else {
-                document.documentElement.style.zoom = '0.9';
+                document.documentElement.style.transform = 'scale(0.9)';
+                document.documentElement.style.transformOrigin = 'top left';
+                document.documentElement.style.width = '111.11%';
+                document.documentElement.style.height = '111.11%';
               }
             `,
           }}

@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import type { Position } from "@/lib/types";
+import { useSharedSSE } from '@/hooks/use-shared-sse';
 
 // DEBUGGING: This component has been enhanced with comprehensive debugging to help identify
 // issues with multiple selection and deselection. Check the browser console for detailed logs
@@ -64,41 +65,56 @@ export function PositionMultiSelectDropdown({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
-  // Fetch positions directly
-  useEffect(() => {
-    const fetchPositions = async () => {
-      try {
-        setLoading(true);
-        setError(false);
-        
-        const response = await fetch('/api/positions/all', {
-          headers: { 'Cache-Control': 'no-cache' },
-          credentials: 'include'
-        });
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch positions');
-        }
-        
-        const data = await response.json();
-        let fetchedPositions = data.data || [];
-        
-        // Filter for open headcount only if requested
-        if (filterOpenOnly) {
-          fetchedPositions = fetchedPositions.filter((pos: Position) => pos.isOpen);
-        }
-        
-        setPositions(fetchedPositions);
-      } catch (err) {
-        console.error('Error fetching positions:', err);
-        setError(true);
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Use shared SSE hook for real-time updates
+  const { subscribeToEvents } = useSharedSSE();
 
+  // Fetch positions directly
+  const fetchPositions = async () => {
+    try {
+      setLoading(true);
+      setError(false);
+      
+      const response = await fetch('/api/positions/all', {
+        headers: { 'Cache-Control': 'no-cache' },
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch positions');
+      }
+      
+      const data = await response.json();
+      let fetchedPositions = data.data || [];
+      
+      // Filter for open headcount only if requested
+      if (filterOpenOnly) {
+        fetchedPositions = fetchedPositions.filter((pos: Position) => pos.isOpen);
+      }
+      
+      setPositions(fetchedPositions);
+    } catch (err) {
+      console.error('Error fetching positions:', err);
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchPositions();
   }, [filterOpenOnly]);
+
+  // Listen for position updates via SSE
+  useEffect(() => {
+    const unsubscribe = subscribeToEvents((event) => {
+      if (event.type === 'position_update' && event.action === 'list_updated') {
+        // Refresh positions when position list is updated (e.g., after import)
+        fetchPositions();
+      }
+    });
+
+    return unsubscribe;
+  }, [subscribeToEvents, filterOpenOnly]);
 
   // Filter positions based on search term
   const filteredPositions = positions.filter(position => 

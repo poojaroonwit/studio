@@ -1468,8 +1468,8 @@ export default function DashboardPageClient({
         </div>
       )}
 
-      {/* Separator */}
-      <div className="border-t border-border/50 my-8"></div>
+      {/* Separator
+      <div className="border-t border-border/50 my-8"></div> */}
 
       {/* Section 5: Pipeline Analytics - Charts */}
       <div className="space-y-6">

@@ -2832,6 +2832,16 @@ body {
   min-height: 100vh;
 }
 
+/* Ensure dropdowns work correctly with transform-based zoom */
+[data-radix-dropdown-menu-content] {
+  z-index: 50 !important;
+}
+
+/* Fix for avatar dropdown positioning */
+[data-radix-dropdown-menu-content] {
+  position: fixed !important;
+}
+
 #__next {
   height: 100%;
   width: 100%;

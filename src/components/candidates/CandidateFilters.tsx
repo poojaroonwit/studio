@@ -94,7 +94,6 @@ import {
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { DateRange } from 'react-day-picker';
-import { toast } from 'react-hot-toast';
 import { PositionMultiSelectDropdown } from './PositionMultiSelectDropdown';
 import { RecruiterMultiSelectDropdown } from './RecruiterMultiSelectDropdown';
 import { StatusMultiSelectDropdown } from './StatusMultiSelectDropdown';
@@ -816,9 +815,6 @@ export function CandidateFilters({
       locationOperator: parsedFilters.locationOperator,
       aiSearchQuery: undefined,
     });
-    
-    // Show success message
-    toast.success('Advanced query applied successfully!');
   };
 
   // Load example query

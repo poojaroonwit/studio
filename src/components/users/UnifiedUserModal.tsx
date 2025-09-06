@@ -1,17 +1,14 @@
 "use client";
 
 import React, { useEffect, useState, useRef } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Save, Loader2, User, UserPlus, Lock, Shield, Mail, Palette, Users, Edit3 } from 'lucide-react';
-import Image from 'next/image';
-import { signIn, useSession } from 'next-auth/react';
-import { useRouter, usePathname } from 'next/navigation';
+import { Save, Loader2, User, UserPlus, Lock, Shield, Palette, Users, Edit3 } from 'lucide-react';
+import { useSession } from 'next-auth/react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -34,7 +31,7 @@ import { UserAvatarUpload } from '@/components/ui/user-avatar-upload';
 import { PersonalColorPicker } from '@/components/settings/PersonalColorPicker';
 import { useClickProtection } from '@/hooks/use-click-protection';
 import { Switch } from '@/components/ui/switch';
-import { hasAnyPermission, hasPermission } from '@/lib/permissions';
+import { hasAnyPermission } from '@/lib/permissions';
 
 
 
@@ -381,52 +378,24 @@ export function UnifiedUserModal({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-6xl max-h-[95vh] flex flex-col p-0 overflow-hidden">
         <DialogHeader className="flex-shrink-0 p-6 pb-4 border-b bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <IconComponent className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <DialogTitle className="text-2xl font-bold tracking-tight">
-                  {modalInfo.title}
-                </DialogTitle>
-                <DialogDescription className="text-base mt-1 text-muted-foreground">
-                  {modalInfo.description}
-                </DialogDescription>
-              </div>
+          <div className="flex items-center space-x-3">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <IconComponent className="h-6 w-6 text-primary" />
             </div>
-            <div className="flex gap-2">
-              <Button 
-                onClick={form.handleSubmit(onSubmit)} 
-                disabled={isSubmitting || isLoading || isActioning}
-                variant="default"
-                className="flex items-center gap-2"
-              >
-                {(isSubmitting || isLoading || isActioning) ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : mode === 'create' ? (
-                  <>
-                    <UserPlus className="h-4 w-4" />
-                    Add User
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4" />
-                    Save Changes
-                  </>
-                )}
-              </Button>
+            <div>
+              <DialogTitle className="text-2xl font-bold tracking-tight">
+                {modalInfo.title}
+              </DialogTitle>
+              <DialogDescription className="text-base mt-1 text-muted-foreground">
+                {modalInfo.description}
+              </DialogDescription>
             </div>
           </div>
         </DialogHeader>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
-            <div className="flex-1 overflow-hidden min-h-0">
-              <div className="h-full flex min-h-0">
+            <div className="flex-1 flex min-h-0">
                 {/* Vertical Tab Navigation - Left Side */}
                 <div className="w-64 border-r border-border/50 flex-shrink-0">
                   <div className="p-4 space-y-2">
@@ -564,18 +533,6 @@ export function UnifiedUserModal({
                               </div>
                             </div>
 
-                            {/* Role Field - Hidden field for API compatibility (optional, can use default role) */}
-                            <FormField 
-                              control={form.control} 
-                              name="role" 
-                              render={({ field }) => (
-                                <FormItem className="hidden">
-                                  <FormControl>
-                                    <Input {...field} type="hidden" />
-                                  </FormControl>
-                                </FormItem>
-                              )}
-                            />
 
                             {mode === 'create' && (
                               <FormField 
@@ -618,25 +575,21 @@ export function UnifiedUserModal({
                             </p>
                           </div>
                           <div className="space-y-6">
-                            <div className="space-y-4">
-                              <div className="flex items-center justify-between">
-                              </div>
-                              <FormField 
-                                control={form.control} 
-                                name="personalColor" 
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormControl>
-                                      <PersonalColorPicker
-                                        personalColor={field.value}
-                                        onColorChange={field.onChange}
-                                      />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                            </div>
+                            <FormField 
+                              control={form.control} 
+                              name="personalColor" 
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormControl>
+                                    <PersonalColorPicker
+                                      personalColor={field.value}
+                                      onColorChange={field.onChange}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
                           </div>
                         </div>
 
@@ -810,23 +763,19 @@ export function UnifiedUserModal({
                             </div>
 
                             {/* Sidebar preferences (Available for all users) */}
-                            {(() => {
-                              return (
-                                <div className="rounded-md border p-4">
-                                  <div className="flex items-center justify-between">
-                                    <div className="space-y-1">
-                                      <Label className="text-sm font-medium">Show Assigned Positions</Label>
-                                      <p className="text-sm text-muted-foreground">Show this user's open assigned positions in the main sidebar.</p>
-                                    </div>
-                                    <Switch
-                                      checked={sidebarShowAssigned}
-                                      onCheckedChange={(c) => saveSidebarPref(Boolean(c))}
-                                      disabled={sidebarPrefLoading || mode !== 'profile'}
-                                    />
-                                  </div>
+                            <div className="rounded-md border p-4">
+                              <div className="flex items-center justify-between">
+                                <div className="space-y-1">
+                                  <Label className="text-sm font-medium">Show Assigned Positions</Label>
+                                  <p className="text-sm text-muted-foreground">Show this user's open assigned positions in the main sidebar.</p>
                                 </div>
-                              );
-                            })()}
+                                <Switch
+                                  checked={sidebarShowAssigned}
+                                  onCheckedChange={(c) => saveSidebarPref(Boolean(c))}
+                                  disabled={sidebarPrefLoading || mode !== 'profile'}
+                                />
+                              </div>
+                            </div>
                           </div>
                         </div>
 
@@ -922,7 +871,6 @@ export function UnifiedUserModal({
 
                  </div>
                </div>
-             </div>
             
             <DialogFooter className="p-6 border-t bg-muted/20 flex-shrink-0">
               <div className="flex items-center justify-between w-full">

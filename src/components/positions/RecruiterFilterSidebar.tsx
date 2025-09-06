@@ -50,8 +50,8 @@ export function RecruiterFilterSidebar({
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="pb-4 border-b border-border/50">
-        <h3 className="flex items-center gap-2 text-xl font-bold p-6">
+      <div className="border-b border-border/50">
+        <h3 className="flex items-center gap-2 text-xl font-bold p-4">
           <Users className="h-4 w-4 text-primary" />
           Recruiter
         </h3>

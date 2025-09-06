@@ -10,6 +10,8 @@ import { parse as parseCsv } from 'csv-parse/sync';
 import { IncomingForm, Fields, Files, File } from 'formidable';
 import fs from 'fs';
 import { getDefaultMatchCriteria } from '@/lib/systemSettings';
+import { broadcastPositionListUpdated, broadcastPositionStatisticsUpdated } from '@/lib/simple-broadcaster';
+
 
 // Route segment config for handling multipart form data
 export const runtime = 'nodejs';
@@ -384,6 +386,34 @@ export async function POST(request: NextRequest) {
         await client.query('COMMIT');
         totalResults.processingTime = Date.now() - startTime;
 
+        // Broadcast real-time updates after successful import
+        if (totalResults.success > 0) {
+          try {
+            // Broadcast position list update to refresh dropdowns and lists
+            broadcastPositionListUpdated();
+            
+            // Broadcast updated statistics
+            const statsQuery = `
+              SELECT 
+                COUNT(*) as total,
+                COUNT(CASE WHEN "isOpen" = TRUE THEN 1 END) as open,
+                COUNT(CASE WHEN "isOpen" = FALSE THEN 1 END) as closed
+              FROM "Position"
+            `;
+            const statsResult = await client.query(statsQuery);
+            const stats = statsResult.rows[0];
+            const statistics = { 
+              total: parseInt(stats.total, 10), 
+              open: parseInt(stats.open, 10), 
+              closed: parseInt(stats.closed, 10) 
+            };
+            broadcastPositionStatisticsUpdated(statistics);
+          } catch (broadcastError) {
+            console.error('Failed to broadcast real-time updates after CSV import:', broadcastError);
+            // Don't fail the request if broadcasting fails
+          }
+        }
+
         await logAudit('AUDIT', `Bulk import (CSV) completed by ${actingUserName}. Success: ${totalResults.success}, Failed: ${totalResults.failed}, Time: ${totalResults.processingTime}ms`, 'API:Positions:Import', actingUserId, { results: totalResults });
         
         return NextResponse.json({
@@ -459,6 +489,34 @@ export async function POST(request: NextRequest) {
 
     await client.query('COMMIT');
     totalResults.processingTime = Date.now() - startTime;
+
+    // Broadcast real-time updates after successful import
+    if (totalResults.success > 0) {
+      try {
+        // Broadcast position list update to refresh dropdowns and lists
+        broadcastPositionListUpdated();
+        
+        // Broadcast updated statistics
+        const statsQuery = `
+          SELECT 
+            COUNT(*) as total,
+            COUNT(CASE WHEN "isOpen" = TRUE THEN 1 END) as open,
+            COUNT(CASE WHEN "isOpen" = FALSE THEN 1 END) as closed
+          FROM "Position"
+        `;
+        const statsResult = await client.query(statsQuery);
+        const stats = statsResult.rows[0];
+        const statistics = { 
+          total: parseInt(stats.total, 10), 
+          open: parseInt(stats.open, 10), 
+          closed: parseInt(stats.closed, 10) 
+        };
+        broadcastPositionStatisticsUpdated(statistics);
+      } catch (broadcastError) {
+        console.error('Failed to broadcast real-time updates after import:', broadcastError);
+        // Don't fail the request if broadcasting fails
+      }
+    }
 
     await logAudit('AUDIT', `Bulk import completed by ${actingUserName}. Success: ${totalResults.success}, Failed: ${totalResults.failed}, Time: ${totalResults.processingTime}ms`, 'API:Positions:Import', actingUserId, { results: totalResults });
     

@@ -94,7 +94,7 @@ export function CandidatesPageClient({
 
   // Local state for pagination and UI
   const [page, setPage] = useState<number>(1);
-  const [pageSize, setPageSize] = useState<number>(50); // Will be updated when settings load
+  const [pageSize, setPageSize] = useState<number>(20); // Default page size
   const [total, setTotal] = useState<number>(0);
   const [sortColumn, setSortColumn] = useState<string>('applicationDate');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc' | null>('desc');

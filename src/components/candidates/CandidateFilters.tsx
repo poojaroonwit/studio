@@ -1251,7 +1251,7 @@ export function CandidateFilters({
   // The data should be loaded by the parent component, not retried here
 
     return (
-    <div className="space-y-0 candidate-filters">
+    <div className="space-y-0 candidate-filters bg-muted/50">
              {/* Filters Section */}
        <div className="bg-card overflow-hidden border-t border-border/50">
         <div>

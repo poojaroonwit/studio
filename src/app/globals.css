@@ -2824,28 +2824,55 @@ body:has(.zoom-controls) {
 html {
   height: 100%;
   width: 100%;
+  overflow-x: hidden;
 }
 
 body {
   height: 100%;
   width: 100%;
   min-height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
-/* Ensure dropdowns work correctly with transform-based zoom */
+/* Fix dropdown positioning issues with CSS zoom */
 [data-radix-dropdown-menu-content] {
   z-index: 50 !important;
 }
 
-/* Fix for avatar dropdown positioning */
-[data-radix-dropdown-menu-content] {
+/* Specific positioning fix for avatar dropdown in header */
+header [data-radix-dropdown-menu-content] {
   position: fixed !important;
+  transform: none !important;
+}
+
+/* Override Radix positioning when zoomed */
+html[style*="zoom"] [data-radix-dropdown-menu-content] {
+  position: fixed !important;
+  transform: none !important;
+}
+
+/* Force correct positioning for header dropdown */
+header [data-radix-dropdown-menu-content][data-side="bottom"] {
+  top: calc(100% + 4px) !important;
+  right: 0 !important;
+  left: auto !important;
+}
+
+/* Additional positioning compensation for different zoom levels */
+html[style*="zoom: 0.5"] header [data-radix-dropdown-menu-content],
+html[style*="zoom: 0.6"] header [data-radix-dropdown-menu-content],
+html[style*="zoom: 0.7"] header [data-radix-dropdown-menu-content],
+html[style*="zoom: 0.8"] header [data-radix-dropdown-menu-content] {
+  right: -20px !important;
 }
 
 #__next {
   height: 100%;
   width: 100%;
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Ensure zoom controls are always visible and functional */
@@ -2853,4 +2880,35 @@ body {
   position: fixed !important;
   z-index: 9999 !important;
   pointer-events: auto !important;
+}
+
+/* Additional layout fixes for proper scrolling */
+.app-layout-container {
+  height: 100vh;
+  overflow: hidden;
+}
+
+.main-content-area {
+  height: calc(100vh - var(--header-height, 64px));
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Ensure sidebar content can scroll when needed */
+.sidebar-content {
+  height: calc(100vh - var(--sidebar-header-height, 80px));
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Fix for mobile responsiveness */
+@media (max-width: 768px) {
+  .app-layout-container {
+    height: 100vh;
+    overflow: hidden;
+  }
+  
+  .main-content-area {
+    height: calc(100vh - var(--header-height, 56px));
+  }
 }

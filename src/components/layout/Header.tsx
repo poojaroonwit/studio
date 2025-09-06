@@ -25,6 +25,7 @@ import { DEFAULT_APP_NAME } from '@/lib/constants';
 import { useAvatarRefresh } from '@/hooks/use-avatar-refresh';
 import { UserPresenceIndicator } from '@/components/ui/user-presence-indicator';
 import { ZoomControlCompact } from '@/components/ui/zoom-control-compact';
+import { useZoomAwarePositioning } from '@/hooks/use-zoom-aware-positioning';
 
 // Function to generate breadcrumb items based on pathname
 function getBreadcrumbItems(pathname: string, showLogoOnly: boolean = false) {
@@ -124,6 +125,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
   const [currentAppName, setCurrentAppName] = useState<string>(DEFAULT_APP_NAME);
   const [effectivePageTitle, setEffectivePageTitle] = useState(initialPageTitle);
   const { refreshKey, forceRefresh } = useAvatarRefresh();
+  const dropdownRef = useZoomAwarePositioning();
 
   // Custom signout function that handles cleanup and redirect
   const handleSignOut = async () => {
@@ -427,7 +429,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
                   <UserAvatarCompact user={user} size="sm" forceRefresh={refreshKey > 0} />
                 </div>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-50">
+              <DropdownMenuContent ref={dropdownRef} align="end" className="w-50" sideOffset={4} alignOffset={-4}>
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
                     <AutoFont className="text-sm font-medium leading-none">{user.name || "User"}</AutoFont>

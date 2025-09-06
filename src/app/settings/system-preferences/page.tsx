@@ -1514,7 +1514,7 @@ export default function SystemPreferencesPage() {
             </div>
           </div>
 
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 min-h-0">
             {activeTab === 'general' && (
               <ScrollArea className="h-full pr-4">
                 <div className="space-y-6">

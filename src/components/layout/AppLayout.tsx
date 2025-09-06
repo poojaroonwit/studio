@@ -391,7 +391,7 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
       <LayoutContainer 
         layout="flex" 
         direction="row"
-        className="bg-background overflow-hidden"
+        className="bg-background app-layout-container"
         data-testid="app-layout"
       >
         <Sidebar collapsible="icon" className="border-r border-border" data-testid="sidebar">
@@ -405,10 +405,10 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
         <LayoutContainer 
           layout="flex" 
           direction="column"
-          className="flex-1 min-w-0"
+          className="flex-1 min-w-0 h-full"
         >
           <MemoizedHeader {...headerProps} />
-          <OptimizedContainer as="main" className="flex-1 overflow-auto p-0">
+          <OptimizedContainer as="main" className="flex-1 main-content-area p-0">
             {isLoading && <GlobalLoadingOverlay />}
             {children}
           </OptimizedContainer>

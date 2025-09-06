@@ -912,7 +912,8 @@ export default function DashboardPageClient({
 
   // Unified Dashboard - Show all metrics to everyone
   return (
-    <div className="space-y-8 p-6">
+    <div className="dashboard-container">
+      <div className="dashboard-content space-y-8">
       {/* Real-time Status Indicator */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-3">
@@ -1950,6 +1951,7 @@ export default function DashboardPageClient({
         }}
         positionId={selectedPositionId}
       />
+      </div>
     </div>
   );
 }

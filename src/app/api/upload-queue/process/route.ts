@@ -124,7 +124,33 @@ export async function POST(request: NextRequest) {
        AND completed_date > NOW() - INTERVAL '${RECENT_PROCESSING_TIMEOUT_MINUTES} minutes'`
     );
     
-    // IMPROVED: Simplified job selection - NO AUTOMATIC RETRY
+    // ENHANCED: Job selection - NO AUTOMATIC RETRY, but ensure queue doesn't get stuck
+    // Check if there are any queued jobs available
+    const queuedJobsCheck = await client.query(
+      `SELECT COUNT(*) as count FROM upload_queue WHERE status = 'queued'`
+    );
+    const queuedJobsCount = parseInt(queuedJobsCheck.rows[0].count, 10);
+    
+    if (queuedJobsCount === 0) {
+      // No queued jobs available - check if there are failed jobs that could be manually retried
+      const failedJobsCheck = await client.query(
+        `SELECT COUNT(*) as count FROM upload_queue WHERE status = 'failed'`
+      );
+      const failedJobsCount = parseInt(failedJobsCheck.rows[0].count, 10);
+      
+      if (failedJobsCount > 0) {
+        console.log(`[PROCESS] No queued jobs available. ${failedJobsCount} failed jobs exist that can be manually retried.`);
+      }
+      
+      await client.query('COMMIT');
+      return NextResponse.json({ 
+        message: 'No queued jobs available', 
+        failed_jobs_count: failedJobsCount,
+        note: failedJobsCount > 0 ? 'Failed jobs can be manually retried by setting source to "reprocess"' : null
+      }, { status: 200 });
+    }
+    
+    // Select the next job to process
     const res = await client.query(
       `UPDATE upload_queue
        SET status = 'inprocess', process_date = now(), updated_at = now()

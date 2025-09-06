@@ -15,6 +15,7 @@ interface ZIndexContextType {
   getZIndex: (id: string) => number;
   getOverlayZIndex: (id: string) => number;
   getContentZIndex: (id: string) => number;
+  components: ZIndexItem[];
 }
 
 const ZIndexContext = createContext<ZIndexContextType | undefined>(undefined);
@@ -78,6 +79,7 @@ export function ZIndexProvider({ children }: { children: React.ReactNode }) {
         getZIndex,
         getOverlayZIndex,
         getContentZIndex,
+        components,
       }}
     >
       {children}
@@ -106,4 +108,10 @@ export function useDynamicZIndex(id: string, type: 'modal' | 'drawer' | 'overlay
     overlayZIndex: getOverlayZIndex(id),
     contentZIndex: getContentZIndex(id),
   };
+}
+
+// Hook for debugging z-index layers
+export function useZIndexDebug() {
+  const { components } = useZIndex();
+  return components;
 }

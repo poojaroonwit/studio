@@ -237,8 +237,9 @@ export default function SystemSettingsPage() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-h-0">
-        <div className="flex w-full border-b border-border/50 mb-6">
+      <div className="flex-1 overflow-hidden">
+        <div className="h-full flex flex-col">
+          <div className="flex w-full border-b border-border/50 mb-6">
 
             <div
               onClick={() => setActiveTab('automation')}
@@ -302,7 +303,7 @@ export default function SystemSettingsPage() {
             </div>
           </div>
 
-          <div className="flex-1 min-h-0">
+          <div className="flex-1 overflow-hidden">
             {activeTab === 'automation' && (
               <ScrollArea className="h-full pr-4">
                 <div className="space-y-6">

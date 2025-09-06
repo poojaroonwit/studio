@@ -2,16 +2,8 @@
 
 import { useEffect, useState } from 'react';
 
-interface ZoomAwarePositioningOptions {
-  zoom?: number;
-  sideOffset?: number;
-  alignOffset?: number;
-}
-
-export function useZoomAwarePositioning(options: ZoomAwarePositioningOptions = {}) {
-  const [zoom, setZoom] = useState(options.zoom || 0.9);
-  const [sideOffset, setSideOffset] = useState(options.sideOffset || 4);
-  const [alignOffset, setAlignOffset] = useState(options.alignOffset || 0);
+export function useZoomAwarePositioning() {
+  const [zoom, setZoom] = useState(1);
 
   useEffect(() => {
     // Get current zoom level
@@ -40,22 +32,10 @@ export function useZoomAwarePositioning(options: ZoomAwarePositioningOptions = {
     };
   }, []);
 
-  // Calculate zoom-compensated offsets
-  const getZoomCompensatedSideOffset = () => {
-    // When zoomed out, we need to increase the offset to maintain visual distance
-    return sideOffset / zoom;
-  };
-
-  const getZoomCompensatedAlignOffset = () => {
-    // When zoomed out, we need to increase the offset to maintain visual distance
-    return alignOffset / zoom;
-  };
-
   return {
     zoom,
-    sideOffset: getZoomCompensatedSideOffset(),
-    alignOffset: getZoomCompensatedAlignOffset(),
-    originalSideOffset: sideOffset,
-    originalAlignOffset: alignOffset,
+    // Simple compensation: when zoomed out, reduce the offset
+    sideOffset: 4 / zoom,
+    alignOffset: 0,
   };
 }

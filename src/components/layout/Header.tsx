@@ -133,8 +133,33 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
     try {
       // Get current browser zoom level
       const currentZoom = window.outerWidth / window.innerWidth;
-      const screenSize = Math.round(currentZoom * 100);
-      setCurrentScreenSize(screenSize);
+      
+      // Map browser zoom to application zoom
+      // Browser 90% = Application 100%
+      // Browser 100% = Application 111%
+      // Browser 75% = Application 83%
+      // etc.
+      const applicationZoom = Math.round((currentZoom / 0.9) * 100);
+      setCurrentScreenSize(applicationZoom);
+      
+      // If browser is at default zoom (100%), set it to 90% and show as 100% in app
+      if (Math.abs(currentZoom - 1.0) < 0.05) {
+        // Browser is at 100%, we want it at 90%
+        const event = new KeyboardEvent('keydown', {
+          key: '-',
+          code: 'Minus',
+          keyCode: 189,
+          which: 189,
+          ctrlKey: true,
+          metaKey: false,
+          shiftKey: false,
+          altKey: false,
+          bubbles: true,
+          cancelable: true
+        });
+        window.dispatchEvent(event);
+        setCurrentScreenSize(100); // Show as 100% in app
+      }
     } catch (error) {
       console.warn('Failed to get current browser zoom:', error);
     }
@@ -310,66 +335,34 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
   const handleScreenSizeChange = useCallback((size: number) => {
     setCurrentScreenSize(size);
     
-    // Use browser's native zoom by simulating keyboard events
-    const targetZoom = size / 100;
+    // Convert application zoom to browser zoom
+    // Application 100% = Browser 90%
+    // Application 110% = Browser 99%
+    // Application 90% = Browser 81%
+    // etc.
+    const targetBrowserZoom = (size / 100) * 0.9;
     
     // Get current browser zoom level
-    const getCurrentZoom = () => {
-      return window.outerWidth / window.innerWidth;
-    };
+    const currentZoom = window.outerWidth / window.innerWidth;
+    const steps = Math.round((targetBrowserZoom - currentZoom) / 0.1);
     
-    const currentZoom = getCurrentZoom();
-    const zoomDifference = targetZoom - currentZoom;
-    const steps = Math.round(zoomDifference / 0.1); // Each step is 10%
-    
-    if (steps > 0) {
-      // Zoom in with Ctrl+Plus
-      for (let i = 0; i < steps; i++) {
-        setTimeout(() => {
-          // Create and dispatch keyboard event for Ctrl+Plus
-          const event = new KeyboardEvent('keydown', {
-            key: '=',
-            code: 'Equal',
-            keyCode: 187,
-            which: 187,
-            ctrlKey: true,
-            metaKey: false,
-            shiftKey: false,
-            altKey: false,
-            bubbles: true,
-            cancelable: true
-          });
-          
-          // Dispatch to window to trigger browser zoom
-          window.dispatchEvent(event);
-        }, i * 200);
-      }
-    } else if (steps < 0) {
-      // Zoom out with Ctrl+Minus
-      for (let i = 0; i < Math.abs(steps); i++) {
-        setTimeout(() => {
-          // Create and dispatch keyboard event for Ctrl+Minus
-          const event = new KeyboardEvent('keydown', {
-            key: '-',
-            code: 'Minus',
-            keyCode: 189,
-            which: 189,
-            ctrlKey: true,
-            metaKey: false,
-            shiftKey: false,
-            altKey: false,
-            bubbles: true,
-            cancelable: true
-          });
-          
-          // Dispatch to window to trigger browser zoom
-          window.dispatchEvent(event);
-        }, i * 200);
-      }
+    // Show detailed instructions
+    if (steps === 0) {
+      toast.success(`Screen size is already at ${size}%`);
+    } else if (steps > 0) {
+      toast.success(`To set ${size}%: Press Ctrl+Plus ${steps} times`, {
+        duration: 4000,
+        icon: '⌨️'
+      });
+    } else {
+      toast.success(`To set ${size}%: Press Ctrl+Minus ${Math.abs(steps)} times`, {
+        duration: 4000,
+        icon: '⌨️'
+      });
     }
     
-    // Show feedback
-    toast.success(`Screen size set to ${size}%`);
+    // Store the target zoom level
+    localStorage.setItem('app-zoom-level', targetBrowserZoom.toString());
   }, []);
 
   const handleEditProfile = useCallback(async (data: UserFormValues) => {

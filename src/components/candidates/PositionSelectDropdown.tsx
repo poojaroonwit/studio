@@ -159,7 +159,7 @@ export function PositionSelectDropdown({
           </div>
           
           {/* Positions List */}
-          <div className="max-h-[300px] overflow-y-auto">
+           <div>
             {filteredPositions.length === 0 && !showNoneOption ? (
               <div className="py-6 text-center text-sm text-muted-foreground">
                 No position found.

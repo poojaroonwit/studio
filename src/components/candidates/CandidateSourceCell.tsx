@@ -231,7 +231,7 @@ export function CandidateSourceCell({
           </div>
           
           {/* Scrollable content area */}
-          <div className="max-h-[300px] overflow-y-auto">
+           <div>
             {/* Unassign option - always show */}
             <button
               onClick={() => handleSelect(null)}

@@ -128,6 +128,24 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
   // Screen size state
   const [currentScreenSize, setCurrentScreenSize] = useState(100);
 
+  // Load saved screen size on mount
+  useEffect(() => {
+    try {
+      const savedZoom = localStorage.getItem('app-zoom-level');
+      if (savedZoom) {
+        const zoomLevel = parseFloat(savedZoom);
+        const screenSize = Math.round(zoomLevel * 100);
+        setCurrentScreenSize(screenSize);
+        
+        // Apply the saved zoom level
+        document.documentElement.style.zoom = zoomLevel.toString();
+        document.body.style.zoom = zoomLevel.toString();
+      }
+    } catch (error) {
+      console.warn('Failed to load saved screen size:', error);
+    }
+  }, []);
+
   // Custom signout function that handles cleanup and redirect
   const handleSignOut = async () => {
     // Removed session logging to reduce container logs
@@ -298,65 +316,26 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
   const handleScreenSizeChange = useCallback((size: number) => {
     setCurrentScreenSize(size);
     
-    // Simulate keyboard shortcuts to change browser zoom
-    const targetZoom = size / 100;
-    
-    // Calculate how many steps we need (each step is typically 10% in browsers)
-    const currentZoom = 1.0; // Assume starting from 100%
-    const steps = Math.round((targetZoom - currentZoom) / 0.1);
-    
-    if (steps > 0) {
-      // Need to zoom in (Ctrl+Plus)
-      for (let i = 0; i < steps; i++) {
-        setTimeout(() => {
-          // Create a more complete keyboard event
-          const event = new KeyboardEvent('keydown', {
-            key: '=',
-            code: 'Equal',
-            keyCode: 187,
-            which: 187,
-            ctrlKey: true,
-            metaKey: false,
-            shiftKey: false,
-            altKey: false,
-            bubbles: true,
-            cancelable: true,
-            composed: true
-          });
-          
-          // Dispatch to both document and window
-          document.dispatchEvent(event);
-          window.dispatchEvent(event);
-        }, i * 150);
-      }
-    } else if (steps < 0) {
-      // Need to zoom out (Ctrl+Minus)
-      for (let i = 0; i < Math.abs(steps); i++) {
-        setTimeout(() => {
-          // Create a more complete keyboard event
-          const event = new KeyboardEvent('keydown', {
-            key: '-',
-            code: 'Minus',
-            keyCode: 189,
-            which: 189,
-            ctrlKey: true,
-            metaKey: false,
-            shiftKey: false,
-            altKey: false,
-            bubbles: true,
-            cancelable: true,
-            composed: true
-          });
-          
-          // Dispatch to both document and window
-          document.dispatchEvent(event);
-          window.dispatchEvent(event);
-        }, i * 150);
-      }
+    // Use CSS zoom to change the page size
+    try {
+      const zoomLevel = size / 100;
+      
+      // Apply zoom to the document element
+      document.documentElement.style.zoom = zoomLevel.toString();
+      
+      // Also apply to body for better compatibility
+      document.body.style.zoom = zoomLevel.toString();
+      
+      // Store the zoom level in localStorage for persistence
+      localStorage.setItem('app-zoom-level', zoomLevel.toString());
+      
+      // Show success message
+      toast.success(`Screen size set to ${size}%`);
+      
+    } catch (error) {
+      console.error('Error setting screen size:', error);
+      toast.error('Failed to set screen size');
     }
-    
-    // Show feedback
-    toast.success(`Screen size set to ${size}%`);
   }, []);
 
   const handleEditProfile = useCallback(async (data: UserFormValues) => {

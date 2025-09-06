@@ -145,7 +145,7 @@ export function PositionSelectDropdown({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50 text-foreground" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 bg-popover border-border" align="start">
+      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 bg-popover border-border" align="start" side="bottom">
         <div className="bg-popover text-popover-foreground">
           {/* Search Input */}
           <div className="flex items-center border-b border-border px-3 bg-popover">

@@ -128,21 +128,15 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
   // Screen size state
   const [currentScreenSize, setCurrentScreenSize] = useState(100);
 
-  // Load saved screen size on mount
+  // Load current browser zoom level on mount
   useEffect(() => {
     try {
-      const savedZoom = localStorage.getItem('app-zoom-level');
-      if (savedZoom) {
-        const zoomLevel = parseFloat(savedZoom);
-        const screenSize = Math.round(zoomLevel * 100);
-        setCurrentScreenSize(screenSize);
-        
-        // Apply the saved zoom level
-        document.documentElement.style.zoom = zoomLevel.toString();
-        document.body.style.zoom = zoomLevel.toString();
-      }
+      // Get current browser zoom level
+      const currentZoom = window.outerWidth / window.innerWidth;
+      const screenSize = Math.round(currentZoom * 100);
+      setCurrentScreenSize(screenSize);
     } catch (error) {
-      console.warn('Failed to load saved screen size:', error);
+      console.warn('Failed to get current browser zoom:', error);
     }
   }, []);
 
@@ -316,26 +310,66 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
   const handleScreenSizeChange = useCallback((size: number) => {
     setCurrentScreenSize(size);
     
-    // Use CSS zoom to change the page size
-    try {
-      const zoomLevel = size / 100;
-      
-      // Apply zoom to the document element
-      document.documentElement.style.zoom = zoomLevel.toString();
-      
-      // Also apply to body for better compatibility
-      document.body.style.zoom = zoomLevel.toString();
-      
-      // Store the zoom level in localStorage for persistence
-      localStorage.setItem('app-zoom-level', zoomLevel.toString());
-      
-      // Show success message
-      toast.success(`Screen size set to ${size}%`);
-      
-    } catch (error) {
-      console.error('Error setting screen size:', error);
-      toast.error('Failed to set screen size');
+    // Use browser's native zoom by simulating keyboard events
+    const targetZoom = size / 100;
+    
+    // Get current browser zoom level
+    const getCurrentZoom = () => {
+      return window.outerWidth / window.innerWidth;
+    };
+    
+    const currentZoom = getCurrentZoom();
+    const zoomDifference = targetZoom - currentZoom;
+    const steps = Math.round(zoomDifference / 0.1); // Each step is 10%
+    
+    if (steps > 0) {
+      // Zoom in with Ctrl+Plus
+      for (let i = 0; i < steps; i++) {
+        setTimeout(() => {
+          // Create and dispatch keyboard event for Ctrl+Plus
+          const event = new KeyboardEvent('keydown', {
+            key: '=',
+            code: 'Equal',
+            keyCode: 187,
+            which: 187,
+            ctrlKey: true,
+            metaKey: false,
+            shiftKey: false,
+            altKey: false,
+            bubbles: true,
+            cancelable: true
+          });
+          
+          // Dispatch to window to trigger browser zoom
+          window.dispatchEvent(event);
+        }, i * 200);
+      }
+    } else if (steps < 0) {
+      // Zoom out with Ctrl+Minus
+      for (let i = 0; i < Math.abs(steps); i++) {
+        setTimeout(() => {
+          // Create and dispatch keyboard event for Ctrl+Minus
+          const event = new KeyboardEvent('keydown', {
+            key: '-',
+            code: 'Minus',
+            keyCode: 189,
+            which: 189,
+            ctrlKey: true,
+            metaKey: false,
+            shiftKey: false,
+            altKey: false,
+            bubbles: true,
+            cancelable: true
+          });
+          
+          // Dispatch to window to trigger browser zoom
+          window.dispatchEvent(event);
+        }, i * 200);
+      }
     }
+    
+    // Show feedback
+    toast.success(`Screen size set to ${size}%`);
   }, []);
 
   const handleEditProfile = useCallback(async (data: UserFormValues) => {

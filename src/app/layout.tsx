@@ -87,43 +87,31 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         {/* Ramda polyfill is now handled by RamdaPolyfillInitializer component */}
-        {/* Transform-based zoom script */}
+        {/* Simple zoom script */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              // Transform-based zoom functions that work with portals
+              // Simple zoom functions that work with portals
               window.setZoom = function(zoom) {
                 if (zoom >= 0.5 && zoom <= 1.5) {
-                  // Apply transform scale to body instead of zoom to documentElement
-                  document.body.style.transform = 'scale(' + zoom + ')';
-                  document.body.style.transformOrigin = 'top left';
-                  document.body.style.width = (100 / zoom) + '%';
-                  document.body.style.height = (100 / zoom) + '%';
-                  
-                  // Store zoom level
+                  // Apply zoom to body element to affect everything including portals
+                  document.body.style.zoom = zoom.toString();
                   localStorage.setItem('app-zoom-level', zoom.toString());
                   window.dispatchEvent(new CustomEvent('zoomChanged', { detail: { zoom: zoom } }));
                 }
               };
               
               window.getZoom = function() {
-                const transform = document.body.style.transform;
-                if (transform && transform.includes('scale(')) {
-                  const match = transform.match(/scale\\(([^)]+)\\)/);
-                  return match ? parseFloat(match[1]) : 0.9;
-                }
-                const savedZoom = localStorage.getItem('app-zoom-level');
-                return savedZoom ? parseFloat(savedZoom) : 0.9;
+                const zoom = document.body.style.zoom;
+                return zoom ? parseFloat(zoom) : 0.9;
               };
               
               // Apply saved zoom on load
               const savedZoom = localStorage.getItem('app-zoom-level');
-              const initialZoom = savedZoom ? parseFloat(savedZoom) : 0.9;
-              if (initialZoom !== 1.0) {
-                document.body.style.transform = 'scale(' + initialZoom + ')';
-                document.body.style.transformOrigin = 'top left';
-                document.body.style.width = (100 / initialZoom) + '%';
-                document.body.style.height = (100 / initialZoom) + '%';
+              if (savedZoom) {
+                document.body.style.zoom = savedZoom;
+              } else {
+                document.body.style.zoom = '0.9';
               }
             `,
           }}

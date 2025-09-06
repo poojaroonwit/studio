@@ -346,20 +346,49 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
     const currentZoom = window.outerWidth / window.innerWidth;
     const steps = Math.round((targetBrowserZoom - currentZoom) / 0.1);
     
-    // Show detailed instructions
-    if (steps === 0) {
-      toast.success(`Screen size is already at ${size}%`);
-    } else if (steps > 0) {
-      toast.success(`To set ${size}%: Press Ctrl+Plus ${steps} times`, {
-        duration: 4000,
-        icon: '⌨️'
-      });
-    } else {
-      toast.success(`To set ${size}%: Press Ctrl+Minus ${Math.abs(steps)} times`, {
-        duration: 4000,
-        icon: '⌨️'
-      });
+    // Actually apply the browser zoom by simulating keyboard events
+    if (steps > 0) {
+      // Zoom in with Ctrl+Plus
+      for (let i = 0; i < steps; i++) {
+        setTimeout(() => {
+          const event = new KeyboardEvent('keydown', {
+            key: '=',
+            code: 'Equal',
+            keyCode: 187,
+            which: 187,
+            ctrlKey: true,
+            metaKey: false,
+            shiftKey: false,
+            altKey: false,
+            bubbles: true,
+            cancelable: true
+          });
+          window.dispatchEvent(event);
+        }, i * 100);
+      }
+    } else if (steps < 0) {
+      // Zoom out with Ctrl+Minus
+      for (let i = 0; i < Math.abs(steps); i++) {
+        setTimeout(() => {
+          const event = new KeyboardEvent('keydown', {
+            key: '-',
+            code: 'Minus',
+            keyCode: 189,
+            which: 189,
+            ctrlKey: true,
+            metaKey: false,
+            shiftKey: false,
+            altKey: false,
+            bubbles: true,
+            cancelable: true
+          });
+          window.dispatchEvent(event);
+        }, i * 100);
+      }
     }
+    
+    // Show success message
+    toast.success(`Screen size set to ${size}%`);
     
     // Store the target zoom level
     localStorage.setItem('app-zoom-level', targetBrowserZoom.toString());

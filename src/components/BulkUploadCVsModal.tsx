@@ -455,7 +455,7 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
                 <SelectTrigger>
                   <SelectValue placeholder="Select a source..." />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[99999]">
                   {availableSources.map((source) => (
                     <SelectItem key={source.id} value={source.id}>
                       {source.name}

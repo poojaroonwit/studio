@@ -30,8 +30,8 @@ let config = {
   maxConsecutiveErrors: 3,
   backoffMultiplier: 1.5,
   maxBackoffMs: 60000, // Reduced from 10 minutes to 1 minute
-  connectionTimeoutMs: parseInt(process.env.PROCESSOR_CONNECTION_TIMEOUT_MS) || 60000,
-  requestTimeoutMs: parseInt(process.env.PROCESSOR_REQUEST_TIMEOUT_MS) || 180000,
+  connectionTimeoutMs: parseInt(process.env.PROCESSOR_CONNECTION_TIMEOUT_MS) || 30000, // Reduced from 60s to 30s
+  requestTimeoutMs: parseInt(process.env.PROCESSOR_REQUEST_TIMEOUT_MS) || 60000, // Reduced from 180s to 60s
   
   // Concurrent processing settings
   maxConcurrentProcessors: parseInt(process.env.MAX_CONCURRENT_PROCESSORS) || 1,
@@ -116,10 +116,13 @@ function log(level, message) {
     console.log(logMessage);
   }
   
-  // Log status every logIntervalMs
+  // Log status every logIntervalMs (FIXED: No recursive call)
   if (Date.now() - lastLogTime > config.logIntervalMs) {
     // Simplified status logging without system metrics
-    log('INFO', `Status: processed=${processedCount}, errors=${errorCount}, consecutive_errors=${consecutiveErrors}`);
+    const statusMessage = `[${timestamp}] [INFO] Status: processed=${processedCount}, errors=${errorCount}, consecutive_errors=${consecutiveErrors}`;
+    if (!config.quietMode) {
+      console.log(statusMessage);
+    }
     lastLogTime = Date.now();
   }
 }
@@ -212,6 +215,9 @@ async function processBatch() {
         log('INFO', `Processed ${processedCount} jobs (batch size: ${config.batchLimit}, max concurrent: ${config.maxConcurrentProcessors})`);
       } else if (msgs.some(m => (m || '').includes('No queued jobs'))) {
         // Don't log empty batches to reduce noise
+      } else if (response.data.failed_jobs_count > 0) {
+        // Log when there are failed jobs but no queued jobs
+        log('INFO', `No queued jobs available. ${response.data.failed_jobs_count} failed jobs exist.`);
       }
       
       return processedCount;
@@ -247,7 +253,7 @@ async function processJob() {
       lastSuccessfulRequest = Date.now();
       
       // Check if the response indicates no queued jobs
-      if (response.data && response.data.message === 'No queued jobs') {
+      if (response.data && (response.data.message === 'No queued jobs' || response.data.message === 'No queued jobs available')) {
         // Don't log empty single job attempts to reduce noise
         return 0; // Return 0 to indicate no jobs were processed
       } else {

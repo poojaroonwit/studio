@@ -146,12 +146,13 @@ async function processSingleItem(
             return { success: false, reason: 'Cannot retry: there is already a queued job with the same file path' };
           }
           
-          // Reset job to queued status and clear error fields
+          // Reset job to inprocess status and clear error fields
           await client.query(
             `UPDATE upload_queue SET 
              status = $1, 
              error = NULL, 
              error_details = NULL, 
+             process_date = now(),
              updated_at = now(),
              webhook_payload = jsonb_set(
                COALESCE(webhook_payload, '{}'::jsonb), 
@@ -159,7 +160,7 @@ async function processSingleItem(
                '${currentRetryCount + 1}'::jsonb
              )
              WHERE id = $2`,
-            ['queued', itemId]
+            ['inprocess', itemId]
           );
           
           // Process the job

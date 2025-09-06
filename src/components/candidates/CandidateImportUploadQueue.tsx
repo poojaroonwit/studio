@@ -830,14 +830,14 @@ export default function CandidateImportUploadQueue() {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <Card className="group relative overflow-hidden border-2 border-gray-200 hover:border-opacity-80 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm shadow-lg">
             <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-gray-100 opacity-100 transition-opacity duration-300"></div>
-            <CardContent className="relative p-6">
+            <CardContent className="relative p-4">
               <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Total</p>
-                  <p className="text-3xl font-bold text-gray-800">{queueData.summary.total}</p>
+                <div className="space-y-0.5">
+                  <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Total</p>
+                  <p className="text-2xl font-bold text-gray-800">{queueData.summary.total}</p>
                 </div>
-                <div className="p-3 rounded-xl bg-gray-500 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
-                  <span className="text-white text-sm font-bold">T</span>
+                <div className="p-2 rounded-lg bg-gray-500 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
+                  <span className="text-white text-xs font-bold">T</span>
                 </div>
               </div>
             </CardContent>
@@ -845,14 +845,14 @@ export default function CandidateImportUploadQueue() {
 
           <Card className="group relative overflow-hidden border-2 border-blue-200 hover:border-opacity-80 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm shadow-lg">
             <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-blue-100 opacity-100 transition-opacity duration-300"></div>
-            <CardContent className="relative p-6">
+            <CardContent className="relative p-4">
               <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="text-sm font-semibold text-blue-600 uppercase tracking-wide">Queued</p>
-                  <p className="text-3xl font-bold text-blue-800">{queueData.summary.queued}</p>
+                <div className="space-y-0.5">
+                  <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide">Queued</p>
+                  <p className="text-2xl font-bold text-blue-800">{queueData.summary.queued}</p>
                 </div>
-                <div className="p-3 rounded-xl bg-blue-500 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
-                  <Clock className="h-5 w-5 text-white" />
+                <div className="p-2 rounded-lg bg-blue-500 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
+                  <Clock className="h-4 w-4 text-white" />
                 </div>
               </div>
             </CardContent>
@@ -860,14 +860,14 @@ export default function CandidateImportUploadQueue() {
 
           <Card className="group relative overflow-hidden border-2 border-yellow-200 hover:border-opacity-80 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm shadow-lg">
             <div className="absolute inset-0 bg-gradient-to-br from-yellow-50 to-yellow-100 opacity-100 transition-opacity duration-300"></div>
-            <CardContent className="relative p-6">
+            <CardContent className="relative p-4">
               <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="text-sm font-semibold text-yellow-600 uppercase tracking-wide">Processing</p>
-                  <p className="text-3xl font-bold text-yellow-800">{queueData.summary.inprocess}</p>
+                <div className="space-y-0.5">
+                  <p className="text-xs font-semibold text-yellow-600 uppercase tracking-wide">Processing</p>
+                  <p className="text-2xl font-bold text-yellow-800">{queueData.summary.inprocess}</p>
                 </div>
-                <div className="p-3 rounded-xl bg-yellow-500 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
-                  <Loader2 className="h-5 w-5 text-white animate-spin" />
+                <div className="p-2 rounded-lg bg-yellow-500 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
+                  <Loader2 className="h-4 w-4 text-white animate-spin" />
                 </div>
               </div>
             </CardContent>
@@ -875,14 +875,14 @@ export default function CandidateImportUploadQueue() {
 
           <Card className="group relative overflow-hidden border-2 border-green-200 hover:border-opacity-80 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm shadow-lg">
             <div className="absolute inset-0 bg-gradient-to-br from-green-50 to-green-100 opacity-100 transition-opacity duration-300"></div>
-            <CardContent className="relative p-6">
+            <CardContent className="relative p-4">
               <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="text-sm font-semibold text-green-600 uppercase tracking-wide">Success</p>
-                  <p className="text-3xl font-bold text-green-800">{queueData.summary.success}</p>
+                <div className="space-y-0.5">
+                  <p className="text-xs font-semibold text-green-600 uppercase tracking-wide">Success</p>
+                  <p className="text-2xl font-bold text-green-800">{queueData.summary.success}</p>
                 </div>
-                <div className="p-3 rounded-xl bg-green-500 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
-                  <CheckCircle className="h-5 w-5 text-white" />
+                <div className="p-2 rounded-lg bg-green-500 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
+                  <CheckCircle className="h-4 w-4 text-white" />
                 </div>
               </div>
             </CardContent>
@@ -890,14 +890,14 @@ export default function CandidateImportUploadQueue() {
 
           <Card className="group relative overflow-hidden border-2 border-red-200 hover:border-opacity-80 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm shadow-lg">
             <div className="absolute inset-0 bg-gradient-to-br from-red-50 to-red-100 opacity-100 transition-opacity duration-300"></div>
-            <CardContent className="relative p-6">
+            <CardContent className="relative p-4">
               <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="text-sm font-semibold text-red-600 uppercase tracking-wide">Error</p>
-                  <p className="text-3xl font-bold text-red-800">{queueData.summary.error}</p>
+                <div className="space-y-0.5">
+                  <p className="text-xs font-semibold text-red-600 uppercase tracking-wide">Error</p>
+                  <p className="text-2xl font-bold text-red-800">{queueData.summary.error}</p>
                 </div>
-                <div className="p-3 rounded-xl bg-red-500 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
-                  <XCircle className="h-5 w-5 text-white" />
+                <div className="p-2 rounded-lg bg-red-500 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
+                  <XCircle className="h-4 w-4 text-white" />
                 </div>
               </div>
             </CardContent>
@@ -907,14 +907,14 @@ export default function CandidateImportUploadQueue() {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <Card className="group relative overflow-hidden border-2 border-gray-200 hover:border-opacity-80 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm shadow-lg">
             <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-gray-100 opacity-100 transition-opacity duration-300"></div>
-            <CardContent className="relative p-6">
+            <CardContent className="relative p-4">
               <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Total</p>
-                  <p className="text-3xl font-bold text-gray-800">0</p>
+                <div className="space-y-0.5">
+                  <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Total</p>
+                  <p className="text-2xl font-bold text-gray-800">0</p>
                 </div>
-                <div className="p-3 rounded-xl bg-gray-500 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
-                  <span className="text-white text-sm font-bold">T</span>
+                <div className="p-2 rounded-lg bg-gray-500 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
+                  <span className="text-white text-xs font-bold">T</span>
                 </div>
               </div>
             </CardContent>
@@ -922,14 +922,14 @@ export default function CandidateImportUploadQueue() {
 
           <Card className="group relative overflow-hidden border-2 border-blue-200 hover:border-opacity-80 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm shadow-lg">
             <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-blue-100 opacity-100 transition-opacity duration-300"></div>
-            <CardContent className="relative p-6">
+            <CardContent className="relative p-4">
               <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="text-sm font-semibold text-blue-600 uppercase tracking-wide">Queued</p>
-                  <p className="text-3xl font-bold text-blue-800">0</p>
+                <div className="space-y-0.5">
+                  <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide">Queued</p>
+                  <p className="text-2xl font-bold text-blue-800">0</p>
                 </div>
-                <div className="p-3 rounded-xl bg-blue-500 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
-                  <Clock className="h-5 w-5 text-white" />
+                <div className="p-2 rounded-lg bg-blue-500 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
+                  <Clock className="h-4 w-4 text-white" />
                 </div>
               </div>
             </CardContent>
@@ -937,14 +937,14 @@ export default function CandidateImportUploadQueue() {
 
           <Card className="group relative overflow-hidden border-2 border-yellow-200 hover:border-opacity-80 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm shadow-lg">
             <div className="absolute inset-0 bg-gradient-to-br from-yellow-50 to-yellow-100 opacity-100 transition-opacity duration-300"></div>
-            <CardContent className="relative p-6">
+            <CardContent className="relative p-4">
               <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="text-sm font-semibold text-yellow-600 uppercase tracking-wide">Processing</p>
-                  <p className="text-3xl font-bold text-yellow-800">0</p>
+                <div className="space-y-0.5">
+                  <p className="text-xs font-semibold text-yellow-600 uppercase tracking-wide">Processing</p>
+                  <p className="text-2xl font-bold text-yellow-800">0</p>
                 </div>
-                <div className="p-3 rounded-xl bg-yellow-500 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
-                  <Loader2 className="h-5 w-5 text-white animate-spin" />
+                <div className="p-2 rounded-lg bg-yellow-500 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
+                  <Loader2 className="h-4 w-4 text-white animate-spin" />
                 </div>
               </div>
             </CardContent>
@@ -952,14 +952,14 @@ export default function CandidateImportUploadQueue() {
 
           <Card className="group relative overflow-hidden border-2 border-green-200 hover:border-opacity-80 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm shadow-lg">
             <div className="absolute inset-0 bg-gradient-to-br from-green-50 to-green-100 opacity-100 transition-opacity duration-300"></div>
-            <CardContent className="relative p-6">
+            <CardContent className="relative p-4">
               <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="text-sm font-semibold text-green-600 uppercase tracking-wide">Success</p>
-                  <p className="text-3xl font-bold text-green-800">0</p>
+                <div className="space-y-0.5">
+                  <p className="text-xs font-semibold text-green-600 uppercase tracking-wide">Success</p>
+                  <p className="text-2xl font-bold text-green-800">0</p>
                 </div>
-                <div className="p-3 rounded-xl bg-green-500 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
-                  <CheckCircle className="h-5 w-5 text-white" />
+                <div className="p-2 rounded-lg bg-green-500 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
+                  <CheckCircle className="h-4 w-4 text-white" />
                 </div>
               </div>
             </CardContent>
@@ -967,14 +967,14 @@ export default function CandidateImportUploadQueue() {
 
           <Card className="group relative overflow-hidden border-2 border-red-200 hover:border-opacity-80 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm shadow-lg">
             <div className="absolute inset-0 bg-gradient-to-br from-red-50 to-red-100 opacity-100 transition-opacity duration-300"></div>
-            <CardContent className="relative p-6">
+            <CardContent className="relative p-4">
               <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="text-sm font-semibold text-red-600 uppercase tracking-wide">Error</p>
-                  <p className="text-3xl font-bold text-red-800">0</p>
+                <div className="space-y-0.5">
+                  <p className="text-xs font-semibold text-red-600 uppercase tracking-wide">Error</p>
+                  <p className="text-2xl font-bold text-red-800">0</p>
                 </div>
-                <div className="p-3 rounded-xl bg-red-500 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
-                  <XCircle className="h-5 w-5 text-white" />
+                <div className="p-2 rounded-lg bg-red-500 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
+                  <XCircle className="h-4 w-4 text-white" />
                 </div>
               </div>
             </CardContent>

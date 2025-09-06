@@ -51,13 +51,11 @@ export function RecruiterFilterSidebar({
     <div className="h-full flex flex-col">
       {/* Header */}
       <div className="pb-4 mb-4 border-b border-border/50">
-        <h2 className="flex items-center gap-2 text-xl font-bold mb-2">
-          <Users className="h-6 w-6 text-primary" />
+        <h3 className="flex items-center gap-2 text-xl font-bold mb-2">
+          <Users className="h-4 w-4 text-primary" />
           Recruiter
-        </h2>
-        <p className="text-base text-muted-foreground font-medium">
-          Filter positions by assigned recruiter
-        </p>
+        </h3>
+     
       </div>
 
       {/* Search Input */}

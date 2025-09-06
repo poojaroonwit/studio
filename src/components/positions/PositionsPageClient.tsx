@@ -1724,7 +1724,7 @@ export default function PositionsPageClient() {
       
       {/* Pagination Controls */}
       {(total > 0 || totalPages > 0) && (
-        <div className="pagination-container">
+        <div className="p-2">
           <Pagination
             currentPage={page}
             totalPages={Math.max(1, totalPages)}

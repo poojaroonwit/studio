@@ -101,13 +101,43 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   const { id } = await params;
   const client = await getPool().connect();
   try {
+    await client.query('BEGIN');
+    
+    // First, get the current job status
+    const jobRes = await client.query(
+      'SELECT status FROM upload_queue WHERE id = $1',
+      [id]
+    );
+    
+    if (jobRes.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
+    
+    const job = jobRes.rows[0];
+    
+    // If job is not in a final state, cancel it first, then delete
+    if (!['success', 'error', 'failed', 'cancelled'].includes(job.status)) {
+      // Cancel the job first if it's queued or inprocess
+      if (['queued', 'inprocess'].includes(job.status)) {
+        await client.query(
+          'UPDATE upload_queue SET status = $1, updated_at = now() WHERE id = $2',
+          ['cancelled', id]
+        );
+      } else {
+        await client.query('ROLLBACK');
+        return NextResponse.json({ error: 'Job is not in a deletable state' }, { status: 400 });
+      }
+    }
+    
+    // Now delete the job
     const res = await client.query(
       `DELETE FROM upload_queue WHERE id = $1 RETURNING *`,
       [id]
     );
-    if (res.rows.length === 0) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 });
-    }
+    
+    await client.query('COMMIT');
+    
     // Publish queue update event
     try {
       await broadcastUploadQueueUpdate();
@@ -115,6 +145,10 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       console.error('Failed to broadcast upload queue update via SSE:', err);
     }
     return NextResponse.json({ success: true });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Error deleting upload queue job:', error);
+    return NextResponse.json({ error: 'Failed to delete job' }, { status: 500 });
   } finally {
     client.release();
   }

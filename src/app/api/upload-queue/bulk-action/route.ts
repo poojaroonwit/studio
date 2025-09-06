@@ -180,10 +180,18 @@ async function processSingleItem(
           return { success: true };
 
         case 'delete':
-          // Only allow delete if job is in a final state
+          // If job is not in a final state, cancel it first, then delete
           if (!['success', 'error', 'failed', 'cancelled'].includes(job.status)) {
-            await client.query('ROLLBACK');
-            return { success: false, reason: 'Job is not in a deletable state' };
+            // Cancel the job first if it's queued or inprocess
+            if (['queued', 'inprocess'].includes(job.status)) {
+              await client.query(
+                'UPDATE upload_queue SET status = $1, updated_at = now() WHERE id = $2',
+                ['cancelled', itemId]
+              );
+            } else {
+              await client.query('ROLLBACK');
+              return { success: false, reason: 'Job is not in a deletable state' };
+            }
           }
           
           await client.query('DELETE FROM upload_queue WHERE id = $1', [itemId]);

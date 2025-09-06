@@ -21,7 +21,6 @@ import { useTheme } from '@/hooks/use-theme';
 import { useRenderMonitor } from '@/hooks/use-render-monitor';
 import { OptimizedContainer, LayoutContainer } from '@/components/ui/optimized-container';
 import { useAppLayoutState } from '@/hooks/use-app-layout-state';
-import { ZoomControl } from '@/components/ui/zoom-control';
 
 const DEFAULT_APP_NAME = "FitScan";
 
@@ -414,7 +413,6 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
           </OptimizedContainer>
         </LayoutContainer>
       </LayoutContainer>
-      <ZoomControl />
     </SidebarProvider>
   ), [
     faviconDataUrl,

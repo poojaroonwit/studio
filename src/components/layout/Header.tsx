@@ -25,7 +25,6 @@ import { AutoFont } from '@/components/ui/auto-font';
 import { DEFAULT_APP_NAME } from '@/lib/constants';
 import { useAvatarRefresh } from '@/hooks/use-avatar-refresh';
 import { UserPresenceIndicator } from '@/components/ui/user-presence-indicator';
-import { ZoomControlCompact } from '@/components/ui/zoom-control-compact';
 
 // Function to generate breadcrumb items based on pathname
 function getBreadcrumbItems(pathname: string, showLogoOnly: boolean = false) {
@@ -233,6 +232,43 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
     window.addEventListener('toggleDebugOverlay', handleToggleDebug);
     return () => window.removeEventListener('toggleDebugOverlay', handleToggleDebug);
   }, [user?.role]);
+
+  // Add keyboard shortcuts for zoom control
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Check if Ctrl (or Cmd on Mac) is pressed
+      if (e.ctrlKey || e.metaKey) {
+        // Handle Plus key (zoom in)
+        if (e.key === '+' || e.key === '=') {
+          e.preventDefault();
+          if (window.setZoom) {
+            const currentZoom = window.getZoom ? window.getZoom() : 0.9;
+            const newZoom = Math.min(currentZoom + 0.1, 1.5);
+            window.setZoom(newZoom);
+          }
+        }
+        // Handle Minus key (zoom out)
+        else if (e.key === '-') {
+          e.preventDefault();
+          if (window.setZoom) {
+            const currentZoom = window.getZoom ? window.getZoom() : 0.9;
+            const newZoom = Math.max(currentZoom - 0.1, 0.5);
+            window.setZoom(newZoom);
+          }
+        }
+        // Handle 0 key (reset zoom)
+        else if (e.key === '0') {
+          e.preventDefault();
+          if (window.setZoom) {
+            window.setZoom(1.0);
+          }
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   useEffect(() => {
     const fetchAppName = async () => {
@@ -476,8 +512,6 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
                   </>
                 )}
                 
-                <DropdownMenuSeparator />
-                <ZoomControlCompact />
                 <DropdownMenuSeparator />
                  <DropdownMenuItem onSelect={handleOpenProfileModal}>
                   <Edit3 className="mr-2 h-4 w-4" />

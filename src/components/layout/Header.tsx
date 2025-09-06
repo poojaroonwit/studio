@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation';
 import { UserAvatarCompact } from "@/components/ui/user-avatar";
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Sun, Moon, LogOut, LogIn, Edit3, KeyRound, AlertTriangle, Database, Trash2, RefreshCw, Bug } from 'lucide-react';
+import { Sun, Moon, LogOut, LogIn, Edit3, KeyRound, AlertTriangle, Database, Trash2, RefreshCw, Bug, Monitor, ChevronDown } from 'lucide-react';
 import { useSidebar } from '@/components/ui/sidebar';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { usePathname } from 'next/navigation';
@@ -124,6 +124,9 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
   const [currentAppName, setCurrentAppName] = useState<string>(DEFAULT_APP_NAME);
   const [effectivePageTitle, setEffectivePageTitle] = useState(initialPageTitle);
   const { refreshKey, forceRefresh } = useAvatarRefresh();
+  
+  // Screen size state
+  const [currentScreenSize, setCurrentScreenSize] = useState(100);
 
   // Custom signout function that handles cleanup and redirect
   const handleSignOut = async () => {
@@ -233,42 +236,6 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
     return () => window.removeEventListener('toggleDebugOverlay', handleToggleDebug);
   }, [user?.role]);
 
-  // Add keyboard shortcuts for zoom control
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Check if Ctrl (or Cmd on Mac) is pressed
-      if (e.ctrlKey || e.metaKey) {
-        // Handle Plus key (zoom in)
-        if (e.key === '+' || e.key === '=') {
-          e.preventDefault();
-          if (window.setZoom) {
-            const currentZoom = window.getZoom ? window.getZoom() : 0.9;
-            const newZoom = Math.min(currentZoom + 0.1, 1.5);
-            window.setZoom(newZoom);
-          }
-        }
-        // Handle Minus key (zoom out)
-        else if (e.key === '-') {
-          e.preventDefault();
-          if (window.setZoom) {
-            const currentZoom = window.getZoom ? window.getZoom() : 0.9;
-            const newZoom = Math.max(currentZoom - 0.1, 0.5);
-            window.setZoom(newZoom);
-          }
-        }
-        // Handle 0 key (reset zoom)
-        else if (e.key === '0') {
-          e.preventDefault();
-          if (window.setZoom) {
-            window.setZoom(1.0);
-          }
-        }
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, []);
 
   useEffect(() => {
     const fetchAppName = async () => {
@@ -324,6 +291,47 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
       });
     } catch (error) {
       console.error('[HEADER] Theme switch error:', error);
+    }
+  }, []);
+
+  // Handle screen size change
+  const handleScreenSizeChange = useCallback((size: number) => {
+    setCurrentScreenSize(size);
+    
+    // Simulate keyboard shortcuts to change browser zoom
+    const currentZoom = window.devicePixelRatio || 1;
+    const targetZoom = size / 100;
+    const zoomDifference = targetZoom - currentZoom;
+    
+    // Calculate how many Ctrl+Plus or Ctrl+Minus we need to simulate
+    const steps = Math.round(zoomDifference / 0.1); // Each step is 10%
+    
+    if (steps > 0) {
+      // Need to zoom in (Ctrl+Plus)
+      for (let i = 0; i < steps; i++) {
+        setTimeout(() => {
+          const event = new KeyboardEvent('keydown', {
+            key: '=',
+            code: 'Equal',
+            ctrlKey: true,
+            bubbles: true
+          });
+          document.dispatchEvent(event);
+        }, i * 50); // Small delay between events
+      }
+    } else if (steps < 0) {
+      // Need to zoom out (Ctrl+Minus)
+      for (let i = 0; i < Math.abs(steps); i++) {
+        setTimeout(() => {
+          const event = new KeyboardEvent('keydown', {
+            key: '-',
+            code: 'Minus',
+            ctrlKey: true,
+            bubbles: true
+          });
+          document.dispatchEvent(event);
+        }, i * 50); // Small delay between events
+      }
     }
   }, []);
 
@@ -486,6 +494,42 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
                         aria-label="Toggle dark mode"
                       />
                       <Moon className="h-3.5 w-3.5 text-blue-400" />
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Screen Size Dropdown */}
+                <div className="px-2 py-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs text-muted-foreground">Screen Size</span>
+                    <div className="flex items-center gap-2">
+                      <Monitor className="h-3.5 w-3.5 text-green-500" />
+                      <DropdownMenuSub>
+                        <DropdownMenuSubTrigger className="text-xs px-2 py-1 h-6">
+                          {currentScreenSize}%
+                          <ChevronDown className="ml-1 h-3 w-3" />
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuSubContent>
+                          <DropdownMenuItem onSelect={() => handleScreenSizeChange(75)}>
+                            75%
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => handleScreenSizeChange(90)}>
+                            90%
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => handleScreenSizeChange(100)}>
+                            100%
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => handleScreenSizeChange(110)}>
+                            110%
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => handleScreenSizeChange(125)}>
+                            125%
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => handleScreenSizeChange(150)}>
+                            150%
+                          </DropdownMenuItem>
+                        </DropdownMenuSubContent>
+                      </DropdownMenuSub>
                     </div>
                   </div>
                 </div>

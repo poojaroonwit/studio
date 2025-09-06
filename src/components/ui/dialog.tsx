@@ -6,6 +6,7 @@ import { X } from "lucide-react"
 import { useDynamicZIndex } from "@/contexts/ZIndexContext"
 
 import { cn } from "@/lib/utils"
+import { ZoomAwarePortal } from "./zoom-aware-portal"
 
 const Dialog = DialogPrimitive.Root
 
@@ -48,7 +49,7 @@ const DialogContent = React.forwardRef<
   const { contentZIndex } = useDynamicZIndex(dialogId || 'default-dialog', 'modal');
   
   return (
-    <DialogPortal>
+    <ZoomAwarePortal>
       <DialogOverlay dialogId={dialogId} />
       <DialogPrimitive.Content
         ref={ref}
@@ -65,7 +66,7 @@ const DialogContent = React.forwardRef<
           <span className="sr-only">Close</span>
         </DialogPrimitive.Close>
       </DialogPrimitive.Content>
-    </DialogPortal>
+    </ZoomAwarePortal>
   );
 })
 DialogContent.displayName = DialogPrimitive.Content.displayName

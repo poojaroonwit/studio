@@ -91,42 +91,26 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              // Simple zoom functions using transform scale for better dropdown positioning
+              // Simple zoom functions
               window.setZoom = function(zoom) {
                 if (zoom >= 0.5 && zoom <= 1.5) {
-                  // Use transform scale instead of zoom property for better portal support
-                  document.body.style.transform = 'scale(' + zoom + ')';
-                  document.body.style.transformOrigin = 'top left';
-                  document.body.style.width = (100 / zoom) + '%';
-                  document.body.style.height = (100 / zoom) + '%';
+                  document.documentElement.style.zoom = zoom.toString();
                   localStorage.setItem('app-zoom-level', zoom.toString());
                   window.dispatchEvent(new CustomEvent('zoomChanged', { detail: { zoom: zoom } }));
                 }
               };
               
               window.getZoom = function() {
-                const transform = document.body.style.transform;
-                if (transform && transform.includes('scale(')) {
-                  const match = transform.match(/scale\\(([^)]+)\\)/);
-                  return match ? parseFloat(match[1]) : 0.9;
-                }
-                const savedZoom = localStorage.getItem('app-zoom-level');
-                return savedZoom ? parseFloat(savedZoom) : 0.9;
+                const zoom = document.documentElement.style.zoom;
+                return zoom ? parseFloat(zoom) : 0.9;
               };
               
               // Apply saved zoom on load
               const savedZoom = localStorage.getItem('app-zoom-level');
               if (savedZoom) {
-                const zoom = parseFloat(savedZoom);
-                document.body.style.transform = 'scale(' + zoom + ')';
-                document.body.style.transformOrigin = 'top left';
-                document.body.style.width = (100 / zoom) + '%';
-                document.body.style.height = (100 / zoom) + '%';
+                document.documentElement.style.zoom = savedZoom;
               } else {
-                document.body.style.transform = 'scale(0.9)';
-                document.body.style.transformOrigin = 'top left';
-                document.body.style.width = '111.11%';
-                document.body.style.height = '111.11%';
+                document.documentElement.style.zoom = '0.9';
               }
             `,
           }}

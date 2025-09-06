@@ -6,6 +6,7 @@ import { useDynamicZIndex } from "@/contexts/ZIndexContext"
 
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
+import { ZoomAwarePortal } from "./zoom-aware-portal"
 
 const AlertDialog = AlertDialogPrimitive.Root
 
@@ -48,7 +49,7 @@ const AlertDialogContent = React.forwardRef<
   const { contentZIndex } = useDynamicZIndex(dialogId || 'default-alert-dialog', 'modal');
   
   return (
-    <AlertDialogPortal>
+    <ZoomAwarePortal>
       <AlertDialogOverlay dialogId={dialogId} />
       <AlertDialogPrimitive.Content
         ref={ref}
@@ -59,7 +60,7 @@ const AlertDialogContent = React.forwardRef<
         style={{ zIndex: contentZIndex }}
         {...props}
       />
-    </AlertDialogPortal>
+    </ZoomAwarePortal>
   );
 })
 AlertDialogContent.displayName = AlertDialogPrimitive.Content.displayName

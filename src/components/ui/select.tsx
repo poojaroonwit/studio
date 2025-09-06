@@ -5,6 +5,7 @@ import * as SelectPrimitive from "@radix-ui/react-select"
 import { Check, ChevronDown, ChevronUp } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { ZoomAwarePortal } from "./zoom-aware-portal"
 
 const Select = SelectPrimitive.Root
 
@@ -71,7 +72,7 @@ const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
 >(({ className, children, position = "popper", ...props }, ref) => (
-  <SelectPrimitive.Portal>
+  <ZoomAwarePortal>
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
@@ -95,7 +96,7 @@ const SelectContent = React.forwardRef<
       </SelectPrimitive.Viewport>
       <SelectScrollDownButton />
     </SelectPrimitive.Content>
-  </SelectPrimitive.Portal>
+  </ZoomAwarePortal>
 ))
 SelectContent.displayName = SelectPrimitive.Content.displayName
 

@@ -5,6 +5,7 @@ import * as PopoverPrimitive from "@radix-ui/react-popover"
 
 import { cn } from "@/lib/utils"
 import { logIfInvalidSingleChild } from "./utils"
+import { ZoomAwarePortal } from "./zoom-aware-portal"
 
 const Popover = PopoverPrimitive.Root
 
@@ -23,7 +24,7 @@ const PopoverContent = React.forwardRef<
   React.ElementRef<typeof PopoverPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content>
 >(({ className, align = "center", sideOffset = 4, ...props }, ref) => (
-  <PopoverPrimitive.Portal>
+  <ZoomAwarePortal>
     <PopoverPrimitive.Content
       ref={ref}
       align={align}
@@ -34,7 +35,7 @@ const PopoverContent = React.forwardRef<
       )}
       {...props}
     />
-  </PopoverPrimitive.Portal>
+  </ZoomAwarePortal>
 ))
 PopoverContent.displayName = PopoverPrimitive.Content.displayName
 

@@ -2848,5 +2848,6 @@ body {
 /* Ensure zoom controls are always visible and functional */
 .zoom-controls {
   position: fixed !important;
+  z-index: 9999 !important;
   pointer-events: auto !important;
 }

@@ -6,13 +6,14 @@
  */
 
 import React from 'react';
-import { useZIndexDebug } from '@/contexts/ZIndexContext';
+import { useZIndexDebug, useDynamicZIndex } from '@/contexts/ZIndexContext';
 
 interface ZIndexDebuggerProps {
   isVisible?: boolean;
 }
 
 export const ZIndexDebugger: React.FC<ZIndexDebuggerProps> = ({ isVisible = false }) => {
+  const { contentZIndex } = useDynamicZIndex('z-index-debugger', 'overlay');
   const layers = useZIndexDebug();
 
   // Only show in development
@@ -21,7 +22,10 @@ export const ZIndexDebugger: React.FC<ZIndexDebuggerProps> = ({ isVisible = fals
   }
 
   return (
-    <div className="fixed bottom-4 right-4 z-[999999] bg-black/90 text-white p-4 rounded-lg shadow-lg max-w-sm">
+    <div 
+      className="fixed bottom-4 right-4 bg-black/90 text-white p-4 rounded-lg shadow-lg max-w-sm"
+      style={{ zIndex: contentZIndex }}
+    >
       <h3 className="text-sm font-bold mb-2">Z-Index Layers</h3>
       <div className="space-y-1 text-xs">
         {layers.length === 0 ? (

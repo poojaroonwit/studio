@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { useDynamicZIndex } from '@/contexts/ZIndexContext';
 
 interface SystemMetrics {
   connections: {
@@ -60,6 +61,7 @@ interface FloatingDebugOverlayProps {
 }
 
 export function FloatingDebugOverlay({ isVisible, onClose }: FloatingDebugOverlayProps) {
+  const { contentZIndex } = useDynamicZIndex('floating-debug-overlay', 'overlay');
   const [metrics, setMetrics] = useState<SystemMetrics | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [position, setPosition] = useState({ x: 20, y: 20 });
@@ -270,11 +272,12 @@ Platform: ${metrics.system.platform}, Uptime: ${Math.round(metrics.system.uptime
 
   return (
     <div
-      className={`fixed select-none animate-in fade-in-0 slide-in-from-top-2 duration-300 z-[99999]`}
+      className={`fixed select-none animate-in fade-in-0 slide-in-from-top-2 duration-300`}
       style={{
         left: position.x,
         top: position.y,
-        cursor: isDragging ? 'grabbing' : 'default'
+        cursor: isDragging ? 'grabbing' : 'default',
+        zIndex: contentZIndex
       }}
     >
       <Card className={`w-80 bg-background/95 backdrop-blur-sm border transition-all duration-300 ${

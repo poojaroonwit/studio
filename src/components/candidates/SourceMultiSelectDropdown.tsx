@@ -209,7 +209,7 @@ export function SourceMultiSelectDropdown({
             <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-                 <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 bg-popover border-border shadow-lg z-[100001]" align="start">
+                 <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 bg-popover border-border shadow-lg z-[100001]" align="start" side="bottom" sideOffset={4}>
            <div className="p-2">
              <div className="text-sm font-medium mb-2">Select Sources</div>
              

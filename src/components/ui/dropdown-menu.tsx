@@ -74,11 +74,11 @@ DropdownMenuSubContent.displayName =
 
 // Custom portal container that accounts for zoom
 const ZoomAwareDropdownPortal = ({ children }: { children: React.ReactNode }) => {
-  const { portalStyle } = useZoomAwarePortal();
+  useZoomAwarePortal(); // Initialize zoom awareness
 
   return (
     <DropdownMenuPrimitive.Portal container={document.body}>
-      <div style={portalStyle}>
+      <div data-radix-portal>
         {children}
       </div>
     </DropdownMenuPrimitive.Portal>

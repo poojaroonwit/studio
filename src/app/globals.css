@@ -2844,3 +2844,16 @@ body {
   z-index: 9999 !important;
   pointer-events: auto !important;
 }
+
+/* Fix for Radix UI portal positioning with zoom */
+[data-radix-portal] {
+  /* Apply inverse zoom to portal content to counteract the document zoom */
+  transform: scale(calc(1 / var(--portal-zoom-level, 1)));
+  transform-origin: top left;
+}
+
+/* Ensure portal content maintains proper positioning */
+[data-radix-portal] > * {
+  /* Reset any inherited transforms that might interfere */
+  transform: none;
+}

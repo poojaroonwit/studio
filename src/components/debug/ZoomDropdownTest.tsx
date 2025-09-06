@@ -6,6 +6,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useZoom } from '@/components/ui/zoom-control';
+import { UserAvatarCompact } from '@/components/ui/user-avatar';
 
 export function ZoomDropdownTest() {
   const [popoverOpen, setPopoverOpen] = useState(false);
@@ -29,7 +30,33 @@ export function ZoomDropdownTest() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        {/* Avatar Dropdown Test */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">Avatar Dropdown Test</h3>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <div className="relative h-8 w-8 rounded-full cursor-pointer hover:bg-accent/20 transition-colors">
+                <UserAvatarCompact 
+                  user={{
+                    id: '1',
+                    name: 'Test User',
+                    email: 'test@example.com',
+                    avatarUrl: null
+                  }} 
+                  size="sm" 
+                />
+              </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-50">
+              <DropdownMenuItem>Profile</DropdownMenuItem>
+              <DropdownMenuItem>Settings</DropdownMenuItem>
+              <DropdownMenuItem>Help</DropdownMenuItem>
+              <DropdownMenuItem>Logout</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
         {/* Popover Test */}
         <div className="space-y-4">
           <h3 className="text-lg font-semibold">Popover Test</h3>

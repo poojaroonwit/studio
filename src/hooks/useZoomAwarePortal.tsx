@@ -20,7 +20,11 @@ export function useZoomAwarePortal() {
     };
 
     const updateZoomLevel = () => {
-      setZoomLevel(getZoomLevel());
+      const newZoom = getZoomLevel();
+      setZoomLevel(newZoom);
+      
+      // Set CSS custom property for zoom level
+      document.documentElement.style.setProperty('--portal-zoom-level', newZoom.toString());
     };
 
     // Initial zoom level
@@ -40,9 +44,7 @@ export function useZoomAwarePortal() {
 
   return {
     zoomLevel,
-    portalStyle: {
-      transform: `scale(${zoomLevel})`,
-      transformOrigin: 'top left'
-    }
+    // Return empty style object since we're using CSS custom properties instead
+    portalStyle: {}
   };
 }

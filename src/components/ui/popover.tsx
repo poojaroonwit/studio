@@ -22,11 +22,11 @@ const PopoverTrigger = React.forwardRef<HTMLButtonElement, React.ComponentPropsW
 
 // Custom portal container that accounts for zoom
 const ZoomAwarePortal = ({ children }: { children: React.ReactNode }) => {
-  const { portalStyle } = useZoomAwarePortal();
+  useZoomAwarePortal(); // Initialize zoom awareness
 
   return (
     <PopoverPrimitive.Portal container={document.body}>
-      <div style={portalStyle}>
+      <div data-radix-portal>
         {children}
       </div>
     </PopoverPrimitive.Portal>

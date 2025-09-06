@@ -70,11 +70,11 @@ SelectScrollDownButton.displayName =
 
 // Custom portal container that accounts for zoom
 const ZoomAwareSelectPortal = ({ children }: { children: React.ReactNode }) => {
-  const { portalStyle } = useZoomAwarePortal();
+  useZoomAwarePortal(); // Initialize zoom awareness
 
   return (
     <SelectPrimitive.Portal container={document.body}>
-      <div style={portalStyle}>
+      <div data-radix-portal>
         {children}
       </div>
     </SelectPrimitive.Portal>

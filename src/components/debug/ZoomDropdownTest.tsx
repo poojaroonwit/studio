@@ -119,6 +119,11 @@ export function ZoomDropdownTest() {
           <li>Open each dropdown/popover at different zoom levels</li>
           <li>Verify that the dropdowns appear close to their trigger buttons</li>
           <li>The dropdowns should not appear far from the click point when zoomed out</li>
+          <li><strong>NEW:</strong> Check that dropdown content (font size, padding) scales with the page zoom</li>
+          <li>At 50% zoom, dropdown content should appear smaller</li>
+          <li>At 120% zoom, dropdown content should appear larger</li>
+          <li><strong>Z-INDEX FIX:</strong> Avatar dropdown should appear above the header/top menu</li>
+          <li>All dropdowns should be visible and not hidden behind other elements</li>
         </ol>
       </div>
     </div>

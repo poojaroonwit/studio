@@ -2852,8 +2852,11 @@ body {
   transform-origin: top left;
 }
 
-/* Ensure portal content maintains proper positioning */
+/* Ensure portal content maintains proper positioning and scaling */
 [data-radix-portal] > * {
   /* Reset any inherited transforms that might interfere */
   transform: none;
+  /* Apply the zoom level back to the content so it matches the page zoom */
+  transform: scale(var(--portal-zoom-level, 1));
+  transform-origin: top left;
 }

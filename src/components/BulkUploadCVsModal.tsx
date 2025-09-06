@@ -16,6 +16,7 @@ import { toast } from "react-hot-toast";
 import { PositionMultiSelectDropdown } from "@/components/candidates/PositionMultiSelectDropdown";
 import { FileViewerModal } from "@/components/ui/file-viewer-modal";
 import { hasAnyPermission } from '@/lib/permissions';
+import type { CandidateSource } from '@/lib/types';
 
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 
@@ -30,6 +31,9 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [selectedPositionId, setSelectedPositionId] = useState<string>("");
   const [selectedPositionIds, setSelectedPositionIds] = useState<Set<string>>(new Set());
+  const [selectedSourceId, setSelectedSourceId] = useState<string>("");
+  const [subSource, setSubSource] = useState<string>("");
+  const [availableSources, setAvailableSources] = useState<CandidateSource[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null);
   const { data: session } = useSession();
@@ -50,6 +54,27 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
   const canBulkUpload = useMemo(() => {
     return hasAnyPermission(session?.user, ['BULK_UPLOAD_EXECUTE']);
   }, [session?.user]);
+
+  // Fetch candidate sources
+  const fetchCandidateSources = useCallback(async () => {
+    try {
+      const response = await fetch('/api/settings/candidate-sources', {
+        credentials: 'include'
+      });
+      if (response.ok) {
+        const sources = await response.json();
+        setAvailableSources(sources);
+      }
+    } catch (error) {
+      console.error('Failed to fetch candidate sources:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchCandidateSources();
+    }
+  }, [isOpen, fetchCandidateSources]);
   
   if (!canBulkUpload) {
     return (
@@ -207,6 +232,12 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
       if (selectedPositionId) {
         formData.append('position_id', selectedPositionId);
       }
+      if (selectedSourceId) {
+        formData.append('source_id', selectedSourceId);
+      }
+      if (subSource) {
+        formData.append('sub_source', subSource);
+      }
       formData.append('batch_id', batchId);
       formData.append('source', 'bulk');
 
@@ -278,6 +309,8 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
       setSelectedFiles([]);
       setSelectedPositionId("");
       setSelectedPositionIds(new Set());
+      setSelectedSourceId("");
+      setSubSource("");
       setSelectedFileIndex(0);
       setUploadProgress(null);
       setUploading(false);
@@ -333,6 +366,8 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
         setSelectedFiles([]);
         setSelectedPositionId("");
         setSelectedPositionIds(new Set());
+        setSelectedSourceId("");
+        setSubSource("");
         setSelectedFileIndex(0);
         setUploadProgress(null);
         onOpenChange(false);
@@ -407,6 +442,46 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
               />
             </div>
           </div>
+
+          {/* Source Selection */}
+          <div>
+            <Label htmlFor="source-select">Source</Label>
+            <div className="mt-2">
+              <Select
+                value={selectedSourceId}
+                onValueChange={setSelectedSourceId}
+                disabled={uploading}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a source..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableSources.map((source) => (
+                    <SelectItem key={source.id} value={source.id}>
+                      {source.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Sub-source input if current source allows it */}
+          {selectedSourceId && availableSources.find(s => s.id === selectedSourceId)?.allowSubSource && (
+            <div>
+              <Label htmlFor="sub-source-input">Sub-source (optional)</Label>
+              <div className="mt-2">
+                <Input
+                  id="sub-source-input"
+                  type="text"
+                  value={subSource}
+                  onChange={(e) => setSubSource(e.target.value)}
+                  placeholder="Enter sub-source..."
+                  disabled={uploading}
+                />
+              </div>
+            </div>
+          )}
           
           {/* Main Content Area */}
           <div className={`grid gap-6 ${totalFiles > 0 ? 'grid-cols-1 lg:grid-cols-3' : 'grid-cols-1'}`}>

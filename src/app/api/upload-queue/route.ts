@@ -247,9 +247,10 @@ export async function GET(request: NextRequest) {
     
     // Main query - only fetches records for the current page using LIMIT and OFFSET
     const dataRes = await client.query(
-      `SELECT uq.*, p.title as position_title 
+      `SELECT uq.*, p.title as position_title, cs.name as source_name
        FROM upload_queue uq 
        LEFT JOIN "Position" p ON uq.position_id = p.id 
+       LEFT JOIN "CandidateSource" cs ON uq.source_id = cs.id
        ${whereSQL} 
        ORDER BY ${safeSortExpr} ${safeSortDirection} 
        LIMIT $${paramIdx++} OFFSET $${paramIdx++}`,
@@ -371,7 +372,7 @@ export async function POST(request: NextRequest) {
   const actingUserName = validation.userName!;
   
   const data = await request.json();
-  let { file_name, file_size, status, source, upload_id, file_path, position_id, applied_position_id, webhook_payload } = data;
+  let { file_name, file_size, status, source, upload_id, file_path, position_id, applied_position_id, webhook_payload, source_id, sub_source } = data;
   
   // Ensure file_size is a number (handle string "0" from reprocess jobs)
   if (typeof file_size === 'string') {
@@ -412,10 +413,10 @@ export async function POST(request: NextRequest) {
       // For reprocess jobs, we need to handle potential unique constraint violations
       try {
         res = await client.query(
-          `INSERT INTO upload_queue (id, file_name, file_size, status, source, upload_id, created_by, file_path, webhook_payload, position_id)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+          `INSERT INTO upload_queue (id, file_name, file_size, status, source, upload_id, created_by, file_path, webhook_payload, position_id, source_id, sub_source)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
            RETURNING *`,
-          [id, file_name, file_size, status, source, upload_id, actingUserId, file_path, webhook_payload ? JSON.stringify(webhook_payload) : null, finalPositionId]
+          [id, file_name, file_size, status, source, upload_id, actingUserId, file_path, webhook_payload ? JSON.stringify(webhook_payload) : null, finalPositionId, source_id, sub_source]
         );
       } catch (insertError: any) {
         // If unique constraint violation, try to update the existing job instead
@@ -440,10 +441,10 @@ export async function POST(request: NextRequest) {
     } else {
       // For regular jobs, use normal insert
       res = await client.query(
-        `INSERT INTO upload_queue (id, file_name, file_size, status, source, upload_id, created_by, file_path, webhook_payload, position_id)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        `INSERT INTO upload_queue (id, file_name, file_size, status, source, upload_id, created_by, file_path, webhook_payload, position_id, source_id, sub_source)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
          RETURNING *`,
-        [id, file_name, file_size, status, source, upload_id, actingUserId, file_path, webhook_payload ? JSON.stringify(webhook_payload) : null, finalPositionId]
+        [id, file_name, file_size, status, source, upload_id, actingUserId, file_path, webhook_payload ? JSON.stringify(webhook_payload) : null, finalPositionId, source_id, sub_source]
       );
     }
     

@@ -22,6 +22,9 @@ interface QueueItem {
   error?: string;
   error_details?: string;
   source?: string;
+  source_id?: string;
+  sub_source?: string;
+  source_name?: string;
   upload_date: string;
   completed_date?: string;
   upload_id?: string;
@@ -303,6 +306,12 @@ export function UploadQueueStatus() {
                         <p className="text-sm text-muted-foreground">
                           Uploaded: {formatDate(item.upload_date)}
                         </p>
+                        {(item.source_name || item.sub_source) && (
+                          <p className="text-xs text-muted-foreground">
+                            Source: {item.source_name || 'Unknown'}
+                            {item.sub_source && ` - ${item.sub_source}`}
+                          </p>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">

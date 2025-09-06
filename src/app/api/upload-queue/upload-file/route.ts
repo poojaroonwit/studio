@@ -122,6 +122,8 @@ async function insertIntoUploadQueue(
     position_id?: string;
     batch_id?: string;
     source?: string;
+    source_id?: string;
+    sub_source?: string;
     webhook_payload?: any;
     created_by: string;
   }
@@ -131,8 +133,8 @@ async function insertIntoUploadQueue(
       const res = await client.query(
         `INSERT INTO upload_queue (
           id, file_name, file_size, status, source, upload_id, created_by, 
-          file_path, webhook_payload, position_id
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+          file_path, webhook_payload, position_id, source_id, sub_source
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
         RETURNING *`,
         [
           jobData.id,
@@ -144,7 +146,9 @@ async function insertIntoUploadQueue(
           jobData.created_by,
           jobData.file_path,
           jobData.webhook_payload ? JSON.stringify(jobData.webhook_payload) : null,
-          jobData.position_id || null
+          jobData.position_id || null,
+          jobData.source_id || null,
+          jobData.sub_source || null
         ]
       );
       return res.rows[0];
@@ -169,6 +173,8 @@ async function processFileUpload(
     position_id?: string;
     batch_id?: string;
     source?: string;
+    source_id?: string;
+    sub_source?: string;
     webhook_payload?: any;
     created_by: string;
   }
@@ -208,6 +214,8 @@ async function processFileUpload(
     position_id: options.position_id,
     batch_id: options.batch_id,
     source: options.source,
+    source_id: options.source_id,
+    sub_source: options.sub_source,
     webhook_payload: options.webhook_payload,
     created_by: options.created_by
   });
@@ -264,6 +272,12 @@ async function processFileUpload(
  *               source:
  *                 type: string
  *                 description: Source of the upload (e.g., 'bulk', 'manual')
+ *               source_id:
+ *                 type: string
+ *                 description: Candidate source ID for tracking
+ *               sub_source:
+ *                 type: string
+ *                 description: Sub-source information (optional)
  *     responses:
  *       200:
  *         description: Files uploaded with detailed results
@@ -372,6 +386,8 @@ export async function POST(request: NextRequest) {
     const position_id = formData.get('position_id') as string || undefined;
     const batch_id = formData.get('batch_id') as string || uuidv4();
     const source = formData.get('source') as string || 'bulk';
+    const source_id = formData.get('source_id') as string || undefined;
+    const sub_source = formData.get('sub_source') as string || undefined;
     const webhook_payload = formData.get('webhook_payload') ? 
       JSON.parse(formData.get('webhook_payload') as string) : undefined;
 
@@ -416,6 +432,8 @@ export async function POST(request: NextRequest) {
         position_id,
         batch_id,
         source,
+        source_id,
+        sub_source,
         webhook_payload,
         created_by: actingUserId
       });

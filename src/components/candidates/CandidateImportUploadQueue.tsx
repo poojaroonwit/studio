@@ -33,6 +33,9 @@ interface QueueItem {
   error?: string;
   error_details?: string;
   source?: string;
+  source_id?: string;
+  sub_source?: string;
+  source_name?: string;
   upload_date: string;
   completed_date?: string;
   upload_id?: string;
@@ -1211,6 +1214,7 @@ export default function CandidateImportUploadQueue() {
                 <SortableHeader field="id">ID</SortableHeader>
                 <SortableHeader field="file_name">File Name</SortableHeader>
                 <SortableHeader field="position_title">Position</SortableHeader>
+                <SortableHeader field="source_name">Source</SortableHeader>
                 <SortableHeader field="file_size">File Size</SortableHeader>
                 <SortableHeader field="status">Status</SortableHeader>
                 <SortableHeader field="upload_date">Create Date</SortableHeader>
@@ -1224,7 +1228,7 @@ export default function CandidateImportUploadQueue() {
             <TableBody>
               {!queueData?.data || queueData.data.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={11} className="text-center py-8">
+                  <TableCell colSpan={12} className="text-center py-8">
                     <div className="flex flex-col items-center gap-2">
                       <Info className="h-8 w-8 text-muted-foreground" />
                       <p className="text-muted-foreground">No queue items found</p>
@@ -1250,6 +1254,14 @@ export default function CandidateImportUploadQueue() {
                     <TableCell className="font-mono text-xs">{item.id.slice(0, 8)}...</TableCell>
                     <TableCell className="font-medium">{item.file_name}</TableCell>
                     <TableCell>{item.position_title || '-'}</TableCell>
+                    <TableCell>
+                      {item.source_name || '-'}
+                      {item.sub_source && (
+                        <div className="text-xs text-muted-foreground">
+                          {item.sub_source}
+                        </div>
+                      )}
+                    </TableCell>
                     <TableCell>{formatFileSize(item.file_size)}</TableCell>
                     <TableCell>
                       <Badge 

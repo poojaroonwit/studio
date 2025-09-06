@@ -200,7 +200,7 @@ export function CandidateSourceCell({
           )}
         </Button>
       </PopoverTrigger>
-       <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start" side="bottom" sideOffset={4}>
+       <PopoverContent className="w-80 p-0" align="start" side="bottom" sideOffset={4}>
         <div className="p-2">
           <div className="text-sm font-medium mb-2">Select Source</div>
           

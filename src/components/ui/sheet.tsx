@@ -8,7 +8,6 @@ import { logIfInvalidSingleChild } from "./utils"
 import { useDynamicZIndex } from "@/contexts/ZIndexContext"
 
 import { cn } from "@/lib/utils"
-import { ZoomAwarePortal } from "./zoom-aware-portal"
 
 const Sheet = SheetPrimitive.Root
 
@@ -83,7 +82,7 @@ const SheetContent = React.forwardRef<
   const { contentZIndex } = useDynamicZIndex(sheetId || 'default-sheet', 'drawer');
   
   return (
-    <ZoomAwarePortal>
+    <SheetPortal>
       <SheetOverlay sheetId={sheetId} />
       <SheetPrimitive.Content
         ref={ref}
@@ -98,7 +97,7 @@ const SheetContent = React.forwardRef<
           <span className="sr-only">Close</span>
         </SheetPrimitive.Close>
       </SheetPrimitive.Content>
-    </ZoomAwarePortal>
+    </SheetPortal>
   );
 })
 SheetContent.displayName = SheetPrimitive.Content.displayName

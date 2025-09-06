@@ -2820,16 +2820,19 @@ body:has(.zoom-controls) {
   overflow-x: hidden;
 }
 
-/* Simple zoom support - no complex CSS that might cause visual issues */
+/* Transform-based zoom support that works with portals */
 html {
   height: 100%;
   width: 100%;
+  overflow-x: hidden;
 }
 
 body {
   height: 100%;
   width: 100%;
   min-height: 100vh;
+  /* Ensure smooth transform scaling */
+  transition: transform 0.1s ease-out;
 }
 
 #__next {
@@ -2837,6 +2840,12 @@ body {
   width: 100%;
   min-height: 100vh;
 }
+
+/* Ensure portals and dropdowns scale with the body transform */
+/* Portal content will inherit the body's transform automatically */
+
+/* Fix for dropdown positioning when zoomed */
+/* Popper content will scale with the page automatically */
 
 /* Ensure zoom controls are always visible and functional */
 .zoom-controls {

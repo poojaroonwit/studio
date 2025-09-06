@@ -4,14 +4,14 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { ZoomIn, ZoomOut, RotateCcw, Monitor } from 'lucide-react';
-import { useZoom } from '@/contexts/ZoomContext';
+import { useZoom } from '@/components/ui/zoom-control';
 
 interface ZoomControlCompactProps {
   className?: string;
 }
 
 export function ZoomControlCompact({ className }: ZoomControlCompactProps) {
-  const { zoom, setZoom, resetZoom, minZoom, maxZoom } = useZoom();
+  const { zoom, setZoom, resetZoom, isLoading, isServerStorage } = useZoom();
   const [isExpanded, setIsExpanded] = useState(false);
 
   const handleZoomChange = (value: number[]) => {
@@ -38,8 +38,11 @@ export function ZoomControlCompact({ className }: ZoomControlCompactProps) {
           <div className="flex items-center gap-1">
             <Monitor className="h-3.5 w-3.5 text-blue-500" />
             <span className="text-xs font-medium">
-              {`${Math.round(zoom * 100)}%`}
+              {isLoading ? '...' : `${Math.round(zoom * 100)}%`}
             </span>
+            {isServerStorage && (
+              <span className="text-xs text-green-500" title="Synced across devices">●</span>
+            )}
           </div>
         </div>
       </div>
@@ -73,15 +76,15 @@ export function ZoomControlCompact({ className }: ZoomControlCompactProps) {
             value={[zoom]}
             onValueChange={handleZoomChange}
             onValueCommit={(value) => console.log('Compact Slider value committed:', value)}
-            min={minZoom}
-            max={maxZoom}
+            min={0.5}
+            max={1.5}
             step={0.05}
             className="w-full"
             style={{pointerEvents: 'auto'}}
           />
           <div className="flex justify-between text-xs text-muted-foreground">
-            <span>{Math.round(minZoom * 100)}%</span>
-            <span>{Math.round(maxZoom * 100)}%</span>
+            <span>50%</span>
+            <span>150%</span>
           </div>
         </div>
       </div>

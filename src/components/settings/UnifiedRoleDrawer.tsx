@@ -920,7 +920,7 @@ export function UnifiedRoleDrawer({
                 <SelectTrigger>
                   <SelectValue placeholder="Choose a user to add" />
                 </SelectTrigger>
-                <SelectContent className="z-[100003]">
+                <SelectContent>
                   {/* Search inside dropdown */}
                   <div className="relative p-2 border-b">
                     <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />

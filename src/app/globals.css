@@ -2851,23 +2851,3 @@ body {
   z-index: 9999 !important;
   pointer-events: auto !important;
 }
-
-/* Zoom system styles */
-body {
-  transform-origin: top left;
-}
-
-/* Ensure portals and overlays work correctly with zoom */
-[data-radix-portal] {
-  transform-origin: top left;
-}
-
-/* Fix positioning for dropdowns and other portal content */
-[data-radix-popper-content-wrapper] {
-  transform-origin: top left;
-}
-
-/* Ensure proper scaling for all portal-based components */
-[data-state="open"] {
-  transform-origin: top left;
-}

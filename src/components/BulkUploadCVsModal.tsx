@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { v4 as uuidv4 } from 'uuid';
 import { useToast } from '@/hooks/use-toast';
@@ -13,7 +14,6 @@ import { UploadCloud, Loader2, Trash2 } from "lucide-react";
 import FileUploadArea from "@/components/ui/FileUploadArea";
 import { toast } from "react-hot-toast";
 import { PositionMultiSelectDropdown } from "@/components/candidates/PositionMultiSelectDropdown";
-import { SourceMultiSelectDropdown } from "@/components/candidates/SourceMultiSelectDropdown";
 import { FileViewerModal } from "@/components/ui/file-viewer-modal";
 import { hasAnyPermission } from '@/lib/permissions';
 import type { CandidateSource } from '@/lib/types';
@@ -32,7 +32,7 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [selectedPositionId, setSelectedPositionId] = useState<string>("");
   const [selectedPositionIds, setSelectedPositionIds] = useState<Set<string>>(new Set());
-  const [selectedSourceIds, setSelectedSourceIds] = useState<Set<string>>(new Set());
+  const [selectedSourceId, setSelectedSourceId] = useState<string>("");
   const [subSource, setSubSource] = useState<string>("");
   const [availableSources, setAvailableSources] = useState<CandidateSource[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -221,20 +221,6 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
     }
   }, []);
 
-  // For single-select source, enforce only one selected source
-  const handleSourceChange = useCallback((ids: Set<string>) => {
-    if (ids.size > 1) {
-      // Only allow one selection
-      const first = Array.from(ids)[0];
-      setSelectedSourceIds(new Set([first]));
-    } else if (ids.size === 1) {
-      const first = Array.from(ids)[0];
-      setSelectedSourceIds(new Set([first]));
-    } else {
-      setSelectedSourceIds(new Set());
-    }
-  }, []);
-
     // Simple upload function - upload all files to MinIO and create DB records
   async function uploadFilesToMinIOAndQueue(files: File[], batchId: string) {
     try {
@@ -248,9 +234,8 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
       if (selectedPositionId) {
         formData.append('position_id', selectedPositionId);
       }
-      if (selectedSourceIds.size > 0) {
-        const sourceId = Array.from(selectedSourceIds)[0];
-        formData.append('source_id', sourceId);
+      if (selectedSourceId) {
+        formData.append('source_id', selectedSourceId);
       }
       if (subSource) {
         formData.append('sub_source', subSource);
@@ -295,14 +280,14 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
           failed: result.summary?.failed || 0,
           errors: result.results?.filter((r: any) => r.status === 'failed')?.map((r: any) => `${r.file_name}: ${r.error}`) || []
         };
-      } catch (fetchError: unknown) {
+      } catch (fetchError) {
         clearTimeout(timeoutId);
         
-        if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+        if (fetchError.name === 'AbortError') {
           throw new Error('Upload timed out. Please try again with fewer files or smaller files.');
         }
         
-        if (fetchError instanceof Error && fetchError.name === 'TypeError' && fetchError.message.includes('fetch')) {
+        if (fetchError.name === 'TypeError' && fetchError.message.includes('fetch')) {
           throw new Error('Network error. Please check your connection and try again.');
         }
         
@@ -326,7 +311,7 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
       setSelectedFiles([]);
       setSelectedPositionId("");
       setSelectedPositionIds(new Set());
-      setSelectedSourceIds(new Set());
+      setSelectedSourceId("");
       setSubSource("");
       setSelectedFileIndex(0);
       setUploadProgress(null);
@@ -383,7 +368,7 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
         setSelectedFiles([]);
         setSelectedPositionId("");
         setSelectedPositionIds(new Set());
-        setSelectedSourceIds(new Set());
+        setSelectedSourceId("");
         setSubSource("");
         setSelectedFileIndex(0);
         setUploadProgress(null);
@@ -428,7 +413,7 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
     } finally {
       setUploading(false);
     }
-  }, [selectedFiles, selectedPositionId, selectedSourceIds, subSource, onOpenChange, successWithDescription, errorWithDescription, onUploadSuccess]);
+  }, [selectedFiles, selectedPositionId, onOpenChange, successWithDescription, errorWithDescription, onUploadSuccess]);
   const totalFiles = selectedFiles.length;
   return (
     <Dialog open={isOpen} onOpenChange={handleModalClose}>
@@ -467,19 +452,31 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
           {/* Source Selection */}
           <div>
             <Label htmlFor="source-select">Source</Label>
-            <div className="mt-2">
-              <SourceMultiSelectDropdown
-                selectedSourceIds={selectedSourceIds}
-                onSelectionChange={handleSourceChange}
-                availableSources={availableSources}
-                placeholder="Select a source..."
+            <div className="mt-2" style={{ zIndex: 9999999 }}>
+              <Select
+                value={selectedSourceId}
+                onValueChange={setSelectedSourceId}
                 disabled={uploading}
-              />
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a source..." />
+                </SelectTrigger>
+                <SelectContent 
+                  position="popper"
+                  sideOffset={4}
+                >
+                  {availableSources.map((source) => (
+                    <SelectItem key={source.id} value={source.id}>
+                      {source.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
           {/* Sub-source input if current source allows it */}
-          {selectedSourceIds.size > 0 && availableSources.find(s => s.id === Array.from(selectedSourceIds)[0])?.allowSubSource && (
+          {selectedSourceId && availableSources.find(s => s.id === selectedSourceId)?.allowSubSource && (
             <div>
               <Label htmlFor="sub-source-input">Sub-source (optional)</Label>
               <div className="mt-2">

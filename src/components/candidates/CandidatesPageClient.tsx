@@ -1937,7 +1937,7 @@ export function CandidatesPageClient({
                 <SelectTrigger>
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
-                <SelectContent className="z-[100003]">
+                <SelectContent>
                   {availableStages.map((stage) => (
                     <SelectItem key={stage.id} value={stage.id}>
                       {stage.name}
@@ -1999,7 +1999,7 @@ export function CandidatesPageClient({
                 <SelectTrigger>
                   <SelectValue placeholder="Select recruiter" />
                 </SelectTrigger>
-                <SelectContent className="z-[100003]">
+                <SelectContent>
                   <SelectItem value="none">No Recruiter</SelectItem>
                   {availableRecruiter.map((recruiter) => (
                     <SelectItem key={recruiter.id} value={recruiter.id}>

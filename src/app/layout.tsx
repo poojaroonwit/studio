@@ -87,6 +87,63 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         {/* Ramda polyfill is now handled by RamdaPolyfillInitializer component */}
+        {/* Simple zoom script */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              // Simple zoom functions
+              window.setZoom = function(zoom) {
+                if (zoom >= 0.5 && zoom <= 1.5) {
+                  document.documentElement.style.zoom = zoom.toString();
+                  localStorage.setItem('app-zoom-level', zoom.toString());
+                  window.dispatchEvent(new CustomEvent('zoomChanged', { detail: { zoom: zoom } }));
+                }
+              };
+              
+              window.getZoom = function() {
+                const zoom = document.documentElement.style.zoom;
+                return zoom ? parseFloat(zoom) : 0.9;
+              };
+              
+              // Apply saved zoom on load
+              const savedZoom = localStorage.getItem('app-zoom-level');
+              if (savedZoom) {
+                document.documentElement.style.zoom = savedZoom;
+              } else {
+                document.documentElement.style.zoom = '0.9';
+              }
+              
+              // Keyboard shortcuts for zoom (Ctrl + Plus/Minus)
+              document.addEventListener('keydown', function(e) {
+                // Check if Ctrl (or Cmd on Mac) is pressed
+                if (e.ctrlKey || e.metaKey) {
+                  const currentZoom = window.getZoom();
+                  const step = 0.1;
+                  const minZoom = 0.5;
+                  const maxZoom = 1.5;
+                  
+                  // Handle Plus key (zoom in)
+                  if (e.key === '+' || e.key === '=') {
+                    e.preventDefault();
+                    const newZoom = Math.min(currentZoom + step, maxZoom);
+                    window.setZoom(newZoom);
+                  }
+                  // Handle Minus key (zoom out)
+                  else if (e.key === '-') {
+                    e.preventDefault();
+                    const newZoom = Math.max(currentZoom - step, minZoom);
+                    window.setZoom(newZoom);
+                  }
+                  // Handle 0 key (reset zoom to 100%)
+                  else if (e.key === '0') {
+                    e.preventDefault();
+                    window.setZoom(1.0);
+                  }
+                }
+              });
+            `,
+          }}
+        />
       </head>
       <body className={`${inter.variable} ${ibmPlexSansThai.variable} ${notoSansThai.variable}`}>
         <ErrorBoundary>

@@ -337,7 +337,7 @@ function PersonalInfoContent({ form, user, mode, userTeams }: PersonalInfoConten
                   <SelectTrigger className="h-11 border-slate-300 dark:border-slate-600 focus:border-blue-500 focus:ring-blue-500">
                     <SelectValue placeholder="Select a team" />
                   </SelectTrigger>
-                  <SelectContent className="z-[100003]">
+                  <SelectContent>
                     {userTeams.map((group) => (
                       <SelectItem key={group.id} value={group.id}>
                         <div className="flex items-center gap-2">
@@ -475,7 +475,7 @@ function AccountSettingsContent({ form, mode, canManageAuthentication, canForceP
                   <SelectTrigger className="h-11 border-slate-300 dark:border-slate-600 focus:border-blue-500 focus:ring-blue-500">
                     <SelectValue placeholder="Select a role" />
                   </SelectTrigger>
-                  <SelectContent className="z-[100003]">
+                  <SelectContent>
                     {/* Clear option */}
                     <SelectItem value="none">
                       <div className="flex items-center gap-2 text-muted-foreground">
@@ -542,7 +542,7 @@ function AccountSettingsContent({ form, mode, canManageAuthentication, canForceP
                       <SelectValue placeholder="Select authentication method" />
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent className="z-[100003]">
+                  <SelectContent>
                     <SelectItem value="basic">Basic (Email/Password)</SelectItem>
                     <SelectItem value="azure">Azure AD</SelectItem>
                   </SelectContent>

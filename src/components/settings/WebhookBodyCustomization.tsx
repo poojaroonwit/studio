@@ -573,7 +573,7 @@ export default function WebhookBodyCustomization({
                                       <SelectTrigger className="mt-1">
                                         <SelectValue placeholder="None" />
                                       </SelectTrigger>
-                                                                             <SelectContent className="z-[100003]">
+                                                                             <SelectContent>
                                          <SelectItem value="none">None</SelectItem>
                                          {TRANSFORM_OPTIONS.map(option => (
                                            <SelectItem key={option.value} value={option.value}>

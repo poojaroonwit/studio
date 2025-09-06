@@ -7,6 +7,7 @@ import { Slot } from "@radix-ui/react-slot"
 import { logIfInvalidSingleChild } from "./utils"
 
 import { cn } from "@/lib/utils"
+import { getZoomAwarePositioningProps } from "@/lib/zoom-utils"
 
 const DropdownMenu = DropdownMenuPrimitive.Root
 
@@ -57,46 +58,9 @@ const DropdownMenuSubContent = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.SubContent>,
   React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.SubContent>
 >(({ className, ...props }, ref) => {
-  const [zoom, setZoom] = React.useState(1);
-  
-  React.useEffect(() => {
-    // Get current zoom level from document
-    const getCurrentZoom = () => {
-      if (window.getZoom) {
-        return window.getZoom();
-      }
-      const savedZoom = localStorage.getItem('app-zoom-level');
-      return savedZoom ? parseFloat(savedZoom) : 1;
-    };
-    
-    const updateZoom = () => {
-      setZoom(getCurrentZoom());
-    };
-    
-    // Set initial zoom
-    updateZoom();
-    
-    // Listen for zoom changes
-    const handleZoomChange = (event: CustomEvent) => {
-      if (event.detail && event.detail.zoom) {
-        setZoom(event.detail.zoom);
-      }
-    };
-    
-    window.addEventListener('zoomChanged', handleZoomChange as EventListener);
-    
-    return () => {
-      window.removeEventListener('zoomChanged', handleZoomChange as EventListener);
-    };
-  }, []);
-
   return (
     <DropdownMenuPrimitive.SubContent
       ref={ref}
-      style={{ 
-        transform: `scale(${zoom})`,
-        transformOrigin: 'top left'
-      }}
       className={cn(
           "z-[50] min-w-[8rem] overflow-hidden !rounded-lg border bg-popover p-1 text-popover-foreground shadow-lg data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
         className
@@ -112,48 +76,13 @@ const DropdownMenuContent = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content>
 >(({ className, sideOffset = 4, ...props }, ref) => {
-  const [zoom, setZoom] = React.useState(1);
-  
-  React.useEffect(() => {
-    // Get current zoom level from document
-    const getCurrentZoom = () => {
-      if (window.getZoom) {
-        return window.getZoom();
-      }
-      const savedZoom = localStorage.getItem('app-zoom-level');
-      return savedZoom ? parseFloat(savedZoom) : 1;
-    };
-    
-    const updateZoom = () => {
-      setZoom(getCurrentZoom());
-    };
-    
-    // Set initial zoom
-    updateZoom();
-    
-    // Listen for zoom changes
-    const handleZoomChange = (event: CustomEvent) => {
-      if (event.detail && event.detail.zoom) {
-        setZoom(event.detail.zoom);
-      }
-    };
-    
-    window.addEventListener('zoomChanged', handleZoomChange as EventListener);
-    
-    return () => {
-      window.removeEventListener('zoomChanged', handleZoomChange as EventListener);
-    };
-  }, []);
+  const { sideOffset: adjustedSideOffset } = getZoomAwarePositioningProps(sideOffset);
 
   return (
     <DropdownMenuPrimitive.Portal>
       <DropdownMenuPrimitive.Content
         ref={ref}
-        sideOffset={sideOffset}
-        style={{ 
-          transform: `scale(${zoom})`,
-          transformOrigin: 'top left'
-        }}
+        sideOffset={adjustedSideOffset}
         className={cn(
           "z-[50] min-w-[8rem] overflow-hidden !rounded-lg border bg-popover p-1 text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
           className

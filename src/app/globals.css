@@ -2820,27 +2820,33 @@ body:has(.zoom-controls) {
   overflow-x: hidden;
 }
 
-/* Simple zoom support */
+/* Transform-based zoom support that works with portals */
 html {
   height: 100%;
   width: 100%;
+  overflow-x: hidden; /* Prevent horizontal scroll when scaled */
 }
 
 body {
   height: 100%;
   width: 100%;
   min-height: 100vh;
+  /* Ensure body can be transformed */
+  position: relative;
+  /* Prevent content from being cut off when scaled */
+  overflow-x: auto;
 }
 
 #__next {
   height: 100%;
   width: 100%;
   min-height: 100vh;
+  /* Ensure Next.js root can handle scaling */
+  position: relative;
 }
 
 /* Ensure zoom controls are always visible and functional */
 .zoom-controls {
   position: fixed !important;
-  z-index: 9999 !important;
   pointer-events: auto !important;
 }

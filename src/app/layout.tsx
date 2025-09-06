@@ -87,31 +87,48 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         {/* Ramda polyfill is now handled by RamdaPolyfillInitializer component */}
-        {/* Simple zoom script */}
+        {/* Transform-based zoom script */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              // Simple zoom functions that work with portals
+              // Transform-based zoom functions that work with portals
               window.setZoom = function(zoom) {
                 if (zoom >= 0.5 && zoom <= 1.5) {
-                  // Apply zoom to body element to affect everything including portals
-                  document.body.style.zoom = zoom.toString();
+                  // Apply transform scale to body instead of CSS zoom on documentElement
+                  document.body.style.transform = 'scale(' + zoom + ')';
+                  document.body.style.transformOrigin = 'top left';
+                  // Adjust body width/height to prevent layout issues
+                  document.body.style.width = (100 / zoom) + '%';
+                  document.body.style.height = (100 / zoom) + '%';
+                  
                   localStorage.setItem('app-zoom-level', zoom.toString());
                   window.dispatchEvent(new CustomEvent('zoomChanged', { detail: { zoom: zoom } }));
                 }
               };
               
               window.getZoom = function() {
-                const zoom = document.body.style.zoom;
-                return zoom ? parseFloat(zoom) : 0.9;
+                const transform = document.body.style.transform;
+                if (transform && transform.includes('scale(')) {
+                  const match = transform.match(/scale\\(([^)]+)\\)/);
+                  return match ? parseFloat(match[1]) : 0.9;
+                }
+                return 0.9;
               };
               
               // Apply saved zoom on load
               const savedZoom = localStorage.getItem('app-zoom-level');
               if (savedZoom) {
-                document.body.style.zoom = savedZoom;
+                const zoom = parseFloat(savedZoom);
+                document.body.style.transform = 'scale(' + zoom + ')';
+                document.body.style.transformOrigin = 'top left';
+                document.body.style.width = (100 / zoom) + '%';
+                document.body.style.height = (100 / zoom) + '%';
               } else {
-                document.body.style.zoom = '0.9';
+                // Default to 90%
+                document.body.style.transform = 'scale(0.9)';
+                document.body.style.transformOrigin = 'top left';
+                document.body.style.width = '111.11%';
+                document.body.style.height = '111.11%';
               }
             `,
           }}

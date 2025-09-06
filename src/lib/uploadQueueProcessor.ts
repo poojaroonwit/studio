@@ -127,6 +127,9 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       additionalAttachment = job.webhook_payload.additionalAttachment || null; // Extract additional attachment from webhook payload
     }
     
+    // Use sourceId from webhook_payload if available, otherwise fall back to job.sourceId from database
+    const finalSourceId = sourceId || job.sourceId || null;
+    
     // Use targetPositionId from webhook_payload if available, otherwise fall back to job.position_id
     const finalPositionId = targetPositionId || job.position_id;
     
@@ -150,7 +153,8 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       filename: job.filename,
       mimetype: job.mimetype,
       candidate_id: candidateId, // Include candidate ID in webhook payload
-      source_id: sourceId, // Include source ID in webhook payload
+      source_id: finalSourceId, // Include source ID in webhook payload (from webhook_payload or database)
+      sub_source: job.subSource || null, // Include sub-source from database
       additional_attachment_url: additionalAttachmentUrl, // Include additional attachment URL in webhook payload
       additional_attachment: additionalAttachment ? {
         url: additionalAttachmentUrl,

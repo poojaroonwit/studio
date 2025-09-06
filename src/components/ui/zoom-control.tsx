@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { ZoomIn, ZoomOut, RotateCcw, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useDynamicZIndex } from '@/contexts/ZIndexContext';
 
 interface ZoomControlProps {
   className?: string;
@@ -21,6 +22,7 @@ export function ZoomControl({
   maxZoom = 1.5,
   step = 0.1
 }: ZoomControlProps) {
+  const { contentZIndex } = useDynamicZIndex('zoom-control', 'overlay');
   const [zoom, setZoom] = useState(defaultZoom);
   const [isVisible, setIsVisible] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
@@ -115,7 +117,7 @@ export function ZoomControl({
     console.log('Slider changed to:', newZoom, 'value array:', value);
     console.log('Current zoom state:', zoom);
     console.log('window.setZoom exists:', typeof window.setZoom);
-    console.log('DOM transform before setZoom:', document.documentElement.style.transform);
+    console.log('Body transform before setZoom:', document.body.style.transform);
     
     setZoom(newZoom);
     // Use the global zoom function to sync with keyboard shortcuts
@@ -125,8 +127,8 @@ export function ZoomControl({
       
       // Check if it actually changed
       setTimeout(() => {
-        console.log('DOM transform after setZoom:', document.documentElement.style.transform);
-        const computedStyle = window.getComputedStyle(document.documentElement);
+        console.log('Body transform after setZoom:', document.body.style.transform);
+        const computedStyle = window.getComputedStyle(document.body);
         console.log('Computed transform after setZoom:', computedStyle.transform);
         console.log('Page should now be at', Math.round(newZoom * 100) + '%');
       }, 100);
@@ -154,7 +156,7 @@ export function ZoomControl({
 
 
   return (
-    <div className={cn("fixed bottom-4 right-4", className)} style={{zIndex: 99999}}>
+    <div className={cn("fixed bottom-4 right-4", className)} style={{zIndex: contentZIndex}}>
       <Button
         onClick={toggleVisibility}
         size="sm"
@@ -169,7 +171,7 @@ export function ZoomControl({
       
 
       {(isVisible || true) && (
-        <div className="bg-background border border-border rounded-lg p-4 shadow-lg min-w-[200px] mb-4" style={{zIndex: 9999}}>
+        <div className="bg-background border border-border rounded-lg p-4 shadow-lg min-w-[200px] mb-4" style={{zIndex: contentZIndex}}>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">Zoom: {Math.round(zoom * 100)}%</span>
@@ -222,7 +224,7 @@ export function ZoomControl({
                   max={maxZoom}
                   step={step}
                   className="w-full"
-                  style={{pointerEvents: 'auto', zIndex: 10000}}
+                  style={{pointerEvents: 'auto'}}
                 />
                 <div className="text-xs text-blue-600">Radix Value: {zoom.toFixed(2)}</div>
               </div>

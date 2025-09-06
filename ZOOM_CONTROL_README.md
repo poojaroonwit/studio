@@ -4,11 +4,13 @@ This document explains the zoom control functionality that has been added to red
 
 ## Features Added
 
-### 1. Viewport Meta Tag
-- Added to `src/app/layout.tsx`
-- Sets initial zoom to 80% (`initial-scale=0.8`)
-- Allows user scaling (`user-scalable=yes`)
-- Maximum scale limited to 100% (`maximum-scale=1.0`)
+### 1. Transform-Based Zoom System
+- **File**: `src/app/layout.tsx`
+- **Technology**: CSS `transform: scale()` applied to `body` element
+- **Benefits**: Works with all components including portal-rendered dropdowns
+- **Default**: 90% zoom level
+- **Range**: 50% - 150% zoom levels
+- **Persistence**: Remembers zoom level in localStorage
 
 ### 2. Dynamic Zoom Control Component
 - **File**: `src/components/ui/zoom-control.tsx`
@@ -16,7 +18,7 @@ This document explains the zoom control functionality that has been added to red
   - Floating zoom control panel (bottom-right corner)
   - Slider for precise zoom adjustment (50% - 150%)
   - Quick zoom buttons (75%, 90%, 100%, 110%, 125%)
-  - Reset to 100% button
+  - Reset to 90% button
   - Remembers zoom level in localStorage
   - Smooth transitions
 
@@ -30,12 +32,42 @@ This document explains the zoom control functionality that has been added to red
   - Quick zoom presets
   - Real-time preview of current settings
 
-### 4. CSS Zoom Utilities
+### 4. Portal-Compatible CSS
 - **File**: `src/app/globals.css`
 - **Features**:
-  - CSS classes for alternative zoom methods
-  - Responsive zoom adjustments
-  - Mobile-specific zoom limits
+  - Transform-based scaling that works with all components
+  - Proper overflow handling for scaled content
+  - Portal-rendered components automatically inherit scaling
+
+## Technical Implementation
+
+### Why Transform Instead of CSS Zoom?
+
+The original implementation used CSS `zoom` property on `document.documentElement`, but this caused issues with portal-rendered components (dropdowns, modals, etc.) because:
+
+1. **Portal Rendering**: Components like `PopoverPrimitive.Portal`, `DropdownMenuPrimitive.Portal` render outside the document element
+2. **Zoom Inheritance**: CSS `zoom` only affects direct children of the element it's applied to
+3. **Inconsistent Scaling**: Portal components appeared at different sizes than the rest of the application
+
+### Transform-Based Solution
+
+The new implementation uses CSS `transform: scale()` on the `body` element:
+
+```javascript
+// Apply transform scale to body
+document.body.style.transform = 'scale(' + zoom + ')';
+document.body.style.transformOrigin = 'top left';
+// Adjust body dimensions to prevent layout issues
+document.body.style.width = (100 / zoom) + '%';
+document.body.style.height = (100 / zoom) + '%';
+```
+
+**Benefits:**
+- ✅ All content scales uniformly (including portals)
+- ✅ Maintains proper positioning and layout
+- ✅ Works with all Radix UI components
+- ✅ Preserves z-index and stacking contexts
+- ✅ Compatible with existing CSS and animations
 
 ## Usage
 

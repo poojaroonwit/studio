@@ -402,6 +402,8 @@ export class WebhookDispatcher {
         error: uploadQueueItem.error,
         error_details: uploadQueueItem.error_details || uploadQueueItem.errorDetails,
         source: uploadQueueItem.source,
+        source_id: uploadQueueItem.source_id || uploadQueueItem.sourceId,
+        sub_source: uploadQueueItem.sub_source || uploadQueueItem.subSource,
         upload_date: uploadQueueItem.upload_date || uploadQueueItem.uploadDate,
         completed_date: uploadQueueItem.completed_date || uploadQueueItem.completedDate,
         file_path: uploadQueueItem.file_path || uploadQueueItem.filePath,

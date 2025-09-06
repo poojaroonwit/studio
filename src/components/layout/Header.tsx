@@ -342,53 +342,52 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
     // etc.
     const targetBrowserZoom = (size / 100) * 0.9;
     
-    // Get current browser zoom level
-    const currentZoom = window.outerWidth / window.innerWidth;
-    const steps = Math.round((targetBrowserZoom - currentZoom) / 0.1);
-    
-    // Actually apply the browser zoom by simulating keyboard events
-    if (steps > 0) {
-      // Zoom in with Ctrl+Plus
-      for (let i = 0; i < steps; i++) {
-        setTimeout(() => {
-          const event = new KeyboardEvent('keydown', {
-            key: '=',
-            code: 'Equal',
-            keyCode: 187,
-            which: 187,
-            ctrlKey: true,
-            metaKey: false,
-            shiftKey: false,
-            altKey: false,
-            bubbles: true,
-            cancelable: true
-          });
-          window.dispatchEvent(event);
-        }, i * 100);
+    // Try to use browser's native zoom API
+    try {
+      // Method 1: Try Chrome extension API (if available)
+      if (window.chrome && window.chrome.tabs && window.chrome.tabs.setZoom) {
+        window.chrome.tabs.setZoom(targetBrowserZoom);
+        toast.success(`Screen size set to ${size}%`);
+        return;
       }
-    } else if (steps < 0) {
-      // Zoom out with Ctrl+Minus
-      for (let i = 0; i < Math.abs(steps); i++) {
-        setTimeout(() => {
-          const event = new KeyboardEvent('keydown', {
-            key: '-',
-            code: 'Minus',
-            keyCode: 189,
-            which: 189,
-            ctrlKey: true,
-            metaKey: false,
-            shiftKey: false,
-            altKey: false,
-            bubbles: true,
-            cancelable: true
-          });
-          window.dispatchEvent(event);
-        }, i * 100);
+      
+      // Method 2: Try Firefox zoom API (if available)
+      if (window.fullZoom) {
+        window.fullZoom = targetBrowserZoom;
+        toast.success(`Screen size set to ${size}%`);
+        return;
       }
+      
+      // Method 3: Try Safari zoom API (if available)
+      if (window.zoom) {
+        window.zoom(targetBrowserZoom);
+        toast.success(`Screen size set to ${size}%`);
+        return;
+      }
+      
+      // Method 4: Try to use document.execCommand (deprecated but might work)
+      if (document.execCommand) {
+        const zoomLevel = Math.round(targetBrowserZoom * 100);
+        document.execCommand('zoom', false, zoomLevel.toString());
+        toast.success(`Screen size set to ${size}%`);
+        return;
+      }
+      
+      // Method 5: Try to use the browser's zoom property
+      if (document.body.style.zoom !== undefined) {
+        document.body.style.zoom = targetBrowserZoom.toString();
+        document.documentElement.style.zoom = targetBrowserZoom.toString();
+        toast.success(`Screen size set to ${size}%`);
+        return;
+      }
+      
+      // If none of the above work, show error message
+      toast.error('Browser zoom cannot be controlled programmatically. Please use Ctrl+Plus/Minus manually.');
+      
+    } catch (error) {
+      console.error('Error setting screen size:', error);
+      toast.error('Browser zoom cannot be controlled programmatically. Please use Ctrl+Plus/Minus manually.');
     }
-    
-    // Show success message
-    toast.success(`Screen size set to ${size}%`);
     
     // Store the target zoom level
     localStorage.setItem('app-zoom-level', targetBrowserZoom.toString());

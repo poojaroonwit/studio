@@ -779,56 +779,11 @@ export default function CandidateImportUploadQueue() {
 
 
           <div className="flex-1 overflow-y-auto space-y-4">
-            {/* Real-time Connection Status */}
-            <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg border">
-              <div className="flex items-center space-x-2">
-                <div className={`w-2 h-2 rounded-full ${realtimeConnected ? 'bg-green-500' : 'bg-red-500'}`} />
-                <span className="text-sm font-medium">
-                  {realtimeConnected ? 'Updates Active' : 'Real-time Updates Offline'}
-                </span>
-                {!realtimeConnected && (
-                  <span className="text-xs text-muted-foreground">
-                    (SSE: Disconnected)
-                  </span>
-                )}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    // Force a test by refreshing the queue
-                    fetchQueue(page, pageSize);
-                    setLastUpdate(new Date());
-                  }}
-                  className="h-6 px-2 text-xs"
-                  title="Test connection by refreshing data"
-                >
-                  <RefreshCw className="h-3 w-3" />
-                </Button>
-
-              </div>
-              <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                <span>Last updated: {lastUpdate ? formatDate(lastUpdate.toISOString()) : 'Never'}</span>
-                {!realtimeConnected && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      fetchQueue(page, pageSize);
-                      setLastUpdate(new Date());
-                    }}
-                    className="h-6 px-2 text-xs"
-                  >
-                    <RefreshCw className="h-3 w-3 mr-1" />
-                    Refresh Now
-                  </Button>
-                )}
-              </div>
-            </div>
 
       {/* Summary Cards */}
       {queueData?.summary ? (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <Card className="group relative overflow-hidden border-2 border-gray-200 hover:border-opacity-80 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm shadow-lg">
+          <Card className="group relative overflow-hidden  transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm shadow-lg">
             <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-gray-100 opacity-100 transition-opacity duration-300"></div>
             <CardContent className="relative p-4">
               <div className="flex items-center justify-between">
@@ -843,7 +798,7 @@ export default function CandidateImportUploadQueue() {
             </CardContent>
           </Card>
 
-          <Card className="group relative overflow-hidden border-2 border-blue-200 hover:border-opacity-80 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm shadow-lg">
+          <Card className="group relative overflow-hidden  transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm shadow-lg">
             <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-blue-100 opacity-100 transition-opacity duration-300"></div>
             <CardContent className="relative p-4">
               <div className="flex items-center justify-between">
@@ -858,7 +813,7 @@ export default function CandidateImportUploadQueue() {
             </CardContent>
           </Card>
 
-          <Card className="group relative overflow-hidden border-2 border-yellow-200 hover:border-opacity-80 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm shadow-lg">
+          <Card className="group relative overflow-hidden  transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm shadow-lg">
             <div className="absolute inset-0 bg-gradient-to-br from-yellow-50 to-yellow-100 opacity-100 transition-opacity duration-300"></div>
             <CardContent className="relative p-4">
               <div className="flex items-center justify-between">
@@ -873,7 +828,7 @@ export default function CandidateImportUploadQueue() {
             </CardContent>
           </Card>
 
-          <Card className="group relative overflow-hidden border-2 border-green-200 hover:border-opacity-80 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm shadow-lg">
+          <Card className="group relative overflow-hidden  transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm shadow-lg">
             <div className="absolute inset-0 bg-gradient-to-br from-green-50 to-green-100 opacity-100 transition-opacity duration-300"></div>
             <CardContent className="relative p-4">
               <div className="flex items-center justify-between">
@@ -888,7 +843,7 @@ export default function CandidateImportUploadQueue() {
             </CardContent>
           </Card>
 
-          <Card className="group relative overflow-hidden border-2 border-red-200 hover:border-opacity-80 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm shadow-lg">
+          <Card className="group relative overflow-hidden  transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm shadow-lg">
             <div className="absolute inset-0 bg-gradient-to-br from-red-50 to-red-100 opacity-100 transition-opacity duration-300"></div>
             <CardContent className="relative p-4">
               <div className="flex items-center justify-between">
@@ -905,7 +860,7 @@ export default function CandidateImportUploadQueue() {
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <Card className="group relative overflow-hidden border-2 border-gray-200 hover:border-opacity-80 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm shadow-lg">
+          <Card className="group relative overflow-hidden  transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm shadow-lg">
             <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-gray-100 opacity-100 transition-opacity duration-300"></div>
             <CardContent className="relative p-4">
               <div className="flex items-center justify-between">
@@ -920,7 +875,7 @@ export default function CandidateImportUploadQueue() {
             </CardContent>
           </Card>
 
-          <Card className="group relative overflow-hidden border-2 border-blue-200 hover:border-opacity-80 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm shadow-lg">
+          <Card className="group relative overflow-hidden  transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm shadow-lg">
             <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-blue-100 opacity-100 transition-opacity duration-300"></div>
             <CardContent className="relative p-4">
               <div className="flex items-center justify-between">
@@ -935,7 +890,7 @@ export default function CandidateImportUploadQueue() {
             </CardContent>
           </Card>
 
-          <Card className="group relative overflow-hidden border-2 border-yellow-200 hover:border-opacity-80 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm shadow-lg">
+          <Card className="group relative overflow-hidden  transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm shadow-lg">
             <div className="absolute inset-0 bg-gradient-to-br from-yellow-50 to-yellow-100 opacity-100 transition-opacity duration-300"></div>
             <CardContent className="relative p-4">
               <div className="flex items-center justify-between">
@@ -950,7 +905,7 @@ export default function CandidateImportUploadQueue() {
             </CardContent>
           </Card>
 
-          <Card className="group relative overflow-hidden border-2 border-green-200 hover:border-opacity-80 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm shadow-lg">
+          <Card className="group relative overflow-hidden  transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm shadow-lg">
             <div className="absolute inset-0 bg-gradient-to-br from-green-50 to-green-100 opacity-100 transition-opacity duration-300"></div>
             <CardContent className="relative p-4">
               <div className="flex items-center justify-between">
@@ -965,7 +920,7 @@ export default function CandidateImportUploadQueue() {
             </CardContent>
           </Card>
 
-          <Card className="group relative overflow-hidden border-2 border-red-200 hover:border-opacity-80 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm shadow-lg">
+          <Card className="group relative overflow-hidden  transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm shadow-lg">
             <div className="absolute inset-0 bg-gradient-to-br from-red-50 to-red-100 opacity-100 transition-opacity duration-300"></div>
             <CardContent className="relative p-4">
               <div className="flex items-center justify-between">
@@ -985,7 +940,7 @@ export default function CandidateImportUploadQueue() {
 
       {/* Filters */}
       <div className="p-3 border-b border-border/50">
-        <div className="flex items-center justify-end mb-3">
+        <div className="flex items-center justify-end">
                       {(searchTerm || statusFilter !== 'all' || positionFilter !== 'all' || positionSearchTerm || dateRange || dateFilterType !== 'create') && (
             <Button
               variant="ghost"

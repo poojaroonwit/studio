@@ -427,7 +427,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
                   <UserAvatarCompact user={user} size="sm" forceRefresh={refreshKey > 0} />
                 </div>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-50">
+              <DropdownMenuContent align="start" className="w-50">
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
                     <AutoFont className="text-sm font-medium leading-none">{user.name || "User"}</AutoFont>

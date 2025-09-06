@@ -84,7 +84,7 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
         {isModal && typeof onClose === 'function' && (
           <button
             type="button"
-            className="absolute top-0 right-0 mt-2 mr-2 z-50 p-2 rounded-full hover:bg-muted transition pointer-events-auto"
+            className="absolute top-0 right-0  z-50 p-2 rounded-full hover:bg-muted transition pointer-events-auto"
             title="Close"
             onClick={(e) => {
               e.stopPropagation();

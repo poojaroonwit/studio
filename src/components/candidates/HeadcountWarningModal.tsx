@@ -92,6 +92,7 @@ export function HeadcountWarningModal({
       modal={true}
     >
       <DialogContent 
+        dialogId="headcount-warning-modal"
         className="sm:max-w-md"
         onEscapeKeyDown={(e) => {
           console.log('HeadcountWarningModal - Escape key pressed, preventing default');

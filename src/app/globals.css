@@ -2851,8 +2851,8 @@ body {
   transform: scale(calc(1 / var(--portal-zoom-level, 1)));
   transform-origin: top left;
   /* Ensure proper stacking context */
-  position: relative;
-  z-index: 99990;
+  position: relative !important;
+  z-index: 999999 !important;
 }
 
 /* Ensure portal content maintains proper positioning and scaling */
@@ -2863,6 +2863,6 @@ body {
   transform: scale(var(--portal-zoom-level, 1));
   transform-origin: top left;
   /* Ensure content appears above everything */
-  position: relative;
-  z-index: inherit;
+  position: relative !important;
+  z-index: inherit !important;
 }

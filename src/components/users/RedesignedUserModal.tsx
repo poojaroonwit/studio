@@ -63,35 +63,24 @@ interface RedesignedUserModalProps {
 // Header Component
 interface ModalHeaderProps {
   modalInfo: { title: string; description: string; icon: any };
-  onClose: () => void;
 }
 
-function ModalHeader({ modalInfo, onClose }: ModalHeaderProps) {
+function ModalHeader({ modalInfo }: ModalHeaderProps) {
   const IconComponent = modalInfo.icon;
   
   return (
-    <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-700 mb-0">
-      <div className="flex items-center gap-4">
-        <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600">
-          <IconComponent className="h-6 w-6 text-white" />
-        </div>
-        <div>
-          <DialogTitle className="text-xl font-semibold text-slate-900 dark:text-slate-100">
-            {modalInfo.title}
-          </DialogTitle>
-          <DialogDescription className="text-sm text-slate-600 dark:text-slate-400">
-            {modalInfo.description}
-          </DialogDescription>
-        </div>
+    <div className="flex items-center gap-4 p-6 border-b border-slate-200 dark:border-slate-700 mb-0">
+      <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600">
+        <IconComponent className="h-6 w-6 text-white" />
       </div>
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={onClose}
-        className="h-8 w-8 p-0"
-      >
-        <X className="h-4 w-4" />
-      </Button>
+      <div>
+        <DialogTitle className="text-xl font-semibold text-slate-900 dark:text-slate-100">
+          {modalInfo.title}
+        </DialogTitle>
+        <DialogDescription className="text-sm text-slate-600 dark:text-slate-400">
+          {modalInfo.description}
+        </DialogDescription>
+      </div>
     </div>
   );
 }
@@ -808,7 +797,7 @@ export function RedesignedUserModal({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl max-h-[90vh] p-0 overflow-hidden bg-white dark:bg-slate-900 gap-0 flex flex-col">
         {/* Header */}
-        <ModalHeader modalInfo={modalInfo} onClose={() => onOpenChange(false)} />
+        <ModalHeader modalInfo={modalInfo} />
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">

@@ -81,7 +81,7 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
   if (!canBulkUpload) {
     return (
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent>
+        <DialogContent dialogId="bulk-upload-access-denied-modal">
           <DialogHeader>
             <DialogTitle>Access Denied</DialogTitle>
             <DialogDescription>
@@ -418,11 +418,11 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
   return (
     <Dialog open={isOpen} onOpenChange={handleModalClose}>
       <DialogContent 
+        dialogId="bulk-upload-cvs-modal"
         ref={modalContentRef}
-        className="max-w-4xl w-full !z-[99999]" 
+        className="max-w-4xl w-full" 
         onEscapeKeyDown={(e) => e.preventDefault()}
         onOpenAutoFocus={(e) => e.preventDefault()}
-        style={{ zIndex: 99999 }}
       >
         <DialogHeader>
           <DialogTitle>Process Queue</DialogTitle>

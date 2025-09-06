@@ -5,6 +5,7 @@ import * as PopoverPrimitive from "@radix-ui/react-popover"
 
 import { cn } from "@/lib/utils"
 import { logIfInvalidSingleChild } from "./utils"
+import { useZoomAwarePortal } from "@/hooks/useZoomAwarePortal"
 
 const Popover = PopoverPrimitive.Root
 
@@ -19,11 +20,24 @@ const PopoverTrigger = React.forwardRef<HTMLButtonElement, React.ComponentPropsW
   }
 );
 
+// Custom portal container that accounts for zoom
+const ZoomAwarePortal = ({ children }: { children: React.ReactNode }) => {
+  const { portalStyle } = useZoomAwarePortal();
+
+  return (
+    <PopoverPrimitive.Portal container={document.body}>
+      <div style={portalStyle}>
+        {children}
+      </div>
+    </PopoverPrimitive.Portal>
+  );
+};
+
 const PopoverContent = React.forwardRef<
   React.ElementRef<typeof PopoverPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content>
 >(({ className, align = "center", sideOffset = 4, ...props }, ref) => (
-  <PopoverPrimitive.Portal>
+  <ZoomAwarePortal>
     <PopoverPrimitive.Content
       ref={ref}
       align={align}
@@ -34,7 +48,7 @@ const PopoverContent = React.forwardRef<
       )}
       {...props}
     />
-  </PopoverPrimitive.Portal>
+  </ZoomAwarePortal>
 ))
 PopoverContent.displayName = PopoverPrimitive.Content.displayName
 

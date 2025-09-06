@@ -5,6 +5,7 @@ import * as SelectPrimitive from "@radix-ui/react-select"
 import { Check, ChevronDown, ChevronUp } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { useZoomAwarePortal } from "@/hooks/useZoomAwarePortal"
 
 const Select = SelectPrimitive.Root
 
@@ -67,11 +68,24 @@ const SelectScrollDownButton = React.forwardRef<
 SelectScrollDownButton.displayName =
   SelectPrimitive.ScrollDownButton.displayName
 
+// Custom portal container that accounts for zoom
+const ZoomAwareSelectPortal = ({ children }: { children: React.ReactNode }) => {
+  const { portalStyle } = useZoomAwarePortal();
+
+  return (
+    <SelectPrimitive.Portal container={document.body}>
+      <div style={portalStyle}>
+        {children}
+      </div>
+    </SelectPrimitive.Portal>
+  );
+};
+
 const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
 >(({ className, children, position = "popper", ...props }, ref) => (
-  <SelectPrimitive.Portal>
+  <ZoomAwareSelectPortal>
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
@@ -95,7 +109,7 @@ const SelectContent = React.forwardRef<
       </SelectPrimitive.Viewport>
       <SelectScrollDownButton />
     </SelectPrimitive.Content>
-  </SelectPrimitive.Portal>
+  </ZoomAwareSelectPortal>
 ))
 SelectContent.displayName = SelectPrimitive.Content.displayName
 

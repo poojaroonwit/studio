@@ -91,25 +91,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              // Simple zoom functions with dropdown positioning fix
+              // Simple zoom functions
               window.setZoom = function(zoom) {
                 if (zoom >= 0.5 && zoom <= 1.5) {
                   document.documentElement.style.zoom = zoom.toString();
                   localStorage.setItem('app-zoom-level', zoom.toString());
                   window.dispatchEvent(new CustomEvent('zoomChanged', { detail: { zoom: zoom } }));
-                  
-                  // Force dropdown repositioning after zoom change
-                  setTimeout(() => {
-                    const dropdowns = document.querySelectorAll('[data-radix-dropdown-menu-content]');
-                    dropdowns.forEach(dropdown => {
-                      if (dropdown.style.display !== 'none') {
-                        dropdown.style.display = 'none';
-                        setTimeout(() => {
-                          dropdown.style.display = '';
-                        }, 10);
-                      }
-                    });
-                  }, 50);
                 }
               };
               

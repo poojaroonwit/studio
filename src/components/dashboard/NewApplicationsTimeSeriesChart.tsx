@@ -189,7 +189,14 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
           }
           break;
         case 'pastN':
-          if (periodUnit === 'week') {
+          if (periodUnit === 'day') {
+            start = new Date(now);
+            start.setDate(start.getDate() - n);
+            start.setHours(0, 0, 0, 0);
+            end = now;
+            intervalFn = eachDayOfInterval;
+            formatFn = (date: Date) => format(date, 'MMM dd');
+          } else if (periodUnit === 'week') {
             start = subWeeks(now, n);
             end = now;
             intervalFn = eachWeekOfInterval;
@@ -259,18 +266,36 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
       } else if (periodType === 'today' || periodType === 'yesterday') {
         // For today/yesterday, show hourly intervals
         intervalEnd = new Date(intervalStart.getTime() + 60 * 60 * 1000); // Add 1 hour
-      } else if (periodType === 'lastNDays') {
-        // For last N days, use daily intervals
-        intervalEnd = addDays(intervalStart, 1);
+      } else if (periodType === 'lastN') {
+        // For last N periods, use appropriate intervals based on unit
+        switch (periodUnit) {
+          case 'day':
+            intervalEnd = addDays(intervalStart, 1);
+            break;
+          case 'week':
+            intervalEnd = endOfWeek(intervalStart);
+            break;
+          case 'month':
+            intervalEnd = endOfMonth(intervalStart);
+            break;
+          case 'year':
+            intervalEnd = endOfYear(intervalStart);
+            break;
+          default:
+            intervalEnd = addDays(intervalStart, 1);
+            break;
+        }
       } else {
-        // For daily intervals (this week, last week), use end of day
+        // For 'this' and 'last' period types, use appropriate intervals based on unit
         if (periodType === 'this' || periodType === 'last') {
           if (periodUnit === 'week') {
             intervalEnd = addDays(intervalStart, 1);
           } else if (periodUnit === 'month') {
-            intervalEnd = endOfWeek(intervalStart);
-          } else {
+            intervalEnd = addDays(intervalStart, 1);
+          } else if (periodUnit === 'year') {
             intervalEnd = endOfMonth(intervalStart);
+          } else {
+            intervalEnd = addDays(intervalStart, 1);
           }
         } else {
           // For other period types, use the original logic
@@ -349,18 +374,36 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
       } else if (periodType === 'today' || periodType === 'yesterday') {
         // For today/yesterday, show hourly intervals
         intervalEnd = new Date(intervalStart.getTime() + 60 * 60 * 1000); // Add 1 hour
-      } else if (periodType === 'lastNDays') {
-        // For last N days, use daily intervals
-        intervalEnd = addDays(intervalStart, 1);
+      } else if (periodType === 'lastN') {
+        // For last N periods, use appropriate intervals based on unit
+        switch (periodUnit) {
+          case 'day':
+            intervalEnd = addDays(intervalStart, 1);
+            break;
+          case 'week':
+            intervalEnd = endOfWeek(intervalStart);
+            break;
+          case 'month':
+            intervalEnd = endOfMonth(intervalStart);
+            break;
+          case 'year':
+            intervalEnd = endOfYear(intervalStart);
+            break;
+          default:
+            intervalEnd = addDays(intervalStart, 1);
+            break;
+        }
       } else {
-        // For daily intervals (this week, last week), use end of day
+        // For 'this' and 'last' period types, use appropriate intervals based on unit
         if (periodType === 'this' || periodType === 'last') {
           if (periodUnit === 'week') {
             intervalEnd = addDays(intervalStart, 1);
           } else if (periodUnit === 'month') {
-            intervalEnd = endOfWeek(intervalStart);
-          } else {
+            intervalEnd = addDays(intervalStart, 1);
+          } else if (periodUnit === 'year') {
             intervalEnd = endOfMonth(intervalStart);
+          } else {
+            intervalEnd = addDays(intervalStart, 1);
           }
         } else {
           // For other period types, use the original logic

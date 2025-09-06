@@ -305,12 +305,22 @@ export default function CandidateImportUploadQueue() {
     return new Date(dateString).toLocaleString();
   };
 
-  const formatFileSize = (bytes: number) => {
+  const formatFileSize = (bytes: number | null | undefined) => {
+    // Handle null, undefined, NaN, or negative values
+    if (bytes === null || bytes === undefined || isNaN(bytes) || bytes < 0) {
+      return 'Unknown size';
+    }
+    
     if (bytes === 0) return '0 Bytes';
+    
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    
+    // Ensure i is within bounds
+    const sizeIndex = Math.max(0, Math.min(i, sizes.length - 1));
+    
+    return parseFloat((bytes / Math.pow(k, sizeIndex)).toFixed(2)) + ' ' + sizes[sizeIndex];
   };
 
   const calculateDuration = (processDate?: string, completedDate?: string) => {
@@ -1091,20 +1101,7 @@ export default function CandidateImportUploadQueue() {
               </div>
             </div>
 
-            <div className="space-y-1">
-              <Label htmlFor="pageSize" className="text-xs text-muted-foreground">Per Page</Label>
-              <Select value={pageSize.toString()} onValueChange={(value: string) => setPageSize(Number(value))}>
-                <SelectTrigger className="h-7 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="10">10</SelectItem>
-                  <SelectItem value="25">25</SelectItem>
-                  <SelectItem value="50">50</SelectItem>
-                  <SelectItem value="100">100</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+         
 
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">Quick Dates</Label>

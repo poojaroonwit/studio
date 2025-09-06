@@ -169,7 +169,7 @@
   border-radius: 4px;
   transition: height 0.3s ease;
   pointer-events: none;
-  z-index: 1001;
+  z-index: 50;
   box-shadow: 
     0 0 15px rgba(255, 107, 107, 0.6),
     inset 0 2px 0 rgba(255, 255, 255, 0.4);
@@ -192,7 +192,7 @@
   opacity: 0;
   transition: opacity 0.4s ease;
   pointer-events: none;
-  z-index: 1000;
+  z-index: 50;
   box-shadow: 0 0 12px rgba(255, 107, 107, 0.5);
 }
 
@@ -419,7 +419,7 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
-  z-index: 1000;
+  z-index: 50;
   opacity: 0;
   transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   pointer-events: none;

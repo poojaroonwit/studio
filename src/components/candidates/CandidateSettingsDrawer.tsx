@@ -377,7 +377,7 @@ export function CandidateSettingsDrawer({
                     <SelectTrigger className="w-full">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="z-[99999]">
                       <SelectItem value="compact">Compact</SelectItem>
                       <SelectItem value="normal">Normal</SelectItem>
                       <SelectItem value="comfortable">Comfortable</SelectItem>

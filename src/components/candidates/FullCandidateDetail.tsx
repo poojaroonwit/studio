@@ -477,17 +477,11 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
   let appliedJobBadge = null;
   if (appliedJobId) {
     const appliedPosition = allDbPositions.find(p => p.id === appliedJobId);
-    const hasFitScore = appliedFitScore !== null && appliedFitScore !== undefined;
     const hasGrade = appliedPosition?.gradeId && appliedPosition?.grade;
     
-    if (hasFitScore || hasGrade) {
+    if (hasGrade) {
       appliedJobBadge = (
         <div className="flex items-center gap-2">
-          {hasFitScore && (
-            <ScoreBadge score={appliedFitScore} className="text-sm">
-              {formatScoreWithGrade(appliedFitScore)}
-            </ScoreBadge>
-          )}
           {hasGrade && appliedPosition?.grade && (
             <Badge
               variant="outline"

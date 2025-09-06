@@ -50,8 +50,8 @@ export function RecruiterFilterSidebar({
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="pb-4 mb-4 border-b border-border/50">
-        <h3 className="flex items-center gap-2 text-xl font-bold mb-2">
+      <div className="pb-4 border-b border-border/50">
+        <h3 className="flex items-center gap-2 text-xl font-bold p-6">
           <Users className="h-4 w-4 text-primary" />
           Recruiter
         </h3>
@@ -59,7 +59,7 @@ export function RecruiterFilterSidebar({
       </div>
 
       {/* Search Input */}
-      <div className="mb-4">
+      <div className="p-4">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input

@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth';
 import { processSingleUploadQueueJob } from '@/lib/uploadQueueProcessor';
 import { broadcastUploadQueueUpdate } from '../sse/broadcastUploadQueueUpdate';
 import { hasAnyPermission } from '@/lib/permissions';
+import { getSystemSetting } from '@/lib/settings';
 
 /**
  * @openapi
@@ -72,11 +73,25 @@ async function processSingleItem(
   let timeoutId: NodeJS.Timeout | null = null;
   
   try {
+    // Get webhook timeout setting (default 30 minutes)
+    let timeoutMs = 1800000; // 30 minutes default
+    try {
+      const timeoutSetting = await getSystemSetting('resumeProcessingWebhookTimeout');
+      if (timeoutSetting) {
+        const parsedTimeout = parseInt(timeoutSetting, 10);
+        if (!isNaN(parsedTimeout) && parsedTimeout > 0) {
+          timeoutMs = parsedTimeout * 1000; // Convert seconds to milliseconds
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to get webhook timeout setting, using default:', e);
+    }
+    
     // Set a timeout for the entire operation
     const timeoutPromise = new Promise<never>((_, reject) => {
       timeoutId = setTimeout(() => {
         reject(new Error('Operation timeout'));
-      }, 300000); // 5 minutes timeout
+      }, timeoutMs);
     });
 
     const operationPromise = (async () => {

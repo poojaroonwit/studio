@@ -274,11 +274,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to download file from MinIO', job }, { status: 500 });
     }
     
-    // Update status to indicate file downloaded and ready for webhook
-    await client.query(
-      `UPDATE upload_queue SET status = 'inprocess', updated_at = now() WHERE id = $1`,
-      [job.id]
-    );
+    // Note: Status is already set to 'inprocess' at the beginning of processing
+    // No need to update status here
 
     // Broadcast progress update for real-time UI updates
     try {
@@ -379,18 +376,8 @@ export async function POST(request: NextRequest) {
     }
 
 
-    // Validate status before database update
-    if (!['success', 'failed'].includes(status)) {
-      console.error(`[Database] Invalid status detected: ${status}, defaulting to 'failed'`);
-      status = 'failed';
-      error = 'Invalid status detected during processing';
-      error_details = `Status was set to invalid value: ${status}`;
-    }
-    
-    await client.query(
-      `UPDATE upload_queue SET status = $1, error = $2, error_details = $3, completed_date = now(), updated_at = now(), webhook_payload = $4 WHERE id = $5`,
-      [status, error, error_details, payload, job.id]
-    );
+    // Note: Status update is handled by processSingleUploadQueueJob function
+    // No need to update status here to avoid race conditions
     
     const totalProcessingTime = Date.now() - startTime;
     // console.log(`[Database] Job ${job.id} status updated to: ${status} (${(totalProcessingTime / 1000).toFixed(1)}s)`);

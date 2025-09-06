@@ -378,6 +378,20 @@ export async function POST(request: NextRequest) {
     file_size = parseInt(file_size, 10) || 0;
   }
   
+  // For reprocess jobs, get the actual file size from MinIO if file_size is 0 or missing
+  const isReprocessJob = source === 'reprocess' || (webhook_payload && webhook_payload.source === 'reprocess');
+  if (isReprocessJob && (file_size === 0 || !file_size) && file_path) {
+    try {
+      const { minioClient } = await import('@/lib/minio');
+      const { MINIO_BUCKET } = await import('@/lib/minio-constants');
+      const fileStats = await minioClient.statObject(MINIO_BUCKET, file_path);
+      file_size = fileStats.size;
+    } catch (error) {
+      console.warn(`[UPLOAD_QUEUE] Could not get file size from MinIO for ${file_path}:`, error);
+      // Keep the original file_size (0) if we can't get it from MinIO
+    }
+  }
+  
   // If position_id and applied_position_id are not set, try to get from webhook_payload.targetPositionId
   let finalPositionId = position_id || applied_position_id || null;
   if (!finalPositionId && webhook_payload && typeof webhook_payload === 'object' && webhook_payload.targetPositionId) {
@@ -392,8 +406,6 @@ export async function POST(request: NextRequest) {
   const client = await getPool().connect();
   try {
     // For reprocess jobs, we need to handle the unique constraint differently
-    // Check if this is a reprocess job
-    const isReprocessJob = source === 'reprocess' || (webhook_payload && webhook_payload.source === 'reprocess');
     
     let res;
     if (isReprocessJob) {

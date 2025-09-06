@@ -61,12 +61,22 @@ export function HeadcountAttachmentModal({
   };
 
   // Helper function to format file size
-  const formatFileSize = (bytes: number): string => {
+  const formatFileSize = (bytes: number | null | undefined): string => {
+    // Handle null, undefined, NaN, or negative values
+    if (bytes === null || bytes === undefined || isNaN(bytes) || bytes < 0) {
+      return 'Unknown size';
+    }
+    
     if (bytes === 0) return '0 Bytes';
+    
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    
+    // Ensure i is within bounds
+    const sizeIndex = Math.max(0, Math.min(i, sizes.length - 1));
+    
+    return parseFloat((bytes / Math.pow(k, sizeIndex)).toFixed(2)) + ' ' + sizes[sizeIndex];
   };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {

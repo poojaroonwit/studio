@@ -1489,7 +1489,7 @@ export function CandidatesPageClient({
           {/* Filters Sidebar */}
           {showFilters && (
             <div className="responsive-filter-sidebar border-r bg-background overflow-hidden">
-              <div className="h-full overflow-y-auto">
+              <div className="h-full overflow-y-auto bg-muted/50 ">
                 {(() => {
                   const advancedQuery = searchParams.get('query') || undefined;
                   return (

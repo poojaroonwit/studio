@@ -202,7 +202,7 @@ export function UnifiedUserModal({
   
   const canManageUsers = hasUserManagePermission;
   const canManageTeams = hasUserManagePermission;
-  const canForcePasswordChange = hasUserManagePermission;
+  const canForcePasswordChange = hasUserManagePermission && mode === 'edit' && user?.id !== session?.user?.id;
   const canManageAuthentication = hasUserManagePermission;
 
   // Load user data and teams when modal opens
@@ -830,7 +830,7 @@ export function UnifiedUserModal({
                                   />
                                 )}
 
-                                {canForcePasswordChange && mode === 'edit' && (
+                                {canForcePasswordChange && (
                                   <FormField 
                                     control={form.control} 
                                     name="forcePasswordChange" 

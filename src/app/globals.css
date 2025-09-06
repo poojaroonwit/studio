@@ -2852,7 +2852,7 @@ body {
   transform-origin: top left;
   /* Ensure proper stacking context */
   position: relative;
-  z-index: 9990;
+  z-index: 99990;
 }
 
 /* Ensure portal content maintains proper positioning and scaling */

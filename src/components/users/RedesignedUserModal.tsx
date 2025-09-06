@@ -683,7 +683,7 @@ export function RedesignedUserModal({
 
   // Check permissions
   const canManageUsers = hasAnyPermission(session?.user, ['USERS_EDIT']);
-  const canForcePasswordChange = hasAnyPermission(session?.user, ['USERS_EDIT']);
+  const canForcePasswordChange = hasAnyPermission(session?.user, ['USERS_EDIT']) && mode === 'edit' && user?.id !== session?.user?.id;
   const canManageAuthentication = hasAnyPermission(session?.user, ['USERS_EDIT']);
 
   // Load user data when modal opens

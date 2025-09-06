@@ -29,14 +29,17 @@ export function ZoomProvider({
 
   // Apply zoom to the entire application using CSS transform
   const applyZoom = (zoomLevel: number) => {
-    // Apply transform to body instead of documentElement to affect all content including portals
+    // Apply transform to body to affect all content including portals
     document.body.style.transform = `scale(${zoomLevel})`
     document.body.style.transformOrigin = 'top left'
     
-    // Adjust body dimensions to prevent layout issues
+    // Set CSS custom property for zoom level
+    document.documentElement.style.setProperty('--zoom-level', zoomLevel.toString())
+    
+    // Adjust viewport to prevent scrollbars
     const scale = zoomLevel
-    document.body.style.width = `${100 / scale}%`
-    document.body.style.height = `${100 / scale}%`
+    document.body.style.width = `${100 / scale}vw`
+    document.body.style.height = `${100 / scale}vh`
     
     // Store in localStorage
     localStorage.setItem('app-zoom-level', zoomLevel.toString())

@@ -1421,7 +1421,7 @@ export function CandidateFilters({
                           >
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent className="z-[100003]">
+                          <SelectContent>
                             <SelectItem value="contains">contains</SelectItem>
                             <SelectItem value="is">is</SelectItem>
                             <SelectItem value="startsWith">starts with</SelectItem>
@@ -1453,7 +1453,7 @@ export function CandidateFilters({
                           >
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent className="z-[100003]">
+                          <SelectContent>
                             <SelectItem value="contains">contains</SelectItem>
                             <SelectItem value="is">is</SelectItem>
                             <SelectItem value="startsWith">starts with</SelectItem>
@@ -1485,7 +1485,7 @@ export function CandidateFilters({
                           >
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent className="z-[100003]">
+                          <SelectContent>
                             <SelectItem value="contains">contains</SelectItem>
                             <SelectItem value="is">is</SelectItem>
                             <SelectItem value="startsWith">starts with</SelectItem>
@@ -1517,7 +1517,7 @@ export function CandidateFilters({
                           >
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent className="z-[100003]">
+                          <SelectContent>
                             <SelectItem value="contains">contains</SelectItem>
                             <SelectItem value="is">is</SelectItem>
                             <SelectItem value="startsWith">starts with</SelectItem>

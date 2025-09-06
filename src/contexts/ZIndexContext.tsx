@@ -19,12 +19,12 @@ interface ZIndexContextType {
 
 const ZIndexContext = createContext<ZIndexContextType | undefined>(undefined);
 
-// Base z-index values
+// Base z-index values - increased to ensure they're higher than any hardcoded values
 const BASE_Z_INDEX = {
-  overlay: 10000,
-  content: 10001,
-  modal: 10002,
-  drawer: 10003,
+  overlay: 100000,
+  content: 100001,
+  modal: 100002,
+  drawer: 100003,
 };
 
 // Increment for each new component

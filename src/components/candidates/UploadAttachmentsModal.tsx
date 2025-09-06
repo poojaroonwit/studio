@@ -218,7 +218,7 @@ const UploadAttachmentsModal = ({ isOpen, onOpenChange, candidate, onUploadSucce
                         <SelectTrigger className="h-8 text-sm w-full bg-background border border-border hover:bg-accent hover:text-accent-foreground">
                           <SelectValue placeholder="Select file type" />
                         </SelectTrigger>
-                        <SelectContent className="z-[100003]">
+                        <SelectContent>
                           {PREDEFINED_TAGS.map((tagOption) => (
                             <SelectItem key={tagOption.value} value={tagOption.value}>
                               {tagOption.label}
@@ -244,7 +244,7 @@ const UploadAttachmentsModal = ({ isOpen, onOpenChange, candidate, onUploadSucce
                     <SelectTrigger className="h-8 text-sm w-full bg-background border border-border">
                       <SelectValue placeholder="Select files to add tags" />
                     </SelectTrigger>
-                    <SelectContent className="z-[100003]">
+                    <SelectContent>
                       {PREDEFINED_TAGS.map((tagOption) => (
                         <SelectItem key={tagOption.value} value={tagOption.value}>
                           {tagOption.label}

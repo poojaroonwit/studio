@@ -38,9 +38,9 @@ This document explains the zoom control functionality that has been added to red
   - Mobile-specific zoom limits
 
 ### 5. Keyboard Shortcuts
-- **File**: `src/app/layout.tsx` (inline script)
+- **Files**: `src/components/ui/zoom-control.tsx`, `src/components/ui/zoom-control-compact.tsx`
 - **Features**:
-  - Global keyboard event listeners
+  - Keyboard shortcuts trigger existing zoom control buttons
   - Standard zoom shortcuts (Ctrl + Plus/Minus/0)
   - Cross-platform support (Windows/Linux/Mac)
   - Prevents default browser zoom behavior
@@ -53,10 +53,11 @@ This document explains the zoom control functionality that has been added to red
 1. **Quick Access**: Look for the zoom icon in the bottom-right corner of the application
 2. **Settings**: Go to Settings page to access comprehensive zoom controls
 3. **Keyboard Shortcuts**: 
-   - **Ctrl + Plus** (or **Ctrl + =**): Zoom in by 10%
-   - **Ctrl + Minus**: Zoom out by 10%
-   - **Ctrl + 0**: Reset zoom to 100%
+   - **Ctrl + Plus** (or **Ctrl + =**): Triggers the zoom in button (+10%)
+   - **Ctrl + Minus**: Triggers the zoom out button (-10%)
+   - **Ctrl + 0**: Triggers the reset button (100%)
    - Works on both Windows/Linux (Ctrl) and Mac (Cmd)
+   - Keyboard shortcuts activate the same functionality as clicking the zoom control buttons
 
 ### For Developers
 

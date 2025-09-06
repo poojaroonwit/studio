@@ -837,7 +837,8 @@ export function WarningDrawer({ isOpen, onClose }: WarningDrawerProps) {
         style={{ 
           width: '50vw', 
           minWidth: '400px', 
-          maxWidth: '1200px' 
+          maxWidth: '1200px',
+          zIndex: 999999
         }}
       >
         <div className="flex flex-col h-full">

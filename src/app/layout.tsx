@@ -112,35 +112,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               } else {
                 document.documentElement.style.zoom = '0.9';
               }
-              
-              // Keyboard shortcuts for zoom (Ctrl + Plus/Minus)
-              document.addEventListener('keydown', function(e) {
-                // Check if Ctrl (or Cmd on Mac) is pressed
-                if (e.ctrlKey || e.metaKey) {
-                  const currentZoom = window.getZoom();
-                  const step = 0.1;
-                  const minZoom = 0.5;
-                  const maxZoom = 1.5;
-                  
-                  // Handle Plus key (zoom in)
-                  if (e.key === '+' || e.key === '=') {
-                    e.preventDefault();
-                    const newZoom = Math.min(currentZoom + step, maxZoom);
-                    window.setZoom(newZoom);
-                  }
-                  // Handle Minus key (zoom out)
-                  else if (e.key === '-') {
-                    e.preventDefault();
-                    const newZoom = Math.max(currentZoom - step, minZoom);
-                    window.setZoom(newZoom);
-                  }
-                  // Handle 0 key (reset zoom to 100%)
-                  else if (e.key === '0') {
-                    e.preventDefault();
-                    window.setZoom(1.0);
-                  }
-                }
-              });
             `,
           }}
         />

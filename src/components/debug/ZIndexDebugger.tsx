@@ -1,9 +1,4 @@
-/**
- * Z-Index Debugger Component
- * 
- * This component displays the current z-index layers for debugging purposes.
- * Only shows in development mode.
- */
+"use client";
 
 import React from 'react';
 import { useZIndexDebug, useDynamicZIndex } from '@/contexts/ZIndexContext';
@@ -43,6 +38,9 @@ export const ZIndexDebugger: React.FC<ZIndexDebuggerProps> = ({ isVisible = fals
         <p className="text-xs text-gray-400">
           Total: {layers.length} layers
         </p>
+        <p className="text-xs text-gray-400">
+          Debugger z-index: {contentZIndex}
+        </p>
       </div>
     </div>
   );
@@ -53,17 +51,15 @@ export const useZIndexDebugger = () => {
   const [isVisible, setIsVisible] = React.useState(false);
 
   React.useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      // Toggle with Ctrl+Shift+Z
-      if (event.ctrlKey && event.shiftKey && event.key === 'Z') {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key === 'Z') {
         setIsVisible(prev => !prev);
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
   }, []);
 
   return { isVisible, setIsVisible };
 };
-

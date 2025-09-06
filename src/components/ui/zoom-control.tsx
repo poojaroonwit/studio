@@ -72,6 +72,33 @@ export function ZoomControl({
     };
   }, [minZoom, maxZoom, defaultZoom]);
 
+  // Add keyboard shortcuts for zoom in/out buttons
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Check if Ctrl (or Cmd on Mac) is pressed
+      if (e.ctrlKey || e.metaKey) {
+        // Handle Plus key (zoom in) - trigger zoom in button
+        if (e.key === '+' || e.key === '=') {
+          e.preventDefault();
+          handleZoomIn();
+        }
+        // Handle Minus key (zoom out) - trigger zoom out button
+        else if (e.key === '-') {
+          e.preventDefault();
+          handleZoomOut();
+        }
+        // Handle 0 key (reset zoom) - trigger reset button
+        else if (e.key === '0') {
+          e.preventDefault();
+          handleReset();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [zoom, step, minZoom, maxZoom, defaultZoom]); // Include dependencies for the handlers
+
 
   const handleZoomIn = () => {
     const newZoom = Math.min(zoom + step, maxZoom);

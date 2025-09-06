@@ -21,6 +21,43 @@ export function ZoomControlCompact({ className }: ZoomControlCompactProps) {
     console.log('ZoomControlCompact: setZoom called with:', value[0]);
   };
 
+  const handleZoomIn = () => {
+    const newZoom = Math.min(zoom + 0.1, 1.5);
+    setZoom(newZoom);
+  };
+
+  const handleZoomOut = () => {
+    const newZoom = Math.max(zoom - 0.1, 0.5);
+    setZoom(newZoom);
+  };
+
+  // Add keyboard shortcuts for zoom in/out buttons
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Check if Ctrl (or Cmd on Mac) is pressed
+      if (e.ctrlKey || e.metaKey) {
+        // Handle Plus key (zoom in) - trigger zoom in button
+        if (e.key === '+' || e.key === '=') {
+          e.preventDefault();
+          handleZoomIn();
+        }
+        // Handle Minus key (zoom out) - trigger zoom out button
+        else if (e.key === '-') {
+          e.preventDefault();
+          handleZoomOut();
+        }
+        // Handle 0 key (reset zoom) - trigger reset button
+        else if (e.key === '0') {
+          e.preventDefault();
+          resetZoom();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [zoom]); // Include zoom as dependency
+
   const quickZoomOptions = [
     { label: '75%', value: 0.75 },
     { label: '90%', value: 0.9 },

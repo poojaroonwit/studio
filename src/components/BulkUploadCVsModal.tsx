@@ -464,6 +464,7 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
                 <SelectContent 
                   position="popper"
                   sideOffset={4}
+                  selectId="bulk-upload-source-select"
                 >
                   {availableSources.map((source) => (
                     <SelectItem key={source.id} value={source.id}>

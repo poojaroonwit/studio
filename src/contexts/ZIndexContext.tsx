@@ -44,6 +44,7 @@ export function ZIndexProvider({ children }: { children: React.ReactNode }) {
       return [...filtered, { id, type, zIndex, timestamp }];
     });
     
+    // Increment for next component
     nextZIndexRef.current += Z_INDEX_INCREMENT;
     return zIndex;
   }, []);

@@ -129,7 +129,6 @@ export function ZoomControl({
         const computedStyle = window.getComputedStyle(document.documentElement);
         console.log('Computed transform after setZoom:', computedStyle.transform);
         console.log('Page should now be at', Math.round(newZoom * 100) + '%');
-        console.log('Document width/height:', document.documentElement.style.width, document.documentElement.style.height);
       }, 100);
     } else {
       console.warn('window.setZoom is not available');

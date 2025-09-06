@@ -2844,7 +2844,3 @@ body {
   z-index: 9999 !important;
   pointer-events: auto !important;
 }
-
-/* Fix dropdown positioning when page is zoomed using transform */
-/* The new zoom implementation uses CSS transform instead of zoom property */
-/* This ensures Radix UI dropdowns position correctly */

@@ -2850,6 +2850,9 @@ body {
   /* Apply inverse zoom to portal content to counteract the document zoom */
   transform: scale(calc(1 / var(--portal-zoom-level, 1)));
   transform-origin: top left;
+  /* Ensure proper stacking context */
+  position: relative;
+  z-index: 9990;
 }
 
 /* Ensure portal content maintains proper positioning and scaling */
@@ -2859,4 +2862,7 @@ body {
   /* Apply the zoom level back to the content so it matches the page zoom */
   transform: scale(var(--portal-zoom-level, 1));
   transform-origin: top left;
+  /* Ensure content appears above everything */
+  position: relative;
+  z-index: inherit;
 }

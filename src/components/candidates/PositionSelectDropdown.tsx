@@ -145,7 +145,7 @@ export function PositionSelectDropdown({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50 text-foreground" />
         </Button>
       </PopoverTrigger>
-       <PopoverContent className="!w-80 p-0 bg-popover border-border" align="start" side="bottom" sideOffset={4}>
+      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 bg-popover border-border" align="start">
         <div className="bg-popover text-popover-foreground">
           {/* Search Input */}
           <div className="flex items-center border-b border-border px-3 bg-popover">
@@ -159,7 +159,7 @@ export function PositionSelectDropdown({
           </div>
           
           {/* Positions List */}
-           <div>
+          <div className="max-h-[300px] overflow-y-auto">
             {filteredPositions.length === 0 && !showNoneOption ? (
               <div className="py-6 text-center text-sm text-muted-foreground">
                 No position found.

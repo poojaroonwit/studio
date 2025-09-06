@@ -2845,24 +2845,6 @@ body {
   pointer-events: auto !important;
 }
 
-/* Fix for Radix UI portal positioning with zoom */
-[data-radix-portal] {
-  /* Apply inverse zoom to portal content to counteract the document zoom */
-  transform: scale(calc(1 / var(--portal-zoom-level, 1)));
-  transform-origin: top left;
-  /* Ensure proper stacking context */
-  position: relative !important;
-  z-index: 999999 !important;
-}
-
-/* Ensure portal content maintains proper positioning and scaling */
-[data-radix-portal] > * {
-  /* Reset any inherited transforms that might interfere */
-  transform: none;
-  /* Apply the zoom level back to the content so it matches the page zoom */
-  transform: scale(var(--portal-zoom-level, 1));
-  transform-origin: top left;
-  /* Ensure content appears above everything */
-  position: relative !important;
-  z-index: inherit !important;
-}
+/* Fix dropdown positioning when page is zoomed using transform */
+/* The new zoom implementation uses CSS transform instead of zoom property */
+/* This ensures Radix UI dropdowns position correctly */

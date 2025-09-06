@@ -376,7 +376,7 @@ export function UnifiedUserModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent dialogId="unified-user-modal" className="sm:max-w-6xl max-h-[95vh] flex flex-col p-0 overflow-hidden">
+      <DialogContent className="sm:max-w-6xl max-h-[95vh] flex flex-col p-0 overflow-hidden">
         <DialogHeader className="flex-shrink-0 p-6 pb-4 border-b bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5">
           <div className="flex items-center space-x-3">
             <div className="p-2 rounded-lg bg-primary/10">

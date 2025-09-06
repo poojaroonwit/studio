@@ -451,7 +451,7 @@ export function ManageTransitionsModal({
         open={isOpen} 
         onOpenChange={handleModalOpenChange}
       >
-        <DialogContent dialogId="manage-transitions-modal" className="sm:max-w-3xl">
+        <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>Manage Transitions for {candidate.name}</DialogTitle>
             <DialogDescription>
@@ -515,7 +515,7 @@ export function ManageTransitionsModal({
           if (!open) setTransitionToDelete(null);
         }}
       >
-        <AlertDialogContent dialogId="delete-transition-alert">
+        <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>

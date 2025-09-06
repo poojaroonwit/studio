@@ -7,7 +7,6 @@ import { Slot } from "@radix-ui/react-slot"
 import { logIfInvalidSingleChild } from "./utils"
 
 import { cn } from "@/lib/utils"
-import { useZoomAwarePortal } from "@/hooks/useZoomAwarePortal"
 
 const DropdownMenu = DropdownMenuPrimitive.Root
 
@@ -58,54 +57,33 @@ const DropdownMenuSubContent = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.SubContent>,
   React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.SubContent>
 >(({ className, ...props }, ref) => (
-  <ZoomAwareDropdownPortal>
-    <DropdownMenuPrimitive.SubContent
-      ref={ref}
-      className={cn(
-          "!z-[999998] min-w-[8rem] overflow-hidden !rounded-lg border bg-popover p-1 text-popover-foreground shadow-lg data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
-        className
-      )}
-      {...props}
-    />
-  </ZoomAwareDropdownPortal>
+  <DropdownMenuPrimitive.SubContent
+    ref={ref}
+    className={cn(
+        "z-[50] min-w-[8rem] overflow-hidden !rounded-lg border bg-popover p-1 text-popover-foreground shadow-lg data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
+      className
+    )}
+    {...props}
+  />
 ))
 DropdownMenuSubContent.displayName =
   DropdownMenuPrimitive.SubContent.displayName
-
-// Custom portal container that accounts for zoom
-const ZoomAwareDropdownPortal = ({ children }: { children: React.ReactNode }) => {
-  useZoomAwarePortal(); // Initialize zoom awareness
-
-  return (
-    <DropdownMenuPrimitive.Portal container={document.body}>
-      <div 
-        data-radix-portal
-        style={{ 
-          zIndex: 999999,
-          position: 'relative'
-        }}
-      >
-        {children}
-      </div>
-    </DropdownMenuPrimitive.Portal>
-  );
-};
 
 const DropdownMenuContent = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content>
 >(({ className, sideOffset = 4, ...props }, ref) => (
-  <ZoomAwareDropdownPortal>
+  <DropdownMenuPrimitive.Portal>
     <DropdownMenuPrimitive.Content
       ref={ref}
       sideOffset={sideOffset}
       className={cn(
-        "!z-[999999] min-w-[8rem] overflow-hidden !rounded-lg border bg-popover p-1 text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
+        "z-[50] min-w-[8rem] overflow-hidden !rounded-lg border bg-popover p-1 text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
         className
       )}
       {...props}
     />
-  </ZoomAwareDropdownPortal>
+  </DropdownMenuPrimitive.Portal>
 ))
 DropdownMenuContent.displayName = DropdownMenuPrimitive.Content.displayName
 

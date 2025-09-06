@@ -200,7 +200,7 @@ export function CandidateSourceCell({
           )}
         </Button>
       </PopoverTrigger>
-       <PopoverContent className="!w-80 p-0" align="start" side="bottom" sideOffset={4}>
+      <PopoverContent className="w-[280px] p-0" align="start">
         <div className="p-2">
           <div className="text-sm font-medium mb-2">Select Source</div>
           
@@ -231,7 +231,7 @@ export function CandidateSourceCell({
           </div>
           
           {/* Scrollable content area */}
-           <div>
+          <div className="max-h-[300px] overflow-y-auto">
             {/* Unassign option - always show */}
             <button
               onClick={() => handleSelect(null)}

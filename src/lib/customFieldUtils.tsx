@@ -31,13 +31,14 @@ export function filterCustomFieldsBySection(
         return field.showInCandidateDetail && !field.showInFullCandidateDetail;
         
       case 'Position':
-        // For position detail sections
+        // For position detail sections - show all custom fields regardless of visibility settings
         if (section === 'details' || section === 'criteria' || section === 'candidates' || section === 'headcount') {
-          // Check if field should be shown in position settings
-          if (!field.showInPositionSettings) return false;
-          
-          // If section is specified, check if it matches
-          if (field.positionDetailSection && field.positionDetailSection !== section) return false;
+          // Show all custom fields for positions in edit mode
+          // If section is specified, check if it matches (but don't require it)
+          if (field.positionDetailSection && field.positionDetailSection !== section) {
+            // If field has a specific section and it doesn't match, skip it
+            return false;
+          }
           
           return true;
         }

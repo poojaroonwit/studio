@@ -20,9 +20,6 @@ import {
   FileText, 
   Calendar,
   Settings,
-  Shield,
-  CheckCircle,
-  XCircle,
   MoreHorizontal
 } from 'lucide-react';
 import {
@@ -153,29 +150,6 @@ export default function CustomFieldTable({
     return badges;
   };
 
-  const getPermissionBadges = (field: CustomFieldDefinition) => {
-    const badges = [];
-    
-    if (field.viewRoles && field.viewRoles.length > 0) {
-      badges.push(
-        <Badge key="view" variant="outline" className="text-xs">
-          <Eye className="h-3 w-3 mr-1" />
-          View: {field.viewRoles.join(', ')}
-        </Badge>
-      );
-    }
-    
-    if (field.editRoles && field.editRoles.length > 0) {
-      badges.push(
-        <Badge key="edit" variant="outline" className="text-xs">
-          <Edit3 className="h-3 w-3 mr-1" />
-          Edit: {field.editRoles.join(', ')}
-        </Badge>
-      );
-    }
-    
-    return badges;
-  };
 
   const handleEdit = useCallback((field: CustomFieldDefinition) => {
     onEdit(field);
@@ -301,7 +275,6 @@ export default function CustomFieldTable({
               <TableHead>Type</TableHead>
               <TableHead>Model</TableHead>
               <TableHead>Visibility</TableHead>
-              <TableHead>Permissions</TableHead>
               <TableHead>Properties</TableHead>
               <TableHead className="w-[100px]">Actions</TableHead>
             </TableRow>
@@ -347,12 +320,6 @@ export default function CustomFieldTable({
                 <TableCell>
                   <div className="flex flex-wrap gap-1">
                     {getVisibilityBadges(field)}
-                  </div>
-                </TableCell>
-                
-                <TableCell>
-                  <div className="flex flex-wrap gap-1">
-                    {getPermissionBadges(field)}
                   </div>
                 </TableCell>
                 

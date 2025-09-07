@@ -219,7 +219,20 @@ export function PositionCustomFieldEdit({
   }
 
   if (fieldDefinitions.length === 0) {
-    return null; // Don't render anything if no custom fields
+    // Show a debug message to help identify the issue
+    return (
+      <Card className={className}>
+        <CardHeader>
+          <CardTitle className="text-lg">{title}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-sm text-muted-foreground">
+            No custom fields found for Position in section "{section}". 
+            {loading ? " Loading..." : " Check if custom fields are defined in settings."}
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (

@@ -109,7 +109,7 @@ export function useCandidateFetching({
       // Handle custom field filters
       if (currentFilters.customFieldFilters && Object.keys(currentFilters.customFieldFilters).length > 0) {
         for (const [fieldCode, value] of Object.entries(currentFilters.customFieldFilters)) {
-          if (value !== undefined && value !== null && (value === false || value !== '')) {
+          if (value !== undefined && value !== null && value !== '') {
             query.append(`customField_${fieldCode}`, String(value));
           }
         }

@@ -999,7 +999,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Handle custom field filters
-    if (Object.keys(filters.customFieldFilters).length > 0) {
+    if (filters.customFieldFilters && Object.keys(filters.customFieldFilters).length > 0) {
       // First, get the custom field definitions to understand field types
       const customFieldDefsQuery = `
         SELECT field_code, field_type, options

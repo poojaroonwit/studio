@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Clock, FileText, AlertTriangle, TrendingUp, Database, CalendarIcon, Filter, X, Download, FileSpreadsheet } from 'lucide-react';
+import { Loader2, Clock, FileText, AlertTriangle, TrendingUp, Database, CalendarIcon, Filter, X, Download, FileSpreadsheet, ImageIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { formatFileSize, formatDate, calculateDuration, safeGetDateFromRange } from '@/lib/utils';
@@ -34,6 +34,8 @@ interface QueueItem {
   error_details: string | null;
   position_title: string | null;
   source: string | null;
+  source_name: string | null;
+  source_logo: string | null;
 }
 
 interface AnalyticsData {
@@ -50,6 +52,7 @@ interface AnalyticsData {
     errorDetails: string | null;
     positionTitle: string | null;
     source: string | null;
+    source_logo: string | null;
     id: string;
   }>;
   stats: {
@@ -215,11 +218,12 @@ export default function ProcessQueueAnalytics() {
           uploadDate: item.upload_date,
           processDate: item.process_date,
           completedDate: item.completed_date,
-          error: item.error,
-          errorDetails: item.error_details,
-          positionTitle: item.position_title,
-          source: item.source,
-          id: item.id
+        error: item.error,
+        errorDetails: item.error_details,
+        positionTitle: item.position_title,
+        source: item.source_name || item.source,
+        source_logo: item.source_logo,
+        id: item.id
         });
 
         // Calculate file size range
@@ -477,6 +481,7 @@ export default function ProcessQueueAnalytics() {
         errorDetails: '', // No specific error details for errors
         positionTitle: null,
         source: null,
+        source_logo: null,
         id: '' // No job ID for errors
       });
       setIsJobDetailsOpen(true);
@@ -1368,7 +1373,20 @@ export default function ProcessQueueAnalytics() {
                     {selectedJob.source && (
                       <div>
                         <p className="text-sm font-medium">Source</p>
-                        <p className="text-sm text-muted-foreground">{selectedJob.source}</p>
+                        <div className="flex items-center gap-2">
+                          {selectedJob.source_logo ? (
+                            <img 
+                              src={selectedJob.source_logo} 
+                              alt={`${selectedJob.source} logo`}
+                              className="h-4 w-4 object-contain rounded-full flex-shrink-0"
+                            />
+                          ) : (
+                            <div className="h-4 w-4 bg-muted rounded-full flex items-center justify-center flex-shrink-0">
+                              <ImageIcon className="h-2 w-2 text-muted-foreground" />
+                            </div>
+                          )}
+                          <p className="text-sm text-muted-foreground">{selectedJob.source}</p>
+                        </div>
                       </div>
                     )}
                   </div>

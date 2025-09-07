@@ -15,7 +15,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Clock, Loader2, CheckCircle, XCircle, Search, Filter, AlertCircle, Info, Upload, FileText, Users, Calendar as CalendarIcon, MoreHorizontal, Play, X, Trash2, Eye, RotateCcw, CheckSquare, Square, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, RefreshCw } from 'lucide-react';
+import { Clock, Loader2, CheckCircle, XCircle, Search, Filter, AlertCircle, Info, Upload, FileText, Users, Calendar as CalendarIcon, MoreHorizontal, Play, X, Trash2, Eye, RotateCcw, CheckSquare, Square, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, RefreshCw, ImageIcon } from 'lucide-react';
 import { FileViewerModal } from '@/components/ui/file-viewer-modal';
 
 import { useSharedSSE } from '@/hooks/use-shared-sse';
@@ -36,6 +36,7 @@ interface QueueItem {
   source_id?: string;
   sub_source?: string;
   source_name?: string;
+  source_logo?: string;
   upload_date: string;
   completed_date?: string;
   upload_id?: string;
@@ -1255,12 +1256,29 @@ export default function CandidateImportUploadQueue() {
                     <TableCell className="font-medium">{item.file_name}</TableCell>
                     <TableCell>{item.position_title || '-'}</TableCell>
                     <TableCell>
-                      {item.source_name || '-'}
-                      {item.sub_source && (
-                        <div className="text-xs text-muted-foreground">
-                          {item.sub_source}
+                      <div className="flex items-center gap-2">
+                        {item.source_logo ? (
+                          <img 
+                            src={item.source_logo} 
+                            alt={`${item.source_name} logo`}
+                            className="h-5 w-5 object-contain rounded-full flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="h-5 w-5 bg-muted rounded-full flex items-center justify-center flex-shrink-0">
+                            <ImageIcon className="h-3 w-3 text-muted-foreground" />
+                          </div>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-medium text-foreground truncate">
+                            {item.source_name || '-'}
+                          </div>
+                          {item.sub_source && (
+                            <div className="text-xs text-muted-foreground">
+                              {item.sub_source}
+                            </div>
+                          )}
                         </div>
-                      )}
+                      </div>
                     </TableCell>
                     <TableCell>{formatFileSize(item.file_size)}</TableCell>
                     <TableCell>

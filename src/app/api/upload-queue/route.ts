@@ -247,7 +247,7 @@ export async function GET(request: NextRequest) {
     
     // Main query - only fetches records for the current page using LIMIT and OFFSET
     const dataRes = await client.query(
-      `SELECT uq.*, p.title as position_title, cs.name as source_name
+      `SELECT uq.*, p.title as position_title, cs.name as source_name, cs.logo as source_logo
        FROM upload_queue uq 
        LEFT JOIN "Position" p ON uq.position_id = p.id 
        LEFT JOIN "CandidateSource" cs ON uq.source_id = cs.id

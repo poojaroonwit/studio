@@ -27,6 +27,10 @@ const createCustomFieldSchema = z.object({
   showInPositionSettings: z.boolean().default(false),
   showInHeadcountDetail: z.boolean().default(false),
   
+  // Section selection for display settings
+  candidateDetailSection: z.enum(['jobs', 'candidate-info', 'education', 'experience', 'job-suitability']).optional(),
+  positionDetailSection: z.enum(['details', 'criteria', 'candidates', 'headcount']).optional(),
+  
   // Field properties
   is_required: z.boolean().default(false),
   allowCustomOptions: z.boolean().default(false),
@@ -163,6 +167,8 @@ export async function GET(request: NextRequest) {
       showInTaskBoardFilter: row.show_in_task_board_filter || false,
       showInPositionSettings: row.show_in_position_settings || false,
       showInHeadcountDetail: row.show_in_headcount_detail || false,
+      candidateDetailSection: row.candidate_detail_section,
+      positionDetailSection: row.position_detail_section,
       is_required: row.is_required,
       allowCustomOptions: row.allow_custom_options || false,
       sort_order: row.sort_order ?? 0,
@@ -206,8 +212,8 @@ export async function POST(request: NextRequest) {
   const { 
     model_name, field_code, label, field_type,
     viewRoles, editRoles, showInFilter, showInCandidateDetail, showInFullCandidateDetail,
-    showInTaskBoardFilter, showInPositionSettings, showInHeadcountDetail, is_required, allowCustomOptions,
-    sort_order, options 
+    showInTaskBoardFilter, showInPositionSettings, showInHeadcountDetail, candidateDetailSection, positionDetailSection,
+    is_required, allowCustomOptions, sort_order, options 
   } = validationResult.data;
 
   try {
@@ -230,10 +236,10 @@ export async function POST(request: NextRequest) {
         is_required, sort_order, attribute_code, attribute_label,
         view_roles, edit_roles, show_in_filter, show_in_candidate_detail,
         show_in_full_candidate_detail, show_in_task_board_filter,
-        show_in_position_settings, show_in_headcount_detail, allow_custom_options,
+        show_in_position_settings, show_in_headcount_detail, candidate_detail_section, position_detail_section, allow_custom_options,
         "createdAt", "updatedAt"
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, NOW(), NOW())
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, NOW(), NOW())
       RETURNING *;
     `;
 
@@ -241,7 +247,8 @@ export async function POST(request: NextRequest) {
        newFieldId, model_name, field_code, field_code, label, field_type, 
        options || null, is_required, sort_order, field_code, null,
        viewRoles || [], editRoles || [], showInFilter, showInCandidateDetail,
-       showInFullCandidateDetail, showInTaskBoardFilter, showInPositionSettings, showInHeadcountDetail, allowCustomOptions
+       showInFullCandidateDetail, showInTaskBoardFilter, showInPositionSettings, showInHeadcountDetail, 
+       candidateDetailSection, positionDetailSection, allowCustomOptions
      ]);
 
     const newField = result.rows[0];
@@ -270,6 +277,9 @@ export async function POST(request: NextRequest) {
       showInFullCandidateDetail: newField.show_in_full_candidate_detail || false,
       showInTaskBoardFilter: newField.show_in_task_board_filter || false,
       showInPositionSettings: newField.show_in_position_settings || false,
+      showInHeadcountDetail: newField.show_in_headcount_detail || false,
+      candidateDetailSection: newField.candidate_detail_section,
+      positionDetailSection: newField.position_detail_section,
       is_required: newField.is_required,
       allowCustomOptions: newField.allow_custom_options || false,
       sort_order: newField.sort_order ?? 0,
@@ -396,6 +406,16 @@ export async function PUT(request: NextRequest) {
       updateValues.push(updateData.showInHeadcountDetail);
     }
 
+    if (updateData.candidateDetailSection !== undefined) {
+      updateFields.push(`candidate_detail_section = $${paramIndex++}`);
+      updateValues.push(updateData.candidateDetailSection);
+    }
+
+    if (updateData.positionDetailSection !== undefined) {
+      updateFields.push(`position_detail_section = $${paramIndex++}`);
+      updateValues.push(updateData.positionDetailSection);
+    }
+
     if (updateData.is_required !== undefined) {
       updateFields.push(`is_required = $${paramIndex++}`);
       updateValues.push(updateData.is_required);
@@ -453,6 +473,8 @@ export async function PUT(request: NextRequest) {
       showInTaskBoardFilter: updatedField.show_in_task_board_filter || false,
       showInPositionSettings: updatedField.show_in_position_settings || false,
       showInHeadcountDetail: updatedField.show_in_headcount_detail || false,
+      candidateDetailSection: updatedField.candidate_detail_section,
+      positionDetailSection: updatedField.position_detail_section,
       is_required: updatedField.is_required,
       allowCustomOptions: updatedField.allow_custom_options || false,
       sort_order: updatedField.sort_order ?? 0,

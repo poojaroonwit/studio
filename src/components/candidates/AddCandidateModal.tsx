@@ -207,15 +207,15 @@ export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availa
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col p-0" dialogId="add-candidate-modal">
-        <DialogHeader className="p-6 pb-0">
+      <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col p-0 overflow-hidden" dialogId="add-candidate-modal">
+        <DialogHeader className="p-6 pb-0 flex-shrink-0">
           <DialogTitle className="flex items-center"><UserPlus className="mr-2 h-6 w-6 text-primary" /> Add New Candidate</DialogTitle>
           <DialogDescription>
             Enter the details for the new candidate. Fields marked with * are required.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-grow overflow-hidden">
-                          <ScrollArea className="flex-grow p-6 pt-4">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+          <ScrollArea className="flex-1 p-6 pt-4">
             <div className="space-y-6">
               <div>
                 <Label htmlFor="cv_language">CV Language</Label>
@@ -633,7 +633,7 @@ export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availa
 
             </div>
           </ScrollArea>
-          <DialogFooter className="p-6 pt-4 sticky bottom-0 bg-card border-t z-10">
+          <DialogFooter className="p-6 pt-4 flex-shrink-0 bg-card border-t">
             <DialogClose asChild>
               <Button type="button" variant="outline">
                 Cancel

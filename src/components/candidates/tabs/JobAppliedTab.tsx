@@ -5,6 +5,7 @@ import { Briefcase, Copy, Check, Info } from 'lucide-react';
 import { ScoreBadge } from '@/components/ui/score-color';
 import { formatScoreWithGrade } from "@/lib/scoreUtils";
 import type { Candidate, Position } from '@/lib/types';
+import { CustomFieldDisplay } from '../CustomFieldDisplay';
 
 interface JobAppliedTabProps {
   candidate: Candidate;
@@ -131,6 +132,15 @@ export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
           )}
         </CardContent>
       </Card>
+      
+      {/* Custom Fields for Jobs Section */}
+      <CustomFieldDisplay
+        modelName="Candidate"
+        section="jobs"
+        entityId={candidate.id}
+        customFields={candidate.customFields || {}}
+        title="Additional Job Information"
+      />
     </div>
   );
 };

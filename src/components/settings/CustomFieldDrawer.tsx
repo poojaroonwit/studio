@@ -49,6 +49,10 @@ const customFieldFormSchema = z.object({
   showInPositionSettings: z.boolean().default(false),
   showInHeadcountDetail: z.boolean().default(false),
   
+  // Section selection for display settings
+  candidateDetailSection: z.enum(['jobs', 'candidate-info', 'education', 'experience', 'job-suitability']).optional(),
+  positionDetailSection: z.enum(['details', 'criteria', 'candidates', 'headcount']).optional(),
+  
   // Field properties
   is_required: z.boolean().default(false),
   allowCustomOptions: z.boolean().default(false),
@@ -133,6 +137,8 @@ export default function CustomFieldDrawer({
       showInFullCandidateDetail: false,
       showInTaskBoardFilter: false,
       showInPositionSettings: false,
+      candidateDetailSection: undefined,
+      positionDetailSection: undefined,
       is_required: false,
       allowCustomOptions: false,
       sort_order: 0,
@@ -147,6 +153,9 @@ export default function CustomFieldDrawer({
 
   const watchFieldType = form.watch("field_type");
   const watchModelName = form.watch("model_name");
+  const watchShowInFullCandidateDetail = form.watch("showInFullCandidateDetail");
+  const watchShowInCandidateDetail = form.watch("showInCandidateDetail");
+  const watchShowInPositionSettings = form.watch("showInPositionSettings");
   const isSelectType = watchFieldType === 'select_single' || watchFieldType === 'select_multiple';
 
   useEffect(() => {
@@ -163,6 +172,8 @@ export default function CustomFieldDrawer({
         showInFullCandidateDetail: definition.showInFullCandidateDetail || false,
         showInTaskBoardFilter: definition.showInTaskBoardFilter || false,
         showInPositionSettings: definition.showInPositionSettings || false,
+        candidateDetailSection: definition.candidateDetailSection,
+        positionDetailSection: definition.positionDetailSection,
         showInHeadcountDetail: definition.showInHeadcountDetail || false,
         is_required: definition.is_required || false,
         allowCustomOptions: definition.allowCustomOptions || false,
@@ -182,6 +193,8 @@ export default function CustomFieldDrawer({
         showInFullCandidateDetail: false,
         showInTaskBoardFilter: false,
         showInPositionSettings: false,
+        candidateDetailSection: undefined,
+        positionDetailSection: undefined,
         showInHeadcountDetail: false,
         is_required: false,
         allowCustomOptions: false,
@@ -230,7 +243,7 @@ export default function CustomFieldDrawer({
     <Sheet open={open} onOpenChange={onClose}>
       <SheetContent 
         sheetId={`custom-field-drawer-${definition?.id ? definition.id : 'new'}`}
-        className="h-full w-[40vw] max-w-[40vw] flex flex-col"
+        className="h-full w-[50vw] max-w-[50vw] flex flex-col"
       >
         <SheetHeader className="border-b flex-shrink-0">
           <SheetTitle className="flex items-center gap-2">
@@ -713,6 +726,71 @@ export default function CustomFieldDrawer({
                                 </FormItem>
                               )}
                             />
+                          )}
+
+                          {/* Section Selection for Candidate Detail */}
+                          {watchModelName === 'Candidate' && (watchShowInFullCandidateDetail || watchShowInCandidateDetail) && (
+                            <div className="space-y-3">
+                              <Separator />
+                              <div className="space-y-2">
+                                <Label className="text-sm font-medium">Display Section</Label>
+                                <FormField
+                                  control={form.control}
+                                  name="candidateDetailSection"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <Select value={field.value || ''} onValueChange={field.onChange}>
+                                        <SelectTrigger>
+                                          <SelectValue placeholder="Select section to display in" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="jobs">Jobs Tab</SelectItem>
+                                          <SelectItem value="candidate-info">Candidate Info Tab</SelectItem>
+                                          <SelectItem value="education">Education Tab</SelectItem>
+                                          <SelectItem value="experience">Experience Tab</SelectItem>
+                                          <SelectItem value="job-suitability">Job Suitability Tab</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                      <FormDescription>
+                                        Choose which tab section to display this field in
+                                      </FormDescription>
+                                    </FormItem>
+                                  )}
+                                />
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Section Selection for Position Detail */}
+                          {watchModelName === 'Position' && watchShowInPositionSettings && (
+                            <div className="space-y-3">
+                              <Separator />
+                              <div className="space-y-2">
+                                <Label className="text-sm font-medium">Display Section</Label>
+                                <FormField
+                                  control={form.control}
+                                  name="positionDetailSection"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <Select value={field.value || ''} onValueChange={field.onChange}>
+                                        <SelectTrigger>
+                                          <SelectValue placeholder="Select section to display in" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="details">Details Tab</SelectItem>
+                                          <SelectItem value="criteria">Match Criteria Tab</SelectItem>
+                                          <SelectItem value="candidates">Candidates Tab</SelectItem>
+                                          <SelectItem value="headcount">Headcount Tab</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                      <FormDescription>
+                                        Choose which tab section to display this field in
+                                      </FormDescription>
+                                    </FormItem>
+                                  )}
+                                />
+                              </div>
+                            </div>
                           )}
                         </div>
                       </div>

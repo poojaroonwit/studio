@@ -286,6 +286,8 @@ model CustomFieldDefinition {
   showInHeadcountDetail     Boolean             @default(false) @map("show_in_headcount_detail")
   showInPositionSettings    Boolean             @default(false) @map("show_in_position_settings")
   showInTaskBoardFilter     Boolean             @default(false) @map("show_in_task_board_filter")
+  candidateDetailSection    String?             @map("candidate_detail_section")
+  positionDetailSection     String?             @map("position_detail_section")
   viewRoles                 String[]            @default([]) @map("view_roles")
   customFieldOptions        CustomFieldOption[]
 

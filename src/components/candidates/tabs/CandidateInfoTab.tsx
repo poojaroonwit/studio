@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Controller } from 'react-hook-form';
 import type { Candidate } from '@/lib/types';
 import { formatCandidateNameWithLang } from '@/lib/candidateUtils';
+import { CustomFieldDisplay } from '../CustomFieldDisplay';
 
 interface CandidateInfoTabProps {
   candidate: Candidate;
@@ -345,6 +346,15 @@ export const CandidateInfoTab: React.FC<CandidateInfoTabProps> = ({
           )}
         </CardContent>
       </Card>
+      
+      {/* Custom Fields for Candidate Info Section */}
+      <CustomFieldDisplay
+        modelName="Candidate"
+        section="candidate-info"
+        entityId={candidate.id}
+        customFields={candidate.customFields || {}}
+        title="Additional Information"
+      />
     </div>
   );
 };

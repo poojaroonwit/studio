@@ -29,6 +29,7 @@ import type { Position, Candidate, Grade } from '@/lib/types';
 import { usePositionLevels } from '@/hooks/use-position-levels';
 import { getPositionStatusBadge } from '@/lib/positionUtils';
 import { ScoreBadge } from '@/components/ui/score-color';
+import { PositionCustomFieldDisplay } from './PositionCustomFieldDisplay';
 import { formatScoreWithGrade } from '@/lib/scoreUtils';
 import { Pagination } from '@/components/ui/pagination';
 import CandidateDetailModal from '@/components/candidates/CandidateDetailModal';
@@ -1764,6 +1765,16 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                         </div>
                       </form>
                     </ScrollArea>
+                    
+                    {/* Custom Fields for Details Section */}
+                    <div className="p-6">
+                      <PositionCustomFieldDisplay
+                        section="details"
+                        positionId={position?.id || ''}
+                        customFields={position?.customFields || {}}
+                        title="Additional Position Information"
+                      />
+                    </div>
                     </div>
                   )}
                   
@@ -1857,6 +1868,16 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                         )}
                       </div>
                     </ScrollArea>
+                    
+                    {/* Custom Fields for Criteria Section */}
+                    <div className="p-6">
+                      <PositionCustomFieldDisplay
+                        section="criteria"
+                        positionId={position?.id || ''}
+                        customFields={position?.customFields || {}}
+                        title="Additional Criteria Information"
+                      />
+                    </div>
                     </div>
                   )}
                   
@@ -1991,6 +2012,16 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                           )}
                       </div>
                     </div>
+                    
+                    {/* Custom Fields for Candidates Section */}
+                    <div className="p-6">
+                      <PositionCustomFieldDisplay
+                        section="candidates"
+                        positionId={position?.id || ''}
+                        customFields={position?.customFields || {}}
+                        title="Additional Candidates Information"
+                      />
+                    </div>
                     </div>
                   )}
                   
@@ -2001,6 +2032,16 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                         candidates={filteredCandidates}
                         onHeadcountChange={fetchHeadcountCount}
                       />
+                      
+                      {/* Custom Fields for Headcount Section */}
+                      <div className="mt-6">
+                        <PositionCustomFieldDisplay
+                          section="headcount"
+                          positionId={position?.id || ''}
+                          customFields={position?.customFields || {}}
+                          title="Additional Headcount Information"
+                        />
+                      </div>
                     </div>
                   )}
                 </div>

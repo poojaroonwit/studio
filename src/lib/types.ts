@@ -1187,6 +1187,10 @@ export interface CustomFieldDefinition {
   showInPositionSettings?: boolean;
   showInHeadcountDetail?: boolean;
   
+  // Section selection for display settings
+  candidateDetailSection?: 'jobs' | 'candidate-info' | 'education' | 'experience' | 'job-suitability';
+  positionDetailSection?: 'details' | 'criteria' | 'candidates' | 'headcount';
+  
   // For select/multiselect fields
   allowCustomOptions?: boolean;
   

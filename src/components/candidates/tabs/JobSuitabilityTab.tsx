@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Trash2 } from 'lucide-react';
 import type { Candidate } from '@/lib/types';
+import { CustomFieldDisplay } from '../CustomFieldDisplay';
 
 interface JobSuitabilityTabProps {
   candidate: Candidate;
@@ -195,6 +196,15 @@ export const JobSuitabilityTab: React.FC<JobSuitabilityTabProps> = ({
            )}
         </CardContent>
       </Card>
+      
+      {/* Custom Fields for Job Suitability Section */}
+      <CustomFieldDisplay
+        modelName="Candidate"
+        section="job-suitability"
+        entityId={candidate.id}
+        customFields={candidate.customFields || {}}
+        title="Additional Job Suitability Information"
+      />
     </div>
   );
 };

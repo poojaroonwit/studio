@@ -103,6 +103,8 @@ export async function GET(request: NextRequest) {
       showInTaskBoardFilter: field.show_in_task_board_filter || false,
       showInPositionSettings: field.show_in_position_settings || false,
       showInHeadcountDetail: field.show_in_headcount_detail || false,
+      candidateDetailSection: field.candidate_detail_section,
+      positionDetailSection: field.position_detail_section,
       is_required: field.is_required,
       allowCustomOptions: field.allow_custom_options || false,
       sort_order: field.sort_order ?? 0,

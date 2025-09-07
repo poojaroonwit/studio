@@ -221,7 +221,7 @@ function CustomFieldsTab() {
             </CardContent>
           </Card>
         ) : (
-          <div className="border rounded-lg overflow-hidden">
+          <div className="overflow-hidden">
             <CustomFieldTable
               fields={definitions}
               isLoading={isLoading}
@@ -1038,11 +1038,7 @@ export default function DataConfigurationPage() {
       // If user can't manage stages, default to sources tab
       setCandidateSubTab('candidate-sources');
     }
-    if (activeTab === 'candidate' && candidateSubTab === 'candidate-fields' && !canManageCustomFields) {
-      // If user can't manage custom fields, default to sources tab
-      setCandidateSubTab('candidate-sources');
-    }
-  }, [activeTab, candidateSubTab, canManageStages, canManageCustomFields]);
+  }, [activeTab, candidateSubTab, canManageStages]);
 
   useEffect(() => {
     if (sessionStatus === 'unauthenticated') {
@@ -1092,7 +1088,13 @@ export default function DataConfigurationPage() {
       label: 'Position',
       icon: Building,
       description: 'Manage position-related data configuration'
-    }
+    },
+    ...(canManageCustomFields ? [{
+      id: 'custom-fields',
+      label: 'Custom Fields',
+      icon: Settings2,
+      description: 'Define custom fields for candidates and positions'
+    }] : [])
   ];
 
   return (
@@ -1192,27 +1194,12 @@ export default function DataConfigurationPage() {
                     <MapPin className="h-4 w-4" />
                     Candidate Sources
                   </div>
-                  {canManageCustomFields && (
-                    <div
-                      onClick={() => setCandidateSubTab('candidate-fields')}
-                      className={cn(
-                        "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
-                        candidateSubTab === 'candidate-fields'
-                          ? "text-primary border-b-2 border-primary"
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-                      )}
-                    >
-                      <Settings2 className="h-4 w-4" />
-                      Custom Fields
-                    </div>
-                  )}
                 </div>
 
                 {/* Candidate Tab Content */}
                 <div className="flex-1 overflow-hidden">
                   {candidateSubTab === 'candidate-stages' && canManageStages && <RecruitmentStagesTab />}
                   {candidateSubTab === 'candidate-sources' && <CandidateSourcesTab />}
-                  {candidateSubTab === 'candidate-fields' && canManageCustomFields && <CustomFieldsTab />}
                 </div>
               </div>
             )}
@@ -1265,6 +1252,12 @@ export default function DataConfigurationPage() {
                   {positionSubTab === 'position-grades' && <GradesTab />}
                   {positionSubTab === 'position-levels' && <PositionLevelsTab />}
                 </div>
+              </div>
+            )}
+
+            {activeTab === 'custom-fields' && canManageCustomFields && (
+              <div className="h-full flex flex-col">
+                <CustomFieldsTab />
               </div>
             )}
           </div>

@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { PlusCircle, Trash2, Briefcase, Building2 } from 'lucide-react';
 import type { Candidate } from '@/lib/types';
 import { formatScoreWithGrade } from '@/lib/scoreUtils';
+import { CustomFieldDisplay } from '../CustomFieldDisplay';
 
 interface ExperienceTabProps {
   candidate: Candidate;
@@ -317,6 +318,15 @@ export const ExperienceTab: React.FC<ExperienceTabProps> = ({
           </div>
         </CardContent>
       </Card>
+      
+      {/* Custom Fields for Experience Section */}
+      <CustomFieldDisplay
+        modelName="Candidate"
+        section="experience"
+        entityId={candidate.id}
+        customFields={candidate.customFields || {}}
+        title="Additional Experience Information"
+      />
     </div>
   );
 };

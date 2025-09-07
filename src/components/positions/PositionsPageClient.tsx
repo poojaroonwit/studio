@@ -1146,9 +1146,9 @@ export default function PositionsPageClient() {
 
         {/* Main Content */}
         <div className="flex-1 positions-content-area h-full">
-          <div ref={contentRef} className="p-4 flex flex-col h-full overflow-hidden">
+          <div ref={contentRef} className="flex flex-col h-full overflow-hidden">
               {/* Filters and Vacant Headcount in same row */}
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 flex-shrink-0">
+          <div className="p-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 flex-shrink-0">
             {/* Left side: Vacant Headcount + Filters */}
             <div className="flex flex-col sm:flex-row gap-3 flex-1">
               {/* Vacant Headcount - Left side */}
@@ -1306,22 +1306,7 @@ export default function PositionsPageClient() {
             )}
           </div>
 
-      {/* Realtime Connection Status */}
-      {/* <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 px-3 py-2 rounded-md flex-shrink-0 mb-4">
-        <div className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full border ${
-          realtimeConnected 
-            ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800' 
-            : 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800'
-        }`}>
-          <div className={`w-2 h-2 rounded-full ${
-            realtimeConnected ? 'bg-green-500' : 'bg-red-500'
-          }`} />
-          <span>{realtimeConnected ? 'Live Updates' : 'Offline'}</span>
-        </div>
-        <span className="text-xs text-muted-foreground">
-          {realtimeConnected ? 'Realtime updates are active' : 'Realtime updates are offline'}
-        </span>
-      </div> */}
+    
 
       {/* Search Status Indicator */}
       {(searchTerm || statusFilter !== 'all' || departmentFilter !== 'all') && (
@@ -1370,7 +1355,7 @@ export default function PositionsPageClient() {
 
 
       {/* Positions List */}
-      <div className="positions-table-container flex-1 overflow-hidden flex flex-col">
+      <div className="positions-table-container border-t  flex-1 overflow-hidden flex flex-col">
       {totalPositions === 0 ? (
         <div className="text-center py-12 empty-state">
           <Briefcase className="mx-auto h-12 w-12 text-muted-foreground mb-4" />

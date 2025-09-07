@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PlusCircle, Trash2, GraduationCap } from 'lucide-react';
 import type { Candidate } from '@/lib/types';
+import { CustomFieldDisplay } from '../CustomFieldDisplay';
 
 interface EducationTabProps {
   candidate: Candidate;
@@ -361,6 +362,15 @@ export const EducationTab: React.FC<EducationTabProps> = ({
           </div>
         </CardContent>
       </Card>
+      
+      {/* Custom Fields for Education Section */}
+      <CustomFieldDisplay
+        modelName="Candidate"
+        section="education"
+        entityId={candidate.id}
+        customFields={candidate.customFields || {}}
+        title="Additional Education Information"
+      />
     </div>
   );
 };

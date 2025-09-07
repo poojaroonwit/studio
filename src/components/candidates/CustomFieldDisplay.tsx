@@ -14,6 +14,7 @@ interface CustomFieldDisplayProps {
   customFields?: Record<string, any>; // The actual field values
   title?: string;
   className?: string;
+  refreshTrigger?: number; // Add refresh trigger to force re-fetch
 }
 
 export function CustomFieldDisplay({ 
@@ -22,7 +23,8 @@ export function CustomFieldDisplay({
   entityId, 
   customFields = {}, 
   title = "Custom Fields",
-  className = ""
+  className = "",
+  refreshTrigger
 }: CustomFieldDisplayProps) {
   const [fieldDefinitions, setFieldDefinitions] = useState<CustomFieldDefinition[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,7 +46,7 @@ export function CustomFieldDisplay({
     };
 
     loadFieldDefinitions();
-  }, [modelName, section]);
+  }, [modelName, section, refreshTrigger]);
 
   if (loading) {
     return (

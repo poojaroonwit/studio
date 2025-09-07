@@ -24,6 +24,7 @@ interface CustomFieldEditProps {
   onFieldChange: (fieldCode: string, value: any) => void;
   title?: string;
   className?: string;
+  refreshTrigger?: number; // Add refresh trigger to force re-fetch
 }
 
 export function CustomFieldEdit({ 
@@ -33,7 +34,8 @@ export function CustomFieldEdit({
   customFields = {}, 
   onFieldChange,
   title = "Custom Fields",
-  className = ""
+  className = "",
+  refreshTrigger
 }: CustomFieldEditProps) {
   const [fieldDefinitions, setFieldDefinitions] = useState<CustomFieldDefinition[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,7 +57,7 @@ export function CustomFieldEdit({
     };
 
     loadFieldDefinitions();
-  }, [modelName, section]);
+  }, [modelName, section, refreshTrigger]);
 
   const renderFieldInput = (definition: CustomFieldDefinition) => {
     const fieldValue = customFields[definition.field_code];

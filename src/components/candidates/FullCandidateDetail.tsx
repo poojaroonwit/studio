@@ -248,6 +248,8 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
     handleAssignSource,
     handleAvatarUpload,
     handleEnterEditMode,
+    customFieldsRefreshTrigger,
+    refreshCustomFields,
   } = useCandidateDetail(candidateId);
 
 
@@ -465,6 +467,9 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
       setIsEditing(false);
       toast.success('Candidate updated successfully');
       
+      // Refresh custom fields to show latest data
+      refreshCustomFields();
+      
       if (onRefresh) {
         onRefresh();
       }
@@ -678,7 +683,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
             <div className="p-8 flex-1 overflow-y-auto bg-background h-full pointer-events-auto">
               <form id="candidate-edit-form" onSubmit={handleSubmit(handleSaveDetails)} className="h-full">
                 <CandidateTabsContent
-                  key={`${isEditing}-${candidate?.id}`}
+                  key={candidate?.id}
                   activeTab={activeTab}
                   candidate={candidate}
                   allDbPositions={allDbPositions}
@@ -717,11 +722,12 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                   removeJobMatch={removeJobMatch}
                   // Pass duration calculation functions
                   calculateTotalExperienceDuration={calculateTotalExperienceDuration}
-                  // Pass comments and resumes for new tabs
-                  comments={comments}
-                  resumes={resumes} 
-                  onRefresh={onRefresh}
-                  onCustomFieldChange={handleCustomFieldChange}
+                // Pass comments and resumes for new tabs
+                comments={comments}
+                resumes={resumes} 
+                onRefresh={onRefresh}
+                onCustomFieldChange={handleCustomFieldChange}
+                customFieldsRefreshTrigger={customFieldsRefreshTrigger}
                 />
               </form>
             </div>

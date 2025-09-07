@@ -60,6 +60,7 @@ export const useCandidateDetail = (candidateId: string) => {
   const [copiedJobMatchIndex, setCopiedJobMatchIndex] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [formPopulated, setFormPopulated] = useState(false);
+  const [customFieldsRefreshTrigger, setCustomFieldsRefreshTrigger] = useState(0);
 
   // Add refs for cleanup
   const avatarForceRefreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -397,7 +398,9 @@ export const useCandidateDetail = (candidateId: string) => {
 
     // Populate form with candidate data when entering edit mode
   useEffect(() => {
+    console.log('Form population effect triggered:', { isEditing, candidate: !!candidate, formPopulated });
     if (isEditing && candidate && !formPopulated) {
+      console.log('Populating form with candidate data:', candidate);
       // Normalize fitScore to ensure it's within 0-1 range
       let normalizedFitScore = candidate.fitScore;
       if (typeof candidate.fitScore === 'number') {
@@ -415,7 +418,7 @@ export const useCandidateDetail = (candidateId: string) => {
         positionId: candidate.positionId || null,
         recruiterId: candidate.recruiterId || null,
         fitScore: normalizedFitScore,
-        status: candidate.statusId || candidate.status || candidate.statusName || candidate.currentStage || '',
+        status: candidate.statusId || candidate.status || '',
         assignmentJustification: candidate.assignmentJustification
           ? (Array.isArray(candidate.assignmentJustification)
             ? candidate.assignmentJustification
@@ -512,6 +515,8 @@ export const useCandidateDetail = (candidateId: string) => {
   // Handle entering edit mode
   const handleEnterEditMode = useCallback(() => {
     if (candidate) {
+      console.log('Entering edit mode for candidate:', candidate);
+      console.log('Candidate parsedData:', candidate.parsedData);
       setIsEditing(true);
       setFormPopulated(false);
     }
@@ -803,5 +808,9 @@ export const useCandidateDetail = (candidateId: string) => {
     handleAvatarUpload,
     fetchCandidate, // Expose the memoized fetch function
     fetchTransitionHistory,
+    
+    // Custom fields refresh
+    customFieldsRefreshTrigger,
+    refreshCustomFields: () => setCustomFieldsRefreshTrigger(prev => prev + 1),
   };
 };

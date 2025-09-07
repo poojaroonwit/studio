@@ -18,6 +18,7 @@ interface CandidateInfoTabProps {
   setValue?: any;
   control?: any;
   onCustomFieldChange?: (fieldCode: string, value: any) => void;
+  customFieldsRefreshTrigger?: number;
 }
 
 export const CandidateInfoTab: React.FC<CandidateInfoTabProps> = ({
@@ -28,8 +29,17 @@ export const CandidateInfoTab: React.FC<CandidateInfoTabProps> = ({
   watch, 
   setValue,
   control,
-  onCustomFieldChange
+  onCustomFieldChange,
+  customFieldsRefreshTrigger
 }) => {
+  // Debug logging
+  console.log('CandidateInfoTab render:', { isEditing, candidate: !!candidate, control: !!control, register: !!register });
+  
+  // Debug form values
+  const watchedEmail = watch?.('email');
+  const watchedFirstName = watch?.('parsedData.personal_info.firstname');
+  console.log('Form values:', { watchedEmail, watchedFirstName });
+  
   const nameInfo = formatCandidateNameWithLang(candidate);
   const personalInfo = (() => {
     // Handle parsedData - it might be a string that needs parsing
@@ -359,6 +369,7 @@ export const CandidateInfoTab: React.FC<CandidateInfoTabProps> = ({
           customFields={candidate.customFields || {}}
           onFieldChange={onCustomFieldChange || (() => {})}
           title="Additional Information"
+          refreshTrigger={customFieldsRefreshTrigger}
         />
       ) : (
         <CustomFieldDisplay
@@ -367,6 +378,7 @@ export const CandidateInfoTab: React.FC<CandidateInfoTabProps> = ({
           entityId={candidate.id}
           customFields={candidate.customFields || {}}
           title="Additional Information"
+          refreshTrigger={customFieldsRefreshTrigger}
         />
       )}
     </div>

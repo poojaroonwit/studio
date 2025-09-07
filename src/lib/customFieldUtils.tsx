@@ -61,7 +61,14 @@ export async function fetchCustomFieldsForSection(
   section?: string
 ): Promise<CustomFieldDefinition[]> {
   try {
-    const response = await fetch('/api/settings/custom-field-definitions');
+    const response = await fetch('/api/settings/custom-field-definitions', {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      },
+      credentials: 'include'
+    });
     if (!response.ok) {
       throw new Error('Failed to fetch custom field definitions');
     }

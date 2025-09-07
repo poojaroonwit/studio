@@ -55,6 +55,7 @@ interface CandidateTabsContentProps {
   resumes?: any[];
   onRefresh?: () => void;
   onCustomFieldChange?: (fieldCode: string, value: any) => void;
+  customFieldsRefreshTrigger?: number;
 }
 
 export const CandidateTabsContent: React.FC<CandidateTabsContentProps> = ({
@@ -100,7 +101,8 @@ export const CandidateTabsContent: React.FC<CandidateTabsContentProps> = ({
   comments = [],
   resumes = [],
   onRefresh,
-  onCustomFieldChange
+  onCustomFieldChange,
+  customFieldsRefreshTrigger
 }) => {
   const { isJobMatchEnabled } = useJobMatchFeature();
 
@@ -148,6 +150,7 @@ export const CandidateTabsContent: React.FC<CandidateTabsContentProps> = ({
           setValue={setValue}
           control={control}
           onCustomFieldChange={onCustomFieldChange}
+          customFieldsRefreshTrigger={customFieldsRefreshTrigger}
         />
         <ContactTab
           candidate={candidate}

@@ -1388,7 +1388,6 @@ export default function ProcessQueueAnalytics() {
                           <TableHead>Success Rate</TableHead>
                           <TableHead>Failed Rate</TableHead>
                           <TableHead>Avg Duration</TableHead>
-                          <TableHead>Total Duration</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -1438,9 +1437,6 @@ export default function ProcessQueueAnalytics() {
                             </TableCell>
                             <TableCell>
                               <span className="font-medium">{source.avgDuration.toFixed(1)}m</span>
-                            </TableCell>
-                            <TableCell>
-                              <span className="font-medium">{source.totalDuration.toFixed(1)}m</span>
                             </TableCell>
                           </TableRow>
                         ))}

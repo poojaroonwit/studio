@@ -91,6 +91,7 @@ interface CandidateTableProps {
     showStatusColumn?: boolean;
     showAppliedDateColumn?: boolean;
     showLastUpdateColumn?: boolean;
+    columnOrder?: string[];
     defaultPageSize?: number;
     tableHeight?: number;
     rowHeight?: 'compact' | 'normal' | 'comfortable';
@@ -112,7 +113,6 @@ function displayFitScoreWithGrade(score: number | undefined | null) {
 
 // Utility for getting row height styles
 function getRowHeightStyle(rowHeight: 'compact' | 'normal' | 'comfortable' = 'normal') {
-  console.log('Row height setting:', rowHeight); // Debug log
   switch (rowHeight) {
     case 'compact':
       return { height: '32px', minHeight: '32px' }; // 32px
@@ -243,6 +243,502 @@ export function CandidateTable({
   const [selectedCandidateSummary, setSelectedCandidateSummary] = useState<Partial<Candidate> & { id: string; name: string } | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   // Add state for each column's dropdown menu open state
+
+  // Column configuration for rendering
+  const columnConfig = {
+    candidate: {
+      key: 'showCandidateColumn',
+      label: 'Candidate',
+      className: 'min-w-[200px] max-w-[300px] cursor-pointer select-none group',
+      sortable: true,
+      sortKey: 'name',
+      render: () => (
+                <TableHead key="candidate" className="min-w-[200px] max-w-[300px] cursor-pointer select-none group" onClick={() => { onSort && onSort('name'); setOpenMenu(null); }}>
+                  <span className="inline-flex items-center gap-1">
+                    Candidate
+                    <DropdownMenu open={openMenu === 'candidate'} onOpenChange={handleOpenChange('candidate')}>
+                      <DropdownMenuTrigger asChild>
+                        {sortColumn === 'name' ? (
+                          <button
+                            type="button"
+                            className="text-primary font-bold p-1 rounded hover:bg-muted h-auto w-auto"
+                            onClick={handleMenuClick('candidate')}
+                            aria-label="Sort options"
+                          >
+                            {sortDirection === 'asc' ? <ChevronUp size={16} /> : sortDirection === 'desc' ? <ChevronDown size={16} /> : <MoreVertical size={16} />}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted h-auto w-auto"
+                            onClick={handleMenuClick('candidate')}
+                            aria-label="Sort options"
+                          >
+                            <MoreVertical size={16} />
+                          </button>
+                        )}
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => { onSort && onSort('name', 'asc'); setOpenMenu(null); }}>Sort Ascending ▲</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { onSort && onSort('name', 'desc'); setOpenMenu(null); }}>Sort Descending ▼</DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => { onSort && onSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </span>
+                </TableHead>
+      )
+    },
+    appliedJob: {
+      key: 'showAppliedJobColumn',
+      label: 'Applied Job',
+      className: 'min-w-[120px] max-w-[200px]',
+      sortable: false,
+      render: () => (
+                <TableHead key="applied-job" className="min-w-[120px] max-w-[200px]">
+                  Applied Job
+                </TableHead>
+      )
+    },
+    jobMatches: {
+      key: 'showJobMatchesColumn',
+      label: 'Job Matches',
+      className: 'min-w-[96px] max-w-[120px] text-center',
+      sortable: false,
+      render: () => (
+                <TableHead key="job-matches-count" className="min-w-[96px] max-w-[120px] text-center">Job Matches</TableHead>
+      )
+    },
+    fitScore: {
+      key: 'showFitScoreColumn',
+      label: 'Fit Score',
+      className: 'min-w-[80px] max-w-[120px] hidden sm:table-cell cursor-pointer select-none group',
+      sortable: true,
+      sortKey: 'fitScore',
+      render: () => (
+                <TableHead key="fit-score" className="min-w-[80px] max-w-[120px] hidden sm:table-cell cursor-pointer select-none group" onClick={() => { onSort && onSort('fitScore'); setOpenMenu(null); }}>
+                  <span className="inline-flex items-center gap-1">
+                    Fit Score
+                    <DropdownMenu open={openMenu === 'fitScore'} onOpenChange={handleOpenChange('fitScore')}>
+                      <DropdownMenuTrigger asChild>
+                        {sortColumn === 'fitScore' ? (
+                          <button
+                            type="button"
+                            className="text-primary font-bold p-1 rounded hover:bg-muted h-auto w-auto"
+                            onClick={handleMenuClick('fitScore')}
+                            aria-label="Sort options"
+                          >
+                            {sortDirection === 'asc' ? <ChevronUp size={16} /> : sortDirection === 'desc' ? <ChevronDown size={16} /> : <MoreVertical size={16} />}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted h-auto w-auto"
+                            onClick={handleMenuClick('fitScore')}
+                            aria-label="Sort options"
+                          >
+                            <MoreVertical size={16} />
+                          </button>
+                        )}
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => { onSort && onSort('fitScore', 'asc'); setOpenMenu(null); }}>Sort Ascending ▲</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { onSort && onSort('fitScore', 'desc'); setOpenMenu(null); }}>Sort Descending ▼</DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => { onSort && onSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </span>
+                </TableHead>
+      )
+    },
+    recruiter: {
+      key: 'showRecruiterColumn',
+      label: 'Recruiter',
+      className: 'min-w-[100px] max-w-[150px]',
+      sortable: false,
+      render: () => (
+                <TableHead key="recruiter" className="min-w-[100px] max-w-[150px]">
+                  Recruiter
+                </TableHead>
+      )
+    },
+    source: {
+      key: 'showSourceColumn',
+      label: 'Source',
+      className: 'min-w-[80px] max-w-[120px] cursor-pointer select-none group',
+      sortable: true,
+      sortKey: 'source',
+      render: () => (
+                <TableHead key="source" className="min-w-[80px] max-w-[120px] cursor-pointer select-none group" onClick={() => { onSort && onSort('source'); setOpenMenu(null); }}>
+                  <span className="inline-flex items-center gap-1">
+                    Source
+                    <DropdownMenu open={openMenu === 'source'} onOpenChange={handleOpenChange('source')}>
+                      <DropdownMenuTrigger asChild>
+                        {sortColumn === 'source' ? (
+                          <button
+                            type="button"
+                            className="text-primary font-bold p-1 rounded hover:bg-muted h-auto w-auto"
+                            onClick={handleMenuClick('source')}
+                            aria-label="Sort options"
+                          >
+                            {sortDirection === 'asc' ? <ChevronUp size={16} /> : sortDirection === 'desc' ? <ChevronDown size={16} /> : <MoreVertical size={16} />}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted h-auto w-auto"
+                            onClick={handleMenuClick('source')}
+                            aria-label="Sort options"
+                          >
+                            <MoreVertical size={16} />
+                          </button>
+                        )}
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => { onSort && onSort('source', 'asc'); setOpenMenu(null); }}>Sort Ascending ▲</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { onSort && onSort('source', 'desc'); setOpenMenu(null); }}>Sort Descending ▼</DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => { onSort && onSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </span>
+                </TableHead>
+      )
+    },
+    status: {
+      key: 'showStatusColumn',
+      label: 'Status',
+      className: 'min-w-[100px] max-w-[150px] cursor-pointer select-none group',
+      sortable: true,
+      sortKey: 'status',
+      render: () => (
+                <TableHead key="status" className="min-w-[100px] max-w-[150px] cursor-pointer select-none group" onClick={() => { onSort && onSort('status'); setOpenMenu(null); }}>
+                  <span className="inline-flex items-center gap-1">
+                    Status
+                    <DropdownMenu open={openMenu === 'status'} onOpenChange={handleOpenChange('status')}>
+                      <DropdownMenuTrigger asChild>
+                        {sortColumn === 'status' ? (
+                          <button
+                            type="button"
+                            className="text-primary font-bold p-1 rounded hover:bg-muted h-auto w-auto"
+                            onClick={handleMenuClick('status')}
+                            aria-label="Sort options"
+                          >
+                            {sortDirection === 'asc' ? <ChevronUp size={16} /> : sortDirection === 'desc' ? <ChevronDown size={16} /> : <MoreVertical size={16} />}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted h-auto w-auto"
+                            onClick={handleMenuClick('status')}
+                            aria-label="Sort options"
+                          >
+                            <MoreVertical size={16} />
+                          </button>
+                        )}
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => { onSort && onSort('status', 'asc'); setOpenMenu(null); }}>Sort Ascending ▲</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { onSort && onSort('status', 'desc'); setOpenMenu(null); }}>Sort Descending ▼</DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => { onSort && onSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </span>
+                </TableHead>
+      )
+    },
+    appliedDate: {
+      key: 'showAppliedDateColumn',
+      label: 'Applied Date',
+      className: 'min-w-[100px] max-w-[140px] hidden sm:table-cell cursor-pointer select-none group',
+      sortable: true,
+      sortKey: 'applicationDate',
+      render: () => (
+                <TableHead key="applied-date" className="min-w-[100px] max-w-[140px] hidden sm:table-cell cursor-pointer select-none group" onClick={() => { onSort && onSort('applicationDate'); setOpenMenu(null); }}>
+                  <span className="inline-flex items-center gap-1">
+                    Applied Date
+                    <DropdownMenu open={openMenu === 'applicationDate'} onOpenChange={handleOpenChange('applicationDate')}>
+                      <DropdownMenuTrigger asChild>
+                        {sortColumn === 'applicationDate' ? (
+                          <button
+                            type="button"
+                            className="text-primary font-bold p-1 rounded hover:bg-muted h-auto w-auto"
+                            onClick={handleMenuClick('applicationDate')}
+                            aria-label="Sort options"
+                          >
+                            {sortDirection === 'asc' ? <ChevronUp size={16} /> : sortDirection === 'desc' ? <ChevronDown size={16} /> : <MoreVertical size={16} />}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted h-auto w-auto"
+                            onClick={handleMenuClick('applicationDate')}
+                            aria-label="Sort options"
+                          >
+                            <MoreVertical size={16} />
+                          </button>
+                        )}
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => { onSort && onSort('applicationDate', 'asc'); setOpenMenu(null); }}>Sort Ascending ▲</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { onSort && onSort('applicationDate', 'desc'); setOpenMenu(null); }}>Sort Descending ▼</DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => { onSort && onSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </span>
+                </TableHead>
+      )
+    },
+    lastUpdate: {
+      key: 'showLastUpdateColumn',
+      label: 'Last Update',
+      className: 'min-w-[100px] max-w-[140px] hidden lg:table-cell cursor-pointer select-none group',
+      sortable: true,
+      sortKey: 'lastUpdate',
+      render: () => (
+                <TableHead key="last-update" className="min-w-[100px] max-w-[140px] hidden lg:table-cell cursor-pointer select-none group" onClick={() => { onSort && onSort('lastUpdate'); setOpenMenu(null); }}>
+                  <span className="inline-flex items-center gap-1">
+                    Last Update
+                    <DropdownMenu open={openMenu === 'lastUpdate'} onOpenChange={handleOpenChange('lastUpdate')}>
+                      <DropdownMenuTrigger asChild>
+                        {sortColumn === 'lastUpdate' ? (
+                          <button
+                            type="button"
+                            className="text-primary font-bold p-1 rounded hover:bg-muted h-auto w-auto"
+                            onClick={handleMenuClick('lastUpdate')}
+                            aria-label="Sort options"
+                          >
+                            {sortDirection === 'asc' ? <ChevronUp size={16} /> : sortDirection === 'desc' ? <ChevronDown size={16} /> : <MoreVertical size={16} />}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted h-auto w-auto"
+                            onClick={handleMenuClick('lastUpdate')}
+                            aria-label="Sort options"
+                          >
+                            <MoreVertical size={16} />
+                          </button>
+                        )}
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => { onSort && onSort('lastUpdate', 'asc'); setOpenMenu(null); }}>Sort Ascending ▲</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { onSort && onSort('lastUpdate', 'desc'); setOpenMenu(null); }}>Sort Descending ▼</DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => { onSort && onSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </span>
+                </TableHead>
+      )
+    }
+  };
+
+  // Get column order from settings or use default
+  const columnOrder = settings?.columnOrder || [
+    'candidate',
+    'appliedJob',
+    'jobMatches',
+    'fitScore',
+    'recruiter',
+    'source',
+    'status',
+    'appliedDate',
+    'lastUpdate'
+  ];
+
+  // Render table headers based on column order
+  const renderTableHeaders = () => {
+    return columnOrder.map((columnId: string) => {
+      const config = columnConfig[columnId as keyof typeof columnConfig];
+      if (!config) return null;
+      
+      // Check if column should be shown
+      const isColumnEnabled = settings ? settings[config.key as keyof typeof settings] !== false : true;
+      if (!isColumnEnabled) return null;
+      
+      // Don't show job matches column if feature is disabled
+      if (columnId === 'jobMatches' && !isJobMatchEnabled) return null;
+      
+      return config.render();
+    });
+  };
+
+  // Render table body cells based on column order
+  const renderTableBodyCells = (candidate: Candidate) => {
+    return columnOrder.map((columnId: string) => {
+      const config = columnConfig[columnId as keyof typeof columnConfig];
+      if (!config) return null;
+      
+      // Check if column should be shown
+      const isColumnEnabled = settings ? settings[config.key as keyof typeof settings] !== false : true;
+      if (!isColumnEnabled) return null;
+      
+      // Don't show job matches column if feature is disabled
+      if (columnId === 'jobMatches' && !isJobMatchEnabled) return null;
+      
+      // Render the appropriate cell content based on column type
+      switch (columnId) {
+        case 'candidate':
+          return (
+                    <TableCell key={`${candidate.id}-candidate-info`} className="max-w-[300px]">
+                      <div className="flex items-center gap-3">
+                        {(() => {
+                          const nameInfo = formatCandidateNameWithLang(candidate);
+                          return (
+                            <>
+                              <CandidateAvatarCompact
+                                user={{
+                                  id: candidate.id,
+                                  name: nameInfo.name,
+                                  avatarUrl: candidate.avatarUrl,
+                                  email: candidate.email
+                                }}
+                                size="lg"
+                                className=""
+                              />
+                              <div className="min-w-0 flex-1">
+                                <Link href={`/candidates/${candidate.id}`} passHref>
+                                  <span 
+                                    className={`font-medium text-foreground hover:underline cursor-pointer truncate block ${nameInfo.fontClass}`}
+                                    lang={nameInfo.lang}
+                                    title={nameInfo.name}
+                                  >
+                                    {nameInfo.name}
+                                  </span>
+                                </Link>
+                                <div className="text-xs text-muted-foreground truncate" title={candidate.email}>{candidate.email}</div>
+                              </div>
+                            </>
+                          );
+                        })()}
+                      </div>
+                    </TableCell>
+          );
+
+        case 'appliedJob':
+          return (
+                    <TableCell key={`${candidate.id}-position`} className="max-w-[200px]">
+                      {(() => {
+                        // Check for job_applied data in parsedData first
+                        const parsedData = candidate.parsedData as any;
+                        const jobApplied = parsedData?.job_applied;
+                        
+                        if (jobApplied?.job_title) {
+                          return (
+                            <div className="space-y-1">
+                              <div className="font-medium text-foreground text-sm">
+                                {jobApplied.job_title}
+                              </div>
+                            </div>
+                          );
+                        }
+                        
+                        // Fallback to position title if available
+                        if (candidate.position?.title) {
+                          return (
+                            <div className="font-medium text-foreground text-sm">
+                              {candidate.position.title}
+                            </div>
+                          );
+                        }
+                        
+                        // Show missing job info if positionId exists but no title
+                        if (candidate.positionId) {
+                          return (
+                            <span className="text-warning-foreground bg-warning/20 px-2 py-1 rounded text-xs font-semibold">
+                              -
+                            </span>
+                          );
+                        }
+                        
+                        // Default fallback
+                        return (
+                          <span className="text-muted-foreground">N/A</span>
+                        );
+                      })()}
+                    </TableCell>
+          );
+        
+        case 'jobMatches':
+          return (
+            <TableCell key={`${candidate.id}-job-matches`} className="text-center max-w-[120px]">
+                      {Array.isArray(candidate.jobMatches) && candidate.jobMatches.length > 0 ? candidate.jobMatches.length : '-'}
+                    </TableCell>
+          );
+        
+        case 'fitScore':
+          return (
+                    <TableCell key={`${candidate.id}-fit-score`} className="hidden sm:table-cell max-w-[120px]">
+                      <div className="flex items-center gap-2">
+                        {(candidate.fitScore !== undefined && candidate.fitScore !== null) ? (
+                          <ScoreBadge score={candidate.fitScore} className="rounded-full">
+                            {displayFitScoreWithGrade(candidate.fitScore)}
+                          </ScoreBadge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">No job applied</span>
+                        )}
+                      </div>
+                    </TableCell>
+          );
+        
+        case 'recruiter':
+          return (
+                    <TableCell key={`${candidate.id}-recruiter`} className="max-w-[150px]">
+                      <CandidateRecruiterCell
+                        candidate={candidate}
+                        availableRecruiter={availableRecruiter}
+                        canManageCandidates={canEditCandidates}
+                        isAssigning={assigningRecruiter === candidate.id}
+                        onAssignRecruiter={handleAssignRecruiter}
+                        onResetAssigning={handleResetAssigning}
+                      />
+                    </TableCell>
+          );
+        
+        case 'source':
+          return (
+                    <TableCell key={`${candidate.id}-source`} className="max-w-[120px]">
+                                             <CandidateSourceCell
+                         candidate={candidate}
+                         availableSources={availableSources}
+                         canManageCandidates={canAssignSource}
+                         isAssigning={assigningSource === candidate.id}
+                         onAssignSource={handleAssignSource}
+                         onResetAssigning={handleResetAssigning}
+                       />
+                    </TableCell>
+          );
+        
+        case 'status':
+          return (
+                    <TableCell key={`${candidate.id}-status`} className="max-w-[150px]">
+                      <StatusBadge statusId={candidate.statusId} className="capitalize" stageNames={stageNames} stageColors={stageColors} />
+                    </TableCell>
+          );
+        
+        case 'appliedDate':
+          return (
+                    <TableCell key={`${candidate.id}-applied-date`} className="hidden sm:table-cell max-w-[140px] text-ellipsis whitespace-nowrap">
+                      {displayAppliedDate(candidate.applicationDate)}
+                    </TableCell>
+          );
+        
+        case 'lastUpdate':
+          return (
+                    <TableCell key={`${candidate.id}-last-update`} className="hidden lg:table-cell max-w-[140px] text-ellipsis whitespace-nowrap">
+                      {displayAppliedDate(candidate.updatedAt)}
+                    </TableCell>
+          );
+        
+        default:
+          return null;
+      }
+    });
+  };
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [expandedEmails, setExpandedEmails] = useState<Record<string, boolean>>({});
   const [assigningRecruiter, setAssigningRecruiter] = useState<string | null>(null);
@@ -462,238 +958,8 @@ export function CandidateTable({
                   onCheckedChange={onToggleSelectAllCandidates}
                   aria-label="Select all candidates"
                 /></TableHead>
-              {/* Removed Pipeline column header */}
-              {(!settings || settings.showCandidateColumn !== false) && (
-                <TableHead key="candidate" className="min-w-[200px] max-w-[300px] cursor-pointer select-none group" onClick={() => { onSort && onSort('name'); setOpenMenu(null); }}>
-                  <span className="inline-flex items-center gap-1">
-                    Candidate
-                    <DropdownMenu open={openMenu === 'candidate'} onOpenChange={handleOpenChange('candidate')}>
-                      <DropdownMenuTrigger asChild>
-                        {sortColumn === 'name' ? (
-                          <button
-                            type="button"
-                            className="text-primary font-bold p-1 rounded hover:bg-muted h-auto w-auto"
-                            onClick={handleMenuClick('candidate')}
-                            aria-label="Sort options"
-                          >
-                            {sortDirection === 'asc' ? <ChevronUp size={16} /> : sortDirection === 'desc' ? <ChevronDown size={16} /> : <MoreVertical size={16} />}
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted h-auto w-auto"
-                            onClick={handleMenuClick('candidate')}
-                            aria-label="Sort options"
-                          >
-                            <MoreVertical size={16} />
-                          </button>
-                        )}
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => { onSort && onSort('name', 'asc'); setOpenMenu(null); }}>Sort Ascending ▲</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => { onSort && onSort('name', 'desc'); setOpenMenu(null); }}>Sort Descending ▼</DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => { onSort && onSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </span>
-                </TableHead>
-              )}
-
-              {(!settings || settings.showAppliedJobColumn !== false) && (
-                <TableHead key="applied-job" className="min-w-[120px] max-w-[200px]">
-                  Applied Job
-                </TableHead>
-              )}
-              {/* Job Matches Count Column */}
-              {isJobMatchEnabled && (!settings || settings.showJobMatchesColumn !== false) && (
-                <TableHead key="job-matches-count" className="min-w-[96px] max-w-[120px] text-center">Job Matches</TableHead>
-              )}
-              {(!settings || settings.showFitScoreColumn !== false) && (
-                <TableHead key="fit-score" className="min-w-[80px] max-w-[120px] hidden sm:table-cell cursor-pointer select-none group" onClick={() => { onSort && onSort('fitScore'); setOpenMenu(null); }}>
-                  <span className="inline-flex items-center gap-1">
-                    Fit Score
-                    <DropdownMenu open={openMenu === 'fitScore'} onOpenChange={handleOpenChange('fitScore')}>
-                      <DropdownMenuTrigger asChild>
-                        {sortColumn === 'fitScore' ? (
-                          <button
-                            type="button"
-                            className="text-primary font-bold p-1 rounded hover:bg-muted h-auto w-auto"
-                            onClick={handleMenuClick('fitScore')}
-                            aria-label="Sort options"
-                          >
-                            {sortDirection === 'asc' ? <ChevronUp size={16} /> : sortDirection === 'desc' ? <ChevronDown size={16} /> : <MoreVertical size={16} />}
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted h-auto w-auto"
-                            onClick={handleMenuClick('fitScore')}
-                            aria-label="Sort options"
-                          >
-                            <MoreVertical size={16} />
-                          </button>
-                        )}
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => { onSort && onSort('fitScore', 'asc'); setOpenMenu(null); }}>Sort Ascending ▲</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => { onSort && onSort('fitScore', 'desc'); setOpenMenu(null); }}>Sort Descending ▼</DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => { onSort && onSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </span>
-                </TableHead>
-              )}
-              {(!settings || settings.showRecruiterColumn !== false) && (
-                <TableHead key="recruiter" className="min-w-[100px] max-w-[150px]">
-                  Recruiter
-                </TableHead>
-              )}
-              {(!settings || settings.showSourceColumn !== false) && (
-                <TableHead key="source" className="min-w-[80px] max-w-[120px] cursor-pointer select-none group" onClick={() => { onSort && onSort('source'); setOpenMenu(null); }}>
-                  <span className="inline-flex items-center gap-1">
-                    Source
-                    <DropdownMenu open={openMenu === 'source'} onOpenChange={handleOpenChange('source')}>
-                      <DropdownMenuTrigger asChild>
-                        {sortColumn === 'source' ? (
-                          <button
-                            type="button"
-                            className="text-primary font-bold p-1 rounded hover:bg-muted h-auto w-auto"
-                            onClick={handleMenuClick('source')}
-                            aria-label="Sort options"
-                          >
-                            {sortDirection === 'asc' ? <ChevronUp size={16} /> : sortDirection === 'desc' ? <ChevronDown size={16} /> : <MoreVertical size={16} />}
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted h-auto w-auto"
-                            onClick={handleMenuClick('source')}
-                            aria-label="Sort options"
-                          >
-                            <MoreVertical size={16} />
-                          </button>
-                        )}
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => { onSort && onSort('source', 'asc'); setOpenMenu(null); }}>Sort Ascending ▲</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => { onSort && onSort('source', 'desc'); setOpenMenu(null); }}>Sort Descending ▼</DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => { onSort && onSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </span>
-                </TableHead>
-              )}
-              {(!settings || settings.showStatusColumn !== false) && (
-                <TableHead key="status" className="min-w-[100px] max-w-[150px] cursor-pointer select-none group" onClick={() => { onSort && onSort('status'); setOpenMenu(null); }}>
-                  <span className="inline-flex items-center gap-1">
-                    Status
-                    <DropdownMenu open={openMenu === 'status'} onOpenChange={handleOpenChange('status')}>
-                      <DropdownMenuTrigger asChild>
-                        {sortColumn === 'status' ? (
-                          <button
-                            type="button"
-                            className="text-primary font-bold p-1 rounded hover:bg-muted h-auto w-auto"
-                            onClick={handleMenuClick('status')}
-                            aria-label="Sort options"
-                          >
-                            {sortDirection === 'asc' ? <ChevronUp size={16} /> : sortDirection === 'desc' ? <ChevronDown size={16} /> : <MoreVertical size={16} />}
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted h-auto w-auto"
-                            onClick={handleMenuClick('status')}
-                            aria-label="Sort options"
-                          >
-                            <MoreVertical size={16} />
-                          </button>
-                        )}
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => { onSort && onSort('status', 'asc'); setOpenMenu(null); }}>Sort Ascending ▲</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => { onSort && onSort('status', 'desc'); setOpenMenu(null); }}>Sort Descending ▼</DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => { onSort && onSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </span>
-                </TableHead>
-              )}
-              {(!settings || settings.showAppliedDateColumn !== false) && (
-                <TableHead key="applied-date" className="min-w-[100px] max-w-[140px] hidden sm:table-cell cursor-pointer select-none group" onClick={() => { onSort && onSort('applicationDate'); setOpenMenu(null); }}>
-                  <span className="inline-flex items-center gap-1">
-                    Applied Date
-                    <DropdownMenu open={openMenu === 'applicationDate'} onOpenChange={handleOpenChange('applicationDate')}>
-                      <DropdownMenuTrigger asChild>
-                        {sortColumn === 'applicationDate' ? (
-                          <button
-                            type="button"
-                            className="text-primary font-bold p-1 rounded hover:bg-muted h-auto w-auto"
-                            onClick={handleMenuClick('applicationDate')}
-                            aria-label="Sort options"
-                          >
-                            {sortDirection === 'asc' ? <ChevronUp size={16} /> : sortDirection === 'desc' ? <ChevronDown size={16} /> : <MoreVertical size={16} />}
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted h-auto w-auto"
-                            onClick={handleMenuClick('applicationDate')}
-                            aria-label="Sort options"
-                          >
-                            <MoreVertical size={16} />
-                          </button>
-                        )}
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => { onSort && onSort('applicationDate', 'asc'); setOpenMenu(null); }}>Sort Ascending ▲</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => { onSort && onSort('applicationDate', 'desc'); setOpenMenu(null); }}>Sort Descending ▼</DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => { onSort && onSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </span>
-                </TableHead>
-              )}
-              {(!settings || settings.showLastUpdateColumn !== false) && (
-                <TableHead key="last-update" className="min-w-[100px] max-w-[140px] hidden lg:table-cell cursor-pointer select-none group" onClick={() => { onSort && onSort('lastUpdate'); setOpenMenu(null); }}>
-                  <span className="inline-flex items-center gap-1">
-                    Last Update
-                    <DropdownMenu open={openMenu === 'lastUpdate'} onOpenChange={handleOpenChange('lastUpdate')}>
-                      <DropdownMenuTrigger asChild>
-                        {sortColumn === 'lastUpdate' ? (
-                          <button
-                            type="button"
-                            className="text-primary font-bold p-1 rounded hover:bg-muted h-auto w-auto"
-                            onClick={handleMenuClick('lastUpdate')}
-                            aria-label="Sort options"
-                          >
-                            {sortDirection === 'asc' ? <ChevronUp size={16} /> : sortDirection === 'desc' ? <ChevronDown size={16} /> : <MoreVertical size={16} />}
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted h-auto w-auto"
-                            onClick={handleMenuClick('lastUpdate')}
-                            aria-label="Sort options"
-                          >
-                            <MoreVertical size={16} />
-                          </button>
-                        )}
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => { onSort && onSort('lastUpdate', 'asc'); setOpenMenu(null); }}>Sort Ascending ▲</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => { onSort && onSort('lastUpdate', 'desc'); setOpenMenu(null); }}>Sort Descending ▼</DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => { onSort && onSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </span>
-                </TableHead>
-              )}
+              {/* Dynamically rendered columns based on column order */}
+              {renderTableHeaders()}
               <TableHead key="actions" className="text-right min-w-[80px] max-w-[100px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -732,143 +998,8 @@ export function CandidateTable({
                       onCheckedChange={() => onToggleSelectCandidate(candidate.id)}
                       aria-label={`Select candidate ${candidate.name}`}
                     /></TableCell>
-                  {/* Removed Pipeline cell */}
-                  {(!settings || settings.showCandidateColumn !== false) && (
-                    <TableCell key={`${candidate.id}-candidate-info`} className="max-w-[300px]">
-                      <div className="flex items-center gap-3">
-                        {(() => {
-                          const nameInfo = formatCandidateNameWithLang(candidate);
-                          return (
-                            <>
-                              <CandidateAvatarCompact
-                                user={{
-                                  id: candidate.id,
-                                  name: nameInfo.name,
-                                  avatarUrl: candidate.avatarUrl,
-                                  email: candidate.email
-                                }}
-                                size="lg"
-                                className=""
-                              />
-                              <div className="min-w-0 flex-1">
-                                <Link href={`/candidates/${candidate.id}`} passHref>
-                                  <span 
-                                    className={`font-medium text-foreground hover:underline cursor-pointer truncate block ${nameInfo.fontClass}`}
-                                    lang={nameInfo.lang}
-                                    title={nameInfo.name}
-                                  >
-                                    {nameInfo.name}
-                                  </span>
-                                </Link>
-                                <div className="text-xs text-muted-foreground truncate" title={candidate.email}>{candidate.email}</div>
-                              </div>
-                            </>
-                          );
-                        })()}
-                      </div>
-                    </TableCell>
-                  )}
-
-                  {(!settings || settings.showAppliedJobColumn !== false) && (
-                    <TableCell key={`${candidate.id}-position`} className="max-w-[200px]">
-                      {(() => {
-                        // Check for job_applied data in parsedData first
-                        const parsedData = candidate.parsedData as any;
-                        const jobApplied = parsedData?.job_applied;
-                        
-                        if (jobApplied?.job_title) {
-                          return (
-                            <div className="space-y-1">
-                              <div className="font-medium text-foreground text-sm">
-                                {jobApplied.job_title}
-                              </div>
-                            </div>
-                          );
-                        }
-                        
-                        // Fallback to position title if available
-                        if (candidate.position?.title) {
-                          return (
-                            <div className="font-medium text-foreground text-sm">
-                              {candidate.position.title}
-                            </div>
-                          );
-                        }
-                        
-                        // Show missing job info if positionId exists but no title
-                        if (candidate.positionId) {
-                          return (
-                            <span className="text-warning-foreground bg-warning/20 px-2 py-1 rounded text-xs font-semibold">
-                              -
-                            </span>
-                          );
-                        }
-                        
-                        // Default fallback
-                        return (
-                          <span className="text-muted-foreground">N/A</span>
-                        );
-                      })()}
-                    </TableCell>
-                  )}
-                  {/* Job Matches Count Cell */}
-                  {isJobMatchEnabled && (!settings || settings.showJobMatchesColumn !== false) && (
-                    <TableCell key={`${candidate.id}-job-matches-count`} className="text-center max-w-[120px]">
-                      {Array.isArray(candidate.jobMatches) && candidate.jobMatches.length > 0 ? candidate.jobMatches.length : '-'}
-                    </TableCell>
-                  )}
-                  {(!settings || settings.showFitScoreColumn !== false) && (
-                    <TableCell key={`${candidate.id}-fit-score`} className="hidden sm:table-cell max-w-[120px]">
-                      <div className="flex items-center gap-2">
-                        {(candidate.fitScore !== undefined && candidate.fitScore !== null) ? (
-                          <ScoreBadge score={candidate.fitScore} className="rounded-full">
-                            {displayFitScoreWithGrade(candidate.fitScore)}
-                          </ScoreBadge>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">No job applied</span>
-                        )}
-                      </div>
-                    </TableCell>
-                  )}
-                  {(!settings || settings.showRecruiterColumn !== false) && (
-                    <TableCell key={`${candidate.id}-recruiter`} className="max-w-[150px]">
-                      <CandidateRecruiterCell
-                        candidate={candidate}
-                        availableRecruiter={availableRecruiter}
-                        canManageCandidates={canEditCandidates}
-                        isAssigning={assigningRecruiter === candidate.id}
-                        onAssignRecruiter={handleAssignRecruiter}
-                        onResetAssigning={handleResetAssigning}
-                      />
-                    </TableCell>
-                  )}
-                  {(!settings || settings.showSourceColumn !== false) && (
-                    <TableCell key={`${candidate.id}-source`} className="max-w-[120px]">
-                                             <CandidateSourceCell
-                         candidate={candidate}
-                         availableSources={availableSources}
-                         canManageCandidates={canAssignSource}
-                         isAssigning={assigningSource === candidate.id}
-                         onAssignSource={handleAssignSource}
-                         onResetAssigning={handleResetAssigning}
-                       />
-                    </TableCell>
-                  )}
-                  {(!settings || settings.showStatusColumn !== false) && (
-                    <TableCell key={`${candidate.id}-status`} className="max-w-[150px]">
-                      <StatusBadge statusId={candidate.statusId} className="capitalize" stageNames={stageNames} stageColors={stageColors} />
-                    </TableCell>
-                  )}
-                  {(!settings || settings.showAppliedDateColumn !== false) && (
-                    <TableCell key={`${candidate.id}-applied-date`} className="hidden sm:table-cell max-w-[140px] text-ellipsis whitespace-nowrap">
-                      {displayAppliedDate(candidate.applicationDate)}
-                    </TableCell>
-                  )}
-                  {(!settings || settings.showLastUpdateColumn !== false) && (
-                    <TableCell key={`${candidate.id}-last-update`} className="hidden lg:table-cell max-w-[140px] text-ellipsis whitespace-nowrap">
-                      {displayAppliedDate(candidate.updatedAt)}
-                    </TableCell>
-                  )}
+                  {/* Dynamically rendered columns based on column order */}
+                  {renderTableBodyCells(candidate)}
                   <TableCell key={`${candidate.id}-actions`} className="text-right max-w-[100px]">
                     <div className="flex items-center justify-end">
                       <DropdownMenu>
@@ -932,145 +1063,9 @@ export function CandidateTable({
                                 onCheckedChange={() => onToggleSelectCandidate(candidate.id)}
                                 aria-label={`Select candidate ${candidate.name}`}
                               /></TableCell>
-                            {/* Removed Pipeline cell */}
-                            <TableCell key={`${candidate.id}-candidate-info`}>
-                              <div className="flex items-center gap-3">
-                                {(() => {
-                                  const nameInfo = formatCandidateNameWithLang(candidate);
-                                  const uuidSchema = z.string().uuid();
-                                  const isValidId = candidate.id && uuidSchema.safeParse(candidate.id).success;
-                                  return (
-                                    <>
-                                      <CandidateAvatarCompact
-                                        user={{
-                                          id: candidate.id,
-                                          name: nameInfo.name,
-                                          avatarUrl: candidate.avatarUrl,
-                                          email: candidate.email
-                                        }}
-                                        size="md"
-                                        className=""
-                                      />
-                                      <div>
-                                        {isValidId ? (
-                                          <Link href={`/candidates/${candidate.id}`} passHref>
-                                            <span 
-                                              className={`font-medium text-foreground hover:underline cursor-pointer ${nameInfo.fontClass}`}
-                                              lang={nameInfo.lang}
-                                            >
-                                              {nameInfo.name}
-                                            </span>
-                                          </Link>
-                                        ) : (
-                                          <span className={`font-medium text-foreground ${nameInfo.fontClass}`} lang={nameInfo.lang}>{nameInfo.name}</span>
-                                        )}
-                                        <div className="text-xs text-muted-foreground">{candidate.email}</div>
-                                      </div>
-                                    </>
-                                  );
-                                })()}
-                              </div>
-                            </TableCell>
+                            {/* Dynamically rendered columns based on column order */}
+                            {renderTableBodyCells(candidate)}
 
-                            {(!settings || settings.showAppliedJobColumn !== false) && (
-                              <TableCell key={`${candidate.id}-position`} className="max-w-[200px]">
-                                {(() => {
-                                  // Check for job_applied data in parsedData first
-                                  const parsedData = candidate.parsedData as any;
-                                  const jobApplied = parsedData?.job_applied;
-                                  if (jobApplied && jobApplied.jobId) {
-                                    // Find the position title from availablePositions
-                                    const position = availablePositions.find(p => p.id === jobApplied.jobId);
-                                    if (position) {
-                                      return (
-                                        <div className="space-y-1">
-                                          <div className="font-medium text-foreground">
-                                            {position.title}
-                                          </div>
-                                        </div>
-                                      );
-                                    }
-                                  }
-                                  
-                                  // Fallback to position data if no job_applied
-                                  if (candidate.position?.title) {
-                                    return (
-                                      <div className="space-y-1">
-                                        <div className="font-medium text-foreground">
-                                          {candidate.position.title}
-                                        </div>
-                                      </div>
-                                    );
-                                  } else if (candidate.positionId) {
-                                    return (
-                                      <span className="text-warning-foreground bg-warning/20 px-2 py-1 rounded text-xs font-semibold">Missing Job Info</span>
-                                    );
-                                  } else {
-                                    return (
-                                      <span className="text-muted-foreground">N/A</span>
-                                    );
-                                  }
-                                })()}
-                              </TableCell>
-                            )}
-                            {/* Job Matches Count Cell */}
-                            {isJobMatchEnabled && (!settings || settings.showJobMatchesColumn !== false) && (
-                              <TableCell key={`${candidate.id}-job-matches-count`} className="text-center max-w-[120px]">
-                                {Array.isArray(candidate.jobMatches) && candidate.jobMatches.length > 0 ? candidate.jobMatches.length : '-'}
-                              </TableCell>
-                            )}
-                            {(!settings || settings.showFitScoreColumn !== false) && (
-                              <TableCell key={`${candidate.id}-fit-score`} className="hidden sm:table-cell max-w-[120px]">
-                                <div className="flex items-center gap-2">
-                                  {(candidate.fitScore !== undefined && candidate.fitScore !== null) ? (
-                                    <ScoreBadge score={candidate.fitScore} className="rounded-full">
-                                      {displayFitScoreWithGrade(candidate.fitScore)}
-                                    </ScoreBadge>
-                                  ) : (
-                                    <span className="text-xs text-muted-foreground">No job applied</span>
-                                  )}
-                                </div>
-                              </TableCell>
-                            )}
-                            {(!settings || settings.showRecruiterColumn !== false) && (
-                              <TableCell key={`${candidate.id}-recruiter`} className="max-w-[150px]">
-                                <CandidateRecruiterCell
-                                  candidate={candidate}
-                                  availableRecruiter={availableRecruiter}
-                                  canManageCandidates={canAssignRecruiter}
-                                  isAssigning={assigningRecruiter === candidate.id}
-                                  onAssignRecruiter={handleAssignRecruiter}
-                                  onResetAssigning={handleResetAssigning}
-                                />
-                              </TableCell>
-                            )}
-                            {(!settings || settings.showSourceColumn !== false) && (
-                              <TableCell key={`${candidate.id}-source`} className="max-w-[120px]">
-                                <CandidateSourceCell
-                                  candidate={candidate}
-                                  availableSources={availableSources}
-                                  canManageCandidates={canAssignSource}
-                                  isAssigning={assigningSource === candidate.id}
-                                  onAssignSource={handleAssignSource}
-                                  onResetAssigning={handleResetAssigning}
-                                />
-                              </TableCell>
-                            )}
-                            {(!settings || settings.showStatusColumn !== false) && (
-                              <TableCell key={`${candidate.id}-status`} className="max-w-[150px]">
-                                <StatusBadge statusId={candidate.statusId} className="capitalize" stageNames={stageNames} stageColors={stageColors} />
-                              </TableCell>
-                            )}
-                            {(!settings || settings.showAppliedDateColumn !== false) && (
-                              <TableCell key={`${candidate.id}-applied-date`} className="hidden sm:table-cell max-w-[140px] text-ellipsis whitespace-nowrap">
-                                {displayAppliedDate(candidate.applicationDate)}
-                              </TableCell>
-                            )}
-                            {(!settings || settings.showLastUpdateColumn !== false) && (
-                              <TableCell key={`${candidate.id}-last-update`} className="hidden lg:table-cell">
-                                {displayAppliedDate(candidate.updatedAt)}
-                              </TableCell>
-                            )}
                             <TableCell key={`${candidate.id}-actions`} className="text-right">
                               <div className="flex items-center justify-end">
                                 <DropdownMenu>

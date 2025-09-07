@@ -488,7 +488,10 @@ export function WarningConfigurationModal({
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent className="w-[40vw] max-w-[40vw] min-w-[600px] overflow-y-auto">
+      <SheetContent 
+        className="w-[40vw] max-w-[40vw] min-w-[600px] overflow-y-auto"
+        sheetId="warning-configuration-modal"
+      >
         <SheetHeader className="pb-6">
           <SheetTitle className="flex items-center gap-2 text-2xl font-semibold">
             <AlertTriangle className="h-6 w-6 text-primary" />

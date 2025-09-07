@@ -148,6 +148,10 @@ export default function DashboardPageClient({
   const [selectedPositionId, setSelectedPositionId] = useState<string | null>(null);
   const [isPositionDrawerOpen, setIsPositionDrawerOpen] = useState(false);
 
+  // Unassigned candidates pagination state
+  const [unassignedPage, setUnassignedPage] = useState(1);
+  const [unassignedPageSize] = useState(5); // Keep showing 5 per page as before
+
   // REMOVED: Permission refresh hook - not needed for normal operation
 
   // Use the new chart setup hook
@@ -646,6 +650,16 @@ export default function DashboardPageClient({
         !c.recruiterId
       );
     }, [filteredCandidates]);
+
+    // Paginated unassigned candidates for display
+    const paginatedUnassignedCandidates = useMemo(() => {
+      const startIndex = (unassignedPage - 1) * unassignedPageSize;
+      const endIndex = startIndex + unassignedPageSize;
+      return unassignedCandidatesList.slice(startIndex, endIndex);
+    }, [unassignedCandidatesList, unassignedPage, unassignedPageSize]);
+
+    // Calculate total pages for unassigned candidates
+    const unassignedTotalPages = Math.ceil(unassignedCandidatesList.length / unassignedPageSize);
 
   // Calculate Average Time to Hire (in days)
       const averageTimeToHire = useMemo(() => {
@@ -1696,7 +1710,7 @@ export default function DashboardPageClient({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {unassignedCandidatesList.slice(0, 5).map(candidate => (
+                  {paginatedUnassignedCandidates.map(candidate => (
                     <TableRow key={candidate.id} className="hover:bg-muted/50">
                       <TableCell>
                         {(() => {
@@ -1735,6 +1749,45 @@ export default function DashboardPageClient({
               <div className="flex flex-col items-center justify-center py-8 text-center">
                 <CheckCircle2 className="h-12 w-12 text-green-500 mb-3" />
                 <p className="text-sm text-muted-foreground">All candidates have been assigned to recruiters!</p>
+              </div>
+            )}
+            {/* Pagination controls for unassigned candidates */}
+            {unassignedCandidatesList.length > 0 && unassignedTotalPages > 1 && (
+              <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                <div className="text-sm text-muted-foreground">
+                  Showing {((unassignedPage - 1) * unassignedPageSize) + 1} to {Math.min(unassignedPage * unassignedPageSize, unassignedCandidatesList.length)} of {unassignedCandidatesList.length} candidates
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setUnassignedPage(prev => Math.max(1, prev - 1))}
+                    disabled={unassignedPage === 1}
+                  >
+                    Previous
+                  </Button>
+                  <div className="flex items-center space-x-1">
+                    {Array.from({ length: unassignedTotalPages }, (_, i) => i + 1).map(pageNum => (
+                      <Button
+                        key={pageNum}
+                        variant={pageNum === unassignedPage ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setUnassignedPage(pageNum)}
+                        className="w-8 h-8 p-0"
+                      >
+                        {pageNum}
+                      </Button>
+                    ))}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setUnassignedPage(prev => Math.min(unassignedTotalPages, prev + 1))}
+                    disabled={unassignedPage === unassignedTotalPages}
+                  >
+                    Next
+                  </Button>
+                </div>
               </div>
             )}
             </CardContent>

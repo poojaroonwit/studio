@@ -264,6 +264,7 @@ export function WarningConfigurationsDrawer({
              maxWidth: '40vw', 
              minWidth: '600px' 
            }}
+           sheetId="warning-configurations-drawer"
          >
           <SheetHeader className="pb-4">
             <div className="flex items-center justify-between">

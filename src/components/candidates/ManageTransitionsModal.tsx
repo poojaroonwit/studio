@@ -451,7 +451,7 @@ export function ManageTransitionsModal({
         open={isOpen} 
         onOpenChange={handleModalOpenChange}
       >
-        <DialogContent className="sm:max-w-3xl">
+        <DialogContent dialogId="manage-transitions-modal" className="sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>Manage Transitions for {candidate.name}</DialogTitle>
             <DialogDescription>

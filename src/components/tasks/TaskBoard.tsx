@@ -135,7 +135,7 @@ const StageColumn: React.FC<StageColumnProps> = ({
         {/* Drop Zone */}
         <div 
           className={cn(
-            "flex-1 bg-gray-50 dark:bg-gray-900 transition-all duration-200 relative min-h-0",
+            "flex-1 flex flex-col bg-gray-50 dark:bg-gray-900 transition-all duration-200 relative min-h-0",
             isDragOver && !isCurrentStage && "bg-blue-50/50 dark:bg-blue-900/20"
           )}
           onDragOver={onDragOver}
@@ -155,7 +155,7 @@ const StageColumn: React.FC<StageColumnProps> = ({
           )}
 
           {/* Tasks */}
-          <div className="h-full overflow-y-auto">
+          <div className="flex-1 overflow-y-auto">
             <div className="p-4 space-y-3">
               {visibleTasks.map((task) => (
                 <TaskCard

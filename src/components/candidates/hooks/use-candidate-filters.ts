@@ -97,6 +97,11 @@ export function useCandidateFilters(initialFilters?: CandidateFilterValues) {
         newFilters.maxAppliedJobFitScore = -1; // Set both to -1 for "no-score" case
         newFilters.includeNoScoreInApplied = true;
       }
+    } else {
+      // Clear applied job fit score filters when no grades are selected
+      newFilters.minAppliedJobFitScore = undefined;
+      newFilters.maxAppliedJobFitScore = undefined;
+      newFilters.includeNoScoreInApplied = undefined;
     }
 
     // Process matching job fit score grades
@@ -124,6 +129,11 @@ export function useCandidateFilters(initialFilters?: CandidateFilterValues) {
         newFilters.maxMatchingJobFitScore = -1; // Set both to -1 for "no-score" case
         newFilters.includeNoScoreInMatching = true;
       }
+    } else {
+      // Clear matching job fit score filters when no grades are selected
+      newFilters.minMatchingJobFitScore = undefined;
+      newFilters.maxMatchingJobFitScore = undefined;
+      newFilters.includeNoScoreInMatching = undefined;
     }
 
     setFilters(newFilters);

@@ -915,8 +915,12 @@ export function CandidatesPageClient({
     
     // Simple debounced filter application
     filterChangeTimeoutRef.current = setTimeout(() => {
-      // Only apply horizontal filters if there are selections
-      if (horizontalSelectedFitScoreGrades.size > 0 || horizontalSelectedMatchingFitScoreGrades.size > 0) {
+      // Check if there are any horizontal fitscore selections
+      const hasAppliedSelections = horizontalSelectedFitScoreGrades.size > 0;
+      const hasMatchingSelections = horizontalSelectedMatchingFitScoreGrades.size > 0;
+      
+      if (hasAppliedSelections || hasMatchingSelections) {
+        // Apply horizontal filters when selections exist
         const horizontalFilters = applyHorizontalFitScoreFilters();
         
         // Check if horizontal filters have any actual values
@@ -926,6 +930,17 @@ export function CandidatesPageClient({
           // Apply the filters
           setFilters(prev => ({ ...prev, ...horizontalFilters }));
         }
+      } else {
+        // Clear fitscore filters when no selections (All is selected)
+        setFilters(prev => ({
+          ...prev,
+          minAppliedJobFitScore: undefined,
+          maxAppliedJobFitScore: undefined,
+          minMatchingJobFitScore: undefined,
+          maxMatchingJobFitScore: undefined,
+          includeNoScoreInApplied: undefined,
+          includeNoScoreInMatching: undefined
+        }));
       }
     }, 300);
     

@@ -65,7 +65,11 @@ export function StageSelect({ value, onChange, availableStages, label, error, lo
           </Button>
         </PopoverTrigger>
         {/* Render in portal and set high z-index, and set width to match trigger */}
-        <PopoverContent style={dropdownWidth ? { width: dropdownWidth } : undefined} className="p-0 dropdown-content-height">
+        <PopoverContent 
+          popoverId="stage-select-dropdown"
+          style={dropdownWidth ? { width: dropdownWidth } : undefined} 
+          className="p-0 dropdown-content-height"
+        >
           <div className="p-2 flex items-center gap-2">
             <Input
               placeholder="Search stage..."

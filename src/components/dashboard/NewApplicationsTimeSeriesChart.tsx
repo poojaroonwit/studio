@@ -29,9 +29,8 @@ type ComparisonPeriod = '12' | '24' | '36' | '48' | '60';
 const PERIOD_TYPES = [
   { label: 'Today', value: 'today' },
   { label: 'Yesterday', value: 'yesterday' },
-  { label: 'Last N', value: 'lastN' },
+  { label: 'Last', value: 'lastN' },
   { label: 'This', value: 'this' },
-  { label: 'Last', value: 'last' },
   { label: 'Past', value: 'pastN' },
   { label: 'Custom', value: 'custom' },
 ];
@@ -47,7 +46,7 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
   const { chartReady, isLoading: chartLoading, error: chartError } = useChartSetup();
 
   // New state for period selection
-  const [periodType, setPeriodType] = useState<'today'|'yesterday'|'lastN'|'this'|'last'|'pastN'|'custom'>('lastN');
+  const [periodType, setPeriodType] = useState<'today'|'yesterday'|'lastN'|'this'|'pastN'|'custom'>('lastN');
   const [periodUnit, setPeriodUnit] = useState<'day'|'week'|'month'|'year'>('day');
   const [periodN, setPeriodN] = useState<number>(7); // Default to 7 days for "Last N"
   const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
@@ -153,7 +152,19 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
           }
           break;
         case 'this':
-          if (periodUnit === 'week') {
+          if (periodUnit === 'day') {
+            start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+            // Create hourly intervals for today
+            intervalFn = () => {
+              const hours = [];
+              for (let i = 0; i < 24; i++) {
+                hours.push(new Date(start.getFullYear(), start.getMonth(), start.getDate(), i, 0, 0, 0));
+              }
+              return hours;
+            };
+            formatFn = (date: Date) => format(date, 'HH:mm');
+          } else if (periodUnit === 'week') {
             start = startOfWeek(now);
             end = endOfWeek(now);
             intervalFn = eachDayOfInterval;
@@ -166,24 +177,6 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
           } else {
             start = startOfYear(now);
             end = endOfYear(now);
-            intervalFn = eachMonthOfInterval;
-            formatFn = (date: Date) => format(date, 'MMM');
-          }
-          break;
-        case 'last':
-          if (periodUnit === 'week') {
-            start = startOfWeek(subWeeks(now, 1));
-            end = endOfWeek(subWeeks(now, 1));
-            intervalFn = eachDayOfInterval;
-            formatFn = (date: Date) => format(date, 'EEE dd');
-          } else if (periodUnit === 'month') {
-            start = startOfMonth(subMonths(now, 1));
-            end = endOfMonth(subMonths(now, 1));
-            intervalFn = eachWeekOfInterval;
-            formatFn = (date: Date) => `Week ${format(date, 'w')}`;
-          } else {
-            start = startOfYear(subYears(now, 1));
-            end = endOfYear(subYears(now, 1));
             intervalFn = eachMonthOfInterval;
             formatFn = (date: Date) => format(date, 'MMM');
           }
@@ -286,8 +279,8 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
             break;
         }
       } else {
-        // For 'this' and 'last' period types, use appropriate intervals based on unit
-        if (periodType === 'this' || periodType === 'last') {
+        // For 'this' period type, use appropriate intervals based on unit
+        if (periodType === 'this') {
           if (periodUnit === 'week') {
             intervalEnd = addDays(intervalStart, 1);
           } else if (periodUnit === 'month') {
@@ -394,8 +387,8 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
             break;
         }
       } else {
-        // For 'this' and 'last' period types, use appropriate intervals based on unit
-        if (periodType === 'this' || periodType === 'last') {
+        // For 'this' period type, use appropriate intervals based on unit
+        if (periodType === 'this') {
           if (periodUnit === 'week') {
             intervalEnd = addDays(intervalStart, 1);
           } else if (periodUnit === 'month') {

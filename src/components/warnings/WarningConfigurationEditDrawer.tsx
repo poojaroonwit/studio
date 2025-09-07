@@ -477,7 +477,7 @@ export function WarningConfigurationEditDrawer({
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
       <SheetContent 
-        className="w-[50vw] max-w-[50vw] min-w-[600px] overflow-y-auto"
+        className="!w-[50vw] !max-w-[50vw] min-w-[600px] overflow-y-auto"
         sheetId="warning-configuration-edit-drawer"
       >
         <SheetHeader>

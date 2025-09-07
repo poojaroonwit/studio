@@ -277,16 +277,17 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
 
   // Handle custom field changes
   const handleCustomFieldChange = useCallback((fieldCode: string, value: any) => {
-    if (candidate) {
-      setCandidate(prev => ({
+    setCandidate(prev => {
+      if (!prev) return prev;
+      return {
         ...prev,
         customFields: {
           ...prev.customFields,
           [fieldCode]: value
         }
-      }));
-    }
-  }, [candidate, setCandidate]);
+      };
+    });
+  }, [setCandidate]);
 
   // Loading state
   if (loading) {
@@ -449,7 +450,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
       const dataWithName = {
         ...data,
         name: fullName || candidate.name, // Fallback to existing name if composition is empty
-        customFields: candidate.customFields || {} // Include custom fields in the update
+        customFields: candidate.customFields || {} // Include updated custom fields from state
       };
 
       const res = await fetch(`/api/candidates/${candidate.id}`, {

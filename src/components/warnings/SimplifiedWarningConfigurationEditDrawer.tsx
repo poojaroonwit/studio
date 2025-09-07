@@ -141,7 +141,7 @@ export function SimplifiedWarningConfigurationEditDrawer({
 
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
-      <SheetContent className="w-[50vw] min-w-[400px] max-w-[1200px] overflow-y-auto" sheetId="simplified-warning-configuration-edit-drawer">
+      <SheetContent className="!w-[50vw] min-w-[400px] max-w-[1200px] overflow-y-auto" sheetId="simplified-warning-configuration-edit-drawer">
         <SheetHeader className="mb-6">
           <SheetTitle className="flex items-center gap-2">
             {configuration ? (

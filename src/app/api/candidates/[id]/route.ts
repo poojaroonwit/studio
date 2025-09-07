@@ -331,6 +331,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       })),
       attachmentHistory: attachments,
       custom_attributes: candidate.customAttributes || {},
+      customFields: candidate.customAttributes || {}, // Also provide as customFields for frontend compatibility
       // Add metadata for pagination
       _metadata: {
         totalJobMatches: jobMatches.length,
@@ -417,7 +418,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
 
   // Skip validation and use body directly
-  const { name, email, phone, positionId, recruiterId, fitScore, status, assignmentJustification, parsedData, custom_attributes, resumePath, transitionNotes, avatarUrl, sourceId, subSource } = body;
+  const { name, email, phone, positionId, recruiterId, fitScore, status, assignmentJustification, parsedData, custom_attributes, customFields, resumePath, transitionNotes, avatarUrl, sourceId, subSource } = body;
 
   // Log source assignment specifically for debugging
   if (sourceId !== undefined) {
@@ -612,9 +613,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       updateValues.push(parsedData);
       paramIndex++;
     }
-    if (custom_attributes !== undefined) {
+    // Handle custom fields - use customFields if provided, otherwise use custom_attributes
+    const customAttributesToSave = customFields !== undefined ? customFields : custom_attributes;
+    if (customAttributesToSave !== undefined) {
       updateFields.push(`"customAttributes" = $${paramIndex}`);
-      updateValues.push(custom_attributes);
+      updateValues.push(customAttributesToSave);
       paramIndex++;
     }
     if (resumePath !== undefined) {
@@ -1030,6 +1033,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       ...candidate,
       assignmentJustification: candidate.assignmentJustification || null,
       customAttributes,
+      customFields: customAttributes, // Also provide as customFields for frontend compatibility
       position: candidate.positionId ? {
         title: candidate.positionTitle || null,
         department: candidate.positionDepartment || null

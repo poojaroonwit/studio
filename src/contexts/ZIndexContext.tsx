@@ -59,15 +59,31 @@ export function ZIndexProvider({ children }: { children: React.ReactNode }) {
           const highestOverlay = Math.max(...overlayComponents.map(comp => comp.zIndex));
           zIndex = Math.max(zIndex, highestOverlay + Z_INDEX_INCREMENT);
         }
+        
+        // Force all existing overlays to be below this modal/drawer
+        const updatedComponents = filtered.map(comp => {
+          if (comp.type === 'overlay' && comp.zIndex >= zIndex) {
+            return { ...comp, zIndex: zIndex - Z_INDEX_INCREMENT };
+          }
+          return comp;
+        });
+        
+        // Update the filtered array to include the rebalanced overlays
+        filtered.splice(0, filtered.length, ...updatedComponents);
       } else if (type === 'overlay') {
         // Overlays (toasts, loading indicators) should be above base content but below modals/drawers
         // This allows modals and drawers to appear above loading states and notifications
-        const allOtherComponents = filtered.filter(comp => comp.type !== 'overlay');
-        if (allOtherComponents.length > 0) {
-          const highestOther = Math.max(...allOtherComponents.map(comp => comp.zIndex));
-          // Only go above if no modals/drawers exist, otherwise stay below them
-          const modalDrawerComponents = filtered.filter(comp => comp.type === 'modal' || comp.type === 'drawer');
-          if (modalDrawerComponents.length === 0) {
+        const modalDrawerComponents = filtered.filter(comp => comp.type === 'modal' || comp.type === 'drawer');
+        
+        if (modalDrawerComponents.length > 0) {
+          // If there are existing modals/drawers, overlays should stay below them
+          const highestModalDrawer = Math.max(...modalDrawerComponents.map(comp => comp.zIndex));
+          zIndex = Math.min(zIndex, highestModalDrawer - Z_INDEX_INCREMENT);
+        } else {
+          // If no modals/drawers exist, overlays can be above other components
+          const allOtherComponents = filtered.filter(comp => comp.type !== 'overlay');
+          if (allOtherComponents.length > 0) {
+            const highestOther = Math.max(...allOtherComponents.map(comp => comp.zIndex));
             zIndex = Math.max(zIndex, highestOther + Z_INDEX_INCREMENT);
           }
         }

@@ -1372,7 +1372,7 @@ export default function PositionsPageClient() {
 
 
       {/* Positions List */}
-      <div className="positions-table-container flex-1 overflow-hidden">
+      <div className="positions-table-container flex-1 overflow-hidden flex flex-col">
       {totalPositions === 0 ? (
         <div className="text-center py-12 empty-state">
           <Briefcase className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
@@ -1391,7 +1391,7 @@ export default function PositionsPageClient() {
         </div>
       ) : (
         <div 
-          className="border rounded-lg shadow overflow-hidden relative table-container-responsive h-full flex flex-col"
+          className="border rounded-lg shadow overflow-hidden relative table-container-responsive flex-1 flex flex-col"
         
         >
           
@@ -1692,37 +1692,37 @@ export default function PositionsPageClient() {
             </TableBody>
             </Table>
           </div>
+          
+          {/* Pagination Controls - Inside table container at bottom */}
+          {(total > 0 || totalPages > 0) && (
+            <div className="p-2 border-t bg-background flex-shrink-0">
+              <Pagination
+                currentPage={page}
+                totalPages={Math.max(1, totalPages)}
+                pageSize={pageSize}
+                total={total}
+                onPageChange={(newPage) => {
+                  setPage(newPage);
+                  updateURL(newPage);
+                }}
+                onPageSizeChange={(newPageSize) => {
+                  setPageSize(newPageSize);
+                  setPage(1);
+                  updateURL(1, newPageSize);
+                }}
+                pageSizeOptions={[10, 20, 50, 100]}
+                showPageSizeSelector={true}
+                className="mt-4"
+              />
+            </div>
+          )}
         </div>
    
       )}
       </div>
       
         </div>
-      </div> 
-      
-      {/* Pagination Controls */}
-      {(total > 0 || totalPages > 0) && (
-        <div className="p-2 border-t bg-background flex-shrink-0">
-          <Pagination
-            currentPage={page}
-            totalPages={Math.max(1, totalPages)}
-            pageSize={pageSize}
-            total={total}
-            onPageChange={(newPage) => {
-              setPage(newPage);
-              updateURL(newPage);
-            }}
-            onPageSizeChange={(newPageSize) => {
-              setPageSize(newPageSize);
-              setPage(1);
-              updateURL(1, newPageSize);
-            }}
-            pageSizeOptions={[10, 20, 50, 100]}
-            showPageSizeSelector={true}
-            className="mt-4"
-          />
-        </div>
-      )}
+      </div>
     </div> 
   
       

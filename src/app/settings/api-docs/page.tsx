@@ -311,6 +311,62 @@ export default function ApiDocsPage() {
          .tag-filter-container [data-radix-popper-content-wrapper] {
            z-index: 50 !important;
          }
+         
+         /* Ensure tag filter dropdown uses theme colors */
+         .tag-filter-container [data-radix-select-trigger] {
+           background: hsl(var(--background)) !important;
+           color: hsl(var(--foreground)) !important;
+           border: 1px solid hsl(var(--input)) !important;
+           border-radius: var(--radius) !important;
+         }
+         
+         .tag-filter-container [data-radix-select-trigger]:hover {
+           background: hsl(var(--accent)) !important;
+           color: hsl(var(--accent-foreground)) !important;
+         }
+         
+         .tag-filter-container [data-radix-select-trigger]:focus {
+           border-color: hsl(var(--ring)) !important;
+           box-shadow: 0 0 0 2px hsl(var(--ring) / 0.2) !important;
+         }
+         
+         .tag-filter-container [data-radix-select-content] {
+           background: hsl(var(--popover)) !important;
+           border: 1px solid hsl(var(--border)) !important;
+           border-radius: var(--radius) !important;
+           box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1) !important;
+         }
+         
+         .tag-filter-container [data-radix-select-item] {
+           color: hsl(var(--popover-foreground)) !important;
+         }
+         
+         .tag-filter-container [data-radix-select-item]:hover,
+         .tag-filter-container [data-radix-select-item][data-highlighted] {
+           background: hsl(var(--accent)) !important;
+           color: hsl(var(--accent-foreground)) !important;
+         }
+         
+         .tag-filter-container [data-radix-select-item][data-state="checked"] {
+           background: hsl(var(--primary)) !important;
+           color: hsl(var(--primary-foreground)) !important;
+         }
+         
+         /* Dark theme specific overrides for tag filter */
+         .dark .tag-filter-container [data-radix-select-trigger] {
+           background: hsl(var(--background)) !important;
+           color: hsl(var(--foreground)) !important;
+           border: 1px solid hsl(var(--input)) !important;
+         }
+         
+         .dark .tag-filter-container [data-radix-select-content] {
+           background: hsl(var(--popover)) !important;
+           border: 1px solid hsl(var(--border)) !important;
+         }
+         
+         .dark .tag-filter-container [data-radix-select-item] {
+           color: hsl(var(--popover-foreground)) !important;
+         }
        `}</style>
        <div style={{ 
          height: '100%', 

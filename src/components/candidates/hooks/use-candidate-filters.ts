@@ -204,10 +204,13 @@ export function useCandidateFilters(initialFilters?: CandidateFilterValues) {
       selectedPositionIds: [],
       selectedStatuses: [],
       selectedRecruiterIds: [],
+      selectedSourceIds: [],
       minAppliedJobFitScore: undefined,
       maxAppliedJobFitScore: undefined,
       minMatchingJobFitScore: undefined,
       maxMatchingJobFitScore: undefined,
+      includeNoScoreInApplied: false,
+      includeNoScoreInMatching: false,
       applicationDateStart: undefined,
       applicationDateEnd: undefined,
       nameOperator: 'contains',
@@ -215,6 +218,9 @@ export function useCandidateFilters(initialFilters?: CandidateFilterValues) {
       phoneOperator: 'contains',
       locationOperator: 'contains',
       aiSearchQuery: undefined,
+      aiSearchType: 'hybrid',
+      aiSearchFilters: {},
+      customFieldFilters: {},
     };
     
     setFilters(defaultFilters);

@@ -1014,7 +1014,7 @@ export async function GET(request: NextRequest) {
 
       // Process each custom field filter
       for (const [fieldCode, filterValue] of Object.entries(filters.customFieldFilters)) {
-        if (!filterValue || filterValue === '' || filterValue === 'null') continue;
+        if (filterValue === undefined || filterValue === null || filterValue === '' || filterValue === 'null') continue;
         
         const fieldDef = customFieldDefs[fieldCode];
         if (!fieldDef) continue;

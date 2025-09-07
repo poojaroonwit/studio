@@ -1236,18 +1236,44 @@ export function CandidateFilters({
     setExperienceYearsRange([0, 50]);
     setApplicationDateRange(undefined);
     setSelectedRecruiterIds(new Set());
+    setSelectedSourceIds(new Set());
     setAiSearchQueryInput('');
     setAiSearchType('hybrid');
     setAiSearchFilters({});
+    setCustomFieldFilters({}); // Clear custom field filters
     onFilterChange({
+      name: '',
+      email: '',
+      phone: '',
+      education: '',
+      skills: '',
+      location: '',
+      cvLanguage: '',
+      jobSuitableCareer: '',
+      jobSuitableLevel: '',
+      jobSuitablePosition: '',
+      minExperienceYears: undefined,
+      maxExperienceYears: undefined,
       selectedPositionIds: undefined,
       selectedStatuses: undefined,
       selectedRecruiterIds: undefined,
+      selectedSourceIds: undefined,
+      minAppliedJobFitScore: undefined,
+      maxAppliedJobFitScore: undefined,
+      minMatchingJobFitScore: undefined,
+      maxMatchingJobFitScore: undefined,
+      includeNoScoreInApplied: false,
+      includeNoScoreInMatching: false,
       applicationDateStart: undefined,
       applicationDateEnd: undefined,
-      location: undefined,
+      nameOperator: 'contains',
+      emailOperator: 'contains',
+      phoneOperator: 'contains',
       locationOperator: 'contains',
       aiSearchQuery: undefined,
+      aiSearchType: 'hybrid',
+      aiSearchFilters: {},
+      customFieldFilters: undefined,
     });
   };
   

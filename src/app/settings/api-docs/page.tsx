@@ -3,10 +3,13 @@
 import { useEffect, useState } from 'react';
 import SwaggerUI from 'swagger-ui-react';
 import 'swagger-ui-react/swagger-ui.css';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function ApiDocsPage() {
   const [swaggerSpec, setSwaggerSpec] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selectedTag, setSelectedTag] = useState<string>('all');
+  const [availableTags, setAvailableTags] = useState<Array<{name: string, description: string}>>([]);
 
   useEffect(() => {
     const fetchSwaggerSpec = async () => {
@@ -17,6 +20,11 @@ export default function ApiDocsPage() {
         ]);
         
         setSwaggerSpec({ servers: serversResponse, spec: specResponse });
+        
+        // Extract available tags from the spec
+        if (specResponse.tags && Array.isArray(specResponse.tags)) {
+          setAvailableTags(specResponse.tags);
+        }
       } catch (err) {
         console.error('Failed to fetch Swagger spec:', err);
         const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
@@ -26,6 +34,34 @@ export default function ApiDocsPage() {
 
     fetchSwaggerSpec();
   }, []);
+
+  // Function to filter the spec based on selected tag
+  const getFilteredSpec = () => {
+    if (!swaggerSpec || selectedTag === 'all') {
+      return swaggerSpec?.spec;
+    }
+
+    const filteredSpec = { ...swaggerSpec.spec };
+    
+    // Filter paths based on selected tag
+    const filteredPaths: any = {};
+    Object.entries(filteredSpec.paths || {}).forEach(([path, pathMethods]: [string, any]) => {
+      const filteredMethods: any = {};
+      Object.entries(pathMethods).forEach(([method, methodData]: [string, any]) => {
+        if (methodData.tags && methodData.tags.includes(selectedTag)) {
+          filteredMethods[method] = methodData;
+        }
+      });
+      
+      // Only include the path if it has at least one method with the selected tag
+      if (Object.keys(filteredMethods).length > 0) {
+        filteredPaths[path] = filteredMethods;
+      }
+    });
+    
+    filteredSpec.paths = filteredPaths;
+    return filteredSpec;
+  };
 
   if (error) {
     return (
@@ -263,24 +299,63 @@ export default function ApiDocsPage() {
           background: hsl(var(--card)) !important;
         }
         
-        .dark .swagger-ui .opblock .opblock-section-header {
-          background: hsl(var(--muted)) !important;
-        }
-      `}</style>
-      <div style={{ 
-        height: '100%', 
-        width: '100%',
-        overflow: 'auto'
-      }}>
-        <div style={{ padding: '20px', borderBottom: '1px solid hsl(var(--border))' }}>
-          <h1 style={{ margin: '0 0 10px 0', fontSize: '24px', fontWeight: '600', color: 'hsl(var(--foreground))' }}>API Documentation</h1>
-          <p style={{ margin: '0', color: 'hsl(var(--muted-foreground))' }}>
-            Interactive API documentation for the Studio recruitment management system
-          </p>
-        </div>
+         .dark .swagger-ui .opblock .opblock-section-header {
+           background: hsl(var(--muted)) !important;
+         }
+         
+         /* Tag filter dropdown styling */
+         .tag-filter-container {
+           position: relative;
+         }
+         
+         .tag-filter-container [data-radix-popper-content-wrapper] {
+           z-index: 50 !important;
+         }
+       `}</style>
+       <div style={{ 
+         height: '100%', 
+         width: '100%',
+         overflow: 'auto'
+       }}>
+         <div style={{ padding: '20px', borderBottom: '1px solid hsl(var(--border))' }}>
+           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+             <div>
+               <h1 style={{ margin: '0 0 10px 0', fontSize: '24px', fontWeight: '600', color: 'hsl(var(--foreground))' }}>API Documentation</h1>
+               <p style={{ margin: '0', color: 'hsl(var(--muted-foreground))' }}>
+                 Interactive API documentation for the Studio recruitment management system
+               </p>
+             </div>
+             {availableTags.length > 0 && (
+               <div className="tag-filter-container" style={{ minWidth: '250px', marginLeft: '20px' }}>
+                 <label style={{ 
+                   display: 'block', 
+                   marginBottom: '8px', 
+                   fontSize: '14px', 
+                   fontWeight: '500', 
+                   color: 'hsl(var(--foreground))' 
+                 }}>
+                   Filter by Tag
+                 </label>
+                 <Select value={selectedTag} onValueChange={setSelectedTag}>
+                   <SelectTrigger className="w-full">
+                     <SelectValue placeholder="Select a tag to filter" />
+                   </SelectTrigger>
+                   <SelectContent>
+                     <SelectItem value="all">All Endpoints</SelectItem>
+                     {availableTags.map((tag) => (
+                       <SelectItem key={tag.name} value={tag.name}>
+                         {tag.name}
+                       </SelectItem>
+                     ))}
+                   </SelectContent>
+                 </Select>
+               </div>
+             )}
+           </div>
+         </div>
         <div style={{ height: 'calc(100vh - 120px)' }}>
           <SwaggerUI 
-            spec={swaggerSpec.spec}
+            spec={getFilteredSpec()}
             docExpansion="list"
             defaultModelsExpandDepth={1}
             defaultModelExpandDepth={1}

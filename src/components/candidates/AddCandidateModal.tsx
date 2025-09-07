@@ -207,7 +207,7 @@ export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availa
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col p-0">
+      <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col p-0" dialogId="add-candidate-modal">
         <DialogHeader className="p-6 pb-0">
           <DialogTitle className="flex items-center"><UserPlus className="mr-2 h-6 w-6 text-primary" /> Add New Candidate</DialogTitle>
           <DialogDescription>

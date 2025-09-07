@@ -795,7 +795,7 @@ export function RedesignedUserModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[90vh] p-0 overflow-hidden bg-white dark:bg-slate-900 gap-0 flex flex-col">
+      <DialogContent className="max-w-5xl max-h-[90vh] p-0 overflow-hidden bg-white dark:bg-slate-900 gap-0 flex flex-col" dialogId="redesigned-user-modal">
         {/* Header */}
         <ModalHeader modalInfo={modalInfo} />
 

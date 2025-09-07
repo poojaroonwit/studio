@@ -1148,146 +1148,162 @@ export default function PositionsPageClient() {
 
         {/* Main Content */}
         <div className="flex-1 positions-content-area">
-                      <div ref={contentRef} className="p-6 flex flex-col overflow-hidden h-full">
-              {/* Filters on top */}
-          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 flex-shrink-0">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
-          <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search positions..."
-              value={searchTerm}
-              onChange={handleSearchChange}
-              onFocus={handleSearchFocus}
-              onKeyDown={handleSearchKeyDown}
-              onBlur={handleSearchBlur}
-              className="pl-10 pr-10 transition-all duration-200"
-              ref={searchInputRef}
-              autoComplete="off"
-              spellCheck="false"
-            />
-            {searchTerm && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 text-muted-foreground hover:text-foreground transition-colors"
-                onClick={handleClearSearch}
-                aria-label="Clear search"
+                      <div ref={contentRef} className="p-4 flex flex-col overflow-hidden h-full">
+              {/* Filters and Vacant Headcount in same row */}
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 flex-shrink-0">
+            {/* Left side: Filters */}
+            <div className="flex flex-col sm:flex-row gap-3 flex-1">
+              <div className="relative flex-1 min-w-[200px]">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search positions..."
+                  value={searchTerm}
+                  onChange={handleSearchChange}
+                  onFocus={handleSearchFocus}
+                  onKeyDown={handleSearchKeyDown}
+                  onBlur={handleSearchBlur}
+                  className="pl-10 pr-10 transition-all duration-200"
+                  ref={searchInputRef}
+                  autoComplete="off"
+                  spellCheck="false"
+                />
+                {searchTerm && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 text-muted-foreground hover:text-foreground transition-colors"
+                    onClick={handleClearSearch}
+                    aria-label="Clear search"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+              <Select 
+                value={statusFilter || ''} 
+                onValueChange={(value: 'all' | 'open' | 'closed') => setStatusFilter(value)}
               >
-                <X className="h-4 w-4" />
-              </Button>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="open">Open Only</SelectItem>
+                  <SelectItem value="closed">Closed Only</SelectItem>
+                </SelectContent>
+              </Select>
+              {isLoadingDepartments ? (
+                <div className="w-[160px] px-3 py-2 text-xs text-muted-foreground bg-muted/50 rounded-md border border-dashed flex items-center gap-2">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Loading...
+                </div>
+              ) : allDepartments.length > 0 ? (
+                <Popover open={departmentPopoverOpen} onOpenChange={setDepartmentPopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" role="combobox" aria-expanded={departmentPopoverOpen} className="w-[160px] justify-between text-xs font-normal">
+                      {departmentFilter === 'all' ? 'All Departments' : departmentFilter}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[280px] p-0" align="start">
+                    <Command>
+                      <div className="flex items-center border-b px-3">
+                        <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                        <input
+                          placeholder="Search departments..."
+                          value={departmentSearch}
+                          onChange={(e) => setDepartmentSearch(e.target.value)}
+                          className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                        />
+                      </div>
+                      <CommandList>
+                        <div className="max-h-[200px] p-1">
+                          <div
+                            className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+                            onClick={() => handleDepartmentSelect('all')}
+                          >
+                            <Check className={`mr-2 h-4 w-4 ${departmentFilter === 'all' ? 'opacity-100' : 'opacity-0'}`} />
+                            All Departments
+                          </div>
+                          {allDepartments
+                            .filter(dept => dept.toLowerCase().includes(departmentSearch.toLowerCase()))
+                            .map(dept => (
+                              <div
+                                key={dept}
+                                className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+                                onClick={() => handleDepartmentSelect(dept)}
+                              >
+                                <Check className={`mr-2 h-4 w-4 ${departmentFilter === dept ? 'opacity-100' : 'opacity-0'}`} />
+                                {dept}
+                              </div>
+                            ))}
+                        </div>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              ) : (
+                <div className="w-[160px] px-3 py-2 text-xs text-muted-foreground bg-muted/50 rounded-md border border-dashed">
+                  <div className="flex items-center gap-2">
+                    <span>No departments</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-4 w-4 p-0 text-xs"
+                      onClick={() => fetchAllDepartments()}
+                      title="Retry loading departments"
+                    >
+                      <Loader2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Center: Vacant Headcount - Minimal Design */}
+            <div className="flex items-center gap-3 px-4 py-2 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+              <Users className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              <div className="text-sm">
+                <span className="font-semibold text-blue-900 dark:text-blue-100">
+                  {isLoadingHeadcount ? (
+                    <Loader2 className="h-4 w-4 animate-spin inline" />
+                  ) : (
+                    vacantFromOpenPositions.vacant
+                  )}
+                </span>
+                <span className="text-blue-700 dark:text-blue-300 ml-1">
+                  vacant from {vacantFromOpenPositions.totalOpen} open position{vacantFromOpenPositions.totalOpen !== 1 ? 's' : ''}
+                </span>
+              </div>
+            </div>
+
+            {/* Right side: Action buttons */}
+            {true && (
+              <div className="flex gap-2">
+                <Button onClick={() => setIsAddModalOpen(true)} className="btn-primary-gradient whitespace-nowrap">
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Add Position
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="icon">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => setIsImportModalOpen(true)}>
+                      <Upload className="mr-2 h-4 w-4" />
+                      Import Positions
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleExportPositions}>
+                      <Download className="mr-2 h-4 w-4" />
+                      Export to Excel
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             )}
           </div>
-          <Select 
-            value={statusFilter || ''} 
-            onValueChange={(value: 'all' | 'open' | 'closed') => setStatusFilter(value)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Filter by status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="open">Open Only</SelectItem>
-              <SelectItem value="closed">Closed Only</SelectItem>
-            </SelectContent>
-          </Select>
-                          {isLoadingDepartments ? (
-                  <div className="w-full px-3 py-2 text-xs text-muted-foreground bg-muted/50 rounded-md border border-dashed flex items-center gap-2">
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                    Loading departments...
-                  </div>
-                ) : allDepartments.length > 0 ? (
-                  <Popover open={departmentPopoverOpen} onOpenChange={setDepartmentPopoverOpen}>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" role="combobox" aria-expanded={departmentPopoverOpen} className="w-full justify-between text-xs font-normal shadow-none hover:shadow-none [&]:shadow-none [&]:hover:shadow-none" style={{ boxShadow: 'none' }}>
-                        {departmentFilter === 'all' ? 'All Departments' : departmentFilter}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[280px] p-0 shadow-none" align="start">
-                      <Command>
-                        <div className="flex items-center border-b px-3">
-                          <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-                          <input
-                            placeholder="Search departments..."
-                            value={departmentSearch}
-                            onChange={(e) => setDepartmentSearch(e.target.value)}
-                            className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
-                          />
-                        </div>
-                        <CommandList>
-                        
-                          <div className="max-h-[200px] p-1">
-                            <div
-                              className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
-                              onClick={() => handleDepartmentSelect('all')}
-                            >
-                              <Check className={`mr-2 h-4 w-4 ${departmentFilter === 'all' ? 'opacity-100' : 'opacity-0'}`} />
-                              All Departments
-                            </div>
-                            {allDepartments
-                              .filter(dept => dept.toLowerCase().includes(departmentSearch.toLowerCase()))
-                              .map(dept => (
-                                <div
-                                  key={dept}
-                                  className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
-                                  onClick={() => handleDepartmentSelect(dept)}
-                                >
-                                  <Check className={`mr-2 h-4 w-4 ${departmentFilter === dept ? 'opacity-100' : 'opacity-0'}`} />
-                                  {dept}
-                                </div>
-                              ))}
-                          </div>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                ) : (
-                  <div className="w-full px-3 py-2 text-xs text-muted-foreground bg-muted/50 rounded-md border border-dashed">
-                    <div className="flex items-center gap-2">
-                      <span>No departments available</span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-4 w-4 p-0 text-xs"
-                        onClick={() => fetchAllDepartments()}
-                        title="Retry loading departments"
-                      >
-                        <Loader2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  
-
-                  </div>
-                )}
-        </div>
-        {true && (
-          <div className="flex gap-2">
-            <Button onClick={() => setIsAddModalOpen(true)} className="btn-primary-gradient whitespace-nowrap">
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Add Position
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setIsImportModalOpen(true)}>
-                  <Upload className="mr-2 h-4 w-4" />
-                  Import Positions
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleExportPositions}>
-                  <Download className="mr-2 h-4 w-4" />
-                  Export to Excel
-                </DropdownMenuItem>
-
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        )}
-      </div>
 
       {/* Realtime Connection Status */}
       {/* <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 px-3 py-2 rounded-md flex-shrink-0 mb-4">
@@ -1352,48 +1368,6 @@ export default function PositionsPageClient() {
 
 
 
-              {/* Stats Card */}
-        <div className="grid grid-cols-1 gap-4 flex-shrink-0 my-6">
-        {/* Vacant Headcount from Open Positions Card - Blue */}
-        <Card
-          className="group relative overflow-hidden border-2 border-blue-200 dark:border-blue-800 hover:border-opacity-80 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/50 backdrop-blur-sm"
-        >
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-muted-foreground">
-                  Vacant Headcount from Open Positions
-                </p>
-                <div className="flex items-baseline gap-2">
-                  <p className="text-2xl font-bold text-foreground">
-                    {isLoadingHeadcount ? (
-                      <Loader2 className="h-6 w-6 animate-spin inline" />
-                    ) : (
-                      vacantFromOpenPositions.vacant
-                    )}
-                  </p>
-                  <span className="text-sm text-muted-foreground">
-                    vacant from {vacantFromOpenPositions.totalOpen} open position{vacantFromOpenPositions.totalOpen !== 1 ? 's' : ''}
-                  </span>
-                </div>
-                {selectedRecruiterId && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {selectedRecruiterId === 'unassigned' 
-                      ? 'Unassigned vacant headcount' 
-                      : selectedRecruiterName 
-                        ? `Vacant headcount for ${selectedRecruiterName}`
-                        : 'Vacant headcount for selected recruiter'
-                    }
-                  </p>
-                )}
-              </div>
-              <div className="h-8 w-8 rounded-lg bg-blue-500 flex items-center justify-center group-hover:scale-105 group-hover:rotate-2 transition-all duration-300 shadow-sm">
-                <Users className="h-4 w-4 text-white" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
       {/* Positions List */}
       <div className="positions-table-container">
       {totalPositions === 0 ? (

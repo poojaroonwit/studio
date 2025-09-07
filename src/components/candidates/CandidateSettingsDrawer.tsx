@@ -169,7 +169,7 @@ export function CandidateSettingsDrawer({
 
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-[400px] sm:w-[540px] overflow-y-auto">
+      <SheetContent side="right" className="w-[400px] sm:w-[540px] overflow-y-auto" sheetId="candidate-settings-drawer">
         <SheetHeader className="border-b pb-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">

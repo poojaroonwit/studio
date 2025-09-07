@@ -68,7 +68,7 @@ export function MyTasksFilterModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col" dialogId="my-tasks-filter-modal">
         <DialogHeader className="pb-4">
           <DialogTitle className="flex items-center gap-2 text-xl">
             <SlidersHorizontal className="w-5 h-5" />

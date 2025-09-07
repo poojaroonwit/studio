@@ -50,21 +50,13 @@ export function ZIndexProvider({ children }: { children: React.ReactNode }) {
           zIndex = Math.max(zIndex, highestOther + Z_INDEX_INCREMENT);
         }
       } else if (type === 'modal' || type === 'drawer') {
-        // Modals and drawers should be below overlays but above base content
+        // Modals and drawers should be above overlays and base content
         const overlayComponents = filtered.filter(comp => comp.type === 'overlay');
         
-        // Stay below overlays (unless this is a nested component)
+        // Ensure above overlays
         if (overlayComponents.length > 0) {
           const highestOverlay = Math.max(...overlayComponents.map(comp => comp.zIndex));
-          // Only stay below overlays if this isn't a nested component
-          // Nested components (like modal in drawer) should be above their parent
-          const isNested = filtered.some(comp => 
-            (comp.type === 'drawer' && type === 'modal') || 
-            (comp.type === 'modal' && type === 'drawer')
-          );
-          if (!isNested) {
-            zIndex = Math.min(zIndex, highestOverlay - Z_INDEX_INCREMENT);
-          }
+          zIndex = Math.max(zIndex, highestOverlay + Z_INDEX_INCREMENT);
         }
       } else if (type === 'dropdown') {
         // Dropdowns should always be above modals and drawers to be visible

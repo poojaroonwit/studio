@@ -156,6 +156,92 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
           rootContainer.style.width = `${scaledWidth}vw`;
           rootContainer.style.height = `${scaledHeight}vh`;
         }
+        
+        // Apply dropdown and overlay positioning fix
+        const style = document.createElement('style');
+        style.id = 'zoom-dropdown-fix';
+        style.textContent = `
+          /* Radix UI Dropdowns and Overlays */
+          [data-radix-popper-content-wrapper] {
+            transform: scale(${1/zoomLevel}) !important;
+            transform-origin: top left !important;
+          }
+          [data-radix-popper-content-wrapper] > * {
+            transform: scale(${zoomLevel}) !important;
+            transform-origin: top left !important;
+          }
+          
+          /* Generic Dropdowns */
+          .dropdown-menu-content {
+            transform: scale(${1/zoomLevel}) !important;
+            transform-origin: top left !important;
+          }
+          .dropdown-menu-content > * {
+            transform: scale(${zoomLevel}) !important;
+            transform-origin: top left !important;
+          }
+          
+          /* Modals and Dialogs */
+          [data-radix-dialog-content] {
+            transform: scale(${1/zoomLevel}) !important;
+            transform-origin: center center !important;
+          }
+          [data-radix-dialog-content] > * {
+            transform: scale(${zoomLevel}) !important;
+            transform-origin: center center !important;
+          }
+          
+          /* Tooltips */
+          [data-radix-tooltip-content] {
+            transform: scale(${1/zoomLevel}) !important;
+            transform-origin: top left !important;
+          }
+          [data-radix-tooltip-content] > * {
+            transform: scale(${zoomLevel}) !important;
+            transform-origin: top left !important;
+          }
+          
+          /* Popovers */
+          [data-radix-popover-content] {
+            transform: scale(${1/zoomLevel}) !important;
+            transform-origin: top left !important;
+          }
+          [data-radix-popover-content] > * {
+            transform: scale(${zoomLevel}) !important;
+            transform-origin: top left !important;
+          }
+          
+          /* Select Dropdowns */
+          [data-radix-select-content] {
+            transform: scale(${1/zoomLevel}) !important;
+            transform-origin: top left !important;
+          }
+          [data-radix-select-content] > * {
+            transform: scale(${zoomLevel}) !important;
+            transform-origin: top left !important;
+          }
+          
+          /* Alert Dialogs */
+          [data-radix-alert-dialog-content] {
+            transform: scale(${1/zoomLevel}) !important;
+            transform-origin: center center !important;
+          }
+          [data-radix-alert-dialog-content] > * {
+            transform: scale(${zoomLevel}) !important;
+            transform-origin: center center !important;
+          }
+          
+          /* Generic Modal Classes */
+          .modal-content, .dialog-content, .overlay-content {
+            transform: scale(${1/zoomLevel}) !important;
+            transform-origin: center center !important;
+          }
+          .modal-content > *, .dialog-content > *, .overlay-content > * {
+            transform: scale(${zoomLevel}) !important;
+            transform-origin: center center !important;
+          }
+        `;
+        document.head.appendChild(style);
       } else {
         // Default to 90% zoom (showing as 100% in app)
         setCurrentScreenSize(100);
@@ -176,6 +262,92 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
           rootContainer.style.width = `${scaledWidth}vw`;
           rootContainer.style.height = `${scaledHeight}vh`;
         }
+        
+        // Apply dropdown and overlay positioning fix for default zoom
+        const style = document.createElement('style');
+        style.id = 'zoom-dropdown-fix';
+        style.textContent = `
+          /* Radix UI Dropdowns and Overlays */
+          [data-radix-popper-content-wrapper] {
+            transform: scale(${1/defaultZoom}) !important;
+            transform-origin: top left !important;
+          }
+          [data-radix-popper-content-wrapper] > * {
+            transform: scale(${defaultZoom}) !important;
+            transform-origin: top left !important;
+          }
+          
+          /* Generic Dropdowns */
+          .dropdown-menu-content {
+            transform: scale(${1/defaultZoom}) !important;
+            transform-origin: top left !important;
+          }
+          .dropdown-menu-content > * {
+            transform: scale(${defaultZoom}) !important;
+            transform-origin: top left !important;
+          }
+          
+          /* Modals and Dialogs */
+          [data-radix-dialog-content] {
+            transform: scale(${1/defaultZoom}) !important;
+            transform-origin: center center !important;
+          }
+          [data-radix-dialog-content] > * {
+            transform: scale(${defaultZoom}) !important;
+            transform-origin: center center !important;
+          }
+          
+          /* Tooltips */
+          [data-radix-tooltip-content] {
+            transform: scale(${1/defaultZoom}) !important;
+            transform-origin: top left !important;
+          }
+          [data-radix-tooltip-content] > * {
+            transform: scale(${defaultZoom}) !important;
+            transform-origin: top left !important;
+          }
+          
+          /* Popovers */
+          [data-radix-popover-content] {
+            transform: scale(${1/defaultZoom}) !important;
+            transform-origin: top left !important;
+          }
+          [data-radix-popover-content] > * {
+            transform: scale(${defaultZoom}) !important;
+            transform-origin: top left !important;
+          }
+          
+          /* Select Dropdowns */
+          [data-radix-select-content] {
+            transform: scale(${1/defaultZoom}) !important;
+            transform-origin: top left !important;
+          }
+          [data-radix-select-content] > * {
+            transform: scale(${defaultZoom}) !important;
+            transform-origin: top left !important;
+          }
+          
+          /* Alert Dialogs */
+          [data-radix-alert-dialog-content] {
+            transform: scale(${1/defaultZoom}) !important;
+            transform-origin: center center !important;
+          }
+          [data-radix-alert-dialog-content] > * {
+            transform: scale(${defaultZoom}) !important;
+            transform-origin: center center !important;
+          }
+          
+          /* Generic Modal Classes */
+          .modal-content, .dialog-content, .overlay-content {
+            transform: scale(${1/defaultZoom}) !important;
+            transform-origin: center center !important;
+          }
+          .modal-content > *, .dialog-content > *, .overlay-content > * {
+            transform: scale(${defaultZoom}) !important;
+            transform-origin: center center !important;
+          }
+        `;
+        document.head.appendChild(style);
         
         // Save the default zoom level
         localStorage.setItem('app-zoom-level', defaultZoom.toString());
@@ -378,11 +550,105 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
         rootContainer.style.height = `${scaledHeight}vh`;
       }
       
+      // Fix dropdown positioning by adjusting CSS custom properties
+      document.documentElement.style.setProperty('--zoom-level', zoomLevel.toString());
+      
+      // Add CSS to fix dropdown and overlay positioning
+      const style = document.createElement('style');
+      style.id = 'zoom-dropdown-fix';
+      style.textContent = `
+        /* Radix UI Dropdowns and Overlays */
+        [data-radix-popper-content-wrapper] {
+          transform: scale(${1/zoomLevel}) !important;
+          transform-origin: top left !important;
+        }
+        [data-radix-popper-content-wrapper] > * {
+          transform: scale(${zoomLevel}) !important;
+          transform-origin: top left !important;
+        }
+        
+        /* Generic Dropdowns */
+        .dropdown-menu-content {
+          transform: scale(${1/zoomLevel}) !important;
+          transform-origin: top left !important;
+        }
+        .dropdown-menu-content > * {
+          transform: scale(${zoomLevel}) !important;
+          transform-origin: top left !important;
+        }
+        
+        /* Modals and Dialogs */
+        [data-radix-dialog-content] {
+          transform: scale(${1/zoomLevel}) !important;
+          transform-origin: center center !important;
+        }
+        [data-radix-dialog-content] > * {
+          transform: scale(${zoomLevel}) !important;
+          transform-origin: center center !important;
+        }
+        
+        /* Tooltips */
+        [data-radix-tooltip-content] {
+          transform: scale(${1/zoomLevel}) !important;
+          transform-origin: top left !important;
+        }
+        [data-radix-tooltip-content] > * {
+          transform: scale(${zoomLevel}) !important;
+          transform-origin: top left !important;
+        }
+        
+        /* Popovers */
+        [data-radix-popover-content] {
+          transform: scale(${1/zoomLevel}) !important;
+          transform-origin: top left !important;
+        }
+        [data-radix-popover-content] > * {
+          transform: scale(${zoomLevel}) !important;
+          transform-origin: top left !important;
+        }
+        
+        /* Select Dropdowns */
+        [data-radix-select-content] {
+          transform: scale(${1/zoomLevel}) !important;
+          transform-origin: top left !important;
+        }
+        [data-radix-select-content] > * {
+          transform: scale(${zoomLevel}) !important;
+          transform-origin: top left !important;
+        }
+        
+        /* Alert Dialogs */
+        [data-radix-alert-dialog-content] {
+          transform: scale(${1/zoomLevel}) !important;
+          transform-origin: center center !important;
+        }
+        [data-radix-alert-dialog-content] > * {
+          transform: scale(${zoomLevel}) !important;
+          transform-origin: center center !important;
+        }
+        
+        /* Generic Modal Classes */
+        .modal-content, .dialog-content, .overlay-content {
+          transform: scale(${1/zoomLevel}) !important;
+          transform-origin: center center !important;
+        }
+        .modal-content > *, .dialog-content > *, .overlay-content > * {
+          transform: scale(${zoomLevel}) !important;
+          transform-origin: center center !important;
+        }
+      `;
+      
+      // Remove existing style if it exists
+      const existingStyle = document.getElementById('zoom-dropdown-fix');
+      if (existingStyle) {
+        existingStyle.remove();
+      }
+      
+      // Add the new style
+      document.head.appendChild(style);
+      
       // Store the zoom level for persistence
       localStorage.setItem('app-zoom-level', zoomLevel.toString());
-      
-      // Show success message
-      toast.success(`Screen size set to ${size}%`);
       
     } catch (error) {
       console.error('Error setting screen size:', error);

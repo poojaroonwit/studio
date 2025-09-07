@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
         is_required, sort_order, attribute_code, attribute_label,
         view_roles, edit_roles, show_in_filter, show_in_candidate_detail,
         show_in_full_candidate_detail, show_in_task_board_filter,
-        show_in_position_settings, show_in_headcount_detail, allow_custom_options,
+        show_in_position_settings, show_in_headcount_detail, candidate_detail_section, position_detail_section, allow_custom_options,
         "createdAt", "updatedAt"
       FROM "CustomFieldDefinition"
       WHERE id = $1

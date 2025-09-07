@@ -51,7 +51,7 @@ export function RecruiterFilterSidebar({
     <div className="flex flex-col">
       {/* Header */}
       <div className="border-b border-border/50">
-        <h3 className="flex items-center gap-2 text-xl font-bold p-4">
+        <h3 className="flex items-center gap-2 text font-bold p-4">
           <Users className="h-4 w-4 text-primary" />
           Recruiter
         </h3>
@@ -105,7 +105,7 @@ export function RecruiterFilterSidebar({
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="mb-1">
-                    <span className="truncate font-semibold text-base">All Recruiter</span>
+                    <span className="truncate font-semibold text">All Recruiter</span>
                   </div>
                   <p className={cn(
                     "text-sm leading-relaxed break-words line-clamp-2 font-medium",
@@ -144,7 +144,7 @@ export function RecruiterFilterSidebar({
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="mb-1">
-                      <span className="truncate font-semibold text-base">No Recruiter Assigned</span>
+                      <span className="truncate font-semibold text">No Recruiter Assigned</span>
                     </div>
                                         <p className={cn(
                       "text-sm leading-relaxed break-words line-clamp-2 font-medium",
@@ -228,7 +228,7 @@ export function RecruiterFilterSidebar({
                         )}
                         <div className="flex-1 min-w-0">
                           <div className="mb-1">
-                            <span className="truncate font-semibold text-base">{recruiterName}</span>
+                            <span className="truncate font-semibold text">{recruiterName}</span>
                           </div>
                           <p className={cn(
                             "text-sm leading-relaxed break-words line-clamp-2 font-medium",

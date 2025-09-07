@@ -352,6 +352,7 @@ export function PositionMultiSelectDropdown({
           className="w-[var(--radix-popover-trigger-width)] p-0 bg-popover border-border shadow-lg max-h-[300px] overflow-y-auto" 
           align="start"
           popoverId="position-multi-select-dropdown"
+          zIndexType="dropdown"
         >
           <div className="p-2">
             <div className="text-sm font-medium mb-2">Select Positions</div>

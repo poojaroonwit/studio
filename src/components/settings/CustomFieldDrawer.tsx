@@ -243,7 +243,7 @@ export default function CustomFieldDrawer({
     <Sheet open={open} onOpenChange={onClose}>
       <SheetContent 
         sheetId={`custom-field-drawer-${definition?.id ? definition.id : 'new'}`}
-        className="h-full w-[50vw] max-w-[50vw] flex flex-col"
+        className="h-full w-[50vw] min-w-[600px] max-w-none flex flex-col"
       >
         <SheetHeader className="border-b flex-shrink-0">
           <SheetTitle className="flex items-center gap-2">

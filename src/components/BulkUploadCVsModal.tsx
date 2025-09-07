@@ -354,8 +354,7 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
         // Show success message
         if (failed === 0) {
           successWithDescription(
-            `✅ Upload Complete: ${successful} files uploaded and queued for processing`, 
-            "Files are now in the processing queue and will be processed automatically."
+            `✅ Upload Complete: ${successful} files uploaded and queued for processing`
           );
         } else {
           successWithDescription(

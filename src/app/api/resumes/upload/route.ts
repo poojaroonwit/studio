@@ -67,6 +67,7 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const file = formData.get('resume');
     const positionId = formData.get('position_id') as string | null;
+    const sourceId = formData.get('source_id') as string | null;
     if (!file || typeof file === 'string') {
       await logAudit('WARN', `Resume upload attempted without file by ${actingUserName} for candidate ${candidateId}`, 'API:Resumes:Upload', actingUserId, { candidateId });
       return NextResponse.json({ message: 'No file uploaded' }, { status: 400 });
@@ -124,14 +125,15 @@ export async function POST(request: NextRequest) {
         },
         response_mode: 'blocking',
         user: actingUserId,
-        request_type: "create" // Indicate this is a create request for CV processing
+        request_type: "create", // Indicate this is a create request for CV processing
+        sourceId: sourceId // Include sourceId in webhook payload (at root level like bulk upload)
       };
 
       // Add to upload queue for webhook processing
       const queueId = randomUUID();
       await client.query(
-        `INSERT INTO upload_queue (id, file_name, file_size, status, source, upload_id, created_by, file_path, webhook_payload, position_id)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+        `INSERT INTO upload_queue (id, file_name, file_size, status, source, upload_id, created_by, file_path, webhook_payload, position_id, source_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
         [
           queueId,
           originalName,
@@ -142,7 +144,8 @@ export async function POST(request: NextRequest) {
           actingUserId,
           objectName,
           JSON.stringify(webhookPayload),
-          positionId
+          positionId,
+          sourceId
         ]
       );
 

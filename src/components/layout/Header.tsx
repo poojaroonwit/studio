@@ -533,6 +533,9 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
                           {currentScreenSize}%
                         </DropdownMenuSubTrigger>
                         <DropdownMenuSubContent>
+                          <DropdownMenuItem onSelect={() => handleScreenSizeChange(50)}>
+                            50%
+                          </DropdownMenuItem>
                           <DropdownMenuItem onSelect={() => handleScreenSizeChange(75)}>
                             75%
                           </DropdownMenuItem>

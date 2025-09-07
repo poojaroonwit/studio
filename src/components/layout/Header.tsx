@@ -128,7 +128,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
   // Screen size state
   const [currentScreenSize, setCurrentScreenSize] = useState(100);
 
-  // Load saved zoom level on mount
+  // Load current browser zoom level on mount
   useEffect(() => {
     try {
       // Check if there's a saved zoom level
@@ -138,120 +138,17 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
         const screenSize = Math.round(zoomLevel * 100);
         setCurrentScreenSize(screenSize);
         
-        // Apply the saved zoom level
-        document.documentElement.style.transform = `scale(${zoomLevel})`;
-        document.documentElement.style.transformOrigin = 'top left';
-        
-        // Adjust body dimensions
-        const scaledWidth = 100 / zoomLevel;
-        const scaledHeight = 100 / zoomLevel;
-        document.body.style.width = `${scaledWidth}vw`;
-        document.body.style.height = `${scaledHeight}vh`;
-        
-        // Apply to root container if it exists
-        const rootContainer = document.getElementById('__next');
-        if (rootContainer) {
-          rootContainer.style.transform = `scale(${zoomLevel})`;
-          rootContainer.style.transformOrigin = 'top left';
-          rootContainer.style.width = `${scaledWidth}vw`;
-          rootContainer.style.height = `${scaledHeight}vh`;
-        }
-        
-        // Apply dropdown and overlay positioning fix
-        const style = document.createElement('style');
-        style.id = 'zoom-dropdown-fix';
-        style.textContent = `
-          /* Reset all overlay transforms to prevent positioning issues */
-          [data-radix-popper-content-wrapper],
-          [data-radix-dropdown-menu-content],
-          [data-radix-dropdown-menu-sub-content],
-          [data-radix-dialog-content],
-          [data-radix-tooltip-content],
-          [data-radix-popover-content],
-          [data-radix-select-content],
-          [data-radix-alert-dialog-content],
-          .dropdown-menu-content,
-          .modal-content,
-          .dialog-content,
-          .overlay-content {
-            transform: none !important;
-          }
-          
-          /* Apply zoom to overlay content only, not positioning containers */
-          [data-radix-dropdown-menu-content] > *,
-          [data-radix-dropdown-menu-sub-content] > *,
-          [data-radix-dialog-content] > *,
-          [data-radix-tooltip-content] > *,
-          [data-radix-popover-content] > *,
-          [data-radix-select-content] > *,
-          [data-radix-alert-dialog-content] > *,
-          .dropdown-menu-content > *,
-          .modal-content > *,
-          .dialog-content > *,
-          .overlay-content > * {
-            transform: scale(${zoomLevel}) !important;
-            transform-origin: center center !important;
-          }
-        `;
-        document.head.appendChild(style);
+        // Apply the saved zoom level using CSS zoom
+        document.documentElement.style.zoom = zoomLevel.toString();
+        document.body.style.zoom = zoomLevel.toString();
       } else {
         // Default to 90% zoom (showing as 100% in app)
         setCurrentScreenSize(100);
         const defaultZoom = 0.9;
         
-        document.documentElement.style.transform = `scale(${defaultZoom})`;
-        document.documentElement.style.transformOrigin = 'top left';
-        
-        const scaledWidth = 100 / defaultZoom;
-        const scaledHeight = 100 / defaultZoom;
-        document.body.style.width = `${scaledWidth}vw`;
-        document.body.style.height = `${scaledHeight}vh`;
-        
-        const rootContainer = document.getElementById('__next');
-        if (rootContainer) {
-          rootContainer.style.transform = `scale(${defaultZoom})`;
-          rootContainer.style.transformOrigin = 'top left';
-          rootContainer.style.width = `${scaledWidth}vw`;
-          rootContainer.style.height = `${scaledHeight}vh`;
-        }
-        
-        // Apply dropdown and overlay positioning fix for default zoom
-        const style = document.createElement('style');
-        style.id = 'zoom-dropdown-fix';
-        style.textContent = `
-          /* Reset all overlay transforms to prevent positioning issues */
-          [data-radix-popper-content-wrapper],
-          [data-radix-dropdown-menu-content],
-          [data-radix-dropdown-menu-sub-content],
-          [data-radix-dialog-content],
-          [data-radix-tooltip-content],
-          [data-radix-popover-content],
-          [data-radix-select-content],
-          [data-radix-alert-dialog-content],
-          .dropdown-menu-content,
-          .modal-content,
-          .dialog-content,
-          .overlay-content {
-            transform: none !important;
-          }
-          
-          /* Apply zoom to overlay content only, not positioning containers */
-          [data-radix-dropdown-menu-content] > *,
-          [data-radix-dropdown-menu-sub-content] > *,
-          [data-radix-dialog-content] > *,
-          [data-radix-tooltip-content] > *,
-          [data-radix-popover-content] > *,
-          [data-radix-select-content] > *,
-          [data-radix-alert-dialog-content] > *,
-          .dropdown-menu-content > *,
-          .modal-content > *,
-          .dialog-content > *,
-          .overlay-content > * {
-            transform: scale(${defaultZoom}) !important;
-            transform-origin: center center !important;
-          }
-        `;
-        document.head.appendChild(style);
+        // Apply default zoom using CSS zoom
+        document.documentElement.style.zoom = defaultZoom.toString();
+        document.body.style.zoom = defaultZoom.toString();
         
         // Save the default zoom level
         localStorage.setItem('app-zoom-level', defaultZoom.toString());
@@ -431,85 +328,60 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
   const handleScreenSizeChange = useCallback((size: number) => {
     setCurrentScreenSize(size);
     
-    // Use CSS transform to zoom the entire page including all UI elements
-    const zoomLevel = size / 100;
+    // Convert application zoom to browser zoom
+    // Application 100% = Browser 90%
+    // Application 110% = Browser 99%
+    // Application 90% = Browser 81%
+    // etc.
+    const targetBrowserZoom = (size / 100) * 0.9;
     
+    // Try multiple methods to achieve browser zoom
     try {
-      // Apply transform to the html element to zoom everything
-      document.documentElement.style.transform = `scale(${zoomLevel})`;
-      document.documentElement.style.transformOrigin = 'top left';
-      
-      // Adjust the body width and height to prevent horizontal scroll
-      const scaledWidth = 100 / zoomLevel;
-      const scaledHeight = 100 / zoomLevel;
-      document.body.style.width = `${scaledWidth}vw`;
-      document.body.style.height = `${scaledHeight}vh`;
-      
-      // Also apply to the root container if it exists
-      const rootContainer = document.getElementById('__next');
-      if (rootContainer) {
-        rootContainer.style.transform = `scale(${zoomLevel})`;
-        rootContainer.style.transformOrigin = 'top left';
-        rootContainer.style.width = `${scaledWidth}vw`;
-        rootContainer.style.height = `${scaledHeight}vh`;
+      // Method 1: Try Visual Viewport API (modern browsers)
+      if (window.visualViewport && window.visualViewport.scale) {
+        // This is read-only, but we can try to influence it
+        console.log('Visual Viewport API available, but zoom is read-only');
       }
       
-      // Fix dropdown positioning by adjusting CSS custom properties
-      document.documentElement.style.setProperty('--zoom-level', zoomLevel.toString());
-      
-      // Add CSS to fix dropdown and overlay positioning
-      const style = document.createElement('style');
-      style.id = 'zoom-dropdown-fix';
-      style.textContent = `
-        /* Reset all overlay transforms to prevent positioning issues */
-        [data-radix-popper-content-wrapper],
-        [data-radix-dropdown-menu-content],
-        [data-radix-dropdown-menu-sub-content],
-        [data-radix-dialog-content],
-        [data-radix-tooltip-content],
-        [data-radix-popover-content],
-        [data-radix-select-content],
-        [data-radix-alert-dialog-content],
-        .dropdown-menu-content,
-        .modal-content,
-        .dialog-content,
-        .overlay-content {
-          transform: none !important;
-        }
-        
-        /* Apply zoom to overlay content only, not positioning containers */
-        [data-radix-dropdown-menu-content] > *,
-        [data-radix-dropdown-menu-sub-content] > *,
-        [data-radix-dialog-content] > *,
-        [data-radix-tooltip-content] > *,
-        [data-radix-popover-content] > *,
-        [data-radix-select-content] > *,
-        [data-radix-alert-dialog-content] > *,
-        .dropdown-menu-content > *,
-        .modal-content > *,
-        .dialog-content > *,
-        .overlay-content > * {
-          transform: scale(${zoomLevel}) !important;
-          transform-origin: center center !important;
-        }
-      `;
-      
-      // Remove existing style if it exists
-      const existingStyle = document.getElementById('zoom-dropdown-fix');
-      if (existingStyle) {
-        existingStyle.remove();
+      // Method 2: Try to use the browser's zoom API
+      if (typeof window.zoom === 'function') {
+        window.zoom(targetBrowserZoom);
+        toast.success(`Screen size set to ${size}%`);
+        return;
       }
       
-      // Add the new style
-      document.head.appendChild(style);
+      // Method 3: Try Chrome extension API (if available)
+      if (window.chrome && window.chrome.tabs && window.chrome.tabs.setZoom) {
+        window.chrome.tabs.setZoom(targetBrowserZoom);
+        toast.success(`Screen size set to ${size}%`);
+        return;
+      }
       
-      // Store the zoom level for persistence
-      localStorage.setItem('app-zoom-level', zoomLevel.toString());
+      // Method 4: Use CSS zoom (closest to browser zoom behavior)
+      document.documentElement.style.zoom = targetBrowserZoom.toString();
+      document.body.style.zoom = targetBrowserZoom.toString();
+      
+      // Method 5: Try CSS transform scale (affects everything including dropdowns)
+      const scale = targetBrowserZoom;
+      document.documentElement.style.transform = `scale(${scale})`;
+      document.documentElement.style.width = `${100 / scale}%`;
+      document.documentElement.style.height = `${100 / scale}%`;
+      
+      // Method 6: Try to use the browser's zoom property
+      if (document.body.style.zoom !== undefined) {
+        document.body.style.zoom = targetBrowserZoom.toString();
+        document.documentElement.style.zoom = targetBrowserZoom.toString();
+      }
+      
+      toast.success(`Screen size set to ${size}%`);
       
     } catch (error) {
       console.error('Error setting screen size:', error);
-      toast.error('Failed to set screen size');
+      toast.error('Browser zoom cannot be controlled programmatically. Please use Ctrl+Plus/Minus manually.');
     }
+    
+    // Store the target zoom level
+    localStorage.setItem('app-zoom-level', targetBrowserZoom.toString());
   }, []);
 
   const handleEditProfile = useCallback(async (data: UserFormValues) => {

@@ -138,17 +138,15 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
         const screenSize = Math.round(scale * 100);
         setCurrentScreenSize(screenSize);
         
-        // Apply the saved zoom level using CSS custom properties
-        document.documentElement.style.setProperty('--zoom-scale', scale.toString());
-        document.documentElement.style.setProperty('--zoom-scale-inverse', (1 / scale).toString());
+        // Apply the saved zoom level using CSS zoom property
+        document.documentElement.style.zoom = scale.toString();
       } else {
         // Default to 90% zoom (showing as 90% in app)
         setCurrentScreenSize(90);
         const defaultScale = 0.9;
         
-        // Apply default zoom using CSS custom properties
-        document.documentElement.style.setProperty('--zoom-scale', defaultScale.toString());
-        document.documentElement.style.setProperty('--zoom-scale-inverse', (1 / defaultScale).toString());
+        // Apply default zoom using CSS zoom property
+        document.documentElement.style.zoom = defaultScale.toString();
         
         // Save the default zoom level
         localStorage.setItem('app-zoom-level', defaultScale.toString());
@@ -328,13 +326,12 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
   const handleScreenSizeChange = useCallback((size: number) => {
     setCurrentScreenSize(size);
     
-    // Use CSS custom properties for zoom scaling
+    // Use CSS zoom property for scaling
     const scale = size / 100;
     
     try {
-      // Apply zoom using CSS custom properties
-      document.documentElement.style.setProperty('--zoom-scale', scale.toString());
-      document.documentElement.style.setProperty('--zoom-scale-inverse', (1 / scale).toString());
+      // Apply zoom using CSS zoom property
+      document.documentElement.style.zoom = scale.toString();
       
       // Store the zoom level
       localStorage.setItem('app-zoom-level', scale.toString());

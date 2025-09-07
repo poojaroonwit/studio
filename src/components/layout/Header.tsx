@@ -128,30 +128,58 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
   // Screen size state
   const [currentScreenSize, setCurrentScreenSize] = useState(100);
 
-  // Load current browser zoom level on mount
+  // Load saved zoom level on mount
   useEffect(() => {
     try {
       // Check if there's a saved zoom level
       const savedZoom = localStorage.getItem('app-zoom-level');
       if (savedZoom) {
-        const zoomLevel = parseFloat(savedZoom);
-        const screenSize = Math.round(zoomLevel * 100);
+        const scale = parseFloat(savedZoom);
+        const screenSize = Math.round(scale * 100);
         setCurrentScreenSize(screenSize);
         
-        // Apply the saved zoom level using CSS zoom
-        document.documentElement.style.zoom = zoomLevel.toString();
-        document.body.style.zoom = zoomLevel.toString();
-      } else {
-        // Default to 90% zoom (showing as 100% in app)
-        setCurrentScreenSize(100);
-        const defaultZoom = 0.9;
+        // Apply the saved zoom level using CSS transform
+        document.documentElement.style.transform = `scale(${scale})`;
+        document.documentElement.style.transformOrigin = 'top left';
+        document.documentElement.style.transformBox = 'border-box';
         
-        // Apply default zoom using CSS zoom
-        document.documentElement.style.zoom = defaultZoom.toString();
-        document.body.style.zoom = defaultZoom.toString();
+        // Adjust container size
+        const scaledWidth = 100 / scale;
+        const scaledHeight = 100 / scale;
+        document.documentElement.style.width = `${scaledWidth}%`;
+        document.documentElement.style.height = `${scaledHeight}%`;
+        document.body.style.width = `${scaledWidth}%`;
+        document.body.style.height = `${scaledHeight}%`;
+        document.body.style.minHeight = `${scaledHeight}%`;
+        
+        // Set overflow to prevent scrollbars
+        document.documentElement.style.overflow = 'hidden';
+        document.body.style.overflow = 'hidden';
+      } else {
+        // Default to 90% zoom (showing as 90% in app)
+        setCurrentScreenSize(90);
+        const defaultScale = 0.9;
+        
+        // Apply default zoom using CSS transform
+        document.documentElement.style.transform = `scale(${defaultScale})`;
+        document.documentElement.style.transformOrigin = 'top left';
+        document.documentElement.style.transformBox = 'border-box';
+        
+        // Adjust container size
+        const scaledWidth = 100 / defaultScale;
+        const scaledHeight = 100 / defaultScale;
+        document.documentElement.style.width = `${scaledWidth}%`;
+        document.documentElement.style.height = `${scaledHeight}%`;
+        document.body.style.width = `${scaledWidth}%`;
+        document.body.style.height = `${scaledHeight}%`;
+        document.body.style.minHeight = `${scaledHeight}%`;
+        
+        // Set overflow to prevent scrollbars
+        document.documentElement.style.overflow = 'hidden';
+        document.body.style.overflow = 'hidden';
         
         // Save the default zoom level
-        localStorage.setItem('app-zoom-level', defaultZoom.toString());
+        localStorage.setItem('app-zoom-level', defaultScale.toString());
       }
     } catch (error) {
       console.warn('Failed to load saved zoom level:', error);
@@ -328,60 +356,40 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
   const handleScreenSizeChange = useCallback((size: number) => {
     setCurrentScreenSize(size);
     
-    // Convert application zoom to browser zoom
-    // Application 100% = Browser 90%
-    // Application 110% = Browser 99%
-    // Application 90% = Browser 81%
-    // etc.
-    const targetBrowserZoom = (size / 100) * 0.9;
+    // Use CSS transform scale to zoom everything including dropdowns
+    const scale = size / 100;
     
-    // Try multiple methods to achieve browser zoom
     try {
-      // Method 1: Try Visual Viewport API (modern browsers)
-      if (window.visualViewport && window.visualViewport.scale) {
-        // This is read-only, but we can try to influence it
-        console.log('Visual Viewport API available, but zoom is read-only');
-      }
-      
-      // Method 2: Try to use the browser's zoom API
-      if (typeof window.zoom === 'function') {
-        window.zoom(targetBrowserZoom);
-        toast.success(`Screen size set to ${size}%`);
-        return;
-      }
-      
-      // Method 3: Try Chrome extension API (if available)
-      if (window.chrome && window.chrome.tabs && window.chrome.tabs.setZoom) {
-        window.chrome.tabs.setZoom(targetBrowserZoom);
-        toast.success(`Screen size set to ${size}%`);
-        return;
-      }
-      
-      // Method 4: Use CSS zoom (closest to browser zoom behavior)
-      document.documentElement.style.zoom = targetBrowserZoom.toString();
-      document.body.style.zoom = targetBrowserZoom.toString();
-      
-      // Method 5: Try CSS transform scale (affects everything including dropdowns)
-      const scale = targetBrowserZoom;
+      // Apply transform scale to the entire page
       document.documentElement.style.transform = `scale(${scale})`;
-      document.documentElement.style.width = `${100 / scale}%`;
-      document.documentElement.style.height = `${100 / scale}%`;
+      document.documentElement.style.transformOrigin = 'top left';
+      document.documentElement.style.transformBox = 'border-box';
       
-      // Method 6: Try to use the browser's zoom property
-      if (document.body.style.zoom !== undefined) {
-        document.body.style.zoom = targetBrowserZoom.toString();
-        document.documentElement.style.zoom = targetBrowserZoom.toString();
-      }
+      // Adjust the container size to prevent scrollbars
+      const scaledWidth = 100 / scale;
+      const scaledHeight = 100 / scale;
+      document.documentElement.style.width = `${scaledWidth}%`;
+      document.documentElement.style.height = `${scaledHeight}%`;
       
+      // Ensure the body takes full height
+      document.body.style.width = `${scaledWidth}%`;
+      document.body.style.height = `${scaledHeight}%`;
+      document.body.style.minHeight = `${scaledHeight}%`;
+      
+      // Also apply to html element for better coverage
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.overflow = 'hidden';
+      
+      // Store the zoom level
+      localStorage.setItem('app-zoom-level', scale.toString());
+      
+      // Show success message
       toast.success(`Screen size set to ${size}%`);
       
     } catch (error) {
       console.error('Error setting screen size:', error);
-      toast.error('Browser zoom cannot be controlled programmatically. Please use Ctrl+Plus/Minus manually.');
+      toast.error('Failed to set screen size');
     }
-    
-    // Store the target zoom level
-    localStorage.setItem('app-zoom-level', targetBrowserZoom.toString());
   }, []);
 
   const handleEditProfile = useCallback(async (data: UserFormValues) => {

@@ -193,7 +193,7 @@ export function MyTasksFilterModal({
                         <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-full p-0" align="start">
+                    <PopoverContent className="w-full p-0" align="start" popoverId="my-tasks-recruiter-dropdown" zIndexType="modal">
                       <div className="p-2">
                         <div className="text-sm font-medium mb-2">Select Recruiter</div>
                         

@@ -69,6 +69,7 @@ export function StageSelect({ value, onChange, availableStages, label, error, lo
           popoverId="stage-select-dropdown"
           style={dropdownWidth ? { width: dropdownWidth } : undefined} 
           className="p-0 dropdown-content-height"
+          zIndexType="modal"
         >
           <div className="p-2 flex items-center gap-2">
             <Input

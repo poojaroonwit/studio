@@ -16,7 +16,6 @@ import { WarningIcon } from '@/components/ui/warning-icon';
 import { ChangePasswordModal } from '@/components/auth/ChangePasswordModal';
 import { RedesignedUserModal } from '@/components/users/RedesignedUserModal';
 import { FloatingDebugOverlay } from '@/components/ui/floating-debug-overlay';
-import { ZIndexDebugger, useZIndexDebugger } from '@/components/debug/ZIndexDebugger';
 
 import type { UserProfile } from '@/lib/types';
 import type { UserFormValues } from '@/components/users/RedesignedUserModal';
@@ -247,7 +246,6 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
 
   const [isDark, setIsDark] = useState(false);
   const [isDebugOverlayVisible, setIsDebugOverlayVisible] = useState(false);
-  const { isVisible: isZIndexDebugVisible, setIsVisible: setIsZIndexDebugVisible } = useZIndexDebugger();
 
   // Initialize switch state from current theme / saved preference / system
   useEffect(() => {
@@ -640,7 +638,6 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
       />
       
       {/* Z-Index Debugger */}
-      <ZIndexDebugger isVisible={isZIndexDebugVisible} />
     </>
   );
 }

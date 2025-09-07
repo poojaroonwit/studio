@@ -141,7 +141,7 @@ body {
 }
 
 /* Prevent any fixed overlays from blocking interactions when closed */
-.fixed[style*="z-index"]:not([data-state="open"]) {
+.fixed[style*="z-index"]:not([data-state="open"]):not([data-radix-dialog-overlay]):not([data-radix-dialog-content]) {
   display: none !important;
   pointer-events: none !important;
 }

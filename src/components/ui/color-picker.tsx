@@ -39,7 +39,7 @@ export function ColorPicker({ value, onChange, className }: ColorPickerProps) {
           <Palette className="h-4 w-4 text-white" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-64 p-4">
+      <PopoverContent className="w-64 p-4" popoverId="color-picker-dropdown" zIndexType="modal">
         <div className="space-y-4">
           <div>
             <Label className="text-sm font-medium">Preset Colors</Label>

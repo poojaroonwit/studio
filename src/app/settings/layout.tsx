@@ -167,9 +167,9 @@ function SettingsLayoutContent({ children }: { children: ReactNode }) {
   const isMainSettingsPage = pathname === '/settings';
 
   return (
-    <div className={cn("h-full min-h-screen overflow-hidden", isMainSettingsPage ? "" : "flex bg-muted/30")}>
+    <div className={cn("h-screen overflow-hidden", isMainSettingsPage ? "" : "flex bg-muted/30")}>
       {!isMainSettingsPage && (
-        <aside className="hidden md:flex md:flex-col md:w-64 border-r bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 h-full min-h-screen overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-muted/20 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-muted-foreground/50">
+        <aside className="hidden md:flex md:flex-col md:w-64 border-r bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 h-screen overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-muted/20 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-muted-foreground/50">
           <nav className="py-4 px-2">
             <div className="space-y-1">
               {visibleNavItems.map((item, index) => {
@@ -217,7 +217,7 @@ function SettingsLayoutContent({ children }: { children: ReactNode }) {
           </nav>
         </aside>
       )}
-      <div className={cn("flex-1 flex flex-col overflow-hidden", isMainSettingsPage ? "h-full" : "")}>
+      <div className={cn("flex-1 flex flex-col overflow-hidden", isMainSettingsPage ? "h-screen" : "h-screen")}>
         {/* Main content area - individual pages handle their own scrolling */}
         <div className="flex-1 overflow-y-auto">
           {children}

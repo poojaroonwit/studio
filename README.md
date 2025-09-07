@@ -2,7 +2,7 @@
 
 A comprehensive, enterprise-grade Applicant Tracking System (ATS) built with Next.js, featuring advanced candidate management, automated workflows, and seamless integrations.
 
-![FitScan](https://img.shields.io/badge/Next.js-14.2.3-black?style=for-the-badge&logo=next.js)
+![FitScan](https://img.shields.io/badge/Next.js-15.5.2-black?style=for-the-badge&logo=next.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=for-the-badge&logo=typescript)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-green?style=for-the-badge&logo=postgresql)
 ![Docker](https://img.shields.io/badge/Docker-20.10-blue?style=for-the-badge&logo=docker)
@@ -69,22 +69,24 @@ A comprehensive, enterprise-grade Applicant Tracking System (ATS) built with Nex
 - **Audit Logging**: Complete system activity tracking with search/filter
 - **Health Monitoring**: Built-in health checks and monitoring
 - **Background Processing**: Queue-based file processing system
-- **Multi-language Font Support**: Automatic font switching between Inter (English) and Anuphan (Thai)
+- **Multi-language Font Support**: Automatic font switching between Inter (English) and IBM Plex Sans Thai (Thai)
 
 ## 🛠️ Tech Stack
 
 | Component | Technology |
 |-----------|------------|
-| **Frontend** | Next.js 14 (App Router), React 18, TypeScript |
-| **UI Framework** | Tailwind CSS, ShadCN UI Components, Inter & Anuphan Fonts |
+| **Frontend** | Next.js 15.5.2 (App Router), React 18, TypeScript |
+| **UI Framework** | Tailwind CSS, ShadCN UI Components, Inter & IBM Plex Sans Thai Fonts |
 | **Backend** | Next.js API Routes, Prisma ORM |
 | **Database** | PostgreSQL 15 |
 | **Authentication** | NextAuth.js (Azure AD + Credentials) |
 | **File Storage** | MinIO Object Storage |
 | **Caching** | Built-in caching |
 | **AI/ML** | Genkit (Google AI) |
-| **Deployment** | Docker, Docker Compose |
+| **Deployment** | Docker, Docker Compose, PM2 |
 | **Monitoring** | Built-in health checks, audit logging |
+| **Real-time** | Server-Sent Events (SSE) |
+| **Testing** | Vitest, Testing Library |
 
 ## 📋 Prerequisites
 
@@ -252,6 +254,12 @@ N8N_DB_CONNECTION_TIMEOUT=60000
 
 ⚠️ **Security Note**: Change the default password immediately after first login.
 
+### Creating Admin User
+If the default admin user doesn't exist, create one using:
+```bash
+npm run db:create-admin
+```
+
 ### Authentication Methods
 1. **Email/Password**: Traditional login with bcrypt hashing
 2. **Azure AD SSO**: Enterprise single sign-on (optional)
@@ -338,12 +346,21 @@ npm run dev
 
 ### Available Scripts
 ```bash
-npm run dev          # Start development server
-npm run build        # Build for production
-npm run start        # Start production server
-npm run lint         # Run ESLint
-npm run typecheck    # Run TypeScript checks
-npm run processor    # Start background processor
+npm run dev                    # Start development server
+npm run build                  # Build for production
+npm run start                  # Start production server
+npm run start:local            # Start local development server
+npm run start:local:with-processor  # Start local server with processor
+npm run lint                   # Run ESLint
+npm run typecheck              # Run TypeScript checks
+npm run processor              # Start background processor
+npm run processor:pm2          # Start processor with PM2
+npm run setup:local            # Setup local development environment
+npm run db:create-admin        # Create admin user
+npm run seed:upload-queue      # Seed upload queue with test data
+npm run fix:stages             # Fix stage mismatches
+npm run fix:candidate-status   # Fix candidate status issues
+npm run migrations:skip-failed # Skip failed migrations
 ```
 
 ## 📈 Monitoring & Health Checks
@@ -403,13 +420,40 @@ docker run --rm -v candidatrack_minio_data:/data -v $(pwd):/backup alpine tar cz
 - **Interactive Swagger UI**: `/api-docs`
 - **API Endpoints**: Comprehensive REST API for all features
 
+## 🧹 Project Maintenance
+
+### Recent Cleanup (v0.2.0)
+The project has undergone a comprehensive cleanup to improve maintainability:
+
+- **Removed 30+ unnecessary files** including historical documentation and unused scripts
+- **Cleaned package.json** by removing references to non-existent scripts
+- **Eliminated duplicate SQL files** and outdated migration scripts
+- **Removed standalone test files** that were not integrated into the test suite
+- **Streamlined documentation** by removing obsolete troubleshooting guides
+
+### Code Quality
+- **TypeScript**: Full type safety with strict configuration
+- **ESLint**: Code quality and consistency enforcement
+- **Prettier**: Automated code formatting
+- **Testing**: Vitest and Testing Library for comprehensive test coverage
+- **CI/CD**: Automated testing and deployment pipelines
+
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Make your changes
 4. Add tests if applicable
-5. Submit a pull request
+5. Ensure all tests pass (`npm run test`)
+6. Run linting (`npm run lint`)
+7. Submit a pull request
+
+### Development Guidelines
+- Follow TypeScript best practices
+- Write comprehensive tests for new features
+- Update documentation for API changes
+- Use conventional commit messages
+- Ensure backward compatibility when possible
 
 ## 📄 License
 
@@ -486,17 +530,21 @@ tail -f logs/app.log
 
 ## 🔄 Changelog
 
-### Latest Updates
-- ✅ Enhanced candidate management with resume history tracking
-- ✅ Improved position management with advanced filtering
-- ✅ Added comprehensive user group and permission management
-- ✅ Implemented My Task Board with Kanban and list views
-- ✅ Added server-side application preferences and data model settings
-- ✅ Enhanced audit logging with search and filter capabilities
-- ✅ Improved webhook integration and automation workflows
-- ✅ Added comprehensive test cases and documentation
-- ✅ Fixed React rendering errors and improved error handling
-- ✅ Updated Docker deployment configuration
+### Latest Updates (v0.2.0)
+- ✅ **Codebase Cleanup**: Removed 30+ unnecessary files including historical documentation and unused scripts
+- ✅ **Package.json Optimization**: Cleaned up references to non-existent scripts and utilities
+- ✅ **Enhanced Candidate Management**: Resume history tracking and advanced filtering
+- ✅ **Improved Position Management**: Advanced filtering and bulk operations
+- ✅ **Comprehensive User Management**: Role-based access control with granular permissions
+- ✅ **Task Board Implementation**: Kanban and list views with enhanced filtering
+- ✅ **Server-side Configuration**: Application preferences and data model settings
+- ✅ **Enhanced Audit Logging**: Search and filter capabilities for system activity
+- ✅ **Webhook Integration**: Improved automation workflows and external integrations
+- ✅ **API Documentation**: Comprehensive Swagger/OpenAPI documentation
+- ✅ **Error Handling**: Improved React rendering and error management
+- ✅ **Docker Optimization**: Updated deployment configuration and container management
+- ✅ **Real-time Updates**: SSE-based live collaboration and notifications
+- ✅ **Multi-language Support**: Automatic font switching (Inter/Thai fonts)
 
 ---
 
@@ -519,8 +567,8 @@ If you encounter this issue, it's likely due to authentication problems. Here's 
    # Set the database URL environment variable
    $env:DATABASE_URL="postgresql://studio_user:local_dev_password@localhost:8521/studio_dev"
    
-   # Create the admin user
-   node scripts/create-admin-user.js
+   # Create the admin user using npm script
+   npm run db:create-admin
    ```
 
 3. **Verify the database is running**:

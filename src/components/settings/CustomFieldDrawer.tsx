@@ -229,7 +229,7 @@ export default function CustomFieldDrawer({
   return (
     <Sheet open={open} onOpenChange={onClose}>
       <SheetContent 
-        sheetId={`custom-field-drawer-${definition?.id || 'new'}`}
+        sheetId={`custom-field-drawer-${definition?.id ? definition.id : 'new'}`}
         className="h-full w-[40vw] max-w-[40vw] flex flex-col" 
         style={{ width: '40vw', maxWidth: '40vw' }}
       >

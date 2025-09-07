@@ -29,6 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
 import { TableWrapper } from "@/components/ui/responsive-table";
 import { ImportPositionsModal } from '@/components/positions/ImportPositionsModal';
 import { RecruiterFilterSidebar } from '@/components/positions/RecruiterFilterSidebar';
@@ -1447,11 +1448,9 @@ export default function PositionsPageClient() {
               <TableRow>
                 <TableHead key="row-number" className="w-8 min-w-[32px] text-center">#</TableHead>
                 <TableHead key="select-all" className="w-12 min-w-[48px]">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={allSelected}
-                    ref={el => { if (el) el.indeterminate = someSelected; }}
-                    onChange={e => handleSelectAll(e.target.checked)}
+                    onCheckedChange={handleSelectAll}
                     aria-label="Select all positions"
                   />
                 </TableHead>
@@ -1559,10 +1558,9 @@ export default function PositionsPageClient() {
                     {rowNumber}
                   </TableCell>
                   <TableCell key={`${position.id}-select`}>
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       checked={selectedIds.includes(position.id)}
-                      onChange={e => handleRowSelect(position.id, e.target.checked)}
+                      onCheckedChange={(checked) => handleRowSelect(position.id, checked === true)}
                       aria-label={`Select position ${position.title}`}
                     />
                   </TableCell>

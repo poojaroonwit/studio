@@ -647,6 +647,7 @@ Do not include any markdown formatting, code blocks, or additional text. Only re
         sortOrder: 1,
         showInCandidateDetail: true,
         showInFullCandidateDetail: true,
+        showInFilter: true,
         candidateDetailSection: 'candidate-info',
         options: JSON.stringify({
           minValue: 0,
@@ -694,6 +695,7 @@ Do not include any markdown formatting, code blocks, or additional text. Only re
         sortOrder: 2,
         showInCandidateDetail: true,
         showInFullCandidateDetail: true,
+        showInFilter: true,
         candidateDetailSection: 'candidate-info',
       }
     });
@@ -717,6 +719,7 @@ Do not include any markdown formatting, code blocks, or additional text. Only re
         sortOrder: 3,
         showInCandidateDetail: true,
         showInFullCandidateDetail: true,
+        showInFilter: true,
         candidateDetailSection: 'candidate-info',
       }
     });

@@ -1023,28 +1023,28 @@ export async function GET(request: NextRequest) {
         switch (fieldDef.field_type) {
           case 'text':
           case 'textarea':
-            whereClauses.push(`c."parsedData"->>'${fieldCode}' ILIKE $${paramIndex++}`);
+            whereClauses.push(`c."customAttributes"->>'${fieldCode}' ILIKE $${paramIndex++}`);
             queryParams.push(`%${filterValue}%`);
             break;
             
           case 'number':
             const numValue = parseFloat(filterValue as string);
             if (!isNaN(numValue)) {
-              whereClauses.push(`CAST(c."parsedData"->>'${fieldCode}' AS DECIMAL) = $${paramIndex++}`);
+              whereClauses.push(`CAST(c."customAttributes"->>'${fieldCode}' AS DECIMAL) = $${paramIndex++}`);
               queryParams.push(numValue);
             }
             break;
             
           case 'boolean':
             const boolValue = filterValue === 'true' || filterValue === true;
-            whereClauses.push(`CAST(c."parsedData"->>'${fieldCode}' AS BOOLEAN) = $${paramIndex++}`);
+            whereClauses.push(`CAST(c."customAttributes"->>'${fieldCode}' AS BOOLEAN) = $${paramIndex++}`);
             queryParams.push(boolValue);
             break;
             
           case 'date':
             try {
               const dateValue = new Date(filterValue as string);
-              whereClauses.push(`CAST(c."parsedData"->>'${fieldCode}' AS DATE) = $${paramIndex++}`);
+              whereClauses.push(`CAST(c."customAttributes"->>'${fieldCode}' AS DATE) = $${paramIndex++}`);
               queryParams.push(dateValue.toISOString().split('T')[0]);
             } catch (e) {
               // Invalid date, skip this filter
@@ -1052,7 +1052,7 @@ export async function GET(request: NextRequest) {
             break;
             
           case 'select_single':
-            whereClauses.push(`c."parsedData"->>'${fieldCode}' = $${paramIndex++}`);
+            whereClauses.push(`c."customAttributes"->>'${fieldCode}' = $${paramIndex++}`);
             queryParams.push(filterValue);
             break;
             
@@ -1060,13 +1060,13 @@ export async function GET(request: NextRequest) {
             // For multiple select, check if any of the selected values are in the array
             if (Array.isArray(filterValue)) {
               const conditions = filterValue.map((val, index) => 
-                `c."parsedData"->'${fieldCode}' ? $${paramIndex + index}`
+                `c."customAttributes"->'${fieldCode}' ? $${paramIndex + index}`
               );
               whereClauses.push(`(${conditions.join(' OR ')})`);
               queryParams.push(...filterValue);
               paramIndex += filterValue.length;
             } else {
-              whereClauses.push(`c."parsedData"->'${fieldCode}' ? $${paramIndex++}`);
+              whereClauses.push(`c."customAttributes"->'${fieldCode}' ? $${paramIndex++}`);
               queryParams.push(filterValue);
             }
             break;

@@ -223,7 +223,7 @@ export function CustomFieldEdit({
   if (fieldDefinitions.length === 0) {
     return null; // Don't render anything if no custom fields
   }
-
+  
   return (
     <Card className={className}>
       <CardHeader>

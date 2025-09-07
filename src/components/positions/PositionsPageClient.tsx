@@ -1697,35 +1697,35 @@ export default function PositionsPageClient() {
       )}
       </div>
       
-          {/* Pagination Controls */}
-          {(total > 0 || totalPages > 0) && (
-            <div className="p-2 border-t bg-background">
-              <Pagination
-                currentPage={page}
-                totalPages={Math.max(1, totalPages)}
-                pageSize={pageSize}
-                total={total}
-                onPageChange={(newPage) => {
-                  setPage(newPage);
-                  updateURL(newPage);
-                }}
-                onPageSizeChange={(newPageSize) => {
-                  setPageSize(newPageSize);
-                  setPage(1);
-                  updateURL(1, newPageSize);
-                }}
-                pageSizeOptions={[10, 20, 50, 100]}
-                showPageSizeSelector={true}
-                className="mt-4"
-              />
-            </div>
-          )}
         </div>
-          </div> {/* Close content div */}
-        </div> {/* Close main content div */}
-      </div> {/* Close flex container */}
+      </div> 
       
-      {/* Modals */}
+      {/* Pagination Controls */}
+      {(total > 0 || totalPages > 0) && (
+        <div className="p-2 border-t bg-background flex-shrink-0">
+          <Pagination
+            currentPage={page}
+            totalPages={Math.max(1, totalPages)}
+            pageSize={pageSize}
+            total={total}
+            onPageChange={(newPage) => {
+              setPage(newPage);
+              updateURL(newPage);
+            }}
+            onPageSizeChange={(newPageSize) => {
+              setPageSize(newPageSize);
+              setPage(1);
+              updateURL(1, newPageSize);
+            }}
+            pageSizeOptions={[10, 20, 50, 100]}
+            showPageSizeSelector={true}
+            className="mt-4"
+          />
+        </div>
+      )}
+    </div> 
+  
+      
       {true && (
         <AddPositionModal 
           isOpen={isAddModalOpen} 

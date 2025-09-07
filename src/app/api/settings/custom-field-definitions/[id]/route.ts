@@ -13,11 +13,34 @@ const customFieldOptionSchema = z.object({
 });
 
 const updateCustomFieldSchema = z.object({
+  model_name: z.enum(['Candidate', 'Position', 'User', 'Headcount']).optional(),
+  field_code: z.string().min(1, "Field code is required").regex(/^[A-Z0-9_]+$/, "Code must be uppercase alphanumeric with underscores.").optional(),
   label: z.string().min(1, "Label is required").optional(),
   field_type: z.enum(['text', 'textarea', 'number', 'boolean', 'date', 'select_single', 'select_multiple'] as const).optional(),
-  options: z.array(customFieldOptionSchema).optional().nullable(),
+  
+  // Role permissions - using role IDs
+  viewRoles: z.array(z.string().uuid()).optional(),
+  editRoles: z.array(z.string().uuid()).optional(),
+  
+  // Visibility settings
+  showInFilter: z.boolean().optional(),
+  showInCandidateDetail: z.boolean().optional(),
+  showInFullCandidateDetail: z.boolean().optional(),
+  showInTaskBoardFilter: z.boolean().optional(),
+  showInPositionSettings: z.boolean().optional(),
+  showInHeadcountDetail: z.boolean().optional(),
+  
+  // Section selection for display settings
+  candidateDetailSection: z.enum(['jobs', 'candidate-info', 'education', 'experience', 'job-suitability']).optional(),
+  positionDetailSection: z.enum(['details', 'criteria', 'candidates', 'headcount']).optional(),
+  
+  // Field properties
   is_required: z.boolean().optional(),
+  allowCustomOptions: z.boolean().optional(),
   sort_order: z.number().optional(),
+  
+  // Options for select/multiselect
+  options: z.array(customFieldOptionSchema).optional().nullable(),
 });
 
 function extractIdFromUrl(request: NextRequest): string | null {
@@ -202,14 +225,37 @@ export async function PUT(request: NextRequest) {
 
     const existingFieldData = existingField.rows[0];
 
-    // Build update query dynamically
+    // Build update query dynamically with proper field mapping
     const updateFields: string[] = [];
     const updateValues: any[] = [];
     let paramIndex = 1;
 
+    // Field mapping from frontend camelCase to database snake_case
+    const fieldMapping: Record<string, string> = {
+      model_name: 'model_name',
+      field_code: 'field_code',
+      label: 'label',
+      field_type: 'field_type',
+      viewRoles: 'view_roles',
+      editRoles: 'edit_roles',
+      showInFilter: 'show_in_filter',
+      showInCandidateDetail: 'show_in_candidate_detail',
+      showInFullCandidateDetail: 'show_in_full_candidate_detail',
+      showInTaskBoardFilter: 'show_in_task_board_filter',
+      showInPositionSettings: 'show_in_position_settings',
+      showInHeadcountDetail: 'show_in_headcount_detail',
+      candidateDetailSection: 'candidate_detail_section',
+      positionDetailSection: 'position_detail_section',
+      is_required: 'is_required',
+      allowCustomOptions: 'allow_custom_options',
+      sort_order: 'sort_order',
+      options: 'options'
+    };
+
     Object.entries(updateData).forEach(([key, value]) => {
       if (value !== undefined) {
-        updateFields.push(`"${key}" = $${paramIndex++}`);
+        const dbField = fieldMapping[key] || key;
+        updateFields.push(`"${dbField}" = $${paramIndex++}`);
         updateValues.push(value);
       }
     });
@@ -231,6 +277,33 @@ export async function PUT(request: NextRequest) {
     const result = await getPool().query(updateQuery, updateValues);
     const updatedField = result.rows[0];
 
+    // Map database fields to frontend expected fields
+    const mappedField = {
+      id: updatedField.id,
+      model_name: updatedField.model_name,
+      field_key: updatedField.field_key,
+      field_code: updatedField.field_code,
+      label: updatedField.label,
+      field_type: updatedField.field_type,
+      options: updatedField.options || [],
+      attributeCode: updatedField.attribute_code,
+      viewRoles: updatedField.view_roles || [],
+      editRoles: updatedField.edit_roles || [],
+      showInFilter: updatedField.show_in_filter || false,
+      showInCandidateDetail: updatedField.show_in_candidate_detail || false,
+      showInFullCandidateDetail: updatedField.show_in_full_candidate_detail || false,
+      showInTaskBoardFilter: updatedField.show_in_task_board_filter || false,
+      showInPositionSettings: updatedField.show_in_position_settings || false,
+      showInHeadcountDetail: updatedField.show_in_headcount_detail || false,
+      candidateDetailSection: updatedField.candidate_detail_section,
+      positionDetailSection: updatedField.position_detail_section,
+      is_required: updatedField.is_required,
+      allowCustomOptions: updatedField.allow_custom_options || false,
+      sort_order: updatedField.sort_order ?? 0,
+      createdAt: updatedField.createdAt,
+      updatedAt: updatedField.updatedAt,
+    };
+
     await logAudit('AUDIT', 
       `Custom field "${updatedField.label}" (${updatedField.field_key}) updated by ${session.user.name}.`, 
       'API:CustomFields:Update', 
@@ -238,7 +311,7 @@ export async function PUT(request: NextRequest) {
       { fieldId: id, changes: Object.keys(updateData) }
     );
 
-    return NextResponse.json(updatedField, { status: 200 });
+    return NextResponse.json(mappedField, { status: 200 });
   } catch (error: any) {
     console.error(`Failed to update custom field definition ${id}:`, error);
     await logAudit('ERROR', 

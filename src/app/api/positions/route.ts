@@ -72,6 +72,15 @@ export async function GET(request: NextRequest) {
     const includeCandidateStats = searchParams.get('includeCandidateStats') === 'true';
     const includeHeadcount = searchParams.get('includeHeadcount') === 'true';
 
+    // Parse custom field filters
+    const customFieldFilters: { [key: string]: any } = {};
+    for (const [key, value] of searchParams.entries()) {
+      if (key.startsWith('customField_')) {
+        const fieldCode = key.replace('customField_', '');
+        customFieldFilters[fieldCode] = value;
+      }
+    }
+
     // Check if DATABASE_URL is configured
     if (!process.env.DATABASE_URL) {
   
@@ -115,6 +124,82 @@ export async function GET(request: NextRequest) {
         } else {
           conditions.push(`p."recruiterId" = $${paramIndex++}`);
           queryParams.push(recruiterIdFilter);
+        }
+      }
+
+      // Handle custom field filters
+      if (Object.keys(customFieldFilters).length > 0) {
+        // First, get the custom field definitions to understand field types
+        const customFieldDefsQuery = `
+          SELECT field_code, field_type, options
+          FROM "CustomFieldDefinition"
+          WHERE model_name = 'Position' AND show_in_filter = true
+        `;
+        const customFieldDefsResult = await getPool().query(customFieldDefsQuery);
+        const customFieldDefs = customFieldDefsResult.rows.reduce((acc, row) => {
+          acc[row.field_code] = row;
+          return acc;
+        }, {} as any);
+
+        // Process each custom field filter
+        for (const [fieldCode, filterValue] of Object.entries(customFieldFilters)) {
+          if (!filterValue || filterValue === '' || filterValue === 'null') continue;
+          
+          const fieldDef = customFieldDefs[fieldCode];
+          if (!fieldDef) continue;
+
+          // Build the custom field filter condition based on field type
+          switch (fieldDef.field_type) {
+            case 'text':
+            case 'textarea':
+              conditions.push(`p."customAttributes"->>'${fieldCode}' ILIKE $${paramIndex++}`);
+              queryParams.push(`%${filterValue}%`);
+              break;
+              
+            case 'number':
+              const numValue = parseFloat(filterValue as string);
+              if (!isNaN(numValue)) {
+                conditions.push(`CAST(p."customAttributes"->>'${fieldCode}' AS DECIMAL) = $${paramIndex++}`);
+                queryParams.push(numValue);
+              }
+              break;
+              
+            case 'boolean':
+              const boolValue = filterValue === 'true' || filterValue === true;
+              conditions.push(`CAST(p."customAttributes"->>'${fieldCode}' AS BOOLEAN) = $${paramIndex++}`);
+              queryParams.push(boolValue);
+              break;
+              
+            case 'date':
+              try {
+                const dateValue = new Date(filterValue as string);
+                conditions.push(`CAST(p."customAttributes"->>'${fieldCode}' AS DATE) = $${paramIndex++}`);
+                queryParams.push(dateValue.toISOString().split('T')[0]);
+              } catch (e) {
+                // Invalid date, skip this filter
+              }
+              break;
+              
+            case 'select_single':
+              conditions.push(`p."customAttributes"->>'${fieldCode}' = $${paramIndex++}`);
+              queryParams.push(filterValue);
+              break;
+              
+            case 'select_multiple':
+              // For multiple select, check if any of the selected values are in the array
+              if (Array.isArray(filterValue)) {
+                const conditions = filterValue.map((val, index) => 
+                  `p."customAttributes"->'${fieldCode}' ? $${paramIndex + index}`
+                );
+                conditions.push(`(${conditions.join(' OR ')})`);
+                queryParams.push(...filterValue);
+                paramIndex += filterValue.length;
+              } else {
+                conditions.push(`p."customAttributes"->'${fieldCode}' ? $${paramIndex++}`);
+                queryParams.push(filterValue);
+              }
+              break;
+          }
         }
       }
 

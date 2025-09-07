@@ -79,6 +79,54 @@ export async function fetchCustomFieldsForSection(
 }
 
 /**
+ * Fetches custom field definitions that are enabled for filtering
+ */
+export async function fetchFilterableCustomFields(
+  modelName: 'Candidate' | 'Position' | 'User' | 'Headcount'
+): Promise<CustomFieldDefinition[]> {
+  try {
+    const response = await fetch('/api/settings/custom-field-definitions');
+    if (!response.ok) {
+      throw new Error('Failed to fetch custom field definitions');
+    }
+    
+    const allFields: CustomFieldDefinition[] = await response.json();
+    
+    // Filter for fields that are enabled for filtering
+    return allFields.filter(field => 
+      field.model_name === modelName && field.showInFilter
+    );
+  } catch (error) {
+    console.error('Error fetching filterable custom fields:', error);
+    return [];
+  }
+}
+
+/**
+ * Fetches custom field definitions for task board filtering
+ */
+export async function fetchTaskBoardFilterableCustomFields(
+  modelName: 'Candidate' | 'Position' | 'User' | 'Headcount'
+): Promise<CustomFieldDefinition[]> {
+  try {
+    const response = await fetch('/api/settings/custom-field-definitions');
+    if (!response.ok) {
+      throw new Error('Failed to fetch custom field definitions');
+    }
+    
+    const allFields: CustomFieldDefinition[] = await response.json();
+    
+    // Filter for fields that are enabled for task board filtering
+    return allFields.filter(field => 
+      field.model_name === modelName && field.showInTaskBoardFilter
+    );
+  } catch (error) {
+    console.error('Error fetching task board filterable custom fields:', error);
+    return [];
+  }
+}
+
+/**
  * Renders a custom field value based on its type
  */
 export function renderCustomFieldValue(definition: CustomFieldDefinition, value: any): React.ReactNode {

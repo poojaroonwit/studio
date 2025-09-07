@@ -133,7 +133,7 @@ function CustomFieldsTab() {
   };
 
   const handleFormSubmit = async (data: any) => {
-    const url = editingDefinition ? `/api/settings/custom-field-definitions?id=${editingDefinition.id}` : '/api/settings/custom-field-definitions';
+    const url = editingDefinition ? `/api/settings/custom-field-definitions/${editingDefinition.id}` : '/api/settings/custom-field-definitions';
     const method = editingDefinition ? 'PUT' : 'POST';
 
     try {

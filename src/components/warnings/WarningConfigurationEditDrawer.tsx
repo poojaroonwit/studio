@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { 
   AlertTriangle, 
   Settings, 
@@ -33,7 +35,9 @@ import {
   TrendingUp,
   TrendingDown,
   Search,
-  XCircle
+  XCircle,
+  Check,
+  ChevronsUpDown
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -125,6 +129,7 @@ export function WarningConfigurationEditDrawer({
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [availableFields, setAvailableFields] = useState<{[key: string]: string[]}>({});
   const [activeTab, setActiveTab] = useState<'basic' | 'conditions'>('basic');
+  const [fieldPopoverOpen, setFieldPopoverOpen] = useState<{[key: string]: boolean}>({});
 
   const [formData, setFormData] = useState<WarningConfigurationFormData>({
     name: '',
@@ -785,29 +790,66 @@ export function WarningConfigurationEditDrawer({
 
                                                                <div className="space-y-2">
                                   <Label className="text-xs font-medium text-muted-foreground">Field</Label>
-                                  <Select
-                                    value={condition.field}
-                                    onValueChange={(value) => 
-                                      updateCondition(group.id, condition.id, { field: value })
+                                  <Popover 
+                                    open={fieldPopoverOpen[`${group.id}-${condition.id}`] || false}
+                                    onOpenChange={(open) => 
+                                      setFieldPopoverOpen(prev => ({
+                                        ...prev,
+                                        [`${group.id}-${condition.id}`]: open
+                                      }))
                                     }
                                   >
-                                    <SelectTrigger className="h-9 text-xs">
-                                      <SelectValue placeholder="Select field" />
-                                    </SelectTrigger>
-                                                                         <SelectContent>
-                                       {condition.entityType && availableFields[condition.entityType] ? (
-                                         availableFields[condition.entityType].map((field) => (
-                                           <SelectItem key={field} value={field}>
-                                             {field}
-                                           </SelectItem>
-                                         ))
-                                       ) : (
-                                         <SelectItem value="no-entity-selected" disabled>
-                                           Select entity type first
-                                         </SelectItem>
-                                       )}
-                                     </SelectContent>
-                                  </Select>
+                                    <PopoverTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        role="combobox"
+                                        aria-expanded={fieldPopoverOpen[`${group.id}-${condition.id}`]}
+                                        className="h-9 text-xs justify-between w-full"
+                                      >
+                                        {condition.field || "Select field..."}
+                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                      </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-[300px] p-0" align="start">
+                                      <Command>
+                                        <CommandInput placeholder="Search fields..." className="h-9" />
+                                        <CommandList>
+                                          <CommandEmpty>No field found.</CommandEmpty>
+                                          {condition.entityType && availableFields[condition.entityType] ? (
+                                            <CommandGroup>
+                                              {availableFields[condition.entityType].map((field) => (
+                                                <CommandItem
+                                                  key={field}
+                                                  value={field}
+                                                  onSelect={(currentValue) => {
+                                                    updateCondition(group.id, condition.id, { field: currentValue });
+                                                    setFieldPopoverOpen(prev => ({
+                                                      ...prev,
+                                                      [`${group.id}-${condition.id}`]: false
+                                                    }));
+                                                  }}
+                                                >
+                                                  <Check
+                                                    className={cn(
+                                                      "mr-2 h-4 w-4",
+                                                      condition.field === field ? "opacity-100" : "opacity-0"
+                                                    )}
+                                                  />
+                                                  {field}
+                                                </CommandItem>
+                                              ))}
+                                            </CommandGroup>
+                                          ) : (
+                                            <CommandGroup>
+                                              <CommandItem disabled>
+                                                Select entity type first
+                                              </CommandItem>
+                                            </CommandGroup>
+                                          )}
+                                        </CommandList>
+                                      </Command>
+                                    </PopoverContent>
+                                  </Popover>
                                 </div>
 
                                                                <div className="space-y-2">

@@ -104,6 +104,9 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DialogTrigger } from '@/components/ui/dialog';
 import { AdvancedQuerySyntaxModal } from './AdvancedQuerySyntaxModal';
+import { CustomFieldFilter } from '@/components/ui/CustomFieldFilter';
+import { fetchFilterableCustomFields } from '@/lib/customFieldUtils';
+import type { CustomFieldDefinition } from '@/lib/types';
 
 
 export interface CandidateFilterValues {
@@ -147,6 +150,7 @@ export interface CandidateFilterValues {
     };
   };
   locationOperator?: 'contains' | 'is' | 'startsWith' | 'endsWith' | 'other';
+  customFieldFilters?: { [fieldCode: string]: any }; // Custom field filters
 }
 
 interface CandidateFiltersProps {
@@ -243,6 +247,30 @@ export function CandidateFilters({
   const [advancedQueryInput, setAdvancedQueryInput] = useState('');
   const [activeTab, setActiveTab] = useState<'filters' | 'advanced'>('filters');
   const [isAdvancedQuerySyntaxModalOpen, setIsAdvancedQuerySyntaxModalOpen] = useState(false);
+
+  // Custom Field Filters State
+  const [customFieldFilters, setCustomFieldFilters] = useState<{ [fieldCode: string]: any }>(
+    initialFilters.customFieldFilters || {}
+  );
+  const [filterableCustomFields, setFilterableCustomFields] = useState<CustomFieldDefinition[]>([]);
+  const [isLoadingCustomFields, setIsLoadingCustomFields] = useState(false);
+
+  // Load filterable custom fields on component mount
+  useEffect(() => {
+    const loadCustomFields = async () => {
+      setIsLoadingCustomFields(true);
+      try {
+        const fields = await fetchFilterableCustomFields('Candidate');
+        setFilterableCustomFields(fields);
+      } catch (error) {
+        console.error('Error loading custom fields:', error);
+      } finally {
+        setIsLoadingCustomFields(false);
+      }
+    };
+
+    loadCustomFields();
+  }, []);
   const [queryHistory, setQueryHistory] = useState<string[]>([]);
   const [showQueryHistory, setShowQueryHistory] = useState(false);
   const [queryValidationError, setQueryValidationError] = useState<string | null>(null);
@@ -363,6 +391,7 @@ export function CandidateFilters({
       applicationDateStart: applicationDateRange?.from,
       applicationDateEnd: applicationDateRange?.to,
       selectedRecruiterIds: selectedRecruiterIds.size > 0 ? Array.from(selectedRecruiterIds) : undefined,
+      customFieldFilters: Object.keys(customFieldFilters).length > 0 ? customFieldFilters : undefined,
       aiSearchQuery: undefined,
     };
 
@@ -468,6 +497,7 @@ export function CandidateFilters({
     skills,
     experienceYearsRange,
     applicationDateRange,
+    customFieldFilters,
     advancedQueryInput
   ]);
 
@@ -1899,6 +1929,62 @@ export function CandidateFilters({
                    </AccordionContent>
                  </AccordionItem>
                </Accordion>
+
+               {/* Custom Fields Section */}
+               {filterableCustomFields.length > 0 && (
+                 <Accordion type="multiple" defaultValue={[]} className="w-full">
+                   <AccordionItem value="custom-fields" className="border-b border-border/50">
+                     <AccordionTrigger className="px-6 py-3 hover:no-underline rounded-none pl-6 pr-6">
+                       <div className="flex items-center justify-between w-full pr-2">
+                         <div className="flex items-center gap-2">
+                           <Database className="w-4 h-4 text-muted-foreground" />
+                           <h4 className="text-sm font-semibold">Custom Fields</h4>
+                           <Badge variant="secondary" className="text-xs">
+                             {filterableCustomFields.length}
+                           </Badge>
+                         </div>
+                         <Button
+                           variant="ghost"
+                           size="sm"
+                           onClick={(e) => {
+                             e.stopPropagation();
+                             setCustomFieldFilters({});
+                           }}
+                           disabled={isLoading || isAiSearching || isLoadingCustomFields}
+                           className="h-6 w-6 p-0 hover:bg-muted/50"
+                         >
+                           <FilterX className="h-3 w-3" />
+                         </Button>
+                       </div>
+                     </AccordionTrigger>
+                     <AccordionContent className="px-4 pb-4 overflow-visible">
+                       <div className="space-y-4">
+                         {isLoadingCustomFields ? (
+                           <div className="flex items-center justify-center py-4">
+                             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                             <span className="ml-2 text-sm text-muted-foreground">Loading custom fields...</span>
+                           </div>
+                         ) : (
+                           filterableCustomFields.map((field) => (
+                             <CustomFieldFilter
+                               key={field.field_code}
+                               definition={field}
+                               value={customFieldFilters[field.field_code]}
+                               onChange={(value) => {
+                                 setCustomFieldFilters(prev => ({
+                                   ...prev,
+                                   [field.field_code]: value
+                                 }));
+                               }}
+                               className="w-full"
+                             />
+                           ))
+                         )}
+                       </div>
+                     </AccordionContent>
+                   </AccordionItem>
+                 </Accordion>
+               )}
 
                {/* Action Buttons */}
                <div className="flex gap-2 p-4">

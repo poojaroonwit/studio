@@ -418,6 +418,15 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // Parse custom field filters
+    const customFieldFilters: { [key: string]: any } = {};
+    for (const [key, value] of searchParams.entries()) {
+      if (key.startsWith('customField_')) {
+        const fieldCode = key.replace('customField_', '');
+        customFieldFilters[fieldCode] = value;
+      }
+    }
+
     // Build filters object
     const filters = {
       name: searchParams.get('name') || advancedFilters.searchTerm,
@@ -444,6 +453,7 @@ export async function GET(request: NextRequest) {
       location: searchParams.get('location') || advancedFilters.location,
       locationOperator: searchParams.get('locationOperator') || 'contains',
       skills: searchParams.get('skills') || advancedFilters.skills,
+      customFieldFilters,
     };
 
     // Build WHERE clauses and parameters
@@ -985,6 +995,82 @@ export async function GET(request: NextRequest) {
         whereClauses.push(`(${skillsConditions})`);
         queryParams.push(...skills.map(skill => `%${skill}%`));
         paramIndex += skills.length;
+      }
+    }
+
+    // Handle custom field filters
+    if (Object.keys(filters.customFieldFilters).length > 0) {
+      // First, get the custom field definitions to understand field types
+      const customFieldDefsQuery = `
+        SELECT field_code, field_type, options
+        FROM "CustomFieldDefinition"
+        WHERE model_name = 'Candidate' AND show_in_filter = true
+      `;
+      const customFieldDefsResult = await client.query(customFieldDefsQuery);
+      const customFieldDefs = customFieldDefsResult.rows.reduce((acc, row) => {
+        acc[row.field_code] = row;
+        return acc;
+      }, {} as any);
+
+      // Process each custom field filter
+      for (const [fieldCode, filterValue] of Object.entries(filters.customFieldFilters)) {
+        if (!filterValue || filterValue === '' || filterValue === 'null') continue;
+        
+        const fieldDef = customFieldDefs[fieldCode];
+        if (!fieldDef) continue;
+
+        // Build the custom field filter condition based on field type
+        switch (fieldDef.field_type) {
+          case 'text':
+          case 'textarea':
+            whereClauses.push(`c."parsedData"->>'${fieldCode}' ILIKE $${paramIndex++}`);
+            queryParams.push(`%${filterValue}%`);
+            break;
+            
+          case 'number':
+            const numValue = parseFloat(filterValue as string);
+            if (!isNaN(numValue)) {
+              whereClauses.push(`CAST(c."parsedData"->>'${fieldCode}' AS DECIMAL) = $${paramIndex++}`);
+              queryParams.push(numValue);
+            }
+            break;
+            
+          case 'boolean':
+            const boolValue = filterValue === 'true' || filterValue === true;
+            whereClauses.push(`CAST(c."parsedData"->>'${fieldCode}' AS BOOLEAN) = $${paramIndex++}`);
+            queryParams.push(boolValue);
+            break;
+            
+          case 'date':
+            try {
+              const dateValue = new Date(filterValue as string);
+              whereClauses.push(`CAST(c."parsedData"->>'${fieldCode}' AS DATE) = $${paramIndex++}`);
+              queryParams.push(dateValue.toISOString().split('T')[0]);
+            } catch (e) {
+              // Invalid date, skip this filter
+            }
+            break;
+            
+          case 'select_single':
+            whereClauses.push(`c."parsedData"->>'${fieldCode}' = $${paramIndex++}`);
+            queryParams.push(filterValue);
+            break;
+            
+          case 'select_multiple':
+            // For multiple select, check if any of the selected values are in the array
+            if (Array.isArray(filterValue)) {
+              const conditions = filterValue.map((val, index) => 
+                `c."parsedData"->'${fieldCode}' ? $${paramIndex + index}`
+              );
+              whereClauses.push(`(${conditions.join(' OR ')})`);
+              queryParams.push(...filterValue);
+              paramIndex += filterValue.length;
+            } else {
+              whereClauses.push(`c."parsedData"->'${fieldCode}' ? $${paramIndex++}`);
+              queryParams.push(filterValue);
+            }
+            break;
+        }
       }
     }
 

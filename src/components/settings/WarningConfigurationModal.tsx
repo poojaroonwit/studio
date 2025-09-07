@@ -8,6 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,11 +35,14 @@ import {
   ChevronRight,
   Download,
   Upload,
-  FileText
+  FileText,
+  Check,
+  ChevronsUpDown
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { cn } from '@/lib/utils';
 
 interface Condition {
   id: string;
@@ -170,6 +175,7 @@ export function WarningConfigurationModal({
   const [isLoading, setIsLoading] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState('basic');
+  const [fieldPopoverOpen, setFieldPopoverOpen] = useState<{[key: string]: boolean}>({});
 
   const [formData, setFormData] = useState<Partial<WarningConfiguration>>({
     name: '',
@@ -733,29 +739,67 @@ export function WarningConfigurationModal({
 
                                   <div className="space-y-2">
                                     <Label>Field</Label>
-                                    <Select
-                                      value={condition.field}
-                                      onValueChange={(value) => 
-                                        updateCondition(group.id, condition.id, { field: value })
+                                    <Popover 
+                                      open={fieldPopoverOpen[`${group.id}-${condition.id}`] || false}
+                                      onOpenChange={(open) => 
+                                        setFieldPopoverOpen(prev => ({
+                                          ...prev,
+                                          [`${group.id}-${condition.id}`]: open
+                                        }))
                                       }
                                     >
-                                      <SelectTrigger>
-                                        <SelectValue placeholder="Select field" />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {getFieldSuggestions(condition.entityType).map((field) => (
-                                          <SelectItem key={field.value} value={field.value}>
-                                            <div>
-                                              <div className="font-medium">{field.label}</div>
-                                              <div className="text-xs text-muted-foreground">
-                                                {field.description}
-                                              </div>
-                        </div>
-                      </SelectItem>
-                                        ))}
-                </SelectContent>
-              </Select>
-            </div>
+                                      <PopoverTrigger asChild>
+                                        <Button
+                                          variant="outline"
+                                          role="combobox"
+                                          aria-expanded={fieldPopoverOpen[`${group.id}-${condition.id}`]}
+                                          className="w-full justify-between"
+                                        >
+                                          {condition.field ? 
+                                            getFieldSuggestions(condition.entityType).find(f => f.value === condition.field)?.label || condition.field
+                                            : "Select field..."
+                                          }
+                                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                        </Button>
+                                      </PopoverTrigger>
+                                      <PopoverContent className="w-[400px] p-0" align="start">
+                                        <Command>
+                                          <CommandInput placeholder="Search fields..." className="h-9" />
+                                          <CommandList>
+                                            <CommandEmpty>No field found.</CommandEmpty>
+                                            <CommandGroup>
+                                              {getFieldSuggestions(condition.entityType).map((field) => (
+                                                <CommandItem
+                                                  key={field.value}
+                                                  value={field.value}
+                                                  onSelect={(currentValue) => {
+                                                    updateCondition(group.id, condition.id, { field: currentValue });
+                                                    setFieldPopoverOpen(prev => ({
+                                                      ...prev,
+                                                      [`${group.id}-${condition.id}`]: false
+                                                    }));
+                                                  }}
+                                                >
+                                                  <Check
+                                                    className={cn(
+                                                      "mr-2 h-4 w-4",
+                                                      condition.field === field.value ? "opacity-100" : "opacity-0"
+                                                    )}
+                                                  />
+                                                  <div>
+                                                    <div className="font-medium">{field.label}</div>
+                                                    <div className="text-xs text-muted-foreground">
+                                                      {field.description}
+                                                    </div>
+                                                  </div>
+                                                </CommandItem>
+                                              ))}
+                                            </CommandGroup>
+                                          </CommandList>
+                                        </Command>
+                                      </PopoverContent>
+                                    </Popover>
+                                  </div>
 
                                   <div className="space-y-2">
                                     <Label>Operator</Label>

@@ -10,6 +10,7 @@ import { CandidateRecruiterCell } from './CandidateRecruiterCell';
 import { CandidateSourceCell } from './CandidateSourceCell';
 import { StatusBadge } from './CandidateKanbanView';
 import { useStageColors } from '@/hooks/use-stage-colors';
+import { useDynamicZIndex } from '@/contexts/ZIndexContext';
 
 interface CandidateHeaderProps {
   candidate: Candidate;
@@ -66,6 +67,7 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
   onAvatarUpload,
   realtimeConnected
 }) => {
+  const { contentZIndex } = useDynamicZIndex('candidate-header', 'overlay');
   const nameInfo = formatCandidateNameWithLang(candidate);
   const stageId = candidate.statusId || candidate.status || '';
   const { stageColors } = useStageColors(stageId ? [stageId] : []);
@@ -76,7 +78,10 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
   }, [availableStages]);
 
   return (
-    <div className="bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-100/20 dark:from-slate-900 dark:via-slate-800/50 dark:to-slate-700/30 shadow-lg backdrop-blur-sm border-b border-border p-4 sticky top-0 z-50 pointer-events-auto">
+    <div 
+      className="bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-100/20 dark:from-slate-900 dark:via-slate-800/50 dark:to-slate-700/30 shadow-lg backdrop-blur-sm border-b border-border p-4 sticky top-0 pointer-events-auto"
+      style={{ zIndex: contentZIndex }}
+    >
      
       
       <div className="grid grid-cols-1 lg:grid-cols-10 gap-6 relative">
@@ -84,7 +89,8 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
         {isModal && typeof onClose === 'function' && (
           <button
             type="button"
-            className="absolute top-0 right-0  z-50 p-2 rounded-full hover:bg-muted transition pointer-events-auto"
+            className="absolute top-0 right-0 p-2 rounded-full hover:bg-muted transition pointer-events-auto"
+            style={{ zIndex: contentZIndex + 1 }}
             title="Close"
             onClick={(e) => {
               e.stopPropagation();

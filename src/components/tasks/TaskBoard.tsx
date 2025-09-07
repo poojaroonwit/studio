@@ -155,7 +155,7 @@ const StageColumn: React.FC<StageColumnProps> = ({
           )}
 
           {/* Tasks */}
-          <div className="flex-1 overflow-y-auto min-h-[400px]">
+          <div className="flex-1 overflow-y-auto min-h-[calc(100vh-200px)]">
             <div className="p-4 space-y-3">
               {visibleTasks.map((task) => (
                 <TaskCard

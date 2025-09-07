@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Circle } from 'lucide-react';
 import { OnlineUsersModal } from './online-users-modal';
+import { useDynamicZIndex } from '@/contexts/ZIndexContext';
 
 interface UserPresenceIndicatorProps {
   className?: string;
@@ -18,6 +19,7 @@ export function UserPresenceIndicator({ className, maxVisible = 3 }: UserPresenc
   const [mounted, setMounted] = useState(false);
   const [previousUsers, setPreviousUsers] = useState<string>('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { contentZIndex } = useDynamicZIndex('user-presence-tooltip', 'dropdown');
 
   useEffect(() => {
     setMounted(true);
@@ -80,7 +82,7 @@ export function UserPresenceIndicator({ className, maxVisible = 3 }: UserPresenc
             </div>
           </button>
         </TooltipTrigger>
-        <TooltipContent className="z-[100]">
+        <TooltipContent style={{ zIndex: contentZIndex }}>
           <div className="text-center">
             <div className="font-medium">{user.userName}</div>
             <div className="text-xs text-muted-foreground">{user.currentPage}</div>
@@ -152,7 +154,7 @@ export function UserPresenceIndicator({ className, maxVisible = 3 }: UserPresenc
                     </span>
                   </button>
                 </TooltipTrigger>
-                <TooltipContent className="z-[100]">
+                <TooltipContent style={{ zIndex: contentZIndex }}>
                   <div className="text-center">
                     <div className="font-medium">{remainingCount} more online</div>
                     <div className="text-xs text-muted-foreground">Click to view all</div>

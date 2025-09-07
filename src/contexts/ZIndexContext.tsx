@@ -50,17 +50,10 @@ export function ZIndexProvider({ children }: { children: React.ReactNode }) {
           zIndex = Math.max(zIndex, highestOther + Z_INDEX_INCREMENT);
         }
       } else if (type === 'modal' || type === 'drawer') {
-        // Modals and drawers should be above dropdowns but below overlays
+        // Modals and drawers should be below overlays but above base content
         const overlayComponents = filtered.filter(comp => comp.type === 'overlay');
-        const dropdownComponents = filtered.filter(comp => comp.type === 'dropdown');
         
-        // Ensure above dropdowns
-        if (dropdownComponents.length > 0) {
-          const highestDropdown = Math.max(...dropdownComponents.map(comp => comp.zIndex));
-          zIndex = Math.max(zIndex, highestDropdown + Z_INDEX_INCREMENT);
-        }
-        
-        // But below overlays (unless this is a nested component)
+        // Stay below overlays (unless this is a nested component)
         if (overlayComponents.length > 0) {
           const highestOverlay = Math.max(...overlayComponents.map(comp => comp.zIndex));
           // Only stay below overlays if this isn't a nested component
@@ -74,11 +67,12 @@ export function ZIndexProvider({ children }: { children: React.ReactNode }) {
           }
         }
       } else if (type === 'dropdown') {
-        // Dropdowns should be below modals and drawers but above base content
+        // Dropdowns should always be above modals and drawers to be visible
+        // This is necessary for usability - dropdowns must be visible above their parent containers
         const modalDrawerComponents = filtered.filter(comp => comp.type === 'modal' || comp.type === 'drawer');
         if (modalDrawerComponents.length > 0) {
           const highestModalDrawer = Math.max(...modalDrawerComponents.map(comp => comp.zIndex));
-          zIndex = Math.min(zIndex, highestModalDrawer - Z_INDEX_INCREMENT);
+          zIndex = Math.max(zIndex, highestModalDrawer + Z_INDEX_INCREMENT);
         }
       }
       

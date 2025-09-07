@@ -263,7 +263,6 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     const interval = setInterval(() => {
       // Only refresh if not currently loading and we have candidates
       if (!loading && candidates.length > 0) {
-        console.log('[MyTasksPageClient] Periodic refresh triggered');
         setRealtimeStatus('refreshing');
         
         const refreshCandidates = async () => {
@@ -804,7 +803,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
 
   // --- UI ---
   return (
-                  <div className="flex flex-col h-full bg-background">
+                  <div className="flex flex-col h-screen bg-background">
                 {/* Enhanced Board Header - Always Sticky within main content */}
       <div className="bg-card border-b border-border shadow-sm sticky top-0 z-30 backdrop-blur-sm bg-card/95">
         <div className="px-6 py-4 space-y-4">

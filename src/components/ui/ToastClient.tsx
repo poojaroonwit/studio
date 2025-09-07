@@ -2,6 +2,7 @@
 import { Toaster, ToastBar, toast } from 'react-hot-toast';
 import { CheckCircle, AlertTriangle, Info, Loader2, XCircle, X, Bell } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
+import { useDynamicZIndex } from '@/contexts/ZIndexContext';
 
 // Utility to detect dark mode
 function isDarkMode() {
@@ -13,6 +14,7 @@ function isDarkMode() {
 
 export default function ToastClient() {
   const [isClient, setIsClient] = useState(false);
+  const { contentZIndex } = useDynamicZIndex('toast-client', 'overlay');
 
   useEffect(() => {
     setIsClient(true);
@@ -28,7 +30,7 @@ export default function ToastClient() {
       position="top-right"
       gutter={16}
       containerStyle={{
-        zIndex: 100004, // Higher z-index to appear above all modals and select dropdowns
+        zIndex: contentZIndex, // Use dynamic z-index from ZIndexContext
       }}
       toastOptions={{
         duration: 4000,

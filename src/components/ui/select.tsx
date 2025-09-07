@@ -76,7 +76,7 @@ const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
   SelectContentProps
 >(({ className, children, position = "popper", selectId, ...props }, ref) => {
-  const { contentZIndex } = useDynamicZIndex(selectId || 'default-select', 'overlay');
+  const { contentZIndex } = useDynamicZIndex(selectId || 'default-select', 'dropdown');
   
   return (
     <SelectPrimitive.Portal>

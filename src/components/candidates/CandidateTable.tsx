@@ -100,7 +100,6 @@ function displayFitScoreWithGrade(score: number | undefined | null) {
 
 // Utility for getting row height styles
 function getRowHeightStyle(rowHeight: 'compact' | 'normal' | 'comfortable' = 'normal') {
-  console.log('Row height setting:', rowHeight); // Debug log
   switch (rowHeight) {
     case 'compact':
       return { height: '32px', minHeight: '32px' }; // 32px

@@ -77,7 +77,7 @@ const RecruiterAssignmentDropdown: React.FC<RecruiterAssignmentDropdownProps> = 
           </span>
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-64 p-0" align="start">
+      <PopoverContent className="w-64 p-0" align="start" zIndexType="dropdown">
         <div className="py-1">
           {recruiters.length > 0 ? (
             <>

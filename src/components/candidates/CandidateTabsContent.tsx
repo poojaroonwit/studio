@@ -149,8 +149,6 @@ export const CandidateTabsContent: React.FC<CandidateTabsContentProps> = ({
           watch={watch}
           setValue={setValue}
           control={control}
-          onCustomFieldChange={onCustomFieldChange}
-          customFieldsRefreshTrigger={customFieldsRefreshTrigger}
         />
         <ContactTab
           candidate={candidate}
@@ -162,6 +160,8 @@ export const CandidateTabsContent: React.FC<CandidateTabsContentProps> = ({
           skillsFields={skillsFields}
           appendSkill={appendSkill}
           removeSkill={removeSkill}
+          onCustomFieldChange={onCustomFieldChange}
+          customFieldsRefreshTrigger={customFieldsRefreshTrigger}
         />
               </div>
       )}

@@ -223,20 +223,7 @@ export function CustomFieldEdit({
   }
 
   if (fieldDefinitions.length === 0) {
-    // Show a debug message to help identify the issue
-    return (
-      <Card className={className}>
-        <CardHeader>
-          <CardTitle className="text-lg">{title}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-sm text-muted-foreground">
-            No custom fields found for {modelName} in section "{section}". 
-            {loading ? " Loading..." : " Check if custom fields are defined in settings."}
-          </div>
-        </CardContent>
-      </Card>
-    );
+    return null; // Don't render anything if no custom fields
   }
   
   return (

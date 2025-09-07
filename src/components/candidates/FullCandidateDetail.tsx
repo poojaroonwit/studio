@@ -445,10 +445,11 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
       
       const fullName = [title, firstName, lastName].filter(Boolean).join(' ').trim();
       
-      // Add the composed name to the data being sent
+      // Add the composed name and custom fields to the data being sent
       const dataWithName = {
         ...data,
-        name: fullName || candidate.name // Fallback to existing name if composition is empty
+        name: fullName || candidate.name, // Fallback to existing name if composition is empty
+        customFields: candidate.customFields || {} // Include custom fields in the update
       };
 
       const res = await fetch(`/api/candidates/${candidate.id}`, {

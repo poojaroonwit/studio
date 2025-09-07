@@ -6,8 +6,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Controller } from 'react-hook-form';
 import type { Candidate } from '@/lib/types';
 import { formatCandidateNameWithLang } from '@/lib/candidateUtils';
-import { CustomFieldDisplay } from '../CustomFieldDisplay';
-import { CustomFieldEdit } from '../CustomFieldEdit';
 
 interface CandidateInfoTabProps {
   candidate: Candidate;
@@ -17,8 +15,6 @@ interface CandidateInfoTabProps {
   watch?: any;
   setValue?: any;
   control?: any;
-  onCustomFieldChange?: (fieldCode: string, value: any) => void;
-  customFieldsRefreshTrigger?: number;
 }
 
 export const CandidateInfoTab: React.FC<CandidateInfoTabProps> = ({
@@ -28,9 +24,7 @@ export const CandidateInfoTab: React.FC<CandidateInfoTabProps> = ({
   errors, 
   watch, 
   setValue,
-  control,
-  onCustomFieldChange,
-  customFieldsRefreshTrigger
+  control
 }) => {
   // Debug logging
   console.log('CandidateInfoTab render:', { isEditing, candidate: !!candidate, control: !!control, register: !!register });
@@ -360,27 +354,6 @@ export const CandidateInfoTab: React.FC<CandidateInfoTabProps> = ({
         </CardContent>
       </Card>
       
-      {/* Custom Fields for Candidate Info Section */}
-      {isEditing ? (
-        <CustomFieldEdit
-          modelName="Candidate"
-          section="candidate-info"
-          entityId={candidate.id}
-          customFields={candidate.customFields || {}}
-          onFieldChange={onCustomFieldChange || (() => {})}
-          title="Additional Information"
-          refreshTrigger={customFieldsRefreshTrigger}
-        />
-      ) : (
-        <CustomFieldDisplay
-          modelName="Candidate"
-          section="candidate-info"
-          entityId={candidate.id}
-          customFields={candidate.customFields || {}}
-          title="Additional Information"
-          refreshTrigger={customFieldsRefreshTrigger}
-        />
-      )}
     </div>
   );
 };

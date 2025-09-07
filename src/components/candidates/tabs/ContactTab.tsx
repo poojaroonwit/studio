@@ -5,6 +5,8 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Trash2 } from 'lucide-react';
 import type { Candidate } from '@/lib/types';
+import { CustomFieldDisplay } from '../CustomFieldDisplay';
+import { CustomFieldEdit } from '../CustomFieldEdit';
 
 interface ContactTabProps {
   candidate: Candidate;
@@ -16,6 +18,8 @@ interface ContactTabProps {
   skillsFields?: any[];
   appendSkill?: (value: any) => void;
   removeSkill?: (index: number) => void;
+  onCustomFieldChange?: (fieldCode: string, value: any) => void;
+  customFieldsRefreshTrigger?: number;
 }
 
 export const ContactTab: React.FC<ContactTabProps> = ({ 
@@ -27,7 +31,9 @@ export const ContactTab: React.FC<ContactTabProps> = ({
   setValue,
   skillsFields = [],
   appendSkill,
-  removeSkill
+  removeSkill,
+  onCustomFieldChange,
+  customFieldsRefreshTrigger
 }) => {
   const contactInfo = (candidate.parsedData && 'contact_info' in (candidate.parsedData as any))
     ? (candidate.parsedData as any).contact_info
@@ -165,6 +171,28 @@ export const ContactTab: React.FC<ContactTabProps> = ({
             ))}
           </CardContent>
         </Card>
+      )}
+
+      {/* Custom Fields for Additional Information Section */}
+      {isEditing ? (
+        <CustomFieldEdit
+          modelName="Candidate"
+          section="candidate-info"
+          entityId={candidate.id}
+          customFields={candidate.customFields || {}}
+          onFieldChange={onCustomFieldChange || (() => {})}
+          title="Additional Information"
+          refreshTrigger={customFieldsRefreshTrigger}
+        />
+      ) : (
+        <CustomFieldDisplay
+          modelName="Candidate"
+          section="candidate-info"
+          entityId={candidate.id}
+          customFields={candidate.customFields || {}}
+          title="Additional Information"
+          refreshTrigger={customFieldsRefreshTrigger}
+        />
       )}
     </div>
   );

@@ -1130,7 +1130,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       </div>
 
       {/* Board Content with proper spacing for sticky header */}
-      <div className="flex-1 overflow-auto bg-background">
+      <div className="flex-1 bg-background">
         {loading ? (
           <div className="flex items-center justify-center h-64">
             <div className="flex flex-col items-center space-y-4">

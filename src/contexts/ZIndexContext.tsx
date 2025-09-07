@@ -4,13 +4,13 @@ import React, { createContext, useContext, useState, useCallback, useRef } from 
 
 interface ZIndexItem {
   id: string;
-  type: 'modal' | 'drawer' | 'overlay';
+  type: 'modal' | 'drawer' | 'overlay' | 'dropdown';
   zIndex: number;
   timestamp: number;
 }
 
 interface ZIndexContextType {
-  registerComponent: (id: string, type: 'modal' | 'drawer' | 'overlay') => number;
+  registerComponent: (id: string, type: 'modal' | 'drawer' | 'overlay' | 'dropdown') => number;
   unregisterComponent: (id: string) => void;
   getZIndex: (id: string) => number;
   getOverlayZIndex: (id: string) => number;
@@ -20,34 +20,82 @@ interface ZIndexContextType {
 
 const ZIndexContext = createContext<ZIndexContextType | undefined>(undefined);
 
-// Base z-index values - increased to ensure they're higher than any hardcoded values
-const BASE_Z_INDEX = {
-  overlay: 10000000,
-  content: 10000001,
-  modal: 10000002,
-  drawer: 10000003,
-};
-
-// Increment for each new component
+// Completely dynamic z-index system - no hard-coded values
+// Components get z-index based on registration order and type hierarchy
 const Z_INDEX_INCREMENT = 100;
+const INITIAL_Z_INDEX = 1000; // Starting point for the first component
 
 export function ZIndexProvider({ children }: { children: React.ReactNode }) {
   const [components, setComponents] = useState<ZIndexItem[]>([]);
-  const nextZIndexRef = useRef(BASE_Z_INDEX.content);
+  const nextZIndexRef = useRef(INITIAL_Z_INDEX);
 
-  const registerComponent = useCallback((id: string, type: 'modal' | 'drawer' | 'overlay') => {
+  const registerComponent = useCallback((id: string, type: 'modal' | 'drawer' | 'overlay' | 'dropdown') => {
     const timestamp = Date.now();
-    const zIndex = nextZIndexRef.current;
     
     setComponents(prev => {
       // Remove existing component with same id if it exists
       const filtered = prev.filter(comp => comp.id !== id);
-      return [...filtered, { id, type, zIndex, timestamp }];
+      
+      // Completely dynamic z-index calculation based on registration order and type hierarchy
+      let zIndex = nextZIndexRef.current;
+      
+      // Type hierarchy: overlay > modal/drawer > dropdown
+      // But respect registration order for nested components (e.g., drawer opening modal)
+      
+      if (type === 'overlay') {
+        // Overlays should be above everything else
+        const allOtherComponents = filtered.filter(comp => comp.type !== 'overlay');
+        if (allOtherComponents.length > 0) {
+          const highestOther = Math.max(...allOtherComponents.map(comp => comp.zIndex));
+          zIndex = Math.max(zIndex, highestOther + Z_INDEX_INCREMENT);
+        }
+      } else if (type === 'modal' || type === 'drawer') {
+        // Modals and drawers should be above dropdowns but below overlays
+        const overlayComponents = filtered.filter(comp => comp.type === 'overlay');
+        const dropdownComponents = filtered.filter(comp => comp.type === 'dropdown');
+        
+        // Ensure above dropdowns
+        if (dropdownComponents.length > 0) {
+          const highestDropdown = Math.max(...dropdownComponents.map(comp => comp.zIndex));
+          zIndex = Math.max(zIndex, highestDropdown + Z_INDEX_INCREMENT);
+        }
+        
+        // But below overlays (unless this is a nested component)
+        if (overlayComponents.length > 0) {
+          const highestOverlay = Math.max(...overlayComponents.map(comp => comp.zIndex));
+          // Only stay below overlays if this isn't a nested component
+          // Nested components (like modal in drawer) should be above their parent
+          const isNested = filtered.some(comp => 
+            (comp.type === 'drawer' && type === 'modal') || 
+            (comp.type === 'modal' && type === 'drawer')
+          );
+          if (!isNested) {
+            zIndex = Math.min(zIndex, highestOverlay - Z_INDEX_INCREMENT);
+          }
+        }
+      } else if (type === 'dropdown') {
+        // Dropdowns should be below modals and drawers but above base content
+        const modalDrawerComponents = filtered.filter(comp => comp.type === 'modal' || comp.type === 'drawer');
+        if (modalDrawerComponents.length > 0) {
+          const highestModalDrawer = Math.max(...modalDrawerComponents.map(comp => comp.zIndex));
+          zIndex = Math.min(zIndex, highestModalDrawer - Z_INDEX_INCREMENT);
+        }
+      }
+      
+      // Ensure z-index is never below the initial value
+      zIndex = Math.max(zIndex, INITIAL_Z_INDEX);
+      
+      const newComponent = { id, type, zIndex, timestamp };
+      const updatedComponents = [...filtered, newComponent];
+      
+      // Update nextZIndexRef to be higher than the highest component
+      const maxZIndex = Math.max(...updatedComponents.map(comp => comp.zIndex));
+      nextZIndexRef.current = maxZIndex + Z_INDEX_INCREMENT;
+      
+      return updatedComponents;
     });
     
-    // Increment for next component
-    nextZIndexRef.current += Z_INDEX_INCREMENT;
-    return zIndex;
+    return nextZIndexRef.current - Z_INDEX_INCREMENT;
   }, []);
 
   const unregisterComponent = useCallback((id: string) => {
@@ -56,12 +104,12 @@ export function ZIndexProvider({ children }: { children: React.ReactNode }) {
 
   const getZIndex = useCallback((id: string) => {
     const component = components.find(comp => comp.id === id);
-    return component?.zIndex || BASE_Z_INDEX.content;
+    return component?.zIndex || INITIAL_Z_INDEX;
   }, [components]);
 
   const getOverlayZIndex = useCallback((id: string) => {
     const component = components.find(comp => comp.id === id);
-    if (!component) return BASE_Z_INDEX.overlay;
+    if (!component) return INITIAL_Z_INDEX;
     
     // Overlay should be 1 less than content
     return component.zIndex - 1;
@@ -96,7 +144,7 @@ export function useZIndex() {
 }
 
 // Hook for components that need dynamic z-index
-export function useDynamicZIndex(id: string, type: 'modal' | 'drawer' | 'overlay') {
+export function useDynamicZIndex(id: string, type: 'modal' | 'drawer' | 'overlay' | 'dropdown') {
   const { registerComponent, unregisterComponent, getOverlayZIndex, getContentZIndex } = useZIndex();
   
   React.useEffect(() => {

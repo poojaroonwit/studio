@@ -67,9 +67,11 @@ export function StageSelect({ value, onChange, availableStages, label, error, lo
         {/* Render in portal and set high z-index, and set width to match trigger */}
         <PopoverContent 
           popoverId="stage-select-dropdown"
-          style={dropdownWidth ? { width: dropdownWidth } : undefined} 
+          style={{ 
+            width: dropdownWidth ? dropdownWidth : undefined
+          }} 
           className="p-0 dropdown-content-height"
-          zIndexType="modal"
+          zIndexType="dropdown"
         >
           <div className="p-2 flex items-center gap-2">
             <Input

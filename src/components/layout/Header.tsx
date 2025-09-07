@@ -134,24 +134,36 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
       // Check if there's a saved zoom level
       const savedZoom = localStorage.getItem('app-zoom-level');
       if (savedZoom) {
-        const scale = parseFloat(savedZoom);
-        const screenSize = Math.round(scale * 100);
+        const zoomLevel = parseFloat(savedZoom);
+        const screenSize = Math.round(zoomLevel * 100);
         setCurrentScreenSize(screenSize);
         
-        // Apply the saved zoom level using CSS custom properties
-        document.documentElement.style.setProperty('--zoom-scale', scale.toString());
-        document.documentElement.style.setProperty('--zoom-scale-inverse', (1 / scale).toString());
+        // Apply the saved zoom level
+        document.documentElement.style.transform = `scale(${zoomLevel})`;
+        document.documentElement.style.transformOrigin = 'top left';
+        
+        // Adjust body dimensions
+        const scaledWidth = window.innerWidth / zoomLevel;
+        const scaledHeight = window.innerHeight / zoomLevel;
+        document.body.style.width = `${scaledWidth}px`;
+        document.body.style.height = `${scaledHeight}px`;
       } else {
         // Default to 90% zoom (showing as 90% in app)
         setCurrentScreenSize(90);
-        const defaultScale = 0.9;
+        const defaultZoom = 0.9;
         
-        // Apply default zoom using CSS custom properties
-        document.documentElement.style.setProperty('--zoom-scale', defaultScale.toString());
-        document.documentElement.style.setProperty('--zoom-scale-inverse', (1 / defaultScale).toString());
+        // Apply default zoom
+        document.documentElement.style.transform = `scale(${defaultZoom})`;
+        document.documentElement.style.transformOrigin = 'top left';
+        
+        // Adjust body dimensions
+        const scaledWidth = window.innerWidth / defaultZoom;
+        const scaledHeight = window.innerHeight / defaultZoom;
+        document.body.style.width = `${scaledWidth}px`;
+        document.body.style.height = `${scaledHeight}px`;
         
         // Save the default zoom level
-        localStorage.setItem('app-zoom-level', defaultScale.toString());
+        localStorage.setItem('app-zoom-level', defaultZoom.toString());
       }
     } catch (error) {
       console.warn('Failed to load saved zoom level:', error);
@@ -328,16 +340,22 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
   const handleScreenSizeChange = useCallback((size: number) => {
     setCurrentScreenSize(size);
     
-    // Use CSS custom properties for zoom scaling
-    const scale = size / 100;
+    // Use CSS transform scale for complete page zoom including dropdowns
+    const zoomLevel = size / 100;
     
     try {
-      // Apply zoom using CSS custom properties
-      document.documentElement.style.setProperty('--zoom-scale', scale.toString());
-      document.documentElement.style.setProperty('--zoom-scale-inverse', (1 / scale).toString());
+      // Apply zoom to the entire page using CSS transform
+      document.documentElement.style.transform = `scale(${zoomLevel})`;
+      document.documentElement.style.transformOrigin = 'top left';
+      
+      // Adjust body width and height to prevent horizontal scroll
+      const scaledWidth = window.innerWidth / zoomLevel;
+      const scaledHeight = window.innerHeight / zoomLevel;
+      document.body.style.width = `${scaledWidth}px`;
+      document.body.style.height = `${scaledHeight}px`;
       
       // Store the zoom level
-      localStorage.setItem('app-zoom-level', scale.toString());
+      localStorage.setItem('app-zoom-level', zoomLevel.toString());
       
       // Show success message
       toast.success(`Screen size set to ${size}%`);

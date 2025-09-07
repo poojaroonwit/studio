@@ -2793,29 +2793,3 @@ audio::-webkit-scrollbar-button {
   border: 2px solid blue !important;
   background-color: rgba(0, 0, 255, 0.1) !important;
 }
-
-/* Zoom Control Styles */
-:root {
-  --zoom-scale: 1;
-  --zoom-scale-inverse: 1;
-}
-
-/* Apply zoom to the main content area */
-body {
-  transform: scale(var(--zoom-scale));
-  transform-origin: top left;
-  width: calc(100% / var(--zoom-scale));
-  height: calc(100% / var(--zoom-scale));
-}
-
-/* Ensure dropdowns and portals maintain proper positioning */
-[data-radix-popper-content-wrapper] {
-  transform: scale(var(--zoom-scale-inverse));
-  transform-origin: top left;
-}
-
-/* Fix for dropdown positioning */
-[data-radix-popper-content-wrapper] > * {
-  transform: scale(var(--zoom-scale));
-  transform-origin: top left;
-}

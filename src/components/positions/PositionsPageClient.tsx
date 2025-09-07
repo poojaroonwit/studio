@@ -1148,9 +1148,9 @@ export default function PositionsPageClient() {
 
         {/* Main Content */}
         <div className="flex-1 positions-content-area h-full">
-          <div ref={contentRef} className="p-4 flex flex-col h-full overflow-hidden">
+          <div ref={contentRef} className="flex flex-col h-full overflow-hidden">
               {/* Filters and Vacant Headcount in same row */}
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 flex-shrink-0">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 flex-shrink-0 p-4">
             {/* Left side: Vacant Headcount + Filters */}
             <div className="flex flex-col sm:flex-row gap-3 flex-1">
               {/* Vacant Headcount - Left side */}
@@ -1372,7 +1372,7 @@ export default function PositionsPageClient() {
 
 
       {/* Positions List */}
-      <div className="positions-table-container flex-1 overflow-hidden flex flex-col">
+      <div className="positions-table-container flex-1 overflow-hidden flex flex-col px-2 mb-2 mt-2">
       {totalPositions === 0 ? (
         <div className="text-center py-12 empty-state">
           <Briefcase className="mx-auto h-12 w-12 text-muted-foreground mb-4" />

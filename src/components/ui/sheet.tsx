@@ -78,7 +78,7 @@ interface SheetContentProps
 const SheetContent = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Content>,
   SheetContentProps
->(({ side = "right", className, children, sheetId, ...props }, ref) => {
+>(({ side = "right", className, children, sheetId, style, ...props }, ref) => {
   const { contentZIndex } = useDynamicZIndex(sheetId || 'default-sheet', 'drawer');
   
   return (
@@ -87,7 +87,7 @@ const SheetContent = React.forwardRef<
       <SheetPrimitive.Content
         ref={ref}
         className={cn(sheetVariants({ side }), className)}
-        style={{ zIndex: contentZIndex }}
+        style={{ zIndex: contentZIndex, ...style }}
         {...props}
       >
         <SheetPrimitive.Title className="sr-only">Sheet</SheetPrimitive.Title>

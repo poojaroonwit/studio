@@ -230,8 +230,7 @@ export default function CustomFieldDrawer({
     <Sheet open={open} onOpenChange={onClose}>
       <SheetContent 
         sheetId={`custom-field-drawer-${definition?.id ? definition.id : 'new'}`}
-        className="h-full w-[40vw] max-w-[40vw] flex flex-col" 
-        style={{ width: '40vw', maxWidth: '40vw' }}
+        className="h-full w-[40vw] max-w-[40vw] flex flex-col"
       >
         <SheetHeader className="border-b flex-shrink-0">
           <SheetTitle className="flex items-center gap-2">

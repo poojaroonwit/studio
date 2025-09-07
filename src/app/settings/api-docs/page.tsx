@@ -313,59 +313,39 @@ export default function ApiDocsPage() {
          }
          
          /* Ensure tag filter dropdown uses theme colors */
-         .tag-filter-container [data-radix-select-trigger] {
+         .tag-filter-container .select-trigger {
            background: hsl(var(--background)) !important;
            color: hsl(var(--foreground)) !important;
-           border: 1px solid hsl(var(--input)) !important;
-           border-radius: var(--radius) !important;
+           border-color: hsl(var(--input)) !important;
          }
          
-         .tag-filter-container [data-radix-select-trigger]:hover {
+         .tag-filter-container .select-trigger:hover {
            background: hsl(var(--accent)) !important;
            color: hsl(var(--accent-foreground)) !important;
          }
          
-         .tag-filter-container [data-radix-select-trigger]:focus {
+         .tag-filter-container .select-trigger:focus {
            border-color: hsl(var(--ring)) !important;
            box-shadow: 0 0 0 2px hsl(var(--ring) / 0.2) !important;
          }
          
-         .tag-filter-container [data-radix-select-content] {
+         .tag-filter-container .select-content {
            background: hsl(var(--popover)) !important;
-           border: 1px solid hsl(var(--border)) !important;
-           border-radius: var(--radius) !important;
-           box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1) !important;
+           border-color: hsl(var(--border)) !important;
          }
          
-         .tag-filter-container [data-radix-select-item] {
+         .tag-filter-container .select-item {
            color: hsl(var(--popover-foreground)) !important;
          }
          
-         .tag-filter-container [data-radix-select-item]:hover,
-         .tag-filter-container [data-radix-select-item][data-highlighted] {
+         .tag-filter-container .select-item:hover {
            background: hsl(var(--accent)) !important;
            color: hsl(var(--accent-foreground)) !important;
          }
          
-         .tag-filter-container [data-radix-select-item][data-state="checked"] {
+         .tag-filter-container .select-item[data-state="checked"] {
            background: hsl(var(--primary)) !important;
            color: hsl(var(--primary-foreground)) !important;
-         }
-         
-         /* Dark theme specific overrides for tag filter */
-         .dark .tag-filter-container [data-radix-select-trigger] {
-           background: hsl(var(--background)) !important;
-           color: hsl(var(--foreground)) !important;
-           border: 1px solid hsl(var(--input)) !important;
-         }
-         
-         .dark .tag-filter-container [data-radix-select-content] {
-           background: hsl(var(--popover)) !important;
-           border: 1px solid hsl(var(--border)) !important;
-         }
-         
-         .dark .tag-filter-container [data-radix-select-item] {
-           color: hsl(var(--popover-foreground)) !important;
          }
        `}</style>
        <div style={{ 
@@ -393,13 +373,13 @@ export default function ApiDocsPage() {
                    Filter by Tag
                  </label>
                  <Select value={selectedTag} onValueChange={setSelectedTag}>
-                   <SelectTrigger className="w-full">
+                   <SelectTrigger className="w-full select-trigger">
                      <SelectValue placeholder="Select a tag to filter" />
                    </SelectTrigger>
-                   <SelectContent>
-                     <SelectItem value="all">All Endpoints</SelectItem>
+                   <SelectContent className="select-content">
+                     <SelectItem value="all" className="select-item">All Endpoints</SelectItem>
                      {availableTags.map((tag) => (
-                       <SelectItem key={tag.name} value={tag.name}>
+                       <SelectItem key={tag.name} value={tag.name} className="select-item">
                          {tag.name}
                        </SelectItem>
                      ))}

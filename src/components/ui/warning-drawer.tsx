@@ -832,13 +832,8 @@ export function WarningDrawer({ isOpen, onClose }: WarningDrawerProps) {
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
       <SheetContent 
-        className="overflow-y-auto"
+        className="overflow-y-auto w-[50vw] min-w-[400px] max-w-[1200px]"
         sheetId="warning-drawer"
-        style={{ 
-          width: '50vw', 
-          minWidth: '400px', 
-          maxWidth: '1200px'
-        }}
       >
         <div className="flex flex-col h-full">
           {/* Header */}

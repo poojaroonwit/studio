@@ -1132,25 +1132,23 @@ export default function PositionsPageClient() {
   }
 
   return (
-    <div className="w-full h-full positions-page-container">
+    <div className="w-full h-screen positions-page-container">
       <div className="flex h-full overflow-hidden">
         {/* Recruiter Filter Sidebar */}
-        <div className="w-64 flex-shrink-0 border-r border-border bg-background">
-          <div className="h-full">
-            <RecruiterFilterSidebar
-              selectedRecruiterId={selectedRecruiterId}
-              onRecruiterSelect={handleRecruiterSelect}
-              recruiterStats={recruiterStats}
-              recruiters={availableRecruiter}
-            />
-          </div>
-        </div>
+        <aside className="hidden md:flex md:flex-col md:w-64 border-r bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 h-screen overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-muted/20 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-muted-foreground/50">
+          <RecruiterFilterSidebar
+            selectedRecruiterId={selectedRecruiterId}
+            onRecruiterSelect={handleRecruiterSelect}
+            recruiterStats={recruiterStats}
+            recruiters={availableRecruiter}
+          />
+        </aside>
 
         {/* Main Content */}
         <div className="flex-1 positions-content-area h-full">
-          <div ref={contentRef} className="flex flex-col h-full overflow-hidden">
+          <div ref={contentRef} className="p-4 flex flex-col h-full overflow-hidden">
               {/* Filters and Vacant Headcount in same row */}
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 flex-shrink-0 p-4">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 flex-shrink-0">
             {/* Left side: Vacant Headcount + Filters */}
             <div className="flex flex-col sm:flex-row gap-3 flex-1">
               {/* Vacant Headcount - Left side */}
@@ -1372,7 +1370,7 @@ export default function PositionsPageClient() {
 
 
       {/* Positions List */}
-      <div className="positions-table-container flex-1 overflow-hidden flex flex-col px-2 mb-2 mt-2">
+      <div className="positions-table-container flex-1 overflow-hidden flex flex-col">
       {totalPositions === 0 ? (
         <div className="text-center py-12 empty-state">
           <Briefcase className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
@@ -1391,7 +1389,7 @@ export default function PositionsPageClient() {
         </div>
       ) : (
         <div 
-          className="border rounded-lg shadow overflow-hidden relative table-container-responsive flex-1 flex flex-col"
+          className="rounded-lg shadow overflow-hidden relative table-container-responsive flex-1 flex flex-col"
         
         >
           
@@ -1519,7 +1517,7 @@ export default function PositionsPageClient() {
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <TableBody className="h-full">
               {sortedPositions.map((position, index) => {
                 const rowNumber = (page - 1) * pageSize + index + 1;
                 return (

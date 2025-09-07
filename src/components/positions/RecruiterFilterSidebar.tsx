@@ -48,7 +48,7 @@ export function RecruiterFilterSidebar({
   const showUnassigned = recruiterStats?.unassigned !== undefined;
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="flex flex-col">
       {/* Header */}
       <div className="border-b border-border/50">
         <h3 className="flex items-center gap-2 text-xl font-bold p-4">
@@ -81,7 +81,7 @@ export function RecruiterFilterSidebar({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto custom-scrollbar">
+      <div className="flex-1">
         <nav className="space-y-1">
           {/* All Recruiter Option - Always show when no search or search matches */}
           {(!searchTerm.trim() || 'all recruiters'.includes(searchTerm.toLowerCase())) && (

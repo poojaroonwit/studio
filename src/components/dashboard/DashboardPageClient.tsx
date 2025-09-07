@@ -8,6 +8,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import type { Candidate, Position, CandidateStatus, UserProfile } from "@/lib/types";
+import { getActiveCandidateStatusesQuery } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CandidateAvatarCompact } from "@/components/ui/candidate-avatar";
 import { Users, Briefcase, CheckCircle2, UserPlus, FileWarning, UserRoundSearch, ServerCrash, Loader2, ListChecks, CalendarClock, Users2, BarChart3, AlertTriangle, Clock, Star, Target, Code, CalendarIcon, X, Timer, XCircle, ArrowRight } from "lucide-react";
@@ -1092,7 +1093,7 @@ export default function DashboardPageClient({
               description: "On process candidates",
               button: {
                 label: "View All",
-                onClick: () => router.push('/candidates?query=' + encodeURIComponent('status:Applied,Screening,Shortlisted,Interview Scheduled,Interviewing,Offer Extended,On Hold'))
+                onClick: () => router.push('/candidates?query=' + encodeURIComponent('status:' + getActiveCandidateStatusesQuery()))
               }
             },
             { 
@@ -1119,7 +1120,6 @@ export default function DashboardPageClient({
               button: {
                 label: "View All",
                 onClick: () => {
-                  
                   router.push('/candidates?query=' + encodeURIComponent('minAppliedJobFitScore:80'));
                 }
               }
@@ -1396,7 +1396,7 @@ export default function DashboardPageClient({
                 description: "In my pipeline",
                 button: {
                   label: "View All",
-                  onClick: () => router.push(`/candidates?query=${encodeURIComponent(`recruiterId:${session?.user?.id} status:Applied,Screening,Shortlisted,Interview Scheduled,Interviewing,Offer Extended,On Hold`)}`)
+                  onClick: () => router.push(`/candidates?query=${encodeURIComponent(`recruiterId:${session?.user?.id} status:${getActiveCandidateStatusesQuery()}`)}`)
                 }
               },
               { 

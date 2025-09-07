@@ -765,6 +765,23 @@ export type CoreCandidateStatus =
 // This type will represent any stage name, whether core or custom.
 export type CandidateStatus = string;
 
+// Active candidate statuses - candidates that are not hired or rejected
+export const ACTIVE_CANDIDATE_STATUSES: CoreCandidateStatus[] = [
+  'Applied',
+  'Screening', 
+  'Shortlisted',
+  'Interview Scheduled',
+  'Interviewing',
+  'Offer Extended',
+  'Offer Accepted',
+  'On Hold'
+];
+
+// Utility function to get active candidate statuses as a comma-separated string for queries
+export function getActiveCandidateStatusesQuery(): string {
+  return ACTIVE_CANDIDATE_STATUSES.join(',');
+}
+
 export interface RecruitmentStage {
   id: string;
   name: string;

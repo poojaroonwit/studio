@@ -1992,6 +1992,10 @@ export function CandidateFilters({
                            onClick={(e) => {
                              e.stopPropagation();
                              setCustomFieldFilters({});
+                             // Apply filters immediately after clearing
+                             setTimeout(() => {
+                               handleApplyStandardFilters();
+                             }, 0);
                            }}
                            disabled={isLoading || isAiSearching || isLoadingCustomFields}
                            className="h-6 w-6 p-0 hover:bg-muted/50"
@@ -2014,10 +2018,19 @@ export function CandidateFilters({
                                definition={field}
                                value={customFieldFilters[field.field_code]}
                                onChange={(value) => {
-                                 setCustomFieldFilters(prev => ({
-                                   ...prev,
-                                   [field.field_code]: value
-                                 }));
+                                 setCustomFieldFilters(prev => {
+                                   const newCustomFieldFilters = {
+                                     ...prev,
+                                     [field.field_code]: value
+                                   };
+                                   
+                                   // Apply filters immediately like other filter fields
+                                   setTimeout(() => {
+                                     handleApplyStandardFilters();
+                                   }, 0);
+                                   
+                                   return newCustomFieldFilters;
+                                 });
                                }}
                                className="w-full"
                              />

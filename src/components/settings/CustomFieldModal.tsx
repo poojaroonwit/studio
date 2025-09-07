@@ -207,7 +207,10 @@ export default function CustomFieldModal({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh]">
+      <DialogContent 
+        dialogId="custom-field-modal"
+        className="max-w-4xl max-h-[90vh]"
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Settings className="h-5 w-5" />

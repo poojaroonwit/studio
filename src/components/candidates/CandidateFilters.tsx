@@ -780,8 +780,11 @@ export function CandidateFilters({
   const handleApplyAdvancedQuery = () => {
     if (!advancedQueryInput.trim()) return;
     
-    // Add to query history (avoid duplicates)
+    // Mark that we're processing an advanced query to prevent tab switching
     const trimmedQuery = advancedQueryInput.trim();
+    processedAdvancedQueryRef.current = trimmedQuery;
+    
+    // Add to query history (avoid duplicates)
     setQueryHistory(prev => {
       const filtered = prev.filter(q => q !== trimmedQuery);
       return [trimmedQuery, ...filtered].slice(0, 10); // Keep last 10 queries
@@ -967,9 +970,13 @@ export function CandidateFilters({
       setAiSearchFilters(initialFilters.aiSearchFilters || {});
       // Don't clear advanced query input if we have an advanced query from URL
       // Only clear if we're not currently processing an advanced query
+      // Also preserve the advanced tab if the user is currently on it and has input
       if (!advancedQuery && !processedAdvancedQueryRef.current) {
         setAdvancedQueryInput('');
-        setActiveTab('filters');
+        // Only switch to filters tab if user is not currently on advanced tab or has no advanced input
+        if (activeTab !== 'advanced' || !advancedQueryInput.trim()) {
+          setActiveTab('filters');
+        }
       }
       
       // Defer unsetting the syncing flag to the next tick to let dependent effects settle
@@ -2175,7 +2182,7 @@ export function CandidateFilters({
                          onClearAllFilters();
                        }
                      }}
-                     disabled={!advancedQueryInput.trim()}
+                     disabled={!advancedQueryInput.trim() && !advancedQuery?.trim()}
                      className="flex-1"
                      size="sm"
                    >

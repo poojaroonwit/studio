@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { Clock, Loader2, CheckCircle, XCircle, Search, Filter, RefreshCw, AlertCircle, Info, Circle } from 'lucide-react';
-import { useEnhancedSSE, useEnhancedUploadQueueUpdates } from '@/hooks/use-enhanced-sse';
+import { useSharedSSE } from '@/hooks/use-shared-sse';
 import { safeFetch } from '@/lib/safe-fetch';
 
 interface QueueItem {
@@ -67,9 +67,8 @@ export function UploadQueueStatus() {
   const [pageSize, setPageSize] = useState(10);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
-  // Simple SSE hook for upload queue updates
-  const { isConnected: realtimeConnected } = useEnhancedSSE();
-  const { isConnected: uploadQueueConnected, hasMainSSE } = useEnhancedUploadQueueUpdates();
+  // Use shared SSE hook for realtime updates
+  const { isConnected: realtimeConnected, subscribeToEvents } = useSharedSSE();
 
   const fetchQueue = useCallback(async (currentPage = 1, currentPageSize = 10) => {
     setLoading(true);
@@ -99,13 +98,60 @@ export function UploadQueueStatus() {
     fetchQueue(page, pageSize);
   }, [fetchQueue, page, pageSize]);
 
-  // Refresh queue when we receive SSE updates
+  // Subscribe to SSE events for realtime updates
   useEffect(() => {
-    if (hasMainSSE) {
-      fetchQueue(page, pageSize);
-      setLastUpdate(new Date());
-    }
-  }, [hasMainSSE, fetchQueue, page, pageSize]);
+    let mounted = true;
+    let refreshTimeout: NodeJS.Timeout;
+    let lastUpdateTime = 0;
+    const MIN_UPDATE_INTERVAL = 500; // Minimum 500ms between updates
+    
+    // Subscribe to shared SSE events
+    const unsubscribe = subscribeToEvents((event) => {
+      if (!mounted) return;
+      
+      if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+        console.log('[UploadQueueStatus] SSE event received:', event);
+      }
+      
+      // Handle upload queue updates
+      if (event.type === 'upload_queue_update' || event.type === 'queue') {
+        const now = Date.now();
+        
+        // Rate limit updates to prevent excessive reloading
+        if (now - lastUpdateTime < MIN_UPDATE_INTERVAL) {
+          if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+            console.log('[UploadQueueStatus] Update rate limited, skipping');
+          }
+          return;
+        }
+        
+        if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+          console.log('[UploadQueueStatus] Processing upload queue update event');
+        }
+        
+        // Clear existing timeout and set new one to prevent rapid successive calls
+        if (refreshTimeout) {
+          clearTimeout(refreshTimeout);
+        }
+        
+        refreshTimeout = setTimeout(() => {
+          if (mounted) {
+            fetchQueue(page, pageSize);
+            setLastUpdate(new Date());
+            lastUpdateTime = now;
+          }
+        }, 100); // Small delay to batch rapid updates
+      }
+    });
+
+    return () => {
+      mounted = false;
+      if (refreshTimeout) {
+        clearTimeout(refreshTimeout);
+      }
+      unsubscribe();
+    };
+  }, [subscribeToEvents, fetchQueue, page, pageSize]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {

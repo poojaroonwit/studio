@@ -11,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandInput, CommandList, CommandItem } from '@/components/ui/command';
 import { format } from 'date-fns';
 import parseISO from 'date-fns/parseISO';
-import { ListOrdered, ServerCrash, ShieldAlert, Info, RefreshCw, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, AlertTriangle, Loader2, Search, CalendarIcon, UserCircle, FilterX, ChevronsUpDown, Check } from "lucide-react";
+import { ListOrdered, ServerCrash, ShieldAlert, Info, RefreshCw, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, AlertTriangle, Loader2, Search, CalendarIcon, UserCircle, FilterX, ChevronsUpDown, Check, X } from "lucide-react";
 import type { LogEntry, LogLevel, UserProfile } from '@/lib/types';
 import { useSession, signIn } from "next-auth/react";
 import { useRouter, usePathname } from 'next/navigation';
@@ -21,7 +21,6 @@ import { toast } from 'react-hot-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import LogsTable from '@/components/settings/LogsTable';
 import LogsForm from '@/components/settings/LogsForm';
-import LogsModal from '@/components/settings/LogsModal';
 
 const getLogLevelBadgeVariant = (level: LogLevel): "default" | "secondary" | "destructive" | "outline" => {
   switch (level) {
@@ -285,8 +284,88 @@ export default function ApplicationLogsPage() {
                   </PopoverContent>
                 </Popover>
               </div>
-              <div className="space-y-1"><Label htmlFor="start-date">Start Date</Label><Popover><PopoverTrigger asChild><Button id="start-date" variant={"outline"} className={cn("w-full justify-start text-left font-normal", !startDate && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{startDate ? format(startDate, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={startDate} onSelect={setStartDate} initialFocus captionLayout="dropdown-buttons" fromYear={fromYear} toYear={toYear} /></PopoverContent></Popover></div>
-              <div className="space-y-1"><Label htmlFor="end-date">End Date</Label><Popover><PopoverTrigger asChild><Button id="end-date" variant={"outline"} className={cn("w-full justify-start text-left font-normal", !endDate && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{endDate ? format(endDate, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={endDate} onSelect={setEndDate} initialFocus captionLayout="dropdown-buttons" fromYear={fromYear} toYear={toYear} /></PopoverContent></Popover></div>
+              <div className="space-y-1">
+                <Label htmlFor="start-date">Start Date</Label>
+                <div className="flex space-x-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        id="start-date"
+                        variant="outline"
+                        className={cn(
+                          "flex-1 justify-start text-left font-normal",
+                          !startDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {startDate ? format(startDate, "PPP") : <span>Pick a date</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={startDate}
+                        onSelect={setStartDate}
+                        initialFocus
+                        captionLayout="dropdown-buttons"
+                        fromYear={fromYear}
+                        toYear={toYear}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  {startDate && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setStartDate(undefined)}
+                      className="px-2"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="end-date">End Date</Label>
+                <div className="flex space-x-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        id="end-date"
+                        variant="outline"
+                        className={cn(
+                          "flex-1 justify-start text-left font-normal",
+                          !endDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {endDate ? format(endDate, "PPP") : <span>Pick a date</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={endDate}
+                        onSelect={setEndDate}
+                        initialFocus
+                        captionLayout="dropdown-buttons"
+                        fromYear={fromYear}
+                        toYear={toYear}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  {endDate && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setEndDate(undefined)}
+                      className="px-2"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
               <div className="flex gap-2 items-end">
                   <Button variant="outline" onClick={handleResetFilters} disabled={isLoading} className="w-full"><FilterX className="mr-2 h-4 w-4"/>Reset</Button>
                   <Button onClick={handleApplyFilters} disabled={isLoading} className="w-full"><Search className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`}/>Apply</Button>
@@ -321,7 +400,6 @@ export default function ApplicationLogsPage() {
       onClose={handleModalClose}
       onSubmit={handleSubmit}
     />
-    <LogsModal />
     </div>
   );
 }

@@ -9,6 +9,13 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { ColorPicker } from '@/components/ui/color-picker';
 import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogHeader, 
+  DialogTitle 
+} from '@/components/ui/dialog';
+import { 
   Plus, 
   Edit, 
   Trash2, 
@@ -387,11 +394,16 @@ function HeadcountTypeModal({ option, existingValues, onSave, onCancel }: Headco
   };
 
   return (
-            <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-background p-6 rounded-lg w-full max-w-md">
-        <h3 className="text-lg font-semibold mb-4">
-          {option.value ? 'Edit Headcount Type' : 'Add Headcount Type'}
-        </h3>
+    <Dialog open={true} onOpenChange={onCancel}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>
+            {option.value ? 'Edit Headcount Type' : 'Add Headcount Type'}
+          </DialogTitle>
+          <DialogDescription>
+            {option.value ? 'Update the headcount type configuration' : 'Create a new headcount type with custom settings'}
+          </DialogDescription>
+        </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -435,7 +447,7 @@ function HeadcountTypeModal({ option, existingValues, onSave, onCancel }: Headco
             </Button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

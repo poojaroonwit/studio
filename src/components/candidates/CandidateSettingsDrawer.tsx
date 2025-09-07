@@ -6,7 +6,8 @@ import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetT
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { Settings, X } from 'lucide-react';
+import { Settings, X, GripVertical } from 'lucide-react';
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -35,6 +36,9 @@ export interface CandidateSettings {
   showAppliedDateColumn: boolean;
   showLastUpdateColumn: boolean;
   
+  // Column order
+  columnOrder: string[];
+  
   // Filter options
   showFilters: boolean;
   showHorizontalFitScoreFilters: boolean;
@@ -59,12 +63,36 @@ const defaultSettings: CandidateSettings = {
   showStatusColumn: true,
   showAppliedDateColumn: true,
   showLastUpdateColumn: false,
+  columnOrder: [
+    'candidate',
+    'appliedJob',
+    'jobMatches',
+    'fitScore',
+    'recruiter',
+    'source',
+    'status',
+    'appliedDate',
+    'lastUpdate'
+  ],
   showFilters: true,
   showHorizontalFitScoreFilters: true,
   fitScoreType: 'applied',
   fitScoreFilterMode: 'single',
   rowHeight: 'normal'
 } as const;
+
+// Column configuration for drag and drop
+const columnConfig = [
+  { key: 'candidate', label: 'Candidate Name', settingKey: 'showCandidateColumn' as keyof CandidateSettings },
+  { key: 'appliedJob', label: 'Applied Job', settingKey: 'showAppliedJobColumn' as keyof CandidateSettings },
+  { key: 'jobMatches', label: 'Job Matches Count', settingKey: 'showJobMatchesColumn' as keyof CandidateSettings },
+  { key: 'fitScore', label: 'Fit Score', settingKey: 'showFitScoreColumn' as keyof CandidateSettings },
+  { key: 'recruiter', label: 'Recruiter', settingKey: 'showRecruiterColumn' as keyof CandidateSettings },
+  { key: 'source', label: 'Source', settingKey: 'showSourceColumn' as keyof CandidateSettings },
+  { key: 'status', label: 'Status', settingKey: 'showStatusColumn' as keyof CandidateSettings },
+  { key: 'appliedDate', label: 'Applied Date', settingKey: 'showAppliedDateColumn' as keyof CandidateSettings },
+  { key: 'lastUpdate', label: 'Last Update', settingKey: 'showLastUpdateColumn' as keyof CandidateSettings },
+];
 
 export function CandidateSettingsDrawer({
   isOpen,
@@ -103,6 +131,16 @@ export function CandidateSettingsDrawer({
 
   const handleSettingChange = (key: keyof CandidateSettings, value: boolean | string | number) => {
     setLocalSettings(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleDragEnd = (result: DropResult) => {
+    if (!result.destination) return;
+
+    const items = Array.from(localSettings.columnOrder);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+
+    setLocalSettings(prev => ({ ...prev, columnOrder: items }));
   };
 
   const handleSave = async () => {
@@ -150,112 +188,65 @@ export function CandidateSettingsDrawer({
               <CardHeader>
                 <CardTitle className="text-lg">Table Columns</CardTitle>
                 <CardDescription>
-                  Choose which columns to display in the candidate table
+                  Choose which columns to display and drag to reorder them
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 gap-4">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="showCandidateColumn" className="text-sm font-medium">
-                      Candidate Name
-                    </Label>
-                                         <Switch
-                       id="showCandidateColumn"
-                       checked={localSettings.showCandidateColumn}
-                       onCheckedChange={(checked) => handleSettingChange('showCandidateColumn', checked)}
-                     />
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="showAppliedJobColumn" className="text-sm font-medium">
-                      Applied Job
-                    </Label>
-                                         <Switch
-                       id="showAppliedJobColumn"
-                       checked={localSettings.showAppliedJobColumn}
-                       onCheckedChange={(checked) => handleSettingChange('showAppliedJobColumn', checked)}
-                     />
-                  </div>
-                  
-                  {isJobMatchEnabled && (
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="showJobMatchesColumn" className="text-sm font-medium">
-                        Job Matches Count
-                      </Label>
-                                           <Switch
-                         id="showJobMatchesColumn"
-                         checked={localSettings.showJobMatchesColumn}
-                         onCheckedChange={(checked) => handleSettingChange('showJobMatchesColumn', checked)}
-                       />
-                    </div>
-                  )}
-                  
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="showFitScoreColumn" className="text-sm font-medium">
-                      Fit Score
-                    </Label>
-                                         <Switch
-                       id="showFitScoreColumn"
-                       checked={localSettings.showFitScoreColumn}
-                       onCheckedChange={(checked) => handleSettingChange('showFitScoreColumn', checked)}
-                     />
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="showRecruiterColumn" className="text-sm font-medium">
-                      Recruiter
-                    </Label>
-                                         <Switch
-                       id="showRecruiterColumn"
-                       checked={localSettings.showRecruiterColumn}
-                       onCheckedChange={(checked) => handleSettingChange('showRecruiterColumn', checked)}
-                     />
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="showSourceColumn" className="text-sm font-medium">
-                      Source
-                    </Label>
-                                         <Switch
-                       id="showSourceColumn"
-                       checked={localSettings.showSourceColumn}
-                       onCheckedChange={(checked) => handleSettingChange('showSourceColumn', checked)}
-                     />
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="showStatusColumn" className="text-sm font-medium">
-                      Status
-                    </Label>
-                                         <Switch
-                       id="showStatusColumn"
-                       checked={localSettings.showStatusColumn}
-                       onCheckedChange={(checked) => handleSettingChange('showStatusColumn', checked)}
-                     />
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="showAppliedDateColumn" className="text-sm font-medium">
-                      Applied Date
-                    </Label>
-                                         <Switch
-                       id="showAppliedDateColumn"
-                       checked={localSettings.showAppliedDateColumn}
-                       onCheckedChange={(checked) => handleSettingChange('showAppliedDateColumn', checked)}
-                     />
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="showLastUpdateColumn" className="text-sm font-medium">
-                      Last Update
-                    </Label>
-                                         <Switch
-                       id="showLastUpdateColumn"
-                       checked={localSettings.showLastUpdateColumn}
-                       onCheckedChange={(checked) => handleSettingChange('showLastUpdateColumn', checked)}
-                     />
-                  </div>
-                </div>
+                <DragDropContext onDragEnd={handleDragEnd}>
+                  <Droppable droppableId="columns">
+                    {(provided) => (
+                      <div
+                        {...provided.droppableProps}
+                        ref={provided.innerRef}
+                        className="space-y-2"
+                      >
+                        {localSettings.columnOrder.map((columnKey, index) => {
+                          const column = columnConfig.find(c => c.key === columnKey);
+                          if (!column) return null;
+                          
+                          // Skip job matches column if feature is disabled
+                          if (column.key === 'jobMatches' && !isJobMatchEnabled) {
+                            return null;
+                          }
+                          
+                          return (
+                            <Draggable key={column.key} draggableId={column.key} index={index}>
+                              {(provided, snapshot) => (
+                                <div
+                                  ref={provided.innerRef}
+                                  {...provided.draggableProps}
+                                  className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
+                                    snapshot.isDragging 
+                                      ? 'bg-primary/10 border-primary shadow-md' 
+                                      : 'bg-background border-border hover:bg-muted/50'
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <div
+                                      {...provided.dragHandleProps}
+                                      className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground"
+                                    >
+                                      <GripVertical className="h-4 w-4" />
+                                    </div>
+                                    <Label htmlFor={column.settingKey} className="text-sm font-medium cursor-pointer">
+                                      {column.label}
+                                    </Label>
+                                  </div>
+                                  <Switch
+                                    id={column.settingKey}
+                                    checked={localSettings[column.settingKey] as boolean}
+                                    onCheckedChange={(checked) => handleSettingChange(column.settingKey, checked)}
+                                  />
+                                </div>
+                              )}
+                            </Draggable>
+                          );
+                        })}
+                        {provided.placeholder}
+                      </div>
+                    )}
+                  </Droppable>
+                </DragDropContext>
               </CardContent>
             </Card>
 

@@ -845,7 +845,7 @@ export default function ProcessQueueAnalytics() {
       {/* Charts and Detailed Stats */}
       <Tabs defaultValue="scatter" className="w-full">
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="scatter">Scatter Chart</TabsTrigger>
+          <TabsTrigger value="scatter">Process Time vs Duration</TabsTrigger>
           <TabsTrigger value="duration">Duration Analysis</TabsTrigger>
           <TabsTrigger value="errors">Error Analysis</TabsTrigger>
           <TabsTrigger value="files">File Analysis</TabsTrigger>

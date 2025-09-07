@@ -451,7 +451,7 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
           {/* Source Selection */}
           <div>
             <Label htmlFor="source-select">Source</Label>
-            <div className="mt-2" style={{ zIndex: 9999999 }}>
+            <div className="mt-2">
               <Select
                 value={selectedSourceId}
                 onValueChange={setSelectedSourceId}

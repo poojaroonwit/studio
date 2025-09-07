@@ -169,20 +169,27 @@ export class SimpleWarningChecker {
     const { condition, value, threshold } = config;
 
     switch (condition) {
+      case 'empty':
       case 'is_empty':
         return this.isEmpty(fieldValue);
       case 'is_not_empty':
         return !this.isEmpty(fieldValue);
+      case 'eq':
       case 'equals':
         return this.equals(fieldValue, value);
+      case 'gt':
       case 'greater_than':
         return this.greaterThan(fieldValue, value, entity);
+      case 'lt':
       case 'less_than':
         return this.lessThan(fieldValue, value, entity);
       case 'contains':
         return this.contains(fieldValue, value);
+      case 'overdue':
       case 'days_ago':
         return this.daysAgo(fieldValue, value, entity);
+      case 'custom':
+        return this.evaluateCustomCondition(config, fieldValue, entity);
       case 'is_true':
         return this.isTrue(fieldValue);
       case 'is_false':
@@ -235,6 +242,19 @@ export class SimpleWarningChecker {
     return daysDiff > Number(expectedDays);
   }
 
+  private static evaluateCustomCondition(config: WarningConfiguration, fieldValue: any, entity?: any): boolean {
+    const { field, value } = config;
+    
+    // Handle specific custom conditions
+    if (field === 'isOpen' && value === 'true') {
+      // For "Position Open But No Recruiter" - check if position is open AND has no recruiter
+      return this.isTrue(fieldValue) && this.isEmpty(entity?.recruiterId);
+    }
+    
+    // Default custom condition evaluation
+    return this.equals(fieldValue, value);
+  }
+
   private static isTrue(value: any): boolean {
     return value === true || value === 'true' || value === 1;
   }
@@ -247,23 +267,37 @@ export class SimpleWarningChecker {
    * Generate simple warning message
    */
   private static generateSimpleMessage(config: WarningConfiguration, currentValue: any, entity?: any): string {
-    const { name, field, condition, value } = config;
+    const { name, field, condition, value, threshold } = config;
 
     switch (condition) {
+      case 'empty':
       case 'is_empty':
         return `${name}: ${field} is required but empty`;
       case 'is_not_empty':
         return `${name}: ${field} should be empty but has value`;
+      case 'eq':
       case 'equals':
         return `${name}: ${field} value ${currentValue} does not equal ${value}`;
+      case 'gt':
       case 'greater_than':
         return `${name}: ${field} value ${currentValue} is not greater than ${value}`;
+      case 'lt':
       case 'less_than':
         return `${name}: ${field} value ${currentValue} is not less than ${value}`;
       case 'contains':
         return `${name}: ${field} does not contain "${value}"`;
+      case 'overdue':
       case 'days_ago':
+        if (field === 'applicationDate') {
+          const daysDiff = Math.floor((new Date() - new Date(currentValue)) / (1000 * 60 * 60 * 24));
+          return `${name}: Application is overdue (${daysDiff} days, SLA: ${threshold || 15} days)`;
+        }
         return `${name}: ${field} has exceeded the time limit`;
+      case 'custom':
+        if (field === 'isOpen' && value === 'true') {
+          return `${name}: Position is open but has no recruiter assigned`;
+        }
+        return `${name}: ${field} requires attention`;
       case 'is_true':
         return `${name}: ${field} should be true but is false`;
       case 'is_false':

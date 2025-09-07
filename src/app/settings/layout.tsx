@@ -167,9 +167,9 @@ function SettingsLayoutContent({ children }: { children: ReactNode }) {
   const isMainSettingsPage = pathname === '/settings';
 
   return (
-    <div className={cn("h-full overflow-hidden", isMainSettingsPage ? "" : "flex bg-muted/30")}>
+    <div className={cn("h-full min-h-screen overflow-hidden", isMainSettingsPage ? "" : "flex bg-muted/30")}>
       {!isMainSettingsPage && (
-        <aside className="hidden md:flex md:flex-col md:w-64 border-r bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 h-full overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-muted/20 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-muted-foreground/50">
+        <aside className="hidden md:flex md:flex-col md:w-64 border-r bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 h-full min-h-screen overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-muted/20 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-muted-foreground/50">
           <nav className="py-4 px-2">
             <div className="space-y-1">
               {visibleNavItems.map((item, index) => {

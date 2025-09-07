@@ -22,10 +22,10 @@ const ZIndexContext = createContext<ZIndexContextType | undefined>(undefined);
 
 // Base z-index values - increased to ensure they're higher than any hardcoded values
 const BASE_Z_INDEX = {
-  overlay: 100000,
-  content: 100001,
-  modal: 100002,
-  drawer: 100003,
+  overlay: 10000000,
+  content: 10000001,
+  modal: 10000002,
+  drawer: 10000003,
 };
 
 // Increment for each new component

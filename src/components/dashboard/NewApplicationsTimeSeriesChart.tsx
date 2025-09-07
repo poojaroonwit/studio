@@ -610,12 +610,12 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
                 <PopoverTrigger asChild>
                   <button
                     className={cn(
-                      "flex items-center gap-2 px-3 py-2 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 transition-colors text-xs font-medium shadow-sm",
+                      "flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-accent hover:bg-accent/80 transition-colors text-xs font-medium shadow-sm",
                       !dateRange && "text-muted-foreground"
                     )}
                     style={{ minWidth: 180 }}
                   >
-                    <CalendarIcon className="h-4 w-4 text-blue-500" />
+                    <CalendarIcon className="h-4 w-4 text-primary" />
                     <span className="whitespace-nowrap">
                       {(() => {
                         const fromDate = safeGetDateFromRange(dateRange, 'from');
@@ -638,7 +638,7 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
                     </span>
                   </button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-4 rounded-xl shadow-lg bg-white border border-blue-200" align="start" style={{ minWidth: 400 }}>
+                <PopoverContent className="w-auto p-0" align="start" style={{ minWidth: 400 }}>
                   <Calendar
                     initialFocus
                     mode="range"
@@ -649,7 +649,6 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
                     disabled={(date) =>
                       date > new Date() || date < new Date("1900-01-01")
                     }
-                    className="rounded-lg border border-blue-100 shadow-sm"
                   />
                 </PopoverContent>
               </Popover>
@@ -692,7 +691,7 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
           ) : !chartReady ? (
             <div className="flex items-center justify-center">
               <div className="text-center space-y-3">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
                 <p className="text-muted-foreground">Loading chart...</p>
               </div>
             </div>

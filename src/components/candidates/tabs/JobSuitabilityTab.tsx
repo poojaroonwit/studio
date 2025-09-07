@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { PlusCircle, Trash2 } from 'lucide-react';
 import type { Candidate } from '@/lib/types';
 import { CustomFieldDisplay } from '../CustomFieldDisplay';
+import { CustomFieldEdit } from '../CustomFieldEdit';
 
 interface JobSuitabilityTabProps {
   candidate: Candidate;
@@ -18,6 +19,7 @@ interface JobSuitabilityTabProps {
   jobSuitableFields?: any[];
   appendJobSuitable?: (value: any) => void;
   removeJobSuitable?: (index: number) => void;
+  onCustomFieldChange?: (fieldCode: string, value: any) => void;
 }
 
 
@@ -32,7 +34,8 @@ export const JobSuitabilityTab: React.FC<JobSuitabilityTabProps> = ({
   setValue,
   jobSuitableFields = [],
   appendJobSuitable,
-  removeJobSuitable
+  removeJobSuitable,
+  onCustomFieldChange
 }) => {
   const jobSuitable = (candidate.parsedData && 'job_suitable' in (candidate.parsedData as any))
     ? ((candidate.parsedData as any).job_suitable || [])
@@ -198,13 +201,24 @@ export const JobSuitabilityTab: React.FC<JobSuitabilityTabProps> = ({
       </Card>
       
       {/* Custom Fields for Job Suitability Section */}
-      <CustomFieldDisplay
-        modelName="Candidate"
-        section="job-suitability"
-        entityId={candidate.id}
-        customFields={candidate.customFields || {}}
-        title="Additional Job Suitability Information"
-      />
+      {isEditing ? (
+        <CustomFieldEdit
+          modelName="Candidate"
+          section="job-suitability"
+          entityId={candidate.id}
+          customFields={candidate.customFields || {}}
+          onFieldChange={onCustomFieldChange || (() => {})}
+          title="Additional Job Suitability Information"
+        />
+      ) : (
+        <CustomFieldDisplay
+          modelName="Candidate"
+          section="job-suitability"
+          entityId={candidate.id}
+          customFields={candidate.customFields || {}}
+          title="Additional Job Suitability Information"
+        />
+      )}
     </div>
   );
 };

@@ -54,6 +54,7 @@ interface CandidateTabsContentProps {
   comments?: any[];
   resumes?: any[];
   onRefresh?: () => void;
+  onCustomFieldChange?: (fieldCode: string, value: any) => void;
 }
 
 export const CandidateTabsContent: React.FC<CandidateTabsContentProps> = ({
@@ -98,7 +99,8 @@ export const CandidateTabsContent: React.FC<CandidateTabsContentProps> = ({
   // Comments and resumes props
   comments = [],
   resumes = [],
-  onRefresh
+  onRefresh,
+  onCustomFieldChange
 }) => {
   const { isJobMatchEnabled } = useJobMatchFeature();
 
@@ -118,6 +120,7 @@ export const CandidateTabsContent: React.FC<CandidateTabsContentProps> = ({
             appliedJustification={appliedJustification}
             appliedJobBadge={appliedJobBadge}
             onOpenPositionDrawer={onOpenPositionDrawer}
+            onCustomFieldChange={onCustomFieldChange}
           />
           {isJobMatchEnabled && (
             <JobMatchTab
@@ -144,6 +147,7 @@ export const CandidateTabsContent: React.FC<CandidateTabsContentProps> = ({
           watch={watch}
           setValue={setValue}
           control={control}
+          onCustomFieldChange={onCustomFieldChange}
         />
         <ContactTab
           candidate={candidate}
@@ -173,6 +177,7 @@ export const CandidateTabsContent: React.FC<CandidateTabsContentProps> = ({
           educationFields={educationFields}
           appendEducation={appendEducation}
           removeEducation={removeEducation}
+          onCustomFieldChange={onCustomFieldChange}
         />
               </div>
       )}
@@ -192,6 +197,7 @@ export const CandidateTabsContent: React.FC<CandidateTabsContentProps> = ({
           appendExperience={appendExperience}
           removeExperience={removeExperience}
           calculateTotalExperienceDuration={calculateTotalExperienceDuration}
+          onCustomFieldChange={onCustomFieldChange}
         />
               </div>
       )}
@@ -210,6 +216,7 @@ export const CandidateTabsContent: React.FC<CandidateTabsContentProps> = ({
           jobSuitableFields={jobSuitableFields}
           appendJobSuitable={appendJobSuitable}
           removeJobSuitable={removeJobSuitable}
+          onCustomFieldChange={onCustomFieldChange}
         />
               </div>
       )}

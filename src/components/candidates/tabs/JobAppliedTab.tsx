@@ -6,6 +6,7 @@ import { ScoreBadge } from '@/components/ui/score-color';
 import { formatScoreWithGrade } from "@/lib/scoreUtils";
 import type { Candidate, Position } from '@/lib/types';
 import { CustomFieldDisplay } from '../CustomFieldDisplay';
+import { CustomFieldEdit } from '../CustomFieldEdit';
 
 interface JobAppliedTabProps {
   candidate: Candidate;
@@ -18,6 +19,7 @@ interface JobAppliedTabProps {
   appliedJustification: string[];
   appliedJobBadge: React.ReactNode;
   onOpenPositionDrawer: (positionId: string) => void;
+  onCustomFieldChange?: (fieldCode: string, value: any) => void;
 }
 
 export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
@@ -30,7 +32,8 @@ export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
   appliedFitScore,
   appliedJustification,
   appliedJobBadge,
-  onOpenPositionDrawer
+  onOpenPositionDrawer,
+  onCustomFieldChange
 }) => {
   return (
     <div className="space-y-4">
@@ -134,13 +137,24 @@ export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
       </Card>
       
       {/* Custom Fields for Jobs Section */}
-      <CustomFieldDisplay
-        modelName="Candidate"
-        section="jobs"
-        entityId={candidate.id}
-        customFields={candidate.customFields || {}}
-        title="Additional Job Information"
-      />
+      {isEditing ? (
+        <CustomFieldEdit
+          modelName="Candidate"
+          section="jobs"
+          entityId={candidate.id}
+          customFields={candidate.customFields || {}}
+          onFieldChange={onCustomFieldChange || (() => {})}
+          title="Additional Job Information"
+        />
+      ) : (
+        <CustomFieldDisplay
+          modelName="Candidate"
+          section="jobs"
+          entityId={candidate.id}
+          customFields={candidate.customFields || {}}
+          title="Additional Job Information"
+        />
+      )}
     </div>
   );
 };

@@ -9,6 +9,7 @@ import { PlusCircle, Trash2, Briefcase, Building2 } from 'lucide-react';
 import type { Candidate } from '@/lib/types';
 import { formatScoreWithGrade } from '@/lib/scoreUtils';
 import { CustomFieldDisplay } from '../CustomFieldDisplay';
+import { CustomFieldEdit } from '../CustomFieldEdit';
 
 interface ExperienceTabProps {
   candidate: Candidate;
@@ -22,6 +23,7 @@ interface ExperienceTabProps {
   appendExperience?: (value: any) => void;
   removeExperience?: (index: number) => void;
   calculateTotalExperienceDuration?: (experience: any[]) => string;
+  onCustomFieldChange?: (fieldCode: string, value: any) => void;
 }
 
 const months = [
@@ -85,7 +87,8 @@ export const ExperienceTab: React.FC<ExperienceTabProps> = ({
   experienceFields = [],
   appendExperience,
   removeExperience,
-  calculateTotalExperienceDuration
+  calculateTotalExperienceDuration,
+  onCustomFieldChange
 }) => {
   const experience = (candidate.parsedData && 'experience' in (candidate.parsedData as any))
     ? ((candidate.parsedData as any).experience || [])
@@ -320,13 +323,24 @@ export const ExperienceTab: React.FC<ExperienceTabProps> = ({
       </Card>
       
       {/* Custom Fields for Experience Section */}
-      <CustomFieldDisplay
-        modelName="Candidate"
-        section="experience"
-        entityId={candidate.id}
-        customFields={candidate.customFields || {}}
-        title="Additional Experience Information"
-      />
+      {isEditing ? (
+        <CustomFieldEdit
+          modelName="Candidate"
+          section="experience"
+          entityId={candidate.id}
+          customFields={candidate.customFields || {}}
+          onFieldChange={onCustomFieldChange || (() => {})}
+          title="Additional Experience Information"
+        />
+      ) : (
+        <CustomFieldDisplay
+          modelName="Candidate"
+          section="experience"
+          entityId={candidate.id}
+          customFields={candidate.customFields || {}}
+          title="Additional Experience Information"
+        />
+      )}
     </div>
   );
 };

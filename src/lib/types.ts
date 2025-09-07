@@ -964,6 +964,7 @@ export interface Position {
   recruiterId?: string | null;
   recruiterName?: string | null;
   customAttributes?: Record<string, any> | null;
+  customFields?: { [fieldCode: string]: any }; // Custom field values
   createdAt?: string;
   updatedAt?: string;
   candidates?: Candidate[];
@@ -1044,6 +1045,7 @@ export interface Candidate {
   sourceId?: string | null;
   source?: CandidateSource | null;
   subSource?: string | null;
+  customFields?: { [fieldCode: string]: any }; // Custom field values
   customAttributes?: Record<string, any> | null;
   assignmentJustification?: string | null;
   createdAt?: string;

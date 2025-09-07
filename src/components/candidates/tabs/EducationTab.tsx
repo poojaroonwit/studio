@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { PlusCircle, Trash2, GraduationCap } from 'lucide-react';
 import type { Candidate } from '@/lib/types';
 import { CustomFieldDisplay } from '../CustomFieldDisplay';
+import { CustomFieldEdit } from '../CustomFieldEdit';
 
 interface EducationTabProps {
   candidate: Candidate;
@@ -19,6 +20,7 @@ interface EducationTabProps {
   educationFields?: any[];
   appendEducation?: (value: any) => void;
   removeEducation?: (index: number) => void;
+  onCustomFieldChange?: (fieldCode: string, value: any) => void;
 }
 
 const months = [
@@ -144,7 +146,8 @@ export const EducationTab: React.FC<EducationTabProps> = ({
   setValue,
   educationFields = [],
   appendEducation,
-  removeEducation
+  removeEducation,
+  onCustomFieldChange
 }) => {
   const education = (candidate.parsedData && 'education' in (candidate.parsedData as any))
     ? ((candidate.parsedData as any).education || [])
@@ -364,13 +367,24 @@ export const EducationTab: React.FC<EducationTabProps> = ({
       </Card>
       
       {/* Custom Fields for Education Section */}
-      <CustomFieldDisplay
-        modelName="Candidate"
-        section="education"
-        entityId={candidate.id}
-        customFields={candidate.customFields || {}}
-        title="Additional Education Information"
-      />
+      {isEditing ? (
+        <CustomFieldEdit
+          modelName="Candidate"
+          section="education"
+          entityId={candidate.id}
+          customFields={candidate.customFields || {}}
+          onFieldChange={onCustomFieldChange || (() => {})}
+          title="Additional Education Information"
+        />
+      ) : (
+        <CustomFieldDisplay
+          modelName="Candidate"
+          section="education"
+          entityId={candidate.id}
+          customFields={candidate.customFields || {}}
+          title="Additional Education Information"
+        />
+      )}
     </div>
   );
 };

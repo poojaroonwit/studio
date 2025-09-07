@@ -273,6 +273,19 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
     onRefresh();
   }, [onRefresh]);
 
+  // Handle custom field changes
+  const handleCustomFieldChange = useCallback((fieldCode: string, value: any) => {
+    if (candidate) {
+      setCandidate(prev => ({
+        ...prev,
+        customFields: {
+          ...prev.customFields,
+          [fieldCode]: value
+        }
+      }));
+    }
+  }, [candidate, setCandidate]);
+
   // Loading state
   if (loading) {
     return (
@@ -707,6 +720,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                 comments={comments}
                 resumes={resumes} 
                 onRefresh={onRefresh}
+                onCustomFieldChange={handleCustomFieldChange}
               />
             </div>
           </div>

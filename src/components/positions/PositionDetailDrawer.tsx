@@ -30,6 +30,7 @@ import { usePositionLevels } from '@/hooks/use-position-levels';
 import { getPositionStatusBadge } from '@/lib/positionUtils';
 import { ScoreBadge } from '@/components/ui/score-color';
 import { PositionCustomFieldDisplay } from './PositionCustomFieldDisplay';
+import { PositionCustomFieldEdit } from './PositionCustomFieldEdit';
 import { formatScoreWithGrade } from '@/lib/scoreUtils';
 import { Pagination } from '@/components/ui/pagination';
 import CandidateDetailModal from '@/components/candidates/CandidateDetailModal';
@@ -492,6 +493,22 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
     setSelectedCandidateId(candidateId);
     setIsCandidateModalOpen(true);
   };
+
+  // Handle custom field changes
+  const handleCustomFieldChange = useCallback((fieldCode: string, value: any) => {
+    if (position) {
+      setPosition(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          customFields: {
+            ...prev.customFields,
+            [fieldCode]: value
+          }
+        };
+      });
+    }
+  }, [position, setPosition]);
 
   // Handle edit functions
   const handleEdit = () => {
@@ -1768,12 +1785,22 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                     
                     {/* Custom Fields for Details Section */}
                     <div className="p-6">
-                      <PositionCustomFieldDisplay
-                        section="details"
-                        positionId={position?.id || ''}
-                        customFields={position?.customFields || {}}
-                        title="Additional Position Information"
-                      />
+                      {isEditMode ? (
+                        <PositionCustomFieldEdit
+                          section="details"
+                          positionId={position?.id || ''}
+                          customFields={position?.customFields || {}}
+                          onFieldChange={handleCustomFieldChange}
+                          title="Additional Position Information"
+                        />
+                      ) : (
+                        <PositionCustomFieldDisplay
+                          section="details"
+                          positionId={position?.id || ''}
+                          customFields={position?.customFields || {}}
+                          title="Additional Position Information"
+                        />
+                      )}
                     </div>
                     </div>
                   )}
@@ -1871,12 +1898,22 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                     
                     {/* Custom Fields for Criteria Section */}
                     <div className="p-6">
-                      <PositionCustomFieldDisplay
-                        section="criteria"
-                        positionId={position?.id || ''}
-                        customFields={position?.customFields || {}}
-                        title="Additional Criteria Information"
-                      />
+                      {isEditMode ? (
+                        <PositionCustomFieldEdit
+                          section="criteria"
+                          positionId={position?.id || ''}
+                          customFields={position?.customFields || {}}
+                          onFieldChange={handleCustomFieldChange}
+                          title="Additional Criteria Information"
+                        />
+                      ) : (
+                        <PositionCustomFieldDisplay
+                          section="criteria"
+                          positionId={position?.id || ''}
+                          customFields={position?.customFields || {}}
+                          title="Additional Criteria Information"
+                        />
+                      )}
                     </div>
                     </div>
                   )}
@@ -2015,12 +2052,22 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                     
                     {/* Custom Fields for Candidates Section */}
                     <div className="p-6">
-                      <PositionCustomFieldDisplay
-                        section="candidates"
-                        positionId={position?.id || ''}
-                        customFields={position?.customFields || {}}
-                        title="Additional Candidates Information"
-                      />
+                      {isEditMode ? (
+                        <PositionCustomFieldEdit
+                          section="candidates"
+                          positionId={position?.id || ''}
+                          customFields={position?.customFields || {}}
+                          onFieldChange={handleCustomFieldChange}
+                          title="Additional Candidates Information"
+                        />
+                      ) : (
+                        <PositionCustomFieldDisplay
+                          section="candidates"
+                          positionId={position?.id || ''}
+                          customFields={position?.customFields || {}}
+                          title="Additional Candidates Information"
+                        />
+                      )}
                     </div>
                     </div>
                   )}
@@ -2035,12 +2082,22 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                       
                       {/* Custom Fields for Headcount Section */}
                       <div className="mt-6">
-                        <PositionCustomFieldDisplay
-                          section="headcount"
-                          positionId={position?.id || ''}
-                          customFields={position?.customFields || {}}
-                          title="Additional Headcount Information"
-                        />
+                        {isEditMode ? (
+                          <PositionCustomFieldEdit
+                            section="headcount"
+                            positionId={position?.id || ''}
+                            customFields={position?.customFields || {}}
+                            onFieldChange={handleCustomFieldChange}
+                            title="Additional Headcount Information"
+                          />
+                        ) : (
+                          <PositionCustomFieldDisplay
+                            section="headcount"
+                            positionId={position?.id || ''}
+                            customFields={position?.customFields || {}}
+                            title="Additional Headcount Information"
+                          />
+                        )}
                       </div>
                     </div>
                   )}

@@ -7,6 +7,7 @@ import { Controller } from 'react-hook-form';
 import type { Candidate } from '@/lib/types';
 import { formatCandidateNameWithLang } from '@/lib/candidateUtils';
 import { CustomFieldDisplay } from '../CustomFieldDisplay';
+import { CustomFieldEdit } from '../CustomFieldEdit';
 
 interface CandidateInfoTabProps {
   candidate: Candidate;
@@ -16,6 +17,7 @@ interface CandidateInfoTabProps {
   watch?: any;
   setValue?: any;
   control?: any;
+  onCustomFieldChange?: (fieldCode: string, value: any) => void;
 }
 
 export const CandidateInfoTab: React.FC<CandidateInfoTabProps> = ({
@@ -25,7 +27,8 @@ export const CandidateInfoTab: React.FC<CandidateInfoTabProps> = ({
   errors, 
   watch, 
   setValue,
-  control
+  control,
+  onCustomFieldChange
 }) => {
   const nameInfo = formatCandidateNameWithLang(candidate);
   const personalInfo = (() => {
@@ -348,13 +351,24 @@ export const CandidateInfoTab: React.FC<CandidateInfoTabProps> = ({
       </Card>
       
       {/* Custom Fields for Candidate Info Section */}
-      <CustomFieldDisplay
-        modelName="Candidate"
-        section="candidate-info"
-        entityId={candidate.id}
-        customFields={candidate.customFields || {}}
-        title="Additional Information"
-      />
+      {isEditing ? (
+        <CustomFieldEdit
+          modelName="Candidate"
+          section="candidate-info"
+          entityId={candidate.id}
+          customFields={candidate.customFields || {}}
+          onFieldChange={onCustomFieldChange || (() => {})}
+          title="Additional Information"
+        />
+      ) : (
+        <CustomFieldDisplay
+          modelName="Candidate"
+          section="candidate-info"
+          entityId={candidate.id}
+          customFields={candidate.customFields || {}}
+          title="Additional Information"
+        />
+      )}
     </div>
   );
 };

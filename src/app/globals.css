@@ -257,6 +257,7 @@ h1, h2, h3, h4, h5, h6, p, span, div, button, input, textarea, select, label, a 
 /* Force Thai font on all elements with high specificity */
 html, body, #__next, [data-nextjs-page-router-viewport] {
   font-family: var(--font-family-primary) !important;
+  height: 100%;
 }
 
 /* Additional high-priority override for any remaining elements */

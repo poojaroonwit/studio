@@ -39,8 +39,8 @@ export function ZIndexProvider({ children }: { children: React.ReactNode }) {
       // Completely dynamic z-index calculation based on registration order and type hierarchy
       let zIndex = nextZIndexRef.current;
       
-      // Correct hierarchy: dropdown > modal/drawer > overlay > base content
-      // This ensures proper layering for usability
+      // Enforce strict hierarchy: dropdown > modal/drawer > overlay > base content
+      // This ensures proper layering for usability regardless of registration order
       
       if (type === 'dropdown') {
         // Dropdowns should always be above modals and drawers to be visible
@@ -59,26 +59,15 @@ export function ZIndexProvider({ children }: { children: React.ReactNode }) {
           const highestOverlay = Math.max(...overlayComponents.map(comp => comp.zIndex));
           zIndex = Math.max(zIndex, highestOverlay + Z_INDEX_INCREMENT);
         }
-        
-        // Force all existing overlays to be below this modal/drawer
-        const updatedComponents = filtered.map(comp => {
-          if (comp.type === 'overlay' && comp.zIndex >= zIndex) {
-            return { ...comp, zIndex: zIndex - Z_INDEX_INCREMENT };
-          }
-          return comp;
-        });
-        
-        // Update the filtered array to include the rebalanced overlays
-        filtered.splice(0, filtered.length, ...updatedComponents);
       } else if (type === 'overlay') {
         // Overlays (toasts, loading indicators) should be above base content but below modals/drawers
         // This allows modals and drawers to appear above loading states and notifications
         const modalDrawerComponents = filtered.filter(comp => comp.type === 'modal' || comp.type === 'drawer');
         
         if (modalDrawerComponents.length > 0) {
-          // If there are existing modals/drawers, overlays should stay below them
-          const highestModalDrawer = Math.max(...modalDrawerComponents.map(comp => comp.zIndex));
-          zIndex = Math.min(zIndex, highestModalDrawer - Z_INDEX_INCREMENT);
+          // If modals/drawers exist, overlays should be below them
+          const lowestModalDrawer = Math.min(...modalDrawerComponents.map(comp => comp.zIndex));
+          zIndex = Math.min(zIndex, lowestModalDrawer - Z_INDEX_INCREMENT);
         } else {
           // If no modals/drawers exist, overlays can be above other components
           const allOtherComponents = filtered.filter(comp => comp.type !== 'overlay');

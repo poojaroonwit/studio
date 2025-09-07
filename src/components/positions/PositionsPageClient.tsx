@@ -1132,7 +1132,7 @@ export default function PositionsPageClient() {
   }
 
   return (
-    <div className="w-full h-screen positions-page-container">
+    <div className="w-full h-full positions-page-container">
       <div className="flex h-full overflow-hidden">
         {/* Recruiter Filter Sidebar */}
         <div className="w-64 flex-shrink-0 border-r border-border bg-background">

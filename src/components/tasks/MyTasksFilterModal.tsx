@@ -141,7 +141,7 @@ export function MyTasksFilterModal({
                     <SelectTrigger className="h-10">
                       <SelectValue placeholder="All stages" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent selectId="my-tasks-filter-stage-select">
                       <SelectItem value="all">All Stages</SelectItem>
                       {stages.map((stage: any) => (
                         <SelectItem key={stage} value={stage}>{stage}</SelectItem>

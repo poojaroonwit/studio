@@ -34,6 +34,7 @@ interface QueueItem {
   error_details: string | null;
   position_title: string | null;
   source: string | null;
+  source_id: string | null;
   source_name: string | null;
   source_logo: string | null;
 }
@@ -62,6 +63,18 @@ interface AnalyticsData {
     jobsByType: Array<{ type: string; count: number }>;
     errorsByReason: Array<{ reason: string; count: number }>;
     fileSizeRanges: Array<{ range: string; count: number; avgDuration: number }>;
+    sourceAnalytics: Array<{
+      sourceId: string | null;
+      sourceName: string;
+      sourceLogo: string | null;
+      totalJobs: number;
+      successJobs: number;
+      failedJobs: number;
+      successRate: number;
+      failedRate: number;
+      avgDuration: number;
+      totalDuration: number;
+    }>;
   };
 }
 
@@ -135,7 +148,8 @@ export default function ProcessQueueAnalytics() {
             avgDurationByType: [],
             jobsByType: [],
             errorsByReason: [],
-            fileSizeRanges: []
+            fileSizeRanges: [],
+            sourceAnalytics: []
           }
         });
         return;
@@ -194,6 +208,16 @@ export default function ProcessQueueAnalytics() {
     const typeMap = new Map<string, { totalDuration: number; count: number }>();
     const errorMap = new Map<string, number>();
     const fileSizeRanges = new Map<string, { totalDuration: number; count: number }>();
+    const sourceMap = new Map<string, {
+      sourceId: string | null;
+      sourceName: string;
+      sourceLogo: string | null;
+      totalJobs: number;
+      successJobs: number;
+      failedJobs: number;
+      totalDuration: number;
+      completedJobs: number;
+    }>();
 
     queueData.forEach(item => {
       if (item.process_date && item.completed_date) {
@@ -269,6 +293,44 @@ export default function ProcessQueueAnalytics() {
         const reason = item.error_details || item.error;
         errorMap.set(reason, (errorMap.get(reason) || 0) + 1);
       }
+
+      // Track source analytics
+      const sourceKey = item.source_id || item.source || 'Unknown';
+      const sourceName = item.source_name || item.source || 'Unknown Source';
+      const sourceLogo = item.source_logo;
+      
+      const currentSource = sourceMap.get(sourceKey) || {
+        sourceId: item.source_id,
+        sourceName,
+        sourceLogo,
+        totalJobs: 0,
+        successJobs: 0,
+        failedJobs: 0,
+        totalDuration: 0,
+        completedJobs: 0
+      };
+
+      currentSource.totalJobs += 1;
+      
+      if (item.status === 'success') {
+        currentSource.successJobs += 1;
+      } else if (item.status === 'failed') {
+        currentSource.failedJobs += 1;
+      }
+
+      // Calculate duration for completed jobs
+      if (item.process_date && item.completed_date) {
+        const processDate = new Date(item.process_date);
+        const completedDate = new Date(item.completed_date);
+        
+        if (!isNaN(processDate.getTime()) && !isNaN(completedDate.getTime())) {
+          const duration = (completedDate.getTime() - processDate.getTime()) / (1000 * 60); // minutes
+          currentSource.totalDuration += duration;
+          currentSource.completedJobs += 1;
+        }
+      }
+
+      sourceMap.set(sourceKey, currentSource);
     });
 
     const avgDuration = scatterData.length > 0 
@@ -297,6 +359,19 @@ export default function ProcessQueueAnalytics() {
       avgDuration: data.count > 0 ? data.totalDuration / data.count : 0
     }));
 
+    const sourceAnalytics = Array.from(sourceMap.values()).map(source => ({
+      sourceId: source.sourceId,
+      sourceName: source.sourceName,
+      sourceLogo: source.sourceLogo,
+      totalJobs: source.totalJobs,
+      successJobs: source.successJobs,
+      failedJobs: source.failedJobs,
+      successRate: source.totalJobs > 0 ? (source.successJobs / source.totalJobs) * 100 : 0,
+      failedRate: source.totalJobs > 0 ? (source.failedJobs / source.totalJobs) * 100 : 0,
+      avgDuration: source.completedJobs > 0 ? source.totalDuration / source.completedJobs : 0,
+      totalDuration: source.totalDuration
+    })).sort((a, b) => b.totalJobs - a.totalJobs); // Sort by total jobs descending
+
     return {
       scatterData,
       stats: {
@@ -305,7 +380,8 @@ export default function ProcessQueueAnalytics() {
         avgDurationByType,
         jobsByType,
         errorsByReason,
-        fileSizeRanges: fileSizeRangesData
+        fileSizeRanges: fileSizeRangesData,
+        sourceAnalytics
       }
     };
   };
@@ -849,11 +925,12 @@ export default function ProcessQueueAnalytics() {
 
       {/* Charts and Detailed Stats */}
       <Tabs defaultValue="scatter" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="scatter">Process Time vs Duration</TabsTrigger>
           <TabsTrigger value="duration">Duration Analysis</TabsTrigger>
           <TabsTrigger value="errors">Error Analysis</TabsTrigger>
           <TabsTrigger value="files">File Analysis</TabsTrigger>
+          <TabsTrigger value="sources">Source Analytics</TabsTrigger>
         </TabsList>
 
         <TabsContent value="scatter" className="mt-6">
@@ -1289,6 +1366,181 @@ export default function ProcessQueueAnalytics() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="sources" className="mt-6">
+          <div className="space-y-6">
+            {/* Source Analytics Chart */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Source Performance Overview</CardTitle>
+                <CardDescription>Processing performance metrics by source</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {chartLoading ? (
+                  <div className="flex items-center justify-center h-96">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                  </div>
+                ) : chartError ? (
+                  <div className="flex items-center justify-center h-96 text-red-500">
+                    <AlertTriangle className="h-8 w-8 mr-2" />
+                    Chart loading failed
+                  </div>
+                ) : data && data.stats.sourceAnalytics.length > 0 ? (
+                  <div className="h-96">
+                    <Bar
+                      data={{
+                        labels: data.stats.sourceAnalytics.map(source => source.sourceName),
+                        datasets: [
+                          {
+                            label: 'Total Jobs',
+                            data: data.stats.sourceAnalytics.map(source => source.totalJobs),
+                            backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                            borderColor: 'rgba(59, 130, 246, 1)',
+                            borderWidth: 1,
+                          },
+                          {
+                            label: 'Success Rate (%)',
+                            data: data.stats.sourceAnalytics.map(source => source.successRate),
+                            backgroundColor: 'rgba(34, 197, 94, 0.5)',
+                            borderColor: 'rgba(34, 197, 94, 1)',
+                            borderWidth: 1,
+                            yAxisID: 'y1',
+                          }
+                        ]
+                      }}
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                          legend: {
+                            position: 'top' as const,
+                          },
+                          title: {
+                            display: true,
+                            text: 'Source Performance Metrics'
+                          }
+                        },
+                        scales: {
+                          y: {
+                            type: 'linear' as const,
+                            display: true,
+                            position: 'left' as const,
+                            title: {
+                              display: true,
+                              text: 'Total Jobs'
+                            }
+                          },
+                          y1: {
+                            type: 'linear' as const,
+                            display: true,
+                            position: 'right' as const,
+                            title: {
+                              display: true,
+                              text: 'Success Rate (%)'
+                            },
+                            grid: {
+                              drawOnChartArea: false,
+                            },
+                          }
+                        }
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center h-96 text-muted-foreground">
+                    <Database className="h-8 w-8 mr-2" />
+                    No source data available
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Source Analytics Table */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Source Analytics Table</CardTitle>
+                <CardDescription>Detailed metrics for each source</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {data && data.stats.sourceAnalytics.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Source</TableHead>
+                          <TableHead>Total Jobs</TableHead>
+                          <TableHead>Success Rate</TableHead>
+                          <TableHead>Failed Rate</TableHead>
+                          <TableHead>Avg Duration</TableHead>
+                          <TableHead>Total Duration</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {data.stats.sourceAnalytics.map((source, index) => (
+                          <TableRow key={source.sourceId || index}>
+                            <TableCell>
+                              <div className="flex items-center space-x-3">
+                                {source.sourceLogo ? (
+                                  <img 
+                                    src={source.sourceLogo} 
+                                    alt={source.sourceName}
+                                    className="h-6 w-6 rounded object-cover"
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).style.display = 'none';
+                                    }}
+                                  />
+                                ) : (
+                                  <div className="h-6 w-6 rounded bg-muted flex items-center justify-center">
+                                    <Database className="h-3 w-3 text-muted-foreground" />
+                                  </div>
+                                )}
+                                <span className="font-medium">{source.sourceName}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline">{source.totalJobs}</Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center space-x-2">
+                                <span className={`font-medium ${source.successRate >= 80 ? 'text-green-600' : source.successRate >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
+                                  {source.successRate.toFixed(1)}%
+                                </span>
+                                <span className="text-sm text-muted-foreground">
+                                  ({source.successJobs}/{source.totalJobs})
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center space-x-2">
+                                <span className={`font-medium ${source.failedRate <= 10 ? 'text-green-600' : source.failedRate <= 20 ? 'text-yellow-600' : 'text-red-600'}`}>
+                                  {source.failedRate.toFixed(1)}%
+                                </span>
+                                <span className="text-sm text-muted-foreground">
+                                  ({source.failedJobs}/{source.totalJobs})
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <span className="font-medium">{source.avgDuration.toFixed(1)}m</span>
+                            </TableCell>
+                            <TableCell>
+                              <span className="font-medium">{source.totalDuration.toFixed(1)}m</span>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center h-32 text-muted-foreground">
+                    <Database className="h-6 w-6 mr-2" />
+                    No source data available
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
 

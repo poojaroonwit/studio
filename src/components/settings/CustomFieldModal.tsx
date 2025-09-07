@@ -250,7 +250,7 @@ export default function CustomFieldModal({
                                 <SelectValue placeholder="Select model type" />
                               </SelectTrigger>
                             </FormControl>
-                            <SelectContent>
+                            <SelectContent selectId="custom-field-entity-select">
                               <SelectItem value="Candidate">Candidate</SelectItem>
                               <SelectItem value="Position">Position</SelectItem>
                               <SelectItem value="User">User</SelectItem>
@@ -277,7 +277,7 @@ export default function CustomFieldModal({
                                 <SelectValue placeholder="Select field type" />
                               </SelectTrigger>
                             </FormControl>
-                            <SelectContent>
+                            <SelectContent selectId="custom-field-type-select">
                               {CUSTOM_FIELD_TYPES.map((type) => (
                                 <SelectItem key={type} value={type}>
                                   {type.replace('_', ' ').toUpperCase()}

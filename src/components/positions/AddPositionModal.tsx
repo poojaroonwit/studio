@@ -362,7 +362,7 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
                            <SelectTrigger disabled={isSaving || isLoadingLevels}>
                              <SelectValue placeholder={isLoadingLevels ? "Loading levels..." : "Select position level"} />
                            </SelectTrigger>
-                           <SelectContent>
+                           <SelectContent selectId="add-position-level-select">
                              <SelectItem value="none">No Level</SelectItem>
                              {positionLevels.map((level) => (
                                <SelectItem key={level.id} value={level.name}>
@@ -395,7 +395,7 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
                          <SelectTrigger>
                            <SelectValue placeholder="Select a grade" />
                          </SelectTrigger>
-                                              <SelectContent>
+                                              <SelectContent selectId="add-position-grade-select">
                         <SelectItem value="none">No Grade</SelectItem>
                         {grades.map((grade) => (
                           <SelectItem key={grade.id} value={grade.id}>
@@ -428,7 +428,7 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
                          <SelectTrigger>
                            <SelectValue placeholder="Select a recruiter" />
                          </SelectTrigger>
-                         <SelectContent>
+                         <SelectContent selectId="add-position-recruiter-select">
                            <SelectItem value="none">No Recruiter</SelectItem>
                            {availableRecruiter.map((recruiter) => (
                              <SelectItem key={recruiter.id} value={recruiter.id}>

@@ -136,9 +136,23 @@ export function UploadQueueStatus() {
         
         refreshTimeout = setTimeout(() => {
           if (mounted) {
-            fetchQueue(page, pageSize);
-            setLastUpdate(new Date());
-            lastUpdateTime = now;
+            // Check if SSE event contains actual queue data
+            if (event.data?.data && Array.isArray(event.data.data)) {
+              // Update queue data directly from SSE (immediate update)
+              console.log('[UploadQueueStatus] Updating queue data from SSE event');
+              setQueueData({
+                data: event.data.data,
+                total: event.data.total || 0,
+                summary: event.data.summary || { queued: 0, inprocess: 0, success: 0, error: 0 }
+              });
+              setLastUpdate(new Date());
+              lastUpdateTime = now;
+            } else {
+              // Fallback: fetch queue data if SSE doesn't contain data
+              fetchQueue(page, pageSize);
+              setLastUpdate(new Date());
+              lastUpdateTime = now;
+            }
           }
         }, 100); // Small delay to batch rapid updates
       }
@@ -152,6 +166,21 @@ export function UploadQueueStatus() {
       unsubscribe();
     };
   }, [subscribeToEvents, fetchQueue, page, pageSize]);
+
+  // Listen for custom refresh events (fallback for upload completion)
+  useEffect(() => {
+    const handleRefreshEvent = () => {
+      console.log('[UploadQueueStatus] Received refreshCandidateQueue event, refreshing queue');
+      fetchQueue(page, pageSize);
+      setLastUpdate(new Date());
+    };
+
+    window.addEventListener('refreshCandidateQueue', handleRefreshEvent);
+    
+    return () => {
+      window.removeEventListener('refreshCandidateQueue', handleRefreshEvent);
+    };
+  }, [fetchQueue, page, pageSize]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {

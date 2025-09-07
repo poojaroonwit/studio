@@ -139,11 +139,12 @@ export function broadcastUploadQueueUpdateIfChanged(
   const trackerKey = 'upload_queue_summary';
   
   if (hasDataChanged(trackerKey, summary, {
-    minBroadcastInterval: options.minBroadcastInterval || 500, // 500ms for upload queue
+    minBroadcastInterval: options.minBroadcastInterval || 100, // Reduced to 100ms for faster updates
     ignoreFields: ['timestamp', ...(options.ignoreFields || [])]
   })) {
     console.log('[DataChange] Broadcasting upload queue update:', summary);
-    broadcastHighPriority('upload_queue_update', {
+    // Use forceBroadcast to bypass all throttling for upload queue updates
+    forceBroadcast('upload_queue_update', {
       type: 'queue',
       summary,
       timestamp: new Date().toISOString()

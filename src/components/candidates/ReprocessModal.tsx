@@ -317,7 +317,7 @@ export default function ReprocessModal({
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select position to apply for..." />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent selectId="reprocess-position-select">
                 <div className="flex items-center px-3 pb-2 border-b">
                   <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
                   <input

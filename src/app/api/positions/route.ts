@@ -400,7 +400,13 @@ export async function GET(request: NextRequest) {
         response.statistics = statistics;
       }
       
-      return NextResponse.json(response, { status: 200, headers: handleCors(request) });
+      const headers = {
+        ...handleCors(request),
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      };
+      return NextResponse.json(response, { status: 200, headers });
     } catch (dbError) {
       return NextResponse.json({ 
         message: "Database error", 

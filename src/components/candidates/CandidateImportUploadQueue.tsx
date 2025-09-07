@@ -238,13 +238,20 @@ export default function CandidateImportUploadQueue() {
         refreshTimeout = setTimeout(() => {
           if (mounted) {
             lastUpdateTime = Date.now();
-            // Only fetch if not currently loading
-            if (!loading) {
-              fetchQueue(page, pageSize);
+            
+            // Check if SSE event contains actual queue data
+            if (event.data?.data && Array.isArray(event.data.data)) {
+              // Update queue data directly from SSE (immediate update)
+              console.log('[ProcessQueue] Updating queue data from SSE event');
+              setQueueData({
+                data: event.data.data,
+                total: event.data.total || 0,
+                summary: event.data.summary || { queued: 0, inprocess: 0, success: 0, error: 0 }
+              });
               setLastUpdate(new Date());
               
-              // Show toast notification if summary is available
-              const summary = event.data?.summary;
+              // Show toast notification
+              const summary = event.data.summary;
               if (summary) {
                 const { queued, inprocess, success, error } = summary;
                 toast.success(`Queue updated: ${queued} queued, ${inprocess} processing, ${success} completed, ${error} errors`, {
@@ -256,6 +263,27 @@ export default function CandidateImportUploadQueue() {
                     fontSize: '12px',
                   }
                 });
+              }
+            } else {
+              // Fallback: fetch queue data if SSE doesn't contain data
+              if (!loading) {
+                fetchQueue(page, pageSize);
+                setLastUpdate(new Date());
+                
+                // Show toast notification if summary is available
+                const summary = event.data?.summary;
+                if (summary) {
+                  const { queued, inprocess, success, error } = summary;
+                  toast.success(`Queue updated: ${queued} queued, ${inprocess} processing, ${success} completed, ${error} errors`, {
+                    duration: 2000,
+                    position: 'top-right',
+                    style: {
+                      background: '#10b981',
+                      color: 'white',
+                      fontSize: '12px',
+                    }
+                  });
+                }
               }
             }
           }
@@ -271,6 +299,21 @@ export default function CandidateImportUploadQueue() {
       unsubscribe();
     };
   }, [subscribeToEvents, loading, page, pageSize, fetchQueue]);
+
+  // Listen for custom refresh events (fallback for upload completion)
+  useEffect(() => {
+    const handleRefreshEvent = () => {
+      console.log('[ProcessQueue] Received refreshCandidateQueue event, refreshing queue');
+      fetchQueue(page, pageSize);
+      setLastUpdate(new Date());
+    };
+
+    window.addEventListener('refreshCandidateQueue', handleRefreshEvent);
+    
+    return () => {
+      window.removeEventListener('refreshCandidateQueue', handleRefreshEvent);
+    };
+  }, [fetchQueue, page, pageSize]);
 
   // Fallback polling when SSE is not connected
   useEffect(() => {

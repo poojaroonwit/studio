@@ -147,7 +147,7 @@ export function HeadcountModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" dialogId="headcount-modal">
         <DialogHeader>
           <DialogTitle>
             {isEdit ? 'Edit Headcount' : 'Create New Headcount'}
@@ -169,7 +169,7 @@ export function HeadcountModal({
                 <SelectTrigger>
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent selectId="headcount-type-select">
                   {headcountTypeOptions.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.label}
@@ -188,7 +188,7 @@ export function HeadcountModal({
                 <SelectTrigger>
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent selectId="headcount-status-select">
                   {HEADCOUNT_STATUS_OPTIONS.map((option) => (
                     <SelectItem 
                       key={option.value} 

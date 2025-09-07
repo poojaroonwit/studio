@@ -625,7 +625,7 @@ export function UnifiedUserModal({
                                       <SelectTrigger className="h-10 transition-all duration-200 focus:ring-2 focus:ring-primary/20">
                                         <SelectValue placeholder="Select a team" />
                                       </SelectTrigger>
-                                      <SelectContent>
+                                      <SelectContent selectId="unified-user-team-select">
                                         {userTeams.map((team) => (
                                           <SelectItem key={team.id} value={team.id}>
                                             <div className="flex items-center gap-2">
@@ -704,7 +704,7 @@ export function UnifiedUserModal({
                                         <SelectTrigger className="h-10 transition-all duration-200 focus:ring-2 focus:ring-primary/20">
                                           <SelectValue placeholder="Select a role" />
                                         </SelectTrigger>
-                                        <SelectContent>
+                                        <SelectContent selectId="unified-user-role-select">
                                           {/* Clear option */}
                                           <SelectItem value="none">
                                             <div className="flex items-center gap-2 text-muted-foreground">
@@ -751,7 +751,7 @@ export function UnifiedUserModal({
                                           <SelectValue placeholder="Select authentication method" />
                                         </SelectTrigger>
                                       </FormControl>
-                                      <SelectContent>
+                                      <SelectContent selectId="unified-user-auth-type-select">
                                         <SelectItem value="basic">Basic (Email/Password)</SelectItem>
                                         <SelectItem value="azure">Azure AD (SSO)</SelectItem>
                                       </SelectContent>

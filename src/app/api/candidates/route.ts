@@ -174,12 +174,12 @@ export async function POST(request: NextRequest) {
   try {
     await client.query('BEGIN');
     const insertCandidateQuery = `
-      INSERT INTO "Candidate" (id, name, email, phone, "positionId", "fitScore", "statusId", "parsedData", "applicationDate", "sourceId", "subSource", "updatedAt")
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
+      INSERT INTO "Candidate" (id, name, email, phone, "positionId", "fitScore", "statusId", "parsedData", "customAttributes", "applicationDate", "sourceId", "subSource", "updatedAt")
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
       RETURNING *;
     `;
     const candidateResult = await client.query(insertCandidateQuery, [
-      newCandidateId, name, email, phone, positionId, fitScore, status, parsedData, applicationDate ? new Date(applicationDate) : createDateInTimezone(),
+      newCandidateId, name, email, phone, positionId, fitScore, status, parsedData, {}, applicationDate ? new Date(applicationDate) : createDateInTimezone(),
       body.sourceId || null, body.subSource || null
     ]);
     const newCandidate = candidateResult.rows[0];
@@ -1007,7 +1007,7 @@ export async function GET(request: NextRequest) {
         WHERE model_name = 'Candidate' AND show_in_filter = true
       `;
       const customFieldDefsResult = await client.query(customFieldDefsQuery);
-      const customFieldDefs = customFieldDefsResult.rows.reduce((acc, row) => {
+      const customFieldDefs = customFieldDefsResult.rows.reduce((acc: any, row: any) => {
         acc[row.field_code] = row;
         return acc;
       }, {} as any);

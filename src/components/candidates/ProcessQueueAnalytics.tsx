@@ -1072,177 +1072,36 @@ export default function ProcessQueueAnalytics() {
                   </div>
                 </div>
               ) : (
-                <div className="h-96">
-                  <Bar
-                    data={{
-                      labels: data.stats.jobsByType.map(item => item.type),
-                      datasets: [
-                        {
-                          label: 'Job Count',
-                          data: data.stats.jobsByType.map(item => item.count),
-                          backgroundColor: 'rgba(59, 130, 246, 0.8)',
-                          borderColor: 'rgba(59, 130, 246, 1)',
-                          borderWidth: 2,
-                          borderRadius: 8,
-                          borderSkipped: false,
-                          yAxisID: 'y',
-                        },
-                        {
-                          label: 'Avg Duration (minutes)',
-                          data: data.stats.jobsByType.map(item => {
-                            const durationData = data.stats.avgDurationByType.find(d => d.type === item.type);
-                            return durationData ? durationData.avgDuration : 0;
-                          }),
-                          backgroundColor: 'rgba(34, 197, 94, 0.8)',
-                          borderColor: 'rgba(34, 197, 94, 1)',
-                          borderWidth: 2,
-                          borderRadius: 8,
-                          borderSkipped: false,
-                          yAxisID: 'y1',
-                        }
-                      ]
-                    }}
-                    options={{
-                      responsive: true,
-                      maintainAspectRatio: false,
-                      interaction: {
-                        mode: 'index' as const,
-                        intersect: false,
-                      },
-                      plugins: {
-                        legend: {
-                          display: true,
-                          position: 'top' as const,
-                          labels: {
-                            usePointStyle: true,
-                            padding: 20,
-                            font: {
-                              size: 12
-                            }
-                          }
-                        },
-                        tooltip: {
-                          callbacks: {
-                            title: function(context) {
-                              return `Job Type: ${context[0].label}`;
-                            },
-                            label: function(context) {
-                              const label = context.dataset.label || '';
-                              if (label === 'Job Count') {
-                                return `${label}: ${context.parsed.y} jobs`;
-                              } else {
-                                return `${label}: ${context.parsed.y.toFixed(1)} minutes`;
-                              }
-                            },
-                            afterLabel: function(context) {
-                              const jobType = context.label;
-                              const durationData = data.stats.avgDurationByType.find(d => d.type === jobType);
-                              if (context.datasetIndex === 0 && durationData) {
-                                return `Avg Duration: ${durationData.avgDuration.toFixed(1)}m`;
-                              }
-                              return '';
-                            }
-                          }
-                        },
-                        ...(isDataLabelsAvailable() ? {
-                          datalabels: {
-                            display: false
-                          }
-                        } : {})
-                      },
-                      scales: {
-                        x: {
-                          title: {
-                            display: true,
-                            text: 'Job Type'
-                          },
-                          grid: { 
-                            color: 'rgba(100,116,139,0.1)',
-                            display: false
-                          },
-                          ticks: { 
-                            color: 'rgb(100, 116, 139)', 
-                            font: { size: 12 }
-                          },
-                        },
-                        y: {
-                          type: 'linear' as const,
-                          display: true,
-                          position: 'left' as const,
-                          title: {
-                            display: true,
-                            text: 'Job Count'
-                          },
-                          beginAtZero: true,
-                          grid: { 
-                            color: 'rgba(100,116,139,0.1)'
-                          },
-                          ticks: { 
-                            color: 'rgb(100, 116, 139)', 
-                            font: { size: 12 }
-                          },
-                        },
-                        y1: {
-                          type: 'linear' as const,
-                          display: true,
-                          position: 'right' as const,
-                          title: {
-                            display: true,
-                            text: 'Average Duration (minutes)'
-                          },
-                          beginAtZero: true,
-                          grid: {
-                            drawOnChartArea: false,
-                          },
-                          ticks: { 
-                            color: 'rgb(100, 116, 139)', 
-                            font: { size: 12 },
-                            callback: function(value) {
-                              return Number(value).toFixed(1);
-                            }
-                          },
-                        },
-                      },
-                    }}
-                  />
-                  
-                  {/* Summary Table */}
-                  <div className="mt-6 border rounded-lg overflow-hidden">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Job Type</TableHead>
-                          <TableHead className="text-center">Count</TableHead>
-                          <TableHead className="text-center">Avg Duration</TableHead>
-                          <TableHead className="text-center">Total Duration</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {data.stats.jobsByType.map((item) => {
-                          const durationData = data.stats.avgDurationByType.find(d => d.type === item.type);
-                          const avgDuration = durationData ? durationData.avgDuration : 0;
-                          const totalDuration = avgDuration * item.count;
-                          
-                          return (
-                            <TableRow key={item.type} className="hover:bg-muted/50">
-                              <TableCell>
-                        <Badge variant="outline">{item.type}</Badge>
-                              </TableCell>
-                              <TableCell className="text-center">
-                      <span className="font-medium">{item.count}</span>
-                              </TableCell>
-                              <TableCell className="text-center">
-                                <span className="font-medium">{avgDuration.toFixed(1)}m</span>
-                              </TableCell>
-                              <TableCell className="text-center">
-                                <span className="font-medium">{totalDuration.toFixed(1)}m</span>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                    </div>
+                <div className="border rounded-lg overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Job Type</TableHead>
+                        <TableHead className="text-center">Count</TableHead>
+                        <TableHead className="text-center">Avg Duration</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {data.stats.jobsByType.map((item) => {
+                        const durationData = data.stats.avgDurationByType.find(d => d.type === item.type);
+                        const avgDuration = durationData ? durationData.avgDuration : 0;
+                        
+                        return (
+                          <TableRow key={item.type} className="hover:bg-muted/50">
+                            <TableCell>
+                              <Badge variant="outline">{item.type}</Badge>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <span className="font-medium">{item.count}</span>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <span className="font-medium">{avgDuration.toFixed(1)}m</span>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
                 </div>
               )}
               </CardContent>

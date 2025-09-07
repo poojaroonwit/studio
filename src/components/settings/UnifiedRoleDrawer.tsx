@@ -622,7 +622,7 @@ export function UnifiedRoleDrawer({
   return (
     <>
       <Sheet open={isOpen} onOpenChange={onOpenChange}>
-        <SheetContent className="w-full max-w-[85vw] sm:max-w-[80vw] md:max-w-[75vw] lg:max-w-[70vw] xl:max-w-[900px] flex flex-col p-0">
+        <SheetContent className="w-full max-w-[85vw] sm:max-w-[80vw] md:max-w-[75vw] lg:max-w-[70vw] xl:max-w-[900px] flex flex-col p-0" sheetId="unified-role-drawer">
           <UnifiedRoleDrawerErrorBoundary>
             <SheetHeader className="flex-shrink-0 p-6 pb-4">
                           <SheetTitle className="flex items-center gap-2">
@@ -904,7 +904,7 @@ export function UnifiedRoleDrawer({
 
       {/* Add User Modal */}
       <Dialog open={isAddUserModalOpen} onOpenChange={setIsAddUserModalOpen}>
-        <DialogContent className="w-[95vw] max-w-md sm:w-full z-[100]">
+        <DialogContent className="w-[95vw] max-w-md sm:w-full" dialogId="unified-role-add-user-modal">
           <DialogHeader>
             <DialogTitle>Add User to {role?.name || 'Unknown'}</DialogTitle>
             <DialogDescription>

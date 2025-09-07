@@ -39,15 +39,16 @@ export function ZIndexProvider({ children }: { children: React.ReactNode }) {
       // Completely dynamic z-index calculation based on registration order and type hierarchy
       let zIndex = nextZIndexRef.current;
       
-      // Type hierarchy: overlay > modal/drawer > dropdown
-      // But respect registration order for nested components (e.g., drawer opening modal)
+      // Correct hierarchy: dropdown > modal/drawer > overlay > base content
+      // This ensures proper layering for usability
       
-      if (type === 'overlay') {
-        // Overlays should be above everything else
-        const allOtherComponents = filtered.filter(comp => comp.type !== 'overlay');
-        if (allOtherComponents.length > 0) {
-          const highestOther = Math.max(...allOtherComponents.map(comp => comp.zIndex));
-          zIndex = Math.max(zIndex, highestOther + Z_INDEX_INCREMENT);
+      if (type === 'dropdown') {
+        // Dropdowns should always be above modals and drawers to be visible
+        // This is necessary for usability - dropdowns must be visible above their parent containers
+        const modalDrawerComponents = filtered.filter(comp => comp.type === 'modal' || comp.type === 'drawer');
+        if (modalDrawerComponents.length > 0) {
+          const highestModalDrawer = Math.max(...modalDrawerComponents.map(comp => comp.zIndex));
+          zIndex = Math.max(zIndex, highestModalDrawer + Z_INDEX_INCREMENT);
         }
       } else if (type === 'modal' || type === 'drawer') {
         // Modals and drawers should be above overlays and base content
@@ -58,13 +59,17 @@ export function ZIndexProvider({ children }: { children: React.ReactNode }) {
           const highestOverlay = Math.max(...overlayComponents.map(comp => comp.zIndex));
           zIndex = Math.max(zIndex, highestOverlay + Z_INDEX_INCREMENT);
         }
-      } else if (type === 'dropdown') {
-        // Dropdowns should always be above modals and drawers to be visible
-        // This is necessary for usability - dropdowns must be visible above their parent containers
-        const modalDrawerComponents = filtered.filter(comp => comp.type === 'modal' || comp.type === 'drawer');
-        if (modalDrawerComponents.length > 0) {
-          const highestModalDrawer = Math.max(...modalDrawerComponents.map(comp => comp.zIndex));
-          zIndex = Math.max(zIndex, highestModalDrawer + Z_INDEX_INCREMENT);
+      } else if (type === 'overlay') {
+        // Overlays (toasts, loading indicators) should be above base content but below modals/drawers
+        // This allows modals and drawers to appear above loading states and notifications
+        const allOtherComponents = filtered.filter(comp => comp.type !== 'overlay');
+        if (allOtherComponents.length > 0) {
+          const highestOther = Math.max(...allOtherComponents.map(comp => comp.zIndex));
+          // Only go above if no modals/drawers exist, otherwise stay below them
+          const modalDrawerComponents = filtered.filter(comp => comp.type === 'modal' || comp.type === 'drawer');
+          if (modalDrawerComponents.length === 0) {
+            zIndex = Math.max(zIndex, highestOther + Z_INDEX_INCREMENT);
+          }
         }
       }
       

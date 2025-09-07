@@ -73,7 +73,7 @@ function MultiSelect({
   };
 
   return (
-    <div className="relative z-[500]">
+    <div className="relative">
       {/* Trigger */}
       <div
         className={cn(
@@ -124,7 +124,7 @@ function MultiSelect({
 
       {/* Dropdown */}
       {open && (
-        <div className="absolute z-[500] mt-1 w-full bg-popover border rounded-lg shadow-lg">
+        <div className="absolute mt-1 w-full bg-popover border rounded-lg shadow-lg">
           {/* Search */}
           <div className="p-2 border-b">
             <input
@@ -192,7 +192,7 @@ function MultiSelect({
       {/* Click outside to close */}
       {open && (
         <div 
-          className="fixed inset-0 z-[499]" 
+          className="fixed inset-0" 
           onClick={() => setOpen(false)}
         />
       )}
@@ -595,7 +595,7 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl w-full max-h-[90vh] flex flex-col gap-6 p-0 overflow-visible">
+      <DialogContent className="max-w-3xl w-full max-h-[90vh] flex flex-col gap-6 p-0 overflow-visible" dialogId="customize-board-modal">
         <DialogHeader className="p-6 pb-0 border-b flex-shrink-0 bg-card rounded-t-xl">
           <DialogTitle className="flex items-center gap-2 text-2xl">
             <Settings className="w-6 h-6" />

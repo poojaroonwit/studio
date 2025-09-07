@@ -422,7 +422,7 @@ export function UploadQueueStatus() {
 
       {/* Details Dialog */}
       <Dialog open={showDetails} onOpenChange={setShowDetails}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl" dialogId="upload-queue-details-modal">
           <DialogHeader>
             <DialogTitle>Queue Item Details</DialogTitle>
             <DialogDescription>

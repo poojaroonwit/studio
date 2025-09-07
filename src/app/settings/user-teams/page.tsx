@@ -639,7 +639,7 @@ export default function UserTeamsPage() {
       {/* Team Management Drawer */}
       {selectedTeam && (
         <Sheet open={isTeamDrawerOpen} onOpenChange={setIsTeamDrawerOpen}>
-          <SheetContent className="w-[1200px] sm:w-[1100px]">
+          <SheetContent className="w-[1200px] sm:w-[1100px]" sheetId="user-teams-page-drawer">
             <SheetHeader>
               <SheetTitle className="flex items-center space-x-2">
                 <div 

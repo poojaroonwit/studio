@@ -395,7 +395,7 @@ function HeadcountTypeModal({ option, existingValues, onSave, onCancel }: Headco
 
   return (
     <Dialog open={true} onOpenChange={onCancel}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md" dialogId="headcount-types-modal">
         <DialogHeader>
           <DialogTitle>
             {option.value ? 'Edit Headcount Type' : 'Add Headcount Type'}

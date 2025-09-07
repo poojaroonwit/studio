@@ -266,7 +266,7 @@ export default function WebhookBodyCustomization({
   return (
     <TooltipProvider>
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="max-w-7xl p-0 overflow-hidden">
+        <DialogContent className="max-w-7xl p-0 overflow-hidden" dialogId="webhook-body-customization-modal">
           <DialogHeader className="px-6 py-4 border-b">
             <DialogTitle className="text-xl font-semibold flex items-center gap-2">
               <Code className="h-5 w-5" />

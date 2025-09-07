@@ -1265,7 +1265,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
 
       {/* Card Settings Drawer */}
       <Sheet open={isCardSettingsOpen} onOpenChange={setIsCardSettingsOpen}>
-        <SheetContent side="right" className="w-[400px] sm:w-[540px]">
+        <SheetContent side="right" className="w-[400px] sm:w-[540px]" sheetId="my-tasks-card-settings-drawer">
           <SheetHeader>
             <SheetTitle className="flex items-center gap-2">
               <Settings className="h-5 w-5" />

@@ -354,7 +354,7 @@ export function GenerativeAIModal({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-7xl max-h-[90vh] h-full flex flex-col overflow-visible">
+        <DialogContent className="max-w-7xl max-h-[90vh] h-full flex flex-col overflow-visible" dialogId="generative-ai-modal">
           <div className="flex items-start justify-between mb-4">
             <div>
               <DialogTitle className="flex items-center gap-2">
@@ -546,7 +546,7 @@ export function GenerativeAIModal({
 
       {/* Filename Edit Dialog */}
       <Dialog open={showFileNameDialog} onOpenChange={setShowFileNameDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md" dialogId="generative-ai-filename-modal">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Edit className="h-5 w-5" />

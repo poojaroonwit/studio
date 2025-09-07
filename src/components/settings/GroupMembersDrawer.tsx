@@ -221,7 +221,7 @@ export function GroupMembersDrawer({
   return (
     <>
       <Sheet open={isOpen} onOpenChange={onOpenChange}>
-        <SheetContent className="w-full max-w-[85vw] sm:max-w-[70vw] md:max-w-[65vw] lg:max-w-[60vw] xl:max-w-[800px] flex flex-col">
+        <SheetContent className="w-full max-w-[85vw] sm:max-w-[70vw] md:max-w-[65vw] lg:max-w-[60vw] xl:max-w-[800px] flex flex-col" sheetId="group-members-drawer">
           <SheetHeader className="flex-shrink-0">
             <SheetTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
@@ -332,7 +332,7 @@ export function GroupMembersDrawer({
 
       {/* Add User Modal */}
       <Dialog open={isAddUserModalOpen} onOpenChange={setIsAddUserModalOpen}>
-        <DialogContent className="w-[95vw] max-w-md sm:w-full z-[100]">
+        <DialogContent className="w-[95vw] max-w-md sm:w-full" dialogId="group-members-add-user-modal">
           <DialogHeader>
             <DialogTitle>Add User to {group.name}</DialogTitle>
             <DialogDescription>

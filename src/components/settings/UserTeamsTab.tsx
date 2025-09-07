@@ -438,7 +438,7 @@ export function UserTeamsTab() {
       {/* Team Management Drawer */}
       {selectedTeam && (
         <Sheet open={isTeamDrawerOpen} onOpenChange={setIsTeamDrawerOpen}>
-          <SheetContent side="right" className="w-[600px] sm:w-[700px]">
+          <SheetContent side="right" className="w-[600px] sm:w-[700px]" sheetId="user-teams-tab-drawer">
             <SheetHeader>
               <SheetTitle className="flex items-center gap-2">
                 <div 

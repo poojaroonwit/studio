@@ -1444,7 +1444,7 @@ export default function CandidateImportUploadQueue() {
 
       {/* Details Dialog */}
       <Dialog open={showDetails} onOpenChange={setShowDetails}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto" dialogId="candidate-import-upload-queue-modal">
           <DialogHeader>
             <DialogTitle>Queue Item Details</DialogTitle>
             <DialogDescription>

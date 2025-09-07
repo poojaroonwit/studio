@@ -307,7 +307,7 @@ export function ImportPositionsModal({ isOpen, onOpenChange, onImportSuccess }: 
         resetForm();
       }
     }}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md" dialogId="import-positions-modal">
         <DialogHeader>
           <DialogTitle className="flex items-center">
             <Briefcase className="mr-2 h-5 w-5 text-primary" /> Import Positions (CSV Only)

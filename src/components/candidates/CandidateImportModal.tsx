@@ -132,7 +132,7 @@ export default function CandidateImportModal({ isOpen, onOpenChange, onImportSuc
 
   return (
     <Dialog open={isOpen} onOpenChange={handleModalClose}>
-      <DialogContent className="sm:max-w-[800px]">
+      <DialogContent className="sm:max-w-[800px]" dialogId="candidate-import-modal">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <UploadCloud className="h-5 w-5" />

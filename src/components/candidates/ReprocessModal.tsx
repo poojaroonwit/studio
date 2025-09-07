@@ -183,7 +183,7 @@ export default function ReprocessModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" dialogId="reprocess-modal">
         <DialogHeader>
           <DialogTitle>Re-process Attachment</DialogTitle>
           <DialogDescription>
@@ -411,7 +411,7 @@ export default function ReprocessModal({
         
         return (
           <Dialog open={previewMode === 'fullscreen'} onOpenChange={() => setPreviewMode('thumbnail')}>
-            <DialogContent className="max-w-4xl max-h-[90vh] p-0">
+            <DialogContent className="max-w-4xl max-h-[90vh] p-0" dialogId="reprocess-preview-modal">
               <div className="flex items-center justify-between p-4 border-b">
                 <div className="flex items-center gap-3">
                   <FileText className="h-5 w-5 text-red-500" />

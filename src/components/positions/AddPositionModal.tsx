@@ -302,7 +302,7 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-[95vw] w-full max-h-[90vh] flex flex-col p-0"> {/* Reduced to 90vh to prevent footer overlap */}
+        <DialogContent className="max-w-[95vw] w-full max-h-[90vh] flex flex-col p-0" dialogId="add-position-modal"> {/* Reduced to 90vh to prevent footer overlap */}
           <DialogHeader className="px-8 pt-8 pb-6 flex-shrink-0">
             <DialogTitle className="flex items-center">
               <Briefcase className="mr-2 h-5 w-5 text-primary" /> Add New Position

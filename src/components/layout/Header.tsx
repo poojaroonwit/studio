@@ -161,84 +161,36 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
         const style = document.createElement('style');
         style.id = 'zoom-dropdown-fix';
         style.textContent = `
-          /* Radix UI Dropdowns and Overlays - Fix positioning */
-          [data-radix-popper-content-wrapper] {
-            transform: scale(${1/zoomLevel}) !important;
-            transform-origin: 0 0 !important;
-          }
-          [data-radix-popper-content-wrapper] > * {
-            transform: scale(${zoomLevel}) !important;
-            transform-origin: 0 0 !important;
-          }
-          
-          /* Generic Dropdowns */
-          .dropdown-menu-content {
-            transform: scale(${1/zoomLevel}) !important;
-            transform-origin: 0 0 !important;
-          }
-          .dropdown-menu-content > * {
-            transform: scale(${zoomLevel}) !important;
-            transform-origin: 0 0 !important;
+          /* Reset all overlay transforms to prevent positioning issues */
+          [data-radix-popper-content-wrapper],
+          [data-radix-dropdown-menu-content],
+          [data-radix-dropdown-menu-sub-content],
+          [data-radix-dialog-content],
+          [data-radix-tooltip-content],
+          [data-radix-popover-content],
+          [data-radix-select-content],
+          [data-radix-alert-dialog-content],
+          .dropdown-menu-content,
+          .modal-content,
+          .dialog-content,
+          .overlay-content {
+            transform: none !important;
           }
           
-          /* Modals and Dialogs - Center them properly */
-          [data-radix-dialog-content] {
-            transform: scale(${1/zoomLevel}) !important;
-            transform-origin: 50% 50% !important;
-          }
-          [data-radix-dialog-content] > * {
+          /* Apply zoom to overlay content only, not positioning containers */
+          [data-radix-dropdown-menu-content] > *,
+          [data-radix-dropdown-menu-sub-content] > *,
+          [data-radix-dialog-content] > *,
+          [data-radix-tooltip-content] > *,
+          [data-radix-popover-content] > *,
+          [data-radix-select-content] > *,
+          [data-radix-alert-dialog-content] > *,
+          .dropdown-menu-content > *,
+          .modal-content > *,
+          .dialog-content > *,
+          .overlay-content > * {
             transform: scale(${zoomLevel}) !important;
-            transform-origin: 50% 50% !important;
-          }
-          
-          /* Tooltips */
-          [data-radix-tooltip-content] {
-            transform: scale(${1/zoomLevel}) !important;
-            transform-origin: 0 0 !important;
-          }
-          [data-radix-tooltip-content] > * {
-            transform: scale(${zoomLevel}) !important;
-            transform-origin: 0 0 !important;
-          }
-          
-          /* Popovers */
-          [data-radix-popover-content] {
-            transform: scale(${1/zoomLevel}) !important;
-            transform-origin: 0 0 !important;
-          }
-          [data-radix-popover-content] > * {
-            transform: scale(${zoomLevel}) !important;
-            transform-origin: 0 0 !important;
-          }
-          
-          /* Select Dropdowns */
-          [data-radix-select-content] {
-            transform: scale(${1/zoomLevel}) !important;
-            transform-origin: 0 0 !important;
-          }
-          [data-radix-select-content] > * {
-            transform: scale(${zoomLevel}) !important;
-            transform-origin: 0 0 !important;
-          }
-          
-          /* Alert Dialogs */
-          [data-radix-alert-dialog-content] {
-            transform: scale(${1/zoomLevel}) !important;
-            transform-origin: 50% 50% !important;
-          }
-          [data-radix-alert-dialog-content] > * {
-            transform: scale(${zoomLevel}) !important;
-            transform-origin: 50% 50% !important;
-          }
-          
-          /* Generic Modal Classes */
-          .modal-content, .dialog-content, .overlay-content {
-            transform: scale(${1/zoomLevel}) !important;
-            transform-origin: 50% 50% !important;
-          }
-          .modal-content > *, .dialog-content > *, .overlay-content > * {
-            transform: scale(${zoomLevel}) !important;
-            transform-origin: 50% 50% !important;
+            transform-origin: center center !important;
           }
         `;
         document.head.appendChild(style);
@@ -267,84 +219,36 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
         const style = document.createElement('style');
         style.id = 'zoom-dropdown-fix';
         style.textContent = `
-          /* Radix UI Dropdowns and Overlays - Fix positioning */
-          [data-radix-popper-content-wrapper] {
-            transform: scale(${1/defaultZoom}) !important;
-            transform-origin: 0 0 !important;
-          }
-          [data-radix-popper-content-wrapper] > * {
-            transform: scale(${defaultZoom}) !important;
-            transform-origin: 0 0 !important;
-          }
-          
-          /* Generic Dropdowns */
-          .dropdown-menu-content {
-            transform: scale(${1/defaultZoom}) !important;
-            transform-origin: 0 0 !important;
-          }
-          .dropdown-menu-content > * {
-            transform: scale(${defaultZoom}) !important;
-            transform-origin: 0 0 !important;
+          /* Reset all overlay transforms to prevent positioning issues */
+          [data-radix-popper-content-wrapper],
+          [data-radix-dropdown-menu-content],
+          [data-radix-dropdown-menu-sub-content],
+          [data-radix-dialog-content],
+          [data-radix-tooltip-content],
+          [data-radix-popover-content],
+          [data-radix-select-content],
+          [data-radix-alert-dialog-content],
+          .dropdown-menu-content,
+          .modal-content,
+          .dialog-content,
+          .overlay-content {
+            transform: none !important;
           }
           
-          /* Modals and Dialogs - Center them properly */
-          [data-radix-dialog-content] {
-            transform: scale(${1/defaultZoom}) !important;
-            transform-origin: 50% 50% !important;
-          }
-          [data-radix-dialog-content] > * {
+          /* Apply zoom to overlay content only, not positioning containers */
+          [data-radix-dropdown-menu-content] > *,
+          [data-radix-dropdown-menu-sub-content] > *,
+          [data-radix-dialog-content] > *,
+          [data-radix-tooltip-content] > *,
+          [data-radix-popover-content] > *,
+          [data-radix-select-content] > *,
+          [data-radix-alert-dialog-content] > *,
+          .dropdown-menu-content > *,
+          .modal-content > *,
+          .dialog-content > *,
+          .overlay-content > * {
             transform: scale(${defaultZoom}) !important;
-            transform-origin: 50% 50% !important;
-          }
-          
-          /* Tooltips */
-          [data-radix-tooltip-content] {
-            transform: scale(${1/defaultZoom}) !important;
-            transform-origin: 0 0 !important;
-          }
-          [data-radix-tooltip-content] > * {
-            transform: scale(${defaultZoom}) !important;
-            transform-origin: 0 0 !important;
-          }
-          
-          /* Popovers */
-          [data-radix-popover-content] {
-            transform: scale(${1/defaultZoom}) !important;
-            transform-origin: 0 0 !important;
-          }
-          [data-radix-popover-content] > * {
-            transform: scale(${defaultZoom}) !important;
-            transform-origin: 0 0 !important;
-          }
-          
-          /* Select Dropdowns */
-          [data-radix-select-content] {
-            transform: scale(${1/defaultZoom}) !important;
-            transform-origin: 0 0 !important;
-          }
-          [data-radix-select-content] > * {
-            transform: scale(${defaultZoom}) !important;
-            transform-origin: 0 0 !important;
-          }
-          
-          /* Alert Dialogs */
-          [data-radix-alert-dialog-content] {
-            transform: scale(${1/defaultZoom}) !important;
-            transform-origin: 50% 50% !important;
-          }
-          [data-radix-alert-dialog-content] > * {
-            transform: scale(${defaultZoom}) !important;
-            transform-origin: 50% 50% !important;
-          }
-          
-          /* Generic Modal Classes */
-          .modal-content, .dialog-content, .overlay-content {
-            transform: scale(${1/defaultZoom}) !important;
-            transform-origin: 50% 50% !important;
-          }
-          .modal-content > *, .dialog-content > *, .overlay-content > * {
-            transform: scale(${defaultZoom}) !important;
-            transform-origin: 50% 50% !important;
+            transform-origin: center center !important;
           }
         `;
         document.head.appendChild(style);
@@ -557,84 +461,36 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
       const style = document.createElement('style');
       style.id = 'zoom-dropdown-fix';
       style.textContent = `
-        /* Radix UI Dropdowns and Overlays - Fix positioning */
-        [data-radix-popper-content-wrapper] {
-          transform: scale(${1/zoomLevel}) !important;
-          transform-origin: 0 0 !important;
-        }
-        [data-radix-popper-content-wrapper] > * {
-          transform: scale(${zoomLevel}) !important;
-          transform-origin: 0 0 !important;
-        }
-        
-        /* Generic Dropdowns */
-        .dropdown-menu-content {
-          transform: scale(${1/zoomLevel}) !important;
-          transform-origin: 0 0 !important;
-        }
-        .dropdown-menu-content > * {
-          transform: scale(${zoomLevel}) !important;
-          transform-origin: 0 0 !important;
+        /* Reset all overlay transforms to prevent positioning issues */
+        [data-radix-popper-content-wrapper],
+        [data-radix-dropdown-menu-content],
+        [data-radix-dropdown-menu-sub-content],
+        [data-radix-dialog-content],
+        [data-radix-tooltip-content],
+        [data-radix-popover-content],
+        [data-radix-select-content],
+        [data-radix-alert-dialog-content],
+        .dropdown-menu-content,
+        .modal-content,
+        .dialog-content,
+        .overlay-content {
+          transform: none !important;
         }
         
-        /* Modals and Dialogs - Center them properly */
-        [data-radix-dialog-content] {
-          transform: scale(${1/zoomLevel}) !important;
-          transform-origin: 50% 50% !important;
-        }
-        [data-radix-dialog-content] > * {
+        /* Apply zoom to overlay content only, not positioning containers */
+        [data-radix-dropdown-menu-content] > *,
+        [data-radix-dropdown-menu-sub-content] > *,
+        [data-radix-dialog-content] > *,
+        [data-radix-tooltip-content] > *,
+        [data-radix-popover-content] > *,
+        [data-radix-select-content] > *,
+        [data-radix-alert-dialog-content] > *,
+        .dropdown-menu-content > *,
+        .modal-content > *,
+        .dialog-content > *,
+        .overlay-content > * {
           transform: scale(${zoomLevel}) !important;
-          transform-origin: 50% 50% !important;
-        }
-        
-        /* Tooltips */
-        [data-radix-tooltip-content] {
-          transform: scale(${1/zoomLevel}) !important;
-          transform-origin: 0 0 !important;
-        }
-        [data-radix-tooltip-content] > * {
-          transform: scale(${zoomLevel}) !important;
-          transform-origin: 0 0 !important;
-        }
-        
-        /* Popovers */
-        [data-radix-popover-content] {
-          transform: scale(${1/zoomLevel}) !important;
-          transform-origin: 0 0 !important;
-        }
-        [data-radix-popover-content] > * {
-          transform: scale(${zoomLevel}) !important;
-          transform-origin: 0 0 !important;
-        }
-        
-        /* Select Dropdowns */
-        [data-radix-select-content] {
-          transform: scale(${1/zoomLevel}) !important;
-          transform-origin: 0 0 !important;
-        }
-        [data-radix-select-content] > * {
-          transform: scale(${zoomLevel}) !important;
-          transform-origin: 0 0 !important;
-        }
-        
-        /* Alert Dialogs */
-        [data-radix-alert-dialog-content] {
-          transform: scale(${1/zoomLevel}) !important;
-          transform-origin: 50% 50% !important;
-        }
-        [data-radix-alert-dialog-content] > * {
-          transform: scale(${zoomLevel}) !important;
-          transform-origin: 50% 50% !important;
-        }
-        
-        /* Generic Modal Classes */
-        .modal-content, .dialog-content, .overlay-content {
-          transform: scale(${1/zoomLevel}) !important;
-          transform-origin: 50% 50% !important;
-        }
-        .modal-content > *, .dialog-content > *, .overlay-content > * {
-          transform: scale(${zoomLevel}) !important;
-          transform-origin: 50% 50% !important;
+          transform-origin: center center !important;
         }
       `;
       

@@ -128,40 +128,60 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
   // Screen size state
   const [currentScreenSize, setCurrentScreenSize] = useState(100);
 
-  // Load current browser zoom level on mount
+  // Load saved zoom level on mount
   useEffect(() => {
     try {
-      // Get current browser zoom level
-      const currentZoom = window.outerWidth / window.innerWidth;
-      
-      // Map browser zoom to application zoom
-      // Browser 90% = Application 100%
-      // Browser 100% = Application 111%
-      // Browser 75% = Application 83%
-      // etc.
-      const applicationZoom = Math.round((currentZoom / 0.9) * 100);
-      setCurrentScreenSize(applicationZoom);
-      
-      // If browser is at default zoom (100%), set it to 90% and show as 100% in app
-      if (Math.abs(currentZoom - 1.0) < 0.05) {
-        // Browser is at 100%, we want it at 90%
-        const event = new KeyboardEvent('keydown', {
-          key: '-',
-          code: 'Minus',
-          keyCode: 189,
-          which: 189,
-          ctrlKey: true,
-          metaKey: false,
-          shiftKey: false,
-          altKey: false,
-          bubbles: true,
-          cancelable: true
-        });
-        window.dispatchEvent(event);
-        setCurrentScreenSize(100); // Show as 100% in app
+      // Check if there's a saved zoom level
+      const savedZoom = localStorage.getItem('app-zoom-level');
+      if (savedZoom) {
+        const zoomLevel = parseFloat(savedZoom);
+        const screenSize = Math.round(zoomLevel * 100);
+        setCurrentScreenSize(screenSize);
+        
+        // Apply the saved zoom level
+        document.documentElement.style.transform = `scale(${zoomLevel})`;
+        document.documentElement.style.transformOrigin = 'top left';
+        
+        // Adjust body dimensions
+        const scaledWidth = 100 / zoomLevel;
+        const scaledHeight = 100 / zoomLevel;
+        document.body.style.width = `${scaledWidth}vw`;
+        document.body.style.height = `${scaledHeight}vh`;
+        
+        // Apply to root container if it exists
+        const rootContainer = document.getElementById('__next');
+        if (rootContainer) {
+          rootContainer.style.transform = `scale(${zoomLevel})`;
+          rootContainer.style.transformOrigin = 'top left';
+          rootContainer.style.width = `${scaledWidth}vw`;
+          rootContainer.style.height = `${scaledHeight}vh`;
+        }
+      } else {
+        // Default to 90% zoom (showing as 100% in app)
+        setCurrentScreenSize(100);
+        const defaultZoom = 0.9;
+        
+        document.documentElement.style.transform = `scale(${defaultZoom})`;
+        document.documentElement.style.transformOrigin = 'top left';
+        
+        const scaledWidth = 100 / defaultZoom;
+        const scaledHeight = 100 / defaultZoom;
+        document.body.style.width = `${scaledWidth}vw`;
+        document.body.style.height = `${scaledHeight}vh`;
+        
+        const rootContainer = document.getElementById('__next');
+        if (rootContainer) {
+          rootContainer.style.transform = `scale(${defaultZoom})`;
+          rootContainer.style.transformOrigin = 'top left';
+          rootContainer.style.width = `${scaledWidth}vw`;
+          rootContainer.style.height = `${scaledHeight}vh`;
+        }
+        
+        // Save the default zoom level
+        localStorage.setItem('app-zoom-level', defaultZoom.toString());
       }
     } catch (error) {
-      console.warn('Failed to get current browser zoom:', error);
+      console.warn('Failed to load saved zoom level:', error);
     }
   }, []);
 
@@ -335,62 +355,39 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
   const handleScreenSizeChange = useCallback((size: number) => {
     setCurrentScreenSize(size);
     
-    // Convert application zoom to browser zoom
-    // Application 100% = Browser 90%
-    // Application 110% = Browser 99%
-    // Application 90% = Browser 81%
-    // etc.
-    const targetBrowserZoom = (size / 100) * 0.9;
+    // Use CSS transform to zoom the entire page including all UI elements
+    const zoomLevel = size / 100;
     
-    // Try to use browser's native zoom API
     try {
-      // Method 1: Try Chrome extension API (if available)
-      if (window.chrome && window.chrome.tabs && window.chrome.tabs.setZoom) {
-        window.chrome.tabs.setZoom(targetBrowserZoom);
-        toast.success(`Screen size set to ${size}%`);
-        return;
+      // Apply transform to the html element to zoom everything
+      document.documentElement.style.transform = `scale(${zoomLevel})`;
+      document.documentElement.style.transformOrigin = 'top left';
+      
+      // Adjust the body width and height to prevent horizontal scroll
+      const scaledWidth = 100 / zoomLevel;
+      const scaledHeight = 100 / zoomLevel;
+      document.body.style.width = `${scaledWidth}vw`;
+      document.body.style.height = `${scaledHeight}vh`;
+      
+      // Also apply to the root container if it exists
+      const rootContainer = document.getElementById('__next');
+      if (rootContainer) {
+        rootContainer.style.transform = `scale(${zoomLevel})`;
+        rootContainer.style.transformOrigin = 'top left';
+        rootContainer.style.width = `${scaledWidth}vw`;
+        rootContainer.style.height = `${scaledHeight}vh`;
       }
       
-      // Method 2: Try Firefox zoom API (if available)
-      if (window.fullZoom) {
-        window.fullZoom = targetBrowserZoom;
-        toast.success(`Screen size set to ${size}%`);
-        return;
-      }
+      // Store the zoom level for persistence
+      localStorage.setItem('app-zoom-level', zoomLevel.toString());
       
-      // Method 3: Try Safari zoom API (if available)
-      if (window.zoom) {
-        window.zoom(targetBrowserZoom);
-        toast.success(`Screen size set to ${size}%`);
-        return;
-      }
-      
-      // Method 4: Try to use document.execCommand (deprecated but might work)
-      if (document.execCommand) {
-        const zoomLevel = Math.round(targetBrowserZoom * 100);
-        document.execCommand('zoom', false, zoomLevel.toString());
-        toast.success(`Screen size set to ${size}%`);
-        return;
-      }
-      
-      // Method 5: Try to use the browser's zoom property
-      if (document.body.style.zoom !== undefined) {
-        document.body.style.zoom = targetBrowserZoom.toString();
-        document.documentElement.style.zoom = targetBrowserZoom.toString();
-        toast.success(`Screen size set to ${size}%`);
-        return;
-      }
-      
-      // If none of the above work, show error message
-      toast.error('Browser zoom cannot be controlled programmatically. Please use Ctrl+Plus/Minus manually.');
+      // Show success message
+      toast.success(`Screen size set to ${size}%`);
       
     } catch (error) {
       console.error('Error setting screen size:', error);
-      toast.error('Browser zoom cannot be controlled programmatically. Please use Ctrl+Plus/Minus manually.');
+      toast.error('Failed to set screen size');
     }
-    
-    // Store the target zoom level
-    localStorage.setItem('app-zoom-level', targetBrowserZoom.toString());
   }, []);
 
   const handleEditProfile = useCallback(async (data: UserFormValues) => {

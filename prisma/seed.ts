@@ -641,10 +641,13 @@ Do not include any markdown formatting, code blocks, or additional text. Only re
         fieldKey: 'toeic_score',
         fieldCode: 'TOEIC_SCORE',
         label: 'TOEIC Score',
-        fieldType: 'SELECT',
+        fieldType: 'select_single',
         modelName: 'Candidate',
         isRequired: false,
         sortOrder: 1,
+        showInCandidateDetail: true,
+        showInFullCandidateDetail: true,
+        candidateDetailSection: 'candidate-info',
         options: JSON.stringify({
           minValue: 0,
           maxValue: 990,
@@ -666,6 +669,55 @@ Do not include any markdown formatting, code blocks, or additional text. Only re
           modelName: 'Candidate',
           fieldKey: 'toeic_score'
         }
+      }
+    });
+
+    // Create additional sample custom fields for testing
+    console.log('Creating additional custom field definitions...');
+    
+    // Years of Experience field
+    await prisma.customFieldDefinition.upsert({
+      where: { 
+        modelName_fieldKey: {
+          modelName: 'Candidate',
+          fieldKey: 'years_experience'
+        }
+      },
+      update: {},
+      create: {
+        fieldKey: 'years_experience',
+        fieldCode: 'YEARS_EXPERIENCE',
+        label: 'Years of Experience',
+        fieldType: 'number',
+        modelName: 'Candidate',
+        isRequired: false,
+        sortOrder: 2,
+        showInCandidateDetail: true,
+        showInFullCandidateDetail: true,
+        candidateDetailSection: 'candidate-info',
+      }
+    });
+
+    // Notes field
+    await prisma.customFieldDefinition.upsert({
+      where: { 
+        modelName_fieldKey: {
+          modelName: 'Candidate',
+          fieldKey: 'additional_notes'
+        }
+      },
+      update: {},
+      create: {
+        fieldKey: 'additional_notes',
+        fieldCode: 'ADDITIONAL_NOTES',
+        label: 'Additional Notes',
+        fieldType: 'textarea',
+        modelName: 'Candidate',
+        isRequired: false,
+        sortOrder: 3,
+        showInCandidateDetail: true,
+        showInFullCandidateDetail: true,
+        candidateDetailSection: 'candidate-info',
       }
     });
 

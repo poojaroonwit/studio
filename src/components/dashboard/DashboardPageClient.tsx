@@ -284,7 +284,7 @@ export default function DashboardPageClient({
             
             return backlogData.filter(c => {
               try {
-                return c && !(stageIds.hired && c.status === stageIds.hired) && !(stageIds.rejected && c.status === stageIds.rejected);
+                return c && !(stageIds.hired && c.statusId === stageIds.hired) && !(stageIds.rejected && c.statusId === stageIds.rejected);
               } catch (error) {
                 return false;
               }
@@ -374,8 +374,8 @@ export default function DashboardPageClient({
       // User can only see their assigned candidates
       setMyAssignedCandidates(initialCandidates || []);
       setMyBacklogCandidates((initialCandidates || []).filter(c => 
-      !(stageIds.hired && c.status === stageIds.hired) && 
-      !(stageIds.rejected && c.status === stageIds.rejected)
+      !(stageIds.hired && c.statusId === stageIds.hired) && 
+      !(stageIds.rejected && c.statusId === stageIds.rejected)
     ));
     }
     setAllPositions(initialPositions || []);
@@ -510,8 +510,8 @@ export default function DashboardPageClient({
     
     // Combined candidate statistics
     const totalActiveCandidates = safeAllCandidates.filter((c: Candidate) => 
-      !(stageIds.hired && c.status === stageIds.hired) && 
-      !(stageIds.rejected && c.status === stageIds.rejected)
+      !(stageIds.hired && c.statusId === stageIds.hired) && 
+      !(stageIds.rejected && c.statusId === stageIds.rejected)
     ).length;
     
     // Combined position statistics
@@ -520,7 +520,7 @@ export default function DashboardPageClient({
     
     // Combined monthly statistics
     const hiredThisMonthAdmin = safeAllCandidates.filter((c: Candidate) => {
-      if (!stageIds.hired || c.status !== stageIds.hired || !c.applicationDate || typeof c.applicationDate !== 'string') return false;
+      if (!stageIds.hired || c.statusId !== stageIds.hired || !c.applicationDate || typeof c.applicationDate !== 'string') return false;
       try {
         const appDate = parseISO(c.applicationDate);
         return appDate.getMonth() === now.getMonth() && appDate.getFullYear() === now.getFullYear();
@@ -528,7 +528,7 @@ export default function DashboardPageClient({
     }).length;
     
     const rejectedThisMonthAdmin = safeAllCandidates.filter((c: Candidate) => {
-      if (!stageIds.rejected || c.status !== stageIds.rejected || !c.applicationDate || typeof c.applicationDate !== 'string') return false;
+      if (!stageIds.rejected || c.statusId !== stageIds.rejected || !c.applicationDate || typeof c.applicationDate !== 'string') return false;
       try {
         const appDate = parseISO(c.applicationDate);
         return appDate.getMonth() === now.getMonth() && appDate.getFullYear() === now.getFullYear();
@@ -558,8 +558,8 @@ export default function DashboardPageClient({
     
     // Combined my candidates statistics
     const myActiveCandidatesList = safeMyAssignedCandidates.filter((c: Candidate) => 
-      !(stageIds.hired && c.status === getStageName(stageIds.hired)) && 
-      !(stageIds.rejected && c.status === getStageName(stageIds.rejected))
+      !(stageIds.hired && c.statusId === stageIds.hired) && 
+      !(stageIds.rejected && c.statusId === stageIds.rejected)
     );
     const myCandidatesInInterviewCount = myActiveCandidatesList.filter((c: Candidate) => INTERVIEW_STATUSES.includes(c.status || '')).length;
     

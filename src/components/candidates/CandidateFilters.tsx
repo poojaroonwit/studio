@@ -394,7 +394,15 @@ export function CandidateFilters({
       applicationDateStart: applicationDateRange?.from,
       applicationDateEnd: applicationDateRange?.to,
       selectedRecruiterIds: selectedRecruiterIds.size > 0 ? Array.from(selectedRecruiterIds) : undefined,
-      customFieldFilters: Object.keys(customFieldFilters).length > 0 ? customFieldFilters : undefined,
+      customFieldFilters: (() => {
+        const filteredCustomFields: { [fieldCode: string]: any } = {};
+        for (const [fieldCode, value] of Object.entries(customFieldFilters)) {
+          if (value !== undefined && value !== null && (value === false || value !== '')) {
+            filteredCustomFields[fieldCode] = value;
+          }
+        }
+        return Object.keys(filteredCustomFields).length > 0 ? filteredCustomFields : undefined;
+      })(),
       aiSearchQuery: undefined,
     };
 
@@ -446,7 +454,7 @@ export function CandidateFilters({
     // Reset flag after a delay - store timeout ID for cleanup
     const timeoutId = setTimeout(() => {
       setIsApplyingFilters(false);
-    }, 100); // Increased to 100ms to prevent rapid state changes
+    }, 50); // Reduced to 50ms for better responsiveness
     
     // Store timeout ID for cleanup
     if (applyingFiltersTimeoutRef.current) {
@@ -485,7 +493,7 @@ export function CandidateFilters({
     // Debounce filter application to prevent rapid successive calls
     autoApplyTimeoutRef.current = setTimeout(() => {
       handleApplyStandardFilters();
-    }, 200); // Increased debounce time to prevent infinite loops
+    }, 100); // Reduced debounce time for better user experience
     
     // Cleanup timeout on unmount or dependency change
     return () => {

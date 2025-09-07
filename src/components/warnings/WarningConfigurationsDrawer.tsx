@@ -258,7 +258,8 @@ export function WarningConfigurationsDrawer({
     <>
              <Sheet open={isOpen} onOpenChange={onOpenChange}>
          <SheetContent 
-           className="!w-[50vw] !max-w-[50vw] min-w-[600px] overflow-y-auto"
+           className="min-w-[600px] overflow-y-auto"
+           style={{ width: '50vw', maxWidth: '50vw' }}
            sheetId="warning-configurations-drawer"
          >
           <SheetHeader className="pb-4">

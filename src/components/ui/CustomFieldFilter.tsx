@@ -33,7 +33,7 @@ export function CustomFieldFilter({
         return (
           <Input
             value={value || ''}
-            onChange={(e) => onChange(e.target.value)}
+            onChange={(e) => onChange(e.target.value || null)}
             placeholder={`Filter by ${definition.label.toLowerCase()}...`}
             className="w-full"
           />

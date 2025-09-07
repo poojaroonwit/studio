@@ -908,6 +908,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
           candidateId={candidate.id}
           candidateName={candidate.name || 'Unknown Candidate'}
           candidatePositionId={candidate.positionId}
+          candidateSourceId={candidate.sourceId}
           attachments={resumes}
           positions={allDbPositions}
         />

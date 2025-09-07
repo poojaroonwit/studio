@@ -19,6 +19,7 @@ interface ReprocessModalProps {
   candidateId: string;
   candidateName: string;
   candidatePositionId?: string | null;
+  candidateSourceId?: string | null;
   attachments: Array<{
     id: string;
     fileName: string;
@@ -37,6 +38,7 @@ export default function ReprocessModal({
   candidateId,
   candidateName,
   candidatePositionId,
+  candidateSourceId,
   attachments,
   positions
 }: ReprocessModalProps) {
@@ -126,11 +128,13 @@ export default function ReprocessModal({
           source: 'reprocess',
           upload_id: uuidv4(), // Generate a unique upload ID
           position_id: selectedPositionId,
+          source_id: candidateSourceId, // Include candidate's source ID
           webhook_payload: {
             candidate_id: candidateId,
             request_type: 'update',
             source: 'reprocess',
-            attachment_id: attachment.id
+            attachment_id: attachment.id,
+            sourceId: candidateSourceId // Include sourceId in webhook payload
           }
         }),
       });

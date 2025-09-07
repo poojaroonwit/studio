@@ -55,6 +55,10 @@ const UploadResumeModal = ({ isOpen, onOpenChange, candidate, onUploadSuccess }:
       const formData = new FormData();
       formData.append('resume', file); // must be 'resume'
       formData.append('position_id', candidate.positionId); // must be 'position_id', ensure not empty
+      // Include source_id if available
+      if (candidate.sourceId) {
+        formData.append('source_id', candidate.sourceId);
+      }
       const url = `/api/resumes/upload?candidateId=${candidate.id}`; // candidateId as query param
       const response = await fetch(url, {
         method: 'POST',

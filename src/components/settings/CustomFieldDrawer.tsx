@@ -137,6 +137,7 @@ export default function CustomFieldDrawer({
       showInFullCandidateDetail: false,
       showInTaskBoardFilter: false,
       showInPositionSettings: false,
+      showInHeadcountDetail: false,
       candidateDetailSection: undefined,
       positionDetailSection: undefined,
       is_required: false,
@@ -193,9 +194,9 @@ export default function CustomFieldDrawer({
         showInFullCandidateDetail: false,
         showInTaskBoardFilter: false,
         showInPositionSettings: false,
+        showInHeadcountDetail: false,
         candidateDetailSection: undefined,
         positionDetailSection: undefined,
-        showInHeadcountDetail: false,
         is_required: false,
         allowCustomOptions: false,
         sort_order: 0,
@@ -216,6 +217,24 @@ export default function CustomFieldDrawer({
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log('Form submit button clicked');
+    console.log('Form values:', form.getValues());
+    console.log('Form errors:', form.formState.errors);
+    
+    form.handleSubmit(handleSubmit, (errors) => {
+      console.error('Form validation errors:', errors);
+      // Show validation errors to user
+      const errorMessages = Object.values(errors).map(error => error?.message).filter(Boolean);
+      if (errorMessages.length > 0) {
+        toast.error(`Validation errors: ${errorMessages.join(', ')}`);
+      } else {
+        toast.error('Please check the form for errors');
+      }
+    })();
   };
 
   const addOption = () => {
@@ -984,7 +1003,7 @@ export default function CustomFieldDrawer({
               Cancel
             </Button>
             <Button 
-              onClick={form.handleSubmit(handleSubmit)} 
+              onClick={handleFormSubmit} 
               disabled={isSubmitting}
               className="flex-1"
             >

@@ -127,8 +127,8 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       additionalAttachment = job.webhook_payload.additionalAttachment || null; // Extract additional attachment from webhook payload
     }
     
-    // Use sourceId from webhook_payload if available, otherwise fall back to job.sourceId from database
-    const finalSourceId = sourceId || job.sourceId || null;
+    // Use sourceId from webhook_payload if available, otherwise fall back to job.source_id from database
+    const finalSourceId = sourceId || job.source_id || null;
     
     // Use targetPositionId from webhook_payload if available, otherwise fall back to job.position_id
     const finalPositionId = targetPositionId || job.position_id;
@@ -351,6 +351,20 @@ This appears to be a timeout issue. Consider reducing the webhook timeout settin
       [status, error, error_details, payload, job.id]
     );
     
+    // 5. Dispatch webhook events for completion/failure
+    try {
+      const { dispatchWebhooks } = await import('./webhookDispatcher');
+      const updatedJob = { ...job, status, error, error_details };
+      
+      if (status === 'success') {
+        await dispatchWebhooks.uploadQueueCompleted(updatedJob, { processing_result: 'success' });
+      } else if (status === 'failed') {
+        await dispatchWebhooks.uploadQueueFailed(updatedJob, { error_details: error_details || error });
+      }
+    } catch (webhookDispatchError) {
+      console.error(`[Webhook] Failed to dispatch upload queue ${status} webhook for job ${job.id}:`, webhookDispatchError);
+    }
+    
     // Publish queue update event
     
     if (typeof global !== 'undefined' && typeof global.gc === 'function') {
@@ -378,6 +392,15 @@ This appears to be a timeout issue. Consider reducing the webhook timeout settin
         `UPDATE upload_queue SET status = 'failed', error = $1, error_details = $2, completed_date = now(), updated_at = now(), webhook_payload = $3 WHERE id = $4`,
         [errorMessage, errorStack, payload, job.id]
       );
+      
+      // Dispatch webhook event for failure
+      try {
+        const { dispatchWebhooks } = await import('./webhookDispatcher');
+        const failedJob = { ...job, status: 'failed', error: errorMessage, error_details: errorStack };
+        await dispatchWebhooks.uploadQueueFailed(failedJob, { error_details: errorStack });
+      } catch (webhookDispatchError) {
+        console.error(`[Webhook] Failed to dispatch upload queue failed webhook for job ${job.id}:`, webhookDispatchError);
+      }
       
       console.error(`Upload queue job '${job.file_name}' failed with exception`, {
         jobId: job.id,

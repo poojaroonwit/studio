@@ -393,6 +393,15 @@ export class WebhookDispatcher {
       }
     }
 
+    // Extract source information from webhook_payload if direct source_id is not available
+    let finalSourceId = uploadQueueItem.source_id || uploadQueueItem.sourceId;
+    let finalSubSource = uploadQueueItem.sub_source || uploadQueueItem.subSource;
+    
+    if (!finalSourceId && uploadQueueItem.webhook_payload && typeof uploadQueueItem.webhook_payload === 'object') {
+      finalSourceId = uploadQueueItem.webhook_payload.sourceId || null;
+      // Note: sub_source is not typically stored in webhook_payload, so we keep the direct value
+    }
+
     return this.dispatch(event, {
       upload_queue: {
         id: uploadQueueItem.id,
@@ -402,8 +411,8 @@ export class WebhookDispatcher {
         error: uploadQueueItem.error,
         error_details: uploadQueueItem.error_details || uploadQueueItem.errorDetails,
         source: uploadQueueItem.source,
-        source_id: uploadQueueItem.source_id || uploadQueueItem.sourceId,
-        sub_source: uploadQueueItem.sub_source || uploadQueueItem.subSource,
+        source_id: finalSourceId,
+        sub_source: finalSubSource,
         upload_date: uploadQueueItem.upload_date || uploadQueueItem.uploadDate,
         completed_date: uploadQueueItem.completed_date || uploadQueueItem.completedDate,
         file_path: uploadQueueItem.file_path || uploadQueueItem.filePath,

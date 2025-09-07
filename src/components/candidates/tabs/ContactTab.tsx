@@ -116,6 +116,17 @@ export const ContactTab: React.FC<ContactTabProps> = ({
             )}
           </CardContent>
         </Card>
+
+        {/* Custom Fields for Additional Information Section */}
+        <CustomFieldEdit
+          modelName="Candidate"
+          section="candidate-info"
+          entityId={candidate.id}
+          customFields={candidate.customFields || {}}
+          onFieldChange={onCustomFieldChange || (() => {})}
+          title="Additional Information"
+          refreshTrigger={customFieldsRefreshTrigger}
+        />
       </div>
     );
   }

@@ -16,8 +16,8 @@ const createCustomFieldSchema = z.object({
   field_type: z.enum(['text', 'textarea', 'number', 'boolean', 'date', 'select_single', 'select_multiple']),
   
   // Role permissions - using role IDs (UUIDs)
-  viewRoles: z.array(z.string().uuid()).default([]),
-  editRoles: z.array(z.string().uuid()).default([]),
+  viewRoles: z.array(z.string().uuid()).default([]).or(z.string().transform(() => [])),
+  editRoles: z.array(z.string().uuid()).default([]).or(z.string().transform(() => [])),
   
   // Visibility settings
   showInFilter: z.boolean().default(false),
@@ -28,8 +28,8 @@ const createCustomFieldSchema = z.object({
   showInHeadcountDetail: z.boolean().default(false),
   
   // Section selection for display settings
-  candidateDetailSection: z.enum(['jobs', 'candidate-info', 'education', 'experience', 'job-suitability']).optional(),
-  positionDetailSection: z.enum(['details', 'criteria', 'candidates', 'headcount']).optional(),
+  candidateDetailSection: z.enum(['jobs', 'candidate-info', 'education', 'experience', 'job-suitability']).optional().nullable(),
+  positionDetailSection: z.enum(['details', 'criteria', 'candidates', 'headcount']).optional().nullable(),
   
   // Field properties
   is_required: z.boolean().default(false),
@@ -44,7 +44,7 @@ const createCustomFieldSchema = z.object({
     color: z.string().optional(),
     sortOrder: z.number().default(0),
     isActive: z.boolean().default(true),
-  })).optional().default([]),
+  })).optional().default([]).or(z.string().transform(() => [])),
 });
 
 const updateCustomFieldSchema = createCustomFieldSchema.partial().omit({ model_name: true, field_code: true });

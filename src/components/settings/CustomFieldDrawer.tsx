@@ -50,8 +50,8 @@ const customFieldFormSchema = z.object({
   showInHeadcountDetail: z.boolean().default(false),
   
   // Section selection for display settings
-  candidateDetailSection: z.enum(['jobs', 'candidate-info', 'education', 'experience', 'job-suitability']).optional(),
-  positionDetailSection: z.enum(['details', 'criteria', 'candidates', 'headcount']).optional(),
+  candidateDetailSection: z.enum(['jobs', 'candidate-info', 'education', 'experience', 'job-suitability']).optional().nullable(),
+  positionDetailSection: z.enum(['details', 'criteria', 'candidates', 'headcount']).optional().nullable(),
   
   // Field properties
   is_required: z.boolean().default(false),
@@ -166,20 +166,20 @@ export default function CustomFieldDrawer({
         field_code: definition.field_code,
         label: definition.label,
         field_type: definition.field_type,
-        viewRoles: definition.viewRoles || [],
-        editRoles: definition.editRoles || [],
+        viewRoles: Array.isArray(definition.viewRoles) ? definition.viewRoles : [],
+        editRoles: Array.isArray(definition.editRoles) ? definition.editRoles : [],
         showInFilter: definition.showInFilter || false,
         showInCandidateDetail: definition.showInCandidateDetail || false,
         showInFullCandidateDetail: definition.showInFullCandidateDetail || false,
         showInTaskBoardFilter: definition.showInTaskBoardFilter || false,
         showInPositionSettings: definition.showInPositionSettings || false,
-        candidateDetailSection: definition.candidateDetailSection,
-        positionDetailSection: definition.positionDetailSection,
+        candidateDetailSection: definition.candidateDetailSection || undefined,
+        positionDetailSection: definition.positionDetailSection || undefined,
         showInHeadcountDetail: definition.showInHeadcountDetail || false,
         is_required: definition.is_required || false,
         allowCustomOptions: definition.allowCustomOptions || false,
         sort_order: definition.sort_order || 0,
-        options: definition.options || [],
+        options: Array.isArray(definition.options) ? definition.options : [],
       });
     } else if (!definition && open) {
       form.reset({
@@ -224,6 +224,7 @@ export default function CustomFieldDrawer({
     console.log('Form submit button clicked');
     console.log('Form values:', form.getValues());
     console.log('Form errors:', form.formState.errors);
+    console.log('Definition data:', definition);
     
     form.handleSubmit(handleSubmit, (errors) => {
       console.error('Form validation errors:', errors);

@@ -138,45 +138,17 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
         const screenSize = Math.round(scale * 100);
         setCurrentScreenSize(screenSize);
         
-        // Apply the saved zoom level using CSS transform
-        document.documentElement.style.transform = `scale(${scale})`;
-        document.documentElement.style.transformOrigin = 'top left';
-        document.documentElement.style.transformBox = 'border-box';
-        
-        // Adjust container size
-        const scaledWidth = 100 / scale;
-        const scaledHeight = 100 / scale;
-        document.documentElement.style.width = `${scaledWidth}%`;
-        document.documentElement.style.height = `${scaledHeight}%`;
-        document.body.style.width = `${scaledWidth}%`;
-        document.body.style.height = `${scaledHeight}%`;
-        document.body.style.minHeight = `${scaledHeight}%`;
-        
-        // Set overflow to prevent scrollbars
-        document.documentElement.style.overflow = 'hidden';
-        document.body.style.overflow = 'hidden';
+        // Apply the saved zoom level using CSS custom properties
+        document.documentElement.style.setProperty('--zoom-scale', scale.toString());
+        document.documentElement.style.setProperty('--zoom-scale-inverse', (1 / scale).toString());
       } else {
         // Default to 90% zoom (showing as 90% in app)
         setCurrentScreenSize(90);
         const defaultScale = 0.9;
         
-        // Apply default zoom using CSS transform
-        document.documentElement.style.transform = `scale(${defaultScale})`;
-        document.documentElement.style.transformOrigin = 'top left';
-        document.documentElement.style.transformBox = 'border-box';
-        
-        // Adjust container size
-        const scaledWidth = 100 / defaultScale;
-        const scaledHeight = 100 / defaultScale;
-        document.documentElement.style.width = `${scaledWidth}%`;
-        document.documentElement.style.height = `${scaledHeight}%`;
-        document.body.style.width = `${scaledWidth}%`;
-        document.body.style.height = `${scaledHeight}%`;
-        document.body.style.minHeight = `${scaledHeight}%`;
-        
-        // Set overflow to prevent scrollbars
-        document.documentElement.style.overflow = 'hidden';
-        document.body.style.overflow = 'hidden';
+        // Apply default zoom using CSS custom properties
+        document.documentElement.style.setProperty('--zoom-scale', defaultScale.toString());
+        document.documentElement.style.setProperty('--zoom-scale-inverse', (1 / defaultScale).toString());
         
         // Save the default zoom level
         localStorage.setItem('app-zoom-level', defaultScale.toString());
@@ -356,29 +328,13 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
   const handleScreenSizeChange = useCallback((size: number) => {
     setCurrentScreenSize(size);
     
-    // Use CSS transform scale to zoom everything including dropdowns
+    // Use CSS custom properties for zoom scaling
     const scale = size / 100;
     
     try {
-      // Apply transform scale to the entire page
-      document.documentElement.style.transform = `scale(${scale})`;
-      document.documentElement.style.transformOrigin = 'top left';
-      document.documentElement.style.transformBox = 'border-box';
-      
-      // Adjust the container size to prevent scrollbars
-      const scaledWidth = 100 / scale;
-      const scaledHeight = 100 / scale;
-      document.documentElement.style.width = `${scaledWidth}%`;
-      document.documentElement.style.height = `${scaledHeight}%`;
-      
-      // Ensure the body takes full height
-      document.body.style.width = `${scaledWidth}%`;
-      document.body.style.height = `${scaledHeight}%`;
-      document.body.style.minHeight = `${scaledHeight}%`;
-      
-      // Also apply to html element for better coverage
-      document.documentElement.style.overflow = 'hidden';
-      document.body.style.overflow = 'hidden';
+      // Apply zoom using CSS custom properties
+      document.documentElement.style.setProperty('--zoom-scale', scale.toString());
+      document.documentElement.style.setProperty('--zoom-scale-inverse', (1 / scale).toString());
       
       // Store the zoom level
       localStorage.setItem('app-zoom-level', scale.toString());

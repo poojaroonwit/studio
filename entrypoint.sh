@@ -91,25 +91,53 @@ fi
 if [ "$FRESH_DB" -eq 1 ]; then
     echo "🚀 Fresh deployment - creating initial migration..."
     
-    # Create initial migration for fresh database
-    if npx prisma migrate dev --name init --create-only --schema=prisma/schema.prisma; then
-        echo "✅ Initial migration created successfully"
+    # Check if database has existing tables but no migration history
+    EXISTING_TABLES=$(echo "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE';" | npx prisma db execute --stdin --schema=prisma/schema.prisma 2>/dev/null | grep -E '^[0-9]+$' || echo "0")
+    
+    if [ "$EXISTING_TABLES" -gt "0" ]; then
+        echo "⚠️  Database has existing tables but no migration history"
+        echo "🔄 Using db push to sync schema and mark migrations as applied..."
         
-        # Apply the created migration
-        if npx prisma migrate deploy --schema=prisma/schema.prisma; then
-            echo "✅ Initial migration applied successfully"
-        else
-            echo "❌ Failed to apply initial migration"
-            exit 1
-        fi
-    else
-        echo "❌ Failed to create initial migration"
-        echo "🔄 Attempting to use db push as fallback..."
+        # Use db push to sync the schema
         if npx prisma db push --accept-data-loss --schema=prisma/schema.prisma; then
             echo "✅ Database schema synced using db push"
+            
+            # Mark existing migrations as applied to avoid future conflicts
+            echo "📝 Marking existing migrations as applied..."
+            for migration_dir in prisma/migrations/*/; do
+                if [ -d "$migration_dir" ]; then
+                    migration_name=$(basename "$migration_dir")
+                    if [ "$migration_name" != "migration_lock.toml" ]; then
+                        echo "  - Marking $migration_name as applied"
+                        npx prisma migrate resolve --applied "$migration_name" --schema=prisma/schema.prisma 2>/dev/null || true
+                    fi
+                fi
+            done
         else
             echo "❌ Failed to sync database schema"
             exit 1
+        fi
+    else
+        # Create initial migration for truly fresh database
+        if npx prisma migrate dev --name init --create-only --schema=prisma/schema.prisma; then
+            echo "✅ Initial migration created successfully"
+            
+            # Apply the created migration
+            if npx prisma migrate deploy --schema=prisma/schema.prisma; then
+                echo "✅ Initial migration applied successfully"
+            else
+                echo "❌ Failed to apply initial migration"
+                exit 1
+            fi
+        else
+            echo "❌ Failed to create initial migration"
+            echo "🔄 Attempting to use db push as fallback..."
+            if npx prisma db push --accept-data-loss --schema=prisma/schema.prisma; then
+                echo "✅ Database schema synced using db push"
+            else
+                echo "❌ Failed to sync database schema"
+                exit 1
+            fi
         fi
     fi
     

@@ -105,6 +105,16 @@ export function useCandidateFetching({
       }
       if (currentFilters.selectedRecruiterIds && currentFilters.selectedRecruiterIds.length > 0) query.append('recruiterId', currentFilters.selectedRecruiterIds.join(','));
       if (currentFilters.selectedSourceIds && currentFilters.selectedSourceIds.length > 0) query.append('sourceId', currentFilters.selectedSourceIds.join(','));
+      
+      // Handle custom field filters
+      if (currentFilters.customFieldFilters && Object.keys(currentFilters.customFieldFilters).length > 0) {
+        for (const [fieldCode, value] of Object.entries(currentFilters.customFieldFilters)) {
+          if (value !== undefined && value !== null && value !== '') {
+            query.append(`customField_${fieldCode}`, String(value));
+          }
+        }
+      }
+      
       query.append('page', String(currentPage));
       query.append('limit', String(currentPageSize));
       // Add sorting

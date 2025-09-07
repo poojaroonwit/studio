@@ -8,10 +8,15 @@ CREATE INDEX IF NOT EXISTS "upload_queue_source_id_idx" ON "upload_queue"("sourc
 -- AddForeignKey
 DO $$
 BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.table_constraints tc
-    WHERE tc.table_schema = 'public' AND tc.table_name = 'upload_queue' AND tc.constraint_name = 'upload_queue_source_id_fkey'
+  IF EXISTS (
+    SELECT 1 FROM information_schema.tables t
+    WHERE t.table_schema = 'public' AND t.table_name = 'CandidateSource'
   ) THEN
-    ALTER TABLE "upload_queue" ADD CONSTRAINT "upload_queue_source_id_fkey" FOREIGN KEY ("source_id") REFERENCES "CandidateSource"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+    IF NOT EXISTS (
+      SELECT 1 FROM information_schema.table_constraints tc
+      WHERE tc.table_schema = 'public' AND tc.table_name = 'upload_queue' AND tc.constraint_name = 'upload_queue_source_id_fkey'
+    ) THEN
+      ALTER TABLE "upload_queue" ADD CONSTRAINT "upload_queue_source_id_fkey" FOREIGN KEY ("source_id") REFERENCES "CandidateSource"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+    END IF;
   END IF;
 END$$;

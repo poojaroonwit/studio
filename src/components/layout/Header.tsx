@@ -128,6 +128,28 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
   // Screen size state
   const [currentScreenSize, setCurrentScreenSize] = useState(100);
 
+  // Function to apply zoom using rem units
+  const applyRemZoom = useCallback((zoomLevel: number) => {
+    try {
+      // Set the root font size to scale everything
+      // Base font size is 16px, so we multiply by zoom level
+      const baseFontSize = 16;
+      const scaledFontSize = baseFontSize * zoomLevel;
+      
+      // Apply to document element
+      document.documentElement.style.fontSize = `${scaledFontSize}px`;
+      
+      // Also set CSS custom property for additional scaling
+      document.documentElement.style.setProperty('--zoom-scale', zoomLevel.toString());
+      
+      // Update body font size to ensure consistency
+      document.body.style.fontSize = `${scaledFontSize}px`;
+      
+    } catch (error) {
+      console.error('Error applying rem zoom:', error);
+    }
+  }, []);
+
   // Load saved zoom level on mount
   useEffect(() => {
     try {
@@ -138,15 +160,13 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
         const screenSize = Math.round(zoomLevel * 100);
         setCurrentScreenSize(screenSize);
         
-        // Apply the saved zoom level using CSS zoom property
-        document.documentElement.style.zoom = zoomLevel.toString();
+        // Apply the saved zoom level using rem units
+        applyRemZoom(zoomLevel);
       } else {
         // Default to 90% zoom (showing as 90% in app)
         setCurrentScreenSize(90);
         const defaultZoom = 0.9;
-        
-        // Apply default zoom using CSS zoom property
-        document.documentElement.style.zoom = defaultZoom.toString();
+        applyRemZoom(defaultZoom);
         
         // Save the default zoom level
         localStorage.setItem('app-zoom-level', defaultZoom.toString());
@@ -326,24 +346,18 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
   const handleScreenSizeChange = useCallback((size: number) => {
     setCurrentScreenSize(size);
     
-    // Use CSS zoom property for simple and effective page zoom
+    // Convert percentage to zoom level (75% = 0.75, 100% = 1.0, etc.)
     const zoomLevel = size / 100;
     
-    try {
-      // Apply zoom to the entire page using CSS zoom property
-      document.documentElement.style.zoom = zoomLevel.toString();
-      
-      // Store the zoom level
-      localStorage.setItem('app-zoom-level', zoomLevel.toString());
-      
-      // Show success message
-      toast.success(`Screen size set to ${size}%`);
-      
-    } catch (error) {
-      console.error('Error setting screen size:', error);
-      toast.error('Failed to set screen size');
-    }
-  }, []);
+    // Apply zoom using rem units
+    applyRemZoom(zoomLevel);
+    
+    // Store the zoom level for persistence
+    localStorage.setItem('app-zoom-level', zoomLevel.toString());
+    
+    // Show success message
+    toast.success(`Screen size set to ${size}%`);
+  }, [applyRemZoom]);
 
   const handleEditProfile = useCallback(async (data: UserFormValues) => {
     if (!session?.user) return;

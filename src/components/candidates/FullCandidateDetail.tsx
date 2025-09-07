@@ -676,52 +676,54 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
             </div>
              
             <div className="p-8 flex-1 overflow-y-auto bg-background h-full pointer-events-auto">
-              <CandidateTabsContent
-                key={`${isEditing}-${candidate?.id}`}
-                activeTab={activeTab}
-                candidate={candidate}
-                allDbPositions={allDbPositions}
-                isEditing={isEditing} 
-                candidateJobMatches={candidateJobMatches}
-                onJobMatchClick={handleJobMatchClick}
-                onCopyJobMatch={copyJobMatchToClipboard}
-                copiedJobMatchIndex={copiedJobMatchIndex}
-                onCopyJobApplied={copyJobAppliedToClipboard}
-                copiedJobApplied={copiedJobApplied}
-                appliedJobId={appliedJobId}
-                appliedFitScore={appliedFitScore}
-                appliedJustification={appliedJustification}
-                appliedJobBadge={appliedJobBadge}
-                onOpenPositionDrawer={handleOpenPositionDrawer}
-                // Pass form control and field arrays to tabs for editing
-                control={control}
-                register={register}
-                errors={errors}
-                watch={watch}
-                setValue={setValue}
-                educationFields={educationFields}
-                appendEducation={appendEducation}
-                removeEducation={removeEducation}
-                experienceFields={experienceFields}
-                appendExperience={appendExperience}
-                removeExperience={removeExperience}
-                skillsFields={skillsFields}
-                appendSkill={appendSkill}
-                removeSkill={removeSkill}
-                jobSuitableFields={jobSuitableFields}
-                appendJobSuitable={appendJobSuitable}
-                removeJobSuitable={removeJobSuitable}
-                jobMatchesFields={jobMatchesFields}
-                appendJobMatch={appendJobMatch}
-                removeJobMatch={removeJobMatch}
-                // Pass duration calculation functions
-                calculateTotalExperienceDuration={calculateTotalExperienceDuration}
-                // Pass comments and resumes for new tabs
-                comments={comments}
-                resumes={resumes} 
-                onRefresh={onRefresh}
-                onCustomFieldChange={handleCustomFieldChange}
-              />
+              <form id="candidate-edit-form" onSubmit={handleSubmit(handleSaveDetails)} className="h-full">
+                <CandidateTabsContent
+                  key={`${isEditing}-${candidate?.id}`}
+                  activeTab={activeTab}
+                  candidate={candidate}
+                  allDbPositions={allDbPositions}
+                  isEditing={isEditing} 
+                  candidateJobMatches={candidateJobMatches}
+                  onJobMatchClick={handleJobMatchClick}
+                  onCopyJobMatch={copyJobMatchToClipboard}
+                  copiedJobMatchIndex={copiedJobMatchIndex}
+                  onCopyJobApplied={copyJobAppliedToClipboard}
+                  copiedJobApplied={copiedJobApplied}
+                  appliedJobId={appliedJobId}
+                  appliedFitScore={appliedFitScore}
+                  appliedJustification={appliedJustification}
+                  appliedJobBadge={appliedJobBadge}
+                  onOpenPositionDrawer={handleOpenPositionDrawer}
+                  // Pass form control and field arrays to tabs for editing
+                  control={control}
+                  register={register}
+                  errors={errors}
+                  watch={watch}
+                  setValue={setValue}
+                  educationFields={educationFields}
+                  appendEducation={appendEducation}
+                  removeEducation={removeEducation}
+                  experienceFields={experienceFields}
+                  appendExperience={appendExperience}
+                  removeExperience={removeExperience}
+                  skillsFields={skillsFields}
+                  appendSkill={appendSkill}
+                  removeSkill={removeSkill}
+                  jobSuitableFields={jobSuitableFields}
+                  appendJobSuitable={appendJobSuitable}
+                  removeJobSuitable={removeJobSuitable}
+                  jobMatchesFields={jobMatchesFields}
+                  appendJobMatch={appendJobMatch}
+                  removeJobMatch={removeJobMatch}
+                  // Pass duration calculation functions
+                  calculateTotalExperienceDuration={calculateTotalExperienceDuration}
+                  // Pass comments and resumes for new tabs
+                  comments={comments}
+                  resumes={resumes} 
+                  onRefresh={onRefresh}
+                  onCustomFieldChange={handleCustomFieldChange}
+                />
+              </form>
             </div>
           </div>
         </div>
@@ -976,7 +978,8 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
           
           <div className="flex gap-2">
           <Button
-            onClick={handleSubmit(handleSaveDetails)}
+            type="submit"
+            form="candidate-edit-form"
             disabled={isSaving}
             className="shadow-lg"
           >

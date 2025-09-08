@@ -5,6 +5,7 @@ import { AlertTriangle, RefreshCw, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CacheClearHelper } from '@/lib/cache-clear-helper';
+import { initializationChecker } from '@/lib/initialization-checker';
 
 interface InitializationErrorRecoveryProps {
   error?: Error;
@@ -26,6 +27,10 @@ export function InitializationErrorRecovery({
   const isEeError = error?.message.includes('ee') && 
                    (error?.message.includes('Cannot access') || 
                     error?.message.includes('before initialization'));
+  
+  // Run initialization checks to provide more specific recommendations
+  const checkResult = initializationChecker.runChecks();
+  const isEnvironmentSafe = initializationChecker.isEnvironmentSafe();
 
   const handleRetry = async () => {
     setIsRetrying(true);
@@ -88,6 +93,12 @@ export function InitializationErrorRecovery({
               {CacheClearHelper.getRecommendedActions().map((action, index) => (
                 <li key={index}>{action}</li>
               ))}
+              {!isEnvironmentSafe && (
+                <li className="text-orange-600 font-medium">Your browser or connection may be causing issues</li>
+              )}
+              {checkResult.issues.length > 0 && (
+                <li className="text-red-600 font-medium">System detected potential issues: {checkResult.issues.join(', ')}</li>
+              )}
             </ul>
           )}
         </div>

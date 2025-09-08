@@ -67,11 +67,25 @@ To prevent these errors:
 
 ## Testing
 
+### Manual Testing
 To test the error handling:
 1. Open browser developer tools
 2. Go to Console tab
 3. Type: `throw new Error("Cannot access 'tg' before initialization")`
 4. The error recovery component should appear
+
+### Automated Testing
+For development testing, use the built-in test utility:
+1. Open browser developer tools
+2. Go to Console tab
+3. Type: `window.InitializationErrorTester.runAllTests()`
+4. This will test all error handling scenarios
+
+### Available Test Methods
+- `InitializationErrorTester.simulateTgError()` - Simulate 'tg' variable error
+- `InitializationErrorTester.simulateEeError()` - Simulate 'ee' variable error
+- `InitializationErrorTester.testCacheClearing()` - Test cache clearing functionality
+- `InitializationErrorTester.runAllTests()` - Run all tests
 
 ## Browser Compatibility
 

@@ -404,25 +404,27 @@ OptimizedLink.displayName = 'OptimizedLink';
 const SafeSidebarNavComponent = React.memo(() => {
   const [hasError, setHasError] = React.useState(false);
   
+  // Move all hooks to the top level - never call hooks conditionally or inside try-catch
+  const pathname = usePathname();
+  const router = useRouter();
+  const { data: session, status } = useSession();
+  const { open } = useSidebar();
+  const { pendingCount, isLoading } = usePendingCount();
+  const { sidebar: sidebarPreferences } = useUserPreferences();
+  
   if (hasError) {
     return <FallbackNav />;
   }
 
+  // Get safe session info
+  const { canAccessMyTasks } = getSafeSessionInfo(session);
+
+  // Generate safe navigation items
+  const navigationItems = React.useMemo(() => {
+    return getSafeNavigationItems(canAccessMyTasks);
+  }, [canAccessMyTasks]);
+
   try {
-    const pathname = usePathname();
-    const router = useRouter();
-    const { data: session, status } = useSession();
-    const { open } = useSidebar();
-    const { pendingCount, isLoading } = usePendingCount();
-    const { sidebar: sidebarPreferences } = useUserPreferences();
-
-    // Get safe session info
-    const { canAccessMyTasks } = getSafeSessionInfo(session);
-
-    // Generate safe navigation items
-    const navigationItems = React.useMemo(() => {
-      return getSafeNavigationItems(canAccessMyTasks);
-    }, [canAccessMyTasks]);
 
     // Simple loading state
     if (status === 'loading') {

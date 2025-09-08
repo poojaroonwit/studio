@@ -20,19 +20,19 @@ const log = (color: keyof typeof colors, message: string) => {
 };
 
 const logSuccess = (message: string) => {
-  log('green', `✅ ${message}`);
+  log('green', `✓ ${message}`);
 };
 
 const logWarning = (message: string) => {
-  log('yellow', `⚠️  ${message}`);
+  log('yellow', `⚠ ${message}`);
 };
 
 const logError = (message: string) => {
-  log('red', `❌ ${message}`);
+  log('red', `✗ ${message}`);
 };
 
 const logInfo = (message: string) => {
-  log('blue', `ℹ️  ${message}`);
+  log('blue', `ℹ ${message}`);
 };
 
 /**
@@ -208,7 +208,7 @@ async function verifyWarningSystem() {
  * Main execution function
  */
 async function main() {
-  log('cyan', '🚨 Starting warning conditions initialization...');
+  log('cyan', 'Starting warning conditions initialization...');
   
   try {
     // Step 1: Initialize warning conditions

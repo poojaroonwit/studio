@@ -4,7 +4,8 @@ import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Starting database seeding...');
+  console.log('Database Initialization Started');
+  console.log('================================');
   
   try {
     // Create admin user (same as init-db.sql)
@@ -28,7 +29,7 @@ async function main() {
         forcePasswordChange: false
       }
     });
-        console.log('✅ Admin user created/updated');
+        console.log('✓ Admin user created/updated');
 
     // Create default recruitment stages
     console.log('Creating recruitment stages...');
@@ -52,7 +53,7 @@ async function main() {
         create: stage
       });
     }
-    console.log('✅ Recruitment stages created/updated');
+    console.log('✓ Recruitment stages created/updated');
 
     // Create default user groups with detailed permissions
     console.log('Creating default user groups...');
@@ -188,7 +189,7 @@ async function main() {
       });
     }
 
-    console.log('✅ Default user groups created/updated');
+    console.log('✓ Default user groups created/updated');
 
     // Assign admin user to Administrators group
     console.log('Assigning admin user to Administrators group...');
@@ -199,7 +200,7 @@ async function main() {
         where: { id: adminUser.id },
         data: { userGroupId: adminGroup.id }
       });
-      console.log('✅ Admin user assigned to Administrators group');
+      console.log('✓ Admin user assigned to Administrators group');
     }
 
     // Create basic system settings
@@ -245,7 +246,7 @@ async function main() {
       if (setting.key === 'appLogoDataUrl') {
         // If a logo already exists and is non-empty, skip overwrite
         if (existing && existing.value && String(existing.value).trim() !== '') {
-          console.log('🖼️  Existing application logo detected. Preserving current logo.');
+          console.log('  Existing application logo detected. Preserving current logo.');
           continue;
         }
       }
@@ -256,7 +257,7 @@ async function main() {
         create: setting
       });
     }
-    console.log('✅ System settings created/updated');
+    console.log('✓ System settings created/updated');
 
     // Create default system prompt categories
     console.log('Creating system prompt categories...');
@@ -305,7 +306,7 @@ async function main() {
         create: category
       });
     }
-    console.log('✅ System prompt categories created/updated');
+    console.log('✓ System prompt categories created/updated');
 
     // Create default grades
     console.log('Creating default grades...');
@@ -487,7 +488,7 @@ async function main() {
         create: grade
       });
     }
-    console.log('✅ Default grades created/updated');
+    console.log('✓ Default grades created/updated');
 
     // Initialize AI Power Search system prompt
     console.log('Initializing AI Power Search system prompt...');
@@ -625,7 +626,7 @@ Do not include any markdown formatting, code blocks, or additional text. Only re
         }
       });
     }
-    console.log('✅ AI Power Search system prompt initialized');
+    console.log('✓ AI Power Search system prompt initialized');
 
     // Create TOEIC custom field definition
     console.log('Creating TOEIC custom field definition...');
@@ -752,7 +753,7 @@ Do not include any markdown formatting, code blocks, or additional text. Only re
         });
       }
     }
-    console.log('✅ TOEIC custom field and options created/updated');
+    console.log('✓ TOEIC custom field and options created/updated');
 
     // Create candidate sources
     console.log('Creating candidate sources...');
@@ -885,7 +886,7 @@ Do not include any markdown formatting, code blocks, or additional text. Only re
         create: source
       });
     }
-    console.log('✅ Candidate sources created/updated');
+    console.log('✓ Candidate sources created/updated');
 
     // Create default position levels
     console.log('Creating default position levels...');
@@ -963,7 +964,7 @@ Do not include any markdown formatting, code blocks, or additional text. Only re
         create: level
       });
     }
-    console.log('✅ Default position levels created/updated');
+    console.log('✓ Default position levels created/updated');
 
     // Get admin user for creating warning configurations
     const adminUserForWarnings = await prisma.user.findUnique({
@@ -1186,18 +1187,19 @@ Do not include any markdown formatting, code blocks, or additional text. Only re
         create: config
       });
     }
-    console.log('✅ Warning configurations created/updated');
+    console.log('✓ Warning configurations created/updated');
 
-    console.log('🎉 Database seeding completed successfully!');
+    console.log('\nDatabase Seeding: COMPLETED');
+    console.log('Status: All systems operational');
   } catch (error) {
-    console.error('❌ Error during seeding:', error);
+    console.error('ERROR: Database seeding failed:', error);
     throw error;
   }
 }
 
 main()
   .catch(e => {
-    console.error('❌ Seeding failed:', e);
+    console.error('ERROR: Seeding failed:', e);
     process.exit(1);
   })
   .finally(async () => {

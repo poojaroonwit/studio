@@ -181,104 +181,104 @@ elif [ "$PENDING_MIGRATIONS" -eq 1 ]; then
             fi
         done
         
-        echo "📊 Migration summary:"
-        echo "  ✅ Successfully applied: $SUCCESS_COUNT"
-        echo "  ⚠️  Skipped (force-marked): $SKIPPED_COUNT"
-        echo "  ❌ Failed: $FAILED_COUNT"
+        echo "Migration Summary:"
+        echo "  ✓ Successfully applied: $SUCCESS_COUNT"
+        echo "  ⚠ Skipped (force-marked): $SKIPPED_COUNT"
+        echo "  ✗ Failed: $FAILED_COUNT"
         
         if [ "$FAILED_COUNT" -gt 0 ]; then
-            echo "⚠️  Some migrations failed, but continuing with deployment..."
+            echo "⚠ Some migrations failed, but continuing with deployment..."
         fi
     else
-        echo "✅ No specific pending migrations found"
+        echo "✓ No specific pending migrations found"
     fi
     
 elif [ "$SCHEMA_DIVERGED" -eq 1 ]; then
-    echo "🔧 Migration divergence detected - syncing database schema..."
+    echo "Migration divergence detected - syncing database schema..."
     
     # When migrations diverge, use db push to sync the schema
     if npx prisma db push --accept-data-loss --schema=prisma/schema.prisma; then
-        echo "✅ Database schema synced successfully (migration divergence resolved)"
+        echo "✓ Database schema synced successfully (migration divergence resolved)"
     else
-        echo "❌ Failed to sync database schema"
+        echo "✗ Failed to sync database schema"
         exit 1
     fi
     
 elif [ "$SCHEMA_OUT_OF_SYNC" -eq 1 ]; then
-    echo "🔧 Schema sync required - syncing database schema..."
+    echo "Schema sync required - syncing database schema..."
     
     # Sync schema without migrations (for development/testing)
     if npx prisma db push --accept-data-loss --schema=prisma/schema.prisma; then
-        echo "✅ Database schema synced successfully"
+        echo "✓ Database schema synced successfully"
     else
-        echo "❌ Failed to sync database schema"
+        echo "✗ Failed to sync database schema"
         exit 1
     fi
     
 else
-    echo "✅ Database is up to date - no migrations needed"
+    echo "✓ Database is up to date - no migrations needed"
 fi
 
 # Fallback: Ensure database schema is always in sync with Prisma schema
-echo "🔧 Ensuring database schema is in sync with Prisma schema..."
+echo "Ensuring database schema is in sync with Prisma schema..."
 if npx prisma db push --accept-data-loss --schema=prisma/schema.prisma; then
-    echo "✅ Database schema verified and synced successfully"
+    echo "✓ Database schema verified and synced successfully"
 else
-    echo "⚠️  Database schema sync failed, but continuing with deployment..."
-    echo "🔍 This might indicate a more serious database issue"
+    echo "⚠ Database schema sync failed, but continuing with deployment..."
+    echo "This might indicate a more serious database issue"
 fi
 
 # Seed the database
 if [ "$SKIP_SEED" = "true" ]; then
-    echo "⏭️  Skipping database seeding (SKIP_SEED=true)"
+    echo "Skipping database seeding (SKIP_SEED=true)"
 else
-    echo "🌱 Seeding database..."
-    echo "📋 Running: npx prisma db seed"
+    echo "Seeding database..."
+    echo "Running: npx prisma db seed"
     if npx prisma db seed 2>&1; then
-        echo "✅ Database seeding completed successfully"
+        echo "✓ Database seeding completed successfully"
     else
-        echo "❌ Database seeding failed with error code: $?"
-        echo "🔍 Attempting to run seed manually with detailed output..."
+        echo "✗ Database seeding failed with error code: $?"
+        echo "Attempting to run seed manually with detailed output..."
         if npx tsx prisma/seed.ts 2>&1; then
-            echo "✅ Manual seeding completed successfully"
+            echo "✓ Manual seeding completed successfully"
         else
-            echo "❌ Manual seeding also failed"
-            echo "⚠️  Continuing without seed data - check logs for details"
+            echo "✗ Manual seeding also failed"
+            echo "⚠ Continuing without seed data - check logs for details"
         fi
     fi
 fi
 
 # Initialize warning conditions for all users
-echo "🚨 Initializing warning conditions for all users..."
+echo "Initializing warning conditions for all users..."
 if node scripts/initialize-warning-conditions.cjs; then
-    echo "✅ Warning conditions initialization completed"
+    echo "✓ Warning conditions initialization completed"
 else
-    echo "⚠️  Warning conditions initialization failed or already completed"
+    echo "⚠ Warning conditions initialization failed or already completed"
     # Don't exit on warning conditions failure as it might be due to existing data
 fi
 
 # Run migration to convert status to statusId if needed
-echo "🔄 Running status to statusId migration..."
+echo "Running status to statusId migration..."
 if npm run fix:status-rename; then
-    echo "✅ Status migration completed successfully"
+    echo "✓ Status migration completed successfully"
 else
-    echo "⚠️  Status migration failed or already completed"
+    echo "⚠ Status migration failed or already completed"
 fi
 
 # Removed comprehensive permission setup during deploy
 # Generate Prisma client after database is ready
-echo "🔧 Generating Prisma client..."
+echo "Generating Prisma client..."
 if ! npx prisma generate --schema=prisma/schema.prisma; then
-    echo "❌ ERROR: Failed to generate Prisma client"
+    echo "✗ ERROR: Failed to generate Prisma client"
     exit 1
 fi
-echo "✅ Prisma client generated successfully"
+echo "✓ Prisma client generated successfully"
 
-echo "✅ Database and permission setup complete!"
+echo "Database and permission setup complete!"
 
 # Start the main application only (processor runs as separate service)
-echo "🚀 Starting main application..."
-echo "📋 Services that will be started:"
+echo "Starting main application..."
+echo "Services that will be started:"
 echo "  - Main Next.js application (port 8021)"
 echo "  - Upload queue processor (separate service)"
 echo ""

@@ -59,22 +59,29 @@ class SafeComponentWrapper extends Component<Props, State> {
                                   error.message.includes('is not defined') ||
                                   error.name === 'ReferenceError';
     
-    // Enhanced detection for the specific 'ee' variable error
+    // Enhanced detection for minified variable errors ('ee', 'tg', etc.)
     const isEeVariableError = error.message.includes('ee') && 
                               (error.message.includes('Cannot access') || 
                                error.message.includes('before initialization'));
+    const isTgVariableError = error.message.includes('tg') && 
+                              (error.message.includes('Cannot access') || 
+                               error.message.includes('before initialization'));
+    const isMinifiedVariableError = isEeVariableError || isTgVariableError;
     
     if (isInitializationError) {
       console.error('Detected variable initialization error:', {
         message: error.message,
         stack: error.stack,
         componentStack: errorInfo.componentStack,
-        isEeVariableError
+        isEeVariableError,
+        isTgVariableError,
+        isMinifiedVariableError
       });
       
       // Log additional context for debugging
-      if (isEeVariableError) {
-        console.error('EE Variable Error Context:', {
+      if (isMinifiedVariableError) {
+        const variableName = isEeVariableError ? 'ee' : 'tg';
+        console.error(`${variableName.toUpperCase()} Variable Error Context:`, {
           errorType: 'Temporal Dead Zone',
           likelyCause: 'Variable accessed before initialization in minified bundle',
           recommendation: 'Check for circular dependencies or hook order issues',

@@ -38,8 +38,10 @@ export function detectInitializationError(error: Error): {
     };
   }
 
-  // Special handling for 'ee' variable error
+  // Special handling for minified variable errors ('ee', 'tg', etc.)
   const isEeVariableError = error.message.includes('ee');
+  const isTgVariableError = error.message.includes('tg');
+  const isMinifiedVariableError = isEeVariableError || isTgVariableError;
   
   let errorType = 'Temporal Dead Zone';
   let recommendations = [
@@ -49,8 +51,9 @@ export function detectInitializationError(error: Error): {
     'Check session/auth state initialization'
   ];
 
-  if (isEeVariableError) {
-    errorType = 'EE Variable Initialization Error';
+  if (isMinifiedVariableError) {
+    const variableName = isEeVariableError ? 'ee' : 'tg';
+    errorType = `${variableName.toUpperCase()} Variable Initialization Error`;
     recommendations = [
       'This is likely a minified bundle issue',
       'Check for circular imports between modules',
@@ -67,7 +70,9 @@ export function detectInitializationError(error: Error): {
     timestamp: new Date().toISOString(),
     userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : 'server',
     url: typeof window !== 'undefined' ? window.location.href : 'server',
-    isEeVariableError
+    isEeVariableError,
+    isTgVariableError,
+    isMinifiedVariableError
   };
 
   // Log detailed error information

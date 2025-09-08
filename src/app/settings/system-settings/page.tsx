@@ -52,8 +52,7 @@ export default function SystemSettingsPage() {
   const [isEditorReady, setIsEditorReady] = useState(false);
   // Add state for job match feature toggle
   const [jobMatchFeatureEnabled, setJobMatchFeatureEnabled] = useState(true);
-  // Add state for process queue toggle
-  const [processQueueEnabled, setProcessQueueEnabled] = useState(true);
+  // Add state for process queue toggle (already declared above in Upload Queue Processor settings)
 
   const fetchSystemSettings = useCallback(async () => {
     setIsLoading(true);

@@ -175,7 +175,8 @@ const nextConfig = {
                     // Keep initialization order
                     sequences: false,
                   },
-                };
+                },
+              };
               }
             }
           });

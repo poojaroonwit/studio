@@ -183,8 +183,6 @@ export function ManageTransitionsModal({
     }
   }, [isOpen, cleanup]);
 
-  if (!candidate) return null;
-
   const handleAddTransitionSubmit = useCallback(async (data: TransitionFormValues) => {
     if (!isMountedRef.current) return;
 
@@ -444,6 +442,8 @@ export function ManageTransitionsModal({
       return [];
     }
   })();
+
+  if (!candidate) return null;
 
   return (
     <>

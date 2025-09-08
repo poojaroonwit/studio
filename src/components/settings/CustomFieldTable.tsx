@@ -70,6 +70,15 @@ export default function CustomFieldTable({
   onEdit, 
   onDelete 
 }: CustomFieldTableProps) {
+  // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
+  const handleEdit = useCallback((field: CustomFieldDefinition) => {
+    onEdit(field);
+  }, [onEdit]);
+
+  const handleDelete = useCallback((field: CustomFieldDefinition) => {
+    onDelete(field);
+  }, [onDelete]);
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center py-8">
@@ -151,13 +160,6 @@ export default function CustomFieldTable({
   };
 
 
-  const handleEdit = useCallback((field: CustomFieldDefinition) => {
-    onEdit(field);
-  }, [onEdit]);
-
-  const handleDelete = useCallback((field: CustomFieldDefinition) => {
-    onDelete(field);
-  }, [onDelete]);
 
   return (
     <div className="space-y-4">

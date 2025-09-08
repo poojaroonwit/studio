@@ -46,11 +46,11 @@ export class SSEDebugUtility {
       const originalEventSource = window.EventSource;
       
       window.EventSource = class extends originalEventSource {
-        constructor(url: string, eventSourceInitDict?: EventSourceInit) {
+        constructor(url: string | URL, eventSourceInitDict?: EventSourceInit) {
           super(url, eventSourceInitDict);
-          SSEDebugUtility.getInstance().trackConnection(this, url);
+          SSEDebugUtility.getInstance().trackConnection(this, url.toString());
         }
-      };
+      } as typeof EventSource;
 
       // Monitor for page unload to detect hanging connections
       window.addEventListener('beforeunload', () => {
@@ -173,6 +173,7 @@ export class SSEDebugUtility {
     connection.isHanging = hangingScore > 5;
 
     if (connection.isHanging && this.debugMode) {
+      console.warn('SSE Connection hanging detected:', {
         hangingScore: connection.hangingScore,
         timeSinceLastMessage,
         connectionAge,
@@ -209,7 +210,8 @@ export class SSEDebugUtility {
       }
     });
 
-    if (hangingCount > 0) {
+    if (hangingCount > 0 && this.debugMode) {
+      console.warn(`Detected ${hangingCount} hanging SSE connections`);
     }
   }
 
@@ -245,6 +247,7 @@ export class SSEDebugUtility {
     };
 
     if (this.debugMode) {
+      console.log('SSE Debug Report:', report);
     }
 
     return report;
@@ -271,12 +274,17 @@ export class SSEDebugUtility {
   }
 
   public forceCloseHangingConnections(): void {
-    
+    let closedCount = 0;
     this.connections.forEach((connection, connectionId) => {
       if (connection.isHanging) {
         this.connections.delete(connectionId);
+        closedCount++;
       }
     });
+    
+    if (this.debugMode && closedCount > 0) {
+      console.log(`Force closed ${closedCount} hanging SSE connections`);
+    }
   }
 
   public getDetailedReport(): SSEDebugReport {
@@ -289,8 +297,10 @@ export class SSEDebugUtility {
     const report = utility.getDetailedReport();
 
     console.group('🔍 SSE Connection Summary');
+    console.log(`Total: ${stats.total}, Hanging: ${stats.hanging}, Healthy: ${stats.healthy}`);
     
     if (report.recommendations.length > 0) {
+      console.warn('Recommendations:', report.recommendations);
     }
     
     console.groupEnd();

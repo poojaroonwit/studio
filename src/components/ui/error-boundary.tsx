@@ -5,7 +5,6 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, AlertTriangle, Bug } from 'lucide-react';
 import { globalErrorHandler, isFilterError } from '@/lib/error-handler';
-import { InitializationErrorRecovery } from './InitializationErrorRecovery';
 
 interface Props {
   children: ReactNode;
@@ -193,25 +192,6 @@ export class ErrorBoundary extends Component<Props, State> {
       const isChartError = this.state.error?.message?.includes('Filler plugin');
       const isMimeError = this.state.error?.message?.includes('MIME type');
       const isDateError = this.state.error?.message?.includes('getTime is not a function');
-      const isTgError = this.state.error?.message?.includes('tg') && 
-                       (this.state.error?.message?.includes('Cannot access') || 
-                        this.state.error?.message?.includes('before initialization'));
-      const isEeError = this.state.error?.message?.includes('ee') && 
-                       (this.state.error?.message?.includes('Cannot access') || 
-                        this.state.error?.message?.includes('before initialization'));
-
-      // Use the specialized recovery component for initialization errors
-      if (isTgError || isEeError) {
-        return (
-          <div className="min-h-screen flex items-center justify-center bg-background p-4">
-            <InitializationErrorRecovery 
-              error={this.state.error}
-              onRetry={this.handleRetry}
-              onRefresh={this.handleReload}
-            />
-          </div>
-        );
-      }
 
       return (
         <div className="min-flex items-center justify-center bg-background p-4">

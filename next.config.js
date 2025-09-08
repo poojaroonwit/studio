@@ -1,82 +1,28 @@
 /** @type {import('next').NextConfig} */
-const process = require('process');
-
-// Polyfill for self global to fix build issues
-if (typeof global !== 'undefined' && !global.self) {
-  global.self = global;
-}
-
-// Suppress Fast Refresh logs
-const originalConsoleLog = console.log;
-const originalConsoleInfo = console.info;
-
-// Override console methods to filter out Fast Refresh logs
-console.log = (...args) => {
-  const message = args.join(' ');
-  if (!message.includes('[Fast Refresh]')) {
-    originalConsoleLog(...args);
-  }
-};
-
-console.info = (...args) => {
-  const message = args.join(' ');
-  if (!message.includes('[Fast Refresh]')) {
-    originalConsoleInfo(...args);
-  }
-};
-
-function getMinioRemotePattern() {
-  // Try to get MinIO public URL and bucket from env
-  const minioUrl = process.env.NEXT_PUBLIC_MINIO_URL || 'http://localhost:8621';
-  const minioBucket = process.env.NEXT_PUBLIC_MINIO_BUCKET || 'studio-production';
-  try {
-    const url = new URL(minioUrl);
-    return {
-      protocol: url.protocol.replace(':', ''),
-      hostname: url.hostname,
-      port: url.port || (url.protocol === 'https:' ? '443' : '80'),
-      pathname: `/${minioBucket}/settings/**`,
-    };
-  } catch (e) {
-    // fallback to localhost
-    return {
-      protocol: 'http',
-      hostname: 'localhost',
-      port: '8621',
-      pathname: '/studio-production/settings/**',
-    };
-  }
-}
-
 const nextConfig = {
   reactStrictMode: true,
-  // Performance optimizations
   compress: true,
   poweredByHeader: false,
-  // Enable standalone output for Docker optimization
-  output: 'standalone',
+  
   // Use a custom dist directory to avoid Windows file locking on .next
   distDir: '.next-build',
+  
   typescript: {
     ignoreBuildErrors: true,
   },
-  // Increase body size limit for large file uploads (500MB)
+  
+  eslint: {
+    // Warning: This allows production builds to successfully complete even if
+    // your project has ESLint errors.
+    ignoreDuringBuilds: true,
+  },
+  
+  // Increase body size limit for large file uploads
   experimental: {
-    optimizeCss: false, // Disabled to reduce memory usage during build
-    // optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'], // Disabled due to self reference issue
-    // serverActions: {
-    //   bodySizeLimit: '500mb',
-    // },
+    serverActions: {
+      bodySizeLimit: '500mb',
+    },
   },
-  
-  // Server configuration for SSE endpoints
-  serverRuntimeConfig: {
-    // Increase timeout for long-running connections
-    apiTimeout: 300000, // 5 minutes
-  },
-  
-  // Allow cross-origin requests in development
-  allowedDevOrigins: ['192.168.1.36'],
   
   // Force Node.js runtime for all API routes to avoid Edge Runtime issues
   async rewrites() {
@@ -85,18 +31,13 @@ const nextConfig = {
         source: '/api/:path*',
         destination: '/api/:path*',
       },
-      {
-        source: '/api/health',
-        destination: '/api/health',
-      },
     ];
   },
   
-  // Configure headers for SSE endpoints to prevent chunked encoding issues
+  // Configure headers for CORS and security
   async headers() {
     return [
       {
-        // Apply these headers to all routes
         source: '/(.*)',
         headers: [
           {
@@ -115,150 +56,12 @@ const nextConfig = {
             key: 'Access-Control-Allow-Credentials',
             value: 'true',
           },
-          // Performance headers
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
-          },
-          {
-            key: 'X-Frame-Options',
-            value: 'DENY',
-          },
-          {
-            key: 'X-XSS-Protection',
-            value: '1; mode=block',
-          },
-        ],
-      },
-      // Special headers for SSE endpoints to prevent chunked encoding
-      {
-        source: '/api/sse/:path*',
-        headers: [
-          {
-            key: 'Content-Type',
-            value: 'text/event-stream; charset=utf-8',
-          },
-          {
-            key: 'Cache-Control',
-            value: 'no-cache, no-transform',
-          },
-          {
-            key: 'Connection',
-            value: 'keep-alive',
-          },
-          {
-            key: 'X-Accel-Buffering',
-            value: 'no',
-          },
-        ],
-      },
-      // Ensure CSS files are served with correct MIME type and prevent execution
-      {
-        source: '/_next/static/css/(.*)',
-        headers: [
-          {
-            key: 'Content-Type',
-            value: 'text/css; charset=utf-8',
-          },
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
-          {
-            key: 'Content-Disposition',
-            value: 'inline',
-          },
-          {
-            key: 'X-Frame-Options',
-            value: 'DENY',
-          },
-          {
-            key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' 'unsafe-hashes'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' ws: wss:; object-src 'none';",
-          },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
-          },
-        ],
-      },
-      // Ensure JS files are served with correct MIME type
-      {
-        source: '/_next/static/chunks/(.*)',
-        headers: [
-          {
-            key: 'Content-Type',
-            value: 'application/javascript; charset=utf-8',
-          },
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
-          },
-        ],
-      },
-      // Ensure JS files in static directory are served correctly
-      {
-        source: '/_next/static/(.*\\.js)',
-        headers: [
-          {
-            key: 'Content-Type',
-            value: 'application/javascript; charset=utf-8',
-          },
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
-          },
-        ],
-      },
-      // Cache other static assets
-      {
-        source: '/_next/static/(.*)',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
-        ],
-      },
-      // Cache images
-      {
-        source: '/_next/image(.*)',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
         ],
       },
     ];
   },
   
-  // Optimize page loading and caching
-  onDemandEntries: {
-    // period (in ms) where the server will keep pages in the buffer
-    maxInactiveAge: 25 * 1000,
-    // number of pages that should be kept simultaneously without being disposed
-    pagesBufferLength: 4, // Increased from 2 to 4 for better navigation
-  },
-  
-  // Disable static export to prevent timeout issues
-  trailingSlash: false,
-  skipTrailingSlashRedirect: true,
-  
-  // Disable static generation to prevent timeout issues
-  generateBuildId: async () => {
-    return 'build-' + Date.now();
-  },
-
-  
+  // Image configuration
   images: {
     domains: ['localhost', '127.0.0.1'],
     remotePatterns: [
@@ -274,27 +77,16 @@ const nextConfig = {
         port: '9001',
         pathname: '/uploads/**',
       },
-      {
-        protocol: 'https',
-        hostname: 'localhost',
-        port: '9001',
-        pathname: '/uploads/**',
-      },
-      getMinioRemotePattern(),
     ],
-    // Performance optimizations for images
     formats: ['image/webp', 'image/avif'],
     minimumCacheTTL: 60,
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
   
-  // Increase build timeout and handle static generation issues
-  staticPageGenerationTimeout: 120, // 2 minutes instead of default 60 seconds
-  
-  // Webpack configuration to handle build issues and optimize performance
-  webpack: (config, { isServer, dev }) => {
-    // Prevent client bundle from trying to polyfill Node core modules used by pg
+  // Webpack configuration
+  webpack: (config, { isServer }) => {
+    // Prevent client bundle from trying to polyfill Node core modules
     if (!isServer) {
       config.resolve = config.resolve || {};
       config.resolve.fallback = {
@@ -311,37 +103,9 @@ const nextConfig = {
     config.resolve.alias = config.resolve.alias || {};
     config.resolve.alias['jose'] = require.resolve('jose');
     
-
-    
-    // Add MIME type handling for static assets
-    config.module = config.module || {};
-    config.module.rules = config.module.rules || [];
-    
-
-    
-    // Optimize for memory usage during build
-    if (!dev) {
-      config.optimization = {
-        ...config.optimization,
-        splitChunks: {
-          ...config.optimization.splitChunks,
-          chunks: 'all',
-          cacheGroups: {
-            ...config.optimization.splitChunks.cacheGroups,
-            vendor: {
-              test: /[\\/]node_modules[\\/]/,
-              name: 'vendors',
-              chunks: 'all',
-            },
-          },
-        },
-      };
-    }
     
     return config;
   },
-  
-
 };
 
-module.exports = nextConfig; 
+module.exports = nextConfig;

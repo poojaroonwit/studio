@@ -7,7 +7,7 @@
     "dev:custom": "powershell -ExecutionPolicy Bypass -Command \"$env:NEXT_TELEMETRY_DISABLED='1'; node server.js\"",
     "dev:with-processor": "concurrently \"npm run dev\" \"npm run processor\"",
     "prebuild": "echo Build started",
-    "build": "next build --no-lint",
+    "build": "next build",
     "typecheck": "tsc --noEmit",
     "postbuild": "echo Build finished",
     "start": "node server.js",

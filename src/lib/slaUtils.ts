@@ -9,6 +9,8 @@ export interface SLACheckResult {
 }
 
 export function checkSLAViolation(position: Position): SLACheckResult | null {
+  // Use position.hiringDate as the SLA start date, which is now the
+  // Position Request Date or earliest candidate application date from caller
   if (!position.hiringDate || !position.grade) {
     return null;
   }
@@ -37,6 +39,7 @@ export function checkSLAViolation(position: Position): SLACheckResult | null {
 }
 
 export function getSLARemainingDays(position: Position): number | null {
+  // Uses the same SLA start date semantics as checkSLAViolation
   if (!position.hiringDate || !position.grade) {
     return null;
   }

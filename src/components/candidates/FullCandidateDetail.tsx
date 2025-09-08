@@ -659,27 +659,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                   return totalDuration ? ` (${totalDuration})` : '';
                 })()}
               </div>
-              <div 
-                className={`text-xs flex items-center gap-2 px-3 py-4 cursor-pointer transition-colors ${activeTab === 'job-suitability' ? 'border-b-2 border-primary bg-background' : 'bg-transparent'}`}
-                onClick={() => setActiveTab('job-suitability')}
-              >
-                <Target className="w-4 h-4" />
-                Job Suitability
-                {(() => {
-                  const jobSuitable = (candidate.parsedData as any)?.job_suitable || [];
-                  // Filter out empty entries (objects with no content)
-                  const filteredJobSuitable = jobSuitable.filter((job: any) => {
-                    const hasContent = job.suitable_career || job.suitable_job_position || 
-                                     job.suitable_job_level || job.suitable_salary_bath_month ||
-                                     job.career || job.position || job.level || job.salary ||
-                                     job.job_career || job.job_position || job.job_level || job.job_salary ||
-                                     job.title || job.role || job.expected_salary || job.salary_expectation;
-                    return hasContent;
-                  });
-                  const suitabilityCount = filteredJobSuitable.length;
-                  return suitabilityCount > 0 ? ` (${suitabilityCount})` : '';
-                })()}
-              </div>
+              
             </div>
              
             <div className="p-8 flex-1 overflow-y-auto bg-background h-full pointer-events-auto">

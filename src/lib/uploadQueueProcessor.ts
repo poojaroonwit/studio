@@ -196,36 +196,13 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       
       
       try {
-        // Get connection timeout setting (default 15 minutes) - shorter than full processing timeout
-        let connectionTimeoutMs = 900000; // 15 minutes default
-        const connectionTimeoutSetting = await getSystemSetting('webhookConnectionTimeout');
-        if (connectionTimeoutSetting) {
-          const parsedConnectionTimeout = parseInt(connectionTimeoutSetting, 10);
-          if (!isNaN(parsedConnectionTimeout) && parsedConnectionTimeout > 0) {
-            connectionTimeoutMs = parsedConnectionTimeout * 1000; // Convert seconds to milliseconds
-          }
-        }
-        
-        // Get full processing timeout setting (default 30 minutes)
-        let fullTimeoutMs = 1800000; // 30 minutes default
-        const timeoutSetting = await getSystemSetting('resumeProcessingWebhookTimeout');
-        if (timeoutSetting) {
-          const parsedTimeout = parseInt(timeoutSetting, 10);
-          if (!isNaN(parsedTimeout) && parsedTimeout > 0) {
-            fullTimeoutMs = parsedTimeout * 1000; // Convert seconds to milliseconds
-          }
-        }
-        
-        // Use the shorter connection timeout for the actual fetch
-        const timeoutMs = Math.min(connectionTimeoutMs, fullTimeoutMs);
-        
-        // Use the enhanced webhook fetch utility
+        // Use the enhanced webhook fetch utility without timeout - wait for webhook response only
         const webhookResult = await webhookFetch({
           url: resumeWebhookUrl,
           method: 'POST',
           headers,
           body: JSON.stringify(payloadWithIdempotency),
-          timeoutMs,
+          timeoutMs: 0, // No timeout - wait indefinitely for webhook response
           retries: 0, // No retries for resume processing
         });
         

@@ -69,6 +69,27 @@ if (config.baseUrl.includes('8021_fitscan_app:8021') || config.baseUrl.includes(
   }
 }
 
+// Get system setting for process queue enabled status
+async function isProcessQueueEnabled() {
+  try {
+    const response = await makeRequest(`${config.baseUrl}/api/settings/system-settings`, {
+      method: 'GET'
+    });
+    
+    if (response.status === 200 && response.data) {
+      // Look for processQueueEnabled in the settings
+      const settings = response.data;
+      // Default to true if not set (backward compatibility)
+      return settings.processQueueEnabled !== 'false';
+    }
+  } catch (error) {
+    console.warn('Failed to check process queue enabled status:', error.message);
+  }
+  
+  // Default to true if we can't check the setting
+  return true;
+}
+
 // Get system setting for max concurrent processors
 async function getMaxConcurrentProcessorsSetting() {
   try {
@@ -325,6 +346,16 @@ async function processJob() {
 async function processLoop() {
   while (isRunning) {
     try {
+      // Check if process queue is enabled
+      const queueEnabled = await isProcessQueueEnabled();
+      if (!queueEnabled) {
+        if (!config.quietMode) {
+          log('INFO', 'Process queue is disabled in system settings, skipping processing');
+        }
+        await new Promise(resolve => setTimeout(resolve, config.intervalMs));
+        continue;
+      }
+      
       // Check system settings for concurrent processors
       if (Date.now() - lastProcessorCheck > config.processorCheckInterval) {
         await updateConcurrentProcessorSetting();

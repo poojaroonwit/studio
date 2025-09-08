@@ -259,6 +259,15 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-48">
+                    {isModal && candidate?.id && (
+                      <DropdownMenuItem 
+                        onClick={() => window.open(`/candidates/${candidate.id}`, '_blank')}
+                        className="text-sm py-2"
+                      >
+                        Open in new tab
+                      </DropdownMenuItem>
+                    )}
+                    {isModal && <DropdownMenuSeparator />}
                     <DropdownMenuItem 
                       onClick={onEditClick}
                       className="text-sm py-2"

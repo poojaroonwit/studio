@@ -6,7 +6,7 @@ import { CandidateTable } from '@/components/candidates/CandidateTable';
 import type { Candidate, Position, RecruitmentStage } from '@/lib/types';
 import { getScoreRangesForChart } from '@/lib/scoreUtils';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Users, ServerCrash, Zap, Loader2, FileDown, FileUp, ChevronDown, FileSpreadsheet, ShieldAlert, Brain, Trash2 as BulkTrashIcon, Edit as BulkEditIcon, ChevronLeft, ChevronRight, ChevronsUpDown, Check, Briefcase, X, Filter, Search, Settings, MoreVertical, Trash2, FileEdit, Users as UsersIcon } from 'lucide-react';
+import { PlusCircle, Users, ServerCrash, Zap, Loader2, FileDown, FileUp, ChevronDown, FileSpreadsheet, ShieldAlert, Brain, Trash2 as BulkTrashIcon, Edit as BulkEditIcon, ChevronLeft, ChevronRight, ChevronsUpDown, Check, Briefcase, X, Filter, Search, Settings, MoreVertical, Trash2, FileEdit, Users as UsersIcon, RefreshCw } from 'lucide-react';
 import { toast } from "react-hot-toast";
 import { getErrorMessage } from '@/lib/networkUtils';
 import { AddCandidateModal } from '@/components/candidates/AddCandidateModal';
@@ -522,6 +522,53 @@ export function CandidatesPageClient({
     }
   }, [fetchTableData, filters, page, pageSize, fetchAllCandidatesForCounts, availableRecruiter]);
 
+  const handleBulkReprocess = useCallback(async (candidateIds: string[]) => {
+    try {
+      const response = await fetch('/api/candidates/bulk-action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'reprocess',
+          candidateIds: candidateIds
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Bulk re-process failed');
+      }
+
+      const result = await response.json();
+      
+      if (result.reprocessErrors && result.reprocessErrors.length > 0) {
+        const errorCount = result.reprocessErrors.length;
+        const successCount = result.reprocessedCount || 0;
+        
+        if (successCount > 0) {
+          toast.success(`${successCount} candidate(s) queued for re-processing`);
+        }
+        
+        if (errorCount > 0) {
+          const errorMessages = result.reprocessErrors.map((error: any) => 
+            `${error.candidateName}: ${error.error}`
+          ).join(', ');
+          toast.error(`${errorCount} candidate(s) failed: ${errorMessages}`);
+        }
+      } else {
+        toast.success(`${result.reprocessedCount || candidateIds.length} candidate(s) queued for re-processing`);
+      }
+      
+      // Clear selection and refresh data
+      setSelectedCandidateIds(new Set());
+      if (filters) {
+        fetchTableData(filters, page, pageSize);
+      }
+      fetchAllCandidatesForCounts();
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    }
+  }, [fetchTableData, filters, page, pageSize, fetchAllCandidatesForCounts]);
+
   const {
     isAiSearching,
     handleAiSearch,
@@ -542,7 +589,7 @@ export function CandidatesPageClient({
   const [selectedPositionForEdit, setSelectedPositionForEdit] = useState<Position | null>(null);
   const [selectedCandidateIds, setSelectedCandidateIds] = useState<Set<string>>(new Set());
   const [isBulkActionConfirmOpen, setIsBulkActionConfirmOpen] = useState(false);
-  const [bulkActionType, setBulkActionType] = useState<'delete' | 'change_status' | 'assign_recruiter' | null>(null);
+  const [bulkActionType, setBulkActionType] = useState<'delete' | 'change_status' | 'assign_recruiter' | 'reprocess' | null>(null);
   const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
@@ -1338,7 +1385,8 @@ export function CandidatesPageClient({
     );
     
     // Only skip fetch if we have initial candidates, no active filters, page is 1, and sort is default
-            if (initialCandidates.length > 0 && !hasActiveFilters && page === 1 && sortColumn === 'applicationDate' && sortDirection === 'desc') {
+    // FIXED: Allow page changes to trigger fetch even when no filters are active
+    if (initialCandidates.length > 0 && !hasActiveFilters && page === 1 && sortColumn === 'applicationDate' && sortDirection === 'desc') {
       return;
     }
     
@@ -1715,6 +1763,7 @@ export function CandidatesPageClient({
                 onBulkDelete={handleBulkDelete}
                 onBulkChangeStatus={handleBulkChangeStatus}
                 onBulkAssignRecruiter={handleBulkAssignRecruiter}
+                onBulkReprocess={handleBulkReprocess}
                 settings={candidateSettings}
                 tableHeight={tableHeight}
               />
@@ -1769,6 +1818,17 @@ export function CandidatesPageClient({
                       >
                         <Users className="h-3 w-3 mr-1" />
                         Recruiter
+                      </Button>
+                      
+                      <Button
+                        onClick={() => handleBulkReprocess(Array.from(selectedCandidateIds))}
+                        disabled={!canEditCandidates}
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2"
+                      >
+                        <RefreshCw className="h-3 w-3 mr-1" />
+                        Re-process
                       </Button>
                     </div>
                   </div>
@@ -1839,7 +1899,14 @@ export function CandidatesPageClient({
                 
                 <div className="flex items-center space-x-3">
                   <Button
-                    onClick={() => setPage(Math.max(1, page - 1))}
+                    onClick={() => {
+                      const newPage = Math.max(1, page - 1);
+                      setPage(newPage);
+                      // Explicitly fetch data for the new page
+                      if (filters) {
+                        fetchTableData(filters, newPage, pageSize);
+                      }
+                    }}
                     disabled={(() => {
                       const currentTotal = isAiSearchActive && aiMatchedCandidateIds ? aiRecordCount : total;
                       return page <= 1 || currentTotal === 0;
@@ -1864,7 +1931,12 @@ export function CandidatesPageClient({
                   
                   <Button
                     onClick={() => {
-                      setPage(Math.min(totalPages, page + 1));
+                      const newPage = Math.min(totalPages, page + 1);
+                      setPage(newPage);
+                      // Explicitly fetch data for the new page
+                      if (filters) {
+                        fetchTableData(filters, newPage, pageSize);
+                      }
                       // Show Performance Monitor for admin users
                       if (session?.user?.role === 'Admin') {
                 

@@ -50,7 +50,7 @@ const customFieldFormSchema = z.object({
   showInHeadcountDetail: z.boolean().default(false),
   
   // Section selection for display settings
-  candidateDetailSection: z.enum(['jobs', 'candidate-info', 'education', 'experience', 'job-suitability']).optional().nullable(),
+  candidateDetailSection: z.enum(['jobs', 'candidate-info', 'education', 'experience']).optional().nullable(),
   positionDetailSection: z.enum(['details', 'criteria', 'candidates', 'headcount']).optional().nullable(),
   
   // Field properties

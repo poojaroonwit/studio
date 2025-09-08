@@ -89,25 +89,14 @@ export class WebhookService {
         headers[webhook.auth_header_name] = webhook.auth_header_value;
       }
 
-      // Send webhook with timeout
-      const controller = new AbortController();
-      let timeoutId: NodeJS.Timeout | null = null;
-
+      // Send webhook without timeout - wait for response only
       try {
-        timeoutId = setTimeout(() => controller.abort(), webhook.timeout * 1000);
-
         const response = await fetch(webhook.url, {
           method: webhook.method,
           headers,
           body: webhook.method !== 'GET' ? JSON.stringify(processedPayload) : undefined,
-          signal: controller.signal
+          // No signal/abort controller - wait indefinitely for response
         });
-
-        // Clear timeout on successful response
-        if (timeoutId) {
-          clearTimeout(timeoutId);
-          timeoutId = null;
-        }
 
         const responseBody = await response.text().catch(() => 'Unable to read response body');
         const duration = Date.now() - startTime;
@@ -124,12 +113,6 @@ export class WebhookService {
         }
 
       } catch (error) {
-        // Clear timeout on error
-        if (timeoutId) {
-          clearTimeout(timeoutId);
-          timeoutId = null;
-        }
-        
         const duration = Date.now() - startTime;
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 

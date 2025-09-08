@@ -10,7 +10,7 @@ import { z } from 'zod';
 import { getPool } from '@/lib/db';
 import { logAudit } from '@/lib/auditLog';
 import { executeWithApiKeyFallback } from '@/lib/aiApiKeyManager';
-import type { Candidate, CandidateDetails, EducationEntry, ExperienceEntry, SkillEntry, JobSuitableEntry, TransitionRecord } from '@/lib/types';
+import type { Candidate, CandidateDetails, EducationEntry, ExperienceEntry, SkillEntry, TransitionRecord } from '@/lib/types';
 import { getRecruitmentStageName } from '@/lib/recruitmentStageUtils';
 
 // Input Schema
@@ -38,8 +38,8 @@ async function createCandidateSummary(candidate: Candidate): Promise<string> {
   if (email) summaryParts.push(`Email: ${email}`);
   if (phone) summaryParts.push(`Phone: ${phone}`);
   
-  if (position?.title) summaryParts.push(`Applied for Position: ${position.title} (Fit Score: ${fitScore < 1 ? Math.round(fitScore * 100) : fitScore}%, Status: ${await getRecruitmentStageName(status) || status})`);
-  else summaryParts.push(`General Application (Status: ${await getRecruitmentStageName(status) || status}, Overall Fit Score: ${fitScore < 1 ? Math.round(fitScore * 100) : fitScore}%)`);
+  if (position?.title) summaryParts.push(`Applied for Position: ${position.title} (Fit Score: ${fitScore < 1 ? Math.round(fitScore * 100) : fitScore}%, Status: ${await getRecruitmentStageName(status || '') || (status || '')})`);
+  else summaryParts.push(`General Application (Status: ${await getRecruitmentStageName(status || '') || (status || '')}, Overall Fit Score: ${fitScore < 1 ? Math.round(fitScore * 100) : fitScore}%)`);
   
   if (applicationDate) summaryParts.push(`Application Date: ${new Date(applicationDate).toLocaleDateString()}`);
   if (recruiter?.name) summaryParts.push(`Assigned Recruiter: ${recruiter.name}`);
@@ -161,16 +161,7 @@ async function createCandidateSummary(candidate: Candidate): Promise<string> {
       });
     }
 
-    if (details.job_suitable && Array.isArray(details.job_suitable) && details.job_suitable.length > 0) {
-        summaryParts.push("Job Suitability Preferences:");
-        details.job_suitable.forEach((js: JobSuitableEntry, index: number) => {
-            let jsStr = `  ${index + 1}. Career: ${js.suitable_career || 'N/A'}`;
-            if (js.suitable_job_position) jsStr += `, Position: ${js.suitable_job_position}`;
-            if (js.suitable_job_level) jsStr += `, Level: ${js.suitable_job_level}`;
-            if (js.suitable_salary_bath_month) jsStr += `, Salary Expectation (THB/Month): ${js.suitable_salary_bath_month}`;
-            summaryParts.push(jsStr);
-        });
-    }
+    // job_suitable removed
     
     if (details.job_matches && Array.isArray(details.job_matches) && details.job_matches.length > 0) {
       summaryParts.push("Automated Job Matches (from automation):");

@@ -409,7 +409,7 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
                  </div>
 
                  <div className="grid grid-cols-[120px_1fr] gap-3 items-center">
-                   <Label htmlFor="hiring-date-add" className="font-medium text-sm">Hiring Date</Label>
+                   <Label htmlFor="hiring-date-add" className="font-medium text-sm">Position Request Date</Label>
                    <Input
                      id="hiring-date-add"
                      type="date"

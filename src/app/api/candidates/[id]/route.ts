@@ -418,7 +418,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
 
   // Skip validation and use body directly
-  const { name, email, phone, positionId, recruiterId, fitScore, status, assignmentJustification, parsedData, custom_attributes, customFields, resumePath, transitionNotes, avatarUrl, sourceId, subSource } = body;
+  const { name, email, phone, positionId, recruiterId, fitScore, status, assignmentJustification, parsedData, custom_attributes, customFields, resumePath, transitionNotes, avatarUrl, sourceId, subSource, isPinned } = body;
 
   // Log source assignment specifically for debugging
   if (sourceId !== undefined) {
@@ -470,6 +470,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     const existingCandidate = existingResult.rows[0];
+    const pinChangeRequested = typeof isPinned === 'boolean' && isPinned !== existingCandidate.isPinned;
     console.log(`Candidate found - name: ${existingCandidate.name}, current statusId: ${existingCandidate.statusId}`);
     const oldStatus = existingCandidate.statusId;
     const oldRecruiterId = existingCandidate.recruiterId;
@@ -639,6 +640,18 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       updateFields.push(`"subSource" = $${paramIndex}`);
       updateValues.push(subSource);
       paramIndex++;
+    }
+
+    // Handle pin/unpin and timestamp
+    if (typeof isPinned === 'boolean') {
+      updateFields.push(`"isPinned" = $${paramIndex}`);
+      updateValues.push(isPinned);
+      paramIndex++;
+      if (isPinned) {
+        updateFields.push(`"pinnedAt" = NOW()`);
+      } else {
+        updateFields.push(`"pinnedAt" = NULL`);
+      }
     }
 
     // Always update the updatedAt timestamp
@@ -944,6 +957,14 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     } catch (auditError) {
       console.error('Failed to log audit entry:', auditError);
       // Don't fail the request if audit logging fails
+    }
+    // Log pin/unpin action explicitly
+    if (pinChangeRequested) {
+      try {
+        await logAudit('AUDIT', `Candidate '${existingCandidate.name}' ${isPinned ? 'pinned' : 'unpinned'} by ${actingUserName}.`, 'API:Candidates:PinToggle', actingUserId, { candidateId: id, isPinned });
+      } catch (auditError) {
+        // ignore log error
+      }
     }
     
          // After update, re-fetch the candidate using the same logic as GET to ensure response structure is identical

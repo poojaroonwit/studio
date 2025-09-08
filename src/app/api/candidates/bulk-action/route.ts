@@ -9,7 +9,7 @@ import { broadcastCandidateUpdate } from '@/lib/simple-broadcaster';
 import { hasAnyPermission } from '@/lib/permissions';
 
 const bulkActionSchema = z.object({
-  action: z.enum(['delete', 'change_status', 'assign_recruiter']),
+  action: z.enum(['delete', 'change_status', 'assign_recruiter', 'reprocess']),
   candidateIds: z.array(z.string().uuid()).min(1, "At least one candidate ID is required."),
   newStatus: z.string().optional(), // Required if action is 'change_status'
   newRecruiterId: z.string().uuid().nullable().optional(), // Required if action is 'assign_recruiter'
@@ -234,6 +234,9 @@ export async function POST(request: NextRequest) {
     case 'delete':
       hasPermission = hasAnyPermission(session.user, ['CANDIDATES_DELETE']);
       break;
+    case 'reprocess':
+      hasPermission = hasAnyPermission(session.user, ['CANDIDATES_EDIT_BASIC']);
+      break;
     default:
       hasPermission = false;
   }
@@ -250,6 +253,9 @@ export async function POST(request: NextRequest) {
         break;
       case 'delete':
         specificMessage = 'Forbidden: You do not have permission to delete candidates. Please contact your administrator to request the "CANDIDATES_DELETE" permission.';
+        break;
+      case 'reprocess':
+        specificMessage = 'Forbidden: You do not have permission to re-process candidates. Please contact your administrator to request the "CANDIDATES_EDIT_BASIC" permission.';
         break;
       default:
         specificMessage = 'Forbidden: You do not have permission to perform this action on candidates. Please contact your administrator.';
@@ -554,6 +560,136 @@ export async function POST(request: NextRequest) {
 
         result = { updatedCount: assignRecruiterResult.rowCount };
         auditMessage = `Bulk assigned recruiter for ${assignRecruiterResult.rowCount} candidates`;
+        break;
+
+      case 'reprocess':
+        // Get candidates with their attachments and applied positions
+        const candidatesResult = await client.query(`
+          SELECT 
+            c.id,
+            c.name,
+            c."positionId",
+            c."sourceId",
+            c."parsedData",
+            COALESCE(
+              json_agg(
+                json_build_object(
+                  'id', a.id,
+                  'filePath', a."filePath",
+                  'fileName', a."fileName",
+                  'label', a.label,
+                  'isPrimary', a."isPrimary"
+                ) ORDER BY 
+                  CASE WHEN a.label = 'resume' THEN 1 ELSE 2 END,
+                  a."isPrimary" DESC,
+                  a."createdAt" ASC
+              ) FILTER (WHERE a.id IS NOT NULL),
+              '[]'::json
+            ) as attachments
+          FROM "Candidate" c
+          LEFT JOIN "Attachment" a ON c.id = a."candidateId"
+          WHERE c.id = ANY($1::uuid[])
+          GROUP BY c.id, c.name, c."positionId", c."sourceId", c."parsedData"
+        `, [candidateIds]);
+
+        const candidates = candidatesResult.rows;
+        const reprocessResults = [];
+        const reprocessErrors = [];
+
+        for (const candidate of candidates) {
+          try {
+            // Find resume file with 'resume' tag, or use first file as fallback
+            let selectedAttachment = null;
+            const attachments = candidate.attachments || [];
+            
+            // First, try to find a file with 'resume' tag
+            selectedAttachment = attachments.find((att: any) => 
+              att.label && att.label.toLowerCase() === 'resume'
+            );
+            
+            // If no resume tag found, use the first file
+            if (!selectedAttachment && attachments.length > 0) {
+              selectedAttachment = attachments[0];
+            }
+
+            if (!selectedAttachment) {
+              reprocessErrors.push({
+                candidateId: candidate.id,
+                candidateName: candidate.name,
+                error: 'No attachments found for re-processing'
+              });
+              continue;
+            }
+
+            // Get the applied position ID from parsedData or positionId
+            let appliedPositionId = candidate.positionId;
+            if (candidate.parsedData && candidate.parsedData.job_applied && candidate.parsedData.job_applied.jobId) {
+              appliedPositionId = candidate.parsedData.job_applied.jobId;
+            }
+
+            if (!appliedPositionId) {
+              reprocessErrors.push({
+                candidateId: candidate.id,
+                candidateName: candidate.name,
+                error: 'No applied position found for re-processing'
+              });
+              continue;
+            }
+
+            // Create reprocess job in upload queue
+            const jobId = uuidv4();
+            const uploadId = uuidv4();
+            
+            await client.query(`
+              INSERT INTO upload_queue (
+                id, file_name, file_size, status, source, upload_id, 
+                created_by, file_path, webhook_payload, position_id, source_id
+              ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            `, [
+              jobId,
+              selectedAttachment.fileName,
+              0, // File size will be determined from MinIO
+              'queued',
+              'reprocess',
+              uploadId,
+              actingUserId,
+              selectedAttachment.filePath,
+              JSON.stringify({
+                candidate_id: candidate.id,
+                request_type: 'update',
+                source: 'reprocess',
+                attachment_id: selectedAttachment.id,
+                sourceId: candidate.sourceId
+              }),
+              appliedPositionId,
+              candidate.sourceId
+            ]);
+
+            reprocessResults.push({
+              candidateId: candidate.id,
+              candidateName: candidate.name,
+              attachmentName: selectedAttachment.fileName,
+              positionId: appliedPositionId,
+              jobId: jobId
+            });
+
+          } catch (error) {
+            console.error(`Error creating reprocess job for candidate ${candidate.id}:`, error);
+            reprocessErrors.push({
+              candidateId: candidate.id,
+              candidateName: candidate.name,
+              error: error instanceof Error ? error.message : 'Unknown error'
+            });
+          }
+        }
+
+        result = { 
+          reprocessedCount: reprocessResults.length,
+          errorCount: reprocessErrors.length,
+          reprocessResults,
+          reprocessErrors
+        };
+        auditMessage = `Bulk re-processed ${reprocessResults.length} candidates, ${reprocessErrors.length} failed`;
         break;
 
       default:

@@ -14,7 +14,7 @@ function isDarkMode() {
 
 export default function ToastClient() {
   const [isClient, setIsClient] = useState(false);
-  const { contentZIndex } = useDynamicZIndex('toast-client', 'overlay');
+  const { contentZIndex } = useDynamicZIndex('toast-client', 'dropdown');
 
   useEffect(() => {
     setIsClient(true);

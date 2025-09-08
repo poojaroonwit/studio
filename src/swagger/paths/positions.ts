@@ -148,7 +148,7 @@ export const positionsPaths = {
   '/api/v1/positions/bulk-action': {
     post: {
       summary: 'Bulk action on positions (v1 API)',
-      description: 'Perform bulk actions on multiple positions. Requires Bearer token authentication and Admin or POSITIONS_DELETE permission.',
+      description: 'Perform bulk actions on multiple positions including delete, status update, department update, and match criteria update. Requires Bearer token authentication and Admin or POSITIONS_EDIT_DETAILED permission.',
       tags: ['V1 Positions'],
       security: [{ bearerAuth: [] }],
       requestBody: {
@@ -158,9 +158,9 @@ export const positionsPaths = {
             schema: {
               type: 'object',
               properties: {
-                action: { type: 'string', enum: ['delete', 'update'] },
+                action: { type: 'string', enum: ['delete', 'update_status', 'update_department', 'update_match_criteria'] },
                 positionIds: { type: 'array', items: { type: 'string' } },
-                updates: { type: 'object', additionalProperties: true }
+                data: { type: 'object', additionalProperties: true }
               },
               required: ['action', 'positionIds']
             }

@@ -221,7 +221,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       wantsToChangeRecruiter
     });
 
-    const canEditBasic = isAdmin || modulePermissions.includes('POSITIONS_EDIT_BASIC') || isAssignedRecruiter;
+    const canEdit = isAdmin 
+      || modulePermissions.includes('POSITIONS_EDIT_BASIC') 
+      || modulePermissions.includes('POSITIONS_EDIT_DETAILED');
     const canAssignRecruiter = isAdmin || modulePermissions.includes('POSITIONS_RECRUITER_ASSIGN');
     
     // Additional safety check - ensure modulePermissions is an array
@@ -232,7 +234,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
     
     console.log('[POSITION UPDATE] Permission results:', {
-      canEditBasic,
+      canEdit,
       canAssignRecruiter,
       hasPositionsEditBasic: modulePermissions.includes('POSITIONS_EDIT_BASIC'),
       hasPositionsEditDetailed: modulePermissions.includes('POSITIONS_EDIT_DETAILED'),
@@ -328,31 +330,20 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     `;
     updateValues.push(id);
 
-    // Check if user has basic edit permissions for any field updates
-    console.log('[POSITION UPDATE] Checking basic edit permissions:', { canEditBasic });
-    if (!canEditBasic) {
+    // Check if user has edit permissions for any field updates
+    console.log('[POSITION UPDATE] Checking edit permissions:', { canEdit });
+    if (!canEdit) {
       console.log('[POSITION UPDATE] Permission denied - user lacks basic edit permissions');
       await client.query('ROLLBACK');
       return NextResponse.json({ message: 'Forbidden: insufficient permissions to edit positions' }, { status: 403 });
     }
 
-    // If the user is only the assigned recruiter (not admin/module), prevent them from changing restricted fields
+    // Restrict recruiter assignment to specific permission
     if (!canAssignRecruiter && wantsToChangeRecruiter) {
       await client.query('ROLLBACK');
       return NextResponse.json({ message: 'Forbidden: insufficient permissions to assign recruiter' }, { status: 403 });
     }
-    if (!isAdmin && isAssignedRecruiter) {
-      const restrictedKeys = ['title', 'department', 'gradeId', 'hiringDate', 'positionAttribute', 'positionLevel', 'isOpen', 'matchCriteria', 'description'];
-      const tryingRestricted = Object.keys(updateData).some((k) => restrictedKeys.includes(k));
-      if (tryingRestricted) {
-        // Assigned recruiters can edit only custom attributes on their positions, not structural fields
-        const onlyCustomAttributes = Object.keys(updateData).every((k) => k === 'custom_attributes');
-        if (!onlyCustomAttributes) {
-          await client.query('ROLLBACK');
-          return NextResponse.json({ message: 'Forbidden: assigned recruiter may only edit custom attributes' }, { status: 403 });
-        }
-      }
-    }
+    // No further field-level restrictions; users with edit permissions can update all fields
 
     const updateResult = await client.query(updateQuery, updateValues);
     

@@ -323,6 +323,8 @@ export async function GET(request: NextRequest) {
     
     // Handle NULL values in sorting - for fitScore, put NULL values first when ascending, last when descending
     let sortClause = `${sortColumn} ${sortDirection}`;
+    // Always prioritize pinned candidates at the top for all users
+    sortClause = `c."isPinned" DESC, c."pinnedAt" DESC NULLS LAST, ${sortClause}`;
     if (sortColumnParam === 'fitScore') {
       if (sortDirection === 'ASC') {
         sortClause = `c."fitScore" ${sortDirection} NULLS FIRST`;
@@ -1126,6 +1128,8 @@ export async function GET(request: NextRequest) {
         c."sourceId",
         c."parsedData",
         c."avatarUrl",
+        c."isPinned",
+        c."pinnedAt",
         p.title as "positionTitle",
         u.name as "recruiterName",
         cs.name as "sourceName"
@@ -1165,6 +1169,8 @@ export async function GET(request: NextRequest) {
       sourceId: row.sourceId,
       parsedData: row.parsedData,
       avatarUrl: row.avatarUrl,
+      isPinned: row.isPinned,
+      pinnedAt: row.pinnedAt,
       position: row.positionTitle ? { title: row.positionTitle } : null,
       recruiter: row.recruiterName ? { name: row.recruiterName } : null,
       source: row.sourceName ? { name: row.sourceName } : null,

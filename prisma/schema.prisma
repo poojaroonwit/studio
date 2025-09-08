@@ -136,6 +136,8 @@ model Candidate {
   sourceId                String?            @db.Uuid
   subSource               String?
   statusId                String?            @db.Uuid
+  isPinned                Boolean            @default(false)
+  pinnedAt                DateTime?
   attachments             Attachment[]
   position                Position?          @relation(fields: [positionId], references: [id])
   recruiter               User?              @relation("RecruiterCandidates", fields: [recruiterId], references: [id])
@@ -153,6 +155,8 @@ model Candidate {
   @@index([fitScore])
   @@index([sourceId])
   @@index([statusId])
+  @@index([isPinned])
+  @@index([pinnedAt])
 }
 
 model RecruitmentStage {

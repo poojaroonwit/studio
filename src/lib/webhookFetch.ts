@@ -54,9 +54,11 @@ export async function webhookFetch(options: WebhookFetchOptions): Promise<Webhoo
     let timeoutId: NodeJS.Timeout | null = null;
     
     try {
-      // Create AbortController for timeout
+      // Create AbortController for timeout (only if timeoutMs > 0)
       const controller = new AbortController();
-      timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      if (timeoutMs > 0) {
+        timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      }
 
       try {
         // Configure fetch options
@@ -67,7 +69,8 @@ export async function webhookFetch(options: WebhookFetchOptions): Promise<Webhoo
             'User-Agent': 'Recruitment-System-Webhook/1.0',
             ...headers
           },
-          signal: controller.signal,
+          // Only add signal if we have a timeout
+          ...(timeoutMs > 0 && { signal: controller.signal }),
           // Add keepalive to prevent connection issues
           keepalive: true,
         };

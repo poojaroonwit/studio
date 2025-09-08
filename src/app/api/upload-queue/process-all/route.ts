@@ -28,6 +28,24 @@ export async function POST(request: NextRequest) {
   const messages: Array<string> = [];
   const startTime = Date.now();
 
+  // Check if process queue is enabled
+  try {
+    const queueEnabled = await getSystemSetting('processQueueEnabled');
+    if (queueEnabled === 'false') {
+      console.log('Process queue is disabled, skipping batch processing');
+      return NextResponse.json({ 
+        message: 'Process queue is disabled',
+        enabled: false,
+        processed_count: 0,
+        processed: [],
+        messages: ['Process queue is disabled']
+      }, { status: 200 });
+    }
+  } catch (error) {
+    console.warn('Failed to check process queue enabled status:', error);
+    // Continue processing if we can't check the setting
+  }
+
   try {
     // NEW: Check processing time limit early
     const processingTime = Date.now() - startTime;

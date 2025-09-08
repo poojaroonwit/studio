@@ -34,6 +34,7 @@ import { TableWrapper } from "@/components/ui/responsive-table";
 import { ImportPositionsModal } from '@/components/positions/ImportPositionsModal';
 import { RecruiterFilterSidebar } from '@/components/positions/RecruiterFilterSidebar';
 import { RecruiterCell } from '@/components/positions/RecruiterCell';
+import { BulkMatchCriteriaModal } from '@/components/positions/BulkMatchCriteriaModal';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -76,6 +77,7 @@ export default function PositionsPageClient() {
   const [positionToDelete, setPositionToDelete] = useState<Position | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+  const [isBulkMatchCriteriaModalOpen, setIsBulkMatchCriteriaModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -1087,6 +1089,42 @@ export default function PositionsPageClient() {
     }
   };
 
+  // Bulk match criteria update handler
+  const handleBulkMatchCriteriaUpdate = async (matchCriteria: string) => {
+    try {
+      const response = await safeFetch('/api/v1/positions/bulk-action', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'update_match_criteria',
+          positionIds: selectedIds,
+          data: { matchCriteria }
+        }),
+        timeoutMs: 10000
+      });
+
+      if (!response.ok) {
+        throw new Error(response.error || 'Failed to update match criteria');
+      }
+
+      // Update local state
+      setPositions(prev => prev.map(position => 
+        selectedIds.includes(position.id) 
+          ? { ...position, matchCriteria }
+          : position
+      ));
+      
+      setSelectedIds([]);
+      toast.success(`Match criteria updated for ${selectedIds.length} position${selectedIds.length !== 1 ? 's' : ''}`);
+    } catch (error) {
+      console.error('Failed to update match criteria:', error);
+      toast.error('Failed to update match criteria');
+      throw error;
+    }
+  };
+
   const handleExportPositions = async () => {
     try {
       const result = await safeFetch('/api/positions/export', {
@@ -1392,6 +1430,9 @@ export default function PositionsPageClient() {
           {selectedIds.length > 0 && (
             <div className="flex items-center gap-3 p-2 bg-muted/30 border-b border-border">
               <span className="text-sm text-muted-foreground">{selectedIds.length} selected</span>
+              <Button variant="ghost" size="sm" onClick={() => setIsBulkMatchCriteriaModalOpen(true)} className="h-7 px-2 text-primary hover:bg-primary/10 hover:text-primary">
+                <Edit className="h-3 w-3 mr-1" /> Update Match Criteria
+              </Button>
               <Button variant="ghost" size="sm" onClick={() => setShowBulkDeleteConfirm(true)} className="h-7 px-2 text-destructive hover:bg-destructive/10 hover:text-destructive">
                 <Trash2 className="h-3 w-3 mr-1" /> Delete
               </Button>
@@ -1761,6 +1802,14 @@ export default function PositionsPageClient() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Bulk Match Criteria Update Modal */}
+      <BulkMatchCriteriaModal
+        isOpen={isBulkMatchCriteriaModalOpen}
+        onClose={() => setIsBulkMatchCriteriaModalOpen(false)}
+        onConfirm={handleBulkMatchCriteriaUpdate}
+        selectedCount={selectedIds.length}
+      />
 
       {/* Position Detail Drawer */}
       <PositionDetailDrawer

@@ -16,7 +16,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
 import { CandidateAvatarCompact } from '@/components/ui/candidate-avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Trash2, Eye, Users, MoreVertical, ChevronUp, ChevronDown } from 'lucide-react';
+import { MoreHorizontal, Trash2, Eye, Users, MoreVertical, ChevronUp, ChevronDown, Pin as PinIcon, PinOff } from 'lucide-react';
 import { formatScoreWithGrade, getScoreColor, getScoreBgColor } from "@/lib/scoreUtils";
 import { formatCandidateName, formatCandidateNameWithLang } from "@/lib/candidateUtils";
 import type { Candidate, CandidateStatus, Position, RecruitmentStage, CandidateSource } from '@/lib/types';
@@ -89,6 +89,7 @@ interface CandidateTableProps {
   onBulkDelete?: (candidateIds: string[]) => Promise<void>;
   onBulkChangeStatus?: (candidateIds: string[], newStatus: string, notes?: string) => Promise<void>;
   onBulkAssignRecruiter?: (candidateIds: string[], recruiterId: string | null) => Promise<void>;
+  onBulkReprocess?: (candidateIds: string[]) => Promise<void>;
 }
 
 
@@ -108,6 +109,19 @@ function getRowHeightStyle(rowHeight: 'compact' | 'normal' | 'comfortable' = 'no
     case 'normal':
     default:
       return { height: '48px', minHeight: '48px' }; // 48px
+  }
+}
+
+// Utility for getting row padding classes to ensure visual height updates
+function getRowPaddingClass(rowHeight: 'compact' | 'normal' | 'comfortable' = 'normal') {
+  switch (rowHeight) {
+    case 'compact':
+      return "[&>td]:py-1";
+    case 'comfortable':
+      return "[&>td]:py-4";
+    case 'normal':
+    default:
+      return "[&>td]:py-2";
   }
 }
 
@@ -337,7 +351,8 @@ const renderTableCells = (
   stageNames: Record<string, string>,
   stageColors: Record<string, { color_complete: string; color_badge: string }>,
   displayFitScoreWithGrade: (score: number) => string,
-  displayAppliedDate: (date: string | null | undefined) => string
+  displayAppliedDate: (date: string | null | undefined) => string,
+  onOpenDetail: (candidateId: string, candidateName: string) => void
 ) => {
   const defaultColumnOrder = [
     'candidate',
@@ -382,17 +397,29 @@ const renderTableCells = (
                   />
                   <div className="min-w-0 flex-1">
                     {isValidId ? (
-                      <Link href={`/candidates/${candidate.id}`} passHref>
-                        <span 
-                          className={`font-medium text-foreground hover:underline cursor-pointer truncate block ${nameInfo.fontClass}`}
-                          lang={nameInfo.lang}
-                          title={nameInfo.name}
-                        >
+                      <button
+                        type="button"
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); onOpenDetail(candidate.id, candidate.name); }}
+                        className={`font-medium text-foreground hover:underline cursor-pointer truncate block text-left ${nameInfo.fontClass}`}
+                        lang={nameInfo.lang}
+                        title={nameInfo.name}
+                      >
+                        <span className="inline-flex items-center gap-1">
                           {nameInfo.name}
+                          {candidate.isPinned ? (
+                            <PinIcon className="h-3 w-3 text-primary/80" />
+                          ) : null}
                         </span>
-                      </Link>
+                      </button>
                     ) : (
-                      <span className={`font-medium text-foreground ${nameInfo.fontClass}`} lang={nameInfo.lang}>{nameInfo.name}</span>
+                      <span className={`font-medium text-foreground ${nameInfo.fontClass}`} lang={nameInfo.lang}>
+                        <span className="inline-flex items-center gap-1">
+                          {nameInfo.name}
+                          {candidate.isPinned ? (
+                            <PinIcon className="h-3 w-3 text-primary/80" />
+                          ) : null}
+                        </span>
+                      </span>
                     )}
                     <div className="text-xs text-muted-foreground truncate" title={candidate.email}>{candidate.email}</div>
                   </div>
@@ -578,6 +605,7 @@ export function CandidateTable({
   onBulkDelete,
   onBulkChangeStatus,
   onBulkAssignRecruiter,
+  onBulkReprocess,
 }: CandidateTableProps) {
   const router = useRouter();
   const { isJobMatchEnabled } = useJobMatchFeature();
@@ -678,6 +706,19 @@ export function CandidateTable({
     }
   };
 
+  const togglePin = async (candidate: Candidate) => {
+    try {
+      await fetch(`/api/candidates/${candidate.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isPinned: !candidate.isPinned })
+      });
+      await onRefreshCandidateData(candidate.id);
+    } catch (e) {
+      // ignore
+    }
+  };
+
   const handleRowClick = (candidate: Candidate, e: React.MouseEvent) => {
     // Don't trigger row click if clicking on interactive elements
     if ((e.target as HTMLElement).closest('button, a, input, select, [role="button"], [data-modal], [data-dialog]')) {
@@ -694,8 +735,9 @@ export function CandidateTable({
       return;
     }
     
-    // Navigate to candidate detail page using Next.js router
-    router.push(`/candidates/${candidate.id}`);
+    // Open candidate detail modal instead of navigation
+    setSelectedCandidateSummary({ id: candidate.id, name: candidate.name });
+    setIsDetailModalOpen(true);
   };
 
   const renderSortIcon = (col: string) => {
@@ -871,7 +913,7 @@ export function CandidateTable({
                               const currentStageIndex = availableStages.findIndex(s => s.id === candidate.statusId);
 
                   const row = (
-                <TableRow key={candidate.id} onClick={(e) => handleRowClick(candidate, e)} className="cursor-pointer hover:bg-muted/40" style={getRowHeightStyle(settings?.rowHeight)} data-state={safeSelectedCandidateIds.has(candidate.id) ? 'selected' : ''}>
+                <TableRow key={candidate.id} onClick={(e) => handleRowClick(candidate, e)} className={`cursor-pointer hover:bg-muted/40 ${getRowPaddingClass(settings?.rowHeight)}`} style={getRowHeightStyle(settings?.rowHeight)} data-state={safeSelectedCandidateIds.has(candidate.id) ? 'selected' : ''}>
                       <TableCell key={`${candidate.id}-row-number`} className="text-center font-mono text-xs text-muted-foreground">{rowNumber}</TableCell>
                   <TableCell key={`${candidate.id}-select`}><Checkbox
                       checked={safeSelectedCandidateIds.has(candidate.id)}
@@ -895,7 +937,8 @@ export function CandidateTable({
                     stageNames,
                     stageColors as any,
                     displayFitScoreWithGrade,
-                    displayAppliedDate
+                    displayAppliedDate,
+                    (id: string, name: string) => { setSelectedCandidateSummary({ id, name }); setIsDetailModalOpen(true); }
                   )}
 
                   <TableCell key={`${candidate.id}-actions`} className="text-right max-w-[100px]">
@@ -919,6 +962,23 @@ export function CandidateTable({
                           >
                             <Eye className="mr-2 h-4 w-4" /> 
                             View Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            key="pin-toggle"
+                            onSelect={() => togglePin(candidate)}
+                            className="text-sm py-2"
+                          >
+                            {candidate.isPinned ? (
+                              <>
+                                <PinOff className="mr-2 h-4 w-4" />
+                                Unpin from top
+                              </>
+                            ) : (
+                              <>
+                                <PinIcon className="mr-2 h-4 w-4" />
+                                Pin to top (shared)
+                              </>
+                            )}
                           </DropdownMenuItem>
                           <DropdownMenuSeparator key="separator" />
                           <DropdownMenuItem 
@@ -954,7 +1014,7 @@ export function CandidateTable({
                       </TableRow>
                       {isExpanded && group.map((candidate, idx) => {
                         const row = (
-                          <TableRow key={candidate.id} onClick={(e) => handleRowClick(candidate, e)} className="cursor-pointer hover:bg-muted/40 border-t" style={getRowHeightStyle(settings?.rowHeight)} data-state={safeSelectedCandidateIds.has(candidate.id) ? 'selected' : ''}>
+                          <TableRow key={candidate.id} onClick={(e) => handleRowClick(candidate, e)} className={`cursor-pointer hover:bg-muted/40 border-t ${getRowPaddingClass(settings?.rowHeight)}`} style={getRowHeightStyle(settings?.rowHeight)} data-state={safeSelectedCandidateIds.has(candidate.id) ? 'selected' : ''}>
                             <TableCell key={`${candidate.id}-row-number`} className="text-center font-mono text-xs text-muted-foreground">{rowNumber}</TableCell>
                             <TableCell key={`${candidate.id}-select`}><Checkbox
                                 checked={safeSelectedCandidateIds.has(candidate.id)}
@@ -978,7 +1038,8 @@ export function CandidateTable({
                               stageNames,
                               stageColors as any,
                               displayFitScoreWithGrade,
-                              displayAppliedDate
+                              displayAppliedDate,
+                              (id: string, name: string) => { setSelectedCandidateSummary({ id, name }); setIsDetailModalOpen(true); }
                             )}
 
                             <TableCell key={`${candidate.id}-actions`} className="text-right">
@@ -1002,6 +1063,23 @@ export function CandidateTable({
                                     >
                                       <Eye className="mr-2 h-4 w-4" /> 
                                       View Details
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem 
+                                      key="pin-toggle"
+                                      onSelect={() => togglePin(candidate)}
+                                      className="text-sm py-2"
+                                    >
+                                      {candidate.isPinned ? (
+                                        <>
+                                          <PinOff className="mr-2 h-4 w-4" />
+                                          Unpin from top
+                                        </>
+                                      ) : (
+                                        <>
+                                          <PinIcon className="mr-2 h-4 w-4" />
+                                          Pin to top (shared)
+                                        </>
+                                      )}
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator key="separator" />
                                     <DropdownMenuItem 

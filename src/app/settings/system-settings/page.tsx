@@ -34,6 +34,14 @@ export default function SystemSettingsPage() {
   const [resumeProcessingWebhookToken, setResumeProcessingWebhookToken] = useState('');
   const [resumeProcessingWebhookResponseMode, setResumeProcessingWebhookResponseMode] = useState('blocking');
   const [resumeProcessingWebhookTimeout, setResumeProcessingWebhookTimeout] = useState(1800);
+  
+  // Upload Queue Processor settings
+  const [processQueueEnabled, setProcessQueueEnabled] = useState(true);
+  const [processorIntervalMs, setProcessorIntervalMs] = useState(2000);
+  const [processorBatchLimit, setProcessorBatchLimit] = useState(1);
+  const [processorQuietMode, setProcessorQuietMode] = useState(false);
+  const [processorConnectionTimeoutMs, setProcessorConnectionTimeoutMs] = useState(30000);
+  const [processorRequestTimeoutMs, setProcessorRequestTimeoutMs] = useState(1800000);
 
 
 
@@ -44,6 +52,8 @@ export default function SystemSettingsPage() {
   const [isEditorReady, setIsEditorReady] = useState(false);
   // Add state for job match feature toggle
   const [jobMatchFeatureEnabled, setJobMatchFeatureEnabled] = useState(true);
+  // Add state for process queue toggle
+  const [processQueueEnabled, setProcessQueueEnabled] = useState(true);
 
   const fetchSystemSettings = useCallback(async () => {
     setIsLoading(true);
@@ -70,7 +80,15 @@ export default function SystemSettingsPage() {
       setResumeProcessingWebhookUrl(settings.resumeProcessingWebhookUrl || '');
       setResumeProcessingWebhookToken(settings.resumeProcessingWebhookToken || '');
       setResumeProcessingWebhookResponseMode(settings.resumeProcessingWebhookResponseMode || 'blocking');
-             setResumeProcessingWebhookTimeout(parseInt(settings.resumeProcessingWebhookTimeout || '1800', 10));
+      setResumeProcessingWebhookTimeout(parseInt(settings.resumeProcessingWebhookTimeout || '1800', 10));
+      
+      // Load upload queue processor settings
+      setProcessQueueEnabled(settings.processQueueEnabled !== 'false'); // Default to true if not set
+      setProcessorIntervalMs(parseInt(settings.processorIntervalMs || '2000', 10));
+      setProcessorBatchLimit(parseInt(settings.processorBatchLimit || '1', 10));
+      setProcessorQuietMode(settings.processorQuietMode === 'true');
+      setProcessorConnectionTimeoutMs(parseInt(settings.processorConnectionTimeoutMs || '30000', 10));
+      setProcessorRequestTimeoutMs(parseInt(settings.processorRequestTimeoutMs || '1800000', 10));
 
       // Load default match criteria
       setDefaultMatchCriteria(settings.defaultMatchCriteria || '');
@@ -80,6 +98,9 @@ export default function SystemSettingsPage() {
       
       // Load job match feature setting
       setJobMatchFeatureEnabled(settings.jobMatchFeatureEnabled !== 'false');
+      
+      // Load process queue enabled setting
+      setProcessQueueEnabled(settings.processQueueEnabled !== 'false');
     } catch (error) {
       setFetchError((error as Error).message);
     } finally {
@@ -116,6 +137,13 @@ export default function SystemSettingsPage() {
       { key: 'resumeProcessingWebhookTimeout', value: resumeProcessingWebhookTimeout.toString() },
       { key: 'defaultMatchCriteria', value: defaultMatchCriteria || '' },
       { key: 'jobMatchFeatureEnabled', value: jobMatchFeatureEnabled.toString() },
+      { key: 'processQueueEnabled', value: processQueueEnabled.toString() },
+      // Upload Queue Processor settings
+      { key: 'processorIntervalMs', value: processorIntervalMs.toString() },
+      { key: 'processorBatchLimit', value: processorBatchLimit.toString() },
+      { key: 'processorQuietMode', value: processorQuietMode.toString() },
+      { key: 'processorConnectionTimeoutMs', value: processorConnectionTimeoutMs.toString() },
+      { key: 'processorRequestTimeoutMs', value: processorRequestTimeoutMs.toString() },
     ];
     try {
       const controller = new AbortController();
@@ -453,6 +481,118 @@ export default function SystemSettingsPage() {
                     </CardContent>
                   </Card>
 
+                  {/* Upload Queue Processor Settings */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Settings className="h-5 w-5 text-primary" />
+                        Upload Queue Processor
+                      </CardTitle>
+                      <CardDescription>
+                        Configure the upload queue processor behavior and performance
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {/* Process Queue Toggle */}
+                      <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/30">
+                        <div className="space-y-1">
+                          <Label htmlFor="process-queue-enabled" className="text-base font-medium">
+                            Enable Process Queue
+                          </Label>
+                          <p className="text-sm text-muted-foreground">
+                            Turn the upload queue processor on or off. When disabled, the queue will not process new jobs.
+                          </p>
+                        </div>
+                        <Switch
+                          id="process-queue-enabled"
+                          checked={processQueueEnabled}
+                          onCheckedChange={setProcessQueueEnabled}
+                          disabled={isSaving}
+                        />
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="processor-interval">Processing Interval (ms)</Label>
+                          <Input
+                            id="processor-interval"
+                            type="number"
+                            min={1000}
+                            max={60000}
+                            value={processorIntervalMs}
+                            onChange={(e) => setProcessorIntervalMs(Number(e.target.value))}
+                            disabled={isSaving}
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            How often the processor checks for new jobs (1000-60000ms)
+                          </p>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="processor-batch-limit">Batch Limit</Label>
+                          <Input
+                            id="processor-batch-limit"
+                            type="number"
+                            min={1}
+                            max={10}
+                            value={processorBatchLimit}
+                            onChange={(e) => setProcessorBatchLimit(Number(e.target.value))}
+                            disabled={isSaving}
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Number of jobs to process in each batch (1-10)
+                          </p>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="processor-connection-timeout">Connection Timeout (ms)</Label>
+                          <Input
+                            id="processor-connection-timeout"
+                            type="number"
+                            min={5000}
+                            max={120000}
+                            value={processorConnectionTimeoutMs}
+                            onChange={(e) => setProcessorConnectionTimeoutMs(Number(e.target.value))}
+                            disabled={isSaving}
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Network connection timeout (5000-120000ms)
+                          </p>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="processor-request-timeout">Request Timeout (ms)</Label>
+                          <Input
+                            id="processor-request-timeout"
+                            type="number"
+                            min={60000}
+                            max={3600000}
+                            value={processorRequestTimeoutMs}
+                            onChange={(e) => setProcessorRequestTimeoutMs(Number(e.target.value))}
+                            disabled={isSaving}
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Total request timeout - must match webhook timeout (60000-3600000ms)
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="processor-quiet-mode">Quiet Mode</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Reduce console output for cleaner logs
+                          </p>
+                        </div>
+                        <Switch
+                          id="processor-quiet-mode"
+                          checked={processorQuietMode}
+                          onCheckedChange={setProcessorQuietMode}
+                          disabled={isSaving}
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
                   
                 </div>
               </ScrollArea>

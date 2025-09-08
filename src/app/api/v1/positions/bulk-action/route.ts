@@ -6,7 +6,7 @@ import { handleCors } from '@/lib/cors';
 import { logAudit } from '@/lib/auditLog';
 
 const bulkActionSchema = z.object({
-  action: z.enum(['delete', 'update_status', 'update_department']),
+  action: z.enum(['delete', 'update_status', 'update_department', 'update_match_criteria']),
   positionIds: z.array(z.string().uuid()),
   data: z.record(z.any()).optional(),
 });
@@ -85,6 +85,16 @@ export async function POST(req: NextRequest) {
         queryParams = [data.department, positionIds];
         break;
 
+      case 'update_match_criteria':
+        if (data?.matchCriteria === undefined) {
+          await client.query('ROLLBACK');
+          await logAudit('ERROR', `Bulk update_match_criteria failed (missing matchCriteria) by ${user.name}.`, 'API:V1:Positions:BulkAction', user.id, { positionIds });
+          return new Response(JSON.stringify({ error: 'Match criteria is required for update_match_criteria action' }), { status: 400, headers: handleCors(req) });
+        }
+        updateQuery = 'UPDATE "Position" SET "matchCriteria" = $1 WHERE id = ANY($2)';
+        queryParams = [data.matchCriteria, positionIds];
+        break;
+
       default:
         await client.query('ROLLBACK');
         await logAudit('ERROR', `Bulk action failed (invalid action) by ${user.name}.`, 'API:V1:Positions:BulkAction', user.id, { action, positionIds });
@@ -119,7 +129,7 @@ export async function POST(req: NextRequest) {
             closed: parseInt(stats.closed, 10) 
           };
           broadcastPositionStatisticsUpdated(statistics);
-        } else if (action === 'update_status' || action === 'update_department') {
+        } else if (action === 'update_status' || action === 'update_department' || action === 'update_match_criteria') {
           // Broadcast position list update for other modifications
           broadcastPositionListUpdated();
         }

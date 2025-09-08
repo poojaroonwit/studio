@@ -63,6 +63,21 @@ export async function POST(request: NextRequest) {
 
   const startTime = Date.now();
   
+  // Check if process queue is enabled
+  try {
+    const queueEnabled = await getSystemSetting('processQueueEnabled');
+    if (queueEnabled === 'false') {
+      console.log('Process queue is disabled, skipping processing');
+      return NextResponse.json({ 
+        message: 'Process queue is disabled',
+        enabled: false 
+      }, { status: 200 });
+    }
+  } catch (error) {
+    console.warn('Failed to check process queue enabled status:', error);
+    // Continue processing if we can't check the setting
+  }
+  
   const client = await getSafeDbClient();
   let job;
   let payload = null;

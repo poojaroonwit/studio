@@ -10,6 +10,7 @@ import {
   createUnauthorizedError, 
   createInternalServerError 
 } from '@/lib/apiErrorHandler';
+import { logAudit } from '@/lib/auditLog';
 
 export async function POST(req: NextRequest) {
 
@@ -44,11 +45,20 @@ export async function POST(req: NextRequest) {
           process.env.NEXTAUTH_SECRET,
           { expiresIn: '1h' }
         );
+        try {
+          await logAudit('AUDIT', `User '${user.email}' logged in via v1 API.`, 'API:V1:Auth:Login', user.id);
+        } catch (_) {}
         return createSuccessResponse(req, { success: true, token, user: { id: user.id, email: user.email, role: user.role, modulePermissions: mergedPermissions } }, 200);
       }
     }
+    try {
+      await logAudit('WARN', `Failed v1 API login for ${email}.`, 'API:V1:Auth:Login', null, { email });
+    } catch (_) {}
     return handleApiError(req, createUnauthorizedError('Invalid email or password'));
   } catch (error) {
+    try {
+      await logAudit('ERROR', `Authentication error for ${email}: ${(error as Error).message}`, 'API:V1:Auth:Login');
+    } catch (_) {}
     return handleApiError(req, createInternalServerError('Error during authentication', { 
       originalError: (error as Error).message 
     }));

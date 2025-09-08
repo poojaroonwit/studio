@@ -891,12 +891,7 @@ export interface SkillEntry {
   skill_string?: string; // For UI binding if skills are comma-separated in input
 }
 
-export interface JobSuitableEntry {
-  suitable_career?: string;
-  suitable_job_position?: string;
-  suitable_job_level?: string;
-  suitable_salary_bath_month?: string;
-}
+// Removed JobSuitableEntry and job suitability features
 
 export interface AutomationJobMatch {
   jobId?: string;
@@ -914,7 +909,7 @@ export interface CandidateDetails {
   education?: EducationEntry[];
   experience?: ExperienceEntry[];
   skills?: SkillEntry[];
-  job_suitable?: JobSuitableEntry[];
+  // job_suitable removed
   associatedMatchDetails?: {
     jobTitle: string;
     fitScore: number;
@@ -1067,6 +1062,8 @@ export interface Candidate {
   assignmentJustification?: string | null;
   createdAt?: string;
   updatedAt?: string;
+  isPinned?: boolean;
+  pinnedAt?: string | null;
   transitionHistory: TransitionRecord[];
   educationData?: StructuredEducationEntry[];
   experienceData?: StructuredExperienceEntry[];
@@ -1207,7 +1204,7 @@ export interface CustomFieldDefinition {
   showInHeadcountDetail?: boolean;
   
   // Section selection for display settings
-  candidateDetailSection?: 'jobs' | 'candidate-info' | 'education' | 'experience' | 'job-suitability';
+  candidateDetailSection?: 'jobs' | 'candidate-info' | 'education' | 'experience';
   positionDetailSection?: 'details' | 'criteria' | 'candidates' | 'headcount';
   
   // For select/multiselect fields

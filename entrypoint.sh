@@ -265,33 +265,7 @@ else
     echo "⚠️  Status migration failed or already completed"
 fi
 
-# Comprehensive permission setup and validation
-echo "🔐 Setting up comprehensive permission system..."
-echo "  📋 Step 1: Fixing permission alignment..."
-if node scripts/fix-permission-alignment.js; then
-    echo "    ✅ Permission alignment fix completed"
-else
-    echo "    ⚠️  Permission alignment fix failed or already completed"
-fi
-
-echo "  📋 Step 2: Resetting permissions to granular format..."
-if node scripts/reset-permissions.js; then
-    echo "    ✅ Permission reset completed"
-else
-    echo "    ⚠️  Permission reset failed or already completed"
-fi
-
-echo "  📋 Step 3: Verifying permission integrity..."
-if node scripts/reset-permissions.js verify; then
-    echo "    ✅ Permission verification completed"
-else
-    echo "    ⚠️  Permission verification failed"
-fi
-
-echo "✅ Comprehensive permission setup completed"
-
-
-
+# Removed comprehensive permission setup during deploy
 # Generate Prisma client after database is ready
 echo "🔧 Generating Prisma client..."
 if ! npx prisma generate --schema=prisma/schema.prisma; then

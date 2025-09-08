@@ -28,7 +28,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { PlusCircle, Trash2, UserPlus } from 'lucide-react';
 import { formatScoreWithGrade, getScoreColor, getScoreBgColor } from "@/lib/scoreUtils";
-import type { PersonalInfo, ContactInfo, EducationEntry, ExperienceEntry, SkillEntry, JobSuitableEntry, Position, CandidateStatus, positionLevel, RecruitmentStage } from '@/lib/types';
+import type { PersonalInfo, ContactInfo, EducationEntry, ExperienceEntry, SkillEntry, Position, CandidateStatus, positionLevel, RecruitmentStage } from '@/lib/types';
 import { PositionSelectDropdown } from "@/components/candidates/PositionSelectDropdown";
 import { usePositionLevels } from '@/hooks/use-position-levels';
 
@@ -79,12 +79,6 @@ const skillEntryFormSchema = z.object({
   skill_string: z.string().optional(), 
 });
 
-const jobSuitableEntryFormSchema = z.object({
-  suitable_career: z.string().optional(),
-  suitable_job_position: z.string().optional(),
-  suitable_job_level: z.string().optional(),
-  suitable_salary_bath_month: z.string().optional(),
-});
 
 // Main form schema updated
 const addCandidateFormSchema = z.object({
@@ -94,7 +88,7 @@ const addCandidateFormSchema = z.object({
   education: z.array(educationEntryFormSchema).optional(),
   experience: z.array(experienceEntryFormSchema).optional(),
   skills: z.array(skillEntryFormSchema).optional(),
-  job_suitable: z.array(jobSuitableEntryFormSchema).optional(),
+  job_suitable: z.any().optional(),
   positionId: z.union([z.string().uuid(), z.null()]).optional(),
   status: z.string().uuid("Status must be a valid UUID").min(1, "Status is required"),
   fitScore: z.number().min(0).max(100).optional().default(0),
@@ -125,7 +119,7 @@ export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availa
       education: [],
       experience: [],
       skills: [{ segment_skill: '', skill_string: '' }],
-      job_suitable: [{ suitable_career: '', suitable_job_position: '', suitable_job_level: '', suitable_salary_bath_month: ''}],
+      job_suitable: [],
       positionId: null,
               status: availableStages.find(s => s.name.toLowerCase() === 'applied')?.id || availableStages[0]?.id || '',
       fitScore: 0,
@@ -148,10 +142,7 @@ export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availa
     name: "skills",
   });
 
-  const { fields: jobSuitableFields, append: appendJobSuitable, remove: removeJobSuitable } = useFieldArray({
-    control: form.control,
-    name: "job_suitable",
-  });
+  
 
 
   // Only reset when modal transitions from closed to open
@@ -175,7 +166,7 @@ export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availa
           positionLevel: null
         }],
         skills: [{ segment_skill: '', skill_string: '' }],
-        job_suitable: [{ suitable_career: '', suitable_job_position: '', suitable_job_level: '', suitable_salary_bath_month: ''}],
+        job_suitable: [],
         positionId: null,
         status: availableStages.find(s => s.name.toLowerCase() === 'applied')?.id || availableStages[0]?.id || '',
         fitScore: 0,
@@ -609,27 +600,7 @@ export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availa
                     </Button>
                 </fieldset>
 
-                <fieldset className="space-y-3 border p-4 rounded-md">
-                    <legend className="text-lg font-semibold">Job Suitability</legend>
-                     {jobSuitableFields.map((field, index) => (
-                        <div key={field.id} className="p-3 border rounded-md space-y-2 relative bg-muted/30">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                <Input placeholder="Suitable Career Path" {...form.register(`job_suitable.${index}.suitable_career`)} />
-                                <Input placeholder="Suitable Job Position" {...form.register(`job_suitable.${index}.suitable_job_position`)} />
-                                <Input placeholder="Suitable Job Level" {...form.register(`job_suitable.${index}.suitable_job_level`)} />
-                                <Input placeholder="Desired Salary (Bath/Month)" {...form.register(`job_suitable.${index}.suitable_salary_bath_month`)} />
-                            </div>
-                             {jobSuitableFields.length > 1 && (
-                                <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => removeJobSuitable(index)}>
-                                    <Trash2 className="h-4 w-4 text-destructive" />
-                                </Button>
-                            )}
-                        </div>
-                    ))}
-                    <Button type="button" variant="outline" onClick={() => appendJobSuitable({ suitable_career: '', suitable_job_position: '', suitable_job_level: '', suitable_salary_bath_month: '' })}>
-                        <PlusCircle className="mr-2 h-4 w-4" /> Add Job Suitability Profile
-                    </Button>
-                </fieldset>
+                
 
             </div>
           </ScrollArea>

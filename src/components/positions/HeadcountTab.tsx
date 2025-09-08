@@ -477,32 +477,34 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
                           variant="ghost"
                           size="sm"
                           onClick={() => handleEditHeadcount(headcount)}
+                          title="Edit headcount"
                         >
-                          <Edit className="h-3 w-3" />
+                          <Edit className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => handleManageAttachments(headcount)}
+                          title="Manage attachments"
                         >
-                          <Paperclip className="h-3 w-3" />
+                          <Paperclip className="h-4 w-4" />
                         </Button>
-                        {headcount.candidate && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleUnassignCandidate(headcount.id)}
-                            title="Unassign candidate"
-                          >
-                            <UserX className="h-3 w-3" />
-                          </Button>
-                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleUnassignCandidate(headcount.id)}
+                          title="Unassign candidate"
+                          disabled={!headcount.candidate}
+                        >
+                          <UserX className="h-4 w-4" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => handleDeleteHeadcount(headcount.id)}
+                          title="Delete headcount"
                         >
-                          <Trash2 className="h-3 w-3" />
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </TableCell>

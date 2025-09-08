@@ -55,6 +55,8 @@ const nextConfig = {
   poweredByHeader: false,
   // Enable standalone output for Docker optimization
   output: 'standalone',
+  // Use a custom dist directory to avoid Windows file locking on .next
+  distDir: '.next-build',
   typescript: {
     ignoreBuildErrors: true,
   },

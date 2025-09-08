@@ -60,12 +60,12 @@ export async function checkAndNotifySLAViolations(): Promise<SLAViolationNotific
   const client = await getPool().connect();
   
   try {
-    // Get all positions with grades and hiring dates
+    // Get all positions with grades and SLA start dates (position hiring/request date OR earliest candidate application date)
     const query = `
       SELECT 
         p.id,
         p.title,
-        p."hiringDate",
+        COALESCE(p."hiringDate", MIN(c."applicationDate")) AS "slaStartDate",
         p."recruiterId",
         u.name as "recruiterName",
         g.name as "gradeName",
@@ -74,9 +74,11 @@ export async function checkAndNotifySLAViolations(): Promise<SLAViolationNotific
       FROM "Position" p
       LEFT JOIN "User" u ON p."recruiterId" = u.id
       LEFT JOIN "Grade" g ON p."gradeId" = g.id
-      WHERE p."hiringDate" IS NOT NULL 
-        AND p."gradeId" IS NOT NULL
+      LEFT JOIN "Candidate" c ON c."positionId" = p.id
+      WHERE p."gradeId" IS NOT NULL
         AND p."isOpen" = true
+      GROUP BY p.id, p.title, p."recruiterId", u.name, g.name, g."sla_days", g.color
+      HAVING COALESCE(p."hiringDate", MIN(c."applicationDate")) IS NOT NULL
     `;
     
     const result = await client.query(query);
@@ -88,7 +90,7 @@ export async function checkAndNotifySLAViolations(): Promise<SLAViolationNotific
         title: row.title,
         department: '',
         isOpen: true,
-        hiringDate: row.hiringDate,
+        hiringDate: row.slaStartDate,
         grade: {
           id: '',
           name: row.gradeName,
@@ -134,7 +136,7 @@ export async function getAllSLAPositions(recruiterId?: string): Promise<SLAPosit
         p.id,
         p.title,
         p.department,
-        p."hiringDate",
+        COALESCE(p."hiringDate", MIN(c."applicationDate")) AS "slaStartDate",
         p."recruiterId",
         u.name as "recruiterName",
         g.name as "gradeName",
@@ -144,8 +146,8 @@ export async function getAllSLAPositions(recruiterId?: string): Promise<SLAPosit
       FROM "Position" p
       LEFT JOIN "User" u ON p."recruiterId" = u.id
       LEFT JOIN "Grade" g ON p."gradeId" = g.id
-      WHERE p."hiringDate" IS NOT NULL 
-        AND p."gradeId" IS NOT NULL
+      LEFT JOIN "Candidate" c ON c."positionId" = p.id
+      WHERE p."gradeId" IS NOT NULL
         AND p."isOpen" = true
     `;
     
@@ -155,7 +157,11 @@ export async function getAllSLAPositions(recruiterId?: string): Promise<SLAPosit
       params.push(recruiterId);
     }
     
-    query += ` ORDER BY p."hiringDate" ASC`;
+    query += `
+      GROUP BY p.id, p.title, p.department, p."recruiterId", u.name, g.name, g."sla_days", g.color, p."createdAt"
+      HAVING COALESCE(p."hiringDate", MIN(c."applicationDate")) IS NOT NULL
+      ORDER BY "slaStartDate" ASC
+    `;
     
     const result = await client.query(query, params);
     const slaPositions: SLAPositionData[] = [];
@@ -166,7 +172,7 @@ export async function getAllSLAPositions(recruiterId?: string): Promise<SLAPosit
         title: row.title,
         department: row.department,
         isOpen: true,
-        hiringDate: row.hiringDate,
+        hiringDate: row.slaStartDate,
         grade: {
           id: '',
           name: row.gradeName,
@@ -186,7 +192,7 @@ export async function getAllSLAPositions(recruiterId?: string): Promise<SLAPosit
         ? (() => {
             const hiringDate = new Date(position.hiringDate!);
             if (isNaN(hiringDate.getTime())) {
-              return 0; // Invalid hiring date
+              return 0; // Invalid date
             }
             return Math.max(0, slaResult.slaDays - Math.floor((new Date().getTime() - hiringDate.getTime()) / (1000 * 60 * 60 * 24)));
           })()
@@ -328,7 +334,7 @@ export async function getSLAViolationsForRecruiter(recruiterId: string): Promise
       SELECT 
         p.id,
         p.title,
-        p."hiringDate",
+        COALESCE(p."hiringDate", MIN(c."applicationDate")) AS "slaStartDate",
         p."recruiterId",
         u.name as "recruiterName",
         g.name as "gradeName",
@@ -337,10 +343,12 @@ export async function getSLAViolationsForRecruiter(recruiterId: string): Promise
       FROM "Position" p
       LEFT JOIN "User" u ON p."recruiterId" = u.id
       LEFT JOIN "Grade" g ON p."gradeId" = g.id
+      LEFT JOIN "Candidate" c ON c."positionId" = p.id
       WHERE p."recruiterId" = $1
-        AND p."hiringDate" IS NOT NULL 
         AND p."gradeId" IS NOT NULL
         AND p."isOpen" = true
+      GROUP BY p.id, p.title, p."recruiterId", u.name, g.name, g."sla_days", g.color
+      HAVING COALESCE(p."hiringDate", MIN(c."applicationDate")) IS NOT NULL
     `;
     
     const result = await client.query(query, [recruiterId]);
@@ -352,7 +360,7 @@ export async function getSLAViolationsForRecruiter(recruiterId: string): Promise
         title: row.title,
         department: '',
         isOpen: true,
-        hiringDate: row.hiringDate,
+        hiringDate: row.slaStartDate,
         grade: {
           id: '',
           name: row.gradeName,

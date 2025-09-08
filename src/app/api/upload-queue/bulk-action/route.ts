@@ -70,30 +70,9 @@ async function processSingleItem(
   pool: any
 ): Promise<{ success: boolean; reason?: string }> {
   const client = await pool.connect();
-  let timeoutId: NodeJS.Timeout | null = null;
   
   try {
-    // Get webhook timeout setting (default 30 minutes)
-    let timeoutMs = 1800000; // 30 minutes default
-    try {
-      const timeoutSetting = await getSystemSetting('resumeProcessingWebhookTimeout');
-      if (timeoutSetting) {
-        const parsedTimeout = parseInt(timeoutSetting, 10);
-        if (!isNaN(parsedTimeout) && parsedTimeout > 0) {
-          timeoutMs = parsedTimeout * 1000; // Convert seconds to milliseconds
-        }
-      }
-    } catch (e) {
-      console.warn('Failed to get webhook timeout setting, using default:', e);
-    }
-    
-    // Set a timeout for the entire operation
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      timeoutId = setTimeout(() => {
-        reject(new Error('Operation timeout'));
-      }, timeoutMs);
-    });
-
+    // No timeout - wait for webhook response only
     const operationPromise = (async () => {
       // Set a longer statement timeout for bulk operations to prevent timeouts
       await client.query('SET statement_timeout = 600000'); // 10 minutes
@@ -152,11 +131,15 @@ async function processSingleItem(
              status = $1, 
              error = NULL, 
              error_details = NULL, 
+             completed_date = NULL,
              updated_at = now(),
              webhook_payload = jsonb_set(
-               COALESCE(webhook_payload, '{}'::jsonb), 
-               '{retry_count}', 
-               '${currentRetryCount + 1}'::jsonb
+               jsonb_set(
+                 COALESCE(webhook_payload, '{}'::jsonb), 
+                 '{retry_count}', 
+                 '${currentRetryCount + 1}'::jsonb
+               ),
+               '{processed_by_external_webhook}', 'false'::jsonb
              )
              WHERE id = $2`,
             ['queued', itemId]
@@ -204,8 +187,8 @@ async function processSingleItem(
       }
     })();
 
-    // Race between timeout and operation
-    return await Promise.race([operationPromise, timeoutPromise]);
+    // No timeout - wait for operation to complete
+    return await operationPromise;
 
   } catch (error) {
     // Ensure we rollback on any error
@@ -221,9 +204,6 @@ async function processSingleItem(
       reason: error instanceof Error ? error.message : 'Unknown error' 
     };
   } finally {
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-    }
     // Reset statement timeout to default
     try {
       await client.query('RESET statement_timeout');
@@ -271,7 +251,42 @@ export async function POST(request: NextRequest) {
   // Process items sequentially to avoid overwhelming the database
   // Each item gets its own transaction and timeout
   console.log(`[BULK-ACTION] Starting bulk ${action} operation for ${itemIds.length} items`);
-  
+
+  // Pre-clean blocking conditions for retry
+  if (action === 'retry') {
+    try {
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        await client.query(
+          `UPDATE upload_queue 
+           SET webhook_payload = jsonb_set(
+             COALESCE(webhook_payload, '{}'::jsonb), 
+             '{processed_by_external_webhook}', 
+             'false'::jsonb
+           )
+           WHERE status = 'queued' 
+           AND webhook_payload->>'processed_by_external_webhook' = 'true'`
+        );
+        await client.query(
+          `UPDATE upload_queue 
+           SET completed_date = NULL, updated_at = now()
+           WHERE status = 'queued' 
+           AND completed_date > NOW() - INTERVAL '5 minutes'`
+        );
+        await client.query('COMMIT');
+        console.log('[BULK-ACTION] Retry pre-clean completed');
+      } catch (preErr) {
+        try { await client.query('ROLLBACK'); } catch {}
+        console.warn('[BULK-ACTION] Retry pre-clean failed (continuing):', preErr);
+      } finally {
+        client.release();
+      }
+    } catch (connErr) {
+      console.warn('[BULK-ACTION] Retry pre-clean connection failed (continuing):', connErr);
+    }
+  }
+
   for (let i = 0; i < itemIds.length; i++) {
     const itemId = itemIds[i];
     console.log(`[BULK-ACTION] Processing item ${i + 1}/${itemIds.length}: ${itemId}`);

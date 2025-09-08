@@ -73,7 +73,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   const [allCandidatesPageSize, setFilteredCandidatesPageSize] = useState(100);
   const [allCandidatesTotal, setFilteredCandidatesTotal] = useState(0);
   const [allCandidatesSearchTerm, setFilteredCandidatesSearchTerm] = useState('');
-  const [allCandidatesSortColumn, setFilteredCandidatesSortColumn] = useState<string | null>('applicationDate');
+  const [allCandidatesSortColumn, setFilteredCandidatesSortColumn] = useState<string | null>('fitScore');
   const [allCandidatesSortDirection, setFilteredCandidatesSortDirection] = useState<'asc' | 'desc'>('desc');
 
   // State for headcount
@@ -86,7 +86,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   const [appliedCandidatesPageSize, setAppliedCandidatesPageSize] = useState(100);
   const [appliedCandidatesTotal, setAppliedCandidatesTotal] = useState(0);
   const [appliedCandidatesSearchTerm, setAppliedCandidatesSearchTerm] = useState('');
-  const [appliedCandidatesSortColumn, setAppliedCandidatesSortColumn] = useState<string | null>('applicationDate');
+  const [appliedCandidatesSortColumn, setAppliedCandidatesSortColumn] = useState<string | null>('fitScore');
   const [appliedCandidatesSortDirection, setAppliedCandidatesSortDirection] = useState<'asc' | 'desc'>('desc');
 
   // State for potential candidates
@@ -112,6 +112,13 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       setIsEditMode(false);
     }
   }, [isOpen, initialEditMode]);
+
+  // When Job Match is disabled, ensure we don't show or stay on the potential tab
+  useEffect(() => {
+    if (!isJobMatchEnabled && activeCandidateTab !== 'applied') {
+      setActiveCandidateTab('applied');
+    }
+  }, [isJobMatchEnabled, activeCandidateTab]);
   const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [editorKey, setEditorKey] = useState(0);
@@ -123,7 +130,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   const [appliedCandidatesOpenMenu, setAppliedCandidatesOpenMenu] = useState<string | null>(null);
 
   // Sorting state for potential candidates table
-  const [potentialCandidatesSortColumn, setPotentialCandidatesSortColumn] = useState<string | null>('matchScore');
+  const [potentialCandidatesSortColumn, setPotentialCandidatesSortColumn] = useState<string | null>('fitScore');
   const [potentialCandidatesSortDirection, setPotentialCandidatesSortDirection] = useState<'asc' | 'desc'>('desc');
   const [potentialCandidatesOpenMenu, setPotentialCandidatesOpenMenu] = useState<string | null>(null);
 
@@ -202,7 +209,8 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       case 'email': return candidate.email?.toLowerCase() || '';
       case 'fitScore': return candidate.fitScore || 0;
       case 'status': return (candidate.statusId || candidate.status)?.toLowerCase() || '';
-      case 'applicationDate': return candidate.applicationDate || '';
+      case 'applicationDate': 
+        return candidate.applicationDate ? new Date(candidate.applicationDate).getTime() : 0;
       default: return '';
     }
   };
@@ -898,6 +906,40 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                 </DropdownMenu>
               </span>
             </TableHead>
+            <TableHead className="cursor-pointer select-none group" onClick={() => handleAppliedCandidatesSort('applicationDate')}>
+              <span className="inline-flex items-center gap-1">
+                Applied Date
+                <DropdownMenu open={appliedCandidatesOpenMenu === 'applicationDate'} onOpenChange={open => setAppliedCandidatesOpenMenu(open ? 'applicationDate' : null)}>
+                  <DropdownMenuTrigger asChild>
+                    {appliedCandidatesSortColumn === 'applicationDate' ? (
+                      <button
+                        type="button"
+                        className="text-primary font-bold p-1 rounded hover:bg-muted"
+                        onClick={e => { e.stopPropagation(); setAppliedCandidatesOpenMenu('applicationDate'); }}
+                        aria-label="Sort options"
+                      >
+                        {appliedCandidatesSortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted"
+                        onClick={e => { e.stopPropagation(); setAppliedCandidatesOpenMenu('applicationDate'); }}
+                        aria-label="Sort options"
+                      >
+                        <MoreVertical size={16} />
+                      </button>
+                    )}
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => { handleAppliedCandidatesSort('applicationDate', 'asc'); setAppliedCandidatesOpenMenu(null); }}>Sort Ascending ▲</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => { handleAppliedCandidatesSort('applicationDate', 'desc'); setAppliedCandidatesOpenMenu(null); }}>Sort Descending ▼</DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => { handleAppliedCandidatesSort(null, null); setAppliedCandidatesOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </span>
+            </TableHead>
             <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -922,6 +964,19 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
               </TableCell>
               <TableCell>
                 <StatusBadge statusId={candidate.statusId} stageNames={stageNames} />
+              </TableCell>
+              <TableCell>
+                {candidate.applicationDate ? (
+                  <div className="text-sm">
+                    {new Date(candidate.applicationDate).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric'
+                    })}
+                  </div>
+                ) : (
+                  <span className="text-muted-foreground text-sm">N/A</span>
+                )}
               </TableCell>
               <TableCell>
                 <Button 
@@ -1240,6 +1295,40 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                     </DropdownMenu>
                   </span>
                 </TableHead>
+                <TableHead className="cursor-pointer select-none group" onClick={() => handleAllCandidatesSort('applicationDate')}>
+                  <span className="inline-flex items-center gap-1">
+                    Applied Date
+                    <DropdownMenu open={allCandidatesOpenMenu === 'applicationDate'} onOpenChange={open => setFilteredCandidatesOpenMenu(open ? 'applicationDate' : null)}>
+                      <DropdownMenuTrigger asChild>
+                        {allCandidatesSortColumn === 'applicationDate' ? (
+                          <button
+                            type="button"
+                            className="text-primary font-bold p-1 rounded hover:bg-muted"
+                            onClick={e => { e.stopPropagation(); setFilteredCandidatesOpenMenu('applicationDate'); }}
+                            aria-label="Sort options"
+                          >
+                            {allCandidatesSortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted"
+                            onClick={e => { e.stopPropagation(); setFilteredCandidatesOpenMenu('applicationDate'); }}
+                            aria-label="Sort options"
+                          >
+                            <MoreVertical size={16} />
+                          </button>
+                        )}
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => { handleAllCandidatesSort('applicationDate', 'asc'); setFilteredCandidatesOpenMenu(null); }}>Sort Ascending ▲</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { handleAllCandidatesSort('applicationDate', 'desc'); setFilteredCandidatesOpenMenu(null); }}>Sort Descending ▼</DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => { handleAllCandidatesSort(null, null); setFilteredCandidatesOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </span>
+                </TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -1279,6 +1368,19 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                         </TableCell>
                         <TableCell>
                           <StatusBadge statusId={candidate.statusId} stageNames={stageNames} />
+                        </TableCell>
+                        <TableCell>
+                          {candidate.applicationDate ? (
+                            <div className="text-sm">
+                              {new Date(candidate.applicationDate).toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric'
+                              })}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">N/A</span>
+                          )}
                         </TableCell>
                         <TableCell>
                           <Button
@@ -1337,6 +1439,19 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                             </TableCell>
                             <TableCell>
                               <StatusBadge statusId={candidate.statusId} stageNames={stageNames} />
+                            </TableCell>
+                            <TableCell>
+                              {candidate.applicationDate ? (
+                                <div className="text-sm">
+                                  {new Date(candidate.applicationDate).toLocaleDateString('en-US', {
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric'
+                                  })}
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground text-sm">N/A</span>
+                              )}
                             </TableCell>
                             <TableCell>
                               <Button
@@ -1663,9 +1778,9 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                             )}
                           </div>
 
-                          {/* Hiring Date */}
+                          {/* Position Request Date */}
                           <div className="space-y-2">
-                            <Label htmlFor="hiringDate">Start Hiring Date</Label>
+                            <Label htmlFor="hiringDate">Position Request Date</Label>
                             {isEditMode ? (
                               <Controller
                                 name="hiringDate"
@@ -1919,7 +2034,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                   {activeTab === 'candidates' && (
                     <div className="h-full flex flex-col p-6">
                       {/* Candidates Header */}
-                      <div className="flex items-center justify-between mb-6">
+                      {/* <div className="flex items-center justify-between mb-6">
                         <div>
                           <h2 className="text-2xl font-bold flex items-center gap-3">
                             <Users className="h-6 w-6 text-primary" />
@@ -1932,24 +2047,24 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                             }
                           </p>
                         </div>
-                      </div>
+                      </div> */}
 
                       {/* Candidate Sub-tabs */}
                       <div className="flex-1 overflow-hidden">
                         <div className="h-full flex flex-col">
-                          <div className="flex w-full border-b border-border/50 mb-4">
-                            <div
-                              onClick={() => setActiveCandidateTab('applied')}
-                              className={cn(
-                                "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
-                                activeCandidateTab === 'applied'
-                                  ? "text-primary border-b-2 border-primary"
-                                  : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-                              )}
-                            >
-                              Applied Candidates ({appliedCandidatesCount})
-                            </div>
-                            {isJobMatchEnabled && (
+                          {isJobMatchEnabled && (
+                            <div className="flex w-full border-b border-border/50 mb-4">
+                              <div
+                                onClick={() => setActiveCandidateTab('applied')}
+                                className={cn(
+                                  "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                                  activeCandidateTab === 'applied'
+                                    ? "text-primary border-b-2 border-primary"
+                                    : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                                )}
+                              >
+                                Applied Candidates ({appliedCandidatesCount})
+                              </div>
                               <div
                                 onClick={() => setActiveCandidateTab('potential')}
                                 className={cn(
@@ -1961,8 +2076,8 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                               >
                                 Job Matches ({potentialCandidatesTotal})
                               </div>
-                            )}
-                          </div>
+                            </div>
+                          )}
                           
                           {activeCandidateTab === 'applied' && (
                             <div className="space-y-4 h-full flex flex-col">

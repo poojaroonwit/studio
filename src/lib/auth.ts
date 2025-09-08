@@ -133,6 +133,17 @@ export const authOptions: NextAuthOptions = {
           if (user) {
             return user;
           } else {
+            try {
+              await logAudit(
+                'WARN',
+                `Failed credential login attempt for ${credentials.email}.`,
+                'Auth:SignIn',
+                null,
+                { email: credentials.email }
+              );
+            } catch (_) {
+              // swallow logging errors
+            }
             return null;
           }
         }
@@ -403,6 +414,30 @@ export const authOptions: NextAuthOptions = {
               }
           }
           return true;
+      }
+    },
+    events: {
+      async signIn({ user, account }) {
+        try {
+          await logAudit(
+            'AUDIT',
+            `User '${user?.name || user?.email || 'Unknown'}' signed in via ${account?.provider || 'credentials'}.`,
+            'Auth:SignIn',
+            (user as any)?.id || null
+          );
+        } catch (_) {}
+      },
+      async signOut({ token, session }) {
+        try {
+          const actingUserId = (token as any)?.id || null;
+          const userName = session?.user?.name || session?.user?.email || 'User';
+          await logAudit(
+            'AUDIT',
+            `User '${userName}' signed out.`,
+            'Auth:SignOut',
+            actingUserId
+          );
+        } catch (_) {}
       }
     },
     pages: {

@@ -171,15 +171,13 @@ export class WebhookDispatcher {
     // Retry logic
     for (let attempt = 0; attempt <= webhook.retry_count; attempt++) {
       try {
-        const timeoutMs = (webhook.timeout || 30) * 1000; // Default 30 seconds
-        
-        // Use the enhanced webhook fetch utility
+        // Use the enhanced webhook fetch utility without timeout - wait for response only
         const webhookResult = await webhookFetch({
           url: webhook.url,
           method: webhook.method,
           headers,
           body: webhook.method !== 'GET' ? JSON.stringify(payload) : undefined,
-          timeoutMs,
+          timeoutMs: 0, // No timeout - wait indefinitely for webhook response
           retries: 0, // We handle retries manually here
         });
 

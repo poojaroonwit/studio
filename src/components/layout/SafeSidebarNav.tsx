@@ -32,19 +32,19 @@ const NAV_ITEMS = {
   settings: { href: "/settings", label: "Settings", icon: Settings }
 };
 
-// Real-time pending count hook with SSE integration
+// Real-time pending count hook with 1s polling and SSE integration
 const usePendingCount = () => {
   const [pendingCount, setPendingCount] = React.useState<number | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
   const [hasPermission, setHasPermission] = React.useState<boolean | null>(null);
   const eventSourceRef = React.useRef<EventSource | null>(null);
-  const fallbackTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  const pollIntervalRef = React.useRef<NodeJS.Timeout | null>(null);
 
   React.useEffect(() => {
     const fetchPendingCount = async () => {
       try {
-        setIsLoading(true);
-        const response = await fetch('/api/process-queue/pending-count', {
+        // Avoid toggling loading state on every 1s poll to prevent UI flicker
+        const response = await fetch('/api/upload-queue/health', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -53,7 +53,11 @@ const usePendingCount = () => {
 
         if (response.ok) {
           const data = await response.json();
-          setPendingCount(data.count || 0);
+          // Compute queued + inprocess from health endpoint
+          const queued = Number(data?.queue_stats?.queued || 0);
+          const inprocess = Number(data?.queue_stats?.inprocess || 0);
+          setPendingCount(queued + inprocess);
+          // Health endpoint is public in our API; treat as allowed
           setHasPermission(true);
         } else if (response.status === 403) {
           // User doesn't have permission to view process queue data
@@ -77,6 +81,11 @@ const usePendingCount = () => {
 
     // Initial fetch
     fetchPendingCount();
+    // Start 1s polling for realtime updates
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+    }
+    pollIntervalRef.current = setInterval(fetchPendingCount, 1000);
 
     // Only set up SSE connection if user has permission
     if (hasPermission !== false) {
@@ -115,14 +124,11 @@ const usePendingCount = () => {
           } else if (eventSource.readyState === EventSource.CLOSED) {
           } else {
           }
-          
-          // Fallback to periodic polling if SSE fails
-          fallbackTimeoutRef.current = setInterval(fetchPendingCount, 30000); // 30 second fallback
+          // Polling is already active at 1s; nothing else to do here
         };
 
       } catch (error) {
-        // Fallback to periodic polling if SSE is not available
-        fallbackTimeoutRef.current = setInterval(fetchPendingCount, 30000); // 30 second fallback
+        // Polling is already active at 1s; nothing else to do here
       }
     }
 
@@ -132,9 +138,9 @@ const usePendingCount = () => {
         eventSourceRef.current.close();
         eventSourceRef.current = null;
       }
-      if (fallbackTimeoutRef.current) {
-        clearInterval(fallbackTimeoutRef.current);
-        fallbackTimeoutRef.current = null;
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
       }
     };
   }, [hasPermission]); // Add hasPermission to dependency array to re-run effect when permissions change
@@ -467,7 +473,7 @@ const SafeSidebarNavComponent = React.memo(() => {
                       size="default"
                     >
                       <UploadCloud className="h-5 w-5" />
-                      {pendingCount !== null && pendingCount > 0 && (
+                      {pendingCount !== null && (
                         <Badge variant="destructive" className="ml-1 h-5 w-5 p-0 text-xs">
                           {pendingCount > 99 ? '99+' : pendingCount}
                         </Badge>
@@ -547,7 +553,7 @@ const SafeSidebarNavComponent = React.memo(() => {
                   >
                     <UploadCloud className="h-5 w-5" />
                     <span className="truncate">Process queue</span>
-                    {pendingCount !== null && pendingCount > 0 && (
+                    {pendingCount !== null && (
                       <Badge variant="destructive" className="ml-auto h-5 px-2 text-xs">
                         {pendingCount > 99 ? '99+' : pendingCount}
                       </Badge>

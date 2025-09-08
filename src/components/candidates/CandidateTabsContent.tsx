@@ -6,7 +6,6 @@ import { CandidateInfoTab } from './tabs/CandidateInfoTab';
 import { ContactTab } from './tabs/ContactTab';
 import { EducationTab } from './tabs/EducationTab';
 import { ExperienceTab } from './tabs/ExperienceTab';
-import { JobSuitabilityTab } from './tabs/JobSuitabilityTab';
 import { useJobMatchFeature } from '@/hooks/useJobMatchFeature';
 
 import type { Candidate, Position } from '@/lib/types';
@@ -42,9 +41,6 @@ interface CandidateTabsContentProps {
   skillsFields?: any[];
   appendSkill?: (value: any) => void;
   removeSkill?: (index: number) => void;
-  jobSuitableFields?: any[];
-  appendJobSuitable?: (value: any) => void;
-  removeJobSuitable?: (index: number) => void;
   jobMatchesFields?: any[];
   appendJobMatch?: (value: any) => void;
   removeJobMatch?: (index: number) => void;
@@ -89,9 +85,6 @@ export const CandidateTabsContent: React.FC<CandidateTabsContentProps> = ({
   skillsFields,
   appendSkill,
   removeSkill,
-  jobSuitableFields,
-  appendJobSuitable,
-  removeJobSuitable,
   jobMatchesFields,
   appendJobMatch,
   removeJobMatch,
@@ -205,24 +198,7 @@ export const CandidateTabsContent: React.FC<CandidateTabsContentProps> = ({
               </div>
       )}
 
-      {/* Job Suitability Tab */}
-      {activeTab === 'job-suitability' && (
-        <div className="space-y-4 h-full">
-        <JobSuitabilityTab
-          candidate={candidate}
-          isEditing={isEditing}
-          control={control}
-          register={register}
-          errors={errors}
-          watch={watch}
-          setValue={setValue}
-          jobSuitableFields={jobSuitableFields}
-          appendJobSuitable={appendJobSuitable}
-          removeJobSuitable={removeJobSuitable}
-          onCustomFieldChange={onCustomFieldChange}
-        />
-              </div>
-      )}
+      
 
 
 

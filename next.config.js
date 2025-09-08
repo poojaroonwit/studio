@@ -103,6 +103,20 @@ const nextConfig = {
     config.resolve.alias = config.resolve.alias || {};
     config.resolve.alias['jose'] = require.resolve('jose');
     
+    // Fix for 'tg' initialization error - prevent problematic variable names in minification
+    if (!isServer && config.optimization && config.optimization.minimizer) {
+      config.optimization.minimizer.forEach((minimizer) => {
+        if (minimizer.constructor.name === 'TerserPlugin') {
+          minimizer.options.terserOptions = {
+            ...minimizer.options.terserOptions,
+            mangle: {
+              ...minimizer.options.terserOptions?.mangle,
+              reserved: ['tg', 'ee', 'tt', 'nn', 'rr', 'ss', 'uu', 'vv', 'ww', 'xx', 'yy', 'zz']
+            }
+          };
+        }
+      });
+    }
     
     return config;
   },

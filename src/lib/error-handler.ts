@@ -72,6 +72,11 @@ class GlobalErrorHandler {
       this.handleFilterError(errorContext);
     }
 
+    // Special handling for initialization errors (tg, ee variables)
+    if (this.isInitializationError(errorContext.message)) {
+      this.handleInitializationError(errorContext);
+    }
+
     // Log the error
     this.errorLog.push(errorContext);
     console.error('Global error handler caught:', errorContext);
@@ -80,6 +85,39 @@ class GlobalErrorHandler {
     if (process.env.NODE_ENV === 'production') {
       this.sendToErrorReportingService(errorContext);
     }
+  }
+
+  private isInitializationError(message: string): boolean {
+    return (
+      message.includes('Cannot access') ||
+      message.includes('before initialization') ||
+      message.includes('is not defined') ||
+      message.includes('temporal dead zone') ||
+      message.includes('tg') ||
+      message.includes('ee')
+    );
+  }
+
+  private handleInitializationError(errorContext: ErrorContext) {
+    const isTgError = errorContext.message.includes('tg');
+    const isEeError = errorContext.message.includes('ee');
+    const variableName = isTgError ? 'TG' : isEeError ? 'EE' : 'Unknown';
+
+    const enhancedContext = {
+      ...errorContext,
+      errorType: `${variableName}_initialization_error`,
+      suggestions: [
+        'Try refreshing the page to reload the JavaScript bundle',
+        'Clear your browser cache and reload',
+        'Check your internet connection',
+        'Try using a different browser or incognito mode',
+        'Disable browser extensions temporarily'
+      ],
+      likelyCause: 'Variable accessed before initialization in minified bundle',
+      recommendation: 'This is likely a minified bundle issue. Try refreshing the page.'
+    };
+
+    console.error(`${variableName} Variable Initialization Error:`, enhancedContext);
   }
 
   private handleFilterError(errorContext: ErrorContext) {

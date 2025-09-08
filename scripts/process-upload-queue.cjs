@@ -9,6 +9,11 @@
  * OPTIMIZED: Fixed processing frequency for predictable behavior
  * SIMPLIFIED: No dynamic resource management - consistent performance
  * STABLE: Predictable intervals regardless of system load
+ * 
+ * TIMEOUT CONFIGURATION:
+ * - requestTimeoutMs: Must be >= webhook processing timeout (default 30 minutes)
+ * - connectionTimeoutMs: Network connection timeout (default 30 seconds)
+ * - The request timeout should match the webhook timeout to prevent premature timeouts
  */
 
 // Load environment variables from .env.local
@@ -27,11 +32,11 @@ let config = {
   maxRetries: 3,
   retryDelayMs: 10000,
   quietMode: process.env.PROCESSOR_QUIET_MODE === 'true' || false,
-  maxConsecutiveErrors: 3,
-  backoffMultiplier: 1.5,
-  maxBackoffMs: 60000, // Reduced from 10 minutes to 1 minute
-  connectionTimeoutMs: parseInt(process.env.PROCESSOR_CONNECTION_TIMEOUT_MS) || 30000, // Reduced from 60s to 30s
-  requestTimeoutMs: parseInt(process.env.PROCESSOR_REQUEST_TIMEOUT_MS) || 60000, // Reduced from 180s to 60s
+  maxConsecutiveErrors: 10, // Increased to prevent stopping on temporary issues
+  backoffMultiplier: 1.2, // Reduced backoff multiplier for faster recovery
+  maxBackoffMs: 300000, // Increased to 5 minutes for better resilience
+  connectionTimeoutMs: parseInt(process.env.PROCESSOR_CONNECTION_TIMEOUT_MS) || 30000, // Connection timeout (30s)
+  requestTimeoutMs: parseInt(process.env.PROCESSOR_REQUEST_TIMEOUT_MS) || 1800000, // Request timeout (30min) - must match webhook processing timeout
   
   // Concurrent processing settings
   maxConcurrentProcessors: parseInt(process.env.MAX_CONCURRENT_PROCESSORS) || 1,
@@ -48,6 +53,12 @@ let currentBackoffMs = config.retryDelayMs;
 const startTime = Date.now();
 let lastProcessorCheck = Date.now();
 let lastSuccessfulRequest = Date.now();
+
+// Circuit breaker state
+let circuitBreakerOpen = false;
+let circuitBreakerOpenTime = 0;
+const CIRCUIT_BREAKER_TIMEOUT = 300000; // 5 minutes
+const CIRCUIT_BREAKER_THRESHOLD = 20; // Open circuit after 20 consecutive errors
 
 // Override baseUrl for local development if it's set to Docker service name
 if (config.baseUrl.includes('8021_fitscan_app:8021') || config.baseUrl.includes('172.21.0.2:8021')) {
@@ -118,8 +129,9 @@ function log(level, message) {
   
   // Log status every logIntervalMs (FIXED: No recursive call)
   if (Date.now() - lastLogTime > config.logIntervalMs) {
-    // Simplified status logging without system metrics
-    const statusMessage = `[${timestamp}] [INFO] Status: processed=${processedCount}, errors=${errorCount}, consecutive_errors=${consecutiveErrors}`;
+    // Enhanced status logging with circuit breaker state
+    const circuitBreakerStatus = circuitBreakerOpen ? `, circuit_breaker=OPEN` : `, circuit_breaker=CLOSED`;
+    const statusMessage = `[${timestamp}] [INFO] Status: processed=${processedCount}, errors=${errorCount}, consecutive_errors=${consecutiveErrors}${circuitBreakerStatus}`;
     if (!config.quietMode) {
       console.log(statusMessage);
     }
@@ -196,6 +208,21 @@ function makeRequest(url, options) {
 
 // Process a batch of jobs with fixed batch size
 async function processBatch() {
+  // Check circuit breaker
+  if (circuitBreakerOpen) {
+    const timeSinceOpen = Date.now() - circuitBreakerOpenTime;
+    if (timeSinceOpen < CIRCUIT_BREAKER_TIMEOUT) {
+      log('WARN', `Circuit breaker open, waiting ${Math.round((CIRCUIT_BREAKER_TIMEOUT - timeSinceOpen) / 1000)}s before retry`);
+      return 0;
+    } else {
+      // Reset circuit breaker
+      circuitBreakerOpen = false;
+      consecutiveErrors = 0;
+      currentBackoffMs = config.retryDelayMs;
+      log('INFO', 'Circuit breaker reset, attempting to process jobs');
+    }
+  }
+
   try {
     const response = await makeRequest(`${config.baseUrl}/api/upload-queue/process-all?limit=${config.batchLimit}`, {
       method: 'POST'
@@ -209,6 +236,17 @@ async function processBatch() {
       consecutiveErrors = 0;
       currentBackoffMs = config.retryDelayMs;
       lastSuccessfulRequest = Date.now();
+      
+      // Reset circuit breaker on success
+      if (circuitBreakerOpen) {
+        circuitBreakerOpen = false;
+        log('INFO', 'Circuit breaker closed due to successful request');
+      }
+      
+      // Reset force exit counter on success
+      if (forceExitCount > 0) {
+        forceExitCount = 0;
+      }
       
       // Only log if jobs were actually processed
       if (processedCount > 0) {
@@ -228,6 +266,13 @@ async function processBatch() {
     errorCount++;
     consecutiveErrors++;
     log('ERROR', `Failed to process batch: ${error.message}`);
+    
+    // Check if we should open the circuit breaker
+    if (consecutiveErrors >= CIRCUIT_BREAKER_THRESHOLD && !circuitBreakerOpen) {
+      circuitBreakerOpen = true;
+      circuitBreakerOpenTime = Date.now();
+      log('WARN', `Circuit breaker opened due to ${consecutiveErrors} consecutive errors`);
+    }
     
     // Implement exponential backoff with fixed retry delay
     if (consecutiveErrors >= config.maxConsecutiveErrors) {
@@ -289,10 +334,16 @@ async function processLoop() {
       // Safety mechanism: Reset backoff if no successful request for too long
       const timeSinceLastSuccess = Date.now() - lastSuccessfulRequest;
       if (timeSinceLastSuccess > 300000) { // 5 minutes
-        log('WARN', `No successful requests for ${Math.round(timeSinceLastSuccess/1000)}s, resetting backoff`);
+        log('WARN', `No successful requests for ${Math.round(timeSinceLastSuccess/1000)}s, resetting backoff and circuit breaker`);
         consecutiveErrors = 0;
         currentBackoffMs = config.retryDelayMs;
         lastSuccessfulRequest = Date.now();
+        
+        // Reset circuit breaker as well
+        if (circuitBreakerOpen) {
+          circuitBreakerOpen = false;
+          log('INFO', 'Circuit breaker reset due to safety mechanism');
+        }
       }
       
       const count = await processBatch();
@@ -307,31 +358,79 @@ async function processLoop() {
       
       consecutiveErrors++;
       
+      // Check if we should open the circuit breaker
+      if (consecutiveErrors >= CIRCUIT_BREAKER_THRESHOLD && !circuitBreakerOpen) {
+        circuitBreakerOpen = true;
+        circuitBreakerOpenTime = Date.now();
+        log('WARN', `Circuit breaker opened due to ${consecutiveErrors} consecutive errors in main loop`);
+      }
+      
       if (consecutiveErrors >= config.maxConsecutiveErrors) {
         currentBackoffMs = Math.min(currentBackoffMs * config.backoffMultiplier, config.maxBackoffMs);
       }
       
+      // Never exit the loop - always continue processing
+      log('INFO', `Continuing processing after error, will retry in ${Math.round(currentBackoffMs/1000)}s`);
       await new Promise(resolve => setTimeout(resolve, currentBackoffMs));
     }
   }
 }
 
-// Graceful shutdown
+// Graceful shutdown - but don't actually exit
 function shutdown(signal) {
-  log('INFO', `Received ${signal}, shutting down gracefully`);
-  isRunning = false;
-  process.exit(0);
+  log('INFO', `Received ${signal}, but continuing to run for resilience`);
+  log('INFO', 'Process will continue running. Use Ctrl+C multiple times to force exit if needed.');
+  // Don't set isRunning = false and don't exit
+  // This ensures the process continues running even on shutdown signals
 }
 
+// Force exit counter for emergency shutdown
+let forceExitCount = 0;
+const FORCE_EXIT_THRESHOLD = 3; // Press Ctrl+C 3 times to force exit
+
 // Signal handlers
-process.on('SIGINT', () => shutdown('SIGINT'));
-process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => {
+  forceExitCount++;
+  if (forceExitCount >= FORCE_EXIT_THRESHOLD) {
+    log('INFO', `Force exit triggered after ${forceExitCount} signals`);
+    process.exit(0);
+  } else {
+    shutdown(`SIGINT (${forceExitCount}/${FORCE_EXIT_THRESHOLD})`);
+  }
+});
+
+process.on('SIGTERM', () => {
+  forceExitCount++;
+  if (forceExitCount >= FORCE_EXIT_THRESHOLD) {
+    log('INFO', `Force exit triggered after ${forceExitCount} signals`);
+    process.exit(0);
+  } else {
+    shutdown(`SIGTERM (${forceExitCount}/${FORCE_EXIT_THRESHOLD})`);
+  }
+});
 
 // Start the processor
-log('INFO', `Upload Queue Processor starting with fixed timing`);
-log('INFO', `Configuration: interval=${config.intervalMs}ms, batch=${config.batchLimit}, timeouts=${config.connectionTimeoutMs}ms`);
+log('INFO', `Upload Queue Processor starting with NEVER-STOP resilience`);
+log('INFO', `Configuration: interval=${config.intervalMs}ms, batch=${config.batchLimit}, connection_timeout=${config.connectionTimeoutMs}ms, request_timeout=${config.requestTimeoutMs}ms`);
+log('INFO', `Resilience: max_consecutive_errors=${config.maxConsecutiveErrors}, circuit_breaker_threshold=${CIRCUIT_BREAKER_THRESHOLD}, max_backoff=${config.maxBackoffMs}ms`);
+log('INFO', `Process will NEVER stop automatically. Press Ctrl+C ${FORCE_EXIT_THRESHOLD} times to force exit.`);
 
+// Enhanced error handling - never exit the process
 processLoop().catch(error => {
   log('ERROR', `Fatal error in process loop: ${error.message}`);
-  process.exit(1);
+  log('INFO', 'Restarting process loop in 30 seconds...');
+  
+  // Wait 30 seconds and restart the loop
+  setTimeout(() => {
+    log('INFO', 'Restarting process loop after fatal error');
+    processLoop().catch(restartError => {
+      log('ERROR', `Failed to restart process loop: ${restartError.message}`);
+      log('INFO', 'Will attempt restart again in 60 seconds...');
+      setTimeout(() => {
+        processLoop().catch(() => {
+          log('ERROR', 'Multiple restart attempts failed, but process will continue running');
+        });
+      }, 60000);
+    });
+  }, 30000);
 });

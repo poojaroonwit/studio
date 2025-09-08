@@ -38,10 +38,9 @@ export function detectInitializationError(error: Error): {
     };
   }
 
-  // Special handling for minified variable errors ('ee', 'tg', etc.)
+  // Special handling for 'ee' and 'tg' variable errors
   const isEeVariableError = error.message.includes('ee');
   const isTgVariableError = error.message.includes('tg');
-  const isMinifiedVariableError = isEeVariableError || isTgVariableError;
   
   let errorType = 'Temporal Dead Zone';
   let recommendations = [
@@ -51,16 +50,18 @@ export function detectInitializationError(error: Error): {
     'Check session/auth state initialization'
   ];
 
-  if (isMinifiedVariableError) {
-    const variableName = isEeVariableError ? 'ee' : 'tg';
-    errorType = `${variableName.toUpperCase()} Variable Initialization Error`;
+  if (isEeVariableError || isTgVariableError) {
+    const variableName = isTgVariableError ? 'TG' : 'EE';
+    errorType = `${variableName} Variable Initialization Error`;
     recommendations = [
       'This is likely a minified bundle issue',
       'Check for circular imports between modules',
       'Verify that all hooks are called in the same order',
       'Ensure context providers wrap components properly',
       'Check for conditional hook calls',
-      'Verify session/auth initialization order'
+      'Verify session/auth initialization order',
+      'Try refreshing the page to reload the JavaScript bundle',
+      'Clear browser cache and reload'
     ];
   }
 
@@ -70,9 +71,7 @@ export function detectInitializationError(error: Error): {
     timestamp: new Date().toISOString(),
     userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : 'server',
     url: typeof window !== 'undefined' ? window.location.href : 'server',
-    isEeVariableError,
-    isTgVariableError,
-    isMinifiedVariableError
+    isEeVariableError
   };
 
   // Log detailed error information

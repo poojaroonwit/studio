@@ -70,18 +70,13 @@ class RolePermissionsErrorBoundary extends React.Component<
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('RolePermissions page error:', error, errorInfo);
     
-    // Check for minified variable errors ('ee', 'tg', etc.)
+    // Check for the specific 'ee' variable error
     const isEeVariableError = error.message.includes('ee') && 
                               (error.message.includes('Cannot access') || 
                                error.message.includes('before initialization'));
-    const isTgVariableError = error.message.includes('tg') && 
-                              (error.message.includes('Cannot access') || 
-                               error.message.includes('before initialization'));
-    const isMinifiedVariableError = isEeVariableError || isTgVariableError;
     
-    if (isMinifiedVariableError) {
-      const variableName = isEeVariableError ? 'ee' : 'tg';
-      console.error(`${variableName.toUpperCase()} Variable Error Context:`, {
+    if (isEeVariableError) {
+      console.error('EE Variable Error Context:', {
         errorType: 'Temporal Dead Zone',
         likelyCause: 'Variable accessed before initialization in minified bundle',
         recommendation: 'Component initialization order issue',

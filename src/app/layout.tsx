@@ -9,6 +9,7 @@ import { FontLoader } from '@/components/ui/FontLoader';
 import { FontPreloader } from '@/components/ui/FontPreloader';
 import { ResizeObserverInitializer } from '@/components/ui/ResizeObserverInitializer';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
+import '@/lib/global-error-handler';
 
 const inter = Inter({ 
   subsets: ['latin'],

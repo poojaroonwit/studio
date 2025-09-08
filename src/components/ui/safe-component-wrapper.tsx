@@ -59,14 +59,13 @@ class SafeComponentWrapper extends Component<Props, State> {
                                   error.message.includes('is not defined') ||
                                   error.name === 'ReferenceError';
     
-    // Enhanced detection for minified variable errors ('ee', 'tg', etc.)
+    // Enhanced detection for the specific 'ee' and 'tg' variable errors
     const isEeVariableError = error.message.includes('ee') && 
                               (error.message.includes('Cannot access') || 
                                error.message.includes('before initialization'));
     const isTgVariableError = error.message.includes('tg') && 
                               (error.message.includes('Cannot access') || 
                                error.message.includes('before initialization'));
-    const isMinifiedVariableError = isEeVariableError || isTgVariableError;
     
     if (isInitializationError) {
       console.error('Detected variable initialization error:', {
@@ -74,18 +73,18 @@ class SafeComponentWrapper extends Component<Props, State> {
         stack: error.stack,
         componentStack: errorInfo.componentStack,
         isEeVariableError,
-        isTgVariableError,
-        isMinifiedVariableError
+        isTgVariableError
       });
       
       // Log additional context for debugging
-      if (isMinifiedVariableError) {
-        const variableName = isEeVariableError ? 'ee' : 'tg';
-        console.error(`${variableName.toUpperCase()} Variable Error Context:`, {
+      if (isEeVariableError || isTgVariableError) {
+        const variableName = isTgVariableError ? 'TG' : 'EE';
+        console.error(`${variableName} Variable Error Context:`, {
           errorType: 'Temporal Dead Zone',
           likelyCause: 'Variable accessed before initialization in minified bundle',
           recommendation: 'Check for circular dependencies or hook order issues',
-          componentStack: errorInfo.componentStack
+          componentStack: errorInfo.componentStack,
+          userAction: 'Try refreshing the page to reload the JavaScript bundle'
         });
       }
     }

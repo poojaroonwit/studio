@@ -51,25 +51,6 @@ class SettingsErrorBoundary extends React.Component<
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error('Settings page error:', error, errorInfo);
-    
-    // Check for minified variable errors ('ee', 'tg', etc.)
-    const isEeVariableError = error.message.includes('ee') && 
-                              (error.message.includes('Cannot access') || 
-                               error.message.includes('before initialization'));
-    const isTgVariableError = error.message.includes('tg') && 
-                              (error.message.includes('Cannot access') || 
-                               error.message.includes('before initialization'));
-    const isMinifiedVariableError = isEeVariableError || isTgVariableError;
-    
-    if (isMinifiedVariableError) {
-      const variableName = isEeVariableError ? 'ee' : 'tg';
-      console.error(`${variableName.toUpperCase()} Variable Error Context:`, {
-        errorType: 'Temporal Dead Zone',
-        likelyCause: 'Variable accessed before initialization in minified bundle',
-        recommendation: 'Component initialization order issue',
-        componentStack: errorInfo.componentStack
-      });
-    }
   }
 
   render() {

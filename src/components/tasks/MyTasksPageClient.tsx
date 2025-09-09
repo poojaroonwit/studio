@@ -706,33 +706,22 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     }
   };
 
-  // Stage filter functions
+  // Stage filter functions - Show ALL candidates from ALL recruiters
   const handleSelectAllStages = () => {
-    console.log('handleSelectAllStages called, stages:', stages);
-    if (stages && stages.length > 0) {
-      const allStageIds = stages.map(stage => stage.id);
-      console.log('Setting selectedStages to:', allStageIds);
-      setSelectedStages(allStageIds);
-      
-      // Also clear recruiter filter to show all recruiters
-      setFilters((prev: any) => {
-        const { recruiterId, ...rest } = prev;
-        return rest;
-      });
-      console.log('Cleared recruiter filter to show all recruiters');
-    } else {
-      console.warn('No stages available to select all, stages:', stages);
-    }
+    console.log('handleSelectAllStages called - showing all candidates from all recruiters');
+    
+    // Clear all filters to show everything
+    setFilters({});
+    setSelectedStages([]);
+    
+    console.log('Cleared all filters to show all candidates from all recruiters');
   };
 
   const handleClearAllStages = () => {
+    // Clear all filters to show everything
+    setFilters({});
     setSelectedStages([]);
-    // Also clear recruiter filter when clearing stages
-    setFilters((prev: any) => {
-      const { recruiterId, ...rest } = prev;
-      return rest;
-    });
-    console.log('Cleared all stage and recruiter filters');
+    console.log('Cleared all filters to show all candidates from all recruiters');
   };
 
   const toggleStageSelection = (stageId: string) => {
@@ -1023,16 +1012,17 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                              variant="ghost"
                              size="sm"
                              onClick={handleSelectAllStages}
-                             disabled={!stages || stages.length === 0}
                              className="h-6 px-2 text-xs"
+                             title="Show all candidates from all recruiters"
                            >
-                             All
+                             Show All
                            </Button>
                            <Button
                              variant="ghost"
                              size="sm"
                              onClick={handleClearAllStages}
                              className="h-6 px-2 text-xs"
+                             title="Clear all filters and show all candidates"
                            >
                              Clear
                            </Button>

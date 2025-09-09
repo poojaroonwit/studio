@@ -220,57 +220,58 @@ export function useCandidateData({
       // Safety check: ensure filters is defined
       const currentFilters = filtersRef.current;
       if (!currentFilters) {
-        return;
+        console.log('No filters available, using empty filters for fit score counts');
+        // Continue with empty filters - the API can handle this
       }
       
       // Add basic filters only
-      if (currentFilters.selectedPositionIds && currentFilters.selectedPositionIds.length > 0) {
+      if (currentFilters?.selectedPositionIds && currentFilters.selectedPositionIds.length > 0) {
         params.append('positionId', currentFilters.selectedPositionIds.join(','));
       }
-      if (currentFilters.selectedStatuses && currentFilters.selectedStatuses.length > 0) {
+      if (currentFilters?.selectedStatuses && currentFilters.selectedStatuses.length > 0) {
         params.append('status', currentFilters.selectedStatuses.join(','));
       }
-      if (currentFilters.selectedRecruiterIds && currentFilters.selectedRecruiterIds.length > 0) {
+      if (currentFilters?.selectedRecruiterIds && currentFilters.selectedRecruiterIds.length > 0) {
         params.append('recruiterId', currentFilters.selectedRecruiterIds.join(','));
       }
-      if (currentFilters.selectedSourceIds && currentFilters.selectedSourceIds.length > 0) {
+      if (currentFilters?.selectedSourceIds && currentFilters.selectedSourceIds.length > 0) {
         params.append('sourceId', currentFilters.selectedSourceIds.join(','));
       }
       
       // Add fit score filters to ensure counts match the filtered results
-      if (currentFilters.minAppliedJobFitScore !== undefined) {
+      if (currentFilters?.minAppliedJobFitScore !== undefined) {
         params.append('minAppliedJobFitScore', String(currentFilters.minAppliedJobFitScore * 100));
       }
-      if (currentFilters.maxAppliedJobFitScore !== undefined) {
+      if (currentFilters?.maxAppliedJobFitScore !== undefined) {
         params.append('maxAppliedJobFitScore', String(currentFilters.maxAppliedJobFitScore * 100));
       }
-      if (currentFilters.includeNoScoreInApplied !== undefined) {
+      if (currentFilters?.includeNoScoreInApplied !== undefined) {
         params.append('includeNoScoreInApplied', String(currentFilters.includeNoScoreInApplied));
       }
       
       // Add application date filters to ensure counts match the filtered results
-      if (currentFilters.applicationDateStart) {
+      if (currentFilters?.applicationDateStart) {
         params.append('applicationDateStart', currentFilters.applicationDateStart.toISOString());
       }
-      if (currentFilters.applicationDateEnd) {
+      if (currentFilters?.applicationDateEnd) {
         params.append('applicationDateEnd', currentFilters.applicationDateEnd.toISOString());
       }
       
       // Add experience years filters to ensure counts match the filtered results
-      if (currentFilters.minExperienceYears !== undefined) {
+      if (currentFilters?.minExperienceYears !== undefined) {
         params.append('minExperienceYears', String(currentFilters.minExperienceYears));
       }
-      if (currentFilters.maxExperienceYears !== undefined) {
+      if (currentFilters?.maxExperienceYears !== undefined) {
         params.append('maxExperienceYears', String(currentFilters.maxExperienceYears));
       }
       
       // Add skills filter to ensure counts match the filtered results
-      if (currentFilters.skills) {
+      if (currentFilters?.skills) {
         params.append('skills', currentFilters.skills);
       }
       
       // Add location filter to ensure counts match the filtered results
-      if (currentFilters.location) {
+      if (currentFilters?.location) {
         params.append('location', currentFilters.location);
         if (currentFilters.locationOperator) {
           params.append('locationOperator', currentFilters.locationOperator);
@@ -418,9 +419,9 @@ export function useCandidateData({
     }
   }, [sessionStatus, fetchSources, fetchRecruiter]);
 
-  // Fetch fit score counts on mount and when candidates are loaded
+  // Fetch fit score counts on mount
   useEffect(() => {
-    if (sessionStatus === 'authenticated' && allCandidatesForCounts.length > 0) {
+    if (sessionStatus === 'authenticated') {
       // Use a delay to ensure the component is fully mounted
       const timeoutId = setTimeout(() => {
         fetchFitScoreCounts();
@@ -428,7 +429,7 @@ export function useCandidateData({
       
       return () => clearTimeout(timeoutId);
     }
-  }, [sessionStatus, allCandidatesForCounts.length, fetchFitScoreCounts]);
+  }, [sessionStatus, fetchFitScoreCounts]);
 
   // Simplified helper function to normalize fit scores
   const getBestMatchingFitScore = (candidate: Candidate): number => {

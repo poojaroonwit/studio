@@ -401,9 +401,9 @@ const renderTableCells = (
             title={candidate.isPinned ? 'Unpin candidate' : 'Pin candidate to top'}
           >
             {candidate.isPinned ? (
-              <PinIcon className="h-4 w-4 text-primary" />
+              <PinIcon className="h-4 w-4 text-primary fill-current" />
             ) : (
-              <PinIcon className="h-4 w-4" />
+              <PinIcon className="h-4 w-4 text-foreground" />
             )}
           </button>
         </TableCell>
@@ -423,11 +423,24 @@ const renderTableCells = (
                 <>
                   {/* Pin icon before avatar */}
                   <div className="flex-shrink-0">
-                    {candidate.isPinned ? (
-                      <PinIcon className="h-4 w-4 text-primary" />
-                    ) : (
-                      <PinOff className="h-4 w-4 text-muted-foreground" />
-                    )}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        togglePin(candidate);
+                      }}
+                      className={`p-1 rounded hover:bg-muted transition-colors ${
+                        candidate.isPinned ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                      title={candidate.isPinned ? 'Unpin candidate' : 'Pin candidate to top'}
+                    >
+                      {candidate.isPinned ? (
+                        <PinIcon className="h-4 w-4 text-primary fill-current" />
+                      ) : (
+                        <PinIcon className="h-4 w-4 text-foreground" />
+                      )}
+                    </button>
                   </div>
                   <CandidateAvatarCompact
                     user={{
@@ -944,12 +957,12 @@ export function CandidateTable({
                   >
                     {candidate.isPinned ? (
                       <>
-                        <PinOff className="mr-2 h-4 w-4" />
+                        <PinIcon className="mr-2 h-4 w-4 text-primary fill-current" />
                         Unpin from top
                       </>
                     ) : (
                       <>
-                        <PinIcon className="mr-2 h-4 w-4 text-primary" />
+                        <PinIcon className="mr-2 h-4 w-4 text-foreground" />
                         Pin to top (shared)
                       </>
                     )}
@@ -1057,10 +1070,10 @@ export function CandidateTable({
               let rowNumber = baseIndex + 1;
               const { pinned, unpinned } = candidatesByPinStatus;
               
-              // If showPinSection is disabled, show all candidates mixed together
+              // If showPinSection is disabled, show all candidates in normal sorted order
               if (!settings?.showPinSection) {
-                const allCandidates = [...pinned, ...unpinned];
-                return renderCandidateRows(allCandidates, rowNumber);
+                // Use the original candidates array which is already sorted by the server
+                return renderCandidateRows(candidates, rowNumber);
               }
               
               // If showPinSection is enabled, show sections

@@ -497,13 +497,7 @@ export function PositionMultiSelectDropdown({
                           selectedIds.has(position.id) ? "opacity-100" : "opacity-0"
                         )}
                       />
-                      <div className="flex flex-col">
-                        <span className="text-sm font-medium">{position.title}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {position.department}
-                          {position.positionLevel && ` • ${position.positionLevel}`}
-                        </span>
-                      </div>
+                      <span className="text-sm font-medium">{position.title}</span>
                       {showOpenStatus && (
                         <Badge 
                           variant={position.isOpen ? "default" : "secondary"}

@@ -323,8 +323,12 @@ export async function GET(request: NextRequest) {
     
     // Handle NULL values in sorting - for fitScore, put NULL values first when ascending, last when descending
     let sortClause = `${sortColumn} ${sortDirection}`;
-    // Always prioritize pinned candidates at the top for all users
-    sortClause = `c."isPinned" DESC, c."pinnedAt" DESC NULLS LAST, ${sortClause}`;
+    
+    // Only prioritize pinned candidates if showPinSection is enabled
+    const showPinSection = searchParams.get('showPinSection');
+    if (showPinSection === 'true') {
+      sortClause = `c."isPinned" DESC, c."pinnedAt" DESC NULLS LAST, ${sortClause}`;
+    }
     if (sortColumnParam === 'fitScore') {
       if (sortDirection === 'ASC') {
         sortClause = `c."fitScore" ${sortDirection} NULLS FIRST`;

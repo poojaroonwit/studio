@@ -3,7 +3,7 @@ import { CandidateAvatar } from '@/components/ui/candidate-avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Edit, Edit3, MoreHorizontal, RefreshCw, Users, X, BrainCircuit, Upload, Trash2, ExternalLink } from 'lucide-react';
+import { Edit, Edit3, MoreVertical, RefreshCw, Users, X, BrainCircuit, Upload, Trash2, ExternalLink } from 'lucide-react';
 import { formatCandidateNameWithLang } from "@/lib/candidateUtils";
 import type { Candidate, UserProfile, RecruitmentStage, CandidateSource } from '@/lib/types';
 import { CandidateRecruiterCell } from './CandidateRecruiterCell';
@@ -272,7 +272,7 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
                       className="h-8 px-3 hover:bg-muted/50 transition-colors duration-200 pointer-events-auto"
                       style={{ zIndex: contentZIndex + 3 }}
                     >
-                      <MoreHorizontal className="h-3.5 w-3.5 text-muted-foreground mr-2" />
+                      <MoreVertical className="h-3.5 w-3.5 text-muted-foreground mr-2" />
                       Actions
                     </Button>
                   </DropdownMenuTrigger>

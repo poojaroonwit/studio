@@ -1027,9 +1027,9 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                           className="hover:bg-primary/10"
                         >
                           {candidate.isPinned ? (
-                            <PinIcon className="h-4 w-4 text-primary" />
+                            <PinIcon className="h-4 w-4 text-primary fill-current" />
                           ) : (
-                            <PinIcon className="h-4 w-4" />
+                            <PinIcon className="h-4 w-4 text-foreground" />
                           )}
                         </Button>
                       </div>
@@ -1112,9 +1112,9 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                           className="hover:bg-primary/10"
                         >
                           {candidate.isPinned ? (
-                            <PinIcon className="h-4 w-4 text-primary" />
+                            <PinIcon className="h-4 w-4 text-primary fill-current" />
                           ) : (
-                            <PinIcon className="h-4 w-4" />
+                            <PinIcon className="h-4 w-4 text-foreground" />
                           )}
                         </Button>
                       </div>
@@ -1309,9 +1309,9 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                     className="hover:bg-primary/10"
                   >
                     {candidate.isPinned ? (
-                      <PinIcon className="h-4 w-4 text-primary" />
+                      <PinIcon className="h-4 w-4 text-primary fill-current" />
                     ) : (
-                      <PinIcon className="h-4 w-4" />
+                      <PinIcon className="h-4 w-4 text-foreground" />
                     )}
                   </Button>
                 </div>
@@ -1652,9 +1652,9 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                                   className="hover:bg-primary/10"
                                 >
                                   {candidate.isPinned ? (
-                                    <PinIcon className="h-4 w-4 text-primary" />
+                                    <PinIcon className="h-4 w-4 text-primary fill-current" />
                                   ) : (
-                                    <PinOff className="h-4 w-4" />
+                                    <PinIcon className="h-4 w-4 text-foreground" />
                                   )}
                                 </Button>
                               </div>

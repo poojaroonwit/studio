@@ -1640,7 +1640,16 @@ export default function PositionsPageClient() {
                       </div>
                     ) : headcountData[position.id] ? (
                       <div className="flex items-center justify-center">
-                        <Badge variant={headcountData[position.id].filled >= headcountData[position.id].total ? 'success' : 'secondary'} className="text-xs px-2 py-0.5">
+                        <Badge 
+                          variant={
+                            headcountData[position.id].filled === 0 && headcountData[position.id].total === 0 
+                              ? 'destructive' 
+                              : headcountData[position.id].filled >= headcountData[position.id].total 
+                                ? 'success' 
+                                : 'secondary'
+                          } 
+                          className="text-xs px-2 py-0.5"
+                        >
                           {headcountData[position.id].filled}/{headcountData[position.id].total}
                         </Badge>
                       </div>

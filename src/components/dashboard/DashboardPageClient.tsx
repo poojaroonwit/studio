@@ -226,11 +226,18 @@ export default function DashboardPageClient({
                               hasPermission(session?.user, 'USERS_DELETE') ||
                               hasPermission(session?.user, 'USERS_PERMISSIONS_MANAGE');
       
+      console.log('Dashboard permissions:', { 
+        canViewAllCandidates, 
+        userId: session?.user?.id,
+        userRole: session?.user?.role,
+        permissions: session?.user?.modulePermissions 
+      });
+      
       if (canViewAllCandidates) {
-        promises.push(safeFetch('/api/candidates?forCounts=true', fetchOptions));
+        promises.push(safeFetch('/api/candidates?limit=100000', fetchOptions));
       } else {
         // User can only see their assigned candidates
-        promises.push(safeFetch(`/api/candidates?recruiterId=${userId}&forCounts=true`, fetchOptions));
+        promises.push(safeFetch(`/api/candidates?recruiterId=${userId}&limit=100000`, fetchOptions));
       }
       
       if (canViewAllUsers) {
@@ -241,9 +248,9 @@ export default function DashboardPageClient({
       
       // For backlog candidates, use the same logic as main candidates
       if (canViewAllCandidates) {
-        promises.push(safeFetch('/api/candidates?forCounts=true', fetchOptions));
+        promises.push(safeFetch('/api/candidates?limit=100000', fetchOptions));
       } else {
-        promises.push(safeFetch(`/api/candidates?recruiterId=${userId}&forCounts=true`, fetchOptions));
+        promises.push(safeFetch(`/api/candidates?recruiterId=${userId}&limit=100000`, fetchOptions));
       }
       promises.push(safeFetch('/api/positions', fetchOptions));
 
@@ -255,7 +262,11 @@ export default function DashboardPageClient({
         if (canViewAllCandidates) setFilteredCandidates([]); else setMyAssignedCandidates([]);
       } else if (candidatesRes.data) {
         const candidatesData: Candidate[] = Array.isArray((candidatesRes.data as any)?.data) ? (candidatesRes.data as any).data : (Array.isArray(candidatesRes.data) ? candidatesRes.data : []);
+        console.log('Dashboard fetched candidates:', candidatesData.length, 'canViewAllCandidates:', canViewAllCandidates);
         if (canViewAllCandidates) setFilteredCandidates(candidatesData); else setMyAssignedCandidates(candidatesData);
+      } else {
+        console.warn('No candidates data received from API');
+        if (canViewAllCandidates) setFilteredCandidates([]); else setMyAssignedCandidates([]);
       }
 
       if (!usersRes.ok) { 
@@ -724,19 +735,39 @@ export default function DashboardPageClient({
     });
   }, [filteredCandidates]);
 
-  const recentApplications = useMemo(() => {
-    const safeAllCandidates = Array.isArray(filteredCandidates)? filteredCandidates : [];
-    const now = new Date();
-    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    
-    return safeAllCandidates.filter((c: Candidate) => {
-      if (!c.applicationDate || typeof c.applicationDate !== 'string') return false;
+  // State for weekly applications count
+  const [weeklyApplicationsCount, setWeeklyApplicationsCount] = useState<number>(0);
+
+  // Fetch weekly applications count from API to ensure consistency with "View All"
+  useEffect(() => {
+    const fetchWeeklyApplicationsCount = async () => {
+      if (status !== 'authenticated' || !session?.user?.id) return;
+      
       try {
-        const appDate = parseISO(c.applicationDate);
-        return appDate >= sevenDaysAgo && appDate <= now;
-      } catch { return false; }
-    });
-  }, [filteredCandidates]);
+        const today = new Date();
+        const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+        const weekQuery = `applicationDateStart:${weekAgo.toISOString()} applicationDateEnd:${today.toISOString()}`;
+        
+        const response = await fetch(`/api/candidates?query=${encodeURIComponent(weekQuery)}&forCounts=true`, {
+          credentials: 'include'
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setWeeklyApplicationsCount(data.pagination?.total || 0);
+        }
+      } catch (error) {
+        console.warn('Failed to fetch weekly applications count:', error);
+      }
+    };
+
+    fetchWeeklyApplicationsCount();
+  }, [status, session?.user?.id]);
+
+  const recentApplications = useMemo(() => {
+    // Use the API-fetched count instead of client-side filtering
+    return Array(weeklyApplicationsCount).fill(null);
+  }, [weeklyApplicationsCount]);
 
   // Stage summary metrics
   const stageSummary = useMemo(() => {

@@ -235,6 +235,7 @@ export function CandidatesPageClient({
   const effectiveRecruiter = filterData?.recruiters || availableRecruiter;
   const effectiveSources = filterData?.sources || availableSources;
 
+  // Define useCandidateFetching first with default showPinSection
   const {
     fetchTableData,
     debouncedFetchTableData,
@@ -257,7 +258,8 @@ export function CandidatesPageClient({
     setAuthError,
     setPermissionError,
     setFetchError,
-    setIsLoading
+    setIsLoading,
+    showPinSection: true // Default to true, will be updated when settings load
   });
 
   const {

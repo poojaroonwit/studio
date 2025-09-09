@@ -612,7 +612,7 @@ export default function PositionsPageClient() {
         setIsLoading(false);
       }
     }
-  }, []); // Remove selectedRecruiterId dependency to prevent circular dependency
+  }, [currentFiltersRef]); // Include currentFiltersRef to ensure proper memoization
 
   // Dashboard update handler - defined after fetchPositions to avoid temporal dead zone
   const handleDashboardUpdate = useCallback((dashboardData: any) => {
@@ -1025,7 +1025,7 @@ export default function PositionsPageClient() {
       }
       unsubscribe();
     };
-  }, [status, session?.user?.id, isLoading, subscribeToEvents]);
+  }, [status, session?.user?.id, isLoading, subscribeToEvents, fetchPositions]);
 
 
 

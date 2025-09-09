@@ -432,7 +432,7 @@ export function CandidatesPageClient({
       }
       unsubscribe();
     };
-  }, [status, session?.user?.id, isLoading, subscribeToEvents, filters, page, pageSize, fetchTableData, fetchAllCandidatesForCounts]);
+  }, [status, session?.user?.id, isLoading, subscribeToEvents, filters, page, pageSize, fetchTableData, fetchAllCandidatesForCounts, forceRefreshFitScoreCounts]);
 
   // Bulk action handlers
   const handleBulkDelete = useCallback(async (candidateIds: string[]) => {

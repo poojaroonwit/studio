@@ -523,7 +523,7 @@ export default function DashboardPageClient({
       }
       unsubscribe();
     };
-  }, [status, session?.user?.id, isLoading, subscribeToEvents]); // Added subscribeToEvents to dependencies
+  }, [status, session?.user?.id, isLoading, subscribeToEvents, fetchDataClientSide]); // Added fetchDataClientSide to dependencies
 
   // Optimized dashboard computations - combined related calculations to reduce render overhead
   // Note: Dashboard counts may differ from "View All" due to:

@@ -44,15 +44,22 @@ export async function GET(request: NextRequest) {
           g.name as "gradeName",
           g.color as "gradeColor",
           g."sla_days" as "gradeSlaDays",
-          COUNT(h.id) as "totalHeadcount",
-          COUNT(CASE WHEN h.status = 'vacant' OR h."candidateId" IS NULL THEN 1 END) as "vacantHeadcount",
-          COUNT(CASE WHEN h.status != 'vacant' AND h."candidateId" IS NOT NULL THEN 1 END) as "filledHeadcount"
+          COALESCE(hc_stats.total_headcount, 0) as "totalHeadcount",
+          COALESCE(hc_stats.vacant_headcount, 0) as "vacantHeadcount",
+          COALESCE(hc_stats.filled_headcount, 0) as "filledHeadcount"
         FROM "Position" p
         LEFT JOIN "Grade" g ON p."gradeId" = g.id
-        LEFT JOIN "Headcount" h ON p.id = h."positionId"
+        LEFT JOIN (
+          SELECT 
+            h."positionId",
+            COUNT(*) as total_headcount,
+            COUNT(CASE WHEN h.status = 'vacant' OR h."candidateId" IS NULL THEN 1 END) as vacant_headcount,
+            COUNT(CASE WHEN h.status = 'filled' AND h."candidateId" IS NOT NULL THEN 1 END) as filled_headcount
+          FROM "Headcount" h
+          GROUP BY h."positionId"
+        ) hc_stats ON p.id = hc_stats."positionId"
         WHERE p."recruiterId" = $1 
           AND p."isOpen" = true
-        GROUP BY p.id, p.title, p.department, p.description, p."positionLevel", p."isOpen", p."createdAt", p."updatedAt", g.name, g.color, g."sla_days"
         ORDER BY p."createdAt" DESC
       `;
 

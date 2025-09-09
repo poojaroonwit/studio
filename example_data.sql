@@ -36,7 +36,7 @@ INSERT INTO "Position" (
 ) VALUES 
 -- Software Development Positions
 (
-    'pos-001-software-engineer',
+    '550e8400-e29b-41d4-a716-446655440001',
     'Senior Software Engineer',
     'Engineering',
     'We are looking for a Senior Software Engineer to join our development team. The ideal candidate will have strong experience in full-stack development and be able to work independently on complex projects.',
@@ -52,7 +52,7 @@ INSERT INTO "Position" (
     'Full-time'
 ),
 (
-    'pos-002-frontend-developer',
+    '550e8400-e29b-41d4-a716-446655440002',
     'Frontend Developer',
     'Engineering',
     'Join our frontend team to build beautiful and responsive user interfaces. We need someone passionate about modern web technologies and user experience.',
@@ -68,7 +68,7 @@ INSERT INTO "Position" (
     'Full-time'
 ),
 (
-    'pos-003-data-scientist',
+    '550e8400-e29b-41d4-a716-446655440003',
     'Data Scientist',
     'Analytics',
     'We are seeking a Data Scientist to help us extract insights from our data and build predictive models. The role involves working with large datasets and collaborating with cross-functional teams.',
@@ -84,7 +84,7 @@ INSERT INTO "Position" (
     'Full-time'
 ),
 (
-    'pos-004-product-manager',
+    '550e8400-e29b-41d4-a716-446655440004',
     'Product Manager',
     'Product',
     'Lead product development initiatives and work closely with engineering, design, and business teams to deliver exceptional user experiences.',
@@ -100,7 +100,7 @@ INSERT INTO "Position" (
     'Full-time'
 ),
 (
-    'pos-005-ux-designer',
+    '550e8400-e29b-41d4-a716-446655440005',
     'UX Designer',
     'Design',
     'Create intuitive and engaging user experiences for our products. Work with cross-functional teams to understand user needs and translate them into design solutions.',
@@ -117,7 +117,7 @@ INSERT INTO "Position" (
 ),
 -- Additional positions for more variety
 (
-    'pos-006-devops-engineer',
+    '550e8400-e29b-41d4-a716-446655440006',
     'DevOps Engineer',
     'Engineering',
     'Join our DevOps team to build and maintain our cloud infrastructure. You will work with cutting-edge technologies to ensure our systems are scalable, reliable, and secure.',
@@ -133,7 +133,7 @@ INSERT INTO "Position" (
     'Full-time'
 ),
 (
-    'pos-007-marketing-manager',
+    '550e8400-e29b-41d4-a716-446655440007',
     'Marketing Manager',
     'Marketing',
     'Lead our marketing initiatives and drive brand awareness. You will develop and execute marketing strategies to support business growth and customer acquisition.',
@@ -149,7 +149,7 @@ INSERT INTO "Position" (
     'Full-time'
 ),
 (
-    'pos-008-sales-representative',
+    '550e8400-e29b-41d4-a716-446655440008',
     'Sales Representative',
     'Sales',
     'Join our sales team to drive revenue growth and build strong customer relationships. You will be responsible for identifying new business opportunities and closing deals.',
@@ -165,7 +165,7 @@ INSERT INTO "Position" (
     'Full-time'
 ),
 (
-    'pos-009-hr-specialist',
+    '550e8400-e29b-41d4-a716-446655440009',
     'HR Specialist',
     'Human Resources',
     'Support our human resources operations and help create a positive work environment. You will handle recruitment, employee relations, and HR administration.',
@@ -181,7 +181,7 @@ INSERT INTO "Position" (
     'Full-time'
 ),
 (
-    'pos-010-financial-analyst',
+    '550e8400-e29b-41d4-a716-446655440010',
     'Financial Analyst',
     'Finance',
     'Join our finance team to provide financial analysis and support business decision-making. You will prepare financial reports, analyze trends, and support budgeting processes.',
@@ -197,7 +197,7 @@ INSERT INTO "Position" (
     'Full-time'
 ),
 (
-    'pos-011-qa-engineer',
+    '550e8400-e29b-41d4-a716-446655440011',
     'QA Engineer',
     'Engineering',
     'Ensure the quality of our software products through comprehensive testing. You will design and execute test plans, identify bugs, and work with development teams to improve product quality.',
@@ -213,7 +213,7 @@ INSERT INTO "Position" (
     'Full-time'
 ),
 (
-    'pos-012-customer-success-manager',
+    '550e8400-e29b-41d4-a716-446655440012',
     'Customer Success Manager',
     'Customer Success',
     'Help our customers achieve their goals and ensure their success with our products. You will build strong relationships, identify growth opportunities, and drive customer satisfaction.',
@@ -262,11 +262,11 @@ INSERT INTO "Candidate" (
 ) VALUES 
 -- Candidate 1: Senior Software Engineer
 (
-    'cand-001-john-smith',
+    '660e8400-e29b-41d4-a716-446655440001',
     'John Smith',
     'john.smith@email.com',
     '+66-81-234-5678',
-    'pos-001-software-engineer',
+    '550e8400-e29b-41d4-a716-446655440001',
     (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
     0.85,
     '2024-01-15',
@@ -289,11 +289,11 @@ INSERT INTO "Candidate" (
 ),
 -- Candidate 2: Frontend Developer
 (
-    'cand-002-sarah-johnson',
+    '660e8400-e29b-41d4-a716-446655440002',
     'Sarah Johnson',
     'sarah.johnson@email.com',
     '+66-82-345-6789',
-    'pos-002-frontend-developer',
+    '550e8400-e29b-41d4-a716-446655440002',
     (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
     0.78,
     '2024-01-20',
@@ -316,11 +316,11 @@ INSERT INTO "Candidate" (
 ),
 -- Candidate 3: Data Scientist
 (
-    'cand-003-michael-chen',
+    '660e8400-e29b-41d4-a716-446655440003',
     'Michael Chen',
     'michael.chen@email.com',
     '+66-83-456-7890',
-    'pos-003-data-scientist',
+    '550e8400-e29b-41d4-a716-446655440003',
     (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
     0.92,
     '2024-01-18',
@@ -343,11 +343,11 @@ INSERT INTO "Candidate" (
 ),
 -- Candidate 4: Product Manager
 (
-    'cand-004-emily-wilson',
+    '660e8400-e29b-41d4-a716-446655440004',
     'Emily Wilson',
     'emily.wilson@email.com',
     '+66-84-567-8901',
-    'pos-004-product-manager',
+    '550e8400-e29b-41d4-a716-446655440004',
     (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
     0.88,
     '2024-01-22',
@@ -370,11 +370,11 @@ INSERT INTO "Candidate" (
 ),
 -- Candidate 5: UX Designer
 (
-    'cand-005-david-brown',
+    '660e8400-e29b-41d4-a716-446655440005',
     'David Brown',
     'david.brown@email.com',
     '+66-85-678-9012',
-    'pos-005-ux-designer',
+    '550e8400-e29b-41d4-a716-446655440005',
     (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
     0.75,
     '2024-01-25',
@@ -397,11 +397,11 @@ INSERT INTO "Candidate" (
 ),
 -- Candidate 6: Additional Software Engineer (for variety)
 (
-    'cand-006-lisa-garcia',
+    '660e8400-e29b-41d4-a716-446655440006',
     'Lisa Garcia',
     'lisa.garcia@email.com',
     '+66-86-789-0123',
-    'pos-001-software-engineer',
+    '550e8400-e29b-41d4-a716-446655440001',
     (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
     0.72,
     '2024-01-30',
@@ -425,11 +425,11 @@ INSERT INTO "Candidate" (
 -- Additional candidates for the new positions
 -- Candidate 7: DevOps Engineer
 (
-    'cand-007-alex-kumar',
+    '660e8400-e29b-41d4-a716-446655440007',
     'Alex Kumar',
     'alex.kumar@email.com',
     '+66-87-890-1234',
-    'pos-006-devops-engineer',
+    '550e8400-e29b-41d4-a716-446655440006',
     (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
     0.82,
     '2024-02-01',
@@ -452,11 +452,11 @@ INSERT INTO "Candidate" (
 ),
 -- Candidate 8: Marketing Manager
 (
-    'cand-008-maria-rodriguez',
+    '660e8400-e29b-41d4-a716-446655440008',
     'Maria Rodriguez',
     'maria.rodriguez@email.com',
     '+66-88-901-2345',
-    'pos-007-marketing-manager',
+    '550e8400-e29b-41d4-a716-446655440007',
     (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
     0.79,
     '2024-02-03',
@@ -479,11 +479,11 @@ INSERT INTO "Candidate" (
 ),
 -- Candidate 9: Sales Representative
 (
-    'cand-009-james-wilson',
+    '660e8400-e29b-41d4-a716-446655440009',
     'James Wilson',
     'james.wilson@email.com',
     '+66-89-012-3456',
-    'pos-008-sales-representative',
+    '550e8400-e29b-41d4-a716-446655440008',
     (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
     0.68,
     '2024-02-05',
@@ -506,11 +506,11 @@ INSERT INTO "Candidate" (
 ),
 -- Candidate 10: HR Specialist
 (
-    'cand-010-sophie-taylor',
+    '660e8400-e29b-41d4-a716-446655440010',
     'Sophie Taylor',
     'sophie.taylor@email.com',
     '+66-90-123-4567',
-    'pos-009-hr-specialist',
+    '550e8400-e29b-41d4-a716-446655440009',
     (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
     0.74,
     '2024-02-07',
@@ -533,11 +533,11 @@ INSERT INTO "Candidate" (
 ),
 -- Candidate 11: Financial Analyst
 (
-    'cand-011-robert-kim',
+    '660e8400-e29b-41d4-a716-446655440011',
     'Robert Kim',
     'robert.kim@email.com',
     '+66-91-234-5678',
-    'pos-010-financial-analyst',
+    '550e8400-e29b-41d4-a716-446655440010',
     (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
     0.86,
     '2024-02-09',
@@ -560,11 +560,11 @@ INSERT INTO "Candidate" (
 ),
 -- Candidate 12: QA Engineer
 (
-    'cand-012-anna-petrov',
+    '660e8400-e29b-41d4-a716-446655440012',
     'Anna Petrov',
     'anna.petrov@email.com',
     '+66-92-345-6789',
-    'pos-011-qa-engineer',
+    '550e8400-e29b-41d4-a716-446655440011',
     (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
     0.71,
     '2024-02-11',
@@ -587,11 +587,11 @@ INSERT INTO "Candidate" (
 ),
 -- Candidate 13: Customer Success Manager
 (
-    'cand-013-kevin-lee',
+    '660e8400-e29b-41d4-a716-446655440013',
     'Kevin Lee',
     'kevin.lee@email.com',
     '+66-93-456-7890',
-    'pos-012-customer-success-manager',
+    '550e8400-e29b-41d4-a716-446655440012',
     (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
     0.83,
     '2024-02-13',
@@ -615,11 +615,11 @@ INSERT INTO "Candidate" (
 -- Additional candidates for existing positions
 -- Candidate 14: Another Software Engineer
 (
-    'cand-014-raj-patel',
+    '660e8400-e29b-41d4-a716-446655440014',
     'Raj Patel',
     'raj.patel@email.com',
     '+66-94-567-8901',
-    'pos-001-software-engineer',
+    '550e8400-e29b-41d4-a716-446655440001',
     (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
     0.77,
     '2024-02-15',
@@ -642,11 +642,11 @@ INSERT INTO "Candidate" (
 ),
 -- Candidate 15: Another Frontend Developer
 (
-    'cand-015-yuki-tanaka',
+    '660e8400-e29b-41d4-a716-446655440015',
     'Yuki Tanaka',
     'yuki.tanaka@email.com',
     '+66-95-678-9012',
-    'pos-002-frontend-developer',
+    '550e8400-e29b-41d4-a716-446655440002',
     (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
     0.73,
     '2024-02-17',
@@ -695,7 +695,7 @@ INSERT INTO "upload_queue" (
 ) VALUES 
 -- Successful uploads
 (
-    'upload-001-success',
+    '770e8400-e29b-41d4-a716-446655440001',
     'john_doe_resume.pdf',
     2048576,
     'completed',
@@ -711,11 +711,11 @@ INSERT INTO "upload_queue" (
     '2024-01-15 10:32:15',
     '/uploads/queue/john_doe_resume.pdf',
     '{"candidate_name": "John Doe", "email": "john.doe@email.com", "position": "Software Engineer"}',
-    'pos-001-software-engineer',
+    '550e8400-e29b-41d4-a716-446655440001',
     '2024-01-15 10:32:00'
 ),
 (
-    'upload-002-success',
+    '770e8400-e29b-41d4-a716-446655440002',
     'jane_smith_cv.pdf',
     1536000,
     'completed',
@@ -731,12 +731,12 @@ INSERT INTO "upload_queue" (
     '2024-01-16 14:22:30',
     '/uploads/queue/jane_smith_cv.pdf',
     '{"candidate_name": "Jane Smith", "email": "jane.smith@email.com", "position": "Frontend Developer", "source": "JobsDB"}',
-    'pos-002-frontend-developer',
+    '550e8400-e29b-41d4-a716-446655440002',
     '2024-01-16 14:22:00'
 ),
 -- Processing uploads
 (
-    'upload-003-processing',
+    '770e8400-e29b-41d4-a716-446655440003',
     'mike_johnson_resume.pdf',
     1873408,
     'processing',
@@ -752,12 +752,12 @@ INSERT INTO "upload_queue" (
     '2024-01-17 09:15:00',
     '/uploads/queue/mike_johnson_resume.pdf',
     '{"candidate_name": "Mike Johnson", "email": "mike.johnson@email.com", "position": "Data Scientist"}',
-    'pos-003-data-scientist',
+    '550e8400-e29b-41d4-a716-446655440003',
     '2024-01-17 09:15:00'
 ),
 -- Pending uploads
 (
-    'upload-004-pending',
+    '770e8400-e29b-41d4-a716-446655440004',
     'sarah_williams_cv.pdf',
     1234567,
     'pending',
@@ -773,12 +773,12 @@ INSERT INTO "upload_queue" (
     '2024-01-18 16:45:00',
     '/uploads/queue/sarah_williams_cv.pdf',
     '{"candidate_name": "Sarah Williams", "email": "sarah.williams@email.com", "position": "Product Manager"}',
-    'pos-004-product-manager',
+    '550e8400-e29b-41d4-a716-446655440004',
     null
 ),
 -- Failed uploads
 (
-    'upload-005-failed',
+    '770e8400-e29b-41d4-a716-446655440005',
     'corrupted_file.pdf',
     512000,
     'failed',
@@ -794,11 +794,11 @@ INSERT INTO "upload_queue" (
     '2024-01-19 11:25:00',
     '/uploads/queue/corrupted_file.pdf',
     '{"candidate_name": "Unknown", "email": "unknown@email.com", "position": "UX Designer"}',
-    'pos-005-ux-designer',
+    '550e8400-e29b-41d4-a716-446655440005',
     '2024-01-19 11:25:00'
 ),
 (
-    'upload-006-failed',
+    '770e8400-e29b-41d4-a716-446655440006',
     'invalid_format.docx',
     1024000,
     'failed',
@@ -814,12 +814,12 @@ INSERT INTO "upload_queue" (
     '2024-01-20 13:35:00',
     '/uploads/queue/invalid_format.docx',
     '{"candidate_name": "Alex Brown", "email": "alex.brown@email.com", "position": "Software Engineer"}',
-    'pos-001-software-engineer',
+    '550e8400-e29b-41d4-a716-446655440001',
     '2024-01-20 13:35:00'
 ),
 -- Large file upload
 (
-    'upload-007-large',
+    '770e8400-e29b-41d4-a716-446655440007',
     'comprehensive_portfolio.pdf',
     10485760,
     'completed',
@@ -835,12 +835,12 @@ INSERT INTO "upload_queue" (
     '2024-01-21 08:05:45',
     '/uploads/queue/comprehensive_portfolio.pdf',
     '{"candidate_name": "Emma Davis", "email": "emma.davis@email.com", "position": "UX Designer", "university": "Chulalongkorn University"}',
-    'pos-005-ux-designer',
+    '550e8400-e29b-41d4-a716-446655440005',
     '2024-01-21 08:05:00'
 ),
 -- Bulk upload
 (
-    'upload-008-bulk',
+    '770e8400-e29b-41d4-a716-446655440008',
     'bulk_candidates_2024_01.zip',
     5242880,
     'processing',
@@ -862,7 +862,7 @@ INSERT INTO "upload_queue" (
 -- Additional upload queue items for more variety
 -- Recent successful uploads
 (
-    'upload-009-recent-success',
+    '770e8400-e29b-41d4-a716-446655440009',
     'alex_kumar_devops_resume.pdf',
     1892345,
     'completed',
@@ -878,11 +878,11 @@ INSERT INTO "upload_queue" (
     '2024-02-01 14:32:45',
     '/uploads/queue/alex_kumar_devops_resume.pdf',
     '{"candidate_name": "Alex Kumar", "email": "alex.kumar@email.com", "position": "DevOps Engineer"}',
-    'pos-006-devops-engineer',
+    '550e8400-e29b-41d4-a716-446655440006',
     '2024-02-01 14:32:00'
 ),
 (
-    'upload-010-marketing-success',
+    '770e8400-e29b-41d4-a716-446655440010',
     'maria_rodriguez_marketing_cv.pdf',
     1654321,
     'completed',
@@ -898,12 +898,12 @@ INSERT INTO "upload_queue" (
     '2024-02-03 10:17:30',
     '/uploads/queue/maria_rodriguez_marketing_cv.pdf',
     '{"candidate_name": "Maria Rodriguez", "email": "maria.rodriguez@email.com", "position": "Marketing Manager", "source": "JobsDB"}',
-    'pos-007-marketing-manager',
+    '550e8400-e29b-41d4-a716-446655440007',
     '2024-02-03 10:17:00'
 ),
 -- Processing uploads
 (
-    'upload-011-sales-processing',
+    '770e8400-e29b-41d4-a716-446655440011',
     'james_wilson_sales_resume.pdf',
     1456789,
     'processing',
@@ -919,11 +919,11 @@ INSERT INTO "upload_queue" (
     '2024-02-05 16:20:00',
     '/uploads/queue/james_wilson_sales_resume.pdf',
     '{"candidate_name": "James Wilson", "email": "james.wilson@email.com", "position": "Sales Representative"}',
-    'pos-008-sales-representative',
+    '550e8400-e29b-41d4-a716-446655440008',
     '2024-02-05 16:20:00'
 ),
 (
-    'upload-012-hr-processing',
+    '770e8400-e29b-41d4-a716-446655440012',
     'sophie_taylor_hr_cv.pdf',
     1234567,
     'processing',
@@ -939,12 +939,12 @@ INSERT INTO "upload_queue" (
     '2024-02-07 11:45:00',
     '/uploads/queue/sophie_taylor_hr_cv.pdf',
     '{"candidate_name": "Sophie Taylor", "email": "sophie.taylor@email.com", "position": "HR Specialist"}',
-    'pos-009-hr-specialist',
+    '550e8400-e29b-41d4-a716-446655440009',
     '2024-02-07 11:45:00'
 ),
 -- Pending uploads
 (
-    'upload-013-finance-pending',
+    '770e8400-e29b-41d4-a716-446655440013',
     'robert_kim_finance_resume.pdf',
     1876543,
     'pending',
@@ -960,11 +960,11 @@ INSERT INTO "upload_queue" (
     '2024-02-09 09:30:00',
     '/uploads/queue/robert_kim_finance_resume.pdf',
     '{"candidate_name": "Robert Kim", "email": "robert.kim@email.com", "position": "Financial Analyst"}',
-    'pos-010-financial-analyst',
+    '550e8400-e29b-41d4-a716-446655440010',
     null
 ),
 (
-    'upload-014-qa-pending',
+    '770e8400-e29b-41d4-a716-446655440014',
     'anna_petrov_qa_cv.pdf',
     1567890,
     'pending',
@@ -980,12 +980,12 @@ INSERT INTO "upload_queue" (
     '2024-02-11 13:15:00',
     '/uploads/queue/anna_petrov_qa_cv.pdf',
     '{"candidate_name": "Anna Petrov", "email": "anna.petrov@email.com", "position": "QA Engineer"}',
-    'pos-011-qa-engineer',
+    '550e8400-e29b-41d4-a716-446655440011',
     null
 ),
 -- Failed uploads with different error types
 (
-    'upload-015-failed-large',
+    '770e8400-e29b-41d4-a716-446655440015',
     'huge_portfolio.pdf',
     52428800,
     'failed',
@@ -1001,11 +1001,11 @@ INSERT INTO "upload_queue" (
     '2024-02-13 15:50:00',
     '/uploads/queue/huge_portfolio.pdf',
     '{"candidate_name": "Kevin Lee", "email": "kevin.lee@email.com", "position": "Customer Success Manager"}',
-    'pos-012-customer-success-manager',
+    '550e8400-e29b-41d4-a716-446655440012',
     '2024-02-13 15:50:00'
 ),
 (
-    'upload-016-failed-empty',
+    '770e8400-e29b-41d4-a716-446655440016',
     'empty_file.pdf',
     0,
     'failed',
@@ -1021,12 +1021,12 @@ INSERT INTO "upload_queue" (
     '2024-02-15 12:05:00',
     '/uploads/queue/empty_file.pdf',
     '{"candidate_name": "Unknown", "email": "unknown@email.com", "position": "Software Engineer"}',
-    'pos-001-software-engineer',
+    '550e8400-e29b-41d4-a716-446655440001',
     '2024-02-15 12:05:00'
 ),
 -- Recent bulk uploads
 (
-    'upload-017-bulk-recent',
+    '770e8400-e29b-41d4-a716-446655440017',
     'february_candidates_2024.zip',
     8388608,
     'processing',
@@ -1047,7 +1047,7 @@ INSERT INTO "upload_queue" (
 ),
 -- Duplicate detection
 (
-    'upload-018-duplicate',
+    '770e8400-e29b-41d4-a716-446655440018',
     'john_smith_resume_duplicate.pdf',
     2048576,
     'failed',
@@ -1063,7 +1063,7 @@ INSERT INTO "upload_queue" (
     '2024-02-19 10:32:00',
     '/uploads/queue/john_smith_resume_duplicate.pdf',
     '{"candidate_name": "John Smith", "email": "john.smith@email.com", "position": "Software Engineer"}',
-    'pos-001-software-engineer',
+    '550e8400-e29b-41d4-a716-446655440001',
     '2024-02-19 10:32:00'
 );
 
@@ -1085,9 +1085,9 @@ INSERT INTO "TransitionRecord" (
 ) VALUES 
 -- John Smith's progression
 (
-    'trans-001-john-1',
-    'cand-001-john-smith',
-    'pos-001-software-engineer',
+    '880e8400-e29b-41d4-a716-446655440001',
+    '660e8400-e29b-41d4-a716-446655440001',
+    '550e8400-e29b-41d4-a716-446655440001',
     '2024-01-15',
     'Applied',
     'Initial application received',
@@ -1096,9 +1096,9 @@ INSERT INTO "TransitionRecord" (
     '2024-01-15'
 ),
 (
-    'trans-002-john-2',
-    'cand-001-john-smith',
-    'pos-001-software-engineer',
+    '880e8400-e29b-41d4-a716-446655440002',
+    '660e8400-e29b-41d4-a716-446655440001',
+    '550e8400-e29b-41d4-a716-446655440001',
     '2024-01-16',
     'Screening',
     'Resume review completed - strong technical background',
@@ -1107,9 +1107,9 @@ INSERT INTO "TransitionRecord" (
     '2024-01-16'
 ),
 (
-    'trans-003-john-3',
-    'cand-001-john-smith',
-    'pos-001-software-engineer',
+    '880e8400-e29b-41d4-a716-446655440003',
+    '660e8400-e29b-41d4-a716-446655440001',
+    '550e8400-e29b-41d4-a716-446655440001',
     '2024-01-18',
     'Shortlisted',
     'Technical skills match requirements well',
@@ -1118,9 +1118,9 @@ INSERT INTO "TransitionRecord" (
     '2024-01-18'
 ),
 (
-    'trans-004-john-4',
-    'cand-001-john-smith',
-    'pos-001-software-engineer',
+    '880e8400-e29b-41d4-a716-446655440004',
+    '660e8400-e29b-41d4-a716-446655440001',
+    '550e8400-e29b-41d4-a716-446655440001',
     '2024-01-20',
     'Interview Scheduled',
     'Technical interview scheduled for Jan 25',
@@ -1130,9 +1130,9 @@ INSERT INTO "TransitionRecord" (
 ),
 -- Sarah Johnson's progression
 (
-    'trans-005-sarah-1',
-    'cand-002-sarah-johnson',
-    'pos-002-frontend-developer',
+    '880e8400-e29b-41d4-a716-446655440005',
+    '660e8400-e29b-41d4-a716-446655440002',
+    '550e8400-e29b-41d4-a716-446655440002',
     '2024-01-20',
     'Applied',
     'Application received via JobsDB',
@@ -1141,9 +1141,9 @@ INSERT INTO "TransitionRecord" (
     '2024-01-20'
 ),
 (
-    'trans-006-sarah-2',
-    'cand-002-sarah-johnson',
-    'pos-002-frontend-developer',
+    '880e8400-e29b-41d4-a716-446655440006',
+    '660e8400-e29b-41d4-a716-446655440002',
+    '550e8400-e29b-41d4-a716-446655440002',
     '2024-01-22',
     'Screening',
     'Frontend skills look good, portfolio reviewed',
@@ -1152,9 +1152,9 @@ INSERT INTO "TransitionRecord" (
     '2024-01-22'
 ),
 (
-    'trans-007-sarah-3',
-    'cand-002-sarah-johnson',
-    'pos-002-frontend-developer',
+    '880e8400-e29b-41d4-a716-446655440007',
+    '660e8400-e29b-41d4-a716-446655440002',
+    '550e8400-e29b-41d4-a716-446655440002',
     '2024-01-25',
     'Shortlisted',
     'Strong React and TypeScript experience, pinned for priority review',
@@ -1164,9 +1164,9 @@ INSERT INTO "TransitionRecord" (
 ),
 -- Michael Chen's progression
 (
-    'trans-008-michael-1',
-    'cand-003-michael-chen',
-    'pos-003-data-scientist',
+    '880e8400-e29b-41d4-a716-446655440008',
+    '660e8400-e29b-41d4-a716-446655440003',
+    '550e8400-e29b-41d4-a716-446655440003',
     '2024-01-18',
     'Applied',
     'Application via employee referral',
@@ -1175,9 +1175,9 @@ INSERT INTO "TransitionRecord" (
     '2024-01-18'
 ),
 (
-    'trans-009-michael-2',
-    'cand-003-michael-chen',
-    'pos-003-data-scientist',
+    '880e8400-e29b-41d4-a716-446655440009',
+    '660e8400-e29b-41d4-a716-446655440003',
+    '550e8400-e29b-41d4-a716-446655440003',
     '2024-01-19',
     'Screening',
     'Excellent qualifications - Master degree and Google Cloud certification',
@@ -1186,9 +1186,9 @@ INSERT INTO "TransitionRecord" (
     '2024-01-19'
 ),
 (
-    'trans-010-michael-3',
-    'cand-003-michael-chen',
-    'pos-003-data-scientist',
+    '880e8400-e29b-41d4-a716-446655440010',
+    '660e8400-e29b-41d4-a716-446655440003',
+    '550e8400-e29b-41d4-a716-446655440003',
     '2024-01-22',
     'Shortlisted',
     'Top candidate - advanced degree and relevant experience',
@@ -1197,9 +1197,9 @@ INSERT INTO "TransitionRecord" (
     '2024-01-22'
 ),
 (
-    'trans-011-michael-4',
-    'cand-003-michael-chen',
-    'pos-003-data-scientist',
+    '880e8400-e29b-41d4-a716-446655440011',
+    '660e8400-e29b-41d4-a716-446655440003',
+    '550e8400-e29b-41d4-a716-446655440003',
     '2024-01-24',
     'Interview Scheduled',
     'Technical interview scheduled for Jan 26',
@@ -1208,9 +1208,9 @@ INSERT INTO "TransitionRecord" (
     '2024-01-24'
 ),
 (
-    'trans-012-michael-5',
-    'cand-003-michael-chen',
-    'pos-003-data-scientist',
+    '880e8400-e29b-41d4-a716-446655440012',
+    '660e8400-e29b-41d4-a716-446655440003',
+    '550e8400-e29b-41d4-a716-446655440003',
     '2024-01-26',
     'Interviewing',
     'Technical interview completed - excellent performance',
@@ -1221,9 +1221,9 @@ INSERT INTO "TransitionRecord" (
 -- Additional transition records for new candidates
 -- Alex Kumar's progression (DevOps Engineer)
 (
-    'trans-013-alex-1',
-    'cand-007-alex-kumar',
-    'pos-006-devops-engineer',
+    '880e8400-e29b-41d4-a716-446655440013',
+    '660e8400-e29b-41d4-a716-446655440007',
+    '550e8400-e29b-41d4-a716-446655440006',
     '2024-02-01',
     'Applied',
     'Application received via LinkedIn',
@@ -1232,9 +1232,9 @@ INSERT INTO "TransitionRecord" (
     '2024-02-01'
 ),
 (
-    'trans-014-alex-2',
-    'cand-007-alex-kumar',
-    'pos-006-devops-engineer',
+    '880e8400-e29b-41d4-a716-446655440014',
+    '660e8400-e29b-41d4-a716-446655440007',
+    '550e8400-e29b-41d4-a716-446655440006',
     '2024-02-02',
     'Screening',
     'Strong DevOps background with AWS certification',
@@ -1244,9 +1244,9 @@ INSERT INTO "TransitionRecord" (
 ),
 -- Maria Rodriguez's progression (Marketing Manager)
 (
-    'trans-015-maria-1',
-    'cand-008-maria-rodriguez',
-    'pos-007-marketing-manager',
+    '880e8400-e29b-41d4-a716-446655440015',
+    '660e8400-e29b-41d4-a716-446655440008',
+    '550e8400-e29b-41d4-a716-446655440007',
     '2024-02-03',
     'Applied',
     'Application via JobsDB portal',
@@ -1255,9 +1255,9 @@ INSERT INTO "TransitionRecord" (
     '2024-02-03'
 ),
 (
-    'trans-016-maria-2',
-    'cand-008-maria-rodriguez',
-    'pos-007-marketing-manager',
+    '880e8400-e29b-41d4-a716-446655440016',
+    '660e8400-e29b-41d4-a716-446655440008',
+    '550e8400-e29b-41d4-a716-446655440007',
     '2024-02-04',
     'Screening',
     'Excellent marketing background with digital expertise',
@@ -1266,9 +1266,9 @@ INSERT INTO "TransitionRecord" (
     '2024-02-04'
 ),
 (
-    'trans-017-maria-3',
-    'cand-008-maria-rodriguez',
-    'pos-007-marketing-manager',
+    '880e8400-e29b-41d4-a716-446655440017',
+    '660e8400-e29b-41d4-a716-446655440008',
+    '550e8400-e29b-41d4-a716-446655440007',
     '2024-02-05',
     'Shortlisted',
     'Strong portfolio and analytics skills - pinned for priority review',
@@ -1278,9 +1278,9 @@ INSERT INTO "TransitionRecord" (
 ),
 -- James Wilson's progression (Sales Representative)
 (
-    'trans-018-james-1',
-    'cand-009-james-wilson',
-    'pos-008-sales-representative',
+    '880e8400-e29b-41d4-a716-446655440018',
+    '660e8400-e29b-41d4-a716-446655440009',
+    '550e8400-e29b-41d4-a716-446655440008',
     '2024-02-05',
     'Applied',
     'Application via employee referral',
@@ -1290,9 +1290,9 @@ INSERT INTO "TransitionRecord" (
 ),
 -- Sophie Taylor's progression (HR Specialist)
 (
-    'trans-019-sophie-1',
-    'cand-010-sophie-taylor',
-    'pos-009-hr-specialist',
+    '880e8400-e29b-41d4-a716-446655440019',
+    '660e8400-e29b-41d4-a716-446655440010',
+    '550e8400-e29b-41d4-a716-446655440009',
     '2024-02-07',
     'Applied',
     'Application via JobThai portal',
@@ -1301,9 +1301,9 @@ INSERT INTO "TransitionRecord" (
     '2024-02-07'
 ),
 (
-    'trans-020-sophie-2',
-    'cand-010-sophie-taylor',
-    'pos-009-hr-specialist',
+    '880e8400-e29b-41d4-a716-446655440020',
+    '660e8400-e29b-41d4-a716-446655440010',
+    '550e8400-e29b-41d4-a716-446655440009',
     '2024-02-08',
     'Screening',
     'Good HR background with PHR certification',
@@ -1313,9 +1313,9 @@ INSERT INTO "TransitionRecord" (
 ),
 -- Robert Kim's progression (Financial Analyst)
 (
-    'trans-021-robert-1',
-    'cand-011-robert-kim',
-    'pos-010-financial-analyst',
+    '880e8400-e29b-41d4-a716-446655440021',
+    '660e8400-e29b-41d4-a716-446655440011',
+    '550e8400-e29b-41d4-a716-446655440010',
     '2024-02-09',
     'Applied',
     'Application via LinkedIn professional network',
@@ -1324,9 +1324,9 @@ INSERT INTO "TransitionRecord" (
     '2024-02-09'
 ),
 (
-    'trans-022-robert-2',
-    'cand-011-robert-kim',
-    'pos-010-financial-analyst',
+    '880e8400-e29b-41d4-a716-446655440022',
+    '660e8400-e29b-41d4-a716-446655440011',
+    '550e8400-e29b-41d4-a716-446655440010',
     '2024-02-10',
     'Screening',
     'Excellent financial background with CFA certification - pinned for priority review',
@@ -1335,9 +1335,9 @@ INSERT INTO "TransitionRecord" (
     '2024-02-10'
 ),
 (
-    'trans-023-robert-3',
-    'cand-011-robert-kim',
-    'pos-010-financial-analyst',
+    '880e8400-e29b-41d4-a716-446655440023',
+    '660e8400-e29b-41d4-a716-446655440011',
+    '550e8400-e29b-41d4-a716-446655440010',
     '2024-02-12',
     'Shortlisted',
     'Strong analytical skills and SAP experience',
@@ -1346,9 +1346,9 @@ INSERT INTO "TransitionRecord" (
     '2024-02-12'
 ),
 (
-    'trans-024-robert-4',
-    'cand-011-robert-kim',
-    'pos-010-financial-analyst',
+    '880e8400-e29b-41d4-a716-446655440024',
+    '660e8400-e29b-41d4-a716-446655440011',
+    '550e8400-e29b-41d4-a716-446655440010',
     '2024-02-14',
     'Interview Scheduled',
     'Technical interview scheduled for Feb 16',
@@ -1358,9 +1358,9 @@ INSERT INTO "TransitionRecord" (
 ),
 -- Anna Petrov's progression (QA Engineer)
 (
-    'trans-025-anna-1',
-    'cand-012-anna-petrov',
-    'pos-011-qa-engineer',
+    '880e8400-e29b-41d4-a716-446655440025',
+    '660e8400-e29b-41d4-a716-446655440012',
+    '550e8400-e29b-41d4-a716-446655440011',
     '2024-02-11',
     'Applied',
     'Application via Facebook social media',
@@ -1370,9 +1370,9 @@ INSERT INTO "TransitionRecord" (
 ),
 -- Kevin Lee's progression (Customer Success Manager)
 (
-    'trans-026-kevin-1',
-    'cand-013-kevin-lee',
-    'pos-012-customer-success-manager',
+    '880e8400-e29b-41d4-a716-446655440026',
+    '660e8400-e29b-41d4-a716-446655440013',
+    '550e8400-e29b-41d4-a716-446655440012',
     '2024-02-13',
     'Applied',
     'Application via employee referral',
@@ -1381,9 +1381,9 @@ INSERT INTO "TransitionRecord" (
     '2024-02-13'
 ),
 (
-    'trans-027-kevin-2',
-    'cand-013-kevin-lee',
-    'pos-012-customer-success-manager',
+    '880e8400-e29b-41d4-a716-446655440027',
+    '660e8400-e29b-41d4-a716-446655440013',
+    '550e8400-e29b-41d4-a716-446655440012',
     '2024-02-14',
     'Screening',
     'Strong customer success background with upselling experience',
@@ -1392,9 +1392,9 @@ INSERT INTO "TransitionRecord" (
     '2024-02-14'
 ),
 (
-    'trans-028-kevin-3',
-    'cand-013-kevin-lee',
-    'pos-012-customer-success-manager',
+    '880e8400-e29b-41d4-a716-446655440028',
+    '660e8400-e29b-41d4-a716-446655440013',
+    '550e8400-e29b-41d4-a716-446655440012',
     '2024-02-16',
     'Shortlisted',
     'Excellent account management track record',
@@ -1404,9 +1404,9 @@ INSERT INTO "TransitionRecord" (
 ),
 -- Raj Patel's progression (Software Engineer)
 (
-    'trans-029-raj-1',
-    'cand-014-raj-patel',
-    'pos-001-software-engineer',
+    '880e8400-e29b-41d4-a716-446655440029',
+    '660e8400-e29b-41d4-a716-446655440014',
+    '550e8400-e29b-41d4-a716-446655440001',
     '2024-02-15',
     'Applied',
     'Application via JobsDB portal',
@@ -1415,9 +1415,9 @@ INSERT INTO "TransitionRecord" (
     '2024-02-15'
 ),
 (
-    'trans-030-raj-2',
-    'cand-014-raj-patel',
-    'pos-001-software-engineer',
+    '880e8400-e29b-41d4-a716-446655440030',
+    '660e8400-e29b-41d4-a716-446655440014',
+    '550e8400-e29b-41d4-a716-446655440001',
     '2024-02-16',
     'Screening',
     'Strong Python background with Django experience',
@@ -1427,9 +1427,9 @@ INSERT INTO "TransitionRecord" (
 ),
 -- Yuki Tanaka's progression (Frontend Developer)
 (
-    'trans-031-yuki-1',
-    'cand-015-yuki-tanaka',
-    'pos-002-frontend-developer',
+    '880e8400-e29b-41d4-a716-446655440031',
+    '660e8400-e29b-41d4-a716-446655440015',
+    '550e8400-e29b-41d4-a716-446655440002',
     '2024-02-17',
     'Applied',
     'Application via university partnership program',
@@ -1453,8 +1453,8 @@ INSERT INTO "CandidateComment" (
     "attachmentIds"
 ) VALUES 
 (
-    'comment-001-john',
-    'cand-001-john-smith',
+    '990e8400-e29b-41d4-a716-446655440001',
+    '660e8400-e29b-41d4-a716-446655440001',
     (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
     'Strong technical background with 6 years of experience. AWS certification is a definite plus. Should proceed to technical interview.',
     '2024-01-16 10:30:00',
@@ -1462,8 +1462,8 @@ INSERT INTO "CandidateComment" (
     '{}'
 ),
 (
-    'comment-002-sarah',
-    'cand-002-sarah-johnson',
+    '990e8400-e29b-41d4-a716-446655440002',
+    '660e8400-e29b-41d4-a716-446655440002',
     (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
     'Excellent frontend skills with modern React and TypeScript. Portfolio shows good attention to detail. Pinned for priority consideration.',
     '2024-01-22 14:15:00',
@@ -1471,8 +1471,8 @@ INSERT INTO "CandidateComment" (
     '{}'
 ),
 (
-    'comment-003-michael',
-    'cand-003-michael-chen',
+    '990e8400-e29b-41d4-a716-446655440003',
+    '660e8400-e29b-41d4-a716-446655440003',
     (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
     'Outstanding candidate with Master degree from Stanford and Google Cloud certification. Strong ML background with 5 years experience. Top choice for the role.',
     '2024-01-19 16:45:00',
@@ -1480,8 +1480,8 @@ INSERT INTO "CandidateComment" (
     '{}'
 ),
 (
-    'comment-004-emily',
-    'cand-004-emily-wilson',
+    '990e8400-e29b-41d4-a716-446655440004',
+    '660e8400-e29b-41d4-a716-446655440004',
     (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
     'Strong product management background with MBA from INSEAD. Experience with user research and analytics. Ready to make offer.',
     '2024-01-28 11:20:00',
@@ -1489,8 +1489,8 @@ INSERT INTO "CandidateComment" (
     '{}'
 ),
 (
-    'comment-005-david',
-    'cand-005-david-brown',
+    '990e8400-e29b-41d4-a716-446655440005',
+    '660e8400-e29b-41d4-a716-446655440005',
     (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
     'Good UX design skills with experience in user research. Portfolio shows creative thinking. Need to schedule initial screening.',
     '2024-01-25 09:30:00',
@@ -1499,8 +1499,8 @@ INSERT INTO "CandidateComment" (
 ),
 -- Additional candidate comments for new candidates
 (
-    'comment-006-alex',
-    'cand-007-alex-kumar',
+    '990e8400-e29b-41d4-a716-446655440006',
+    '660e8400-e29b-41d4-a716-446655440007',
     (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
     'Strong DevOps engineer with AWS certification and containerization expertise. Good infrastructure automation experience.',
     '2024-02-02 11:15:00',
@@ -1508,8 +1508,8 @@ INSERT INTO "CandidateComment" (
     '{}'
 ),
 (
-    'comment-007-maria',
-    'cand-008-maria-rodriguez',
+    '990e8400-e29b-41d4-a716-446655440007',
+    '660e8400-e29b-41d4-a716-446655440008',
     (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
     'Excellent marketing professional with strong digital marketing background and analytics skills. Pinned for priority consideration.',
     '2024-02-05 15:30:00',
@@ -1517,8 +1517,8 @@ INSERT INTO "CandidateComment" (
     '{}'
 ),
 (
-    'comment-008-james',
-    'cand-009-james-wilson',
+    '990e8400-e29b-41d4-a716-446655440008',
+    '660e8400-e29b-41d4-a716-446655440009',
     (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
     'Motivated sales professional with strong communication skills and CRM experience. Good track record of meeting targets.',
     '2024-02-05 16:45:00',
@@ -1526,8 +1526,8 @@ INSERT INTO "CandidateComment" (
     '{}'
 ),
 (
-    'comment-009-sophie',
-    'cand-010-sophie-taylor',
+    '990e8400-e29b-41d4-a716-446655440009',
+    '660e8400-e29b-41d4-a716-446655440010',
     (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
     'Experienced HR professional with strong recruitment and employee relations background. PHR certification is a plus.',
     '2024-02-08 10:20:00',
@@ -1535,8 +1535,8 @@ INSERT INTO "CandidateComment" (
     '{}'
 ),
 (
-    'comment-010-robert',
-    'cand-011-robert-kim',
+    '990e8400-e29b-41d4-a716-446655440010',
+    '660e8400-e29b-41d4-a716-446655440011',
     (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
     'Outstanding financial analyst with CFA certification and strong analytical skills. SAP experience is valuable. Top candidate for the role.',
     '2024-02-10 14:10:00',
@@ -1544,8 +1544,8 @@ INSERT INTO "CandidateComment" (
     '{}'
 ),
 (
-    'comment-011-anna',
-    'cand-012-anna-petrov',
+    '990e8400-e29b-41d4-a716-446655440011',
+    '660e8400-e29b-41d4-a716-446655440012',
     (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
     'Good QA engineer with both manual and automated testing skills. ISTQB certification shows commitment to quality.',
     '2024-02-11 13:45:00',
@@ -1553,8 +1553,8 @@ INSERT INTO "CandidateComment" (
     '{}'
 ),
 (
-    'comment-012-kevin',
-    'cand-013-kevin-lee',
+    '990e8400-e29b-41d4-a716-446655440012',
+    '660e8400-e29b-41d4-a716-446655440013',
     (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
     'Strong customer success manager with excellent account management and upselling track record. High customer retention rate.',
     '2024-02-16 09:30:00',
@@ -1562,8 +1562,8 @@ INSERT INTO "CandidateComment" (
     '{}'
 ),
 (
-    'comment-013-raj',
-    'cand-014-raj-patel',
+    '990e8400-e29b-41d4-a716-446655440013',
+    '660e8400-e29b-41d4-a716-446655440014',
     (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
     'Experienced Python developer with strong Django and database expertise. Good backend development skills.',
     '2024-02-16 11:15:00',
@@ -1571,8 +1571,8 @@ INSERT INTO "CandidateComment" (
     '{}'
 ),
 (
-    'comment-014-yuki',
-    'cand-015-yuki-tanaka',
+    '990e8400-e29b-41d4-a716-446655440014',
+    '660e8400-e29b-41d4-a716-446655440015',
     (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
     'Good frontend developer with Vue.js expertise and design skills. University partnership candidate shows potential.',
     '2024-02-17 16:00:00',
@@ -1581,8 +1581,8 @@ INSERT INTO "CandidateComment" (
 ),
 -- Additional comments for existing candidates
 (
-    'comment-015-lisa',
-    'cand-006-lisa-garcia',
+    '990e8400-e29b-41d4-a716-446655440015',
+    '660e8400-e29b-41d4-a716-446655440006',
     (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
     'Backend-focused developer with Java and Spring Boot experience. Good DevOps knowledge with Docker and Kubernetes.',
     '2024-01-30 14:20:00',
@@ -1590,8 +1590,8 @@ INSERT INTO "CandidateComment" (
     '{}'
 ),
 (
-    'comment-016-michael-followup',
-    'cand-003-michael-chen',
+    '990e8400-e29b-41d4-a716-446655440016',
+    '660e8400-e29b-41d4-a716-446655440003',
     (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
     'Follow-up: Technical interview went exceptionally well. Candidate demonstrated deep ML knowledge and practical experience. Ready for final interview.',
     '2024-01-27 10:30:00',
@@ -1599,8 +1599,8 @@ INSERT INTO "CandidateComment" (
     '{}'
 ),
 (
-    'comment-017-emily-followup',
-    'cand-004-emily-wilson',
+    '990e8400-e29b-41d4-a716-446655440017',
+    '660e8400-e29b-41d4-a716-446655440004',
     (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
     'Follow-up: Offer has been extended and accepted. Candidate will start on March 1st. Excellent addition to the product team.',
     '2024-01-30 16:45:00',

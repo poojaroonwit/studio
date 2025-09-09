@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
+import { useSharedSSE } from '@/hooks/use-shared-sse';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -736,6 +737,69 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       fetchRecruitmentStages();
     }
   }, [isOpen, positionId, sessionStatus, fetchPosition, fetchGrades, fetchAppliedCandidates, fetchAllCandidates, fetchPotentialCandidates, fetchHeadcountCount, fetchRecruitmentStages]);
+
+  // Use shared SSE connection for realtime updates
+  const { isConnected: sseConnected, subscribeToEvents } = useSharedSSE();
+  
+  useEffect(() => {
+    let mounted = true;
+    let refreshTimeout: NodeJS.Timeout;
+    let lastUpdateTime = 0;
+    const MIN_UPDATE_INTERVAL = 1000; // Minimum 1 second between updates
+    
+    // Only subscribe to events if user is authenticated and drawer is open
+    if (sessionStatus !== 'authenticated' || !positionId || !isOpen) {
+      return;
+    }
+    
+    // Subscribe to shared SSE events
+    const unsubscribe = subscribeToEvents((event) => {
+      if (!mounted) return;
+      
+      if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+        console.log('[PositionDetailDrawer] SSE event received via shared connection:', event);
+      }
+      
+      // Handle different event types with improved debouncing and rate limiting
+      if (event.type === 'position_update' || event.type === 'dashboard_update') {
+        const now = Date.now();
+        
+        // Rate limit updates to prevent excessive reloading
+        if (now - lastUpdateTime < MIN_UPDATE_INTERVAL) {
+          if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+            console.log('[PositionDetailDrawer] Update rate limited, skipping');
+          }
+          return;
+        }
+        
+        if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+          console.log('[PositionDetailDrawer] Processing update event:', event.type);
+        }
+        
+        // Clear existing timeout and set new one to prevent rapid successive calls
+        if (refreshTimeout) {
+          clearTimeout(refreshTimeout);
+        }
+        
+        refreshTimeout = setTimeout(() => {
+          if (mounted && sessionStatus === 'authenticated' && positionId && isOpen) {
+            lastUpdateTime = Date.now();
+            // Refresh position data and headcount when position updates are received
+            fetchPosition();
+            fetchHeadcountCount();
+          }
+        }, 1000); // 1 second debounce for better performance
+      }
+    });
+    
+    return () => {
+      mounted = false;
+      if (refreshTimeout) {
+        clearTimeout(refreshTimeout);
+      }
+      unsubscribe();
+    };
+  }, [sessionStatus, positionId, isOpen, subscribeToEvents, fetchPosition, fetchHeadcountCount]);
 
   // Reset state when drawer closes
   useEffect(() => {

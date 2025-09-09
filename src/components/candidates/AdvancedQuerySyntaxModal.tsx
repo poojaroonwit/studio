@@ -54,7 +54,7 @@ export function AdvancedQuerySyntaxModal({ isOpen, onOpenChange }: AdvancedQuery
       name: 'Quick Commands',
       description: 'Common search patterns for immediate use',
       examples: [
-        { query: 'minFitScore:80', description: 'High-priority candidates (≥80% fit score)' },
+        { query: 'minAppliedJobFitScore:80', description: 'High-priority candidates (≥80% fit score)' },
         { query: 'status:Applied,Screening', description: 'Active candidates in early stages' },
         { query: 'recruiterId:unassigned', description: 'Unassigned candidates needing attention' },
         { query: 'status:Off', description: 'Candidates with no status assigned' },
@@ -92,9 +92,9 @@ export function AdvancedQuerySyntaxModal({ isOpen, onOpenChange }: AdvancedQuery
       name: 'Fit Scores',
       description: 'Search by job fit scores',
       examples: [
-        { query: 'minFitScore:80', description: 'Find candidates with fit score ≥ 80%' },
-        { query: 'maxFitScore:30', description: 'Find candidates with fit score ≤ 30%' },
-        { query: 'minFitScore:70 maxFitScore:90', description: 'Find candidates with fit score between 70-90%' },
+        { query: 'minAppliedJobFitScore:80', description: 'Find candidates with fit score ≥ 80%' },
+        { query: 'maxAppliedJobFitScore:30', description: 'Find candidates with fit score ≤ 30%' },
+        { query: 'minAppliedJobFitScore:70 maxAppliedJobFitScore:90', description: 'Find candidates with fit score between 70-90%' },
         { query: 'minMatchingJobFitScore:75', description: 'Find candidates with good matching job fit' },
         { query: 'maxMatchingJobFitScore:50', description: 'Find candidates with low matching job fit' },
       ]
@@ -169,10 +169,10 @@ export function AdvancedQuerySyntaxModal({ isOpen, onOpenChange }: AdvancedQuery
       name: 'Complex Queries',
       description: 'Combine multiple filters for precise searches',
       examples: [
-        { query: 'minFitScore:80 status:Applied skills:React', description: 'High-fit React developers who applied' },
+        { query: 'minAppliedJobFitScore:80 status:Applied skills:React', description: 'High-fit React developers who applied' },
         { query: 'location:San Francisco minExperienceYears:3 skills:Python,JavaScript', description: 'Experienced developers in SF with Python/JS skills' },
-        { query: 'minFitScore:70 maxFitScore:90 status:Screening positionId:senior-engineer', description: 'Senior engineers in screening with good fit scores' },
-        { query: 'recruiterId:unassigned minFitScore:60 status:Applied', description: 'High-potential unassigned candidates' },
+        { query: 'minAppliedJobFitScore:70 maxAppliedJobFitScore:90 status:Screening positionId:senior-engineer', description: 'Senior engineers in screening with good fit scores' },
+        { query: 'recruiterId:unassigned minAppliedJobFitScore:60 status:Applied', description: 'High-potential unassigned candidates' },
         { query: 'applicationDateStart:2024-01-01 minExperienceYears:5 skills:AI,Machine Learning', description: 'Recent senior AI/ML candidates' },
       ]
     }
@@ -202,7 +202,7 @@ export function AdvancedQuerySyntaxModal({ isOpen, onOpenChange }: AdvancedQuery
             </p>
             <div className="bg-blue-100 dark:bg-blue-900/50 p-3 rounded border border-blue-200 dark:border-blue-700">
               <code className="text-sm text-blue-900 dark:text-blue-100">
-                minFitScore:80 status:Applied skills:React
+                minAppliedJobFitScore:80 status:Applied skills:React
               </code>
             </div>
           </div>
@@ -222,8 +222,8 @@ export function AdvancedQuerySyntaxModal({ isOpen, onOpenChange }: AdvancedQuery
                 { field: 'recruiterId', description: 'Recruiter ID', example: 'recruiterId:recruiter123' },
                 { field: 'selectedSourceIds', description: 'Source ID(s)', example: 'selectedSourceIds:source1,source2' },
                 { field: 'education', description: 'Education/degree', example: 'education:MBA' },
-                { field: 'minFitScore', description: 'Minimum fit score (%)', example: 'minFitScore:80' },
-                { field: 'maxFitScore', description: 'Maximum fit score (%)', example: 'maxFitScore:30' },
+                { field: 'minAppliedJobFitScore', description: 'Minimum fit score (%)', example: 'minAppliedJobFitScore:80' },
+                { field: 'maxAppliedJobFitScore', description: 'Maximum fit score (%)', example: 'maxAppliedJobFitScore:30' },
                 { field: 'minMatchingJobFitScore', description: 'Min matching job fit (%)', example: 'minMatchingJobFitScore:75' },
                 { field: 'maxMatchingJobFitScore', description: 'Max matching job fit (%)', example: 'maxMatchingJobFitScore:50' },
                 { field: 'minExperienceYears', description: 'Minimum experience years', example: 'minExperienceYears:5' },

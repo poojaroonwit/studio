@@ -815,7 +815,7 @@ export async function GET(request: NextRequest) {
                               filters.minMatchingJobFitScore !== undefined || 
                               filters.maxMatchingJobFitScore !== undefined;
 
-    // Handle fit score filters - simple approach
+    // Handle fit score filters - enhanced approach to handle both percentage and decimal formats
     if (filters.minAppliedJobFitScore !== undefined || filters.maxAppliedJobFitScore !== undefined) {
       // Check if this is the "no-score" case (both min and max are -1)
       if (filters.minAppliedJobFitScore === -1 && filters.maxAppliedJobFitScore === -1) {
@@ -826,15 +826,19 @@ export async function GET(request: NextRequest) {
         const regularScoreConditions: string[] = [];
         
         if (filters.minAppliedJobFitScore !== undefined && filters.minAppliedJobFitScore !== -1) {
-          // Database stores fit scores in 0-1 decimal range, filter values already converted
+          // Handle both percentage (0-100) and decimal (0-1) formats
+          // If filter value is <= 1, assume database stores percentages and convert filter to percentage
+          // If filter value is > 1, assume database stores decimals and use filter as-is
+          const filterValue = filters.minAppliedJobFitScore <= 1 ? filters.minAppliedJobFitScore * 100 : filters.minAppliedJobFitScore;
           regularScoreConditions.push(`c."fitScore" >= $${paramIndex++}`);
-          queryParams.push(filters.minAppliedJobFitScore);
+          queryParams.push(filterValue);
         }
         
         if (filters.maxAppliedJobFitScore !== undefined && filters.maxAppliedJobFitScore !== -1) {
-          // Database stores fit scores in 0-1 decimal range, filter values already converted
+          // Handle both percentage (0-100) and decimal (0-1) formats
+          const filterValue = filters.maxAppliedJobFitScore <= 1 ? filters.maxAppliedJobFitScore * 100 : filters.maxAppliedJobFitScore;
           regularScoreConditions.push(`c."fitScore" <= $${paramIndex++}`);
-          queryParams.push(filters.maxAppliedJobFitScore);
+          queryParams.push(filterValue);
         }
         
         // Create OR condition: (regular score conditions) OR (no-score condition)
@@ -848,14 +852,16 @@ export async function GET(request: NextRequest) {
       } else {
         // Handle regular score range filtering
         if (filters.minAppliedJobFitScore !== undefined && filters.minAppliedJobFitScore !== -1) {
-          // Database stores fit scores in 0-1 decimal range, filter values already converted
+          // Handle both percentage (0-100) and decimal (0-1) formats
+          const filterValue = filters.minAppliedJobFitScore <= 1 ? filters.minAppliedJobFitScore * 100 : filters.minAppliedJobFitScore;
           whereClauses.push(`c."fitScore" >= $${paramIndex++}`);
-          queryParams.push(filters.minAppliedJobFitScore);
+          queryParams.push(filterValue);
         }
         if (filters.maxAppliedJobFitScore !== undefined && filters.maxAppliedJobFitScore !== -1) {
-          // Database stores fit scores in 0-1 decimal range, filter values already converted
+          // Handle both percentage (0-100) and decimal (0-1) formats
+          const filterValue = filters.maxAppliedJobFitScore <= 1 ? filters.maxAppliedJobFitScore * 100 : filters.maxAppliedJobFitScore;
           whereClauses.push(`c."fitScore" <= $${paramIndex++}`);
-          queryParams.push(filters.maxAppliedJobFitScore);
+          queryParams.push(filterValue);
         }
       }
     }

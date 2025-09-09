@@ -230,13 +230,18 @@ export async function GET(request: NextRequest) {
         const regularScoreConditions: string[] = [];
         
         if (minScore !== undefined && minScore !== -1) {
+          // Handle both percentage (0-100) and decimal (0-1) formats
+          // If filter value is <= 1, assume database stores percentages and convert filter to percentage
+          const filterValue = minScore <= 1 ? minScore * 100 : minScore;
           regularScoreConditions.push(`c."fitScore" >= $${paramIndex++}`);
-          queryParams.push(minScore);
+          queryParams.push(filterValue);
         }
         
         if (maxScore !== undefined && maxScore !== -1) {
+          // Handle both percentage (0-100) and decimal (0-1) formats
+          const filterValue = maxScore <= 1 ? maxScore * 100 : maxScore;
           regularScoreConditions.push(`c."fitScore" <= $${paramIndex++}`);
-          queryParams.push(maxScore);
+          queryParams.push(filterValue);
         }
         
         // Create OR condition: (regular score conditions) OR (no-score condition)
@@ -250,12 +255,16 @@ export async function GET(request: NextRequest) {
       } else {
         // Handle regular score range filtering
         if (minScore !== undefined && minScore !== -1) {
+          // Handle both percentage (0-100) and decimal (0-1) formats
+          const filterValue = minScore <= 1 ? minScore * 100 : minScore;
           whereClauses.push(`c."fitScore" >= $${paramIndex++}`);
-          queryParams.push(minScore);
+          queryParams.push(filterValue);
         }
         if (maxScore !== undefined && maxScore !== -1) {
+          // Handle both percentage (0-100) and decimal (0-1) formats
+          const filterValue = maxScore <= 1 ? maxScore * 100 : maxScore;
           whereClauses.push(`c."fitScore" <= $${paramIndex++}`);
-          queryParams.push(maxScore);
+          queryParams.push(filterValue);
         }
       }
     }
@@ -363,31 +372,10 @@ export async function GET(request: NextRequest) {
       ${whereClause}
     `;
     
-    console.log('Fit score counts query:', query);
-    console.log('Query parameters:', queryParams);
-
     const client = await getPool().connect();
     
     try {
-      // First, let's check if there are any candidates at all
-      const totalCandidatesQuery = 'SELECT COUNT(*) as total FROM "Candidate"';
-      const totalResult = await client.query(totalCandidatesQuery);
-      console.log('Total candidates in database:', totalResult.rows[0].total);
-      
-      // Check if there are any candidates with fit scores
-      const fitScoreQuery = 'SELECT COUNT(*) as total FROM "Candidate" WHERE "fitScore" IS NOT NULL';
-      const fitScoreResult = await client.query(fitScoreQuery);
-      console.log('Candidates with fit scores:', fitScoreResult.rows[0].total);
-      
       const result = await client.query(query, queryParams);
-      
-      // Debug logging
-      console.log('Fit score counts query result:', {
-        rowCount: result.rows.length,
-        sampleRows: result.rows.slice(0, 3),
-        query: query.substring(0, 200) + '...',
-        params: queryParams
-      });
       
       // Simple counting logic
       const appliedCounts: { [key: string]: number } = {};
@@ -396,13 +384,6 @@ export async function GET(request: NextRequest) {
       result.rows.forEach((row: any) => {
         const appliedGrade = getScoreGrade(row.applied_score);
         const matchingGrade = getScoreGrade(row.best_match_score);
-        
-        console.log('Processing row:', {
-          applied_score: row.applied_score,
-          appliedGrade,
-          best_match_score: row.best_match_score,
-          matchingGrade
-        });
         
         appliedCounts[appliedGrade] = (appliedCounts[appliedGrade] || 0) + 1;
         matchingCounts[matchingGrade] = (matchingCounts[matchingGrade] || 0) + 1;
@@ -420,10 +401,6 @@ export async function GET(request: NextRequest) {
         letter, 
         count: matchingCounts[letter] || 0 
       }));
-
-      console.log('Applied counts object:', appliedCounts);
-      console.log('Matching counts object:', matchingCounts);
-      console.log('Fit score counts result:', { applied, matching });
 
       return NextResponse.json({ applied, matching });
 

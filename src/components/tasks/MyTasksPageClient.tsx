@@ -312,12 +312,12 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   const canSeeAllRecruiter = userSession?.modulePermissions?.includes('USERS_VIEW') || 
     userSession?.modulePermissions?.includes('CANDIDATES_VIEW');
 
-  // Set initial recruiter filter for recruiters
+  // Set initial recruiter filter for recruiters (but not when no stages are selected)
   useEffect(() => {
-    if (isRecruiter && userSession?.id && !filters.recruiterId) {
+    if (isRecruiter && userSession?.id && !filters.recruiterId && selectedStages.length > 0) {
       setFilters((prev: any) => ({ ...prev, recruiterId: userSession.id }));
     }
-  }, [isRecruiter, userSession?.id, filters.recruiterId]);
+  }, [isRecruiter, userSession?.id, filters.recruiterId, selectedStages.length]);
 
   // Update local state when preferences are loaded - only once
   useEffect(() => {
@@ -512,13 +512,15 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
           if (filters.name) params.append('name', filters.name);
           if (filters.positionId) params.append('positionId', filters.positionId);
           if (filters.stage) params.append('status', filters.stage);
-          if (filters.recruiterId) params.append('recruiterId', filters.recruiterId);
+          if (filters.recruiterId && filters.recruiterId !== '') params.append('recruiterId', filters.recruiterId);
           
-          // If no filters are applied, use the same endpoint as initial load to get all candidates
-          const hasFilters = filters.name || filters.positionId || filters.stage || filters.recruiterId;
-          const endpoint = hasFilters
-            ? `/api/taskboard/candidates?${params.toString()}`
-            : '/api/taskboard/candidates?limit=1000&page=1'; // Get more candidates when showing all
+          // If no filters are applied or no stages are selected, use the same endpoint as initial load to get all candidates
+          const hasFilters = filters.name || filters.positionId || filters.stage || (filters.recruiterId && filters.recruiterId !== '');
+          const hasStageSelection = selectedStages.length > 0;
+          const shouldShowAll = !hasFilters || !hasStageSelection;
+          const endpoint = shouldShowAll
+            ? '/api/taskboard/candidates?limit=1000&page=1' // Get more candidates when showing all
+            : `/api/taskboard/candidates?${params.toString()}`;
           
           console.log('Fetching candidates with endpoint:', endpoint);
           
@@ -714,6 +716,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     }
   };
 
+  // Stage filter functions
 
   const toggleStageSelection = (stageId: string) => {
     setSelectedStages(prev => {

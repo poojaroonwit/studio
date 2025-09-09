@@ -135,7 +135,6 @@ export function useCandidateData({
 
   // Fetch all candidates for counts (unfiltered, for accurate statistics)
   const fetchAllCandidatesForCounts = useCallback(async () => {
-    console.log('fetchAllCandidatesForCounts called, sessionStatus:', sessionStatus);
     if (sessionStatus !== 'authenticated') return;
 
     try {
@@ -144,8 +143,6 @@ export function useCandidateData({
       
       if (result.ok && result.data) {
         const candidates = result.data.candidates || [];
-        console.log('Fetched candidates for counts:', candidates.length);
-        console.log('Sample candidates:', candidates.slice(0, 3).map(c => ({ id: c.id, name: c.name, fitScore: c.fitScore })));
         stableSetAllCandidatesForCounts(candidates);
       } else {
         console.warn('Skipping failed endpoint /api/candidates (counts):', result.error || result.status);
@@ -205,9 +202,7 @@ export function useCandidateData({
 
   // Fetch fit score counts with circuit breaker and debouncing
   const fetchFitScoreCounts = useCallback(async (forceRefresh = false) => {
-    console.log('fetchFitScoreCounts called, forceRefresh:', forceRefresh);
     if (isFetchingFitScoreCountsRef.current && !forceRefresh) {
-      console.log('Already fetching fit score counts, skipping');
       return;
     }
 
@@ -221,7 +216,6 @@ export function useCandidateData({
       // Safety check: ensure filters is defined
       const currentFilters = filtersRef.current;
       if (!currentFilters) {
-        console.log('No filters available, using empty filters for fit score counts');
         // Continue with empty filters - the API can handle this
       }
       
@@ -280,7 +274,6 @@ export function useCandidateData({
       }
 
       const url = `/api/candidates/fit-score-counts?${params.toString()}`;
-      console.log('Fetching fit score counts from URL:', url);
       
       const result = await safeFetch(url, {
         headers: {
@@ -292,9 +285,6 @@ export function useCandidateData({
       
       if (result.ok && result.data) {
         const data = result.data;
-        console.log('Fit score counts API response:', data);
-        console.log('Applied array:', data.applied);
-        console.log('Matching array:', data.matching);
         
         // Ensure all grades are included in the response
         const allGrades = ['A', 'B', 'C', 'D', 'E', 'no-score'];

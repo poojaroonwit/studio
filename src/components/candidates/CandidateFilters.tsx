@@ -277,7 +277,7 @@ export function CandidateFilters({
   const [queryExamples] = useState([
     {
       name: "High Priority Candidates",
-      query: "minFitScore:80 status:Applied,Screening,Interview Scheduled,Interviewing",
+      query: "minAppliedJobFitScore:80 status:Applied,Screening,Interview Scheduled,Interviewing",
       description: "Candidates with high fit scores in active stages"
     },
     {
@@ -307,7 +307,7 @@ export function CandidateFilters({
     },
     {
       name: "Complex Query",
-      query: "minFitScore:70 maxFitScore:90 status:Applied,Screening education:Engineering",
+      query: "minAppliedJobFitScore:70 maxAppliedJobFitScore:90 status:Applied,Screening education:Engineering",
       description: "High-scoring engineering candidates in early stages"
     }
   ]);
@@ -2075,7 +2075,7 @@ export function CandidateFilters({
                   <div className="flex gap-2 px-4">
                     <div className="flex-1">
                       <Textarea
-                        placeholder="e.g., minFitScore:80 status:Applied,Screening"
+                        placeholder="e.g., minAppliedJobFitScore:80 status:Applied,Screening"
                         value={advancedQueryInput}
                         onChange={(e) => {
                           setAdvancedQueryInput(e.target.value);
@@ -2143,7 +2143,7 @@ export function CandidateFilters({
                       {[
                         { 
                           label: 'High Priority', 
-                          query: 'minFitScore:80', 
+                          query: 'minAppliedJobFitScore:80', 
                           description: 'Candidates with ≥80% fit score',
                           icon: <Star className="h-3 w-3" />
                         },

@@ -355,10 +355,23 @@ export async function GET(request: NextRequest) {
       FROM "Candidate" c
       ${whereClause}
     `;
+    
+    console.log('Fit score counts query:', query);
+    console.log('Query parameters:', queryParams);
 
     const client = await getPool().connect();
     
     try {
+      // First, let's check if there are any candidates at all
+      const totalCandidatesQuery = 'SELECT COUNT(*) as total FROM "Candidate"';
+      const totalResult = await client.query(totalCandidatesQuery);
+      console.log('Total candidates in database:', totalResult.rows[0].total);
+      
+      // Check if there are any candidates with fit scores
+      const fitScoreQuery = 'SELECT COUNT(*) as total FROM "Candidate" WHERE "fitScore" IS NOT NULL';
+      const fitScoreResult = await client.query(fitScoreQuery);
+      console.log('Candidates with fit scores:', fitScoreResult.rows[0].total);
+      
       const result = await client.query(query, queryParams);
       
       // Debug logging

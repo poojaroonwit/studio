@@ -13,8 +13,10 @@ class ProcessManager {
   private maxListeners = 20; // Increase default limit
 
   private constructor() {
-    // Set higher max listeners to prevent warnings
-    process.setMaxListeners(this.maxListeners);
+    // Only set max listeners in Node.js environment
+    if (typeof process !== 'undefined' && process.setMaxListeners) {
+      process.setMaxListeners(this.maxListeners);
+    }
   }
 
   static getInstance(): ProcessManager {
@@ -28,6 +30,11 @@ class ProcessManager {
    * Safely add a process event listener, preventing duplicates
    */
   addHandler(signal: string, handler: (...args: any[]) => void, id: string): void {
+    // Only work in Node.js environment
+    if (typeof process === 'undefined' || !process.on) {
+      return;
+    }
+    
     const key = `${signal}:${id}`;
     
     // Remove existing handler if it exists
@@ -43,6 +50,11 @@ class ProcessManager {
    * Remove a specific process event listener
    */
   removeHandler(signal: string, id: string): void {
+    // Only work in Node.js environment
+    if (typeof process === 'undefined' || !process.removeListener) {
+      return;
+    }
+    
     const key = `${signal}:${id}`;
     const existingHandler = this.handlers.get(key);
     
@@ -56,6 +68,11 @@ class ProcessManager {
    * Remove all handlers for a specific signal
    */
   removeAllHandlers(signal: string): void {
+    // Only work in Node.js environment
+    if (typeof process === 'undefined' || !process.removeListener) {
+      return;
+    }
+    
     for (const [key, handler] of this.handlers.entries()) {
       if (handler.signal === signal) {
         process.removeListener(signal, handler.handler);
@@ -68,6 +85,11 @@ class ProcessManager {
    * Get current listener count for a signal
    */
   getListenerCount(signal: string): number {
+    // Only work in Node.js environment
+    if (typeof process === 'undefined' || !process.listenerCount) {
+      return 0;
+    }
+    
     return process.listenerCount(signal);
   }
 
@@ -82,6 +104,12 @@ class ProcessManager {
    * Clean up all handlers (useful for testing or cleanup)
    */
   cleanup(): void {
+    // Only work in Node.js environment
+    if (typeof process === 'undefined' || !process.removeListener) {
+      this.handlers.clear();
+      return;
+    }
+    
     for (const [key, handler] of this.handlers.entries()) {
       process.removeListener(handler.signal, handler.handler);
       this.handlers.delete(key);

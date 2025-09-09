@@ -135,6 +135,7 @@ export function useCandidateData({
 
   // Fetch all candidates for counts (unfiltered, for accurate statistics)
   const fetchAllCandidatesForCounts = useCallback(async () => {
+    console.log('fetchAllCandidatesForCounts called, sessionStatus:', sessionStatus);
     if (sessionStatus !== 'authenticated') return;
 
     try {
@@ -143,6 +144,7 @@ export function useCandidateData({
       
       if (result.ok && result.data) {
         const candidates = result.data.candidates || [];
+        console.log('Fetched candidates for counts:', candidates.length);
         stableSetAllCandidatesForCounts(candidates);
       } else {
         console.warn('Skipping failed endpoint /api/candidates (counts):', result.error || result.status);
@@ -202,7 +204,9 @@ export function useCandidateData({
 
   // Fetch fit score counts with circuit breaker and debouncing
   const fetchFitScoreCounts = async (forceRefresh = false) => {
+    console.log('fetchFitScoreCounts called, forceRefresh:', forceRefresh);
     if (isFetchingFitScoreCountsRef.current && !forceRefresh) {
+      console.log('Already fetching fit score counts, skipping');
       return;
     }
 
@@ -275,6 +279,7 @@ export function useCandidateData({
       }
 
       const url = `/api/candidates/fit-score-counts?${params.toString()}`;
+      console.log('Fetching fit score counts from URL:', url);
       
       const result = await safeFetch(url, {
         headers: {
@@ -319,7 +324,7 @@ export function useCandidateData({
           };
         });
       } else {
-        console.error('Failed to fetch fit score counts:', response.status);
+        console.error('Failed to fetch fit score counts:', result.status);
         setDatabaseFitScoreCounts(null);
       }
     } catch (error: any) {

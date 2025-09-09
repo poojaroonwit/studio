@@ -28,7 +28,6 @@ let config = {
   apiKey: process.env.PROCESSOR_API_KEY || 'dev-key',
   intervalMs: parseInt(process.env.PROCESSOR_INTERVAL_MS) || 2000, // Fixed interval from environment
   logIntervalMs: parseInt(process.env.LOG_INTERVAL_MS) || 60000,
-  batchLimit: parseInt(process.env.PROCESSOR_BATCH_LIMIT) || 1,
   maxRetries: 3,
   retryDelayMs: 10000,
   quietMode: process.env.PROCESSOR_QUIET_MODE === 'true' || false,
@@ -122,13 +121,7 @@ async function updateConcurrentProcessorSetting() {
     if (maxConcurrent !== config.maxConcurrentProcessors) {
       const oldValue = config.maxConcurrentProcessors;
       config.maxConcurrentProcessors = maxConcurrent;
-      
-      // Adjust batch limit based on concurrent processors
-      const newBatchLimit = Math.max(1, Math.min(maxConcurrent, 5)); // Cap at 5 for connection safety
-      if (newBatchLimit !== config.batchLimit) {
-        config.batchLimit = newBatchLimit;
-        log('INFO', `Updated batch limit from ${oldValue} to ${newBatchLimit} based on concurrent processors`);
-      }
+      log('INFO', `Updated max concurrent processors from ${oldValue} to ${maxConcurrent}`);
     }
   } catch (error) {
     // Silently fail and continue with current settings
@@ -245,7 +238,7 @@ async function processBatch() {
   }
 
   try {
-    const response = await makeRequest(`${config.baseUrl}/api/upload-queue/process-all?limit=${config.batchLimit}`, {
+    const response = await makeRequest(`${config.baseUrl}/api/upload-queue/process-all?limit=${config.maxConcurrentProcessors}`, {
       method: 'POST'
     });
 
@@ -271,7 +264,7 @@ async function processBatch() {
       
       // Only log if jobs were actually processed
       if (processedCount > 0) {
-        log('INFO', `Processed ${processedCount} jobs (batch size: ${config.batchLimit}, max concurrent: ${config.maxConcurrentProcessors})`);
+        log('INFO', `Processed ${processedCount} jobs (max concurrent: ${config.maxConcurrentProcessors})`);
       } else if (msgs.some(m => (m || '').includes('No queued jobs'))) {
         // Don't log empty batches to reduce noise
       } else if (response.data.failed_jobs_count > 0) {
@@ -442,7 +435,7 @@ process.on('SIGTERM', () => {
 
 // Start the processor
 log('INFO', `Upload Queue Processor starting with NEVER-STOP resilience`);
-log('INFO', `Configuration: interval=${config.intervalMs}ms, batch=${config.batchLimit}, connection_timeout=${config.connectionTimeoutMs}ms, request_timeout=${config.requestTimeoutMs}ms`);
+log('INFO', `Configuration: interval=${config.intervalMs}ms, max_concurrent=${config.maxConcurrentProcessors}, connection_timeout=${config.connectionTimeoutMs}ms, request_timeout=${config.requestTimeoutMs}ms`);
 log('INFO', `Resilience: max_consecutive_errors=${config.maxConsecutiveErrors}, circuit_breaker_threshold=${CIRCUIT_BREAKER_THRESHOLD}, max_backoff=${config.maxBackoffMs}ms`);
 log('INFO', `Process will NEVER stop automatically. Press Ctrl+C ${FORCE_EXIT_THRESHOLD} times to force exit.`);
 

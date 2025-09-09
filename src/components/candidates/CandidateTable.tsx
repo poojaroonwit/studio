@@ -191,6 +191,7 @@ const renderTableHeaders = (
   handleOpenChange: (menu: string) => (open: boolean) => void
 ) => {
   const defaultColumnOrder = [
+    'pin',
     'candidate',
     'appliedJob',
     'jobMatches',
@@ -212,6 +213,13 @@ const renderTableHeaders = (
     sortKey?: string;
     show: boolean;
   }> = {
+    pin: {
+      key: 'pin',
+      label: '',
+      className: 'w-12 min-w-[48px] text-center',
+      sortable: false,
+      show: true
+    },
     candidate: {
       key: 'candidate',
       label: 'Candidate',
@@ -352,9 +360,11 @@ const renderTableCells = (
   stageColors: Record<string, { color_complete: string; color_badge: string }>,
   displayFitScoreWithGrade: (score: number) => string,
   displayAppliedDate: (date: string | null | undefined) => string,
-  onOpenDetail: (candidateId: string, candidateName: string) => void
+  onOpenDetail: (candidateId: string, candidateName: string) => void,
+  togglePin: (candidate: any) => void
 ) => {
   const defaultColumnOrder = [
+    'pin',
     'candidate',
     'appliedJob',
     'jobMatches',
@@ -373,6 +383,32 @@ const renderTableCells = (
     show: boolean;
     render: () => React.ReactNode;
   }> = {
+    pin: {
+      key: 'pin-action',
+      show: true,
+      render: () => (
+        <TableCell key={`${candidate.id}-pin`} className="text-center">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              togglePin(candidate);
+            }}
+            className={`p-1 rounded hover:bg-muted transition-colors ${
+              candidate.isPinned ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+            }`}
+            title={candidate.isPinned ? 'Unpin candidate' : 'Pin candidate to top'}
+          >
+            {candidate.isPinned ? (
+              <PinIcon className="h-4 w-4" />
+            ) : (
+              <PinOff className="h-4 w-4" />
+            )}
+          </button>
+        </TableCell>
+      )
+    },
     candidate: {
       key: 'candidate-info',
       show: !settings || settings.showCandidateColumn !== false,
@@ -406,18 +442,12 @@ const renderTableCells = (
                       >
                         <span className="inline-flex items-center gap-1">
                           {nameInfo.name}
-                          {candidate.isPinned ? (
-                            <PinIcon className="h-3 w-3 text-primary/80" />
-                          ) : null}
                         </span>
                       </button>
                     ) : (
                       <span className={`font-medium text-foreground ${nameInfo.fontClass}`} lang={nameInfo.lang}>
                         <span className="inline-flex items-center gap-1">
                           {nameInfo.name}
-                          {candidate.isPinned ? (
-                            <PinIcon className="h-3 w-3 text-primary/80" />
-                          ) : null}
                         </span>
                       </span>
                     )}
@@ -810,7 +840,7 @@ export function CandidateTable({
 
   // Calculate the number of visible columns for proper colSpan
   const getVisibleColumnCount = () => {
-    let count = 2; // Row number and select checkbox are always visible
+    let count = 3; // Row number, select checkbox, and pin column are always visible
     if (!settings || settings.showCandidateColumn !== false) count++;
     if (!settings || settings.showAppliedJobColumn !== false) count++;
     if (!settings || settings.showJobMatchesColumn !== false) count++;
@@ -938,7 +968,8 @@ export function CandidateTable({
                     stageColors as any,
                     displayFitScoreWithGrade,
                     displayAppliedDate,
-                    (id: string, name: string) => { setSelectedCandidateSummary({ id, name }); setIsDetailModalOpen(true); }
+                    (id: string, name: string) => { setSelectedCandidateSummary({ id, name }); setIsDetailModalOpen(true); },
+                    togglePin
                   )}
 
                   <TableCell key={`${candidate.id}-actions`} className="text-right max-w-[100px]">
@@ -1039,7 +1070,8 @@ export function CandidateTable({
                               stageColors as any,
                               displayFitScoreWithGrade,
                               displayAppliedDate,
-                              (id: string, name: string) => { setSelectedCandidateSummary({ id, name }); setIsDetailModalOpen(true); }
+                              (id: string, name: string) => { setSelectedCandidateSummary({ id, name }); setIsDetailModalOpen(true); },
+                              togglePin
                             )}
 
                             <TableCell key={`${candidate.id}-actions`} className="text-right">

@@ -57,11 +57,6 @@ export async function validateAndFixQueueSettings(): Promise<QueueSettingsValida
       await setSystemSetting('processorIntervalMs', '2000');
     }
 
-    const processorBatchLimit = await getSystemSetting('processorBatchLimit');
-    if (!processorBatchLimit || isNaN(parseInt(processorBatchLimit, 10))) {
-      result.warnings.push('processorBatchLimit setting is missing or invalid, using default');
-      await setSystemSetting('processorBatchLimit', '1');
-    }
 
   } catch (error) {
     result.errors.push(`Failed to validate queue settings: ${error instanceof Error ? error.message : 'Unknown error'}`);

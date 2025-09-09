@@ -476,7 +476,7 @@ const SafeSidebarNavComponent = React.memo(() => {
                     >
                       <UploadCloud className="h-5 w-5" />
                       {pendingCount !== null && (
-                        <Badge variant="destructive" className="ml-1 h-5 w-5 p-0 text-xs">
+                        <Badge variant={pendingCount === 0 ? "secondary" : "destructive"} className="ml-1 h-5 w-5 p-0 text-xs">
                           {pendingCount > 99 ? '99+' : pendingCount}
                         </Badge>
                       )}
@@ -556,7 +556,7 @@ const SafeSidebarNavComponent = React.memo(() => {
                     <UploadCloud className="h-5 w-5" />
                     <span className="truncate">Process queue</span>
                     {pendingCount !== null && (
-                      <Badge variant="destructive" className="ml-auto h-5 px-2 text-xs">
+                      <Badge variant={pendingCount === 0 ? "secondary" : "destructive"} className="ml-auto h-5 px-2 text-xs">
                         {pendingCount > 99 ? '99+' : pendingCount}
                       </Badge>
                     )}

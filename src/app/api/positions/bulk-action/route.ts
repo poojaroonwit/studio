@@ -11,9 +11,10 @@ import { hasPermission } from '@/lib/permissions';
 export const dynamic = "force-dynamic";
 
 const bulkPositionActionSchema = z.object({
-  action: z.enum(['delete', 'change_status']),
+  action: z.enum(['delete', 'change_status', 'update_match_criteria']),
   positionIds: z.array(z.string().uuid()).min(1, "At least one position ID is required."),
   newIsOpenStatus: z.boolean().optional(), // Required if action is 'change_status'
+  matchCriteria: z.string().optional(), // Required if action is 'update_match_criteria'
 });
 
 /**
@@ -31,13 +32,16 @@ const bulkPositionActionSchema = z.object({
  *             properties:
  *               action:
  *                 type: string
- *                 enum: [delete, change_status]
+ *                 enum: [delete, change_status, update_match_criteria]
  *               positionIds:
  *                 type: array
  *                 items:
  *                   type: string
  *               newIsOpenStatus:
  *                 type: boolean
+ *                 nullable: true
+ *               matchCriteria:
+ *                 type: string
  *                 nullable: true
  *           examples:
  *             delete:
@@ -51,6 +55,12 @@ const bulkPositionActionSchema = z.object({
  *                 action: change_status
  *                 positionIds: ["uuid1", "uuid2"]
  *                 newIsOpenStatus: true
+ *             update_match_criteria:
+ *               summary: Bulk update match criteria
+ *               value:
+ *                 action: update_match_criteria
+ *                 positionIds: ["uuid1", "uuid2"]
+ *                 matchCriteria: "Updated match criteria text"
  *     responses:
  *       200:
  *         description: Bulk action result
@@ -89,16 +99,37 @@ export async function POST(request: NextRequest) {
   const actingUserId = session?.user?.id;
   const actingUserName = session?.user?.name || session?.user?.email || 'System';
 
-  if (!actingUserId || !hasPermission(session.user, 'POSITIONS_DELETE')) {
-    await logAudit('WARN', `Forbidden attempt to perform bulk position action by ${actingUserName}.`, 'API:Positions:BulkAction', actingUserId);
-    return NextResponse.json({ message: "Forbidden: Insufficient permissions." }, { status: 403 });
-  }
-
+  // Check permissions based on the action being performed
+  let hasRequiredPermission = false;
+  
+  // Read the request body first to check permissions
   let body;
   try {
     body = await request.json();
   } catch (error) {
     return NextResponse.json({ message: "Error parsing request body", error: (error as Error).message }, { status: 400 });
+  }
+  
+  // Check specific permissions based on action
+  const actionType = body.action;
+  
+  switch (actionType) {
+    case 'delete':
+      hasRequiredPermission = hasPermission(session.user, 'POSITIONS_DELETE');
+      break;
+    case 'change_status':
+      hasRequiredPermission = hasPermission(session.user, 'POSITIONS_EDIT_BASIC');
+      break;
+    case 'update_match_criteria':
+      hasRequiredPermission = hasPermission(session.user, 'POSITIONS_EDIT_DETAILED');
+      break;
+    default:
+      hasRequiredPermission = false;
+  }
+  
+  if (!actingUserId || !hasRequiredPermission) {
+    await logAudit('WARN', `Forbidden attempt to perform bulk position action '${actionType}' by ${actingUserName}.`, 'API:Positions:BulkAction', actingUserId);
+    return NextResponse.json({ message: "Forbidden: Insufficient permissions." }, { status: 403 });
   }
 
   const validationResult = bulkPositionActionSchema.safeParse(body);
@@ -109,7 +140,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { action, positionIds, newIsOpenStatus } = validationResult.data;
+  const { action, positionIds, newIsOpenStatus, matchCriteria } = validationResult.data;
   const client = await getPool().connect();
   let successCount = 0;
   let failCount = 0;
@@ -154,6 +185,30 @@ export async function POST(request: NextRequest) {
       const updateResult = await client.query(
         'UPDATE "Position" SET "isOpen" = $1, "updatedAt" = NOW() WHERE id = ANY($2::uuid[]) RETURNING id',
         [newIsOpenStatus, positionIds]
+      );
+      successCount = updateResult.rowCount ?? 0;
+      if (successCount > 0) cacheInvalidated = true;
+
+      const updatedIds = updateResult.rows.map(r => r.id);
+      failCount = positionIds.length - successCount;
+      positionIds.forEach(id => {
+        if (!updatedIds.includes(id)) {
+          failedDetails.push({ positionId: id, reason: "Position not found or failed to update."});
+        }
+      });
+      
+    } else if (action === 'update_match_criteria') {
+      if (matchCriteria === undefined) {
+        await client.query('ROLLBACK');
+        return NextResponse.json({ message: "Match criteria is required for 'update_match_criteria' action." }, { status: 400 });
+      }
+      const positionIdsSchema = z.string().uuid().array();
+      if (!positionIdsSchema.safeParse(positionIds).success) {
+        throw new Error('Invalid positionIds array: must be array of UUID strings');
+      }
+      const updateResult = await client.query(
+        'UPDATE "Position" SET "matchCriteria" = $1, "updatedAt" = NOW() WHERE id = ANY($2::uuid[]) RETURNING id',
+        [matchCriteria, positionIds]
       );
       successCount = updateResult.rowCount ?? 0;
       if (successCount > 0) cacheInvalidated = true;

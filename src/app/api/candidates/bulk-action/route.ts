@@ -643,8 +643,8 @@ export async function POST(request: NextRequest) {
             await client.query(`
               INSERT INTO upload_queue (
                 id, file_name, file_size, status, source, upload_id, 
-                created_by, file_path, webhook_payload, position_id, source_id
-              ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                created_by, file_path, webhook_payload, position_id, source_id, sub_source
+              ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
             `, [
               jobId,
               selectedAttachment.fileName,
@@ -662,7 +662,8 @@ export async function POST(request: NextRequest) {
                 sourceId: candidate.sourceId
               }),
               appliedPositionId,
-              candidate.sourceId
+              candidate.sourceId,
+              null // sub_source is optional and can be null for reprocess jobs
             ]);
 
             reprocessResults.push({

@@ -8,7 +8,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import type { Candidate, Position, CandidateStatus, UserProfile } from "@/lib/types";
-import { getActiveCandidateStatusesQuery } from "@/lib/types";
+import { getActiveCandidateStatusesQuery, ACTIVE_CANDIDATE_STATUSES, type CoreCandidateStatus } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CandidateAvatarCompact } from "@/components/ui/candidate-avatar";
 import { Users, Briefcase, CheckCircle2, UserPlus, FileWarning, UserRoundSearch, ServerCrash, Loader2, ListChecks, CalendarClock, Users2, BarChart3, AlertTriangle, Clock, Star, Target, Code, CalendarIcon, X, Timer, XCircle, ArrowRight } from "lucide-react";
@@ -284,7 +284,8 @@ export default function DashboardPageClient({
             
             return backlogData.filter(c => {
               try {
-                return c && !(stageIds.hired && c.statusId === stageIds.hired) && !(stageIds.rejected && c.statusId === stageIds.rejected);
+                const statusName = c?.status || '';
+                return c && ACTIVE_CANDIDATE_STATUSES.includes(statusName as CoreCandidateStatus);
               } catch (error) {
                 return false;
               }
@@ -373,10 +374,10 @@ export default function DashboardPageClient({
     if (!canViewAllCandidates) {
       // User can only see their assigned candidates
       setMyAssignedCandidates(initialCandidates || []);
-      setMyBacklogCandidates((initialCandidates || []).filter(c => 
-      !(stageIds.hired && c.statusId === stageIds.hired) && 
-      !(stageIds.rejected && c.statusId === stageIds.rejected)
-    ));
+      setMyBacklogCandidates((initialCandidates || []).filter(c => {
+        const statusName = c.status || '';
+        return ACTIVE_CANDIDATE_STATUSES.includes(statusName as CoreCandidateStatus);
+      }));
     }
     setAllPositions(initialPositions || []);
     setAllUsers(initialUsers || []);
@@ -508,19 +509,22 @@ export default function DashboardPageClient({
     
     const now = new Date();
     
-    // Combined candidate statistics
-    const totalActiveCandidates = safeAllCandidates.filter((c: Candidate) => 
-      !(stageIds.hired && c.statusId === stageIds.hired) && 
-      !(stageIds.rejected && c.statusId === stageIds.rejected)
-    ).length;
+    // Combined candidate statistics - use same logic as candidates page
+    const totalActiveCandidates = safeAllCandidates.filter((c: Candidate) => {
+      // Get the status name from the candidate
+      const statusName = c.status || '';
+      // Check if the status is in the active candidate statuses array
+      return ACTIVE_CANDIDATE_STATUSES.includes(statusName as CoreCandidateStatus);
+    }).length;
     
     // Combined position statistics
     const openPositions = safeAllPositions.filter((p: Position) => p.isOpen);
     const totalOpenPositions = openPositions.length;
     
-    // Combined monthly statistics
+    // Combined monthly statistics - use status names to match API queries
     const hiredThisMonthAdmin = safeAllCandidates.filter((c: Candidate) => {
-      if (!stageIds.hired || c.statusId !== stageIds.hired || !c.applicationDate || typeof c.applicationDate !== 'string') return false;
+      const statusName = c.status || '';
+      if (statusName !== 'Hired' || !c.applicationDate || typeof c.applicationDate !== 'string') return false;
       try {
         const appDate = parseISO(c.applicationDate);
         return appDate.getMonth() === now.getMonth() && appDate.getFullYear() === now.getFullYear();
@@ -528,7 +532,8 @@ export default function DashboardPageClient({
     }).length;
     
     const rejectedThisMonthAdmin = safeAllCandidates.filter((c: Candidate) => {
-      if (!stageIds.rejected || c.statusId !== stageIds.rejected || !c.applicationDate || typeof c.applicationDate !== 'string') return false;
+      const statusName = c.status || '';
+      if (statusName !== 'Rejected' || !c.applicationDate || typeof c.applicationDate !== 'string') return false;
       try {
         const appDate = parseISO(c.applicationDate);
         return appDate.getMonth() === now.getMonth() && appDate.getFullYear() === now.getFullYear();
@@ -556,12 +561,15 @@ export default function DashboardPageClient({
       return !safeAllCandidates.some(candidate => candidate.positionId === position.id);
     });
     
-    // Combined my candidates statistics
-    const myActiveCandidatesList = safeMyAssignedCandidates.filter((c: Candidate) => 
-      !(stageIds.hired && c.statusId === stageIds.hired) && 
-      !(stageIds.rejected && c.statusId === stageIds.rejected)
-    );
-    const myCandidatesInInterviewCount = myActiveCandidatesList.filter((c: Candidate) => INTERVIEW_STATUSES.includes(c.status || '')).length;
+    // Combined my candidates statistics - use same logic as candidates page
+    const myActiveCandidatesList = safeMyAssignedCandidates.filter((c: Candidate) => {
+      const statusName = c.status || '';
+      return ACTIVE_CANDIDATE_STATUSES.includes(statusName as CoreCandidateStatus);
+    });
+    const myCandidatesInInterviewCount = myActiveCandidatesList.filter((c: Candidate) => {
+      const statusName = c.status || '';
+      return statusName === 'Interview Scheduled' || statusName === 'Interviewing';
+    }).length;
     
     const newCandidatesAssignedToMeTodayList = myActiveCandidatesList.filter((c: Candidate) => {
       try {
@@ -618,7 +626,8 @@ export default function DashboardPageClient({
     const scoreRangeCounts: { [key: string]: number } = {};
     
     safeAllCandidates.forEach((candidate: Candidate) => {
-      if (!(stageIds.hired && candidate.statusId === stageIds.hired) && !(stageIds.rejected && candidate.statusId === stageIds.rejected)) {
+      const statusName = candidate.status || '';
+      if (ACTIVE_CANDIDATE_STATUSES.includes(statusName as CoreCandidateStatus)) {
         scoreRanges.forEach(range => {
           if (typeof candidate.fitScore === 'number' && candidate.fitScore >= range.min && candidate.fitScore <= range.max) {
             scoreRangeCounts[range.label] = (scoreRangeCounts[range.label] || 0) + 1;
@@ -636,20 +645,18 @@ export default function DashboardPageClient({
 
       const unassignedCandidatesCount = useMemo(() => {
       const safeAllCandidates = Array.isArray(filteredCandidates)? filteredCandidates : [];
-      return safeAllCandidates.filter((c: Candidate) => 
-        !(stageIds.hired && c.statusId === stageIds.hired) && 
-        !(stageIds.rejected && c.statusId === stageIds.rejected) && 
-        !c.recruiterId
-      ).length;
+      return safeAllCandidates.filter((c: Candidate) => {
+        const statusName = c.status || '';
+        return ACTIVE_CANDIDATE_STATUSES.includes(statusName as CoreCandidateStatus) && !c.recruiterId;
+      }).length;
     }, [filteredCandidates]);
 
       const unassignedCandidatesList = useMemo(() => {
       const safeAllCandidates = Array.isArray(filteredCandidates)? filteredCandidates : [];
-      return safeAllCandidates.filter((c: Candidate) => 
-        !(stageIds.hired && c.statusId === stageIds.hired) && 
-        !(stageIds.rejected && c.statusId === stageIds.rejected) && 
-        !c.recruiterId
-      );
+      return safeAllCandidates.filter((c: Candidate) => {
+        const statusName = c.status || '';
+        return ACTIVE_CANDIDATE_STATUSES.includes(statusName as CoreCandidateStatus) && !c.recruiterId;
+      });
     }, [filteredCandidates]);
 
     // Paginated unassigned candidates for display
@@ -709,22 +716,10 @@ export default function DashboardPageClient({
       const highPriorityCandidates = useMemo(() => {
       const safeAllCandidates = Array.isArray(filteredCandidates)? filteredCandidates : [];
       return safeAllCandidates.filter((c: Candidate) => {
-        if (stageIds.hired && c.statusId === stageIds.hired) return false;
-        if (stageIds.rejected && c.statusId === stageIds.rejected) return false;
-      // Note: 'Offer Accepted' stage needs to be added to RecruitmentStage table
-      let appliedFitScore: number | undefined = undefined;
-      // Check if parsedData is CandidateDetails and has job_applied
-              const parsedData = c.parsedData as any;
-      if (parsedData && typeof parsedData === 'object' && 'job_applied' in parsedData && parsedData.job_applied && typeof parsedData.job_applied.fitScore === 'number') {
-        const rawScore = parsedData.job_applied.fitScore;
-        if (typeof rawScore === 'number') {
-          appliedFitScore = (rawScore > 0 && rawScore <= 1) ? Math.round(rawScore * 100) : Math.round(rawScore);
-        }
-      } else if (typeof c.fitScore === 'number') {
-        // Convert database fit score (0-1 decimal) to percentage (0-100)
-        appliedFitScore = Math.round(c.fitScore * 100);
-      }
-      return typeof appliedFitScore === 'number' && appliedFitScore >= 80;
+        // Use same logic as API: only check c.fitScore from database
+        // Database stores fit scores as decimal (0-1), so 80% = 0.8
+        if (typeof c.fitScore !== 'number') return false;
+        return c.fitScore >= 0.8; // 80% threshold
     });
   }, [filteredCandidates]);
 
@@ -748,7 +743,8 @@ export default function DashboardPageClient({
     const stageCounts: { [key: string]: number } = {};
     
     safeAllCandidates.forEach((candidate: Candidate) => {
-      if (!(stageIds.hired && candidate.statusId === stageIds.hired) && !(stageIds.rejected && candidate.statusId === stageIds.rejected)) {
+      const statusName = candidate.status || '';
+      if (ACTIVE_CANDIDATE_STATUSES.includes(statusName as CoreCandidateStatus)) {
         const status = candidate.statusId || candidate.status || 'UNKNOWN';
         stageCounts[status] = (stageCounts[status] || 0) + 1;
       }
@@ -791,10 +787,11 @@ export default function DashboardPageClient({
   // On-process candidates (not in excluded statuses)
       const onProcessCandidates = useMemo(() => {
       const safeAllCandidates = Array.isArray(filteredCandidates)? filteredCandidates : [];
-      return safeAllCandidates.filter(
-        (c) => !(stageIds.hired && c.statusId === stageIds.hired) && !(stageIds.rejected && c.statusId === stageIds.rejected)
-      );
-    }, [filteredCandidates, stageIds]);
+      return safeAllCandidates.filter((c: Candidate) => {
+        const statusName = c.status || '';
+        return ACTIVE_CANDIDATE_STATUSES.includes(statusName as CoreCandidateStatus);
+      });
+    }, [filteredCandidates]);
 
   // Pie chart: On-process by stage
   const onProcessByStage = useMemo(() => {

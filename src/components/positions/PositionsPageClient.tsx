@@ -1092,7 +1092,7 @@ export default function PositionsPageClient() {
   // Bulk match criteria update handler
   const handleBulkMatchCriteriaUpdate = async (matchCriteria: string) => {
     try {
-      const response = await safeFetch('/api/v1/positions/bulk-action', {
+      const response = await safeFetch('/api/positions/bulk-action', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1100,7 +1100,7 @@ export default function PositionsPageClient() {
         body: JSON.stringify({
           action: 'update_match_criteria',
           positionIds: selectedIds,
-          data: { matchCriteria }
+          matchCriteria: matchCriteria
         }),
         timeoutMs: 10000
       });

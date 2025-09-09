@@ -38,7 +38,6 @@ export default function SystemSettingsPage() {
   // Upload Queue Processor settings
   const [processQueueEnabled, setProcessQueueEnabled] = useState(true);
   const [processorIntervalMs, setProcessorIntervalMs] = useState(2000);
-  const [processorBatchLimit, setProcessorBatchLimit] = useState(1);
   const [processorQuietMode, setProcessorQuietMode] = useState(false);
   const [processorConnectionTimeoutMs, setProcessorConnectionTimeoutMs] = useState(30000);
   const [processorRequestTimeoutMs, setProcessorRequestTimeoutMs] = useState(1800000);
@@ -84,7 +83,6 @@ export default function SystemSettingsPage() {
       // Load upload queue processor settings
       setProcessQueueEnabled(settings.processQueueEnabled !== 'false'); // Default to true if not set
       setProcessorIntervalMs(parseInt(settings.processorIntervalMs || '2000', 10));
-      setProcessorBatchLimit(parseInt(settings.processorBatchLimit || '1', 10));
       setProcessorQuietMode(settings.processorQuietMode === 'true');
       setProcessorConnectionTimeoutMs(parseInt(settings.processorConnectionTimeoutMs || '30000', 10));
       setProcessorRequestTimeoutMs(parseInt(settings.processorRequestTimeoutMs || '1800000', 10));
@@ -139,7 +137,6 @@ export default function SystemSettingsPage() {
       { key: 'processQueueEnabled', value: processQueueEnabled.toString() },
       // Upload Queue Processor settings
       { key: 'processorIntervalMs', value: processorIntervalMs.toString() },
-      { key: 'processorBatchLimit', value: processorBatchLimit.toString() },
       { key: 'processorQuietMode', value: processorQuietMode.toString() },
       { key: 'processorConnectionTimeoutMs', value: processorConnectionTimeoutMs.toString() },
       { key: 'processorRequestTimeoutMs', value: processorRequestTimeoutMs.toString() },
@@ -527,21 +524,6 @@ export default function SystemSettingsPage() {
                           </p>
                         </div>
 
-                        <div className="space-y-2">
-                          <Label htmlFor="processor-batch-limit">Batch Limit</Label>
-                          <Input
-                            id="processor-batch-limit"
-                            type="number"
-                            min={1}
-                            max={10}
-                            value={processorBatchLimit}
-                            onChange={(e) => setProcessorBatchLimit(Number(e.target.value))}
-                            disabled={isSaving}
-                          />
-                          <p className="text-xs text-muted-foreground">
-                            Number of jobs to process in each batch (1-10)
-                          </p>
-                        </div>
 
                         <div className="space-y-2">
                           <Label htmlFor="processor-connection-timeout">Connection Timeout (ms)</Label>

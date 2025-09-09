@@ -60,7 +60,7 @@ async function main() {
     
     // First, check if groups already exist by name
     const existingAdminGroup = await prisma.userGroup.findUnique({
-      where: { name: 'Administrators' }
+      where: { name: 'Admin' }
     });
     
     const existingRecruiterGroup = await prisma.userGroup.findUnique({
@@ -68,7 +68,7 @@ async function main() {
     });
     
     const existingHiringManagerGroup = await prisma.userGroup.findUnique({
-      where: { name: 'Hiring Managers' }
+      where: { name: 'Hiring Manager' }
     });
     
     // Create or update admin group
@@ -99,7 +99,7 @@ async function main() {
       console.log('   Creating new Administrators group...');
       adminGroup = await prisma.userGroup.create({
         data: {
-          name: 'Administrators',
+          name: 'Admin',
           description: 'Full system access and management',
           permissions: [
             // Candidate permissions
@@ -178,7 +178,7 @@ async function main() {
       console.log('   Creating new Hiring Managers group...');
       hiringManagerGroup = await prisma.userGroup.create({
         data: {
-          name: 'Hiring Managers',
+          name: 'Hiring Manager',
           description: 'View-only access for hiring decisions',
           permissions: [
             'CANDIDATES_VIEW','CANDIDATES_VIEW_DETAILED','CANDIDATES_COMMENTS_VIEW','POSITIONS_VIEW','TASK_BOARD_VIEW','DASHBOARD_VIEW','USER_PREFERENCES_MANAGE_OWN'
@@ -628,132 +628,6 @@ Do not include any markdown formatting, code blocks, or additional text. Only re
     }
     console.log('✓ AI Power Search system prompt initialized');
 
-    // Create TOEIC custom field definition
-    console.log('Creating TOEIC custom field definition...');
-    await prisma.customFieldDefinition.upsert({
-      where: { 
-        modelName_fieldKey: {
-          modelName: 'Candidate',
-          fieldKey: 'toeic_score'
-        }
-      },
-      update: {},
-      create: {
-        fieldKey: 'toeic_score',
-        fieldCode: 'TOEIC_SCORE',
-        label: 'TOEIC Score',
-        fieldType: 'select_single',
-        modelName: 'Candidate',
-        isRequired: false,
-        sortOrder: 1,
-        showInCandidateDetail: true,
-        showInFullCandidateDetail: true,
-        showInFilter: true,
-        candidateDetailSection: 'candidate-info',
-        options: JSON.stringify({
-          minValue: 0,
-          maxValue: 990,
-          options: [
-            { value: '0-200', label: '0-200 (Beginner)' },
-            { value: '201-400', label: '201-400 (Elementary)' },
-            { value: '401-600', label: '401-600 (Intermediate)' },
-            { value: '601-800', label: '601-800 (Upper Intermediate)' },
-            { value: '801-990', label: '801-990 (Advanced)' }
-          ]
-        })
-      }
-    });
-
-    // Create TOEIC custom field options
-    const toeicFieldDefinition = await prisma.customFieldDefinition.findUnique({
-      where: {
-        modelName_fieldKey: {
-          modelName: 'Candidate',
-          fieldKey: 'toeic_score'
-        }
-      }
-    });
-
-    // Create additional sample custom fields for testing
-    console.log('Creating additional custom field definitions...');
-    
-    // Years of Experience field
-    await prisma.customFieldDefinition.upsert({
-      where: { 
-        modelName_fieldKey: {
-          modelName: 'Candidate',
-          fieldKey: 'years_experience'
-        }
-      },
-      update: {},
-      create: {
-        fieldKey: 'years_experience',
-        fieldCode: 'YEARS_EXPERIENCE',
-        label: 'Years of Experience',
-        fieldType: 'number',
-        modelName: 'Candidate',
-        isRequired: false,
-        sortOrder: 2,
-        showInCandidateDetail: true,
-        showInFullCandidateDetail: true,
-        showInFilter: true,
-        candidateDetailSection: 'candidate-info',
-      }
-    });
-
-    // Notes field
-    await prisma.customFieldDefinition.upsert({
-      where: { 
-        modelName_fieldKey: {
-          modelName: 'Candidate',
-          fieldKey: 'additional_notes'
-        }
-      },
-      update: {},
-      create: {
-        fieldKey: 'additional_notes',
-        fieldCode: 'ADDITIONAL_NOTES',
-        label: 'Additional Notes',
-        fieldType: 'textarea',
-        modelName: 'Candidate',
-        isRequired: false,
-        sortOrder: 3,
-        showInCandidateDetail: true,
-        showInFullCandidateDetail: true,
-        showInFilter: true,
-        candidateDetailSection: 'candidate-info',
-      }
-    });
-
-    if (toeicFieldDefinition) {
-      const toeicOptions = [
-        { value: '0-200', label: '0-200 (Beginner)', sortOrder: 1 },
-        { value: '201-400', label: '201-400 (Elementary)', sortOrder: 2 },
-        { value: '401-600', label: '401-600 (Intermediate)', sortOrder: 3 },
-        { value: '601-800', label: '601-800 (Upper Intermediate)', sortOrder: 4 },
-        { value: '801-990', label: '801-990 (Advanced)', sortOrder: 5 }
-      ];
-
-      for (const option of toeicOptions) {
-        await prisma.customFieldOption.upsert({
-          where: {
-            customFieldDefinitionId_value: {
-              customFieldDefinitionId: toeicFieldDefinition.id,
-              value: option.value
-            }
-          },
-          update: { label: option.label, sortOrder: option.sortOrder },
-          create: {
-            customFieldDefinitionId: toeicFieldDefinition.id,
-            value: option.value,
-            label: option.label,
-            sortOrder: option.sortOrder,
-            isActive: true
-          }
-        });
-      }
-    }
-    console.log('✓ TOEIC custom field and options created/updated');
 
     // Create candidate sources
     console.log('Creating candidate sources...');

@@ -3,7 +3,7 @@ import { CandidateAvatar } from '@/components/ui/candidate-avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Edit, Edit3, MoreHorizontal, RefreshCw, Users, X, BrainCircuit, Upload, Trash2 } from 'lucide-react';
+import { Edit, Edit3, MoreHorizontal, RefreshCw, Users, X, BrainCircuit, Upload, Trash2, ExternalLink } from 'lucide-react';
 import { formatCandidateNameWithLang } from "@/lib/candidateUtils";
 import type { Candidate, UserProfile, RecruitmentStage, CandidateSource } from '@/lib/types';
 import { CandidateRecruiterCell } from './CandidateRecruiterCell';
@@ -85,21 +85,38 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
      
       
       <div className="grid grid-cols-1 lg:grid-cols-10 gap-6 relative">
-        {/* Modal Close Button in header */}
+        {/* Modal Action Buttons in header */}
         {isModal && typeof onClose === 'function' && (
-          <button
-            type="button"
-            className="absolute top-0 right-0 p-2 rounded-full hover:bg-muted transition pointer-events-auto"
-            style={{ zIndex: contentZIndex + 1 }}
-            title="Close"
-            onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              onClose();
-            }}
-          >
-            <X className="w-6 h-6 text-muted-foreground" />
-          </button>
+          <div className="absolute top-0 right-0 flex items-center gap-1" style={{ zIndex: contentZIndex + 1 }}>
+            {/* Open in new tab button */}
+            {candidate?.id && (
+              <button
+                type="button"
+                className="p-2 rounded-full hover:bg-muted transition pointer-events-auto"
+                title="Open in new tab"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  window.open(`/candidates/${candidate.id}`, '_blank');
+                }}
+              >
+                <ExternalLink className="w-5 h-5 text-muted-foreground" />
+              </button>
+            )}
+            {/* Close button */}
+            <button
+              type="button"
+              className="p-2 rounded-full hover:bg-muted transition pointer-events-auto"
+              title="Close"
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                onClose();
+              }}
+            >
+              <X className="w-6 h-6 text-muted-foreground" />
+            </button>
+          </div>
         )}
         
         {/* Column 1: Candidate Header (7 cols) */}
@@ -259,15 +276,6 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-48">
-                    {isModal && candidate?.id && (
-                      <DropdownMenuItem 
-                        onClick={() => window.open(`/candidates/${candidate.id}`, '_blank')}
-                        className="text-sm py-2"
-                      >
-                        Open in new tab
-                      </DropdownMenuItem>
-                    )}
-                    {isModal && <DropdownMenuSeparator />}
                     <DropdownMenuItem 
                       onClick={onEditClick}
                       className="text-sm py-2"

@@ -346,7 +346,7 @@ Get a specific candidate by ID.
     "name": "Jane Smith"
   },
   "jobMatches": [],
-  "resumeHistory": []
+  "resumeHistory": [] // Note: Now uses Attachment table
 }
 ```
 

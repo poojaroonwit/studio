@@ -20,7 +20,7 @@ A comprehensive, enterprise-grade Applicant Tracking System (ATS) built with Nex
 ### 👥 **Candidate Management**
 - **Comprehensive Profiles**: Detailed candidate information with custom fields
 - **Resume Management**: Upload, version control, and automated parsing
-- **Resume History**: Track all uploaded resumes with timestamps
+- **Resume History**: Track all uploaded resumes with timestamps (via Attachment table)
 - **Profile Images**: Upload and manage candidate avatars
 - **Stage Tracking**: Visual Kanban board with drag-and-drop functionality
 - **Transition History**: Complete audit trail of candidate progress with notes
@@ -275,7 +275,7 @@ The application uses Prisma ORM with the following key models:
 - **UserGroup**: Role-based access control
 - **SystemSetting**: Application configuration
 - **AuditLog**: System activity tracking
-- **ResumeHistory**: Resume upload history
+- **Attachment**: File attachments including resume upload history
 - **TransitionRecord**: Candidate status changes
 - **CustomFieldDefinition**: Custom field definitions
 - **NotificationEvent/Channel/Setting**: Notification configuration
@@ -533,7 +533,7 @@ tail -f logs/app.log
 ### Latest Updates (v0.2.0)
 - ✅ **Codebase Cleanup**: Removed 30+ unnecessary files including historical documentation and unused scripts
 - ✅ **Package.json Optimization**: Cleaned up references to non-existent scripts and utilities
-- ✅ **Enhanced Candidate Management**: Resume history tracking and advanced filtering
+- ✅ **Enhanced Candidate Management**: Resume history tracking (via Attachment table) and advanced filtering
 - ✅ **Improved Position Management**: Advanced filtering and bulk operations
 - ✅ **Comprehensive User Management**: Role-based access control with granular permissions
 - ✅ **Task Board Implementation**: Kanban and list views with enhanced filtering

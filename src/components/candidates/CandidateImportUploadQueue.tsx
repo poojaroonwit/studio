@@ -17,6 +17,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { Clock, Loader2, CheckCircle, XCircle, Search, Filter, AlertCircle, Info, Upload, FileText, Users, Calendar as CalendarIcon, MoreHorizontal, Play, X, Trash2, Eye, RotateCcw, CheckSquare, Square, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, RefreshCw, ImageIcon } from 'lucide-react';
 import { FileViewerModal } from '@/components/ui/file-viewer-modal';
+import { ExpandablePayload } from '@/components/ui/ExpandablePayload';
 
 import { useSharedSSE } from '@/hooks/use-shared-sse';
 import { toast } from 'react-hot-toast';
@@ -1603,12 +1604,12 @@ export default function CandidateImportUploadQueue() {
               
               {/* Webhook Payload */}
               {selectedItem.webhook_payload && (
-                <div>
-                  <Label className="text-sm font-medium">Webhook Payload</Label>
-                  <pre className="text-xs bg-muted/30 p-3 rounded mt-1 overflow-auto max-h-40">
-                    {JSON.stringify(selectedItem.webhook_payload, null, 2)}
-                  </pre>
-                </div>
+                <ExpandablePayload
+                  data={selectedItem.webhook_payload}
+                  title="Webhook Payload"
+                  maxHeight="max-h-40"
+                  compact={true}
+                />
               )}
               
               {/* Error Information */}

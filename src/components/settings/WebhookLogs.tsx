@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { ChevronLeft, ChevronRight, Eye, Calendar, Filter, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { ExpandablePayload } from '@/components/ui/ExpandablePayload';
 
 interface WebhookLog {
   id: string;
@@ -350,12 +351,11 @@ export default function WebhookLogs({ webhookId, webhookName }: WebhookLogsProps
                               </TabsList>
                               
                               <TabsContent value="payload" className="space-y-4">
-                                <div>
-                                  <Label className="text-sm font-medium">Request Payload</Label>
-                                  <pre className="mt-2 p-4 bg-muted rounded-md text-sm overflow-x-auto">
-                                    {JSON.stringify(log.payload, null, 2)}
-                                  </pre>
-                                </div>
+                                <ExpandablePayload
+                                  data={log.payload}
+                                  title="Request Payload"
+                                  maxHeight="max-h-60"
+                                />
                               </TabsContent>
                               
                               <TabsContent value="response" className="space-y-4">
@@ -367,12 +367,11 @@ export default function WebhookLogs({ webhookId, webhookName }: WebhookLogsProps
                                 </div>
                                 
                                 {log.response_body && (
-                                  <div>
-                                    <Label className="text-sm font-medium">Response Body</Label>
-                                    <pre className="mt-2 p-4 bg-muted rounded-md text-sm overflow-x-auto">
-                                      {log.response_body}
-                                    </pre>
-                                  </div>
+                                  <ExpandablePayload
+                                    data={log.response_body}
+                                    title="Response Body"
+                                    maxHeight="max-h-60"
+                                  />
                                 )}
                                 
                                 {log.error_message && (

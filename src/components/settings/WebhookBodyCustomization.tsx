@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { ExpandablePayload } from '@/components/ui/ExpandablePayload';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
@@ -634,23 +635,12 @@ export default function WebhookBodyCustomization({
                         <CardContent>
                           {showPreview && previewData ? (
                             <div className="space-y-4">
-                              <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border">
-                                <pre className="text-sm font-mono overflow-x-auto">
-                                  {JSON.stringify(previewData, null, 2)}
-                                </pre>
-                              </div>
+                              <ExpandablePayload
+                                data={previewData}
+                                title="Payload Preview"
+                                maxHeight="max-h-80"
+                              />
                               <div className="flex items-center gap-2">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => {
-                                    navigator.clipboard.writeText(JSON.stringify(previewData, null, 2));
-                                    showSuccess('Preview copied to clipboard');
-                                  }}
-                                >
-                                  <Copy className="h-4 w-4 mr-1" />
-                                  Copy
-                                </Button>
                                 <Button
                                   variant="outline"
                                   size="sm"

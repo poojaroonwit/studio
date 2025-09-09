@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { ExpandablePayload } from '@/components/ui/ExpandablePayload';
 import { format } from 'date-fns';
 import parseISO from 'date-fns/parseISO';
 import { X, Calendar, User, Server, MessageSquare, AlertTriangle, Info, ShieldAlert, ListOrdered } from 'lucide-react';
@@ -102,32 +103,21 @@ const LogsForm: React.FC<LogsFormProps> = ({ open, log, onClose, onSubmit }) => 
 
             {/* Additional Data */}
             {log.details && (
-              <div className="space-y-2">
-                <div className="text-sm font-medium text-muted-foreground">
-                  Additional Details
-                </div>
-                <div className="text-sm bg-muted p-2 rounded">
-                  <pre className="whitespace-pre-wrap text-xs">
-                    {typeof log.details === 'string' 
-                      ? log.details 
-                      : JSON.stringify(log.details, null, 2)
-                    }
-                  </pre>
-                </div>
-              </div>
+              <ExpandablePayload
+                data={log.details}
+                title="Additional Details"
+                maxHeight="max-h-40"
+                compact={true}
+              />
             )}
 
             {/* Raw Log Data */}
-            <div className="space-y-2">
-              <div className="text-sm font-medium text-muted-foreground">
-                Raw Log Data
-              </div>
-              <div className="text-xs bg-muted p-2 rounded">
-                <pre className="whitespace-pre-wrap">
-                  {JSON.stringify(log, null, 2)}
-                </pre>
-              </div>
-            </div>
+            <ExpandablePayload
+              data={log}
+              title="Raw Log Data"
+              maxHeight="max-h-40"
+              compact={true}
+            />
           </div>
         </ScrollArea>
 

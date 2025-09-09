@@ -112,13 +112,22 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       ORDER BY jm."fitScore" DESC;
     `;
     const jobMatchesResult = await client.query(jobMatchesQuery, [id]);
-    // Get resume history for this candidate
+    // Get resume history for this candidate (using Attachment table)
     const resumeHistoryQuery = `
-      SELECT rh.*, u.name as "uploadedByUserName"
-      FROM "ResumeHistory" rh
-      LEFT JOIN "User" u ON rh."uploaded_by_user_id" = u.id
-      WHERE rh."candidateId" = $1
-      ORDER BY rh."uploadedAt" DESC;
+      SELECT 
+        a.id,
+        a."candidateId",
+        a."filePath",
+        a."fileName" as "originalFileName",
+        a."uploadedAt",
+        a."uploadedById" as "uploadedByUserId",
+        a."createdAt",
+        a."updatedAt",
+        u.name as "uploadedByUserName"
+      FROM "Attachment" a
+      LEFT JOIN "User" u ON a."uploadedById" = u.id
+      WHERE a."candidateId" = $1
+      ORDER BY a."uploadedAt" DESC;
     `;
     const resumeHistoryResult = await client.query(resumeHistoryQuery, [id]);
     return createSuccessResponse(req, {

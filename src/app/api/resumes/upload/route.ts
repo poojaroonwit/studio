@@ -107,12 +107,12 @@ export async function POST(request: NextRequest) {
       }
       const candidate = result.rows[0];
 
-      // Create resume history entry
+      // Create attachment entry for resume history
       const historyQuery = `
-        INSERT INTO "ResumeHistory" (id, "candidateId", "filePath", "originalFileName", "uploadedAt", "uploadedByUserId", "createdAt", "updatedAt")
-        VALUES ($1, $2, $3, $4, NOW(), $5, NOW(), NOW());
+        INSERT INTO "Attachment" (id, "candidateId", "uploadedById", "filePath", "fileName", label, "isPrimary", "uploadedAt", "createdAt", "updatedAt")
+        VALUES ($1, $2, $3, $4, $5, 'Resume', true, NOW(), NOW(), NOW());
       `;
-      await client.query(historyQuery, [randomUUID(), candidateId, objectName, originalName, actingUserId]);
+      await client.query(historyQuery, [randomUUID(), candidateId, actingUserId, objectName, originalName]);
 
       // Build webhook payload in requested format
       const webhookPayload = {

@@ -1094,7 +1094,7 @@ export interface JobMatch {
   updatedAt?: string;
 }
 
-// Database model for ResumeHistory (matches Prisma schema)
+// Database model for ResumeHistory (now using Attachment table)
 export interface ResumeHistory {
   id: string;
   candidateId: string;

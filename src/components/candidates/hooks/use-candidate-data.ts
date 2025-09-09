@@ -135,6 +135,7 @@ export function useCandidateData({
 
   // Fetch all candidates for counts (unfiltered, for accurate statistics)
   const fetchAllCandidatesForCounts = useCallback(async () => {
+    console.log('fetchAllCandidatesForCounts called, sessionStatus:', sessionStatus);
     if (sessionStatus !== 'authenticated') return;
 
     try {
@@ -143,16 +144,17 @@ export function useCandidateData({
       
       if (result.ok && result.data) {
         const candidates = result.data.candidates || [];
+        console.log('Fetched candidates for counts:', candidates.length);
         stableSetAllCandidatesForCounts(candidates);
       } else {
-        // Skipping failed endpoint /api/candidates (counts)
+        console.warn('Skipping failed endpoint /api/candidates (counts):', result.error || result.status);
       }
     } catch (error) {
-      // Error fetching all candidates for counts
+      console.error('Error fetching all candidates for counts:', error);
     } finally {
       stableSetIsLoading(false);
     }
-  }, [sessionStatus, stableSetIsLoading, stableSetAllCandidatesForCounts]);
+  }, [sessionStatus]);
 
   // Fetch sources
   const fetchSources = useCallback(async () => {
@@ -168,7 +170,7 @@ export function useCandidateData({
     } catch (error) {
       // Error fetching sources
     }
-  }, [sessionStatus, stableSetAvailableSources]);
+  }, [sessionStatus]);
 
   // Fetch recruiters
   const fetchRecruiter = useCallback(async () => {
@@ -190,7 +192,7 @@ export function useCandidateData({
     } catch (error) {
       // Error fetching recruiters
     }
-  }, [sessionStatus, stableSetAvailableRecruiter]);
+  }, [sessionStatus]);
 
   // Store current filters in a ref to avoid dependency issues
   const filtersRef = useRef(filters);
@@ -201,8 +203,10 @@ export function useCandidateData({
   const isFetchingFitScoreCountsRef = useRef(false);
 
   // Fetch fit score counts with circuit breaker and debouncing
-  const fetchFitScoreCounts = async (forceRefresh = false) => {
+  const fetchFitScoreCounts = useCallback(async (forceRefresh = false) => {
+    console.log('fetchFitScoreCounts called, forceRefresh:', forceRefresh);
     if (isFetchingFitScoreCountsRef.current && !forceRefresh) {
+      console.log('Already fetching fit score counts, skipping');
       return;
     }
 
@@ -274,6 +278,7 @@ export function useCandidateData({
       }
 
       const url = `/api/candidates/fit-score-counts?${params.toString()}`;
+      console.log('Fetching fit score counts from URL:', url);
       
       const result = await safeFetch(url, {
         headers: {
@@ -285,6 +290,7 @@ export function useCandidateData({
       
       if (result.ok && result.data) {
         const data = result.data;
+        console.log('Fit score counts API response:', data);
         
         // Smooth update: only change the numbers, not the entire object structure
         setDatabaseFitScoreCounts(prevCounts => {
@@ -326,7 +332,7 @@ export function useCandidateData({
       setIsFitScoreCountsLoading(false);
       isFetchingFitScoreCountsRef.current = false;
     }
-  };
+  }, [filtersRef]);
 
   // Debounced version for filter changes
   const debouncedFetchFitScoreCounts = useCallback(() => {
@@ -412,10 +418,9 @@ export function useCandidateData({
     }
   }, [sessionStatus, fetchSources, fetchRecruiter]);
 
-  // Fetch fit score counts on mount
-  // Fetch fit score counts on mount - FIXED: Use regular useEffect instead of useSafeEffect
+  // Fetch fit score counts on mount and when candidates are loaded
   useEffect(() => {
-    if (sessionStatus === 'authenticated') {
+    if (sessionStatus === 'authenticated' && allCandidatesForCounts.length > 0) {
       // Use a delay to ensure the component is fully mounted
       const timeoutId = setTimeout(() => {
         fetchFitScoreCounts();
@@ -423,7 +428,7 @@ export function useCandidateData({
       
       return () => clearTimeout(timeoutId);
     }
-  }, [sessionStatus, fetchFitScoreCounts]);
+  }, [sessionStatus, allCandidatesForCounts.length, fetchFitScoreCounts]);
 
   // Simplified helper function to normalize fit scores
   const getBestMatchingFitScore = (candidate: Candidate): number => {

@@ -713,6 +713,13 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       const allStageIds = stages.map(stage => stage.id);
       console.log('Setting selectedStages to:', allStageIds);
       setSelectedStages(allStageIds);
+      
+      // Also clear recruiter filter to show all recruiters
+      setFilters((prev: any) => {
+        const { recruiterId, ...rest } = prev;
+        return rest;
+      });
+      console.log('Cleared recruiter filter to show all recruiters');
     } else {
       console.warn('No stages available to select all, stages:', stages);
     }
@@ -720,6 +727,12 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
 
   const handleClearAllStages = () => {
     setSelectedStages([]);
+    // Also clear recruiter filter when clearing stages
+    setFilters((prev: any) => {
+      const { recruiterId, ...rest } = prev;
+      return rest;
+    });
+    console.log('Cleared all stage and recruiter filters');
   };
 
   const toggleStageSelection = (stageId: string) => {

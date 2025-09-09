@@ -400,6 +400,20 @@ export async function GET(request: NextRequest) {
 
       console.log('Fit score counts result:', { applied, matching });
 
+      // If no results, return empty counts for all grades
+      if (applied.length === 0 && matching.length === 0) {
+        console.log('No fit score counts found, returning empty counts for all grades');
+        const emptyCounts = [
+          { letter: 'A', count: 0 },
+          { letter: 'B', count: 0 },
+          { letter: 'C', count: 0 },
+          { letter: 'D', count: 0 },
+          { letter: 'E', count: 0 },
+          { letter: 'no-score', count: 0 }
+        ];
+        return NextResponse.json({ applied: emptyCounts, matching: emptyCounts });
+      }
+
       return NextResponse.json({ applied, matching });
 
     } finally {

@@ -32,6 +32,7 @@ interface CandidateHeaderProps {
   onReprocess: () => void;
   onGenerativeAI: () => void;
   onDelete: () => void;
+  onTogglePin?: () => void;
   avatarInputRef: React.RefObject<HTMLInputElement>;
   avatarUploading: boolean;
   avatarError: string | null;
@@ -61,6 +62,7 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
   onReprocess,
   onGenerativeAI,
   onDelete,
+  onTogglePin,
   avatarInputRef,
   avatarUploading,
   avatarError,

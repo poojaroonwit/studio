@@ -133,6 +133,42 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
     }
   };
 
+  // Function to handle candidate pin toggle
+  const handleTogglePin = async () => {
+    if (!candidate?.id) return;
+    
+    try {
+      const response = await fetch(`/api/candidates/${candidate.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ isPinned: !candidate.isPinned }),
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to update candidate pin status');
+      }
+
+      const updatedCandidate = await response.json();
+      
+      // Update the candidate state with the new pin status
+      setCandidate(prev => prev ? { ...prev, isPinned: updatedCandidate.isPinned } : prev);
+      
+      toastSuccess(updatedCandidate.isPinned ? 'Candidate pinned successfully' : 'Candidate unpinned successfully');
+      
+      // Refresh the parent component
+      if (onRefresh) {
+        onRefresh();
+      }
+    } catch (error: any) {
+      console.error('Error toggling candidate pin status:', error);
+      toastError(error.message || 'Failed to update candidate pin status');
+    }
+  };
+
   // Wrap setHeadcountWarningData to add debugging
   const setHeadcountWarningDataWithDebug = (data: typeof headcountWarningData) => {
     console.log('FullCandidateDetail - setHeadcountWarningData called with:', data);
@@ -544,6 +580,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
           onReprocess={() => setIsReprocessModalOpen(true)}
           onGenerativeAI={() => setIsGenerativeAIModalOpen(true)}
           onDelete={() => setIsDeleteModalOpen(true)}
+          onTogglePin={handleTogglePin}
           avatarInputRef={avatarInputRef}
           avatarUploading={avatarUploading}
           avatarError={avatarError}

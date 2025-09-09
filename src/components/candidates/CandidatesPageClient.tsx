@@ -1501,6 +1501,7 @@ export function CandidatesPageClient({
   // Memoized fitscore counts to prevent unnecessary re-renders
   const memoizedCandidateScoreCounts = useMemo(() => {
     // Use the main candidateScoreCounts which has fallback logic
+    console.log('memoizedCandidateScoreCounts updated:', candidateScoreCounts);
     return candidateScoreCounts;
   }, [candidateScoreCounts]);
 

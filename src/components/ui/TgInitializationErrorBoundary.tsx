@@ -24,12 +24,16 @@ export class TgInitializationErrorBoundary extends Component<Props, State> {
   }
 
   static getDerivedStateFromError(error: Error): Partial<State> {
-    // Check if this is specifically a 'tg' initialization error
-    const isTgError = error.message.includes('tg') && 
-                     error.message.includes('Cannot access') && 
-                     error.message.includes('before initialization');
+    // Check if this is specifically a variable initialization error
+    const isInitializationError = error.message.includes('Cannot access') && 
+                                 error.message.includes('before initialization') &&
+                                 (error.message.includes('tg') || 
+                                  error.message.includes('activeCandidateTab') ||
+                                  error.message.includes('ee') ||
+                                  error.message.includes('tt') ||
+                                  error.message.includes('nn'));
     
-    if (isTgError) {
+    if (isInitializationError) {
       return { hasError: true, error };
     }
     
@@ -38,12 +42,16 @@ export class TgInitializationErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    const isTgError = error.message.includes('tg') && 
-                     error.message.includes('Cannot access') && 
-                     error.message.includes('before initialization');
+    const isInitializationError = error.message.includes('Cannot access') && 
+                                 error.message.includes('before initialization') &&
+                                 (error.message.includes('tg') || 
+                                  error.message.includes('activeCandidateTab') ||
+                                  error.message.includes('ee') ||
+                                  error.message.includes('tt') ||
+                                  error.message.includes('nn'));
     
-    if (isTgError) {
-      console.error('TG Initialization Error caught:', {
+    if (isInitializationError) {
+      console.error('Variable Initialization Error caught:', {
         message: error.message,
         stack: error.stack,
         componentStack: errorInfo.componentStack,
@@ -118,12 +126,16 @@ export class TgInitializationErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError && this.state.error) {
-      const isTgError = this.state.error.message.includes('tg') && 
-                       this.state.error.message.includes('Cannot access') && 
-                       this.state.error.message.includes('before initialization');
+      const isInitializationError = this.state.error.message.includes('Cannot access') && 
+                                   this.state.error.message.includes('before initialization') &&
+                                   (this.state.error.message.includes('tg') || 
+                                    this.state.error.message.includes('activeCandidateTab') ||
+                                    this.state.error.message.includes('ee') ||
+                                    this.state.error.message.includes('tt') ||
+                                    this.state.error.message.includes('nn'));
 
-      if (!isTgError) {
-        // Not a TG error, let it bubble up
+      if (!isInitializationError) {
+        // Not an initialization error, let it bubble up
         throw this.state.error;
       }
 

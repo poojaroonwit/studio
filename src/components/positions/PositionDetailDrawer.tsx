@@ -113,12 +113,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
     }
   }, [isOpen, initialEditMode]);
 
-  // When Job Match is disabled, ensure we don't show or stay on the potential tab
-  useEffect(() => {
-    if (!isJobMatchEnabled && activeCandidateTab !== 'applied') {
-      setActiveCandidateTab('applied');
-    }
-  }, [isJobMatchEnabled, activeCandidateTab]);
+  // State declarations first to avoid TDZ issues
   const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [editorKey, setEditorKey] = useState(0);
@@ -140,9 +135,16 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   // State for recruitment stages
   const [recruitmentStages, setRecruitmentStages] = useState<any[]>([]);
 
-  // Tab states
+  // Tab states - declare these before using them in useEffect
   const [activeTab, setActiveTab] = useState('details');
   const [activeCandidateTab, setActiveCandidateTab] = useState('applied');
+
+  // When Job Match is disabled, ensure we don't show or stay on the potential tab
+  useEffect(() => {
+    if (!isJobMatchEnabled && activeCandidateTab !== 'applied') {
+      setActiveCandidateTab('applied');
+    }
+  }, [isJobMatchEnabled, activeCandidateTab]);
 
   // Form setup
   const form = useForm<EditPositionFormValues>({

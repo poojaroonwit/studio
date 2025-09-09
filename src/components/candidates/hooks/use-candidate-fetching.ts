@@ -69,30 +69,33 @@ export function useCandidateFetching({
       const query = new URLSearchParams();
       
       // Check if we have an advanced query from URL and pass it to the API
+      // When an advanced query is present, we intentionally ignore other sticky filters
+      // so that "View All" from the dashboard yields results consistent with the card.
       const advancedQueryParam = searchParams.get('query');
       if (advancedQueryParam) {
         query.append('query', advancedQueryParam);
       }
-      
-      if (currentFilters.name) {
+
+      // Only append individual filters if NOT processing an advanced query
+      if (!advancedQueryParam && currentFilters.name) {
         query.append('name', currentFilters.name);
         if (currentFilters.nameOperator) query.append('nameOperator', currentFilters.nameOperator);
       }
-      if (currentFilters.email) {
+      if (!advancedQueryParam && currentFilters.email) {
         query.append('email', currentFilters.email);
         if (currentFilters.emailOperator) query.append('emailOperator', currentFilters.emailOperator);
       }
-      if (currentFilters.phone) {
+      if (!advancedQueryParam && currentFilters.phone) {
         query.append('phone', currentFilters.phone);
         if (currentFilters.phoneOperator) query.append('phoneOperator', currentFilters.phoneOperator);
       }
-      if (currentFilters.selectedPositionIds && currentFilters.selectedPositionIds.length > 0) query.append('positionId', currentFilters.selectedPositionIds.join(','));
-      if (currentFilters.selectedStatuses && currentFilters.selectedStatuses.length > 0) query.append('status', currentFilters.selectedStatuses.join(','));
-      if (currentFilters.education) query.append('education', currentFilters.education);
-      if (currentFilters.minAppliedJobFitScore !== undefined) query.append('minAppliedJobFitScore', String(currentFilters.minAppliedJobFitScore));
-      if (currentFilters.maxAppliedJobFitScore !== undefined) query.append('maxAppliedJobFitScore', String(currentFilters.maxAppliedJobFitScore));
-      if (currentFilters.minMatchingJobFitScore !== undefined) query.append('minMatchingJobFitScore', String(currentFilters.minMatchingJobFitScore));
-      if (currentFilters.maxMatchingJobFitScore !== undefined) query.append('maxMatchingJobFitScore', String(currentFilters.maxMatchingJobFitScore));
+      if (!advancedQueryParam && currentFilters.selectedPositionIds && currentFilters.selectedPositionIds.length > 0) query.append('positionId', currentFilters.selectedPositionIds.join(','));
+      if (!advancedQueryParam && currentFilters.selectedStatuses && currentFilters.selectedStatuses.length > 0) query.append('status', currentFilters.selectedStatuses.join(','));
+      if (!advancedQueryParam && currentFilters.education) query.append('education', currentFilters.education);
+      if (!advancedQueryParam && currentFilters.minAppliedJobFitScore !== undefined) query.append('minAppliedJobFitScore', String(currentFilters.minAppliedJobFitScore));
+      if (!advancedQueryParam && currentFilters.maxAppliedJobFitScore !== undefined) query.append('maxAppliedJobFitScore', String(currentFilters.maxAppliedJobFitScore));
+      if (!advancedQueryParam && currentFilters.minMatchingJobFitScore !== undefined) query.append('minMatchingJobFitScore', String(currentFilters.minMatchingJobFitScore));
+      if (!advancedQueryParam && currentFilters.maxMatchingJobFitScore !== undefined) query.append('maxMatchingJobFitScore', String(currentFilters.maxMatchingJobFitScore));
       if (currentFilters.includeNoScoreInApplied) query.append('includeNoScoreInApplied', 'true');
       if (currentFilters.includeNoScoreInMatching) query.append('includeNoScoreInMatching', 'true');
       if (currentFilters.minExperienceYears !== undefined && (currentFilters.minExperienceYears > 0 || currentFilters.minExperienceYears === -1)) query.append('minExperienceYears', String(currentFilters.minExperienceYears));

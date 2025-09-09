@@ -39,35 +39,36 @@ export function ZIndexProvider({ children }: { children: React.ReactNode }) {
       // Completely dynamic z-index calculation based on registration order and type hierarchy
       let zIndex = nextZIndexRef.current;
       
-      // Enforce strict hierarchy: dropdown > modal/drawer > overlay > base content
+      // Enforce strict hierarchy: dropdown > overlay (toasts) > modal/drawer > base content
       // This ensures proper layering for usability regardless of registration order
+      // Toasts appear above modals/drawers for better user experience
       
       if (type === 'dropdown') {
-        // Dropdowns should always be above modals and drawers to be visible
+        // Dropdowns should always be above all other components to be visible
         // This is necessary for usability - dropdowns must be visible above their parent containers
-        const modalDrawerComponents = filtered.filter(comp => comp.type === 'modal' || comp.type === 'drawer');
-        if (modalDrawerComponents.length > 0) {
-          const highestModalDrawer = Math.max(...modalDrawerComponents.map(comp => comp.zIndex));
-          zIndex = Math.max(zIndex, highestModalDrawer + Z_INDEX_INCREMENT);
+        const allOtherComponents = filtered.filter(comp => comp.type !== 'dropdown');
+        if (allOtherComponents.length > 0) {
+          const highestOther = Math.max(...allOtherComponents.map(comp => comp.zIndex));
+          zIndex = Math.max(zIndex, highestOther + Z_INDEX_INCREMENT);
         }
       } else if (type === 'modal' || type === 'drawer') {
-        // Modals and drawers should be above overlays and base content
-        const overlayComponents = filtered.filter(comp => comp.type === 'overlay');
-        
-        // Ensure above overlays
-        if (overlayComponents.length > 0) {
-          const highestOverlay = Math.max(...overlayComponents.map(comp => comp.zIndex));
-          zIndex = Math.max(zIndex, highestOverlay + Z_INDEX_INCREMENT);
+        // Modals and drawers should be above base content but below toasts
+        // This allows toasts to appear above modals/drawers for better UX
+        const allOtherComponents = filtered.filter(comp => comp.type !== 'modal' && comp.type !== 'drawer');
+        if (allOtherComponents.length > 0) {
+          const highestOther = Math.max(...allOtherComponents.map(comp => comp.zIndex));
+          // Ensure modals/drawers are above base content but below toasts
+          zIndex = Math.max(zIndex, highestOther - Z_INDEX_INCREMENT);
         }
       } else if (type === 'overlay') {
-        // Overlays (toasts, loading indicators) should be above base content but below modals/drawers
-        // This allows modals and drawers to appear above loading states and notifications
+        // Overlays (toasts, loading indicators) should be above base content
+        // For better UX, toasts should appear above modals/drawers so users can see notifications
         const modalDrawerComponents = filtered.filter(comp => comp.type === 'modal' || comp.type === 'drawer');
         
         if (modalDrawerComponents.length > 0) {
-          // If modals/drawers exist, overlays should be below them
-          const lowestModalDrawer = Math.min(...modalDrawerComponents.map(comp => comp.zIndex));
-          zIndex = Math.min(zIndex, lowestModalDrawer - Z_INDEX_INCREMENT);
+          // Toasts should appear above modals/drawers for better user experience
+          const highestModalDrawer = Math.max(...modalDrawerComponents.map(comp => comp.zIndex));
+          zIndex = Math.max(zIndex, highestModalDrawer + Z_INDEX_INCREMENT);
         } else {
           // If no modals/drawers exist, overlays can be above other components
           const allOtherComponents = filtered.filter(comp => comp.type !== 'overlay');

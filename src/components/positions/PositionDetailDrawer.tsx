@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { Loader2, Briefcase, Users, Search, X, Eye, Edit, ChevronUp, ChevronDown, Save, XCircle, BrainCircuit, Target, MoreVertical } from 'lucide-react';
+import { Loader2, Briefcase, Users, Search, X, Eye, Edit, ChevronUp, ChevronDown, Save, XCircle, BrainCircuit, Target, MoreVertical, Pin as PinIcon, PinOff } from 'lucide-react';
 import { format } from 'date-fns';
 import parseISO from 'date-fns/parseISO';
 import { toast } from 'react-hot-toast';
@@ -981,15 +981,48 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                 )}
               </TableCell>
               <TableCell>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => handleCandidateClick(candidate.id)}
-                  className="hover:bg-primary/10"
-                >
-                  <Eye className="h-4 w-4" />
-                  <span className="ml-1 text-xs">View</span>
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => handleCandidateClick(candidate.id)}
+                    className="hover:bg-primary/10"
+                  >
+                    <Eye className="h-4 w-4" />
+                    <span className="ml-1 text-xs">View</span>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      try {
+                        await fetch(`/api/candidates/${candidate.id}`, {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ isPinned: !candidate.isPinned })
+                        });
+                        // Soft refresh: update local state lists
+                        if (candidate.isPinned) {
+                          candidate.isPinned = false;
+                        } else {
+                          candidate.isPinned = true;
+                        }
+                        // Trigger any re-render by shallow copying arrays
+                        setAppliedCandidates((prev) => [...prev]);
+                        setPotentialCandidates((prev) => [...prev]);
+                      } catch {}
+                    }}
+                    title={candidate.isPinned ? 'Unpin' : 'Pin'}
+                    className="hover:bg-primary/10"
+                  >
+                    {candidate.isPinned ? (
+                      <PinIcon className="h-4 w-4 text-primary" />
+                    ) : (
+                      <PinOff className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
               </TableCell>
             </TableRow>
           ))}
@@ -1144,15 +1177,46 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                 <StatusBadge statusId={candidate.statusId} stageNames={stageNames} />
               </TableCell>
               <TableCell>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => handleCandidateClick(candidate.id)}
-                  className="hover:bg-primary/10"
-                >
-                  <Eye className="h-4 w-4" />
-                  <span className="ml-1 text-xs">View</span>
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => handleCandidateClick(candidate.id)}
+                    className="hover:bg-primary/10"
+                  >
+                    <Eye className="h-4 w-4" />
+                    <span className="ml-1 text-xs">View</span>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      try {
+                        await fetch(`/api/candidates/${candidate.id}`, {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ isPinned: !candidate.isPinned })
+                        });
+                        if (candidate.isPinned) {
+                          candidate.isPinned = false;
+                        } else {
+                          candidate.isPinned = true;
+                        }
+                        setAppliedCandidates((prev) => [...prev]);
+                        setPotentialCandidates((prev) => [...prev]);
+                      } catch {}
+                    }}
+                    title={candidate.isPinned ? 'Unpin' : 'Pin'}
+                    className="hover:bg-primary/10"
+                  >
+                    {candidate.isPinned ? (
+                      <PinIcon className="h-4 w-4 text-primary" />
+                    ) : (
+                      <PinOff className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
               </TableCell>
             </TableRow>
           ))}
@@ -1456,15 +1520,46 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                               )}
                             </TableCell>
                             <TableCell>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleCandidateClick(candidate.id)}
-                                className="hover:bg-primary/10"
-                              >
-                                <Eye className="h-4 w-4" />
-                                <span className="ml-1 text-xs">View</span>
-                              </Button>
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleCandidateClick(candidate.id)}
+                                  className="hover:bg-primary/10"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                  <span className="ml-1 text-xs">View</span>
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    try {
+                                      await fetch(`/api/candidates/${candidate.id}`, {
+                                        method: 'PUT',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ isPinned: !candidate.isPinned })
+                                      });
+                                      if (candidate.isPinned) {
+                                        candidate.isPinned = false;
+                                      } else {
+                                        candidate.isPinned = true;
+                                      }
+                                      setAppliedCandidates((prev) => [...prev]);
+                                      setPotentialCandidates((prev) => [...prev]);
+                                    } catch {}
+                                  }}
+                                  title={candidate.isPinned ? 'Unpin' : 'Pin'}
+                                  className="hover:bg-primary/10"
+                                >
+                                  {candidate.isPinned ? (
+                                    <PinIcon className="h-4 w-4 text-primary" />
+                                  ) : (
+                                    <PinOff className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </div>
                             </TableCell>
                           </TableRow>
                         ))}

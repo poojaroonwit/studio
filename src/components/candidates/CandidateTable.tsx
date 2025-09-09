@@ -401,9 +401,9 @@ const renderTableCells = (
             title={candidate.isPinned ? 'Unpin candidate' : 'Pin candidate to top'}
           >
             {candidate.isPinned ? (
-              <PinIcon className="h-4 w-4" />
+              <PinIcon className="h-4 w-4 text-primary" />
             ) : (
-              <PinOff className="h-4 w-4" />
+              <PinIcon className="h-4 w-4" />
             )}
           </button>
         </TableCell>
@@ -941,7 +941,7 @@ export function CandidateTable({
                       </>
                     ) : (
                       <>
-                        <PinIcon className="mr-2 h-4 w-4" />
+                        <PinIcon className="mr-2 h-4 w-4 text-primary" />
                         Pin to top (shared)
                       </>
                     )}

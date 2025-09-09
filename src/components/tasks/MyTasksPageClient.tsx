@@ -312,12 +312,12 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   const canSeeAllRecruiter = userSession?.modulePermissions?.includes('USERS_VIEW') || 
     userSession?.modulePermissions?.includes('CANDIDATES_VIEW');
 
-  // Set initial recruiter filter for recruiters (but not when showAll is true)
+  // Set initial recruiter filter for recruiters
   useEffect(() => {
-    if (isRecruiter && userSession?.id && !filters.recruiterId && !filters.showAll) {
+    if (isRecruiter && userSession?.id && !filters.recruiterId) {
       setFilters((prev: any) => ({ ...prev, recruiterId: userSession.id }));
     }
-  }, [isRecruiter, userSession?.id, filters.recruiterId, filters.showAll]);
+  }, [isRecruiter, userSession?.id, filters.recruiterId]);
 
   // Update local state when preferences are loaded - only once
   useEffect(() => {
@@ -514,12 +514,11 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
           if (filters.stage) params.append('status', filters.stage);
           if (filters.recruiterId) params.append('recruiterId', filters.recruiterId);
           
-          // If no filters are applied or showAll is true, use the same endpoint as initial load to get all candidates
+          // If no filters are applied, use the same endpoint as initial load to get all candidates
           const hasFilters = filters.name || filters.positionId || filters.stage || filters.recruiterId;
-          const shouldShowAll = !hasFilters || filters.showAll;
-          const endpoint = shouldShowAll
-            ? '/api/taskboard/candidates?limit=1000&page=1' // Get more candidates when showing all
-            : `/api/taskboard/candidates?${params.toString()}`;
+          const endpoint = hasFilters
+            ? `/api/taskboard/candidates?${params.toString()}`
+            : '/api/taskboard/candidates?limit=1000&page=1'; // Get more candidates when showing all
           
           console.log('Fetching candidates with endpoint:', endpoint);
           
@@ -715,47 +714,8 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     }
   };
 
-  // Stage filter functions - Show ALL candidates from ALL recruiters
-  const handleSelectAllStages = () => {
-    console.log('handleSelectAllStages called - showing all candidates from all recruiters');
-    console.log('Current filters before clearing:', filters);
-    console.log('Current selectedStages before clearing:', selectedStages);
-    console.log('User is recruiter:', isRecruiter);
-    console.log('User ID:', userSession?.id);
-    
-    // Toggle showAll - if already showing all, clear it; otherwise set it
-    if (filters.showAll) {
-      // If already showing all, clear the showAll flag
-      setFilters((prev: any) => {
-        const { showAll, ...rest } = prev;
-        return rest;
-      });
-      console.log('Cleared showAll flag');
-    } else {
-      // Clear all filters and set showAll flag
-      setFilters({ showAll: true });
-      setSelectedStages([]);
-      console.log('Set showAll flag and cleared individual stage selections');
-    }
-    
-    console.log('New filters after toggle:', filters.showAll ? { showAll: true } : {});
-    console.log('New selectedStages after toggle:', []);
-  };
-
-  const handleClearAllStages = () => {
-    // Clear all filters to show everything
-    setFilters({ showAll: true });
-    setSelectedStages([]);
-    console.log('Cleared all filters to show all candidates from all recruiters');
-  };
 
   const toggleStageSelection = (stageId: string) => {
-    // Clear showAll when selecting individual stages
-    setFilters((prev: any) => {
-      const { showAll, ...rest } = prev;
-      return rest;
-    });
-    
     setSelectedStages(prev => {
       if (prev.includes(stageId)) {
         return prev.filter(id => id !== stageId);
@@ -1027,11 +987,9 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                      >
                        <div className="flex items-center gap-2">
                          <Filter className="h-3 w-3" />
-                         {filters.showAll 
-                           ? "Show All Candidates"
-                           : selectedStages.length === 0 
-                             ? `All Stages (${stages.length})` 
-                             : `${selectedStages.length} Stage${selectedStages.length !== 1 ? 's' : ''}`
+                         {selectedStages.length === 0 
+                           ? `All Stages (${stages.length})` 
+                           : `${selectedStages.length} Stage${selectedStages.length !== 1 ? 's' : ''}`
                          }
                        </div>
                      </Button>
@@ -1042,34 +1000,6 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                      </div>
                      
                      <div className="max-h-48 overflow-y-auto">
-                       {/* Show All option */}
-                       <div
-                         className={cn(
-                           "flex items-center px-3 py-2 cursor-pointer hover:bg-accent transition-colors",
-                           filters.showAll && "bg-accent"
-                         )}
-                         onClick={() => handleSelectAllStages()}
-                       >
-                         <div className={cn(
-                           "w-4 h-4 rounded border-2 mr-3 flex items-center justify-center transition-colors",
-                           filters.showAll 
-                             ? "bg-primary border-primary" 
-                             : "border-border"
-                         )}>
-                           {filters.showAll && (
-                             <svg className="w-3 h-3 text-primary-foreground" fill="currentColor" viewBox="0 0 20 20">
-                               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                             </svg>
-                           )}
-                         </div>
-                         <span className={cn(
-                           "text-sm font-medium",
-                           filters.showAll && "font-semibold"
-                         )}>
-                           Show All Candidates
-                         </span>
-                       </div>
-                       
                        {/* Individual stage options */}
                        {stages.map((stage) => {
                          const isSelected = selectedStages.includes(stage.id);

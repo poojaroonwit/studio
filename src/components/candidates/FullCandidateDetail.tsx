@@ -1001,7 +1001,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
  
       {/* Floating Save/Cancel buttons when editing */}
       {isEditing && (
-        <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2">
+        <div className="fixed bottom-6 right-6 flex flex-col gap-2" style={{ zIndex: 2000 }}>
           {/* Validation error display removed */}
           
           <div className="flex gap-2">

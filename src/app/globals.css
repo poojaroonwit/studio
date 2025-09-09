@@ -109,6 +109,32 @@
 
 /* Dynamic z-index is now handled by ZIndexContext - removing static overrides */
 
+/* Ensure toasts are always on top of everything */
+[data-sonner-toaster] {
+  z-index: 99999 !important;
+}
+
+/* Ensure react-hot-toast toasts are always on top */
+.go2072408551 {
+  z-index: 99999 !important;
+}
+
+/* Ensure any toast container is always on top */
+[class*="toast"] {
+  z-index: 99999 !important;
+}
+
+/* Force toast containers to be above everything */
+div[style*="z-index"]:has([class*="toast"]) {
+  z-index: 99999 !important;
+}
+
+/* Ensure toast elements are visible */
+[class*="toast"] {
+  position: relative !important;
+  z-index: 99999 !important;
+}
+
 /* Ensure dialog overlays are properly removed when closed */
 [data-radix-dialog-overlay][data-state="closed"] {
   display: none !important;

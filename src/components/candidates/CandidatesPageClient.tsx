@@ -92,12 +92,17 @@ export function CandidatesPageClient({
     debounceMs: 150
   });
 
+  // Settings
+  const { settings: candidateSettings, setSettings: setCandidateSettings, isLoading: settingsLoading, error: settingsError, clearError: clearSettingsError } = useCandidateSettings();
+
   // Local state for pagination and UI
   const [page, setPage] = useState<number>(1);
-  const [pageSize, setPageSize] = useState<number>(20); // Default page size
   const [total, setTotal] = useState<number>(0);
-  const [sortColumn, setSortColumn] = useState<string>('applicationDate');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc' | null>('desc');
+  
+  // Get pagination and sorting from settings
+  const pageSize = candidateSettings?.pageSize || 20;
+  const sortColumn = candidateSettings?.sortColumn || 'applicationDate';
+  const sortDirection = candidateSettings?.sortDirection || 'desc';
   
 
   const [tableLoading, setTableLoading] = useState<boolean>(false);
@@ -624,15 +629,29 @@ export function CandidatesPageClient({
   const [bulkNewRecruiterId, setBulkNewRecruiterId] = useState<string | null>(null);
   const [bulkTransitionNotes, setBulkTransitionNotes] = useState<string>('');
 
-  // Settings
-  const { settings: candidateSettings, setSettings: setCandidateSettings, isLoading: settingsLoading, error: settingsError, clearError: clearSettingsError } = useCandidateSettings();
-
   // PageSize is now managed locally, no longer tied to settings
 
   // Stable callback for settings change
   const handleSettingsChange = useCallback(async (settings: any) => {
     setCandidateSettings(settings);
   }, [setCandidateSettings]);
+
+  // Callback for page size change
+  const handlePageSizeChange = useCallback(async (newPageSize: number) => {
+    const updatedSettings = { ...candidateSettings, pageSize: newPageSize };
+    await setCandidateSettings(updatedSettings);
+    setPage(1); // Reset to first page when page size changes
+  }, [candidateSettings, setCandidateSettings]);
+
+  // Callback for sort change
+  const handleSortChange = useCallback(async (column: string | null, direction?: 'asc' | 'desc' | null) => {
+    const updatedSettings = { 
+      ...candidateSettings, 
+      sortColumn: column || 'applicationDate',
+      sortDirection: direction || 'desc'
+    };
+    await setCandidateSettings(updatedSettings);
+  }, [candidateSettings, setCandidateSettings]);
 
   // Stable callback for settings drawer open/close
   const handleSettingsDrawerOpenChange = useCallback((open: boolean) => {
@@ -786,6 +805,8 @@ export function CandidatesPageClient({
     // For regular filtered results, use database fit score counts from API
     if (databaseFitScoreCounts) {
       console.log('Using database fit score counts:', databaseFitScoreCounts);
+      console.log('Applied counts detail:', databaseFitScoreCounts.applied);
+      console.log('Matching counts detail:', databaseFitScoreCounts.matching);
       return databaseFitScoreCounts;
     }
     
@@ -1754,18 +1775,17 @@ export function CandidatesPageClient({
                   if (column === sortColumn && (direction === null || direction === undefined)) {
                     // 3-state toggle: unsorted -> asc -> desc -> unsorted
                     if (sortDirection === 'asc') {
-                      setSortDirection('desc');
+                      handleSortChange(column, 'desc');
                     } else if (sortDirection === 'desc') {
                       // Clear sort - go back to unsorted (default)
-                      setSortDirection(null);
+                      handleSortChange(column, null);
                     } else {
                       // From unsorted (null) to asc
-                      setSortDirection('asc');
+                      handleSortChange(column, 'asc');
                     }
                   } else {
                     // Set new column and direction (always update even if same values)
-                    setSortColumn(column || 'applicationDate');
-                    setSortDirection(direction || 'desc');
+                    handleSortChange(column || 'applicationDate', direction || 'desc');
                   }
                 }}
                 onEditPosition={setSelectedPositionForEdit}
@@ -1908,8 +1928,7 @@ export function CandidatesPageClient({
                       value={pageSize.toString()} 
                       onValueChange={(value) => {
                         const newPageSize = parseInt(value);
-                        setPageSize(newPageSize);
-                        setPage(1); // Reset to first page when changing page size
+                        handlePageSizeChange(newPageSize);
                         // Fetch data with new page size
                         if (filters) {
                           fetchTableData(filters, 1, newPageSize);

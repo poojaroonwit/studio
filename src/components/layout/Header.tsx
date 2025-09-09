@@ -447,7 +447,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
 
   return (
     <>
-      <header className="flex h-16 items-center justify-between border-b bg-card px-4 md:px-6 sticky top-0 z-40">
+      <header className="flex h-16 items-center justify-between border-b bg-card px-4 md:px-6 sticky top-0" style={{ zIndex: 100 }}>
         <div className={`flex items-center gap-2 ${!open ? 'ml-5' : ''}`}>
           {isLoading ? (
             <>

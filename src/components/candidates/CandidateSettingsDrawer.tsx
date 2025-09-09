@@ -54,6 +54,13 @@ export interface CandidateSettings {
   
   // Pin section settings
   showPinSection: boolean;
+  
+  // Pagination settings
+  pageSize: number;
+  
+  // Sorting settings
+  sortColumn: string;
+  sortDirection: 'asc' | 'desc' | null;
 }
 
 const defaultSettings: CandidateSettings = {
@@ -82,7 +89,10 @@ const defaultSettings: CandidateSettings = {
   fitScoreType: 'applied',
   fitScoreFilterMode: 'single',
   rowHeight: 'normal',
-  showPinSection: false
+  showPinSection: false,
+  pageSize: 20,
+  sortColumn: 'applicationDate',
+  sortDirection: 'desc'
 } as const;
 
 // Column configuration for drag and drop

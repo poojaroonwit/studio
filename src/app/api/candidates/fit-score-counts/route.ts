@@ -31,6 +31,11 @@ function getScoreGrade(score: number | null): string {
     normalizedScore = Math.round(score);
   }
   
+  // Check if score is within valid range
+  if (normalizedScore < 0 || normalizedScore > 100) {
+    return 'no-score';
+  }
+  
   if (normalizedScore >= 81) return 'A';
   if (normalizedScore >= 61) return 'B';
   if (normalizedScore >= 41) return 'C';
@@ -279,14 +284,16 @@ export async function GET(request: NextRequest) {
         // No experience filter
         whereClauses.push(`(c."parsedData"->>'experience' IS NULL OR c."parsedData"->>'experience' = '[]' OR c."parsedData"->>'experience' = '')`);
       } else {
-        whereClauses.push(`CAST(c."parsedData"->>'totalExperienceYears' AS DECIMAL) >= $${paramIndex++}`);
+        // Include candidates with no experience data OR candidates with experience >= minExp
+        whereClauses.push(`(c."parsedData"->>'totalExperienceYears' IS NULL OR CAST(c."parsedData"->>'totalExperienceYears' AS DECIMAL) >= $${paramIndex++})`);
         queryParams.push(minExp);
       }
     }
     
     if (maxExperienceYears !== null) {
       const maxExp = parseInt(maxExperienceYears, 10);
-      whereClauses.push(`CAST(c."parsedData"->>'totalExperienceYears' AS DECIMAL) <= $${paramIndex++}`);
+      // Include candidates with no experience data OR candidates with experience <= maxExp
+      whereClauses.push(`(c."parsedData"->>'totalExperienceYears' IS NULL OR CAST(c."parsedData"->>'totalExperienceYears' AS DECIMAL) <= $${paramIndex++})`);
       queryParams.push(maxExp);
     }
 
@@ -401,27 +408,22 @@ export async function GET(request: NextRequest) {
         matchingCounts[matchingGrade] = (matchingCounts[matchingGrade] || 0) + 1;
       });
 
-      // Convert to expected format
-      const applied = Object.entries(appliedCounts).map(([letter, count]) => ({ letter, count }));
-      const matching = Object.entries(matchingCounts).map(([letter, count]) => ({ letter, count }));
+      // Convert to expected format - ensure all grades are included
+      const allGrades = ['A', 'B', 'C', 'D', 'E', 'no-score'];
+      
+      const applied = allGrades.map(letter => ({ 
+        letter, 
+        count: appliedCounts[letter] || 0 
+      }));
+      
+      const matching = allGrades.map(letter => ({ 
+        letter, 
+        count: matchingCounts[letter] || 0 
+      }));
 
       console.log('Applied counts object:', appliedCounts);
       console.log('Matching counts object:', matchingCounts);
       console.log('Fit score counts result:', { applied, matching });
-
-      // If no results, return empty counts for all grades
-      if (applied.length === 0 && matching.length === 0) {
-        console.log('No fit score counts found, returning empty counts for all grades');
-        const emptyCounts = [
-          { letter: 'A', count: 0 },
-          { letter: 'B', count: 0 },
-          { letter: 'C', count: 0 },
-          { letter: 'D', count: 0 },
-          { letter: 'E', count: 0 },
-          { letter: 'no-score', count: 0 }
-        ];
-        return NextResponse.json({ applied: emptyCounts, matching: emptyCounts });
-      }
 
       return NextResponse.json({ applied, matching });
 

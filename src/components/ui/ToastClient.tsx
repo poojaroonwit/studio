@@ -30,7 +30,7 @@ export default function ToastClient() {
       position="top-right"
       gutter={16}
       containerStyle={{
-        zIndex: contentZIndex, // Use dynamic z-index from ZIndexContext
+        zIndex: Math.max(contentZIndex, 99999), // Ensure toasts are always on top
       }}
       toastOptions={{
         duration: 4000,

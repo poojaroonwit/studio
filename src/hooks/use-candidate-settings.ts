@@ -27,7 +27,11 @@ const defaultSettings: CandidateSettings = {
   showHorizontalFitScoreFilters: true,
   fitScoreType: 'applied',
   fitScoreFilterMode: 'single',
-  rowHeight: 'normal'
+  rowHeight: 'normal',
+  showPinSection: true,
+  pageSize: 20,
+  sortColumn: 'applicationDate',
+  sortDirection: 'desc'
 };
 
 export function useCandidateSettings() {

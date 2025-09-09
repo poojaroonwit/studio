@@ -72,11 +72,16 @@ export async function GET(request: NextRequest) {
         showStatusColumn: boolean;
         showAppliedDateColumn: boolean;
         showLastUpdateColumn: boolean;
+        columnOrder: string[];
         showFilters: boolean;
         showHorizontalFitScoreFilters: boolean;
         fitScoreType: 'applied' | 'matching';
         fitScoreFilterMode: 'single' | 'multi';
         rowHeight: 'compact' | 'normal' | 'comfortable';
+        showPinSection: boolean;
+        pageSize: number;
+        sortColumn: string;
+        sortDirection: 'asc' | 'desc' | null;
       };
     } = {
       taskBoard: {
@@ -127,11 +132,26 @@ export async function GET(request: NextRequest) {
         showStatusColumn: true,
         showAppliedDateColumn: true,
         showLastUpdateColumn: true,
+        columnOrder: [
+          'candidate',
+          'appliedJob',
+          'jobMatches',
+          'fitScore',
+          'recruiter',
+          'source',
+          'status',
+          'appliedDate',
+          'lastUpdate'
+        ],
         showFilters: true,
         showHorizontalFitScoreFilters: true,
         fitScoreType: 'applied',
         fitScoreFilterMode: 'single',
         rowHeight: 'normal',
+        showPinSection: true,
+        pageSize: 20,
+        sortColumn: 'applicationDate',
+        sortDirection: 'desc',
       }
     };
 
@@ -276,6 +296,31 @@ export async function GET(request: NextRequest) {
               break;
             case 'rowHeight':
               transformedPreferences.candidates.rowHeight = value as 'compact' | 'normal' | 'comfortable';
+              break;
+            case 'columnOrder':
+              transformedPreferences.candidates.columnOrder = value ? JSON.parse(value) : [
+                'candidate',
+                'appliedJob',
+                'jobMatches',
+                'fitScore',
+                'recruiter',
+                'source',
+                'status',
+                'appliedDate',
+                'lastUpdate'
+              ];
+              break;
+            case 'showPinSection':
+              transformedPreferences.candidates.showPinSection = value === 'true';
+              break;
+            case 'pageSize':
+              transformedPreferences.candidates.pageSize = parseInt(value) || 20;
+              break;
+            case 'sortColumn':
+              transformedPreferences.candidates.sortColumn = value || 'applicationDate';
+              break;
+            case 'sortDirection':
+              transformedPreferences.candidates.sortDirection = value as 'asc' | 'desc' | null;
               break;
           }
         } else if (pref.modelType === 'sidebar') {

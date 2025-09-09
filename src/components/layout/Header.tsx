@@ -6,8 +6,7 @@ import { UserAvatarCompact } from "@/components/ui/user-avatar";
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from '@/components/ui/dropdown-menu';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Sun, Moon, LogOut, LogIn, Edit3, KeyRound, AlertTriangle, Database, Trash2, RefreshCw, Bug, Monitor, ChevronDown } from 'lucide-react';
+import { Sun, Moon, LogOut, LogIn, Edit3, KeyRound, AlertTriangle, Trash2, RefreshCw, Monitor, ChevronDown } from 'lucide-react';
 import { useSidebar } from '@/components/ui/sidebar';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { usePathname } from 'next/navigation';
@@ -15,7 +14,6 @@ import { NotificationIcon } from '@/components/ui/notification-icon';
 import { WarningIcon } from '@/components/ui/warning-icon';
 import { ChangePasswordModal } from '@/components/auth/ChangePasswordModal';
 import { RedesignedUserModal } from '@/components/users/RedesignedUserModal';
-import { FloatingDebugOverlay } from '@/components/ui/floating-debug-overlay';
 
 import type { UserProfile } from '@/lib/types';
 import type { UserFormValues } from '@/components/users/RedesignedUserModal';
@@ -245,7 +243,6 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
 
 
   const [isDark, setIsDark] = useState(false);
-  const [isDebugOverlayVisible, setIsDebugOverlayVisible] = useState(false);
 
   // Initialize switch state from current theme / saved preference / system
   useEffect(() => {
@@ -270,17 +267,6 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
     }
   }, []);
 
-  // Add keyboard shortcut listener for debug overlay
-  useEffect(() => {
-    const handleToggleDebug = () => {
-      if (user?.role === 'Admin') {
-        setIsDebugOverlayVisible(prev => !prev);
-      }
-    };
-
-    window.addEventListener('toggleDebugOverlay', handleToggleDebug);
-    return () => window.removeEventListener('toggleDebugOverlay', handleToggleDebug);
-  }, [user?.role]);
 
 
   useEffect(() => {
@@ -558,27 +544,6 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
                   </div>
                 </div>
                 
-                {/* Debug Toggle for Admin Users */}
-                {user.role === 'Admin' && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <div className="px-2 py-1.5">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs text-muted-foreground">Debug Overlay</span>
-                        <div className="flex items-center gap-2">
-                          <Bug className="h-3.5 w-3.5 text-purple-500" />
-                          <Switch
-                            checked={isDebugOverlayVisible}
-                            onCheckedChange={setIsDebugOverlayVisible}
-                            onClick={(e) => e.stopPropagation()}
-                            onPointerDown={(e) => e.stopPropagation()}
-                            aria-label="Toggle debug overlay"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </>
-                )}
                 
                 <DropdownMenuSeparator />
                  <DropdownMenuItem onSelect={handleOpenProfileModal}>
@@ -631,13 +596,6 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
         </>
       )}
       
-      {/* Floating Debug Overlay */}
-      <FloatingDebugOverlay 
-        isVisible={isDebugOverlayVisible} 
-        onClose={() => setIsDebugOverlayVisible(false)} 
-      />
-      
-      {/* Z-Index Debugger */}
     </>
   );
 }

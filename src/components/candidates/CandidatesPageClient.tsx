@@ -1369,11 +1369,8 @@ export function CandidatesPageClient({
     // Check if we have an advanced query from URL that's being processed
     const advancedQueryFromUrl = searchParams.get('query');
     if (advancedQueryFromUrl) {
-
-    }
-    if (advancedQueryFromUrl && !filters.name && !filters.email && !filters.phone && !filters.selectedPositionIds?.length && !filters.selectedStatuses?.length && !filters.minAppliedJobFitScore && !filters.maxAppliedJobFitScore && !filters.minMatchingJobFitScore && !filters.maxMatchingJobFitScore) {
-      // Advanced query is being processed, don't fetch yet
-      return;
+      // If there's an advanced query from URL, we should fetch data to process it
+      // Don't skip the fetch - let the API handle the advanced query
     }
     
     // If we have initial candidates and no filters are applied, don't fetch immediately

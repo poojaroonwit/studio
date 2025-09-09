@@ -676,6 +676,22 @@ export function CandidateTable({
   const assigningRecruiterTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const assigningSourceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Group candidates by pin status first, then by email
+  const candidatesByPinStatus = useMemo(() => {
+    const pinned: Candidate[] = [];
+    const unpinned: Candidate[] = [];
+    
+    candidates.forEach((c) => {
+      if (c.isPinned) {
+        pinned.push(c);
+      } else {
+        unpinned.push(c);
+      }
+    });
+    
+    return { pinned, unpinned };
+  }, [candidates]);
+
   // Group candidates by email for grouping functionality
   const candidatesByEmail = useMemo(() => {
     const groups: Record<string, Candidate[]> = {};
@@ -836,6 +852,119 @@ export function CandidateTable({
     };
   }, []);
 
+  // Helper function to render candidate rows
+  const renderCandidateRows = (candidateList: Candidate[], startRowNumber: number) => {
+    let rowNumber = startRowNumber;
+    return candidateList.map((candidate) => {
+      const dateValue = candidate.updatedAt || candidate.createdAt;
+      let displayDate = 'N/A';
+      if (dateValue && typeof dateValue === 'string') {
+        try {
+          displayDate = format(parseISO(dateValue), "MMM d, yyyy");
+        } catch (e) {
+          displayDate = 'Invalid Date';
+        }
+      } else if (dateValue) {
+        try {
+          displayDate = format(new Date(dateValue as any), "MMM d, yyyy");
+        } catch (e) {
+           displayDate = 'Invalid Date';
+        }
+      }
+
+      const currentRowNumber = rowNumber++;
+      
+      return (
+        <TableRow 
+          key={candidate.id} 
+          className="cursor-pointer hover:bg-muted/50 transition-colors"
+          onClick={(e) => handleRowClick(candidate, e)}
+        >
+          <TableCell key={`${candidate.id}-row-number`} className="text-center text-muted-foreground">
+            {currentRowNumber}
+          </TableCell>
+          <TableCell key={`${candidate.id}-select`} className="text-center">
+            <Checkbox
+              checked={safeSelectedCandidateIds.has(candidate.id)}
+              onCheckedChange={() => onToggleSelectCandidate(candidate.id)}
+              aria-label={`Select candidate ${candidate.name}`}
+            />
+          </TableCell>
+          {/* Render columns based on column order from settings */}
+          {renderTableCells(
+            candidate,
+            settings,
+            isJobMatchEnabled,
+            availableRecruiter,
+            availableSources,
+            canEditCandidates,
+            canAssignSource,
+            assigningRecruiter,
+            assigningSource,
+            handleAssignRecruiter,
+            handleAssignSource,
+            handleResetAssigning,
+            stageNames,
+            stageColors as any,
+            displayFitScoreWithGrade,
+            displayAppliedDate,
+            (id: string, name: string) => { setSelectedCandidateSummary({ id, name }); setIsDetailModalOpen(true); },
+            togglePin
+          )}
+
+          <TableCell key={`${candidate.id}-actions`} className="text-right max-w-[100px]">
+            <div className="flex items-center justify-end">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {canViewDetailed && (
+                    <DropdownMenuItem
+                      key="view-detail"
+                      onSelect={() => { setSelectedCandidateSummary({ id: candidate.id, name: candidate.name }); setIsDetailModalOpen(true); }}
+                    >
+                      <Eye className="mr-2 h-4 w-4" />
+                      View Details
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem
+                    key="pin-toggle"
+                    onSelect={() => togglePin(candidate)}
+                  >
+                    {candidate.isPinned ? (
+                      <>
+                        <PinOff className="mr-2 h-4 w-4" />
+                        Unpin from top
+                      </>
+                    ) : (
+                      <>
+                        <PinIcon className="mr-2 h-4 w-4" />
+                        Pin to top (shared)
+                      </>
+                    )}
+                  </DropdownMenuItem>
+                  {canDeleteCandidates && (
+                    <DropdownMenuItem
+                      key="delete"
+                      onSelect={() => confirmDelete(candidate)}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </TableCell>
+        </TableRow>
+      );
+    });
+  };
+
   // Bulk action handlers - removed since they're now handled in parent component
 
   // Calculate the number of visible columns for proper colSpan
@@ -918,234 +1047,56 @@ export function CandidateTable({
           <TableBody>
             {(() => {
               let rowNumber = baseIndex + 1;
-              return emailOrder.map((email, groupIdx) => {
-                const group = candidatesByEmail[email];
-                if (!group || group.length === 0) return null;
-                if (group.length === 1) {
-                  const candidate = group[0];
-              const dateValue = candidate.updatedAt || candidate.createdAt;
-              let displayDate = 'N/A';
-              if (dateValue && typeof dateValue === 'string') {
-                try {
-                  displayDate = format(parseISO(dateValue), "MMM d, yyyy");
-                } catch (e) {
-                  displayDate = 'Invalid Date';
-                }
-              } else if (dateValue) {
-                try {
-                  displayDate = format(new Date(dateValue as any), "MMM d, yyyy");
-                } catch (e) {
-                   displayDate = 'Invalid Date';
-                }
-              }
-
-              // Find the index of the candidate's current stage
-                              const currentStageIndex = availableStages.findIndex(s => s.id === candidate.statusId);
-
-                  const row = (
-                <TableRow key={candidate.id} onClick={(e) => handleRowClick(candidate, e)} className={`cursor-pointer hover:bg-muted/40 ${getRowPaddingClass(settings?.rowHeight)}`} style={getRowHeightStyle(settings?.rowHeight)} data-state={safeSelectedCandidateIds.has(candidate.id) ? 'selected' : ''}>
-                      <TableCell key={`${candidate.id}-row-number`} className="text-center font-mono text-xs text-muted-foreground">{rowNumber}</TableCell>
-                  <TableCell key={`${candidate.id}-select`}><Checkbox
-                      checked={safeSelectedCandidateIds.has(candidate.id)}
-                      onCheckedChange={() => onToggleSelectCandidate(candidate.id)}
-                      aria-label={`Select candidate ${candidate.name}`}
-                    /></TableCell>
-                  {/* Render columns based on column order from settings */}
-                  {renderTableCells(
-                    candidate,
-                    settings,
-                    isJobMatchEnabled,
-                    availableRecruiter,
-                    availableSources,
-                    canEditCandidates,
-                    canAssignSource,
-                    assigningRecruiter,
-                    assigningSource,
-                    handleAssignRecruiter,
-                    handleAssignSource,
-                    handleResetAssigning,
-                    stageNames,
-                    stageColors as any,
-                    displayFitScoreWithGrade,
-                    displayAppliedDate,
-                    (id: string, name: string) => { setSelectedCandidateSummary({ id, name }); setIsDetailModalOpen(true); },
-                    togglePin
-                  )}
-
-                  <TableCell key={`${candidate.id}-actions`} className="text-right max-w-[100px]">
-                    <div className="flex items-center justify-end">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="h-7 w-7 p-0 hover:bg-muted/50 transition-colors duration-200"
-                          >
-                            <MoreHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
-                            <span className="sr-only">Actions</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuItem 
-                            key="view-details" 
-                            onSelect={() => { setSelectedCandidateSummary({ id: candidate.id, name: candidate.name }); setIsDetailModalOpen(true); }}
-                            className="text-sm py-2"
-                          >
-                            <Eye className="mr-2 h-4 w-4" /> 
-                            View Details
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            key="pin-toggle"
-                            onSelect={() => togglePin(candidate)}
-                            className="text-sm py-2"
-                          >
-                            {candidate.isPinned ? (
-                              <>
-                                <PinOff className="mr-2 h-4 w-4" />
-                                Unpin from top
-                              </>
-                            ) : (
-                              <>
-                                <PinIcon className="mr-2 h-4 w-4" />
-                                Pin to top (shared)
-                              </>
-                            )}
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator key="separator" />
-                          <DropdownMenuItem 
-                            key="delete" 
-                            onSelect={() => confirmDelete(candidate)} 
-                            className="text-destructive hover:!bg-destructive/10 focus:!bg-destructive/10 focus:!text-destructive text-sm py-2"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" /> 
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              );
-                  rowNumber++;
-                  return row;
-                } else {
-                  const isExpanded = expandedEmails[email] !== undefined ? expandedEmails[email] : true;
-                  return (
-                    <React.Fragment key={email}>
-                      <TableRow className="bg-muted/30">
-                        <TableCell colSpan={99} className="p-0">
-                          <div className="flex items-center gap-2 px-2 py-1 bg-muted">
-                            <Button variant="ghost" size="icon" onClick={() => setExpandedEmails((prev) => ({ ...prev, [email]: !isExpanded }))} aria-label={isExpanded ? 'Collapse group' : 'Expand group'} className="border border-primary">
-                              {isExpanded ? <ChevronDown /> : <ChevronUp />}
-                            </Button>
-                            <span className="font-semibold">{email}</span>
-                            <span className="text-xs text-muted-foreground">({group.length} position)</span>
+              const { pinned, unpinned } = candidatesByPinStatus;
+              
+              return (
+                <>
+                  {/* Pinned Candidates Section */}
+                  {pinned.length > 0 && (
+                    <>
+                      {/* Section Header for Pinned Candidates */}
+                      <TableRow className="bg-primary/10 border-b-2 border-primary/20">
+                        <TableCell colSpan={getVisibleColumnCount()} className="py-3 px-4">
+                          <div className="flex items-center gap-2">
+                            <PinIcon className="h-4 w-4 text-primary" />
+                            <span className="font-semibold text-primary">Pinned Candidates</span>
+                            <span className="text-sm text-muted-foreground">({pinned.length} candidate{pinned.length !== 1 ? 's' : ''})</span>
                           </div>
                         </TableCell>
                       </TableRow>
-                      {isExpanded && group.map((candidate, idx) => {
-                        const row = (
-                          <TableRow key={candidate.id} onClick={(e) => handleRowClick(candidate, e)} className={`cursor-pointer hover:bg-muted/40 border-t ${getRowPaddingClass(settings?.rowHeight)}`} style={getRowHeightStyle(settings?.rowHeight)} data-state={safeSelectedCandidateIds.has(candidate.id) ? 'selected' : ''}>
-                            <TableCell key={`${candidate.id}-row-number`} className="text-center font-mono text-xs text-muted-foreground">{rowNumber}</TableCell>
-                            <TableCell key={`${candidate.id}-select`}><Checkbox
-                                checked={safeSelectedCandidateIds.has(candidate.id)}
-                                onCheckedChange={() => onToggleSelectCandidate(candidate.id)}
-                                aria-label={`Select candidate ${candidate.name}`}
-                              /></TableCell>
-                            {/* Render columns based on column order from settings */}
-                            {renderTableCells(
-                              candidate,
-                              settings,
-                              isJobMatchEnabled,
-                              availableRecruiter,
-                              availableSources,
-                              canEditCandidates,
-                              canAssignSource,
-                              assigningRecruiter,
-                              assigningSource,
-                              handleAssignRecruiter,
-                              handleAssignSource,
-                              handleResetAssigning,
-                              stageNames,
-                              stageColors as any,
-                              displayFitScoreWithGrade,
-                              displayAppliedDate,
-                              (id: string, name: string) => { setSelectedCandidateSummary({ id, name }); setIsDetailModalOpen(true); },
-                              togglePin
-                            )}
-
-                            <TableCell key={`${candidate.id}-actions`} className="text-right">
-                              <div className="flex items-center justify-end">
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button 
-                                      variant="ghost" 
-                                      size="sm" 
-                                      className="h-7 w-7 p-0 hover:bg-muted/50 transition-colors duration-200"
-                                    >
-                                      <MoreHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
-                                      <span className="sr-only">Actions</span>
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end" className="w-48">
-                                    <DropdownMenuItem 
-                                      key="view-details" 
-                                      onSelect={() => { setSelectedCandidateSummary({ id: candidate.id, name: candidate.name }); setIsDetailModalOpen(true); }}
-                                      className="text-sm py-2"
-                                    >
-                                      <Eye className="mr-2 h-4 w-4" /> 
-                                      View Details
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem 
-                                      key="pin-toggle"
-                                      onSelect={() => togglePin(candidate)}
-                                      className="text-sm py-2"
-                                    >
-                                      {candidate.isPinned ? (
-                                        <>
-                                          <PinOff className="mr-2 h-4 w-4" />
-                                          Unpin from top
-                                        </>
-                                      ) : (
-                                        <>
-                                          <PinIcon className="mr-2 h-4 w-4" />
-                                          Pin to top (shared)
-                                        </>
-                                      )}
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator key="separator" />
-                                    <DropdownMenuItem 
-                                      key="delete" 
-                                      onSelect={() => confirmDelete(candidate)} 
-                                      className="text-destructive hover:!bg-destructive/10 focus:!bg-destructive/10 focus:!text-destructive text-sm py-2"
-                                    >
-                                      <Trash2 className="mr-2 h-4 w-4" /> 
-                                      Delete
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        );
-                        rowNumber++;
-                        // If this is the last candidate in the group, add a group footer row after it
-                        if (idx === group.length - 1) {
-                          return [
-                            row,
-                            <TableRow key={`${email}-footer`} className="bg-muted/20">
-                              <TableCell colSpan={getVisibleColumnCount()} className="text-right text-xs italic px-4 py-2 border-t bg-muted">
-                                Group total: {group.length} candidate{group.length !== 1 ? 's' : ''}
-                              </TableCell>
-                            </TableRow>
-                          ];
-                        }
-                        return row;
-                      })}
-                    </React.Fragment>
-                  );
-                }
-              });
+                      {/* Pinned Candidate Rows */}
+                      {renderCandidateRows(pinned, rowNumber)}
+                    </>
+                  )}
+                  
+                  {/* Unpinned Candidates Section */}
+                  {unpinned.length > 0 && (
+                    <>
+                      {/* Section Header for Unpinned Candidates */}
+                      <TableRow className="bg-muted/30 border-b border-muted">
+                        <TableCell colSpan={getVisibleColumnCount()} className="py-2 px-4">
+                          <div className="flex items-center gap-2">
+                            <Users className="h-4 w-4 text-muted-foreground" />
+                            <span className="font-medium text-foreground">All Candidates</span>
+                            <span className="text-sm text-muted-foreground">({unpinned.length} candidate{unpinned.length !== 1 ? 's' : ''})</span>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                      {/* Unpinned Candidate Rows */}
+                      {renderCandidateRows(unpinned, rowNumber + pinned.length)}
+                    </>
+                  )}
+                  
+                  {/* No candidates message */}
+                  {pinned.length === 0 && unpinned.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={getVisibleColumnCount()} className="text-center py-8 text-muted-foreground">
+                        No candidates found
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </>
+              );
             })()}
           </TableBody>
         </Table>

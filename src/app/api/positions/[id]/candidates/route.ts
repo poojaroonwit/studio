@@ -39,9 +39,9 @@ export async function GET(
       status: 'status',
       lastUpdate: '"updatedAt"',
     };
-    const sortColumnParam = searchParams.get('sortColumn') || 'applicationDate';
+    const sortColumnParam = searchParams.get('sortColumn') || 'fitScore';
     const sortDirectionParam = (searchParams.get('sortDirection') || 'desc').toLowerCase();
-    const sortColumn = allowedSortColumns[sortColumnParam as keyof typeof allowedSortColumns] || '"applicationDate"';
+    const sortColumn = allowedSortColumns[sortColumnParam as keyof typeof allowedSortColumns] || '"fitScore"';
     const sortDirection = sortDirectionParam === 'asc' ? 'ASC' : 'DESC';
     
     // Handle NULL values in sorting - for fitScore, put NULL values first when ascending, last when descending

@@ -672,9 +672,10 @@ export default function DashboardPageClient({
   // Calculate Average Time to Hire (in days)
       const averageTimeToHire = useMemo(() => {
       const safeAllCandidates = Array.isArray(filteredCandidates)? filteredCandidates : [];
-      const hiredCandidates = safeAllCandidates.filter((c: Candidate) => 
-        stageIds.hired && c.statusId === stageIds.hired && c.applicationDate && typeof c.applicationDate === 'string'
-      );
+      const hiredCandidates = safeAllCandidates.filter((c: Candidate) => {
+        const statusName = c.status || '';
+        return statusName === 'Hired' && c.applicationDate && typeof c.applicationDate === 'string';
+      });
 
     if (hiredCandidates.length === 0) return 0;
 

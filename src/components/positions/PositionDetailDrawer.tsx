@@ -172,7 +172,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       setAppliedCandidatesSortDirection(appliedCandidatesSortDirection === 'asc' ? 'desc' : 'asc');
     } else {
       setAppliedCandidatesSortColumn(column);
-      setAppliedCandidatesSortDirection(direction || 'asc');
+      setAppliedCandidatesSortDirection(direction || (column === 'fitScore' ? 'desc' : 'asc'));
     }
   };
 
@@ -186,7 +186,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       setPotentialCandidatesSortDirection(potentialCandidatesSortDirection === 'asc' ? 'desc' : 'asc');
     } else {
       setPotentialCandidatesSortColumn(column);
-      setPotentialCandidatesSortDirection(direction || 'asc');
+      setPotentialCandidatesSortDirection(direction || (column === 'fitScore' ? 'desc' : 'asc'));
     }
   };
 
@@ -200,7 +200,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       setFilteredCandidatesSortDirection(allCandidatesSortDirection === 'asc' ? 'desc' : 'asc');
     } else {
       setFilteredCandidatesSortColumn(column);
-      setFilteredCandidatesSortDirection(direction || 'asc');
+      setFilteredCandidatesSortDirection(direction || (column === 'fitScore' ? 'desc' : 'asc'));
     }
   };
 
@@ -1562,7 +1562,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                           : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
                       )}
                     >
-                      Candidates ({allCandidatesTotal})
+                      Candidates ({isJobMatchEnabled ? allCandidatesTotal : appliedCandidatesTotal})
                     </div>
                     <div
                       onClick={() => setActiveTab('headcount')}
@@ -2040,7 +2040,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                         <div>
                           <h2 className="text-2xl font-bold flex items-center gap-3">
                             <Users className="h-6 w-6 text-primary" />
-                            Candidates ({isJobMatchEnabled ? allCandidatesTotal + potentialCandidatesTotal : allCandidatesTotal})
+                            Candidates ({isJobMatchEnabled ? allCandidatesTotal + potentialCandidatesTotal : appliedCandidatesTotal})
                           </h2>
                           <p className="mt-2 text-muted-foreground">
                             {isJobMatchEnabled 

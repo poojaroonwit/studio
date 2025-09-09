@@ -577,13 +577,13 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
       </div>
                       
       {/* Main Content Area */}
-      <div className="grid grid-cols-1 lg:grid-cols-10 border-t bg-card flex-1 min-h-0">
+      <div className="grid grid-cols-1 lg:grid-cols-12 border-t bg-card flex-1 min-h-0">
         {/* Main Content with Tabs */}
-        <div className="lg:col-span-7 border-r border-border bg-muted/50 flex flex-col min-h-0 pointer-events-auto">
+        <div className="lg:col-span-9 border-r border-border bg-muted/50 flex flex-col min-h-0 pointer-events-auto">
           <div className="w-full h-full flex flex-col min-h-0 pointer-events-auto">
-            <div className="grid w-full grid-cols-5 bg-background border-b border-border flex-shrink-0">
+            <div className="flex w-full bg-background border-b border-border flex-shrink-0">
               <div 
-                className={`text-xs flex items-center justify-center gap-2 px-3 py-4 cursor-pointer transition-colors ${activeTab === 'jobs' ? 'border-b-2 border-primary bg-background' : 'bg-transparent'}`}
+                className={`text-xs flex items-center justify-center gap-2 px-4 py-4 cursor-pointer transition-colors flex-1 ${activeTab === 'jobs' ? 'border-b-2 border-primary bg-background' : 'bg-transparent'}`}
                 onClick={() => setActiveTab('jobs')}
               >
                 <Briefcase className="w-4 h-4" />
@@ -596,14 +596,14 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                 })()}
               </div>
               <div 
-                className={`text-xs flex items-center justify-center gap-2 px-3 py-4 cursor-pointer transition-colors ${activeTab === 'candidate-info' ? 'border-b-2 border-primary bg-background' : 'bg-transparent'}`}
+                className={`text-xs flex items-center justify-center gap-2 px-4 py-4 cursor-pointer transition-colors flex-1 ${activeTab === 'candidate-info' ? 'border-b-2 border-primary bg-background' : 'bg-transparent'}`}
                 onClick={() => setActiveTab('candidate-info')}
               >
                 <User className="w-4 h-4" />
                 Candidate Info
               </div>
               <div 
-                className={`text-xs flex items-center justify-center gap-2 px-3 py-4 cursor-pointer transition-colors ${activeTab === 'education' ? 'border-b-2 border-primary bg-background' : 'bg-transparent'}`}
+                className={`text-xs flex items-center justify-center gap-2 px-4 py-4 cursor-pointer transition-colors flex-1 ${activeTab === 'education' ? 'border-b-2 border-primary bg-background' : 'bg-transparent'}`}
                 onClick={() => setActiveTab('education')}
               >
                 <GraduationCap className="w-4 h-4" />
@@ -615,7 +615,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                 })()}
               </div>
               <div 
-                className={`text-xs flex items-center gap-2 px-3 py-4 cursor-pointer transition-colors ${activeTab === 'experience' ? 'border-b-2 border-primary bg-background' : 'bg-transparent'}`}
+                className={`text-xs flex items-center justify-center gap-2 px-4 py-4 cursor-pointer transition-colors flex-1 ${activeTab === 'experience' ? 'border-b-2 border-primary bg-background' : 'bg-transparent'}`}
                 onClick={() => setActiveTab('experience')}
               >
                 <Clock className="w-4 h-4" />

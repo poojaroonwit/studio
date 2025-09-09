@@ -9,6 +9,7 @@ import { FontLoader } from '@/components/ui/FontLoader';
 import { FontPreloader } from '@/components/ui/FontPreloader';
 import { ResizeObserverInitializer } from '@/components/ui/ResizeObserverInitializer';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
+import { TgInitializationErrorBoundary } from '@/components/ui/TgInitializationErrorBoundary';
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -89,15 +90,17 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {/* Ramda polyfill is now handled by RamdaPolyfillInitializer component */}
       </head>
       <body className={`${inter.variable} ${ibmPlexSansThai.variable} ${notoSansThai.variable}`}>
-        <ErrorBoundary>
-          <ResizeObserverInitializer />
-          <FontPreloader />
-          <FontLoader>
-            <ClientProviders session={session}>
-              {children}
-            </ClientProviders>
-          </FontLoader>
-        </ErrorBoundary>
+        <TgInitializationErrorBoundary>
+          <ErrorBoundary>
+            <ResizeObserverInitializer />
+            <FontPreloader />
+            <FontLoader>
+              <ClientProviders session={session}>
+                {children}
+              </ClientProviders>
+            </FontLoader>
+          </ErrorBoundary>
+        </TgInitializationErrorBoundary>
       </body>
     </html>
   );

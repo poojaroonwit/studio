@@ -898,7 +898,7 @@ export function CandidateTable({
       return (
         <TableRow 
           key={candidate.id} 
-          className={`cursor-pointer hover:bg-muted/50 transition-colors ${candidate.isPinned ? 'bg-blue-100' : ''}`}
+          className={`cursor-pointer transition-colors ${candidate.isPinned ? 'bg-blue-100' : ''}`}
           onClick={(e) => handleRowClick(candidate, e)}
         >
           <TableCell key={`${candidate.id}-row-number`} className="text-center text-muted-foreground">

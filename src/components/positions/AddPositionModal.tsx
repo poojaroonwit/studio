@@ -40,7 +40,7 @@ const addPositionFormSchema = z.object({
   isOpen: z.boolean().default(true),
   positionLevel: z.string().optional().nullable(),
   gradeId: z.string().uuid().optional().nullable(),
-  hiringDate: z.string().optional().nullable(),
+  requestDate: z.string().optional().nullable(),
   recruiterId: z.string().uuid().optional().nullable(),
 });
 
@@ -75,7 +75,7 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
       matchCriteria: '',
       isOpen: true,
       positionLevel: '',
-      hiringDate: new Date().toISOString().split('T')[0], // Set default to today
+      requestDate: new Date().toISOString().split('T')[0], // Set default to today
     },
   });
 
@@ -96,7 +96,7 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
         matchCriteria: '',
         isOpen: true,
         positionLevel: '',
-        hiringDate: new Date().toISOString().split('T')[0], // Set default to today
+        requestDate: new Date().toISOString().split('T')[0], // Set default to today
       });
       
       // Fetch default match criteria and grades
@@ -413,7 +413,7 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
                    <Input
                      id="hiring-date-add"
                      type="date"
-                     {...form.register('hiringDate')}
+                     {...form.register('requestDate')}
                      disabled={isSaving}
                    />
                  </div>

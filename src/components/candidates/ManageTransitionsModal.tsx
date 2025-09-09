@@ -34,9 +34,9 @@ import type { Candidate, TransitionRecord, CandidateStatus, RecruitmentStage } f
 import { PlusCircle, CalendarDays, Edit3, Trash2, Save, X, User, ChevronsUpDown, Check } from 'lucide-react';
 import { format } from 'date-fns';
 import parseISO from 'date-fns/parseISO';
-import { toast } from "react-hot-toast";
 import { cn } from "@/lib/utils";
 import { useToastManager } from "@/hooks/use-toast-manager";
+import { useToast } from "@/hooks/use-toast";
 
 import CandidateCommentsSection from './CandidateCommentsSection';
 import { StageSelect } from './StageSelect';
@@ -85,9 +85,10 @@ export function ManageTransitionsModal({
   const [deletingStageName, setDeletingStageName] = useState<string>('');
 
   // Initialize toast manager for better toast handling
-  const { success: showSuccessToast, error: showErrorToast, loading: showLoadingToast } = useToastManager({
+  const { success: showSuccessToast, error: showErrorToast, loading: showLoadingToast, clearAll: dismissAllToasts } = useToastManager({
     deduplicationWindowMs: 2000
   });
+  const { dismissById } = useToast();
 
 
   // Refs for cleanup and preventing memory leaks
@@ -215,7 +216,7 @@ export function ManageTransitionsModal({
             if (result === false || result === undefined) {
                 console.log('ManageTransitionsModal - Update was blocked, not proceeding with success flow');
                 // Dismiss loading toast
-                toast.dismiss(loadingToastId);
+                dismissById(loadingToastId);
                 setIsSaving(false); // Reset saving state
                 return; // Don't show success toast or close modal - the blocking logic should handle user feedback
             }
@@ -227,7 +228,7 @@ export function ManageTransitionsModal({
         if (!isMountedRef.current) return;
         
         // Transaction passed successfully - close the manage transaction toast
-        toast.dismiss(loadingToastId);
+        dismissById(loadingToastId);
         
         // Reset form and state
         form.reset({ newStatus: data.newStatus, notes: '' }); 
@@ -259,7 +260,7 @@ export function ManageTransitionsModal({
         if (!isMountedRef.current) return;
         
         // Dismiss loading toast
-        toast.dismiss(loadingToastId);
+        dismissById(loadingToastId);
         
         console.error('Transition save error:', error);
         

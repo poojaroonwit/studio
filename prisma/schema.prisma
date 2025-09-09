@@ -64,7 +64,7 @@ model Position {
   updatedAt         DateTime           @updatedAt
   companyId         String?            @db.Uuid
   gradeId           String?            @db.Uuid
-  hiringDate        DateTime?
+  requestDate       DateTime?
   positionAttribute String?
   candidates        Candidate[]
   headcounts        Headcount[]        @relation("PositionHeadcount")

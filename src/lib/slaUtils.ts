@@ -1,5 +1,5 @@
 import type { Position, Grade } from '@/lib/types';
-import prisma from '@/lib/prisma';
+import { getPool } from '@/lib/db';
 
 export interface SLACheckResult {
   isViolated: boolean;
@@ -80,16 +80,16 @@ export function formatSLAMessage(slaResult: SLACheckResult): string {
  * @returns The latest hired date or null if not all headcounts are filled
  */
 export async function getLatestHiredDateForPosition(positionId: string): Promise<Date | null> {
+  const client = await getPool().connect();
   try {
     // First check if all headcounts are filled
-    const headcounts = await prisma.headcount.findMany({
-      where: { positionId },
-      select: {
-        id: true,
-        status: true,
-        candidateId: true,
-      },
-    });
+    const headcountsQuery = `
+      SELECT id, status, "candidateId"
+      FROM "Headcount"
+      WHERE "positionId" = $1
+    `;
+    const headcountsResult = await client.query(headcountsQuery, [positionId]);
+    const headcounts = headcountsResult.rows;
 
     if (headcounts.length === 0) {
       return null;
@@ -105,44 +105,42 @@ export async function getLatestHiredDateForPosition(positionId: string): Promise
     }
 
     // Get the latest hired date from transition records for candidates in this position
-    const latestHiredTransition = await prisma.transitionRecord.findFirst({
-      where: {
-        positionId,
-        stage: 'Hired',
-        candidate: {
-          positionId,
-        },
-      },
-      orderBy: {
-        date: 'desc',
-      },
-      select: {
-        date: true,
-      },
-    });
+    const latestHiredQuery = `
+      SELECT tr.date
+      FROM "TransitionRecord" tr
+      JOIN "Candidate" c ON tr."candidateId" = c.id
+      WHERE tr."positionId" = $1
+        AND tr.stage = 'Hired'
+        AND c."positionId" = $1
+      ORDER BY tr.date DESC
+      LIMIT 1
+    `;
+    const latestHiredResult = await client.query(latestHiredQuery, [positionId]);
 
-    return latestHiredTransition?.date || null;
+    return latestHiredResult.rows[0]?.date || null;
   } catch (error) {
     console.error('Error getting latest hired date for position:', error);
     return null;
+  } finally {
+    client.release();
   }
 }
 
 /**
  * Get the effective SLA start date for a position
  * If all headcounts are filled, use the latest hired date
- * Otherwise, use the position request date (hiringDate)
+ * Otherwise, use the position request date (requestDate)
  * @param position - The position object
  * @returns The effective SLA start date or null
  */
 export async function getEffectiveSLAStartDate(position: Position): Promise<Date | null> {
-  if (!position.hiringDate) {
+  if (!position.requestDate) {
     return null;
   }
 
-  // If position has no ID (e.g., in some contexts), just use hiringDate
+  // If position has no ID (e.g., in some contexts), just use requestDate
   if (!position.id) {
-    return new Date(position.hiringDate);
+    return new Date(position.requestDate);
   }
 
   try {
@@ -154,10 +152,10 @@ export async function getEffectiveSLAStartDate(position: Position): Promise<Date
     }
     
     // Otherwise, use the position request date
-    return new Date(position.hiringDate);
+    return new Date(position.requestDate);
   } catch (error) {
     console.error('Error getting effective SLA start date:', error);
     // Fallback to position request date
-    return new Date(position.hiringDate);
+    return new Date(position.requestDate);
   }
 }

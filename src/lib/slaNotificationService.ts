@@ -10,7 +10,7 @@ export interface SLAViolationNotification {
   gradeName: string;
   daysOverdue: number;
   slaDays: number;
-  hiringDate: string;
+  requestDate: string;
   createdAt: string;
 }
 
@@ -23,7 +23,7 @@ export interface SLAPositionData {
   gradeName: string;
   gradeColor: string;
   slaDays: number;
-  hiringDate: string;
+  requestDate: string;
   isViolated: boolean;
   daysOverdue: number;
   daysRemaining: number;
@@ -60,12 +60,12 @@ export async function checkAndNotifySLAViolations(): Promise<SLAViolationNotific
   const client = await getPool().connect();
   
   try {
-    // Get all positions with grades and hiring dates
+    // Get all positions with grades and request dates
     const query = `
       SELECT 
         p.id,
         p.title,
-        p."hiringDate",
+        p."requestDate",
         p."recruiterId",
         u.name as "recruiterName",
         g.name as "gradeName",
@@ -76,7 +76,7 @@ export async function checkAndNotifySLAViolations(): Promise<SLAViolationNotific
       LEFT JOIN "Grade" g ON p."gradeId" = g.id
       WHERE p."gradeId" IS NOT NULL
         AND p."isOpen" = true
-        AND p."hiringDate" IS NOT NULL
+        AND p."requestDate" IS NOT NULL
     `;
     
     const result = await client.query(query);
@@ -88,7 +88,7 @@ export async function checkAndNotifySLAViolations(): Promise<SLAViolationNotific
         title: row.title,
         department: '',
         isOpen: true,
-        hiringDate: row.hiringDate,
+        requestDate: row.requestDate,
         grade: {
           id: '',
           name: row.gradeName,
@@ -113,7 +113,7 @@ export async function checkAndNotifySLAViolations(): Promise<SLAViolationNotific
           gradeName: slaResult.gradeName,
           daysOverdue: slaResult.daysOverdue,
           slaDays: slaResult.slaDays,
-          hiringDate: position.hiringDate!,
+          requestDate: position.requestDate!,
           createdAt: new Date().toISOString(),
         });
       }
@@ -134,7 +134,7 @@ export async function getAllSLAPositions(recruiterId?: string): Promise<SLAPosit
         p.id,
         p.title,
         p.department,
-        p."hiringDate",
+        p."requestDate",
         p."recruiterId",
         u.name as "recruiterName",
         g.name as "gradeName",
@@ -146,7 +146,7 @@ export async function getAllSLAPositions(recruiterId?: string): Promise<SLAPosit
       LEFT JOIN "Grade" g ON p."gradeId" = g.id
       WHERE p."gradeId" IS NOT NULL
         AND p."isOpen" = true
-        AND p."hiringDate" IS NOT NULL
+        AND p."requestDate" IS NOT NULL
     `;
     
     const params: any[] = [];
@@ -155,7 +155,7 @@ export async function getAllSLAPositions(recruiterId?: string): Promise<SLAPosit
       params.push(recruiterId);
     }
     
-    query += ` ORDER BY p."hiringDate" ASC`;
+    query += ` ORDER BY p."requestDate" ASC`;
     
     const result = await client.query(query, params);
     const slaPositions: SLAPositionData[] = [];
@@ -166,7 +166,7 @@ export async function getAllSLAPositions(recruiterId?: string): Promise<SLAPosit
         title: row.title,
         department: row.department,
         isOpen: true,
-        hiringDate: row.hiringDate,
+        requestDate: row.requestDate,
         grade: {
           id: '',
           name: row.gradeName,
@@ -204,7 +204,7 @@ export async function getAllSLAPositions(recruiterId?: string): Promise<SLAPosit
         gradeName: row.gradeName,
         gradeColor: row.gradeColor,
         slaDays: row.slaDays,
-        hiringDate: position.hiringDate!,
+        requestDate: position.requestDate!,
         isViolated: slaResult ? slaResult.isViolated : false,
         daysOverdue: slaResult ? slaResult.daysOverdue : 0,
         daysRemaining,
@@ -322,7 +322,7 @@ export async function getSLAViolationsForRecruiter(recruiterId: string): Promise
       SELECT 
         p.id,
         p.title,
-        p."hiringDate",
+        p."requestDate",
         p."recruiterId",
         u.name as "recruiterName",
         g.name as "gradeName",
@@ -334,7 +334,7 @@ export async function getSLAViolationsForRecruiter(recruiterId: string): Promise
       WHERE p."recruiterId" = $1
         AND p."gradeId" IS NOT NULL
         AND p."isOpen" = true
-        AND p."hiringDate" IS NOT NULL
+        AND p."requestDate" IS NOT NULL
     `;
     
     const result = await client.query(query, [recruiterId]);
@@ -346,7 +346,7 @@ export async function getSLAViolationsForRecruiter(recruiterId: string): Promise
         title: row.title,
         department: '',
         isOpen: true,
-        hiringDate: row.hiringDate,
+        requestDate: row.requestDate,
         grade: {
           id: '',
           name: row.gradeName,
@@ -371,7 +371,7 @@ export async function getSLAViolationsForRecruiter(recruiterId: string): Promise
           gradeName: slaResult.gradeName,
           daysOverdue: slaResult.daysOverdue,
           slaDays: slaResult.slaDays,
-          hiringDate: position.hiringDate!,
+          requestDate: position.requestDate!,
           createdAt: new Date().toISOString(),
         });
       }

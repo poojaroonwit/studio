@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
-import { toast } from 'react-hot-toast';
+import { useToast } from '@/hooks/use-toast';
 import { differenceInMonths } from 'date-fns';
 import * as z from 'zod';
 import type { Candidate, Position, UserProfile, RecruitmentStage, TransitionRecord, CandidateSource } from '@/lib/types';
@@ -40,6 +40,7 @@ const editCandidateDetailSchema = z.object({
 type EditCandidateFormValues = z.infer<typeof editCandidateDetailSchema>;
 
 export const useCandidateDetail = (candidateId: string) => {
+  const { success: toastSuccess, error: toastError } = useToast();
 
   const [candidate, setCandidate] = useState<Candidate | null>(null);
   const [loading, setLoading] = useState(true);
@@ -635,14 +636,14 @@ export const useCandidateDetail = (candidateId: string) => {
 
       const updatedCandidate = await response.json();
       setCandidate(updatedCandidate);
-      toast.success(newRecruiterId ? 'Recruiter assigned successfully' : 'Recruiter unassigned successfully');
+      toastSuccess(newRecruiterId ? 'Recruiter assigned successfully' : 'Recruiter unassigned successfully');
     } catch (error: unknown) {
       console.error('Error assigning recruiter:', error);
       if (error instanceof Error && error.name === 'AbortError') {
-        toast.error('Request timed out. Please try again.');
+        toastError('Request timed out. Please try again.');
       } else {
         const errorMessage = error instanceof Error ? error.message : 'Failed to assign recruiter';
-        toast.error(errorMessage);
+        toastError(errorMessage);
       }
     } finally {
       clearTimeout(timeoutId);
@@ -669,11 +670,11 @@ export const useCandidateDetail = (candidateId: string) => {
 
       const updatedCandidate = await response.json();
       setCandidate(updatedCandidate);
-      toast.success(newSourceId ? 'Source assigned successfully' : 'Source unassigned successfully');
+      toastSuccess(newSourceId ? 'Source assigned successfully' : 'Source unassigned successfully');
     } catch (error: unknown) {
       console.error('Error assigning source:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to assign source';
-      toast.error(errorMessage);
+      toastError(errorMessage);
     } finally {
       setIsAssigningSource(false);
     }
@@ -729,12 +730,12 @@ export const useCandidateDetail = (candidateId: string) => {
       }
       avatarForceRefreshTimeoutRef.current = timeoutId;
       
-      toast.success('Avatar updated successfully');
+      toastSuccess('Avatar updated successfully');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update avatar';
       console.error(`[handleAvatarUpload] Error:`, err);
       setAvatarError(errorMessage);
-      toast.error(errorMessage);
+      toastError(errorMessage);
     } finally {
       setAvatarUploading(false);
     }

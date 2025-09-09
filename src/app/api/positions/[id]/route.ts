@@ -23,7 +23,7 @@ const updatePositionSchema = z.object({
     z.string().uuid(),
     z.null()
   ]).optional(),
-  hiringDate: z.string().optional().nullable(),
+  requestDate: z.string().optional().nullable(),
   recruiterId: z.union([
     z.string().uuid(),
     z.null()
@@ -105,7 +105,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   
   const client = await getPool().connect();
   try {
-    const query = 'SELECT p.id, p.title, p.department, p.description, p."matchCriteria", p."isOpen", p."positionLevel", p."positionAttribute", p."gradeId", p."hiringDate", p."recruiterId", p."customAttributes", p."createdAt", p."updatedAt", u.name as "recruiterName", g.name as "gradeName", g.label as "gradeLabel", g."sla_days" as "gradeSlaDays", g.color as "gradeColor" FROM "Position" p LEFT JOIN "User" u ON p."recruiterId" = u.id LEFT JOIN "Grade" g ON p."gradeId" = g.id WHERE p.id = $1';
+    const query = 'SELECT p.id, p.title, p.department, p.description, p."matchCriteria", p."isOpen", p."positionLevel", p."positionAttribute", p."gradeId", p."requestDate", p."recruiterId", p."customAttributes", p."createdAt", p."updatedAt", u.name as "recruiterName", g.name as "gradeName", g.label as "gradeLabel", g."sla_days" as "gradeSlaDays", g.color as "gradeColor" FROM "Position" p LEFT JOIN "User" u ON p."recruiterId" = u.id LEFT JOIN "Grade" g ON p."gradeId" = g.id WHERE p.id = $1';
     const result = await client.query(query, [id]);
     
     if (result.rows.length === 0) {
@@ -301,9 +301,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       updateFields.push(`"gradeId" = $${paramIndex++}`);
       updateValues.push(updateData.gradeId);
     }
-    if (updateData.hiringDate !== undefined) {
-      updateFields.push(`"hiringDate" = $${paramIndex++}`);
-      updateValues.push(updateData.hiringDate);
+    if (updateData.requestDate !== undefined) {
+      updateFields.push(`"requestDate" = $${paramIndex++}`);
+      updateValues.push(updateData.requestDate);
     }
     if (updateData.recruiterId !== undefined) {
       updateFields.push(`"recruiterId" = $${paramIndex++}`);
@@ -356,7 +356,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const updatedPosition = updateResult.rows[0];
     
     // Fetch the updated position with recruiter name and grade information
-    const enrichedPositionQuery = 'SELECT p.id, p.title, p.department, p.description, p."matchCriteria", p."isOpen", p."positionLevel", p."positionAttribute", p."gradeId", p."hiringDate", p."recruiterId", p."customAttributes", p."createdAt", p."updatedAt", u.name as "recruiterName", g.name as "gradeName", g.label as "gradeLabel", g."sla_days" as "gradeSlaDays", g.color as "gradeColor" FROM "Position" p LEFT JOIN "User" u ON p."recruiterId" = u.id LEFT JOIN "Grade" g ON p."gradeId" = g.id WHERE p.id = $1';
+    const enrichedPositionQuery = 'SELECT p.id, p.title, p.department, p.description, p."matchCriteria", p."isOpen", p."positionLevel", p."positionAttribute", p."gradeId", p."requestDate", p."recruiterId", p."customAttributes", p."createdAt", p."updatedAt", u.name as "recruiterName", g.name as "gradeName", g.label as "gradeLabel", g."sla_days" as "gradeSlaDays", g.color as "gradeColor" FROM "Position" p LEFT JOIN "User" u ON p."recruiterId" = u.id LEFT JOIN "Grade" g ON p."gradeId" = g.id WHERE p.id = $1';
     const enrichedResult = await client.query(enrichedPositionQuery, [id]);
     const enrichedPosition = enrichedResult.rows[0];
     

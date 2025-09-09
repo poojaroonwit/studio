@@ -42,10 +42,20 @@ export function SLABadge({ position, className }: SLABadgeProps) {
         }
         
         const data: SLAResponse = await response.json();
-        setSlaResult(data.violation);
-        setRemaining(data.remainingDays);
+        
+        // Handle cases where SLA calculation is not possible
+        if (data.error) {
+          console.warn('SLA calculation not possible:', data.error);
+          setSlaResult(null);
+          setRemaining(null);
+        } else {
+          setSlaResult(data.violation);
+          setRemaining(data.remainingDays);
+        }
       } catch (error) {
         console.error('Error calculating SLA:', error);
+        setSlaResult(null);
+        setRemaining(null);
       } finally {
         setLoading(false);
       }

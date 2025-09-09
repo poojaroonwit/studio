@@ -33,7 +33,7 @@ export async function GET(
           p.id,
           p.title,
           p.department,
-          p."hiringDate",
+          p."requestDate",
           p."isOpen",
           p."recruiterId",
           g.id as "gradeId",
@@ -62,7 +62,7 @@ export async function GET(
         id: positionRow.id,
         title: positionRow.title,
         department: positionRow.department,
-        hiringDate: positionRow.hiringDate,
+        requestDate: positionRow.requestDate,
         isOpen: positionRow.isOpen,
         recruiterId: positionRow.recruiterId,
         grade: positionRow.gradeId ? {
@@ -76,6 +76,37 @@ export async function GET(
           maxLevel: positionRow.gradeMaxLevel,
         } : null,
       };
+
+      // Validate position has required data for SLA calculation
+      if (!position.requestDate) {
+        return NextResponse.json({
+          violation: null,
+          remainingDays: null,
+          position: {
+            id: position.id,
+            title: position.title,
+            isOpen: position.isOpen,
+            hasGrade: !!position.grade,
+            slaDays: position.grade?.slaDays || null,
+          },
+          error: 'Position does not have a request date set'
+        });
+      }
+
+      if (!position.grade || !position.grade.slaDays) {
+        return NextResponse.json({
+          violation: null,
+          remainingDays: null,
+          position: {
+            id: position.id,
+            title: position.title,
+            isOpen: position.isOpen,
+            hasGrade: !!position.grade,
+            slaDays: position.grade?.slaDays || null,
+          },
+          error: 'Position does not have a grade with SLA days configured'
+        });
+      }
 
       // Calculate SLA information
       const [violationResult, remainingDays] = await Promise.all([

@@ -400,14 +400,7 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
           </CardContent>
         </Card>
       ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle>Headcount Positions ({headcounts.length})</CardTitle>
-            <CardDescription>
-              Manage headcount positions and candidate assignments
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+    
             <Table>
                            <TableHeader>
                <TableRow>
@@ -512,8 +505,7 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
                 ))}
               </TableBody>
             </Table>
-          </CardContent>
-        </Card>
+       
       )}
 
       {/* Modals */}

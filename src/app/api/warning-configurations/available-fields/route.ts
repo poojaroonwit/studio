@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
         'positionLevel',
         'recruiterId',
         'gradeId',
-        'hiringDate',
+        'requestDate',
         'positionAttribute',
         'createdAt',
         'updatedAt',

@@ -972,7 +972,7 @@ export interface Position {
   positionAttribute?: string | null;
   gradeId?: string | null;
   grade?: Grade | null;
-  hiringDate?: string | null;
+  requestDate?: string | null;
   recruiterId?: string | null;
   recruiterName?: string | null;
   customAttributes?: Record<string, any> | null;

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { UploadCloud, Loader2 } from 'lucide-react';
-import { toast } from 'react-hot-toast';
+import { useToast } from '@/hooks/use-toast';
 import type { Candidate } from '@/lib/types';
 
 interface UploadResumeModalProps {
@@ -17,6 +17,7 @@ interface UploadResumeModalProps {
 }
 
 const UploadResumeModal = ({ isOpen, onOpenChange, candidate, onUploadSuccess }: UploadResumeModalProps) => {
+  const { error: toastError } = useToast();
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadTriggered, setUploadTriggered] = useState(false);
@@ -27,12 +28,12 @@ const UploadResumeModal = ({ isOpen, onOpenChange, candidate, onUploadSuccess }:
       // Validate file type
       const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
       if (!allowedTypes.includes(selectedFile.type)) {
-        toast.error('Please select a PDF or Word document');
+        toastError('Please select a PDF or Word document');
         return;
       }
       // Validate file size (5MB limit)
       if (selectedFile.size > 5 * 1024 * 1024) {
-        toast.error('File size must be less than 5MB');
+        toastError('File size must be less than 5MB');
         return;
       }
       setFile(selectedFile);

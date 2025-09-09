@@ -129,7 +129,7 @@ const SEVERITIES = [
 const FIELD_SUGGESTIONS = {
   position: [
     { value: 'title', label: 'Title', description: 'Position title' },
-    { value: 'hiringDate', label: 'Hiring Date', description: 'Target hiring date' },
+    { value: 'requestDate', label: 'Hiring Date', description: 'Target hiring date' },
     { value: 'grade', label: 'Grade', description: 'Position grade' },
     { value: 'headcount', label: 'Headcount', description: 'Number of positions' },
     { value: 'vacancies', label: 'Vacancies', description: 'Number of open positions' },

@@ -47,7 +47,7 @@ const editPositionFormSchema = z.object({
   isOpen: z.boolean().default(true),
   positionLevel: z.string().optional().nullable(),
   gradeId: z.string().uuid().optional().nullable(),
-  hiringDate: z.string().optional().nullable(),
+  requestDate: z.string().optional().nullable(),
 });
 
 export type EditPositionFormValues = z.infer<typeof editPositionFormSchema>;
@@ -162,7 +162,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       isOpen: true,
       positionLevel: '',
       gradeId: null,
-      hiringDate: null,
+      requestDate: null,
     },
   });
 
@@ -254,7 +254,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   const sortedAppliedCandidates = useMemo(() => {
     if (!appliedCandidatesSortColumn) return appliedCandidates;
     
-    // For fitScore, rely on server-side sorting
+    // Skip client-side sorting for fitScore since server already sorts it
     if (appliedCandidatesSortColumn === 'fitScore') {
       return appliedCandidates;
     }
@@ -271,11 +271,6 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   const sortedPotentialCandidates = useMemo(() => {
     if (!potentialCandidatesSortColumn) return potentialCandidates;
     
-    // For fitScore, rely on server-side sorting
-    if (potentialCandidatesSortColumn === 'fitScore') {
-      return potentialCandidates;
-    }
-    
     return [...potentialCandidates].sort((a, b) => {
       const aValue = getSortableValue(a, potentialCandidatesSortColumn);
       const bValue = getSortableValue(b, potentialCandidatesSortColumn);
@@ -288,7 +283,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   const sortedAllCandidates = useMemo(() => {
     if (!allCandidatesSortColumn) return filteredCandidates;
     
-    // For fitScore, rely on server-side sorting
+    // Skip client-side sorting for fitScore since server already sorts it
     if (allCandidatesSortColumn === 'fitScore') {
       return filteredCandidates;
     }
@@ -341,7 +336,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         isOpen: data.isOpen ?? true,
         positionLevel: data.positionLevel || '',
         gradeId: data.gradeId || null,
-        hiringDate: data.hiringDate ? new Date(data.hiringDate).toISOString().split('T')[0] : null,
+        requestDate: data.requestDate ? new Date(data.requestDate).toISOString().split('T')[0] : null,
       });
       
       // Set drawer as ready for WYSIWYG editors
@@ -518,7 +513,14 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       }
       
       const data = await response.json();
-      setSlaDaysLeft(data.remainingDays);
+      
+      // Handle cases where SLA calculation is not possible
+      if (data.error) {
+        console.warn('SLA calculation not possible:', data.error);
+        setSlaDaysLeft(null);
+      } else {
+        setSlaDaysLeft(data.remainingDays);
+      }
     } catch (error) {
       console.error('Error calculating SLA:', error);
       setSlaDaysLeft(null);
@@ -555,7 +557,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         isOpen: position.isOpen ?? true,
         positionLevel: position.positionLevel || '',
         gradeId: position.gradeId || null,
-        hiringDate: position.hiringDate ? new Date(position.hiringDate).toISOString().split('T')[0] : null,
+        requestDate: position.requestDate ? new Date(position.requestDate).toISOString().split('T')[0] : null,
       });
       
       // Force re-render of WYSIWYG editors with new content
@@ -599,7 +601,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         isOpen: position.isOpen ?? true,
         positionLevel: position.positionLevel || '',
         gradeId: position.gradeId || null,
-        hiringDate: position.hiringDate ? new Date(position.hiringDate).toISOString().split('T')[0] : null,
+        requestDate: position.requestDate ? new Date(position.requestDate).toISOString().split('T')[0] : null,
       });
     }
     setIsEditMode(false);
@@ -801,7 +803,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         isOpen: position.isOpen ?? true,
         positionLevel: position.positionLevel || '',
         gradeId: position.gradeId || null,
-        hiringDate: position.hiringDate ? new Date(position.hiringDate).toISOString().split('T')[0] : null,
+        requestDate: position.requestDate ? new Date(position.requestDate).toISOString().split('T')[0] : null,
       });
     }
   }, [position, isEditMode, form]);
@@ -985,7 +987,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                   <TableRow className="bg-primary/10 border-b-2 border-primary/20">
                     <TableCell colSpan={6} className="py-2 px-3">
                       <div className="flex items-center gap-2">
-                        <PinIcon className="h-4 w-4 text-primary rotate-45" />
+                        <PinIcon className="h-4 w-4 text-blue-600 fill-current rotate-45" />
                         <span className="font-semibold text-primary">Pinned Candidates</span>
                         <span className="text-xs text-muted-foreground">({pinned.length})</span>
                       </div>
@@ -1057,9 +1059,9 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                           className="hover:bg-primary/10"
                         >
                           {candidate.isPinned ? (
-                            <PinIcon className="h-4 w-4 text-primary fill-current rotate-45" />
+                            <PinIcon className="h-4 w-4 text-blue-600 fill-current rotate-45" />
                           ) : (
-                            <PinIcon className="h-4 w-4 text-blue-600 rotate-45" />
+                            <PinIcon className="h-4 w-4 text-black rotate-45" />
                           )}
                         </Button>
                       </div>
@@ -1142,9 +1144,9 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                           className="hover:bg-primary/10"
                         >
                           {candidate.isPinned ? (
-                            <PinIcon className="h-4 w-4 text-primary fill-current rotate-45" />
+                            <PinIcon className="h-4 w-4 text-blue-600 fill-current rotate-45" />
                           ) : (
-                            <PinIcon className="h-4 w-4 text-blue-600 rotate-45" />
+                            <PinIcon className="h-4 w-4 text-black rotate-45" />
                           )}
                         </Button>
                       </div>
@@ -1339,9 +1341,9 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                     className="hover:bg-primary/10"
                   >
                     {candidate.isPinned ? (
-                      <PinIcon className="h-4 w-4 text-primary fill-current rotate-45" />
+                      <PinIcon className="h-4 w-4 text-blue-600 fill-current rotate-45" />
                     ) : (
-                      <PinIcon className="h-4 w-4 text-blue-600 rotate-45" />
+                      <PinIcon className="h-4 w-4 text-black rotate-45" />
                     )}
                   </Button>
                 </div>
@@ -1682,9 +1684,9 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                                   className="hover:bg-primary/10"
                                 >
                                   {candidate.isPinned ? (
-                                    <PinIcon className="h-4 w-4 text-primary fill-current rotate-45" />
+                                    <PinIcon className="h-4 w-4 text-blue-600 fill-current rotate-45" />
                                   ) : (
-                                    <PinIcon className="h-4 w-4 text-blue-600 rotate-45" />
+                                    <PinIcon className="h-4 w-4 text-black rotate-45" />
                                   )}
                                 </Button>
                               </div>
@@ -2011,18 +2013,18 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
 
                           {/* Position Request Date */}
                           <div className="space-y-2">
-                            <Label htmlFor="hiringDate">Position Request Date</Label>
+                            <Label htmlFor="requestDate">Position Request Date</Label>
                             {isEditMode ? (
                               <Controller
-                                name="hiringDate"
+                                name="requestDate"
                                 control={form.control}
                                 render={({ field }) => (
                                   <Input type="date" value={field.value || ''} onChange={field.onChange} />
                                 )}
                               />
                             ) : (
-                              position.hiringDate ? (
-                                <div className="text-base">{format(parseISO(position.hiringDate), 'PPP')}</div>
+                              position.requestDate ? (
+                                <div className="text-base">{format(parseISO(position.requestDate), 'PPP')}</div>
                               ) : (
                                 <div className="text-base text-muted-foreground">Not set</div>
                               )

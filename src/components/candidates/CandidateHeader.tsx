@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Edit, Edit3, MoreVertical, RefreshCw, Users, X, BrainCircuit, Upload, Trash2, ExternalLink, Copy, Pin } from 'lucide-react';
 import { formatCandidateNameWithLang } from "@/lib/candidateUtils";
-import { toast } from 'react-hot-toast';
+import { useToast } from '@/hooks/use-toast';
 import type { Candidate, UserProfile, RecruitmentStage, CandidateSource } from '@/lib/types';
 import { CandidateRecruiterCell } from './CandidateRecruiterCell';
 import { CandidateSourceCell } from './CandidateSourceCell';
@@ -70,6 +70,7 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
   realtimeConnected,
   onTogglePin
 }) => {
+  const { success: toastSuccess } = useToast();
   const { contentZIndex } = useDynamicZIndex('candidate-header', 'overlay');
   const nameInfo = formatCandidateNameWithLang(candidate);
   const stageId = candidate.statusId || candidate.status || '';
@@ -84,7 +85,7 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
     if (candidate.id) {
       try {
         await navigator.clipboard.writeText(candidate.id);
-        toast.success('Candidate ID copied to clipboard');
+        toastSuccess('Candidate ID copied to clipboard');
       } catch (err) {
         // Fallback for older browsers
         const textArea = document.createElement('textarea');
@@ -93,7 +94,7 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
         textArea.select();
         document.execCommand('copy');
         document.body.removeChild(textArea);
-        toast.success('Candidate ID copied to clipboard');
+        toastSuccess('Candidate ID copied to clipboard');
       }
     }
   };
@@ -228,29 +229,32 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
                   {candidate.id && (
                     <button
                       onClick={handleCopyId}
-                      className="p-2 rounded-full hover:bg-muted/50 transition-colors duration-200 group"
+                      className="flex items-center gap-1 px-2 py-1 rounded-md hover:bg-muted/50 transition-colors duration-200 group"
                       title={`Copy ID: ${candidate.id}`}
                     >
                       <Copy className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                      <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">ID</span>
                     </button>
                   )}
-                  {onTogglePin && (
-                    <button
+                  {candidate.isPinned ? (
+                    <Badge 
+                      variant="secondary" 
+                      className="text-xs px-2 py-1 rounded-full bg-blue-50 text-blue-600 border-blue-200 flex items-center gap-1 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
                       onClick={onTogglePin}
-                      className={`p-2 rounded-full hover:bg-muted/50 transition-colors duration-200 group ${
-                        candidate.isPinned ? 'text-blue-600' : 'text-muted-foreground group-hover:text-foreground'
-                      }`}
-                      title={candidate.isPinned ? 'Unpin candidate' : 'Pin candidate to top'}
+                      title="Unpin candidate"
                     >
-                      <Pin className={`w-4 h-4 rotate-45 transition-colors ${candidate.isPinned ? 'fill-current text-blue-600' : ''}`} />
-                    </button>
-                  )}
-                  {candidate.isPinned && (
-                    <Badge variant="secondary" className="text-xs px-2 py-1 rounded-full bg-blue-50 text-blue-600 border-blue-200 flex items-center gap-1 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800">
                       <Pin className="w-3 h-3 rotate-45 fill-current text-blue-600 dark:text-blue-400" />
                       Pinned
                     </Badge>
-                  )}
+                  ) : onTogglePin ? (
+                    <button
+                      onClick={onTogglePin}
+                      className="p-2 rounded-full hover:bg-muted/50 transition-colors duration-200 group"
+                      title="Pin candidate to top"
+                    >
+                      <Pin className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors rotate-45" />
+                    </button>
+                  ) : null}
                 </div>
               </div>
 
@@ -330,6 +334,24 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
                       <Edit3 className="mr-2 h-4 w-4" />
                       Edit Candidate Profile
                     </DropdownMenuItem>
+                    {onTogglePin && (
+                      <DropdownMenuItem 
+                        onClick={onTogglePin}
+                        className="text-sm py-2 cursor-pointer"
+                      >
+                        {candidate.isPinned ? (
+                          <>
+                            <Pin className="mr-2 h-4 w-4 text-blue-600 fill-current rotate-45" />
+                            Unpin from top
+                          </>
+                        ) : (
+                          <>
+                            <Pin className="mr-2 h-4 w-4 text-muted-foreground rotate-45" />
+                            Pin to top
+                          </>
+                        )}
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem 
                       onClick={onManageTransitions} 
                       disabled={availableStages.length === 0}

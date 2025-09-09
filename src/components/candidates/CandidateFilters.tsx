@@ -352,18 +352,15 @@ export function CandidateFilters({
 
   // Define handleApplyStandardFilters early to avoid temporal dead zone issues
   const handleApplyStandardFilters = useCallback(() => {
-    console.log('🔍 Apply Filter button clicked');
     
     // Skip if we're already applying filters
     if (isApplyingFilters) {
-      console.log('🔍 Skipping - already applying filters');
       return;
     }
     
     // Rate limiting: prevent applying filters more than once every 300ms to prevent infinite loops
     const now = Date.now();
     if (now - lastFilterApplyTimeRef.current < 300) {
-      console.log('🔍 Skipping - rate limited (last apply was', now - lastFilterApplyTimeRef.current, 'ms ago)');
       return;
     }
     
@@ -434,20 +431,12 @@ export function CandidateFilters({
     if (Object.keys(newFilters).length > 0 || hasEmptyStrings) {
       lastAppliedFiltersRef.current = newFiltersString;
       lastFilterApplyTimeRef.current = Date.now();
-      console.log('🔍 FILTER DEBUG: Applying filters:', newFilters);
       if (typeof onFilterChangeRef.current === 'function') {
-        console.log('🔍 Calling onFilterChange with:', newFilters);
         onFilterChangeRef.current(newFilters);
-      } else {
-        console.log('🔍 onFilterChangeRef.current is not a function:', typeof onFilterChangeRef.current);
       }
     } else {
-      console.log('🔍 FILTER DEBUG: Clearing filters');
       if (typeof onFilterChangeRef.current === 'function') {
-        console.log('🔍 Calling onFilterChange with empty object');
         onFilterChangeRef.current({});
-      } else {
-        console.log('🔍 onFilterChangeRef.current is not a function:', typeof onFilterChangeRef.current);
       }
     }
     

@@ -19,13 +19,22 @@ async function requireSessionAndPermission(requiredPermission: string, request: 
   return { session };
 }
 
-// Simple score grade calculation
+// Simple score grade calculation - using 0-100 scale to match client-side
 function getScoreGrade(score: number | null): string {
-  if (!score || score === 0) return 'no-score';
-  if (score >= 0.81) return 'A';
-  if (score >= 0.61) return 'B';
-  if (score >= 0.41) return 'C';
-  if (score >= 0.21) return 'D';
+  if (score === null || score === undefined) return 'no-score';
+  
+  // Normalize score to 0-100 range
+  let normalizedScore = score;
+  if (score >= 0 && score <= 1) {
+    normalizedScore = Math.round(score * 100);
+  } else {
+    normalizedScore = Math.round(score);
+  }
+  
+  if (normalizedScore >= 81) return 'A';
+  if (normalizedScore >= 61) return 'B';
+  if (normalizedScore >= 41) return 'C';
+  if (normalizedScore >= 21) return 'D';
   return 'E';
 }
 
@@ -352,6 +361,14 @@ export async function GET(request: NextRequest) {
     try {
       const result = await client.query(query, queryParams);
       
+      // Debug logging
+      console.log('Fit score counts query result:', {
+        rowCount: result.rows.length,
+        sampleRows: result.rows.slice(0, 3),
+        query: query.substring(0, 200) + '...',
+        params: queryParams
+      });
+      
       // Simple counting logic
       const appliedCounts: { [key: string]: number } = {};
       const matchingCounts: { [key: string]: number } = {};
@@ -367,6 +384,8 @@ export async function GET(request: NextRequest) {
       // Convert to expected format
       const applied = Object.entries(appliedCounts).map(([letter, count]) => ({ letter, count }));
       const matching = Object.entries(matchingCounts).map(([letter, count]) => ({ letter, count }));
+
+      console.log('Fit score counts result:', { applied, matching });
 
       return NextResponse.json({ applied, matching });
 

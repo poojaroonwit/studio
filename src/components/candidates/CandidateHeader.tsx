@@ -38,7 +38,6 @@ interface CandidateHeaderProps {
   avatarForceRefresh: boolean;
   onAvatarUpload: (file: File) => void;
   realtimeConnected?: boolean;
-  onTogglePin?: () => void;
 }
 
 
@@ -67,8 +66,7 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
   avatarError,
   avatarForceRefresh,
   onAvatarUpload,
-  realtimeConnected,
-  onTogglePin
+  realtimeConnected
 }) => {
   const { success: toastSuccess } = useToast();
   const { contentZIndex } = useDynamicZIndex('candidate-header', 'overlay');
@@ -236,25 +234,15 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
                       <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">ID</span>
                     </button>
                   )}
-                  {candidate.isPinned ? (
+                  {candidate.isPinned && (
                     <Badge 
                       variant="secondary" 
-                      className="text-xs px-2 py-1 rounded-full bg-blue-50 text-blue-600 border-blue-200 flex items-center gap-1 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
-                      onClick={onTogglePin}
-                      title="Unpin candidate"
+                      className="text-xs px-2 py-1 rounded-full bg-blue-50 text-blue-600 border-blue-200 flex items-center gap-1 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800"
                     >
                       <Pin className="w-3 h-3 rotate-45 fill-current text-blue-600 dark:text-blue-400" />
                       Pinned
                     </Badge>
-                  ) : onTogglePin ? (
-                    <button
-                      onClick={onTogglePin}
-                      className="p-2 rounded-full hover:bg-muted/50 transition-colors duration-200 group"
-                      title="Pin candidate to top"
-                    >
-                      <Pin className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors rotate-45" />
-                    </button>
-                  ) : null}
+                  )}
                 </div>
               </div>
 

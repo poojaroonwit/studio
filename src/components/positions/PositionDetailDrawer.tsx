@@ -760,12 +760,12 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       setRecruitmentStages([]);
       form.reset();
       
-      // Reset sorting state
-      setAppliedCandidatesSortColumn(null);
-      setAppliedCandidatesSortDirection('asc');
+      // Reset sorting state to default
+      setAppliedCandidatesSortColumn('fitScore');
+      setAppliedCandidatesSortDirection('desc');
       setAppliedCandidatesOpenMenu(null);
-      setPotentialCandidatesSortColumn(null);
-      setPotentialCandidatesSortDirection('asc');
+      setPotentialCandidatesSortColumn('fitScore');
+      setPotentialCandidatesSortDirection('desc');
       setPotentialCandidatesOpenMenu(null);
       setFilteredCandidatesOpenMenu(null);
     }

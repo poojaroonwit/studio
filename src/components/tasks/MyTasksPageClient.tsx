@@ -708,7 +708,14 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
 
   // Stage filter functions
   const handleSelectAllStages = () => {
-    setSelectedStages(stages.map(stage => stage.id));
+    console.log('handleSelectAllStages called, stages:', stages);
+    if (stages && stages.length > 0) {
+      const allStageIds = stages.map(stage => stage.id);
+      console.log('Setting selectedStages to:', allStageIds);
+      setSelectedStages(allStageIds);
+    } else {
+      console.warn('No stages available to select all, stages:', stages);
+    }
   };
 
   const handleClearAllStages = () => {
@@ -1003,6 +1010,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                              variant="ghost"
                              size="sm"
                              onClick={handleSelectAllStages}
+                             disabled={!stages || stages.length === 0}
                              className="h-6 px-2 text-xs"
                            >
                              All

@@ -135,7 +135,6 @@ export function useCandidateData({
 
   // Fetch all candidates for counts (unfiltered, for accurate statistics)
   const fetchAllCandidatesForCounts = useCallback(async () => {
-    console.log('fetchAllCandidatesForCounts called, sessionStatus:', sessionStatus);
     if (sessionStatus !== 'authenticated') return;
 
     try {
@@ -144,13 +143,12 @@ export function useCandidateData({
       
       if (result.ok && result.data) {
         const candidates = result.data.candidates || [];
-        console.log('Fetched candidates for counts:', candidates.length);
         stableSetAllCandidatesForCounts(candidates);
       } else {
-        console.warn('Skipping failed endpoint /api/candidates (counts):', result.error || result.status);
+        // Skipping failed endpoint /api/candidates (counts)
       }
     } catch (error) {
-      console.error('Error fetching all candidates for counts:', error);
+      // Error fetching all candidates for counts
     } finally {
       stableSetIsLoading(false);
     }
@@ -165,10 +163,10 @@ export function useCandidateData({
       if (result.ok && result.data) {
         stableSetAvailableSources(Array.isArray(result.data) ? result.data : (result.data.sources || []));
       } else {
-        console.warn('Skipping failed endpoint /api/settings/candidate-sources:', result.error || result.status);
+        // Skipping failed endpoint /api/settings/candidate-sources
       }
     } catch (error) {
-      console.error('Error fetching sources:', error);
+      // Error fetching sources
     }
   }, [sessionStatus, stableSetAvailableSources]);
 
@@ -187,10 +185,10 @@ export function useCandidateData({
         }));
         stableSetAvailableRecruiter(recruiters);
       } else {
-        console.warn('Skipping failed endpoint /api/users (recruiters):', result.error || result.status);
+        // Skipping failed endpoint /api/users (recruiters)
       }
     } catch (error) {
-      console.error('Error fetching recruiters:', error);
+      // Error fetching recruiters
     }
   }, [sessionStatus, stableSetAvailableRecruiter]);
 
@@ -204,9 +202,7 @@ export function useCandidateData({
 
   // Fetch fit score counts with circuit breaker and debouncing
   const fetchFitScoreCounts = async (forceRefresh = false) => {
-    console.log('fetchFitScoreCounts called, forceRefresh:', forceRefresh);
     if (isFetchingFitScoreCountsRef.current && !forceRefresh) {
-      console.log('Already fetching fit score counts, skipping');
       return;
     }
 
@@ -220,7 +216,6 @@ export function useCandidateData({
       // Safety check: ensure filters is defined
       const currentFilters = filtersRef.current;
       if (!currentFilters) {
-        console.warn('Filters not available for fit score counts');
         return;
       }
       
@@ -279,7 +274,6 @@ export function useCandidateData({
       }
 
       const url = `/api/candidates/fit-score-counts?${params.toString()}`;
-      console.log('Fetching fit score counts from URL:', url);
       
       const result = await safeFetch(url, {
         headers: {
@@ -324,11 +318,9 @@ export function useCandidateData({
           };
         });
       } else {
-        console.error('Failed to fetch fit score counts:', result.status);
         setDatabaseFitScoreCounts(null);
       }
     } catch (error: any) {
-      console.error('Error fetching fit score counts:', error);
       setDatabaseFitScoreCounts(null);
     } finally {
       setIsFitScoreCountsLoading(false);
@@ -360,16 +352,16 @@ export function useCandidateData({
           if (positionsResult.ok && positionsResult.data) {
             setAvailablePositions(Array.isArray(positionsResult.data) ? positionsResult.data : (positionsResult.data.positions || []));
           } else {
-            console.warn('Skipping failed endpoint /api/positions:', positionsResult.error || positionsResult.status);
+            // Skipping failed endpoint /api/positions
           }
 
           if (stagesResult.ok && stagesResult.data) {
             setAvailableStages(Array.isArray(stagesResult.data) ? stagesResult.data : (stagesResult.data.stages || []));
           } else {
-            console.warn('Skipping failed endpoint /api/recruitment-stages:', stagesResult.error || stagesResult.status);
+            // Skipping failed endpoint /api/recruitment-stages
           }
         } catch (error) {
-          console.error('Error fetching positions and stages:', error);
+          // Error fetching positions and stages
         }
       };
 
@@ -457,7 +449,6 @@ export function useCandidateData({
     try {
       const result = await safeFetch(`/api/candidates/${candidateId}`, { timeoutMs: 8000 });
       if (!result.ok) {
-        console.warn('Skipping failed endpoint /api/candidates/[id]:', result.error || result.status);
         return null;
       }
       return result.data;

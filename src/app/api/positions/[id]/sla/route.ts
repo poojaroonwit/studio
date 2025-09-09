@@ -40,10 +40,10 @@ export async function GET(
           g.name as "gradeName",
           g."sla_days" as "slaDays",
           g.color as "gradeColor",
-          g."isActive" as "gradeIsActive",
-          g."sortOrder" as "gradeSortOrder",
-          g."minLevel" as "gradeMinLevel",
-          g."maxLevel" as "gradeMaxLevel"
+          g.is_active as "gradeIsActive",
+          g.sort_order as "gradeSortOrder",
+          g.min_level as "gradeMinLevel",
+          g.max_level as "gradeMaxLevel"
         FROM "Position" p
         LEFT JOIN "Grade" g ON p."gradeId" = g.id
         WHERE p.id = $1

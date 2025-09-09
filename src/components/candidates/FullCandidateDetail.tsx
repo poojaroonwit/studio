@@ -276,28 +276,6 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
     onRefresh();
   }, [onRefresh]);
 
-  // Handle pin toggle
-  const handleTogglePin = useCallback(async () => {
-    if (!candidate) return;
-    
-    try {
-      const res = await fetch(`/api/candidates/${candidate.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isPinned: !candidate.isPinned }),
-        credentials: 'include',
-      });
-
-      if (!res.ok) {
-        throw new Error('Failed to update pin status');
-      }
-
-      // Refresh candidate data to show updated pin status
-      onRefresh();
-    } catch (err) {
-      console.error('Error toggling pin:', err);
-    }
-  }, [candidate, onRefresh]);
 
   // Handle custom field changes
   const handleCustomFieldChange = useCallback((fieldCode: string, value: any) => {
@@ -546,7 +524,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
   return (
     <div className={isModal ? "h-full flex flex-col bg-background pointer-events-auto" : "h-full flex flex-col bg-background"}>
       {/* Header */}
-      <div className="relative" style={{ zIndex: 1000 }}>
+      <div className="relative">
         <CandidateHeader
           candidate={candidate}
           isModal={isModal}
@@ -572,7 +550,6 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
           avatarForceRefresh={avatarForceRefresh}
           onAvatarUpload={handleAvatarUpload}
           realtimeConnected={realtimeConnected}
-          onTogglePin={handleTogglePin}
         />
       </div>
       

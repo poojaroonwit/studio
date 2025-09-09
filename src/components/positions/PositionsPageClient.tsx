@@ -1608,7 +1608,7 @@ export default function PositionsPageClient() {
                     {position.isOpen ? (
                       <Badge variant="success">Open</Badge>
                     ) : (
-                      <Badge variant="destructive">Closed</Badge>
+                      <Badge variant="secondary">Closed</Badge>
                     )}
                   </TableCell>
                   <TableCell className="text-center">

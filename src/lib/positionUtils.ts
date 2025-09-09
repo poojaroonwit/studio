@@ -16,7 +16,7 @@ export function getPositionStatusBadge(isOpen: boolean, showIcon: boolean = true
     variant: (isOpen ? "default" : "secondary") as "default" | "secondary",
     className: isOpen 
       ? "bg-green-100 text-green-800 border-green-200 hover:bg-green-200" 
-      : "bg-red-100 text-red-800 border-red-200 hover:bg-red-200",
+      : "bg-gray-100 text-gray-800 border-gray-200 hover:bg-gray-200",
     text: showIcon 
       ? (isOpen ? "Open" : "Closed")
       : (isOpen ? "Open" : "Closed")
@@ -27,14 +27,14 @@ export function getPositionStatusBadge(isOpen: boolean, showIcon: boolean = true
  * Get position status color class
  */
 export function getPositionStatusColor(isOpen: boolean) {
-  return isOpen ? "text-green-600" : "text-red-600";
+  return isOpen ? "text-green-600" : "text-gray-600";
 }
 
 /**
  * Get position status background color class
  */
 export function getPositionStatusBgColor(isOpen: boolean) {
-  return isOpen ? "bg-green-50" : "bg-red-50";
+  return isOpen ? "bg-green-50" : "bg-gray-50";
 }
 
 /**

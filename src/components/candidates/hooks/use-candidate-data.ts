@@ -233,6 +233,17 @@ export function useCandidateData({
       if (currentFilters.selectedSourceIds && currentFilters.selectedSourceIds.length > 0) {
         params.append('sourceId', currentFilters.selectedSourceIds.join(','));
       }
+      
+      // Add fit score filters to ensure counts match the filtered results
+      if (currentFilters.minAppliedJobFitScore !== undefined) {
+        params.append('minAppliedJobFitScore', String(currentFilters.minAppliedJobFitScore * 100));
+      }
+      if (currentFilters.maxAppliedJobFitScore !== undefined) {
+        params.append('maxAppliedJobFitScore', String(currentFilters.maxAppliedJobFitScore * 100));
+      }
+      if (currentFilters.includeNoScoreInApplied !== undefined) {
+        params.append('includeNoScoreInApplied', String(currentFilters.includeNoScoreInApplied));
+      }
 
       const url = `/api/candidates/fit-score-counts?${params.toString()}`;
       

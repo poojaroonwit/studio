@@ -946,86 +946,184 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
           </TableRow>
         </TableHeader>
         <TableBody>
-          {sortedAppliedCandidates.map((candidate) => (
-            <TableRow key={candidate.id} className={candidate.isPinned ? 'bg-blue-50/50' : ''}>
-              <TableCell>{rowNumber++}</TableCell>
-              <TableCell>
-                <div>
-                  <div className="font-medium">{candidate.name}</div>
-                  <div className="text-xs text-muted-foreground">{candidate.email}</div>
-                </div>
-              </TableCell>
-              <TableCell>
-                {candidate.fitScore !== undefined && candidate.fitScore !== null ? (
-                  <ScoreBadge score={candidate.fitScore}>
-                    {formatScoreWithGrade(candidate.fitScore)}
-                  </ScoreBadge>
-                ) : (
-                  <Badge variant="outline">No Score</Badge>
+          {(() => {
+            const pinned = sortedAppliedCandidates.filter(c => c.isPinned);
+            const unpinned = sortedAppliedCandidates.filter(c => !c.isPinned);
+            return (
+              <>
+                {pinned.length > 0 && (
+                  <TableRow className="bg-primary/10 border-b-2 border-primary/20">
+                    <TableCell colSpan={6} className="py-2 px-3">
+                      <div className="flex items-center gap-2">
+                        <PinIcon className="h-4 w-4 text-primary" />
+                        <span className="font-semibold text-primary">Pinned Candidates</span>
+                        <span className="text-xs text-muted-foreground">({pinned.length})</span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
                 )}
-              </TableCell>
-              <TableCell>
-                <StatusBadge statusId={candidate.statusId} stageNames={stageNames} />
-              </TableCell>
-              <TableCell>
-                {candidate.applicationDate ? (
-                  <div className="text-sm">
-                    {new Date(candidate.applicationDate).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric'
-                    })}
-                  </div>
-                ) : (
-                  <span className="text-muted-foreground text-sm">N/A</span>
+                {pinned.map((candidate) => (
+                  <TableRow key={candidate.id} className="bg-blue-100">
+                    <TableCell>{rowNumber++}</TableCell>
+                    <TableCell>
+                      <div>
+                        <div className="font-medium">{candidate.name}</div>
+                        <div className="text-xs text-muted-foreground">{candidate.email}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {candidate.fitScore !== undefined && candidate.fitScore !== null ? (
+                        <ScoreBadge score={candidate.fitScore}>
+                          {formatScoreWithGrade(candidate.fitScore)}
+                        </ScoreBadge>
+                      ) : (
+                        <Badge variant="outline">No Score</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <StatusBadge statusId={candidate.statusId} stageNames={stageNames} />
+                    </TableCell>
+                    <TableCell>
+                      {candidate.applicationDate ? (
+                        <div className="text-sm">
+                          {new Date(candidate.applicationDate).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric'
+                          })}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">N/A</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => handleCandidateClick(candidate.id)}
+                          className="hover:bg-primary/10"
+                        >
+                          <Eye className="h-4 w-4" />
+                          <span className="ml-1 text-xs">View</span>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation();
+                            (async () => {
+                              try {
+                                await fetch(`/api/candidates/${candidate.id}`, {
+                                  method: 'PUT',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ isPinned: !candidate.isPinned })
+                                });
+                                candidate.isPinned = !candidate.isPinned;
+                                setAppliedCandidates((prev) => [...prev]);
+                              } catch {}
+                            })();
+                          }}
+                          title={candidate.isPinned ? 'Unpin' : 'Pin'}
+                          className="hover:bg-primary/10"
+                        >
+                          {candidate.isPinned ? (
+                            <PinIcon className="h-4 w-4 text-primary" />
+                          ) : (
+                            <PinIcon className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {unpinned.length > 0 && (
+                  <TableRow className="bg-muted/30 border-b border-muted">
+                    <TableCell colSpan={6} className="py-2 px-3">
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-medium">All Candidates</span>
+                        <span className="text-xs text-muted-foreground">({unpinned.length})</span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
                 )}
-              </TableCell>
-              <TableCell>
-                <div className="flex items-center gap-1">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => handleCandidateClick(candidate.id)}
-                    className="hover:bg-primary/10"
-                  >
-                    <Eye className="h-4 w-4" />
-                    <span className="ml-1 text-xs">View</span>
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={async (e) => {
-                      e.stopPropagation();
-                      try {
-                        await fetch(`/api/candidates/${candidate.id}`, {
-                          method: 'PUT',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ isPinned: !candidate.isPinned })
-                        });
-                        // Soft refresh: update local state lists
-                        if (candidate.isPinned) {
-                          candidate.isPinned = false;
-                        } else {
-                          candidate.isPinned = true;
-                        }
-                        // Trigger any re-render by shallow copying arrays
-                        setAppliedCandidates((prev) => [...prev]);
-                        setPotentialCandidates((prev) => [...prev]);
-                      } catch {}
-                    }}
-                    title={candidate.isPinned ? 'Unpin' : 'Pin'}
-                    className="hover:bg-primary/10"
-                  >
-                    {candidate.isPinned ? (
-                      <PinIcon className="h-4 w-4 text-primary" />
-                    ) : (
-                      <PinIcon className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
+                {unpinned.map((candidate) => (
+                  <TableRow key={candidate.id}>
+                    <TableCell>{rowNumber++}</TableCell>
+                    <TableCell>
+                      <div>
+                        <div className="font-medium">{candidate.name}</div>
+                        <div className="text-xs text-muted-foreground">{candidate.email}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {candidate.fitScore !== undefined && candidate.fitScore !== null ? (
+                        <ScoreBadge score={candidate.fitScore}>
+                          {formatScoreWithGrade(candidate.fitScore)}
+                        </ScoreBadge>
+                      ) : (
+                        <Badge variant="outline">No Score</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <StatusBadge statusId={candidate.statusId} stageNames={stageNames} />
+                    </TableCell>
+                    <TableCell>
+                      {candidate.applicationDate ? (
+                        <div className="text-sm">
+                          {new Date(candidate.applicationDate).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric'
+                          })}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">N/A</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => handleCandidateClick(candidate.id)}
+                          className="hover:bg-primary/10"
+                        >
+                          <Eye className="h-4 w-4" />
+                          <span className="ml-1 text-xs">View</span>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation();
+                            (async () => {
+                              try {
+                                await fetch(`/api/candidates/${candidate.id}`, {
+                                  method: 'PUT',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ isPinned: !candidate.isPinned })
+                                });
+                                candidate.isPinned = !candidate.isPinned;
+                                setAppliedCandidates((prev) => [...prev]);
+                              } catch {}
+                            })();
+                          }}
+                          title={candidate.isPinned ? 'Unpin' : 'Pin'}
+                          className="hover:bg-primary/10"
+                        >
+                          {candidate.isPinned ? (
+                            <PinIcon className="h-4 w-4 text-primary" />
+                          ) : (
+                            <PinIcon className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </>
+            );
+          })()}
         </TableBody>
       </Table>
     );
@@ -1156,7 +1254,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         </TableHeader>
         <TableBody>
           {sortedPotentialCandidates.map((candidate) => (
-            <TableRow key={candidate.id} className={candidate.isPinned ? 'bg-blue-50/50' : ''}>
+            <TableRow key={candidate.id} className={candidate.isPinned ? 'bg-blue-100' : ''}>
               <TableCell>{rowNumber++}</TableCell>
               <TableCell>
                 <div>
@@ -1414,7 +1512,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                     return (
                       <TableRow 
                         key={candidate.id} 
-                        className={`hover:bg-muted/50 ${candidate.isPinned ? 'bg-blue-50/50' : ''}`}
+                        className={`hover:bg-muted/50 ${candidate.isPinned ? 'bg-blue-100' : ''}`}
                       >
                         <TableCell className="text-center font-mono text-xs text-muted-foreground">{rowNumber++}</TableCell>
                         <TableCell>
@@ -1485,7 +1583,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                         {isExpanded && group.map((candidate) => (
                           <TableRow 
                             key={candidate.id} 
-                            className={`hover:bg-muted/50 ${candidate.isPinned ? 'bg-blue-50/50' : ''}`}
+                            className={`hover:bg-muted/50 ${candidate.isPinned ? 'bg-blue-100' : ''}`}
                           >
                             <TableCell className="text-center font-mono text-xs text-muted-foreground">{rowNumber++}</TableCell>
                             <TableCell>

@@ -4,7 +4,6 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { v4 as uuidv4 } from 'uuid';
 import { useToast } from '@/hooks/use-toast';
@@ -18,6 +17,7 @@ import { FileViewerModal } from "@/components/ui/file-viewer-modal";
 import { hasAnyPermission } from '@/lib/permissions';
 import type { CandidateSource } from '@/lib/types';
 import { createPortal } from 'react-dom';
+import { SourceSingleSelectDropdown } from '@/components/candidates/SourceSingleSelectDropdown';
 
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 
@@ -452,26 +452,13 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
           <div>
             <Label htmlFor="source-select">Source</Label>
             <div className="mt-2">
-              <Select
+              <SourceSingleSelectDropdown
                 value={selectedSourceId}
-                onValueChange={setSelectedSourceId}
+                onChange={setSelectedSourceId}
+                availableSources={availableSources}
+                placeholder="Select a source..."
                 disabled={uploading}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a source..." />
-                </SelectTrigger>
-                <SelectContent 
-                  position="popper"
-                  sideOffset={4}
-                  selectId="bulk-upload-source-select"
-                >
-                  {availableSources.map((source) => (
-                    <SelectItem key={source.id} value={source.id}>
-                      {source.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              />
             </div>
           </div>
 

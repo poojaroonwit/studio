@@ -522,32 +522,34 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
   return (
     <div className={isModal ? "h-full flex flex-col bg-background pointer-events-auto" : "h-full flex flex-col bg-background"}>
       {/* Header */}
-      <CandidateHeader
-        candidate={candidate}
-        isModal={isModal}
-        onClose={onClose}
-        isEditing={isEditing}
-        availableStages={availableStages}
-        availableRecruiter={availableRecruiter}
-        availableSources={availableSources}
-        isAssigningRecruiter={isAssigningRecruiter}
-        isAssigningSource={isAssigningSource}
-        onAssignRecruiter={handleAssignRecruiter}
-        onAssignSource={handleAssignSource}
-        onResetAssigning={() => setIsAssigningRecruiter(false)}
-        onResetSourceAssigning={() => setIsAssigningSource(false)}
-        onEditClick={handleEnterEditMode}
-        onManageTransitions={openManageTransitionsModal}
-        onReprocess={() => setIsReprocessModalOpen(true)}
-        onGenerativeAI={() => setIsGenerativeAIModalOpen(true)}
-        onDelete={() => setIsDeleteModalOpen(true)}
-        avatarInputRef={avatarInputRef}
-        avatarUploading={avatarUploading}
-        avatarError={avatarError}
-        avatarForceRefresh={avatarForceRefresh}
-        onAvatarUpload={handleAvatarUpload}
-        realtimeConnected={realtimeConnected}
-      />
+      <div className="relative" style={{ zIndex: 1000 }}>
+        <CandidateHeader
+          candidate={candidate}
+          isModal={isModal}
+          onClose={onClose}
+          isEditing={isEditing}
+          availableStages={availableStages}
+          availableRecruiter={availableRecruiter}
+          availableSources={availableSources}
+          isAssigningRecruiter={isAssigningRecruiter}
+          isAssigningSource={isAssigningSource}
+          onAssignRecruiter={handleAssignRecruiter}
+          onAssignSource={handleAssignSource}
+          onResetAssigning={() => setIsAssigningRecruiter(false)}
+          onResetSourceAssigning={() => setIsAssigningSource(false)}
+          onEditClick={handleEnterEditMode}
+          onManageTransitions={openManageTransitionsModal}
+          onReprocess={() => setIsReprocessModalOpen(true)}
+          onGenerativeAI={() => setIsGenerativeAIModalOpen(true)}
+          onDelete={() => setIsDeleteModalOpen(true)}
+          avatarInputRef={avatarInputRef}
+          avatarUploading={avatarUploading}
+          avatarError={avatarError}
+          avatarForceRefresh={avatarForceRefresh}
+          onAvatarUpload={handleAvatarUpload}
+          realtimeConnected={realtimeConnected}
+        />
+      </div>
       
       {/* Pipeline Section - Above main content and sidebar */}
       <div className="grid grid-cols-1 lg:grid-cols-10 border-t bg-card flex-shrink-0">

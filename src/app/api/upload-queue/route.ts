@@ -166,7 +166,20 @@ export async function GET(request: NextRequest) {
   const completedDateEnd = url.searchParams.get('completed_date_end');
   const positionId = url.searchParams.get('position_id');
   const sortField = url.searchParams.get('sort_field') || 'upload_date';
-  const sortDirection = url.searchParams.get('sort_direction') || 'desc';
+  const sortDirectionParam = url.searchParams.get('sort_direction');
+  
+  let sortDirection: string;
+  if (sortDirectionParam === 'asc') {
+    sortDirection = 'ASC';
+  } else if (sortDirectionParam === 'desc') {
+    sortDirection = 'DESC';
+  } else if (sortDirectionParam === '' || sortDirectionParam === null) {
+    // Empty string or null means clear sort - use default sort (upload_date desc)
+    sortDirection = 'DESC';
+  } else {
+    // Invalid sort direction - use default sort (upload_date desc)
+    sortDirection = 'DESC';
+  }
 
   // Validate pagination parameters (no upper limit on records)
   const safeLimit = Math.max(limit, 1); // Minimum 1, no maximum limit
@@ -244,7 +257,6 @@ export async function GET(request: NextRequest) {
       duration: "COALESCE(EXTRACT(EPOCH FROM (uq.completed_date - uq.process_date)), 0)"
     };
     const safeSortExpr = allowedSortFieldsMap[sortField] || 'uq.upload_date';
-    const safeSortDirection = sortDirection.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
     
     // Main query - only fetches records for the current page using LIMIT and OFFSET
     const dataRes = await client.query(
@@ -253,7 +265,7 @@ export async function GET(request: NextRequest) {
        LEFT JOIN "Position" p ON uq.position_id = p.id 
        LEFT JOIN "CandidateSource" cs ON uq.source_id = cs.id
        ${whereSQL} 
-       ORDER BY ${safeSortExpr} ${safeSortDirection} 
+       ORDER BY ${safeSortExpr} ${sortDirection} 
        LIMIT $${paramIdx++} OFFSET $${paramIdx++}`,
       values
     );

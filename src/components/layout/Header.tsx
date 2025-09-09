@@ -443,31 +443,31 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
 
   // Use a more robust mounting strategy to prevent double rendering in StrictMode
   // Only render the actual header once we're fully mounted and have session data
-  if (!mounted || status === "loading") { 
-    return (
-      <header className="flex h-16 items-center justify-between border-b bg-card px-4 md:px-6 sticky top-0 z-40">
-        <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-md bg-muted animate-pulse" />
-          <div className="h-6 w-32 rounded bg-muted animate-pulse" />
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-md bg-muted animate-pulse" />
-          <div className="h-10 w-10 rounded-md bg-muted animate-pulse" />
-        </div>
-      </header>
-    );
-  }
+  const isLoading = !mounted || status === "loading";
 
   return (
     <>
       <header className="flex h-16 items-center justify-between border-b bg-card px-4 md:px-6 sticky top-0 z-40">
         <div className={`flex items-center gap-2 ${!open ? 'ml-5' : ''}`}>
-          <Breadcrumb items={getBreadcrumbItems(pathname, showLogoOnly)} />
+          {isLoading ? (
+            <>
+              <div className="h-8 w-8 rounded-md bg-muted animate-pulse" />
+              <div className="h-6 w-32 rounded bg-muted animate-pulse" />
+            </>
+          ) : (
+            <Breadcrumb items={getBreadcrumbItems(pathname, showLogoOnly)} />
+          )}
         </div>
         <div className="flex items-center gap-3">
-          
-          {/* User Presence Indicator */}
-          {user && <UserPresenceIndicator />}
+          {isLoading ? (
+            <>
+              <div className="h-8 w-8 rounded-md bg-muted animate-pulse" />
+              <div className="h-10 w-10 rounded-md bg-muted animate-pulse" />
+            </>
+          ) : (
+            <>
+              {/* User Presence Indicator */}
+              {user && <UserPresenceIndicator />}
           
           
           
@@ -577,6 +577,8 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
               <LogIn className="mr-2 h-4 w-4" />
               Sign In
             </Button>
+          )}
+            </>
           )}
         </div>
       </header>

@@ -262,23 +262,28 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
             </div>
             
             {/* Action Buttons */}
-            <div>
+            <div className="relative" style={{ zIndex: contentZIndex + 2 }}>
               {!isEditing ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      className="h-8 px-3 hover:bg-muted/50 transition-colors duration-200"
+                      className="h-8 px-3 hover:bg-muted/50 transition-colors duration-200 pointer-events-auto"
+                      style={{ zIndex: contentZIndex + 3 }}
                     >
                       <MoreHorizontal className="h-3.5 w-3.5 text-muted-foreground mr-2" />
                       Actions
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuContent 
+                    align="end" 
+                    className="w-48"
+                    style={{ zIndex: contentZIndex + 4 }}
+                  >
                     <DropdownMenuItem 
                       onClick={onEditClick}
-                      className="text-sm py-2"
+                      className="text-sm py-2 cursor-pointer"
                     >
                       <Edit3 className="mr-2 h-4 w-4" />
                       Edit Candidate Profile
@@ -286,7 +291,7 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
                     <DropdownMenuItem 
                       onClick={onManageTransitions} 
                       disabled={availableStages.length === 0}
-                      className="text-sm py-2"
+                      className="text-sm py-2 cursor-pointer"
                     >
                       <Users className="mr-2 h-4 w-4" />
                       Manage Transitions
@@ -294,7 +299,7 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
                     <DropdownMenuSeparator />
                     <DropdownMenuItem 
                       onClick={onReprocess}
-                      className="text-sm py-2"
+                      className="text-sm py-2 cursor-pointer"
                     >
                       <RefreshCw className="mr-2 h-4 w-4" />
                       Re-process
@@ -302,7 +307,7 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
                     <DropdownMenuSeparator />
                     <DropdownMenuItem 
                       onClick={onGenerativeAI}
-                      className="text-sm py-2"
+                      className="text-sm py-2 cursor-pointer"
                     >
                       <BrainCircuit className="mr-2 h-4 w-4" />
                       Generative AI
@@ -310,7 +315,7 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
                     <DropdownMenuSeparator />
                     <DropdownMenuItem 
                       onClick={onDelete}
-                      className="text-sm py-2 text-destructive focus:text-destructive"
+                      className="text-sm py-2 text-destructive focus:text-destructive cursor-pointer"
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
                       Delete Candidate

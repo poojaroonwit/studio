@@ -12,10 +12,10 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Clock, Loader2, CheckCircle, XCircle, Search, Filter, AlertCircle, Info, Upload, FileText, Users, Calendar as CalendarIcon, MoreHorizontal, Play, X, Trash2, Eye, RotateCcw, CheckSquare, Square, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, RefreshCw, ImageIcon } from 'lucide-react';
+import { Clock, Loader2, CheckCircle, XCircle, Search, Filter, AlertCircle, Info, Upload, FileText, Users, Calendar as CalendarIcon, MoreHorizontal, MoreVertical, Play, X, Trash2, Eye, RotateCcw, CheckSquare, Square, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, RefreshCw, ImageIcon } from 'lucide-react';
 import { FileViewerModal } from '@/components/ui/file-viewer-modal';
 import { ExpandablePayload } from '@/components/ui/ExpandablePayload';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -97,7 +97,8 @@ export default function CandidateImportUploadQueue() {
   } | null>(null);
   const [isFileViewerOpen, setIsFileViewerOpen] = useState(false);
   const [sortField, setSortField] = useState<string>('upload_date');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc' | null>('desc');
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [positionSearchTerm, setPositionSearchTerm] = useState<string>('');
   const [sourceFilter, setSourceFilter] = useState<string>('all');
   const [sourceSearchTerm, setSourceSearchTerm] = useState<string>('');
@@ -146,7 +147,7 @@ export default function CandidateImportUploadQueue() {
         ...(positionFilter !== 'all' && { position_id: positionFilter }),
         ...(sourceFilter !== 'all' && { source_id: sourceFilter }),
         sort_field: sortField,
-        sort_direction: sortDirection
+        sort_direction: sortDirection || ''
       });
 
       // Handle dateRange based on selected filter type
@@ -695,16 +696,41 @@ export default function CandidateImportUploadQueue() {
     const isActive = sortField === field;
     return (
       <TableHead 
-        className="font-medium cursor-pointer hover:bg-muted/50 transition-colors select-none"
-        onClick={() => handleSort(field)}
+        className="font-medium cursor-pointer hover:bg-muted/50 transition-colors select-none group"
+        onClick={() => { handleSort(field); setOpenMenu(null); }}
       >
-        <div className="flex items-center gap-1">
+        <span className="inline-flex items-center gap-1">
           {children}
-          <div className="flex flex-col">
-            <ChevronUp className={`h-3 w-3 ${isActive && sortDirection === 'asc' ? 'text-primary' : 'text-muted-foreground'}`} />
-            <ChevronDown className={`h-3 w-3 ${isActive && sortDirection === 'desc' ? 'text-primary' : 'text-muted-foreground'}`} />
-          </div>
-        </div>
+          <DropdownMenu open={openMenu === field} onOpenChange={handleOpenChange(field)}>
+            <DropdownMenuTrigger asChild>
+              {isActive ? (
+                <button
+                  type="button"
+                  className="text-primary font-bold p-1 rounded hover:bg-muted h-auto w-auto"
+                  onClick={() => handleMenuClick(field)}
+                  aria-label="Sort options"
+                >
+                  {sortDirection === 'asc' ? <ChevronUp size={16} /> : sortDirection === 'desc' ? <ChevronDown size={16} /> : <MoreVertical size={16} />}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted h-auto w-auto"
+                  onClick={() => handleMenuClick(field)}
+                  aria-label="Sort options"
+                >
+                  <MoreVertical size={16} />
+                </button>
+              )}
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => { handleSort(field, 'asc'); setOpenMenu(null); }}>Sort Ascending ▲</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => { handleSort(field, 'desc'); setOpenMenu(null); }}>Sort Descending ▼</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => { handleSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </span>
       </TableHead>
     );
   };
@@ -780,16 +806,34 @@ export default function CandidateImportUploadQueue() {
     setIsFileViewerOpen(true);
   };
 
-  const handleSort = (field: string) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+  const handleSort = (column: string | null, direction?: 'asc' | 'desc' | null) => {
+    if (column === sortField && (direction === null || direction === undefined)) {
+      // 3-state toggle: unsorted -> asc -> desc -> unsorted
+      if (sortDirection === 'asc') {
+        setSortDirection('desc');
+      } else if (sortDirection === 'desc') {
+        // Clear sort - go back to unsorted (default)
+        setSortDirection(null);
+      } else {
+        // From unsorted (null) to asc
+        setSortDirection('asc');
+      }
     } else {
-      setSortField(field);
-      setSortDirection('asc');
+      // Set new column and direction (always update even if same values)
+      setSortField(column || 'upload_date');
+      setSortDirection(direction || 'desc');
     }
     setPage(1);
     // Trigger fetchQueue with updated sort parameters
     fetchQueue(1, pageSize);
+  };
+
+  const handleMenuClick = (menu: string) => {
+    setOpenMenu(openMenu === menu ? null : menu);
+  };
+
+  const handleOpenChange = (menu: string) => (open: boolean) => {
+    setOpenMenu(open ? menu : null);
   };
 
   const handleBulkDelete = async (itemIds: string[]) => {
@@ -1678,12 +1722,14 @@ export default function CandidateImportUploadQueue() {
 
                 <TabsContent value="webhook" className="mt-4">
                   {selectedItem.webhook_payload ? (
-                    <ExpandablePayload
-                      data={selectedItem.webhook_payload}
-                      title="Webhook Payload"
-                      maxHeight="max-h-40"
-                      compact={true}
-                    />
+                    <div className="whitespace-pre-wrap break-words">
+                      <ExpandablePayload
+                        data={selectedItem.webhook_payload}
+                        title="Webhook Payload"
+                        maxHeight="max-h-40"
+                        compact={true}
+                      />
+                    </div>
                   ) : (
                     <p className="text-sm text-muted-foreground">No webhook payload available.</p>
                   )}
@@ -1693,11 +1739,11 @@ export default function CandidateImportUploadQueue() {
                   <TabsContent value="errors" className="mt-4">
                     <div>
                       <Label className="text-sm font-medium text-red-700">Error</Label>
-                      <p className="text-sm text-red-700 mt-1">{selectedItem.error}</p>
+                      <p className="text-sm text-red-700 mt-1 whitespace-pre-wrap break-words">{selectedItem.error}</p>
                       {selectedItem.error_details && (
                         <details className="mt-2">
                           <summary className="text-sm text-red-600 cursor-pointer">View Error Details</summary>
-                          <pre className="text-xs text-red-700 mt-2 p-2 bg-red-50 rounded overflow-auto max-h-40">
+                          <pre className="text-xs text-red-700 mt-2 p-2 bg-red-50 rounded overflow-auto max-h-40 whitespace-pre-wrap break-words">
                             {selectedItem.error_details}
                           </pre>
                         </details>

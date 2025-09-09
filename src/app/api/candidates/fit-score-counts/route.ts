@@ -198,6 +198,54 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Handle fit score filters - same logic as main candidates API
+    const minAppliedJobFitScore = searchParams.get('minAppliedJobFitScore');
+    const maxAppliedJobFitScore = searchParams.get('maxAppliedJobFitScore');
+    const includeNoScoreInApplied = searchParams.get('includeNoScoreInApplied') === 'true';
+    
+    if (minAppliedJobFitScore !== null || maxAppliedJobFitScore !== null) {
+      const minScore = minAppliedJobFitScore ? parseFloat(minAppliedJobFitScore) / 100 : undefined;
+      const maxScore = maxAppliedJobFitScore ? parseFloat(maxAppliedJobFitScore) / 100 : undefined;
+      
+      // Check if this is the "no-score" case (both min and max are -1)
+      if (minScore === -1 && maxScore === -1) {
+        // Special case: filter for candidates with no fit score
+        whereClauses.push(`(c."fitScore" IS NULL OR c."fitScore" = 0)`);
+      } else if (includeNoScoreInApplied) {
+        // Both regular grades and no-score selected - create OR condition
+        const regularScoreConditions: string[] = [];
+        
+        if (minScore !== undefined && minScore !== -1) {
+          regularScoreConditions.push(`c."fitScore" >= $${paramIndex++}`);
+          queryParams.push(minScore);
+        }
+        
+        if (maxScore !== undefined && maxScore !== -1) {
+          regularScoreConditions.push(`c."fitScore" <= $${paramIndex++}`);
+          queryParams.push(maxScore);
+        }
+        
+        // Create OR condition: (regular score conditions) OR (no-score condition)
+        const noScoreCondition = `(c."fitScore" IS NULL OR c."fitScore" = 0)`;
+        
+        if (regularScoreConditions.length > 0) {
+          whereClauses.push(`((${regularScoreConditions.join(' AND ')}) OR ${noScoreCondition})`);
+        } else {
+          whereClauses.push(`(${noScoreCondition})`);
+        }
+      } else {
+        // Handle regular score range filtering
+        if (minScore !== undefined && minScore !== -1) {
+          whereClauses.push(`c."fitScore" >= $${paramIndex++}`);
+          queryParams.push(minScore);
+        }
+        if (maxScore !== undefined && maxScore !== -1) {
+          whereClauses.push(`c."fitScore" <= $${paramIndex++}`);
+          queryParams.push(maxScore);
+        }
+      }
+    }
+
     const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
 
     // Simple query to get all candidates with scores

@@ -227,10 +227,10 @@ export default function DashboardPageClient({
                               hasPermission(session?.user, 'USERS_PERMISSIONS_MANAGE');
       
       if (canViewAllCandidates) {
-        promises.push(safeFetch('/api/candidates', fetchOptions));
+        promises.push(safeFetch('/api/candidates?forCounts=true', fetchOptions));
       } else {
         // User can only see their assigned candidates
-        promises.push(safeFetch(`/api/candidates?assignedRecruiterId=${userId}`, fetchOptions));
+        promises.push(safeFetch(`/api/candidates?recruiterId=${userId}&forCounts=true`, fetchOptions));
       }
       
       if (canViewAllUsers) {
@@ -241,9 +241,9 @@ export default function DashboardPageClient({
       
       // For backlog candidates, use the same logic as main candidates
       if (canViewAllCandidates) {
-        promises.push(safeFetch('/api/candidates', fetchOptions));
+        promises.push(safeFetch('/api/candidates?forCounts=true', fetchOptions));
       } else {
-        promises.push(safeFetch(`/api/candidates?assignedRecruiterId=${userId}`, fetchOptions));
+        promises.push(safeFetch(`/api/candidates?recruiterId=${userId}&forCounts=true`, fetchOptions));
       }
       promises.push(safeFetch('/api/positions', fetchOptions));
 
@@ -1764,19 +1764,7 @@ export default function DashboardPageClient({
                   >
                     Previous
                   </Button>
-                  <div className="flex items-center space-x-1">
-                    {Array.from({ length: unassignedTotalPages }, (_, i) => i + 1).map(pageNum => (
-                      <Button
-                        key={pageNum}
-                        variant={pageNum === unassignedPage ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setUnassignedPage(pageNum)}
-                        className="w-8 h-8 p-0"
-                      >
-                        {pageNum}
-                      </Button>
-                    ))}
-                  </div>
+                  {/* Removed numbered page buttons to avoid overwhelming navigation when there are many pages */}
                   <Button
                     variant="outline"
                     size="sm"

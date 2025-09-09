@@ -108,6 +108,8 @@ const systemSettingKeyEnum = z.enum([
     // Webhook Configuration
     'resumeProcessingWebhookResponseMode',
     'resumeProcessingWebhookTimeout',
+    'webhookConnectionTimeout',
+    'preventDuplicateWebhookProcessing',
     // AI Configuration
     'aiPowerSearchSystemPrompt',
     // AI API Key Fallback Configuration
@@ -115,6 +117,8 @@ const systemSettingKeyEnum = z.enum([
     'geminiApiKey_1_errorCount', 'geminiApiKey_2_errorCount', 'geminiApiKey_3_errorCount', 'geminiApiKey_4_errorCount', 'geminiApiKey_5_errorCount',
     'geminiApiKey_1_lastError', 'geminiApiKey_2_lastError', 'geminiApiKey_3_lastError', 'geminiApiKey_4_lastError', 'geminiApiKey_5_lastError',
     'geminiApiKey_1_lastUsed', 'geminiApiKey_2_lastUsed', 'geminiApiKey_3_lastUsed', 'geminiApiKey_4_lastUsed', 'geminiApiKey_5_lastUsed',
+    // Upload Queue Processor settings
+    'processorIntervalMs', 'processorQuietMode', 'processorConnectionTimeoutMs', 'processorRequestTimeoutMs', 'processQueueEnabled',
 
 ]);
 

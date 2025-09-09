@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions';
 import prisma from '@/lib/prisma';
 import type { CreateHeadcountRequest } from '@/lib/types';
-import { autoClosePositionIfHeadcountFilled } from '@/lib/headcountUtils';
+import { autoClosePositionIfHeadcountFilled, autoOpenPositionIfNewHeadcountAdded } from '@/lib/headcountUtils';
 import { SimpleWarningService } from '@/lib/warnings';
 
 export const dynamic = 'force-dynamic';
@@ -173,6 +173,19 @@ export async function POST(request: NextRequest) {
       // Don't fail the request if warning check fails
     }
     
+    // Check if position should be auto-opened (if it was closed and new headcount was added)
+    let autoOpenResult = null;
+    try {
+      autoOpenResult = await autoOpenPositionIfNewHeadcountAdded(
+        positionId,
+        session.user.id,
+        session.user.name || session.user.email || 'System'
+      );
+    } catch (autoOpenError) {
+      console.error('Error auto-opening position:', autoOpenError);
+      // Don't fail the headcount creation if auto-open fails
+    }
+
     // Check if all headcounts are now filled and auto-close position if needed
     let autoCloseResult = null;
     try {

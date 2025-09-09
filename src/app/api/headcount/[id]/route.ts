@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import type { UpdateHeadcountRequest } from '@/lib/types';
-import { checkHeadcountUnassignWarning, unassignCandidateFromHeadcount, autoClosePositionIfHeadcountFilled } from '@/lib/headcountUtils';
+import { checkHeadcountUnassignWarning, unassignCandidateFromHeadcount, autoClosePositionIfHeadcountFilled, autoOpenPositionIfNewHeadcountAdded } from '@/lib/headcountUtils';
 
 export const dynamic = 'force-dynamic';
 
@@ -137,6 +137,19 @@ export async function PUT(
       },
     });
 
+    // Check if position should be auto-opened (if it was closed and headcount was updated)
+    let autoOpenResult = null;
+    try {
+      autoOpenResult = await autoOpenPositionIfNewHeadcountAdded(
+        headcount.positionId,
+        session.user.id,
+        session.user.name || session.user.email || 'System'
+      );
+    } catch (autoOpenError) {
+      console.error('Error auto-opening position:', autoOpenError);
+      // Don't fail the headcount update if auto-open fails
+    }
+
     // Check if all headcounts are now filled and auto-close position if needed
     let autoCloseResult = null;
     try {
@@ -216,6 +229,19 @@ export async function DELETE(
     await prisma.headcount.delete({
       where: { id },
     });
+
+    // Check if position should be auto-opened (if it was closed and headcount was deleted)
+    let autoOpenResult = null;
+    try {
+      autoOpenResult = await autoOpenPositionIfNewHeadcountAdded(
+        positionId,
+        session.user.id,
+        session.user.name || session.user.email || 'System'
+      );
+    } catch (autoOpenError) {
+      console.error('Error auto-opening position:', autoOpenError);
+      // Don't fail the headcount deletion if auto-open fails
+    }
 
     // Check if all headcounts are now filled and auto-close position if needed
     let autoCloseResult = null;

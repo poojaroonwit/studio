@@ -900,7 +900,7 @@ export function CandidateTable({
       return (
         <TableRow 
           key={candidate.id} 
-          className={`cursor-pointer transition-colors ${candidate.isPinned ? 'bg-primary/10 dark:bg-primary/20' : ''}`}
+          className={`cursor-pointer transition-colors ${candidate.isPinned ? 'bg-primary/15 dark:bg-primary/25' : ''}`}
           onClick={(e) => handleRowClick(candidate, e)}
         >
           <TableCell key={`${candidate.id}-row-number`} className="text-center text-muted-foreground">
@@ -1085,7 +1085,7 @@ export function CandidateTable({
                   {pinned.length > 0 && (
                     <>
                       {/* Section Header for Pinned Candidates */}
-                      <TableRow className="bg-primary/10 border-b-2">
+                      <TableRow className="bg-primary/15 dark:bg-primary/25 border-b-2 border-primary/30">
                         <TableCell colSpan={getVisibleColumnCount()} className="py-3 px-4">
                           <div className="flex items-center gap-2">
                             <PinIcon className="h-4 w-4 text-primary rotate-45" />

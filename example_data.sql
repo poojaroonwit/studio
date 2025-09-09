@@ -937,7 +937,418 @@ INSERT INTO "Candidate" (
     (SELECT id FROM "RecruitmentStage" WHERE name = 'Interview Scheduled' LIMIT 1),
     false,
     null
+),
+-- Batch 1: Additional candidates (26-50)
+-- Candidate 26: Full Stack Developer
+(
+    '660e8400-e29b-41d4-a716-446655440026',
+    'Sofia Chen',
+    'sofia.chen@email.com',
+    '+66-96-789-0123',
+    '550e8400-e29b-41d4-a716-446655440001',
+    (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
+    0.83,
+    '2024-03-10',
+    '{"skills": ["React", "Node.js", "MongoDB", "Express", "TypeScript", "AWS", "Docker"], "experience_years": 5, "education": "Bachelor of Computer Science", "languages": ["English", "Chinese", "Thai"], "certifications": ["AWS Certified Developer"]}',
+    '{"expected_salary": "90,000 THB", "availability": "2 weeks notice", "preferred_location": "Bangkok", "remote_work": true}',
+    '/uploads/resumes/sofia_chen_resume.pdf',
+    '2024-03-10',
+    NOW(),
+    'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face',
+    'Experienced full stack developer with strong React and Node.js skills.',
+    'Good full stack background with modern technologies.',
+    '[{"degree": "Bachelor of Computer Science", "university": "Tsinghua University", "year": 2019, "gpa": "3.7"}]',
+    '[{"company": "Tech Solutions", "position": "Full Stack Developer", "duration": "2021-2024", "description": "Developed web applications using React and Node.js"}, {"company": "Startup", "position": "Junior Developer", "duration": "2019-2021", "description": "Built full stack applications"}]',
+    null,
+    (SELECT id FROM "CandidateSource" WHERE name = 'Linkedin' LIMIT 1),
+    'Professional Network',
+    (SELECT id FROM "RecruitmentStage" WHERE name = 'Screening' LIMIT 1),
+    false,
+    null
+),
+-- Candidate 27: UI/UX Designer
+(
+    '660e8400-e29b-41d4-a716-446655440027',
+    'Emma Thompson',
+    'emma.thompson@email.com',
+    '+66-97-890-1234',
+    '550e8400-e29b-41d4-a716-446655440005',
+    (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
+    0.77,
+    '2024-03-12',
+    '{"skills": ["UI Design", "UX Research", "Figma", "Adobe XD", "Sketch", "Prototyping", "User Testing"], "experience_years": 4, "education": "Bachelor of Design", "languages": ["English", "Thai"], "certifications": ["Google UX Design Certificate"]}',
+    '{"expected_salary": "75,000 THB", "availability": "1 month notice", "preferred_location": "Bangkok", "remote_work": false}',
+    '/uploads/resumes/emma_thompson_resume.pdf',
+    '2024-03-12',
+    NOW(),
+    'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face',
+    'Creative UI/UX designer with strong user research and prototyping skills.',
+    'Good design background with user research experience.',
+    '[{"degree": "Bachelor of Design", "university": "Royal College of Art", "year": 2020, "gpa": "3.8"}]',
+    '[{"company": "Design Agency", "position": "UI/UX Designer", "duration": "2021-2024", "description": "Designed user interfaces and conducted user research"}, {"company": "Creative Studio", "position": "Junior Designer", "duration": "2020-2021", "description": "Created visual designs and prototypes"}]',
+    null,
+    (SELECT id FROM "CandidateSource" WHERE name = 'JobsDB' LIMIT 1),
+    'Job Portal',
+    (SELECT id FROM "RecruitmentStage" WHERE name = 'Applied' LIMIT 1),
+    false,
+    null
+),
+-- Candidate 28: Database Administrator
+(
+    '660e8400-e29b-41d4-a716-446655440028',
+    'Hassan Al-Rashid',
+    'hassan.alrashid@email.com',
+    '+66-98-901-2345',
+    '550e8400-e29b-41d4-a716-446655440006',
+    (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
+    0.86,
+    '2024-03-14',
+    '{"skills": ["PostgreSQL", "MySQL", "MongoDB", "Redis", "Database Optimization", "Backup & Recovery", "SQL"], "experience_years": 6, "education": "Bachelor of Computer Science", "languages": ["English", "Arabic", "Thai"], "certifications": ["Oracle Database Administrator Certified Professional"]}',
+    '{"expected_salary": "95,000 THB", "availability": "3 weeks notice", "preferred_location": "Bangkok", "remote_work": true}',
+    '/uploads/resumes/hassan_alrashid_resume.pdf',
+    '2024-03-14',
+    NOW(),
+    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
+    'Experienced database administrator with strong optimization and backup skills.',
+    'Excellent database administration background with Oracle certification.',
+    '[{"degree": "Bachelor of Computer Science", "university": "King Saud University", "year": 2018, "gpa": "3.6"}]',
+    '[{"company": "Database Solutions", "position": "Senior Database Administrator", "duration": "2020-2024", "description": "Managed enterprise databases and optimized performance"}, {"company": "Tech Corp", "position": "Database Administrator", "duration": "2018-2020", "description": "Maintained database systems and backups"}]',
+    null,
+    (SELECT id FROM "CandidateSource" WHERE name = 'Referral' LIMIT 1),
+    'Employee Referral',
+    (SELECT id FROM "RecruitmentStage" WHERE name = 'Shortlisted' LIMIT 1),
+    true,
+    '2024-03-15'
+),
+-- Candidate 29: Digital Marketing Specialist
+(
+    '660e8400-e29b-41d4-a716-446655440029',
+    'Lucas Silva',
+    'lucas.silva@email.com',
+    '+66-99-012-3456',
+    '550e8400-e29b-41d4-a716-446655440007',
+    (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
+    0.74,
+    '2024-03-16',
+    '{"skills": ["Digital Marketing", "PPC", "Google Ads", "Facebook Ads", "Analytics", "Email Marketing", "Marketing Automation"], "experience_years": 3, "education": "Bachelor of Marketing", "languages": ["English", "Portuguese", "Thai"], "certifications": ["Google Ads Certified", "Facebook Blueprint Certified"]}',
+    '{"expected_salary": "60,000 THB", "availability": "2 weeks notice", "preferred_location": "Bangkok", "remote_work": false}',
+    '/uploads/resumes/lucas_silva_resume.pdf',
+    '2024-03-16',
+    NOW(),
+    'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
+    'Digital marketing specialist with strong PPC and social media advertising skills.',
+    'Good digital marketing background with Google and Facebook certifications.',
+    '[{"degree": "Bachelor of Marketing", "university": "University of São Paulo", "year": 2021, "gpa": "3.5"}]',
+    '[{"company": "Digital Agency", "position": "Digital Marketing Specialist", "duration": "2022-2024", "description": "Managed PPC campaigns and social media advertising"}, {"company": "Marketing Firm", "position": "Marketing Assistant", "duration": "2021-2022", "description": "Assisted with digital marketing campaigns"}]',
+    null,
+    (SELECT id FROM "CandidateSource" WHERE name = 'Facebook' LIMIT 1),
+    'Social Media',
+    (SELECT id FROM "RecruitmentStage" WHERE name = 'Screening' LIMIT 1),
+    false,
+    null
+),
+-- Candidate 30: Sales Development Representative
+(
+    '660e8400-e29b-41d4-a716-446655440030',
+    'Nina Petrov',
+    'nina.petrov@email.com',
+    '+66-90-123-4567',
+    '550e8400-e29b-41d4-a716-446655440008',
+    (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
+    0.69,
+    '2024-03-18',
+    '{"skills": ["Lead Generation", "Cold Calling", "CRM", "Sales Prospecting", "Email Outreach", "Sales Qualification", "Pipeline Management"], "experience_years": 2, "education": "Bachelor of Business Administration", "languages": ["English", "Russian", "Thai"], "certifications": ["Salesforce Certified Sales Cloud Consultant"]}',
+    '{"expected_salary": "45,000 THB", "availability": "1 month notice", "preferred_location": "Bangkok", "remote_work": false}',
+    '/uploads/resumes/nina_petrov_resume.pdf',
+    '2024-03-18',
+    NOW(),
+    'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=face',
+    'Motivated sales development representative with strong lead generation skills.',
+    'Good sales development background with CRM experience.',
+    '[{"degree": "Bachelor of Business Administration", "university": "Moscow State University", "year": 2022, "gpa": "3.4"}]',
+    '[{"company": "Sales Solutions", "position": "Sales Development Representative", "duration": "2022-2024", "description": "Generated leads and qualified prospects for sales team"}, {"company": "Tech Startup", "position": "Sales Intern", "duration": "2021-2022", "description": "Assisted with lead generation and sales activities"}]',
+    null,
+    (SELECT id FROM "CandidateSource" WHERE name = 'JobThai' LIMIT 1),
+    'Job Portal',
+    (SELECT id FROM "RecruitmentStage" WHERE name = 'Applied' LIMIT 1),
+    false,
+    null
+),
+-- Batch 2: Additional candidates (31-100) - Diverse roles and backgrounds
+-- Candidate 31: Cloud Solutions Architect
+(
+    '660e8400-e29b-41d4-a716-446655440031',
+    'Akira Tanaka',
+    'akira.tanaka@email.com',
+    '+66-91-234-5678',
+    '550e8400-e29b-41d4-a716-446655440006',
+    (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
+    0.92,
+    '2024-03-20',
+    '{"skills": ["AWS", "Azure", "GCP", "Terraform", "Kubernetes", "Docker", "Microservices"], "experience_years": 8, "education": "Master of Computer Science", "languages": ["English", "Japanese", "Thai"], "certifications": ["AWS Solutions Architect Professional", "Azure Solutions Architect Expert"]}',
+    '{"expected_salary": "140,000 THB", "availability": "1 month notice", "preferred_location": "Bangkok", "remote_work": true}',
+    '/uploads/resumes/akira_tanaka_resume.pdf',
+    '2024-03-20',
+    NOW(),
+    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
+    'Senior cloud solutions architect with extensive multi-cloud experience.',
+    'Excellent cloud architecture background with multiple certifications.',
+    '[{"degree": "Master of Computer Science", "university": "University of Tokyo", "year": 2016, "gpa": "3.9"}]',
+    '[{"company": "Cloud Solutions Inc", "position": "Senior Cloud Architect", "duration": "2020-2024", "description": "Designed and implemented cloud solutions for enterprise clients"}, {"company": "Tech Corp", "position": "Cloud Architect", "duration": "2016-2020", "description": "Led cloud migration projects and architecture design"}]',
+    null,
+    (SELECT id FROM "CandidateSource" WHERE name = 'Linkedin' LIMIT 1),
+    'Professional Network',
+    (SELECT id FROM "RecruitmentStage" WHERE name = 'Interview Scheduled' LIMIT 1),
+    true,
+    '2024-03-21'
+),
+-- Candidate 32: Machine Learning Engineer
+(
+    '660e8400-e29b-41d4-a716-446655440032',
+    'Deepika Patel',
+    'deepika.patel@email.com',
+    '+66-92-345-6789',
+    '550e8400-e29b-41d4-a716-446655440003',
+    (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
+    0.88,
+    '2024-03-22',
+    '{"skills": ["Python", "TensorFlow", "PyTorch", "Scikit-learn", "MLOps", "AWS SageMaker", "Data Pipeline"], "experience_years": 5, "education": "Master of Data Science", "languages": ["English", "Hindi", "Thai"], "certifications": ["AWS Machine Learning Specialty"]}',
+    '{"expected_salary": "115,000 THB", "availability": "2 weeks notice", "preferred_location": "Bangkok", "remote_work": true}',
+    '/uploads/resumes/deepika_patel_resume.pdf',
+    '2024-03-22',
+    NOW(),
+    'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face',
+    'Experienced machine learning engineer with strong MLOps and cloud experience.',
+    'Strong ML background with AWS certification and production experience.',
+    '[{"degree": "Master of Data Science", "university": "Indian Institute of Science", "year": 2019, "gpa": "3.8"}]',
+    '[{"company": "AI Solutions", "position": "Senior ML Engineer", "duration": "2021-2024", "description": "Built and deployed ML models in production environments"}, {"company": "Data Science Corp", "position": "ML Engineer", "duration": "2019-2021", "description": "Developed machine learning models and data pipelines"}]',
+    null,
+    (SELECT id FROM "CandidateSource" WHERE name = 'Referral' LIMIT 1),
+    'Employee Referral',
+    (SELECT id FROM "RecruitmentStage" WHERE name = 'Shortlisted' LIMIT 1),
+    false,
+    null
+),
+-- Candidate 33: Technical Writer
+(
+    '660e8400-e29b-41d4-a716-446655440033',
+    'Sarah Mitchell',
+    'sarah.mitchell@email.com',
+    '+66-93-456-7890',
+    '550e8400-e29b-41d4-a716-446655440001',
+    (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
+    0.73,
+    '2024-03-24',
+    '{"skills": ["Technical Writing", "API Documentation", "User Guides", "Markdown", "Git", "Confluence", "Jira"], "experience_years": 4, "education": "Bachelor of English Literature", "languages": ["English", "Thai"], "certifications": ["Certified Professional Technical Communicator"]}',
+    '{"expected_salary": "55,000 THB", "availability": "3 weeks notice", "preferred_location": "Bangkok", "remote_work": true}',
+    '/uploads/resumes/sarah_mitchell_resume.pdf',
+    '2024-03-24',
+    NOW(),
+    'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face',
+    'Experienced technical writer with strong API documentation skills.',
+    'Good technical writing background with API documentation experience.',
+    '[{"degree": "Bachelor of English Literature", "university": "University of Cambridge", "year": 2020, "gpa": "3.7"}]',
+    '[{"company": "Tech Documentation", "position": "Technical Writer", "duration": "2021-2024", "description": "Created API documentation and user guides"}, {"company": "Software Company", "position": "Junior Technical Writer", "duration": "2020-2021", "description": "Wrote technical documentation and help articles"}]',
+    null,
+    (SELECT id FROM "CandidateSource" WHERE name = 'JobsDB' LIMIT 1),
+    'Job Portal',
+    (SELECT id FROM "RecruitmentStage" WHERE name = 'Screening' LIMIT 1),
+    false,
+    null
+),
+-- Candidate 34: Business Intelligence Analyst
+(
+    '660e8400-e29b-41d4-a716-446655440034',
+    'Mohammed Al-Zahra',
+    'mohammed.alzahra@email.com',
+    '+66-94-567-8901',
+    '550e8400-e29b-41d4-a716-446655440010',
+    (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
+    0.82,
+    '2024-03-26',
+    '{"skills": ["SQL", "Power BI", "Tableau", "Python", "Data Visualization", "ETL", "Business Intelligence"], "experience_years": 5, "education": "Bachelor of Statistics", "languages": ["English", "Arabic", "Thai"], "certifications": ["Tableau Desktop Specialist", "Microsoft Power BI Data Analyst"]}',
+    '{"expected_salary": "85,000 THB", "availability": "1 month notice", "preferred_location": "Bangkok", "remote_work": false}',
+    '/uploads/resumes/mohammed_alzahra_resume.pdf',
+    '2024-03-26',
+    NOW(),
+    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
+    'Experienced BI analyst with strong data visualization and SQL skills.',
+    'Strong BI background with Tableau and Power BI certifications.',
+    '[{"degree": "Bachelor of Statistics", "university": "American University of Beirut", "year": 2019, "gpa": "3.6"}]',
+    '[{"company": "BI Solutions", "position": "Senior BI Analyst", "duration": "2021-2024", "description": "Created dashboards and reports for business stakeholders"}, {"company": "Analytics Corp", "position": "BI Analyst", "duration": "2019-2021", "description": "Developed data models and visualizations"}]',
+    null,
+    (SELECT id FROM "CandidateSource" WHERE name = 'Linkedin' LIMIT 1),
+    'Professional Network',
+    (SELECT id FROM "RecruitmentStage" WHERE name = 'Interview Scheduled' LIMIT 1),
+    false,
+    null
+),
+-- Candidate 35: Scrum Master
+(
+    '660e8400-e29b-41d4-a716-446655440035',
+    'Elena Rodriguez',
+    'elena.rodriguez@email.com',
+    '+66-95-678-9012',
+    '550e8400-e29b-41d4-a716-446655440004',
+    (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
+    0.79,
+    '2024-03-28',
+    '{"skills": ["Scrum", "Agile", "Project Management", "Team Facilitation", "Jira", "Confluence", "Retrospectives"], "experience_years": 6, "education": "Bachelor of Business Administration", "languages": ["English", "Spanish", "Thai"], "certifications": ["Certified ScrumMaster (CSM)", "Professional Scrum Master (PSM)"]}',
+    '{"expected_salary": "80,000 THB", "availability": "2 weeks notice", "preferred_location": "Bangkok", "remote_work": false}',
+    '/uploads/resumes/elena_rodriguez_resume.pdf',
+    '2024-03-28',
+    NOW(),
+    'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face',
+    'Experienced Scrum Master with strong agile facilitation skills.',
+    'Good agile background with CSM and PSM certifications.',
+    '[{"degree": "Bachelor of Business Administration", "university": "Universidad de Madrid", "year": 2018, "gpa": "3.5"}]',
+    '[{"company": "Agile Solutions", "position": "Senior Scrum Master", "duration": "2020-2024", "description": "Facilitated agile teams and improved delivery processes"}, {"company": "Tech Company", "position": "Scrum Master", "duration": "2018-2020", "description": "Led scrum ceremonies and coached development teams"}]',
+    null,
+    (SELECT id FROM "CandidateSource" WHERE name = 'Referral' LIMIT 1),
+    'Employee Referral',
+    (SELECT id FROM "RecruitmentStage" WHERE name = 'Shortlisted' LIMIT 1),
+    true,
+    '2024-03-29'
 );
+
+-- ==============================================
+-- GENERATE ADDITIONAL CANDIDATES (36-487)
+-- ==============================================
+
+-- Generate remaining candidates using a more efficient approach
+-- This creates candidates with varied backgrounds, skills, and experience levels
+
+-- Create a temporary table to store candidate data for bulk insertion
+CREATE TEMP TABLE temp_candidates (
+    id TEXT,
+    name TEXT,
+    email TEXT,
+    phone TEXT,
+    position_id TEXT,
+    fit_score DECIMAL,
+    application_date DATE,
+    skills JSONB,
+    custom_attributes JSONB,
+    avatar_url TEXT,
+    data_ai_hint TEXT,
+    assignment_justification TEXT,
+    education_data JSONB,
+    experience_data JSONB,
+    source_id TEXT,
+    sub_source TEXT,
+    status_id TEXT,
+    is_pinned BOOLEAN,
+    pinned_at TIMESTAMP
+);
+
+-- Insert bulk candidate data
+INSERT INTO temp_candidates VALUES
+-- Candidates 36-50: Software Engineers and Developers
+('660e8400-e29b-41d4-a716-446655440036', 'James Wilson', 'james.wilson2@email.com', '+66-96-789-0123', '550e8400-e29b-41d4-a716-446655440001', 0.75, '2024-03-30', '{"skills": ["Java", "Spring", "MySQL", "Git"], "experience_years": 3, "education": "Bachelor of Computer Science", "languages": ["English", "Thai"], "certifications": []}', '{"expected_salary": "70,000 THB", "availability": "2 weeks notice", "preferred_location": "Bangkok", "remote_work": false}', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face', 'Java developer with Spring framework experience.', 'Good Java background with Spring experience.', '[{"degree": "Bachelor of Computer Science", "university": "Chulalongkorn University", "year": 2021, "gpa": "3.4"}]', '[{"company": "Software Company", "position": "Java Developer", "duration": "2021-2024", "description": "Developed Java applications using Spring framework"}]', (SELECT id FROM "CandidateSource" WHERE name = 'JobsDB' LIMIT 1), 'Job Portal', (SELECT id FROM "RecruitmentStage" WHERE name = 'Applied' LIMIT 1), false, null),
+('660e8400-e29b-41d4-a716-446655440037', 'Maria Garcia', 'maria.garcia2@email.com', '+66-97-890-1234', '550e8400-e29b-41d4-a716-446655440002', 0.78, '2024-04-01', '{"skills": ["React", "JavaScript", "CSS", "HTML"], "experience_years": 2, "education": "Bachelor of Information Technology", "languages": ["English", "Spanish", "Thai"], "certifications": []}', '{"expected_salary": "60,000 THB", "availability": "1 month notice", "preferred_location": "Bangkok", "remote_work": false}', 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face', 'Frontend developer with React experience.', 'Good React skills with modern frontend development.', '[{"degree": "Bachelor of Information Technology", "university": "KMITL", "year": 2022, "gpa": "3.5"}]', '[{"company": "Web Agency", "position": "Frontend Developer", "duration": "2022-2024", "description": "Developed React applications and user interfaces"}]', (SELECT id FROM "CandidateSource" WHERE name = 'Linkedin' LIMIT 1), 'Professional Network', (SELECT id FROM "RecruitmentStage" WHERE name = 'Screening' LIMIT 1), false, null),
+('660e8400-e29b-41d4-a716-446655440038', 'David Kim', 'david.kim2@email.com', '+66-98-901-2345', '550e8400-e29b-41d4-a716-446655440003', 0.85, '2024-04-02', '{"skills": ["Python", "Machine Learning", "Pandas", "NumPy"], "experience_years": 4, "education": "Master of Data Science", "languages": ["English", "Korean", "Thai"], "certifications": []}', '{"expected_salary": "90,000 THB", "availability": "3 weeks notice", "preferred_location": "Bangkok", "remote_work": true}', 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face', 'Data scientist with Python and ML experience.', 'Strong data science background with Python skills.', '[{"degree": "Master of Data Science", "university": "KAIST", "year": 2020, "gpa": "3.7"}]', '[{"company": "Data Analytics", "position": "Data Scientist", "duration": "2020-2024", "description": "Built machine learning models and data pipelines"}]', (SELECT id FROM "CandidateSource" WHERE name = 'Referral' LIMIT 1), 'Employee Referral', (SELECT id FROM "RecruitmentStage" WHERE name = 'Shortlisted' LIMIT 1), true, '2024-04-03'),
+('660e8400-e29b-41d4-a716-446655440039', 'Lisa Chen', 'lisa.chen2@email.com', '+66-99-012-3456', '550e8400-e29b-41d4-a716-446655440004', 0.72, '2024-04-04', '{"skills": ["Product Management", "Analytics", "User Research", "Agile"], "experience_years": 3, "education": "Bachelor of Business Administration", "languages": ["English", "Chinese", "Thai"], "certifications": []}', '{"expected_salary": "80,000 THB", "availability": "2 weeks notice", "preferred_location": "Bangkok", "remote_work": false}', 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face', 'Product manager with analytics and user research skills.', 'Good product management background with analytics experience.', '[{"degree": "Bachelor of Business Administration", "university": "National Taiwan University", "year": 2021, "gpa": "3.6"}]', '[{"company": "Product Company", "position": "Product Manager", "duration": "2021-2024", "description": "Managed product roadmap and user research"}]', (SELECT id FROM "CandidateSource" WHERE name = 'JobThai' LIMIT 1), 'Job Portal', (SELECT id FROM "RecruitmentStage" WHERE name = 'Applied' LIMIT 1), false, null),
+('660e8400-e29b-41d4-a716-446655440040', 'Alex Johnson', 'alex.johnson2@email.com', '+66-90-123-4567', '550e8400-e29b-41d4-a716-446655440005', 0.76, '2024-04-05', '{"skills": ["UI Design", "Figma", "Adobe Creative Suite", "Prototyping"], "experience_years": 3, "education": "Bachelor of Design", "languages": ["English", "Thai"], "certifications": []}', '{"expected_salary": "65,000 THB", "availability": "1 month notice", "preferred_location": "Bangkok", "remote_work": false}', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face', 'UI designer with Figma and prototyping skills.', 'Good UI design background with modern tools.', '[{"degree": "Bachelor of Design", "university": "Silpakorn University", "year": 2021, "gpa": "3.5"}]', '[{"company": "Design Studio", "position": "UI Designer", "duration": "2021-2024", "description": "Designed user interfaces and created prototypes"}]', (SELECT id FROM "CandidateSource" WHERE name = 'Facebook' LIMIT 1), 'Social Media', (SELECT id FROM "RecruitmentStage" WHERE name = 'Screening' LIMIT 1), false, null);
+
+-- Insert candidates from temp table into main Candidate table
+INSERT INTO "Candidate" (
+    id, name, email, phone, "positionId", "recruiterId", "fitScore", "applicationDate",
+    "parsedData", "customAttributes", "resumePath", "createdAt", "updatedAt", "avatarUrl",
+    "dataAiHint", "assignmentJustification", "educationData", "experienceData", "companyId",
+    "sourceId", "subSource", "statusId", "isPinned", "pinnedAt"
+)
+SELECT 
+    tc.id, tc.name, tc.email, tc.phone, tc.position_id, 
+    (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
+    tc.fit_score, tc.application_date, tc.skills, tc.custom_attributes,
+    '/uploads/resumes/' || LOWER(REPLACE(tc.name, ' ', '_')) || '_resume.pdf',
+    tc.application_date, NOW(), tc.avatar_url, tc.data_ai_hint, tc.assignment_justification,
+    tc.education_data, tc.experience_data, null, tc.source_id, tc.sub_source, tc.status_id,
+    tc.is_pinned, tc.pinned_at
+FROM temp_candidates tc;
+
+-- Drop the temporary table
+DROP TABLE temp_candidates;
+
+-- Generate additional candidates using a loop approach
+-- This creates candidates 41-487 with varied data
+DO $$
+DECLARE
+    i INTEGER;
+    candidate_id TEXT;
+    candidate_name TEXT;
+    candidate_email TEXT;
+    phone_num TEXT;
+    position_ids TEXT[] := ARRAY[
+        '550e8400-e29b-41d4-a716-446655440001',
+        '550e8400-e29b-41d4-a716-446655440002', 
+        '550e8400-e29b-41d4-a716-446655440003',
+        '550e8400-e29b-41d4-a716-446655440004',
+        '550e8400-e29b-41d4-a716-446655440005',
+        '550e8400-e29b-41d4-a716-446655440006',
+        '550e8400-e29b-41d4-a716-446655440007',
+        '550e8400-e29b-41d4-a716-446655440008',
+        '550e8400-e29b-41d4-a716-446655440009',
+        '550e8400-e29b-41d4-a716-446655440010',
+        '550e8400-e29b-41d4-a716-446655440011',
+        '550e8400-e29b-41d4-a716-446655440012'
+    ];
+    source_ids TEXT[] := ARRAY[
+        (SELECT id FROM "CandidateSource" WHERE name = 'Linkedin' LIMIT 1),
+        (SELECT id FROM "CandidateSource" WHERE name = 'JobsDB' LIMIT 1),
+        (SELECT id FROM "CandidateSource" WHERE name = 'Referral' LIMIT 1),
+        (SELECT id FROM "CandidateSource" WHERE name = 'JobThai' LIMIT 1),
+        (SELECT id FROM "CandidateSource" WHERE name = 'Facebook' LIMIT 1),
+        (SELECT id FROM "CandidateSource" WHERE name = 'University' LIMIT 1)
+    ];
+    status_ids TEXT[] := ARRAY[
+        (SELECT id FROM "RecruitmentStage" WHERE name = 'Applied' LIMIT 1),
+        (SELECT id FROM "RecruitmentStage" WHERE name = 'Screening' LIMIT 1),
+        (SELECT id FROM "RecruitmentStage" WHERE name = 'Shortlisted' LIMIT 1),
+        (SELECT id FROM "RecruitmentStage" WHERE name = 'Interview Scheduled' LIMIT 1)
+    ];
+    first_names TEXT[] := ARRAY['John', 'Jane', 'Michael', 'Sarah', 'David', 'Lisa', 'Robert', 'Emily', 'James', 'Maria', 'William', 'Anna', 'Richard', 'Jennifer', 'Thomas', 'Jessica', 'Charles', 'Ashley', 'Christopher', 'Amanda', 'Daniel', 'Stephanie', 'Matthew', 'Melissa', 'Anthony', 'Nicole', 'Mark', 'Elizabeth', 'Donald', 'Helen', 'Steven', 'Samantha', 'Paul', 'Cynthia', 'Andrew', 'Kathleen', 'Joshua', 'Amy', 'Kenneth', 'Shirley', 'Kevin', 'Angela', 'Brian', 'Brenda', 'George', 'Emma', 'Timothy', 'Olivia', 'Ronald', 'Catherine'];
+    last_names TEXT[] := ARRAY['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez', 'Hernandez', 'Lopez', 'Gonzalez', 'Wilson', 'Anderson', 'Thomas', 'Taylor', 'Moore', 'Jackson', 'Martin', 'Lee', 'Perez', 'Thompson', 'White', 'Harris', 'Sanchez', 'Clark', 'Ramirez', 'Lewis', 'Robinson', 'Walker', 'Young', 'Allen', 'King', 'Wright', 'Scott', 'Torres', 'Nguyen', 'Hill', 'Flores', 'Green', 'Adams', 'Nelson', 'Baker', 'Hall', 'Rivera', 'Campbell', 'Mitchell', 'Carter', 'Roberts'];
+BEGIN
+    FOR i IN 41..487 LOOP
+        candidate_id := '660e8400-e29b-41d4-a716-44665544' || LPAD(i::TEXT, 4, '0');
+        candidate_name := first_names[1 + (i % array_length(first_names, 1))] || ' ' || last_names[1 + (i % array_length(last_names, 1))];
+        candidate_email := LOWER(REPLACE(candidate_name, ' ', '.')) || i::TEXT || '@email.com';
+        phone_num := '+66-' || LPAD((80 + (i % 20))::TEXT, 2, '0') || '-' || LPAD((100 + (i % 900))::TEXT, 3, '0') || '-' || LPAD((1000 + (i % 9000))::TEXT, 4, '0');
+        
+        INSERT INTO "Candidate" (
+            id, name, email, phone, "positionId", "recruiterId", "fitScore", "applicationDate",
+            "parsedData", "customAttributes", "resumePath", "createdAt", "updatedAt", "avatarUrl",
+            "dataAiHint", "assignmentJustification", "educationData", "experienceData", "companyId",
+            "sourceId", "subSource", "statusId", "isPinned", "pinnedAt"
+        ) VALUES (
+            candidate_id,
+            candidate_name,
+            candidate_email,
+            phone_num,
+            position_ids[1 + (i % array_length(position_ids, 1))],
+            (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
+            0.60 + (i % 35) * 0.01, -- Fit score between 0.60 and 0.94
+            '2024-01-01'::DATE + (i % 120) * INTERVAL '1 day', -- Application dates over 4 months
+            '{"skills": ["Skill1", "Skill2", "Skill3"], "experience_years": ' || (2 + (i % 8)) || ', "education": "Bachelor Degree", "languages": ["English", "Thai"], "certifications": []}',
+            '{"expected_salary": "' || (50000 + (i % 100000)) || ' THB", "availability": "2 weeks notice", "preferred_location": "Bangkok", "remote_work": ' || (i % 2 = 0) || '}',
+            '/uploads/resumes/' || LOWER(REPLACE(candidate_name, ' ', '_')) || '_resume.pdf',
+            '2024-01-01'::DATE + (i % 120) * INTERVAL '1 day',
+            NOW(),
+            'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
+            'Generated candidate with varied skills and experience.',
+            'Good candidate with relevant background and skills.',
+            '[{"degree": "Bachelor Degree", "university": "University", "year": ' || (2015 + (i % 10)) || ', "gpa": "3.' || (0 + (i % 10)) || '"}]',
+            '[{"company": "Company", "position": "Position", "duration": "2020-2024", "description": "Worked on various projects and gained valuable experience"}]',
+            null,
+            source_ids[1 + (i % array_length(source_ids, 1))],
+            'Generated Source',
+            status_ids[1 + (i % array_length(status_ids, 1))],
+            (i % 10 = 0), -- Pin every 10th candidate
+            CASE WHEN (i % 10 = 0) THEN NOW() ELSE null END
+        );
+    END LOOP;
+END $$;
 
 -- ==============================================
 -- CREATE EXAMPLE UPLOAD QUEUE ITEMS

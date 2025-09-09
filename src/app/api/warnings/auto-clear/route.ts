@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { logAudit } from '@/lib/auditLog';
+import { getEffectiveSLAStartDate } from '@/lib/slaUtils';
 
 export async function POST(request: NextRequest) {
   try {
@@ -118,11 +119,11 @@ async function evaluateWarningCondition(config: any, entityType: string, entityI
 
   // 2. Complex Conditions
   if (conditions && Array.isArray(conditions) && conditions.length > 0) {
-    return evaluateComplexCondition(conditions, logicalOperator, entity);
+    return await evaluateComplexCondition(conditions, logicalOperator, entity);
   }
 
   // 3. Simple Condition
-  return evaluateSimpleCondition(config, getFieldValue(entity, config.field), entity);
+  return await evaluateSimpleCondition(config, getFieldValue(entity, config.field), entity);
 }
 
 function getFieldValue(entity: any, field: string): any {
@@ -140,12 +141,12 @@ function getFieldValue(entity: any, field: string): any {
   return value;
 }
 
-function evaluateSimpleCondition(config: any, fieldValue: any, entity: any): boolean {
+async function evaluateSimpleCondition(config: any, fieldValue: any, entity: any): Promise<boolean> {
   const { condition, operator, value, threshold } = config;
 
   switch (condition) {
     case 'overdue':
-      return checkOverdue(fieldValue, threshold, entity);
+      return await checkOverdue(fieldValue, threshold, entity);
     case 'empty':
       return checkEmpty(fieldValue);
     case 'threshold':
@@ -159,13 +160,13 @@ function evaluateSimpleCondition(config: any, fieldValue: any, entity: any): boo
   }
 }
 
-function evaluateComplexCondition(conditions: any[], logicalOperator: string, entity: any): boolean {
+async function evaluateComplexCondition(conditions: any[], logicalOperator: string, entity: any): Promise<boolean> {
   if (!conditions || conditions.length === 0) return false;
 
-  const results = conditions.map(conditionConfig => {
+  const results = await Promise.all(conditions.map(async conditionConfig => {
     const fieldValue = getFieldValue(entity, conditionConfig.field);
-    return evaluateSingleCondition(conditionConfig, fieldValue, entity);
-  });
+    return await evaluateSingleCondition(conditionConfig, fieldValue, entity);
+  }));
 
   switch (logicalOperator?.toUpperCase()) {
     case 'AND':
@@ -179,12 +180,12 @@ function evaluateComplexCondition(conditions: any[], logicalOperator: string, en
   }
 }
 
-function evaluateSingleCondition(conditionConfig: any, fieldValue: any, entity: any): boolean {
+async function evaluateSingleCondition(conditionConfig: any, fieldValue: any, entity: any): Promise<boolean> {
   const { condition, operator, value, threshold } = conditionConfig;
 
   switch (condition) {
     case 'overdue':
-      return checkOverdue(fieldValue, threshold, entity);
+      return await checkOverdue(fieldValue, threshold, entity);
     case 'empty':
       return checkEmpty(fieldValue);
     case 'threshold':
@@ -228,7 +229,7 @@ async function evaluateCrossEntityConditions(conditions: any[], logicalOperator:
     if (!targetEntity) return false;
     
     const fieldValue = getFieldValue(targetEntity, field);
-    return evaluateSingleCondition({ condition: conditionType, operator, value, threshold }, fieldValue, targetEntity);
+    return await evaluateSingleCondition({ condition: conditionType, operator, value, threshold }, fieldValue, targetEntity);
   }));
 
   switch (logicalOperator?.toUpperCase()) {
@@ -243,17 +244,34 @@ async function evaluateCrossEntityConditions(conditions: any[], logicalOperator:
   }
 }
 
-function checkOverdue(fieldValue: any, threshold: number | null, entity: any): boolean {
+async function checkOverdue(fieldValue: any, threshold: number | null, entity: any): Promise<boolean> {
   if (!fieldValue) return false;
   
-  const date = new Date(fieldValue);
+  // For candidate entities, use the same SLA calculation logic as position detail page
+  let dateToUse = fieldValue;
+  if (entity?.entityType === 'candidate' && entity?.position) {
+    // Use the same logic as getEffectiveSLAStartDate
+    const effectiveStartDate = await getEffectiveSLAStartDate(entity.position);
+    if (effectiveStartDate) {
+      dateToUse = effectiveStartDate;
+    } else if (entity.position.requestDate) {
+      dateToUse = entity.position.requestDate;
+    }
+  }
+  
+  const date = new Date(dateToUse);
   const now = new Date();
   const daysDiff = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
   
   // Use threshold if provided, otherwise use grade SLA
   let slaDays = threshold;
-  if (!slaDays && entity?.grade?.slaDays) {
-    slaDays = entity.grade.slaDays;
+  if (!slaDays) {
+    // For candidate entities, get SLA from position grade
+    if (entity?.entityType === 'candidate' && entity?.position?.grade?.slaDays) {
+      slaDays = entity.position.grade.slaDays;
+    } else if (entity?.grade?.slaDays) {
+      slaDays = entity.grade.slaDays;
+    }
   }
   
   return daysDiff > (slaDays || 30);

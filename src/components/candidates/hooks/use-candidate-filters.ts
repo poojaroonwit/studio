@@ -81,15 +81,15 @@ export function useCandidateFilters(initialFilters?: CandidateFilterValues) {
         // Both regular grades and no-score selected
         const minScore = Math.min(...selectedRanges.map(r => r.min));
         const maxScore = Math.max(...selectedRanges.map(r => r.max));
-        newFilters.minAppliedJobFitScore = minScore;
-        newFilters.maxAppliedJobFitScore = maxScore;
+        newFilters.minAppliedJobFitScore = minScore / 100; // Convert percentage to decimal
+        newFilters.maxAppliedJobFitScore = maxScore / 100; // Convert percentage to decimal
         newFilters.includeNoScoreInApplied = true;
       } else if (selectedRanges.length > 0) {
         // Only regular grades selected
         const minScore = Math.min(...selectedRanges.map(r => r.min));
         const maxScore = Math.max(...selectedRanges.map(r => r.max));
-        newFilters.minAppliedJobFitScore = minScore;
-        newFilters.maxAppliedJobFitScore = maxScore;
+        newFilters.minAppliedJobFitScore = minScore / 100; // Convert percentage to decimal
+        newFilters.maxAppliedJobFitScore = maxScore / 100; // Convert percentage to decimal
         newFilters.includeNoScoreInApplied = false;
       } else if (hasNoScore) {
         // Only no-score selected
@@ -113,15 +113,15 @@ export function useCandidateFilters(initialFilters?: CandidateFilterValues) {
         // Both regular matching grades and no-score selected
         const minScore = Math.min(...selectedRanges.map(r => r.min));
         const maxScore = Math.max(...selectedRanges.map(r => r.max));
-        newFilters.minMatchingJobFitScore = minScore;
-        newFilters.maxMatchingJobFitScore = maxScore;
+        newFilters.minMatchingJobFitScore = minScore / 100; // Convert percentage to decimal
+        newFilters.maxMatchingJobFitScore = maxScore / 100; // Convert percentage to decimal
         newFilters.includeNoScoreInMatching = true;
       } else if (selectedRanges.length > 0) {
         // Only regular matching grades selected
         const minScore = Math.min(...selectedRanges.map(r => r.min));
         const maxScore = Math.max(...selectedRanges.map(r => r.max));
-        newFilters.minMatchingJobFitScore = minScore;
-        newFilters.maxMatchingJobFitScore = maxScore;
+        newFilters.minMatchingJobFitScore = minScore / 100; // Convert percentage to decimal
+        newFilters.maxMatchingJobFitScore = maxScore / 100; // Convert percentage to decimal
         newFilters.includeNoScoreInMatching = false;
       } else if (hasNoScore) {
         // Only no-score selected for matching
@@ -136,7 +136,6 @@ export function useCandidateFilters(initialFilters?: CandidateFilterValues) {
       newFilters.includeNoScoreInMatching = undefined;
     }
 
-    setFilters(newFilters);
     return newFilters;
   }, [horizontalSelectedFitScoreGrades, horizontalSelectedMatchingFitScoreGrades]);
 

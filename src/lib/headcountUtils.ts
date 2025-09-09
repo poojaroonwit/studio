@@ -347,6 +347,140 @@ export async function reopenPositionIfHeadcountAvailable(
 }
 
 /**
+ * Automatically open a position when a new headcount is added to a closed position
+ * @param positionId - The position ID to potentially open
+ * @param actingUserId - The user ID performing the action (for audit logging)
+ * @param actingUserName - The user name performing the action (for audit logging)
+ * @returns Object with success status and details
+ */
+export async function autoOpenPositionIfNewHeadcountAdded(
+  positionId: string,
+  actingUserId: string,
+  actingUserName: string
+) {
+  try {
+    // Get current position details
+    const position = await prisma.position.findUnique({
+      where: { id: positionId },
+      select: {
+        id: true,
+        title: true,
+        isOpen: true,
+        department: true,
+        customAttributes: true,
+      },
+    });
+
+    if (!position) {
+      console.error(`Position ${positionId} not found`);
+      return {
+        success: false,
+        message: 'Position not found',
+        action: 'none',
+      };
+    }
+
+    // If position is already open, no action needed
+    if (position.isOpen) {
+      return {
+        success: true,
+        message: 'Position is already open',
+        action: 'none',
+      };
+    }
+
+    // Check current headcount status
+    const headcountStatus = await checkPositionHeadcountStatus(positionId);
+    
+    if (!headcountStatus.hasHeadcounts) {
+      return {
+        success: false,
+        message: 'Position has no headcounts defined',
+        action: 'none',
+      };
+    }
+
+    // Open the position
+    const updatedPosition = await prisma.position.update({
+      where: { id: positionId },
+      data: { isOpen: true },
+      select: {
+        id: true,
+        title: true,
+        department: true,
+        isOpen: true,
+        customAttributes: true,
+        updatedAt: true,
+      },
+    });
+
+    // Log the automatic opening
+    await logAudit(
+      'AUDIT',
+      `Position '${position.title}' automatically opened due to new headcount being added. Total headcounts: ${headcountStatus.totalHeadcounts}`,
+      'SYSTEM:AutoOpenPosition',
+      actingUserId,
+      { 
+        positionId, 
+        headcountStatus,
+        previousStatus: 'closed',
+        newStatus: 'open'
+      }
+    );
+
+    // Prepare position data for webhook and broadcast
+    const positionWithCustomAttrs = {
+      ...updatedPosition,
+      custom_attributes: updatedPosition.customAttributes || {},
+    };
+
+    // Broadcast position update to SSE clients
+    const { broadcastPositionUpdate, broadcastPositionListUpdated, broadcastPositionStatisticsUpdated } = await import('@/lib/simple-broadcaster');
+    broadcastPositionUpdate(positionWithCustomAttrs, actingUserId);
+
+    // Broadcast position list update to SSE clients
+    broadcastPositionListUpdated();
+
+    // Broadcast statistics update to SSE clients
+    const statsQuery = `
+      SELECT 
+        COUNT(*) as total,
+        COUNT(CASE WHEN "isOpen" = TRUE THEN 1 END) as open,
+        COUNT(CASE WHEN "isOpen" = FALSE THEN 1 END) as closed
+      FROM "Position"
+    `;
+    const { getPool } = await import('@/lib/db');
+    const statsResult = await getPool().query(statsQuery);
+    const stats = statsResult.rows[0];
+    const statistics = { 
+      total: parseInt(stats.total, 10), 
+      open: parseInt(stats.open, 10), 
+      closed: parseInt(stats.closed, 10) 
+    };
+    broadcastPositionStatisticsUpdated(statistics);
+
+    return {
+      success: true,
+      message: 'Position automatically opened successfully',
+      action: 'opened',
+      headcountStatus,
+      position: positionWithCustomAttrs,
+    };
+
+  } catch (error) {
+    console.error('Error auto-opening position:', error);
+    await logAudit(
+      'ERROR',
+      `Failed to auto-open position ${positionId}. Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      'SYSTEM:AutoOpenPosition',
+      actingUserId,
+      { positionId, error: error instanceof Error ? error.message : 'Unknown error' }
+    );
+    throw error;
+  }
+}
+
+/**
  * Check and auto-close positions that have all headcounts filled
  * This can be used as a background job or manual trigger
  * @param actingUserId - The user ID performing the action (for audit logging)

@@ -289,8 +289,25 @@ export class SimpleWarningChecker {
       case 'overdue':
       case 'days_ago':
         if (field === 'applicationDate') {
-          const daysDiff = Math.floor((new Date() - new Date(currentValue)) / (1000 * 60 * 60 * 24));
-          return `${name}: Application is overdue (${daysDiff} days, SLA: ${threshold || 15} days)`;
+          // For candidate SLA warnings, use the same logic as position detail page
+          let dateToUse = currentValue;
+          let slaDays = threshold || 15;
+          
+          if (entity?.entityType === 'candidate' && entity?.position) {
+            // Note: This is a simplified version for message generation
+            // The actual calculation should use getEffectiveSLAStartDate
+            if (entity.position.requestDate) {
+              dateToUse = entity.position.requestDate;
+            }
+          }
+          if (entity?.entityType === 'candidate' && entity?.position?.grade?.slaDays) {
+            slaDays = entity.position.grade.slaDays;
+          } else if (entity?.grade?.slaDays) {
+            slaDays = entity.grade.slaDays;
+          }
+          
+          const daysDiff = Math.floor((new Date() - new Date(dateToUse)) / (1000 * 60 * 60 * 24));
+          return `${name}: Application is overdue (${daysDiff} days, SLA: ${slaDays} days)`;
         }
         return `${name}: ${field} has exceeded the time limit`;
       case 'custom':

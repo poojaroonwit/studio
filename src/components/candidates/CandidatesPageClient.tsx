@@ -981,6 +981,7 @@ export function CandidatesPageClient({
       return paginatedCandidates;
     }
     
+    
     // But we need to ensure we're not returning an empty array when there are candidates
     if (mappedCandidates.length === 0 && filteredCandidates.length > 0) {
       // If mappedCandidates is empty but filteredCandidates has data, there might be a filtering issue
@@ -994,7 +995,7 @@ export function CandidatesPageClient({
     }
     
     return paginatedCandidates;
-  }, [isAiSearchActive, aiMatchedCandidateIds, mappedCandidates, filteredCandidates, page, pageSize, total, paginatedCandidates, isLoading, tableLoading]);
+  }, [isAiSearchActive, aiMatchedCandidateIds, mappedCandidates, filteredCandidates, page, pageSize, total, paginatedCandidates, isLoading, tableLoading, filters.minAppliedJobFitScore, filters.maxAppliedJobFitScore, filters.includeNoScoreInApplied]);
 
   // State for all pinned candidates across all pages
   const [allPinnedCandidates, setAllPinnedCandidates] = useState<Candidate[]>([]);

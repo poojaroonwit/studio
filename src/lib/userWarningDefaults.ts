@@ -137,13 +137,13 @@ const DEFAULT_WARNING_CONFIGURATIONS = [
   },
   {
     name: 'Candidate Over Grade SLA',
-    description: 'Candidate application is overdue (15 days SLA)',
+    description: 'Candidate application is overdue (based on position grade SLA)',
     entityType: 'candidate',
     field: 'applicationDate',
     condition: 'overdue',
     operator: 'gt',
     value: null,
-    threshold: 15,
+    threshold: null, // Use position grade SLA instead of fixed threshold
     severity: 'error',
     isActive: true,
     isPublic: false,

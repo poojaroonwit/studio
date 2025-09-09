@@ -230,17 +230,17 @@ export async function GET(request: NextRequest) {
         const regularScoreConditions: string[] = [];
         
         if (minScore !== undefined && minScore !== -1) {
-          // Handle both percentage (0-100) and decimal (0-1) formats
-          // If filter value is <= 1, assume database stores percentages and convert filter to percentage
-          // If filter value is > 1, assume database stores decimals and use filter as-is
-          const filterValue = minScore <= 1 ? minScore * 100 : minScore;
+          // Database stores scores in decimal format (0-1), so convert percentage values to decimal
+          // If filter value is > 1, assume it's percentage (0-100) and convert to decimal (0-1)
+          // If filter value is <= 1, assume it's already decimal and use as-is
+          const filterValue = minScore > 1 ? minScore / 100 : minScore;
           regularScoreConditions.push(`c."fitScore" >= $${paramIndex++}`);
           queryParams.push(filterValue);
         }
         
         if (maxScore !== undefined && maxScore !== -1) {
-          // Handle both percentage (0-100) and decimal (0-1) formats
-          const filterValue = maxScore <= 1 ? maxScore * 100 : maxScore;
+          // Database stores scores in decimal format (0-1), so convert percentage values to decimal
+          const filterValue = maxScore > 1 ? maxScore / 100 : maxScore;
           regularScoreConditions.push(`c."fitScore" <= $${paramIndex++}`);
           queryParams.push(filterValue);
         }
@@ -256,16 +256,16 @@ export async function GET(request: NextRequest) {
       } else {
         // Handle regular score range filtering
         if (minScore !== undefined && minScore !== -1) {
-          // Handle both percentage (0-100) and decimal (0-1) formats
-          // If filter value is <= 1, assume database stores percentages and convert filter to percentage
-          // If filter value is > 1, assume database stores decimals and use filter as-is
-          const filterValue = minScore <= 1 ? minScore * 100 : minScore;
+          // Database stores scores in decimal format (0-1), so convert percentage values to decimal
+          // If filter value is > 1, assume it's percentage (0-100) and convert to decimal (0-1)
+          // If filter value is <= 1, assume it's already decimal and use as-is
+          const filterValue = minScore > 1 ? minScore / 100 : minScore;
           whereClauses.push(`c."fitScore" >= $${paramIndex++}`);
           queryParams.push(filterValue);
         }
         if (maxScore !== undefined && maxScore !== -1) {
-          // Handle both percentage (0-100) and decimal (0-1) formats
-          const filterValue = maxScore <= 1 ? maxScore * 100 : maxScore;
+          // Database stores scores in decimal format (0-1), so convert percentage values to decimal
+          const filterValue = maxScore > 1 ? maxScore / 100 : maxScore;
           whereClauses.push(`c."fitScore" <= $${paramIndex++}`);
           queryParams.push(filterValue);
         }

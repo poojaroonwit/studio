@@ -753,9 +753,9 @@ export default function DashboardPageClient({
         // This matches the API query minAppliedJobFitScore:80 which applies to all candidates
         
         // Use same logic as API: only check c.fitScore from database
-        // Database stores fit scores as decimal (0-1), so 80% = 0.8
+        // API normalizes fit scores to 0-100 range, so 80% = 80
         if (typeof c.fitScore !== 'number') return false;
-        return c.fitScore >= 0.8; // 80% threshold
+        return c.fitScore >= 80; // 80% threshold
     });
   }, [filteredCandidates]);
 

@@ -150,15 +150,15 @@ async function analyzeFitScorePerformance() {
         logInfo(`  - Fit score range: ${stats.min_fit_score} - ${stats.max_fit_score}`);
         logInfo(`  - Unique positions: ${stats.unique_positions}`);
         
-        // Check for fit score distribution
+        // Check for fit score distribution (database stores scores in 0-1 decimal format)
         const distributionResult = await client.query(`
             SELECT 
                 CASE 
-                    WHEN "fitScore" >= 90 THEN '90-100 (Excellent)'
-                    WHEN "fitScore" >= 80 THEN '80-89 (Very Good)'
-                    WHEN "fitScore" >= 70 THEN '70-79 (Good)'
-                    WHEN "fitScore" >= 60 THEN '60-69 (Fair)'
-                    WHEN "fitScore" >= 50 THEN '50-59 (Poor)'
+                    WHEN "fitScore" >= 0.9 THEN '90-100 (Excellent)'
+                    WHEN "fitScore" >= 0.8 THEN '80-89 (Very Good)'
+                    WHEN "fitScore" >= 0.7 THEN '70-79 (Good)'
+                    WHEN "fitScore" >= 0.6 THEN '60-69 (Fair)'
+                    WHEN "fitScore" >= 0.5 THEN '50-59 (Poor)'
                     ELSE '0-49 (Very Poor)'
                 END as score_range,
                 COUNT(*) as count

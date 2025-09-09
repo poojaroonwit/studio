@@ -826,17 +826,17 @@ export async function GET(request: NextRequest) {
         const regularScoreConditions: string[] = [];
         
         if (filters.minAppliedJobFitScore !== undefined && filters.minAppliedJobFitScore !== -1) {
-          // Handle both percentage (0-100) and decimal (0-1) formats
-          // If filter value is <= 1, assume database stores percentages and convert filter to percentage
-          // If filter value is > 1, assume database stores decimals and use filter as-is
-          const filterValue = filters.minAppliedJobFitScore <= 1 ? filters.minAppliedJobFitScore * 100 : filters.minAppliedJobFitScore;
+          // Database stores scores in decimal format (0-1), so convert percentage values to decimal
+          // If filter value is > 1, assume it's percentage (0-100) and convert to decimal (0-1)
+          // If filter value is <= 1, assume it's already decimal and use as-is
+          const filterValue = filters.minAppliedJobFitScore > 1 ? filters.minAppliedJobFitScore / 100 : filters.minAppliedJobFitScore;
           regularScoreConditions.push(`c."fitScore" >= $${paramIndex++}`);
           queryParams.push(filterValue);
         }
         
         if (filters.maxAppliedJobFitScore !== undefined && filters.maxAppliedJobFitScore !== -1) {
-          // Handle both percentage (0-100) and decimal (0-1) formats
-          const filterValue = filters.maxAppliedJobFitScore <= 1 ? filters.maxAppliedJobFitScore * 100 : filters.maxAppliedJobFitScore;
+          // Database stores scores in decimal format (0-1), so convert percentage values to decimal
+          const filterValue = filters.maxAppliedJobFitScore > 1 ? filters.maxAppliedJobFitScore / 100 : filters.maxAppliedJobFitScore;
           regularScoreConditions.push(`c."fitScore" <= $${paramIndex++}`);
           queryParams.push(filterValue);
         }
@@ -852,14 +852,16 @@ export async function GET(request: NextRequest) {
       } else {
         // Handle regular score range filtering
         if (filters.minAppliedJobFitScore !== undefined && filters.minAppliedJobFitScore !== -1) {
-          // Handle both percentage (0-100) and decimal (0-1) formats
-          const filterValue = filters.minAppliedJobFitScore <= 1 ? filters.minAppliedJobFitScore * 100 : filters.minAppliedJobFitScore;
+          // Database stores scores in decimal format (0-1), so convert percentage values to decimal
+          // If filter value is > 1, assume it's percentage (0-100) and convert to decimal (0-1)
+          // If filter value is <= 1, assume it's already decimal and use as-is
+          const filterValue = filters.minAppliedJobFitScore > 1 ? filters.minAppliedJobFitScore / 100 : filters.minAppliedJobFitScore;
           whereClauses.push(`c."fitScore" >= $${paramIndex++}`);
           queryParams.push(filterValue);
         }
         if (filters.maxAppliedJobFitScore !== undefined && filters.maxAppliedJobFitScore !== -1) {
-          // Handle both percentage (0-100) and decimal (0-1) formats
-          const filterValue = filters.maxAppliedJobFitScore <= 1 ? filters.maxAppliedJobFitScore * 100 : filters.maxAppliedJobFitScore;
+          // Database stores scores in decimal format (0-1), so convert percentage values to decimal
+          const filterValue = filters.maxAppliedJobFitScore > 1 ? filters.maxAppliedJobFitScore / 100 : filters.maxAppliedJobFitScore;
           whereClauses.push(`c."fitScore" <= $${paramIndex++}`);
           queryParams.push(filterValue);
         }
@@ -882,7 +884,8 @@ export async function GET(request: NextRequest) {
         const regularScoreConditions: string[] = [];
         
         if (filters.minMatchingJobFitScore !== undefined && filters.minMatchingJobFitScore !== -1) {
-          // Database stores fit scores in 0-1 decimal range, filter values already converted
+          // Database stores fit scores in 0-1 decimal range, convert percentage values to decimal
+          const filterValue = filters.minMatchingJobFitScore > 1 ? filters.minMatchingJobFitScore / 100 : filters.minMatchingJobFitScore;
           regularScoreConditions.push(`(
             EXISTS (
               SELECT 1 FROM jsonb_array_elements(c."parsedData"->'job_matches') AS job_match
@@ -893,12 +896,13 @@ export async function GET(request: NextRequest) {
               WHERE jm."candidateId" = c.id AND jm."fitScore" >= $${paramIndex + 1}
             )
           )`);
-          queryParams.push(filters.minMatchingJobFitScore, filters.minMatchingJobFitScore);
+          queryParams.push(filterValue, filterValue);
           paramIndex += 2;
         }
         
         if (filters.maxMatchingJobFitScore !== undefined && filters.maxMatchingJobFitScore !== -1) {
-          // Database stores fit scores in 0-100 range, no conversion needed
+          // Database stores fit scores in 0-1 decimal range, convert percentage values to decimal
+          const filterValue = filters.maxMatchingJobFitScore > 1 ? filters.maxMatchingJobFitScore / 100 : filters.maxMatchingJobFitScore;
           regularScoreConditions.push(`(
             EXISTS (
               SELECT 1 FROM jsonb_array_elements(c."parsedData"->'job_matches') AS job_match
@@ -909,7 +913,7 @@ export async function GET(request: NextRequest) {
               WHERE jm."candidateId" = c.id AND jm."fitScore" <= $${paramIndex + 1}
             )
           )`);
-          queryParams.push(filters.maxMatchingJobFitScore, filters.maxMatchingJobFitScore);
+          queryParams.push(filterValue, filterValue);
           paramIndex += 2;
         }
         
@@ -931,7 +935,8 @@ export async function GET(request: NextRequest) {
         const conditions: string[] = [];
         
         if (filters.minMatchingJobFitScore !== undefined && filters.minMatchingJobFitScore !== -1) {
-          // Database stores fit scores in 0-1 decimal range, filter values already converted
+          // Database stores fit scores in 0-1 decimal range, convert percentage values to decimal
+          const filterValue = filters.minMatchingJobFitScore > 1 ? filters.minMatchingJobFitScore / 100 : filters.minMatchingJobFitScore;
           conditions.push(`(
             EXISTS (
               SELECT 1 FROM jsonb_array_elements(c."parsedData"->'job_matches') AS job_match
@@ -942,13 +947,14 @@ export async function GET(request: NextRequest) {
               WHERE jm."candidateId" = c.id AND jm."fitScore" >= $${paramIndex + 1}
             )
           )`);
-          queryParams.push(filters.minMatchingJobFitScore, filters.minMatchingJobFitScore);
+          queryParams.push(filterValue, filterValue);
           paramIndex += 2;
 
         }
         
         if (filters.maxMatchingJobFitScore !== undefined && filters.maxMatchingJobFitScore !== -1) {
-          // Database stores fit scores in 0-100 range, no conversion needed
+          // Database stores fit scores in 0-1 decimal range, convert percentage values to decimal
+          const filterValue = filters.maxMatchingJobFitScore > 1 ? filters.maxMatchingJobFitScore / 100 : filters.maxMatchingJobFitScore;
           conditions.push(`(
             EXISTS (
               SELECT 1 FROM jsonb_array_elements(c."parsedData"->'job_matches') AS job_match
@@ -959,7 +965,7 @@ export async function GET(request: NextRequest) {
               WHERE jm."candidateId" = c.id AND jm."fitScore" <= $${paramIndex + 1}
             )
           )`);
-          queryParams.push(filters.maxMatchingJobFitScore, filters.maxMatchingJobFitScore);
+          queryParams.push(filterValue, filterValue);
           paramIndex += 2;
 
         }

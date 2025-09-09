@@ -43,6 +43,7 @@ import { getDefaultMatchCriteria } from '@/lib/systemSettings';
 import { SimpleWarningService } from '@/lib/warnings';
 import { broadcastPositionCreated } from '@/lib/simple-broadcaster';
 import { getSystemSetting } from '@/lib/systemSettings';
+import { logAudit } from '@/lib/auditLog';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';

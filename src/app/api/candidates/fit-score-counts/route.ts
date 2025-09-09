@@ -218,8 +218,8 @@ export async function GET(request: NextRequest) {
     const includeNoScoreInApplied = searchParams.get('includeNoScoreInApplied') === 'true';
     
     if (minAppliedJobFitScore !== null || maxAppliedJobFitScore !== null) {
-      const minScore = minAppliedJobFitScore ? parseFloat(minAppliedJobFitScore) / 100 : undefined;
-      const maxScore = maxAppliedJobFitScore ? parseFloat(maxAppliedJobFitScore) / 100 : undefined;
+      const minScore = minAppliedJobFitScore ? parseFloat(minAppliedJobFitScore) : undefined;
+      const maxScore = maxAppliedJobFitScore ? parseFloat(maxAppliedJobFitScore) : undefined;
       
       // Check if this is the "no-score" case (both min and max are -1)
       if (minScore === -1 && maxScore === -1) {
@@ -232,6 +232,7 @@ export async function GET(request: NextRequest) {
         if (minScore !== undefined && minScore !== -1) {
           // Handle both percentage (0-100) and decimal (0-1) formats
           // If filter value is <= 1, assume database stores percentages and convert filter to percentage
+          // If filter value is > 1, assume database stores decimals and use filter as-is
           const filterValue = minScore <= 1 ? minScore * 100 : minScore;
           regularScoreConditions.push(`c."fitScore" >= $${paramIndex++}`);
           queryParams.push(filterValue);
@@ -256,6 +257,8 @@ export async function GET(request: NextRequest) {
         // Handle regular score range filtering
         if (minScore !== undefined && minScore !== -1) {
           // Handle both percentage (0-100) and decimal (0-1) formats
+          // If filter value is <= 1, assume database stores percentages and convert filter to percentage
+          // If filter value is > 1, assume database stores decimals and use filter as-is
           const filterValue = minScore <= 1 ? minScore * 100 : minScore;
           whereClauses.push(`c."fitScore" >= $${paramIndex++}`);
           queryParams.push(filterValue);

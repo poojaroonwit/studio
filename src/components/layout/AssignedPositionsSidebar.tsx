@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -47,14 +47,61 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
   const [sseConnected, setSseConnected] = useState(false);
   const refreshTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Use shared SSE connection for realtime updates (aligned with candidate page and dashboard)
+  const { isConnected: sharedSseConnected, subscribeToEvents } = useSharedSSE();
+
+  const fetchAssignedPositions = useCallback(async () => {
+    if (!session?.user?.id) return;
+    
+    if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+      console.log('[AssignedPositionsSidebar] Fetching assigned positions for user:', session.user.id);
+    }
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 20000);
+      const response = await fetch(`/api/positions/recruiter-assigned?recruiterId=${session.user.id}` , {
+        credentials: 'include',
+        signal: controller.signal,
+        headers: { 'Accept': 'application/json' }
+      });
+      clearTimeout(timeout);
+      if (!response.ok) {
+        let details = '';
+        try {
+          const txt = await response.text();
+          details = txt || '';
+        } catch {}
+        throw new Error(`Failed to fetch assigned positions (${response.status}) ${details}`.trim());
+      }
+      
+      const data = await response.json();
+      setPositions(data.data || []);
+      setVisibleCount(5);
+      
+      if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+        console.log('[AssignedPositionsSidebar] Fetched positions with headcount data:', data.data?.map((p: AssignedPosition) => ({ 
+          id: p.id, 
+          title: p.title, 
+          headcount: p.headcount 
+        })));
+      }
+    } catch (err) {
+      setError((err as Error).message);
+      console.error('Error fetching assigned positions:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [session?.user?.id]);
+
   useEffect(() => {
     if (session?.user?.id) {
       fetchAssignedPositions();
     }
-  }, [session?.user?.id, session?.user?.role]);
-
-  // Use shared SSE connection for realtime updates (aligned with candidate page and dashboard)
-  const { isConnected: sharedSseConnected, subscribeToEvents } = useSharedSSE();
+  }, [session?.user?.id, session?.user?.role, fetchAssignedPositions]);
   
   useEffect(() => {
     setSseConnected(sharedSseConnected);
@@ -119,42 +166,7 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
       }
       unsubscribe();
     };
-  }, [session?.user?.id, isLoading, subscribeToEvents]);
-
-  const fetchAssignedPositions = async () => {
-    if (!session?.user?.id) return;
-    
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 20000);
-      const response = await fetch(`/api/positions/recruiter-assigned?recruiterId=${session.user.id}` , {
-        credentials: 'include',
-        signal: controller.signal,
-        headers: { 'Accept': 'application/json' }
-      });
-      clearTimeout(timeout);
-      if (!response.ok) {
-        let details = '';
-        try {
-          const txt = await response.text();
-          details = txt || '';
-        } catch {}
-        throw new Error(`Failed to fetch assigned positions (${response.status}) ${details}`.trim());
-      }
-      
-      const data = await response.json();
-      setPositions(data.data || []);
-      setVisibleCount(5);
-    } catch (err) {
-      setError((err as Error).message);
-      console.error('Error fetching assigned positions:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  }, [session?.user?.id, isLoading, subscribeToEvents, fetchAssignedPositions]);
 
   const handlePositionClick = (positionId: string) => {
     setSelectedPositionId(positionId);

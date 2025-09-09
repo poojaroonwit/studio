@@ -318,17 +318,21 @@ export async function GET(request: NextRequest) {
     
     if (minAppliedJobFitScore !== null && minAppliedJobFitScore !== undefined) {
       whereConditions.push(`c."fitScore" >= $${paramIndex}`);
-      // Check if this is from advanced filters (already in decimal) or regular filters (needs conversion)
-      const isFromAdvancedFilters = advancedFilters.minAppliedJobFitScore === minAppliedJobFitScore;
-      queryParams.push(isFromAdvancedFilters ? parseFloat(minAppliedJobFitScore) : parseFloat(minAppliedJobFitScore) / 100);
+      // Handle both percentage (0-100) and decimal (0-1) formats
+      // If filter value is <= 1, assume database stores percentages and convert filter to percentage
+      // If filter value is > 1, assume database stores decimals and use filter as-is
+      const filterValue = parseFloat(minAppliedJobFitScore);
+      const finalValue = filterValue <= 1 ? filterValue * 100 : filterValue;
+      queryParams.push(finalValue);
       paramIndex++;
     }
     
     if (maxAppliedJobFitScore !== null && maxAppliedJobFitScore !== undefined) {
       whereConditions.push(`c."fitScore" <= $${paramIndex}`);
-      // Check if this is from advanced filters (already in decimal) or regular filters (needs conversion)
-      const isFromAdvancedFilters = advancedFilters.maxAppliedJobFitScore === maxAppliedJobFitScore;
-      queryParams.push(isFromAdvancedFilters ? parseFloat(maxAppliedJobFitScore) : parseFloat(maxAppliedJobFitScore) / 100);
+      // Handle both percentage (0-100) and decimal (0-1) formats
+      const filterValue = parseFloat(maxAppliedJobFitScore);
+      const finalValue = filterValue <= 1 ? filterValue * 100 : filterValue;
+      queryParams.push(finalValue);
       paramIndex++;
     }
     

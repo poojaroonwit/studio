@@ -337,6 +337,8 @@ const { contentZIndex } = useDynamicZIndex('toast-client', 'overlay');
 **Dynamic Z-Index Calculation**: The system handles complex stacking scenarios:
 - Toasts get `highestExisting + (Z_INDEX_INCREMENT * 3)` to ensure they're always above everything
 - Other components get `highestExisting + Z_INDEX_INCREMENT` for natural stacking
+- **Critical Fix**: Toast z-index is recalculated dynamically whenever `getContentZIndex` is called
+- This ensures toasts always appear above modals/drawers that were opened after the toast system initialized
 - Handles scenarios like: overlay -> drawer -> overlay -> modal -> toast
 - All calculations are relative to existing components, ensuring proper layering
 

@@ -785,8 +785,12 @@ export function CandidatesPageClient({
     
     // For regular filtered results, use database fit score counts from API
     if (databaseFitScoreCounts) {
+      console.log('Using database fit score counts:', databaseFitScoreCounts);
       return databaseFitScoreCounts;
     }
+    
+    console.log('Database fit score counts not available, falling back to client-side calculation');
+    console.log('Candidates for fit score counts:', candidatesForFitScoreCounts.length);
     
     
     // If we have no candidates to process, return empty counts
@@ -814,6 +818,7 @@ export function CandidatesPageClient({
     
     // Only calculate if we have candidates to process
     if (candidatesToProcess.length > 0) {
+      console.log('Processing candidates for fit score counts:', candidatesToProcess.length);
       candidatesToProcess.forEach((candidate: Candidate) => {
         // Applied fit score - count each applied position record separately
         const appliedScores = [];

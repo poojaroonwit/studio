@@ -145,6 +145,7 @@ export function useCandidateData({
       if (result.ok && result.data) {
         const candidates = result.data.candidates || [];
         console.log('Fetched candidates for counts:', candidates.length);
+        console.log('Sample candidates:', candidates.slice(0, 3).map(c => ({ id: c.id, name: c.name, fitScore: c.fitScore })));
         stableSetAllCandidatesForCounts(candidates);
       } else {
         console.warn('Skipping failed endpoint /api/candidates (counts):', result.error || result.status);

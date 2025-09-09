@@ -390,6 +390,13 @@ export async function GET(request: NextRequest) {
         const appliedGrade = getScoreGrade(row.applied_score);
         const matchingGrade = getScoreGrade(row.best_match_score);
         
+        console.log('Processing row:', {
+          applied_score: row.applied_score,
+          appliedGrade,
+          best_match_score: row.best_match_score,
+          matchingGrade
+        });
+        
         appliedCounts[appliedGrade] = (appliedCounts[appliedGrade] || 0) + 1;
         matchingCounts[matchingGrade] = (matchingCounts[matchingGrade] || 0) + 1;
       });
@@ -398,6 +405,8 @@ export async function GET(request: NextRequest) {
       const applied = Object.entries(appliedCounts).map(([letter, count]) => ({ letter, count }));
       const matching = Object.entries(matchingCounts).map(([letter, count]) => ({ letter, count }));
 
+      console.log('Applied counts object:', appliedCounts);
+      console.log('Matching counts object:', matchingCounts);
       console.log('Fit score counts result:', { applied, matching });
 
       // If no results, return empty counts for all grades

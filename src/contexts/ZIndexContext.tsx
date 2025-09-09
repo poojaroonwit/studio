@@ -145,9 +145,13 @@ export function useDynamicZIndex(id: string, type: 'modal' | 'drawer' | 'overlay
     return () => unregisterComponent(id);
   }, [id, type, registerComponent, unregisterComponent]);
 
+  // Use useMemo to ensure z-index values are reactive to components state changes
+  const overlayZIndex = React.useMemo(() => getOverlayZIndex(id), [getOverlayZIndex, id]);
+  const contentZIndex = React.useMemo(() => getContentZIndex(id), [getContentZIndex, id]);
+
   return {
-    overlayZIndex: getOverlayZIndex(id),
-    contentZIndex: getContentZIndex(id),
+    overlayZIndex,
+    contentZIndex,
   };
 }
 

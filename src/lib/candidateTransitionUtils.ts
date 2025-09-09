@@ -1,12 +1,17 @@
 import { toast } from 'react-hot-toast';
 import { getErrorMessage } from './networkUtils';
 
-export async function updateCandidateStatusWithNotes(candidateId: string, status: string, notes?: string, suppressToast?: boolean) {
-  // Use the bulk endpoint for consistency
-  return updateCandidatesStatusBulk([candidateId], status, notes, suppressToast);
+interface ToastFunctions {
+  success?: (message: string) => void;
+  error?: (message: string) => void;
 }
 
-export async function updateCandidatesStatusBulk(candidateIds: string[], status: string, notes?: string, suppressToast?: boolean) {
+export async function updateCandidateStatusWithNotes(candidateId: string, status: string, notes?: string, suppressToast?: boolean, toastFunctions?: ToastFunctions) {
+  // Use the bulk endpoint for consistency
+  return updateCandidatesStatusBulk([candidateId], status, notes, suppressToast, toastFunctions);
+}
+
+export async function updateCandidatesStatusBulk(candidateIds: string[], status: string, notes?: string, suppressToast?: boolean, toastFunctions?: ToastFunctions) {
   try {
     const payload: any = {
       action: 'change_status',
@@ -40,13 +45,23 @@ export async function updateCandidatesStatusBulk(candidateIds: string[], status:
     }
     
     if (!suppressToast) {
-      toast.success(`${result.updatedCount || candidateIds.length} candidate(s) updated. ${result.rejectedCount > 0 ? `${result.rejectedCount} failed.` : ''}`);
+      const message = `${result.updatedCount || candidateIds.length} candidate(s) updated. ${result.rejectedCount > 0 ? `${result.rejectedCount} failed.` : ''}`;
+      if (toastFunctions?.success) {
+        toastFunctions.success(message);
+      } else {
+        toast.success(message);
+      }
     }
     return result;
   } catch (error: any) {
     console.error('Error in updateCandidatesStatusBulk:', error);
     if (!suppressToast) {
-      toast.error(getErrorMessage(error));
+      const message = getErrorMessage(error);
+      if (toastFunctions?.error) {
+        toastFunctions.error(message);
+      } else {
+        toast.error(message);
+      }
     }
     throw error;
   }

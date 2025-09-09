@@ -3,12 +3,24 @@
 import React, { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Loader2 } from 'lucide-react';
-import { checkSLAViolation, getSLARemainingDays, getSLABadgeVariant } from '@/lib/slaUtils';
+import { getSLABadgeVariant } from '@/lib/slaUtils';
 import type { Position } from '@/lib/types';
 
 interface SLABadgeProps {
   position: Position;
   className?: string;
+}
+
+interface SLAResponse {
+  violation: any;
+  remainingDays: number | null;
+  position: {
+    id: string;
+    title: string;
+    isOpen: boolean;
+    hasGrade: boolean;
+    slaDays: number | null;
+  };
 }
 
 export function SLABadge({ position, className }: SLABadgeProps) {
@@ -18,19 +30,20 @@ export function SLABadge({ position, className }: SLABadgeProps) {
 
   useEffect(() => {
     const calculateSLA = async () => {
-      if (!position.isOpen || !position.grade?.slaDays) {
+      if (!position.isOpen || !position.grade?.slaDays || !position.id) {
         setLoading(false);
         return;
       }
 
       try {
-        const [violationResult, remainingDays] = await Promise.all([
-          checkSLAViolation(position),
-          getSLARemainingDays(position)
-        ]);
+        const response = await fetch(`/api/positions/${position.id}/sla`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
         
-        setSlaResult(violationResult);
-        setRemaining(remainingDays);
+        const data: SLAResponse = await response.json();
+        setSlaResult(data.violation);
+        setRemaining(data.remainingDays);
       } catch (error) {
         console.error('Error calculating SLA:', error);
       } finally {

@@ -911,10 +911,23 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                        <ChevronDown className="ml-2 h-3 w-3 opacity-50" />
                      </Button>
                    </PopoverTrigger>
-                   <PopoverContent className="w-48 p-0" align="start">
-                     <div className="p-2">
-                       <div className="text-sm font-medium mb-2">Select Recruiter</div>
-                       
+                   <PopoverContent className="w-64 p-0" align="start">
+                     <div className="p-3 border-b border-border">
+                       <div className="flex items-center justify-between">
+                         <h4 className="text-sm font-medium">Select Recruiter</h4>
+                         <div className="flex gap-1">
+                           <Button
+                             variant="ghost"
+                             size="sm"
+                             onClick={() => setFilters((f: any) => ({ ...f, recruiterId: '' }))}
+                             className="h-6 px-2 text-xs"
+                           >
+                             All
+                           </Button>
+                         </div>
+                       </div>
+                     </div>
+                     <div className="p-2 max-h-64 overflow-y-auto">
                        {/* All recruiters option - Only show if user can see all recruiters */}
                        {canSeeAllRecruiter && (
                          <button

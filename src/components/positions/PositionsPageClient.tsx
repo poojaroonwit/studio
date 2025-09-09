@@ -1599,8 +1599,8 @@ export default function PositionsPageClient() {
                         <Eye className="h-3 w-3 opacity-0 group-hover:opacity-60 transition-opacity" />
                       </button>
                       <span className="text-xs text-muted-foreground mt-0.5">
+                        {position.positionLevel && `${position.positionLevel} • `}
                         {position.department}
-                        {position.positionLevel && ` • ${position.positionLevel}`}
                       </span>
                     </div>
                   </TableCell>

@@ -328,11 +328,21 @@ export async function GET(request: NextRequest) {
 
     const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
 
-    // Simple query to get all candidates with scores
+    // Query to get all candidates with both applied and matching scores
     const query = `
       SELECT 
         c."fitScore" as applied_score,
-        COALESCE(c."fitScore", 0) as best_match_score
+        COALESCE(
+          (SELECT MAX(jm."fitScore") 
+           FROM "JobMatch" jm 
+           WHERE jm."candidateId" = c.id), 
+          COALESCE(
+            (SELECT MAX((match->>'fitScore')::numeric) 
+             FROM jsonb_array_elements(c."parsedData"->'job_matches') as match
+             WHERE (match->>'fitScore') IS NOT NULL), 
+            0
+          )
+        ) as best_match_score
       FROM "Candidate" c
       ${whereClause}
     `;

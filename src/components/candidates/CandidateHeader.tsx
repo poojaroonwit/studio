@@ -38,6 +38,7 @@ interface CandidateHeaderProps {
   avatarForceRefresh: boolean;
   onAvatarUpload: (file: File) => void;
   realtimeConnected?: boolean;
+  onTogglePin?: () => void;
 }
 
 
@@ -66,7 +67,8 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
   avatarError,
   avatarForceRefresh,
   onAvatarUpload,
-  realtimeConnected
+  realtimeConnected,
+  onTogglePin
 }) => {
   const { contentZIndex } = useDynamicZIndex('candidate-header', 'overlay');
   const nameInfo = formatCandidateNameWithLang(candidate);
@@ -232,9 +234,20 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
                       <Copy className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
                     </button>
                   )}
+                  {onTogglePin && (
+                    <button
+                      onClick={onTogglePin}
+                      className={`p-2 rounded-full hover:bg-muted/50 transition-colors duration-200 group ${
+                        candidate.isPinned ? 'text-blue-600' : 'text-muted-foreground group-hover:text-foreground'
+                      }`}
+                      title={candidate.isPinned ? 'Unpin candidate' : 'Pin candidate to top'}
+                    >
+                      <Pin className={`w-4 h-4 rotate-45 transition-colors ${candidate.isPinned ? 'fill-current text-blue-600' : ''}`} />
+                    </button>
+                  )}
                   {candidate.isPinned && (
-                    <Badge variant="secondary" className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary border-primary/20 flex items-center gap-1">
-                      <Pin className="w-3 h-3 rotate-45 fill-current" />
+                    <Badge variant="secondary" className="text-xs px-2 py-1 rounded-full bg-blue-50 text-blue-600 border-blue-200 flex items-center gap-1 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800">
+                      <Pin className="w-3 h-3 rotate-45 fill-current text-blue-600 dark:text-blue-400" />
                       Pinned
                     </Badge>
                   )}

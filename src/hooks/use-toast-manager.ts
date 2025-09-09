@@ -1,5 +1,6 @@
 import { useCallback, useRef } from 'react';
 import { toast, ToastOptions } from 'react-hot-toast';
+import { useDynamicZIndex } from '@/contexts/ZIndexContext';
 
 interface ToastManagerOptions {
   deduplicationWindowMs?: number; // Time window to prevent duplicate toasts
@@ -17,6 +18,9 @@ export function useToastManager(options: ToastManagerOptions = {}) {
     deduplicationWindowMs = 3000, // 3 seconds default
     maxRecentToasts = 10,
   } = options;
+
+  // Register with z-index system to ensure toasts appear above everything
+  const { contentZIndex } = useDynamicZIndex('toast-manager', 'overlay');
 
   const recentToastsRef = useRef<RecentToast[]>([]);
 
@@ -57,20 +61,28 @@ export function useToastManager(options: ToastManagerOptions = {}) {
 
     addToRecent(message, type);
     
+    const toastOptions = {
+      ...options,
+      style: {
+        ...options?.style,
+        zIndex: contentZIndex,
+      },
+    };
+    
     switch (type) {
       case 'success':
-        toast.success(message, options);
+        toast.success(message, toastOptions);
         break;
       case 'error':
-        toast.error(message, options);
+        toast.error(message, toastOptions);
         break;
       case 'loading':
-        toast.loading(message, options);
+        toast.loading(message, toastOptions);
         break;
       default:
-        toast(message, options);
+        toast(message, toastOptions);
     }
-  }, [isDuplicate, addToRecent]);
+  }, [isDuplicate, addToRecent, contentZIndex]);
 
   const success = useCallback((message: string, options?: ToastOptions) => {
     showToast(message, 'success', options);
@@ -106,23 +118,31 @@ export function useToastManager(options: ToastManagerOptions = {}) {
 
     addToRecent(message, type);
     
+    const toastOptions = {
+      ...options,
+      style: {
+        ...options?.style,
+        zIndex: contentZIndex,
+      },
+    };
+    
     let toastId: string | undefined;
     switch (type) {
       case 'success':
-        toastId = toast.success(message, options);
+        toastId = toast.success(message, toastOptions);
         break;
       case 'error':
-        toastId = toast.error(message, options);
+        toastId = toast.error(message, toastOptions);
         break;
       case 'loading':
-        toastId = toast.loading(message, options);
+        toastId = toast.loading(message, toastOptions);
         break;
       default:
-        toastId = toast(message, options);
+        toastId = toast(message, toastOptions);
     }
     
     return toastId;
-  }, [isDuplicate, addToRecent]);
+  }, [isDuplicate, addToRecent, contentZIndex]);
 
   return {
     showToast,

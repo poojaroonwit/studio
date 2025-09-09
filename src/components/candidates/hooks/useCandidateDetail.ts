@@ -398,9 +398,7 @@ export const useCandidateDetail = (candidateId: string) => {
 
     // Populate form with candidate data when entering edit mode
   useEffect(() => {
-    console.log('Form population effect triggered:', { isEditing, candidate: !!candidate, formPopulated });
     if (isEditing && candidate && !formPopulated) {
-      console.log('Populating form with candidate data:', candidate);
       // Normalize fitScore to ensure it's within 0-1 range
       let normalizedFitScore = candidate.fitScore;
       if (typeof candidate.fitScore === 'number') {

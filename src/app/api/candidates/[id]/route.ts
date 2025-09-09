@@ -208,6 +208,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         c."createdAt",
         c."updatedAt",
         c."applicationDate",
+        c."isPinned",
+        c."pinnedAt",
         p.title as "positionTitle", 
         p.department as "positionDepartment",
         r.name as "recruiterName", 

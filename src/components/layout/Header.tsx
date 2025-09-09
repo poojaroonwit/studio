@@ -565,10 +565,6 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
                   <Trash2 className="mr-2 h-4 w-4" />
                   Clear Cache
                 </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => toast.dismiss()}>
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  Clear All Toasts
-                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={handleSignOut}>
                   <LogOut className="mr-2 h-4 w-4" />

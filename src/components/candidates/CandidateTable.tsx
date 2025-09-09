@@ -396,14 +396,14 @@ const renderTableCells = (
               togglePin(candidate);
             }}
             className={`p-1 rounded hover:bg-muted transition-colors ${
-              candidate.isPinned ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+              candidate.isPinned ? 'text-blue-600' : 'text-muted-foreground hover:text-foreground'
             }`}
             title={candidate.isPinned ? 'Unpin candidate' : 'Pin candidate to top'}
           >
             {candidate.isPinned ? (
-              <PinIcon className="h-4 w-4 text-primary fill-current" />
+              <PinIcon className="h-4 w-4 text-blue-600 fill-current rotate-45" />
             ) : (
-              <PinIcon className="h-4 w-4 text-foreground" />
+              <PinIcon className="h-4 w-4 text-foreground rotate-45" />
             )}
           </button>
         </TableCell>
@@ -421,27 +421,6 @@ const renderTableCells = (
               const isValidId = candidate.id && uuidSchema.safeParse(candidate.id).success;
               return (
                 <>
-                  {/* Pin icon before avatar */}
-                  <div className="flex-shrink-0">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        togglePin(candidate);
-                      }}
-                      className={`p-1 rounded hover:bg-muted transition-colors ${
-                        candidate.isPinned ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                      title={candidate.isPinned ? 'Unpin candidate' : 'Pin candidate to top'}
-                    >
-                      {candidate.isPinned ? (
-                        <PinIcon className="h-4 w-4 text-primary fill-current" />
-                      ) : (
-                        <PinIcon className="h-4 w-4 text-foreground" />
-                      )}
-                    </button>
-                  </div>
                   <CandidateAvatarCompact
                     user={{
                       id: candidate.id,
@@ -473,6 +452,27 @@ const renderTableCells = (
                       </span>
                     )}
                     <div className="text-xs text-muted-foreground truncate" title={candidate.email}>{candidate.email}</div>
+                  </div>
+                  {/* Pin button on the right side */}
+                  <div className="flex-shrink-0 flex items-center justify-center">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        togglePin(candidate);
+                      }}
+                      className={`p-2 rounded-full hover:bg-muted transition-colors ${
+                        candidate.isPinned ? 'text-blue-600' : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                      title={candidate.isPinned ? 'Unpin candidate' : 'Pin candidate to top'}
+                    >
+                      {candidate.isPinned ? (
+                        <PinIcon className="h-4 w-4 text-blue-600 fill-current rotate-45" />
+                      ) : (
+                        <PinIcon className="h-4 w-4 text-foreground rotate-45" />
+                      )}
+                    </button>
                   </div>
                 </>
               );
@@ -957,12 +957,12 @@ export function CandidateTable({
                   >
                     {candidate.isPinned ? (
                       <>
-                        <PinIcon className="mr-2 h-4 w-4 text-primary fill-current" />
+                        <PinIcon className="mr-2 h-4 w-4 text-blue-600 fill-current rotate-45" />
                         Unpin from top
                       </>
                     ) : (
                       <>
-                        <PinIcon className="mr-2 h-4 w-4 text-foreground" />
+                        <PinIcon className="mr-2 h-4 w-4 text-foreground rotate-45" />
                         Pin to top (shared)
                       </>
                     )}
@@ -1086,7 +1086,7 @@ export function CandidateTable({
                       <TableRow className="bg-primary/10 border-b-2 border-primary/80">
                         <TableCell colSpan={getVisibleColumnCount()} className="py-3 px-4">
                           <div className="flex items-center gap-2">
-                            <PinIcon className="h-4 w-4 text-primary" />
+                            <PinIcon className="h-4 w-4 text-blue-600 rotate-45" />
                             <span className="font-semibold text-primary">Pinned Candidates</span>
                             <span className="text-sm text-muted-foreground">({pinned.length} candidate{pinned.length !== 1 ? 's' : ''})</span>
                           </div>

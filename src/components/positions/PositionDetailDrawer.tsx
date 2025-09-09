@@ -28,7 +28,7 @@ import { TiptapEditorWithExpand } from '@/components/ui/wysiwyg-editors';
 import type { Position, Candidate, Grade } from '@/lib/types';
 import { usePositionLevels } from '@/hooks/use-position-levels';
 import { getPositionStatusBadge } from '@/lib/positionUtils';
-import { getSLARemainingDays } from '@/lib/slaUtils';
+// Removed direct import of getSLARemainingDays - now using API
 import { ScoreBadge } from '@/components/ui/score-color';
 import { PositionCustomFieldDisplay } from './PositionCustomFieldDisplay';
 import { PositionCustomFieldEdit } from './PositionCustomFieldEdit';
@@ -380,12 +380,8 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       if (appliedCandidatesSearchTerm) {
         query.append('searchTerm', appliedCandidatesSearchTerm);
       }
-      if (appliedCandidatesSortColumn) {
-        query.append('sortColumn', appliedCandidatesSortColumn);
-      }
-      if (appliedCandidatesSortDirection) {
-        query.append('sortDirection', appliedCandidatesSortDirection);
-      }
+      query.append('sortColumn', appliedCandidatesSortColumn || 'fitScore');
+      query.append('sortDirection', appliedCandidatesSortDirection || 'desc');
       
       query.append('showPinSection', 'true');
       
@@ -418,12 +414,8 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       if (allCandidatesSearchTerm) {
         query.append('searchTerm', allCandidatesSearchTerm);
       }
-      if (allCandidatesSortColumn) {
-        query.append('sortColumn', allCandidatesSortColumn);
-      }
-      if (allCandidatesSortDirection) {
-        query.append('sortDirection', allCandidatesSortDirection);
-      }
+      query.append('sortColumn', allCandidatesSortColumn || 'fitScore');
+      query.append('sortDirection', allCandidatesSortDirection || 'desc');
       
       query.append('showPinSection', 'true');
       
@@ -454,12 +446,8 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       if (potentialCandidatesSearchTerm) {
         query.append('searchTerm', potentialCandidatesSearchTerm);
       }
-      if (potentialCandidatesSortColumn) {
-        query.append('sortColumn', potentialCandidatesSortColumn);
-      }
-      if (potentialCandidatesSortDirection) {
-        query.append('sortDirection', potentialCandidatesSortDirection);
-      }
+      query.append('sortColumn', potentialCandidatesSortColumn || 'matchScore');
+      query.append('sortDirection', potentialCandidatesSortDirection || 'desc');
       
       query.append('showPinSection', 'true');
       
@@ -517,15 +505,20 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
 
   // Calculate SLA days left
   const calculateSLA = useCallback(async () => {
-    if (!position || !position.grade?.slaDays) {
+    if (!position || !position.grade?.slaDays || !position.id) {
       setSlaDaysLeft(null);
       return;
     }
 
     setSlaLoading(true);
     try {
-      const daysLeft = await getSLARemainingDays(position);
-      setSlaDaysLeft(daysLeft);
+      const response = await fetch(`/api/positions/${position.id}/sla`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      setSlaDaysLeft(data.remainingDays);
     } catch (error) {
       console.error('Error calculating SLA:', error);
       setSlaDaysLeft(null);
@@ -992,7 +985,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                   <TableRow className="bg-primary/10 border-b-2 border-primary/20">
                     <TableCell colSpan={6} className="py-2 px-3">
                       <div className="flex items-center gap-2">
-                        <PinIcon className="h-4 w-4 text-primary" />
+                        <PinIcon className="h-4 w-4 text-primary rotate-45" />
                         <span className="font-semibold text-primary">Pinned Candidates</span>
                         <span className="text-xs text-muted-foreground">({pinned.length})</span>
                       </div>
@@ -1046,7 +1039,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                         </Button>
                         <Button
                           variant="ghost"
-                          size="icon"
+                          size="sm"
                           onClick={(e) => { e.preventDefault(); e.stopPropagation();
                             (async () => {
                               try {
@@ -1064,9 +1057,9 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                           className="hover:bg-primary/10"
                         >
                           {candidate.isPinned ? (
-                            <PinIcon className="h-4 w-4 text-primary fill-current" />
+                            <PinIcon className="h-4 w-4 text-primary fill-current rotate-45" />
                           ) : (
-                            <PinIcon className="h-4 w-4 text-foreground" />
+                            <PinIcon className="h-4 w-4 text-blue-600 rotate-45" />
                           )}
                         </Button>
                       </div>
@@ -1131,7 +1124,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                         </Button>
                         <Button
                           variant="ghost"
-                          size="icon"
+                          size="sm"
                           onClick={(e) => { e.preventDefault(); e.stopPropagation();
                             (async () => {
                               try {
@@ -1149,9 +1142,9 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                           className="hover:bg-primary/10"
                         >
                           {candidate.isPinned ? (
-                            <PinIcon className="h-4 w-4 text-primary fill-current" />
+                            <PinIcon className="h-4 w-4 text-primary fill-current rotate-45" />
                           ) : (
-                            <PinIcon className="h-4 w-4 text-foreground" />
+                            <PinIcon className="h-4 w-4 text-blue-600 rotate-45" />
                           )}
                         </Button>
                       </div>
@@ -1346,9 +1339,9 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                     className="hover:bg-primary/10"
                   >
                     {candidate.isPinned ? (
-                      <PinIcon className="h-4 w-4 text-primary fill-current" />
+                      <PinIcon className="h-4 w-4 text-primary fill-current rotate-45" />
                     ) : (
-                      <PinIcon className="h-4 w-4 text-foreground" />
+                      <PinIcon className="h-4 w-4 text-blue-600 rotate-45" />
                     )}
                   </Button>
                 </div>
@@ -1667,7 +1660,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                                 </Button>
                                 <Button
                                   variant="ghost"
-                                  size="icon"
+                                  size="sm"
                                   onClick={async (e) => {
                                     e.stopPropagation();
                                     try {
@@ -1689,9 +1682,9 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                                   className="hover:bg-primary/10"
                                 >
                                   {candidate.isPinned ? (
-                                    <PinIcon className="h-4 w-4 text-primary fill-current" />
+                                    <PinIcon className="h-4 w-4 text-primary fill-current rotate-45" />
                                   ) : (
-                                    <PinIcon className="h-4 w-4 text-foreground" />
+                                    <PinIcon className="h-4 w-4 text-blue-600 rotate-45" />
                                   )}
                                 </Button>
                               </div>

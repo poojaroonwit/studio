@@ -1481,13 +1481,9 @@ export function CandidatesPageClient({
 
   // Memoized fitscore counts to prevent unnecessary re-renders
   const memoizedCandidateScoreCounts = useMemo(() => {
-    if (!databaseFitScoreCounts) return null;
-    
-    return {
-      applied: databaseFitScoreCounts.applied || [],
-      matching: databaseFitScoreCounts.matching || []
-    };
-  }, [databaseFitScoreCounts]);
+    // Use the main candidateScoreCounts which has fallback logic
+    return candidateScoreCounts;
+  }, [candidateScoreCounts]);
 
   // Memoized horizontal filter handlers to prevent re-renders
   const memoizedHandleHorizontalFitScoreGradeToggle = useCallback((grade: string) => {

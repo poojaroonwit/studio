@@ -4,7 +4,7 @@ import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, ServerCrash, Save, X, Briefcase, User, Phone, GraduationCap, Clock, Target, MessageSquare, UploadCloud } from 'lucide-react';
-import { toast } from 'react-hot-toast';
+import { useToast } from '@/hooks/use-toast';
 import * as z from 'zod';
 
 // Import extracted components
@@ -58,6 +58,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
 }) => {
   const { data: session } = useSession();
   const { isJobMatchEnabled } = useJobMatchFeature();
+  const { success: toastSuccess, error: toastError } = useToast();
   const [avatarInputRef] = useState<React.RefObject<HTMLInputElement>>(React.createRef());
   
 
@@ -114,7 +115,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
         throw new Error(errorData.message || 'Failed to delete candidate');
       }
 
-      toast.success('Candidate deleted successfully');
+      toastSuccess('Candidate deleted successfully');
       
       // Close the modal/detail view
       if (onClose) {
@@ -125,7 +126,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
       }
     } catch (error: any) {
       console.error('Error deleting candidate:', error);
-      toast.error(error.message || 'Failed to delete candidate');
+      toastError(error.message || 'Failed to delete candidate');
     } finally {
       setIsDeleting(false);
       setIsDeleteModalOpen(false);
@@ -275,6 +276,29 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
     onRefresh();
   }, [onRefresh]);
 
+  // Handle pin toggle
+  const handleTogglePin = useCallback(async () => {
+    if (!candidate) return;
+    
+    try {
+      const res = await fetch(`/api/candidates/${candidate.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isPinned: !candidate.isPinned }),
+        credentials: 'include',
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to update pin status');
+      }
+
+      // Refresh candidate data to show updated pin status
+      onRefresh();
+    } catch (err) {
+      console.error('Error toggling pin:', err);
+    }
+  }, [candidate, onRefresh]);
+
   // Handle custom field changes
   const handleCustomFieldChange = useCallback((fieldCode: string, value: any) => {
     setCandidate(prev => {
@@ -331,7 +355,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
     // Prevent opening transitions modal if headcount warning was recently shown (within last 3 seconds)
     if (headcountWarningShownTime && (Date.now() - headcountWarningShownTime) < 3000) {
       console.log('FullCandidateDetail - Preventing transitions modal from opening - headcount warning was recently shown');
-      toast.error('Please resolve the headcount constraint before changing candidate status.');
+      toastError('Please resolve the headcount constraint before changing candidate status.');
       return;
     }
     
@@ -467,7 +491,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
 
       const updatedCandidate = await res.json();
       setIsEditing(false);
-      toast.success('Candidate updated successfully');
+      toastSuccess('Candidate updated successfully');
       
       // Refresh custom fields to show latest data
       refreshCustomFields();
@@ -477,7 +501,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
       }
     } catch (err) {
       console.error('Error updating candidate:', err);
-      toast.error(err instanceof Error ? err.message : 'Failed to update candidate');
+      toastError(err instanceof Error ? err.message : 'Failed to update candidate');
     } finally {
       setIsSaving(false);
     }
@@ -548,6 +572,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
           avatarForceRefresh={avatarForceRefresh}
           onAvatarUpload={handleAvatarUpload}
           realtimeConnected={realtimeConnected}
+          onTogglePin={handleTogglePin}
         />
       </div>
       
@@ -816,7 +841,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
               } catch (validationError) {
                 console.error('Error validating headcount availability:', validationError);
                 // If validation fails, show error and don't proceed
-                toast.error('Failed to validate headcount availability. Please try again.');
+                toastError('Failed to validate headcount availability. Please try again.');
                 return false;
               }
             }
@@ -850,11 +875,10 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
             }
 
             // Make the actual API call
-            await updateCandidateStatusWithNotes(candidateId, status, notes, suppressToast);
-            
-            if (!suppressToast) {
-              toast.success(`Candidate status updated to "${status}".`);
-            }
+            await updateCandidateStatusWithNotes(candidateId, status, notes, suppressToast, {
+              success: toastSuccess,
+              error: toastError
+            });
             
             // Successfully completed - return true to indicate transaction passed
             console.log('FullCandidateDetail - onUpdateCandidate completed successfully');
@@ -873,7 +897,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
              
              // Show error toast
              if (!suppressToast) {
-               toast.error(error?.message || 'Failed to update status.');
+               toastError(error?.message || 'Failed to update status.');
              }
              
              // Error handled - return false to indicate transaction failed

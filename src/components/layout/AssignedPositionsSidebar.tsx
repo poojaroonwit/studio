@@ -238,7 +238,7 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
           </>
         )}
 
-        <ScrollArea className={cn("h-[300px] min-w-0", variant === 'compact' ? "px-0" : "px-3") }>
+        <ScrollArea className={cn("max-h-[400px] min-w-0", variant === 'compact' ? "px-0" : "px-3") }>
           <div className="relative min-w-0">
             {/* Common tree pattern: subtle vertical rail + node dots */}
             <ul className={cn("mt-2 space-y-1 pl-0 min-w-0", variant === 'compact' ? "mt-1" : "") }>

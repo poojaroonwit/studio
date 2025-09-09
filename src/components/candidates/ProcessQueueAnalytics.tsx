@@ -1108,7 +1108,7 @@ export default function ProcessQueueAnalytics() {
                       <span className="text-sm">In Process</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                      <div className="w-3 h-3 rounded-full bg-primary"></div>
                       <span className="text-sm">Queued</span>
                     </div>
                   </div>
@@ -1234,12 +1234,12 @@ export default function ProcessQueueAnalytics() {
                         {data!.stats.errorsByReason.length}
                       </p>
                     </div>
-                    <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <div className="bg-primary/5 dark:bg-primary/10 p-4 rounded-lg border border-primary/20 dark:border-primary/30">
                       <div className="flex items-center gap-2">
-                        <TrendingUp className="h-5 w-5 text-blue-600" />
-                        <span className="font-semibold text-blue-700 dark:text-blue-300">Error Rate</span>
+                        <TrendingUp className="h-5 w-5 text-primary" />
+                        <span className="font-semibold text-primary">Error Rate</span>
                       </div>
-                      <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                      <p className="text-2xl font-bold text-primary">
                         {((data!.stats.errorsByReason.reduce((sum, item) => sum + item.count, 0) / data!.stats.totalJobs) * 100).toFixed(1)}%
                       </p>
                     </div>

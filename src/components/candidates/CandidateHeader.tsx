@@ -239,9 +239,9 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
                   {candidate.isPinned && (
                     <Badge 
                       variant="secondary" 
-                      className="text-xs px-2 py-1 rounded-full bg-blue-50 text-blue-600 border-blue-200 flex items-center gap-1 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800"
+                      className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary border-primary/20 flex items-center gap-1 dark:bg-primary/20 dark:text-primary-foreground dark:border-primary/30"
                     >
-                      <Pin className="w-3 h-3 rotate-45 fill-current text-blue-600 dark:text-blue-400" />
+                      <Pin className="w-3 h-3 rotate-45 fill-current text-primary" />
                       Pinned
                     </Badge>
                   )}

@@ -52,7 +52,7 @@ export function HeadcountAttachmentModal({
   // Helper function to get file icon
   const getFileIcon = (fileName: string) => {
     if (fileName.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i)) {
-      return <FileText className="h-5 w-5 text-blue-500" />;
+      return <FileText className="h-5 w-5 text-primary" />;
     }
     if (fileName.match(/\.pdf$/i)) {
       return <FileText className="h-5 w-5 text-red-500" />;

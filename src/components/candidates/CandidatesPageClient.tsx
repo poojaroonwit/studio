@@ -996,6 +996,58 @@ export function CandidatesPageClient({
     return paginatedCandidates;
   }, [isAiSearchActive, aiMatchedCandidateIds, mappedCandidates, filteredCandidates, page, pageSize, total, paginatedCandidates, isLoading, tableLoading]);
 
+  // State for all pinned candidates across all pages
+  const [allPinnedCandidates, setAllPinnedCandidates] = useState<Candidate[]>([]);
+
+  // Fetch all pinned candidates separately
+  const fetchAllPinnedCandidates = useCallback(async () => {
+    try {
+      const query = new URLSearchParams();
+      
+      // Apply the same filters as the main query
+      if (filters.searchQuery) query.append('search', filters.searchQuery);
+      if (filters.selectedPositionIds && filters.selectedPositionIds.length > 0) {
+        query.append('positionId', filters.selectedPositionIds.join(','));
+      }
+      if (filters.selectedStatusIds && filters.selectedStatusIds.length > 0) {
+        query.append('statusId', filters.selectedStatusIds.join(','));
+      }
+      if (filters.selectedRecruiterIds && filters.selectedRecruiterIds.length > 0) {
+        query.append('recruiterId', filters.selectedRecruiterIds.join(','));
+      }
+      if (filters.selectedSourceIds && filters.selectedSourceIds.length > 0) {
+        query.append('sourceId', filters.selectedSourceIds.join(','));
+      }
+      
+      // Only fetch pinned candidates
+      query.append('pinnedOnly', 'true');
+      query.append('limit', '1000'); // Get all pinned candidates
+      
+      const apiUrl = `/api/candidates?${query.toString()}`;
+      
+      const result = await safeFetch(apiUrl, {
+        headers: {
+          'Cache-Control': 'no-cache'
+        },
+        timeoutMs: 10000
+      });
+      
+      if (result.ok && result.data?.data) {
+        setAllPinnedCandidates(result.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching pinned candidates:', error);
+      setAllPinnedCandidates([]);
+    }
+  }, [filters]);
+
+  // Fetch pinned candidates when filters change
+  useEffect(() => {
+    if (hasInitialDataFetch && !isClearingFilters) {
+      fetchAllPinnedCandidates();
+    }
+  }, [fetchAllPinnedCandidates, hasInitialDataFetch, isClearingFilters]);
+
   // Apply horizontal filters when selections change (SIMPLIFIED)
   useEffect(() => {
     // Skip if we're currently clearing filters to prevent conflicts
@@ -1718,19 +1770,19 @@ export function CandidatesPageClient({
                   
                   {/* AI Search Results Display */}
                   {aiSearchReasoning && (
-                    <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20">
+                    <div className="mt-4 p-3 bg-primary/5 dark:bg-primary/10">
                       <div className="flex items-start gap-2">
-                        <Brain className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                        <Brain className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
                         <div className="flex-1">
                           <div className="flex items-center justify-between mb-1">
-                            <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                            <span className="text-sm font-medium text-primary">
                               AI Search Results
                             </span>
-                            <Badge className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-200">
+                            <Badge className="text-xs bg-primary/20 text-primary dark:bg-primary/30 dark:text-primary-foreground">
                               {aiRecordCount} matched
                             </Badge>
                           </div>
-                          <p className="text-sm text-blue-700 dark:text-blue-300">
+                          <p className="text-sm text-muted-foreground">
                             {aiSearchReasoning}
                           </p>
                         </div>
@@ -1745,6 +1797,7 @@ export function CandidatesPageClient({
             <div className="flex-1 overflow-hidden">
               <CandidateTable
                 candidates={displayedCandidates}
+                allPinnedCandidates={allPinnedCandidates}
                 isLoading={(isLoading || tableLoading) && displayedCandidates.length === 0}
                 onUpdateCandidate={updateCandidateStatus}
                 onDeleteCandidate={handleDeleteCandidate}

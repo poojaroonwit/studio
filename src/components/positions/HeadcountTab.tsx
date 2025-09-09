@@ -70,7 +70,7 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
       console.error('Error fetching headcount type options:', error);
       // Set default options if API fails
       setHeadcountTypeOptions([
-        { value: 'promote', label: 'Promote', color: 'bg-blue-100 text-blue-800' },
+        { value: 'promote', label: 'Promote', color: 'bg-primary/10 text-primary' },
         { value: 'new', label: 'New', color: 'bg-green-100 text-green-800' },
         { value: 'replace', label: 'Replace', color: 'bg-orange-100 text-orange-800' },
       ]);

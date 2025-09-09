@@ -159,12 +159,12 @@ export function HeadcountWarningModal({
           )}
 
           {isNoPosition && (
-            <div className="rounded-lg bg-blue-50 p-4 border border-blue-200">
+            <div className="rounded-lg bg-primary/5 p-4 border border-primary/20">
               <div className="flex items-start gap-3">
-                <Info className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                <Info className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                 <div>
-                  <p className="text-sm font-medium text-blue-800">No Position Assigned</p>
-                  <p className="text-sm text-blue-700">
+                  <p className="text-sm font-medium text-primary">No Position Assigned</p>
+                  <p className="text-sm text-muted-foreground">
                     This candidate is not assigned to any position. Please assign a position first before attempting to hire.
                   </p>
                 </div>

@@ -411,7 +411,7 @@ export function GenerativeAIModal({
                       key={prompt.id} 
                       className={`cursor-pointer transition-all hover:shadow-md ${
                         selectedPrompt?.id === prompt.id 
-                          ? 'ring-2 ring-blue-500 bg-blue-50 border-blue-500' 
+                          ? 'ring-2 ring-primary bg-primary/10 border-primary' 
                           : ''
                       }`}
                       onClick={() => setSelectedPrompt(prompt)}

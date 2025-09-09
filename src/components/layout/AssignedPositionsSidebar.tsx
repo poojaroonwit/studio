@@ -50,14 +50,17 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
   // Use shared SSE connection for realtime updates (aligned with candidate page and dashboard)
   const { isConnected: sharedSseConnected, subscribeToEvents } = useSharedSSE();
 
-  const fetchAssignedPositions = useCallback(async () => {
+  const fetchAssignedPositions = useCallback(async (isInitialLoad = false) => {
     if (!session?.user?.id) return;
     
     if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
-      console.log('[AssignedPositionsSidebar] Fetching assigned positions for user:', session.user.id);
+      console.log('[AssignedPositionsSidebar] Fetching assigned positions for user:', session.user.id, 'isInitialLoad:', isInitialLoad);
     }
     
-    setIsLoading(true);
+    // Only set loading state for initial loads, not for SSE-triggered updates
+    if (isInitialLoad) {
+      setIsLoading(true);
+    }
     setError(null);
     
     try {
@@ -93,13 +96,15 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
       setError((err as Error).message);
       console.error('Error fetching assigned positions:', err);
     } finally {
-      setIsLoading(false);
+      if (isInitialLoad) {
+        setIsLoading(false);
+      }
     }
   }, [session?.user?.id]);
 
   useEffect(() => {
     if (session?.user?.id) {
-      fetchAssignedPositions();
+      fetchAssignedPositions(true); // Initial load
     }
   }, [session?.user?.id, session?.user?.role, fetchAssignedPositions]);
   
@@ -124,6 +129,7 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
       
       if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
         console.log('[AssignedPositionsSidebar] SSE event received via shared connection:', event);
+        console.log('[AssignedPositionsSidebar] Event type:', event.type, 'Event data:', event.data);
       }
       
       // Handle different event types with improved debouncing and rate limiting
@@ -150,10 +156,8 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
         refreshTimeout = setTimeout(() => {
           if (mounted && session?.user?.id) {
             lastUpdateTime = Date.now();
-            // Only fetch if not currently loading
-            if (!isLoading) {
-              fetchAssignedPositions();
-            }
+            // Always fetch when SSE events are received to ensure realtime updates (not initial load)
+            fetchAssignedPositions(false);
           }
         }, 1000); // 1 second debounce for better performance
       }
@@ -192,7 +196,7 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
         <Button 
           variant="outline" 
           size="sm" 
-          onClick={fetchAssignedPositions}
+          onClick={() => fetchAssignedPositions(true)}
           className="mt-2"
         >
           Retry
@@ -234,7 +238,7 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
                   variant="ghost"
                   size="sm"
                   className="h-6 w-6 p-0 hover:bg-sidebar-accent"
-                  onClick={fetchAssignedPositions}
+                  onClick={() => fetchAssignedPositions(true)}
                   title="Refresh positions"
                 >
                   <RotateCcw className="h-3 w-3" />

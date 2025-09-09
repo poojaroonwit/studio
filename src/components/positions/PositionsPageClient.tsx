@@ -1191,17 +1191,17 @@ export default function PositionsPageClient() {
             {/* Left side: Vacant Headcount + Filters */}
             <div className="flex flex-col sm:flex-row gap-3 flex-1">
               {/* Vacant Headcount - Left side */}
-              <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
-                <Users className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              <div className="flex items-center gap-2 px-3 py-2 bg-primary/5 dark:bg-primary/10 rounded-lg border border-primary/20 dark:border-primary/30">
+                <Users className="h-4 w-4 text-primary" />
                 <div className="text-sm">
-                  <span className="font-semibold text-blue-900 dark:text-blue-100">
+                  <span className="font-semibold text-primary">
                     {isLoadingHeadcount ? (
                       <Loader2 className="h-4 w-4 animate-spin inline" />
                     ) : (
                       vacantFromOpenPositions.vacant
                     )}
                   </span>
-                  <span className="text-blue-700 dark:text-blue-300 ml-1">
+                  <span className="text-muted-foreground ml-1">
                     vacant from {vacantFromOpenPositions.totalOpen} open position{vacantFromOpenPositions.totalOpen !== 1 ? 's' : ''}
                   </span>
                 </div>

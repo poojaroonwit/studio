@@ -1403,7 +1403,7 @@ export function CandidateFilters({
                                 }
                               }
                             }}
-                            className={cn("min-h-[80px] text-base transition-all duration-300", isAiSearching && "border-blue-300 bg-blue-50/50 dark:bg-blue-950/20")}
+                            className={cn("min-h-[80px] text-base transition-all duration-300", isAiSearching && "border-primary/50 bg-primary/5 dark:bg-primary/10")}
                             disabled={isLoading || isAiSearching}
                           />
                           {isAiSearching && (
@@ -1435,16 +1435,16 @@ export function CandidateFilters({
 
                         {isAiSearching && (
                           <div className="space-y-2">
-                            <div className="flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400">
+                            <div className="flex items-center gap-2 text-xs text-primary">
                               <div className="flex space-x-1">
-                                <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                                <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                                <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                                <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                                <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                                <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
                               </div>
                               <span>Analyzing candidates with AI...</span>
                             </div>
                             <div className="w-full bg-gray-200 rounded-full h-1.5 dark:bg-gray-700">
-                              <div className="bg-blue-600 h-1.5 rounded-full animate-pulse" style={{ width: '60%' }}></div>
+                              <div className="bg-primary h-1.5 rounded-full animate-pulse" style={{ width: '60%' }}></div>
                             </div>
                           </div>
                         )}

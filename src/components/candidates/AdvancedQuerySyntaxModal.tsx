@@ -194,14 +194,14 @@ export function AdvancedQuerySyntaxModal({ isOpen, onOpenChange }: AdvancedQuery
 
         <div className="space-y-6">
           {/* Basic Syntax */}
-          <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
-            <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">📝 Basic Syntax</h3>
-            <p className="text-sm text-blue-800 dark:text-blue-200 mb-3">
-              Use <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">field:value</code> format to search specific fields.
+          <div className="bg-primary/5 dark:bg-primary/10 p-4 rounded-lg border border-primary/20 dark:border-primary/30">
+            <h3 className="font-semibold text-primary mb-2">📝 Basic Syntax</h3>
+            <p className="text-sm text-muted-foreground mb-3">
+              Use <code className="bg-primary/10 dark:bg-primary/20 px-1 rounded">field:value</code> format to search specific fields.
               Multiple filters can be combined with spaces.
             </p>
-            <div className="bg-blue-100 dark:bg-blue-900/50 p-3 rounded border border-blue-200 dark:border-blue-700">
-              <code className="text-sm text-blue-900 dark:text-blue-100">
+            <div className="bg-primary/10 dark:bg-primary/20 p-3 rounded border border-primary/20 dark:border-primary/30">
+              <code className="text-sm text-primary">
                 minAppliedJobFitScore:80 status:Applied skills:React
               </code>
             </div>

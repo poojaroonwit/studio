@@ -324,6 +324,9 @@ export async function GET(request: NextRequest) {
     // Handle NULL values in sorting - for fitScore, put NULL values first when ascending, last when descending
     let sortClause = `${sortColumn} ${sortDirection}`;
     
+    // Handle pinned-only filter
+    const pinnedOnly = searchParams.get('pinnedOnly') === 'true';
+    
     // Only prioritize pinned candidates if showPinSection is enabled
     const showPinSection = searchParams.get('showPinSection');
     if (showPinSection === 'true') {
@@ -1090,6 +1093,11 @@ export async function GET(request: NextRequest) {
             break;
         }
       }
+    }
+
+    // Handle pinned-only filter
+    if (pinnedOnly) {
+      whereClauses.push(`c."isPinned" = true`);
     }
 
     // Build the WHERE clause

@@ -52,6 +52,7 @@ import { useStageColors } from '@/hooks/use-stage-colors';
 
 interface CandidateTableProps {
   candidates: Candidate[];
+  allPinnedCandidates?: Candidate[];
   availablePositions: Position[];
   availableStages: RecruitmentStage[];
   availableRecruiter: { id: string; name: string }[];
@@ -623,6 +624,7 @@ const renderTableCells = (
 
 export function CandidateTable({
   candidates,
+  allPinnedCandidates = [],
   availablePositions,
   availableStages,
   availableRecruiter,
@@ -699,19 +701,19 @@ export function CandidateTable({
 
   // Group candidates by pin status first, then by email
   const candidatesByPinStatus = useMemo(() => {
-    const pinned: Candidate[] = [];
+    const pinned: Candidate[] = allPinnedCandidates || [];
     const unpinned: Candidate[] = [];
     
+    // Filter out pinned candidates from the current page candidates to avoid duplicates
+    const pinnedIds = new Set(pinned.map(c => c.id));
     candidates.forEach((c) => {
-      if (c.isPinned) {
-        pinned.push(c);
-      } else {
+      if (!pinnedIds.has(c.id)) {
         unpinned.push(c);
       }
     });
     
     return { pinned, unpinned };
-  }, [candidates]);
+  }, [candidates, allPinnedCandidates]);
 
   // Group candidates by email for grouping functionality
   const candidatesByEmail = useMemo(() => {
@@ -898,7 +900,7 @@ export function CandidateTable({
       return (
         <TableRow 
           key={candidate.id} 
-          className={`cursor-pointer transition-colors ${candidate.isPinned ? 'bg-blue-100' : ''}`}
+          className={`cursor-pointer transition-colors ${candidate.isPinned ? 'bg-primary/10 dark:bg-primary/20' : ''}`}
           onClick={(e) => handleRowClick(candidate, e)}
         >
           <TableCell key={`${candidate.id}-row-number`} className="text-center text-muted-foreground">
@@ -1067,12 +1069,12 @@ export function CandidateTable({
           </TableHeader>
           <TableBody>
             {(() => {
-              let rowNumber = baseIndex + 1;
               const { pinned, unpinned } = candidatesByPinStatus;
               
               // If showPinSection is disabled, show all candidates in normal sorted order
               if (!settings?.showPinSection) {
                 // Use the original candidates array which is already sorted by the server
+                let rowNumber = baseIndex + 1;
                 return renderCandidateRows(candidates, rowNumber);
               }
               
@@ -1086,14 +1088,14 @@ export function CandidateTable({
                       <TableRow className="bg-primary/10 border-b-2">
                         <TableCell colSpan={getVisibleColumnCount()} className="py-3 px-4">
                           <div className="flex items-center gap-2">
-                            <PinIcon className="h-4 w-4 text-blue-600 rotate-45" />
+                            <PinIcon className="h-4 w-4 text-primary rotate-45" />
                             <span className="font-semibold text-primary">Pinned Candidates</span>
                             <span className="text-sm text-muted-foreground">({pinned.length} candidate{pinned.length !== 1 ? 's' : ''})</span>
                           </div>
                         </TableCell>
                       </TableRow>
-                      {/* Pinned Candidate Rows */}
-                      {renderCandidateRows(pinned, rowNumber)}
+                      {/* Pinned Candidate Rows - always start from 1 */}
+                      {renderCandidateRows(pinned, 1)}
                     </>
                   )}
                   
@@ -1110,8 +1112,8 @@ export function CandidateTable({
                           </div>
                         </TableCell>
                       </TableRow>
-                      {/* Unpinned Candidate Rows */}
-                      {renderCandidateRows(unpinned, rowNumber + pinned.length)}
+                      {/* Unpinned Candidate Rows - continue from baseIndex + 1 */}
+                      {renderCandidateRows(unpinned, baseIndex + 1)}
                     </>
                   )}
                   

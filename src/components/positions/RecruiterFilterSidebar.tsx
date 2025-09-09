@@ -175,7 +175,7 @@ export function RecruiterFilterSidebar({
                 
                 // Generate a consistent color based on recruiter ID
                 const colors = [
-                  'bg-blue-500/20 text-blue-600',
+                  'bg-primary/20 text-primary',
                   'bg-purple-500/20 text-purple-600', 
                   'bg-green-500/20 text-green-600',
                   'bg-pink-500/20 text-pink-600',

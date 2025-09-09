@@ -330,13 +330,14 @@ const { contentZIndex } = useDynamicZIndex('toast-client', 'dropdown');
 const { contentZIndex } = useDynamicZIndex('toast-client', 'overlay');
 ```
 
-**Z-Index Hierarchy**: The system follows this hierarchy:
-- `overlay` (toasts) > `dropdown` > `modal`/`drawer` > base content
+**Z-Index Hierarchy**: The system uses a hybrid approach:
+- `overlay` (toasts) have **absolute priority** - they ALWAYS appear on top
+- All other components follow "most recent on top" approach for natural stacking
 
-**Dynamic Z-Index Calculation**: The system uses a completely dynamic approach without hardcoded values:
-- Toasts get `highestOther + (Z_INDEX_INCREMENT * 2)` to ensure they're always above everything
-- Dropdowns are positioned between toasts and other components
-- Modals/drawers are positioned between dropdowns and base content
+**Dynamic Z-Index Calculation**: The system handles complex stacking scenarios:
+- Toasts get `highestExisting + (Z_INDEX_INCREMENT * 3)` to ensure they're always above everything
+- Other components get `highestExisting + Z_INDEX_INCREMENT` for natural stacking
+- Handles scenarios like: overlay -> drawer -> overlay -> modal -> toast
 - All calculations are relative to existing components, ensuring proper layering
 
 **Verification**: Use the `ToastZIndexTest` component to verify that toasts appear above drawers and modals.

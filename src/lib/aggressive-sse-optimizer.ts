@@ -12,7 +12,7 @@ interface EventThrottle {
 }
 
 const eventThrottles = new Map<string, EventThrottle>();
-const GLOBAL_EVENT_LIMIT = 5; // Max 5 events per second globally (reduced from 10)
+const GLOBAL_EVENT_LIMIT = 20; // Max 20 events per second globally (increased for better real-time updates)
 const GLOBAL_WINDOW_MS = 1000; // 1 second window
 
 // Event batching
@@ -25,14 +25,14 @@ interface BatchedEvent {
 }
 
 const eventBatch = new Map<string, BatchedEvent[]>();
-const BATCH_FLUSH_INTERVAL = 5000; // Flush every 5 seconds (increased from 2s)
+const BATCH_FLUSH_INTERVAL = 2000; // Flush every 2 seconds (reduced for better real-time updates)
 const MAX_BATCH_SIZE = 50; // Max 50 events per batch
 
 // Priority-based event handling
 const PRIORITY_DELAYS = {
   high: 0,      // Immediate
-  medium: 1000, // 1 second delay
-  low: 3000     // 3 second delay
+  medium: 200,  // 200ms delay (reduced for better real-time updates)
+  low: 1000     // 1 second delay (reduced for better real-time updates)
 };
 
 // Check if we can send an event (global throttling)

@@ -453,7 +453,7 @@ export default function DashboardPageClient({
     let mounted = true;
     let refreshTimeout: NodeJS.Timeout;
     let lastUpdateTime = 0;
-    const MIN_UPDATE_INTERVAL = 1000; // Minimum 1 second between updates
+    const MIN_UPDATE_INTERVAL = 500; // Minimum 500ms between updates for better real-time experience
     
     // Only subscribe to events if user is authenticated
     if (status !== 'authenticated' || !session?.user?.id) {
@@ -464,21 +464,36 @@ export default function DashboardPageClient({
     const unsubscribe = subscribeToEvents((event) => {
       if (!mounted) return;
       
-      if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
-      }
       
       // Handle different event types with improved debouncing and rate limiting
       if (event.type === 'candidate_update' || event.type === 'position_update' || event.type === 'dashboard_update') {
         const now = Date.now();
         
-        // Rate limit updates to prevent excessive reloading
-        if (now - lastUpdateTime < MIN_UPDATE_INTERVAL) {
-          if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+        // Special handling for dashboard refresh events
+        if (event.type === 'dashboard_update' && event.data?.type === 'refresh') {
+          // Mark that SSE has updated data
+          setHasSSEUpdated(true);
+          
+          // Clear existing timeout and set new one to prevent rapid successive calls
+          if (refreshTimeout) {
+            clearTimeout(refreshTimeout);
           }
+          
+          refreshTimeout = setTimeout(() => {
+            if (mounted && status === 'authenticated' && session?.user?.id) {
+              lastUpdateTime = Date.now();
+              // Only fetch if we don't have recent data and not currently loading
+              if (!isLoading) {
+                fetchDataClientSide();
+              }
+            }
+          }, 500); // 500ms debounce for dashboard refresh events
           return;
         }
         
-        if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+        // Rate limit updates to prevent excessive reloading
+        if (now - lastUpdateTime < MIN_UPDATE_INTERVAL) {
+          return;
         }
         
         // Mark that SSE has updated data
@@ -511,6 +526,10 @@ export default function DashboardPageClient({
   }, [status, session?.user?.id, isLoading, subscribeToEvents]); // Added subscribeToEvents to dependencies
 
   // Optimized dashboard computations - combined related calculations to reduce render overhead
+  // Note: Dashboard counts may differ from "View All" due to:
+  // 1. Limited server-side data (filteredCandidates) vs full API dataset
+  // 2. Different filtering logic between client-side and API queries
+  // 3. Real-time updates via SSE vs static initial data
   const dashboardStats = useMemo(() => {
     const safeAllCandidates = Array.isArray(filteredCandidates) ? filteredCandidates : [];
     const safeAllPositions = Array.isArray(allPositions) ? allPositions : [];
@@ -520,13 +539,15 @@ export default function DashboardPageClient({
     
     const now = new Date();
     
-    // Combined candidate statistics - use same logic as candidates page
-    const totalActiveCandidates = safeAllCandidates.filter((c: Candidate) => {
-      // Get the status name from the candidate
-      const statusName = c.status || '';
-      // Check if the status is in the active candidate statuses array
-      return ACTIVE_CANDIDATE_STATUSES.includes(statusName as CoreCandidateStatus);
-    }).length;
+  // Combined candidate statistics - use same logic as candidates page
+  // Note: This count may differ from API due to limited server-side data
+  // The "View All" button will use API for accurate counts
+  const totalActiveCandidates = safeAllCandidates.filter((c: Candidate) => {
+    // Get the status name from the candidate
+    const statusName = c.status || '';
+    // Check if the status is in the active candidate statuses array
+    return ACTIVE_CANDIDATE_STATUSES.includes(statusName as CoreCandidateStatus);
+  }).length;
     
     // Combined position statistics
     const openPositions = safeAllPositions.filter((p: Position) => p.isOpen);
@@ -728,6 +749,9 @@ export default function DashboardPageClient({
       const highPriorityCandidates = useMemo(() => {
       const safeAllCandidates = Array.isArray(filteredCandidates)? filteredCandidates : [];
       return safeAllCandidates.filter((c: Candidate) => {
+        // High score calculation should include ALL candidates, not just active ones
+        // This matches the API query minAppliedJobFitScore:80 which applies to all candidates
+        
         // Use same logic as API: only check c.fitScore from database
         // Database stores fit scores as decimal (0-1), so 80% = 0.8
         if (typeof c.fitScore !== 'number') return false;
@@ -735,33 +759,54 @@ export default function DashboardPageClient({
     });
   }, [filteredCandidates]);
 
-  // State for weekly applications count
+  // State for API-based counts to ensure consistency with "View All"
   const [weeklyApplicationsCount, setWeeklyApplicationsCount] = useState<number>(0);
+  const [apiActiveCandidatesCount, setApiActiveCandidatesCount] = useState<number>(0);
+  const [apiHighScoreCount, setApiHighScoreCount] = useState<number>(0);
 
-  // Fetch weekly applications count from API to ensure consistency with "View All"
+  // Fetch API-based counts to ensure consistency with "View All"
   useEffect(() => {
-    const fetchWeeklyApplicationsCount = async () => {
+    const fetchApiCounts = async () => {
       if (status !== 'authenticated' || !session?.user?.id) return;
       
       try {
+        // Fetch weekly applications count
         const today = new Date();
         const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-        const weekQuery = `applicationDateStart:${weekAgo.toISOString()} applicationDateEnd:${today.toISOString()}`;
+        const weekQuery = `applicationDateStart:${weekAgo.toISOString().slice(0, 10)}`;
         
-        const response = await fetch(`/api/candidates?query=${encodeURIComponent(weekQuery)}&forCounts=true`, {
-          credentials: 'include'
-        });
+        const [weeklyResponse, activeResponse, highScoreResponse] = await Promise.all([
+          fetch(`/api/candidates?query=${encodeURIComponent(weekQuery)}&forCounts=true`, {
+            credentials: 'include'
+          }),
+          fetch(`/api/candidates?query=${encodeURIComponent('status:' + getActiveCandidateStatusesQuery())}&forCounts=true`, {
+            credentials: 'include'
+          }),
+          fetch(`/api/candidates?query=${encodeURIComponent('minAppliedJobFitScore:80')}&forCounts=true`, {
+            credentials: 'include'
+          })
+        ]);
         
-        if (response.ok) {
-          const data = await response.json();
-          setWeeklyApplicationsCount(data.pagination?.total || 0);
+        if (weeklyResponse.ok) {
+          const data = await weeklyResponse.json();
+          setWeeklyApplicationsCount(data.total || 0);
+        }
+        
+        if (activeResponse.ok) {
+          const data = await activeResponse.json();
+          setApiActiveCandidatesCount(data.total || 0);
+        }
+        
+        if (highScoreResponse.ok) {
+          const data = await highScoreResponse.json();
+          setApiHighScoreCount(data.total || 0);
         }
       } catch (error) {
-        console.warn('Failed to fetch weekly applications count:', error);
+        console.warn('Failed to fetch API counts:', error);
       }
     };
 
-    fetchWeeklyApplicationsCount();
+    fetchApiCounts();
   }, [status, session?.user?.id]);
 
   const recentApplications = useMemo(() => {
@@ -975,6 +1020,18 @@ export default function DashboardPageClient({
             </div>
           )}
           <RealTimeStatus onDataUpdate={fetchDataClientSide} />
+          <Button 
+            onClick={() => {
+              setIsPageRefresh(true);
+              fetchDataClientSide();
+            }}
+            variant="outline" 
+            size="sm"
+            className="ml-2"
+          >
+            <Loader2 className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
         </div>
       </div>
 
@@ -995,7 +1052,8 @@ export default function DashboardPageClient({
                 onClick: () => {
                   const today = new Date();
                   const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-                  const weekQuery = `applicationDateStart:${weekAgo.toISOString()} applicationDateEnd:${today.toISOString()}`;
+                  // Use the same query format as the API call
+                  const weekQuery = `applicationDateStart:${weekAgo.toISOString().slice(0, 10)}`;
                   router.push('/candidates?query=' + encodeURIComponent(weekQuery));
                 }
               }
@@ -1114,7 +1172,7 @@ export default function DashboardPageClient({
           {[ // Row 2 Recruiter cards array
             { 
               title: "Active Candidates", 
-              value: totalActiveCandidates, 
+              value: apiActiveCandidatesCount > 0 ? apiActiveCandidatesCount : totalActiveCandidates, 
               icon: Users, 
               color: "text-blue-500 dark:text-blue-400", 
               bgColor: "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/50",
@@ -1140,7 +1198,7 @@ export default function DashboardPageClient({
             },
             { // High Priority
               title: "High Score (80+)",
-              value: highPriorityCandidates.length,
+              value: apiHighScoreCount > 0 ? apiHighScoreCount : highPriorityCandidates.length,
               icon: UserRoundSearch,
               color: "text-yellow-500 dark:text-yellow-400", 
               bgColor: "bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-950/50 dark:to-yellow-900/50",

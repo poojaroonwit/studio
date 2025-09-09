@@ -13,10 +13,6 @@ export function RealTimeStatus({ onDataUpdate }: RealTimeStatusProps) {
   useEffect(() => {
     // Subscribe to events and trigger data updates
     const unsubscribe = subscribeToEvents((event) => {
-      if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
-        console.log('[RealTimeStatus] Event received via shared SSE:', event);
-      }
-      
       // Trigger data update callback for meaningful events
       if (onDataUpdate && !['keepalive', 'connected'].includes(event.type)) {
         onDataUpdate();

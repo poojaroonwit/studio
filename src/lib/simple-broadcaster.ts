@@ -16,6 +16,9 @@ import { broadcastHighPriority, broadcastMediumPriority, broadcastLowPriority } 
 export function broadcastCandidateUpdate(candidate: any, actingUserId?: string) {
   // Use smart change detection - only broadcast if data actually changed
   broadcastCandidateUpdateIfChanged(candidate, actingUserId);
+  
+  // Also trigger dashboard refresh for real-time updates
+  broadcastDashboardRefresh('candidate_updated');
 }
 
 export function broadcastCandidateCreated(candidate: any, actingUserId?: string) {
@@ -26,6 +29,9 @@ export function broadcastCandidateCreated(candidate: any, actingUserId?: string)
     action: 'created',
     timestamp: new Date().toISOString()
   });
+  
+  // Also trigger dashboard refresh for real-time updates
+  broadcastDashboardRefresh('candidate_created');
 }
 
 export function broadcastCandidateDeleted(candidateId: string, actingUserId?: string) {
@@ -36,6 +42,9 @@ export function broadcastCandidateDeleted(candidateId: string, actingUserId?: st
     action: 'deleted',
     timestamp: new Date().toISOString()
   });
+  
+  // Also trigger dashboard refresh for real-time updates
+  broadcastDashboardRefresh('candidate_deleted');
 }
 
 export function broadcastCandidateStatusChanged(candidate: any, oldStatus: string, newStatus: string, actingUserId?: string) {
@@ -48,12 +57,18 @@ export function broadcastCandidateStatusChanged(candidate: any, oldStatus: strin
     newStatus,
     timestamp: new Date().toISOString()
   });
+  
+  // Also trigger dashboard refresh for real-time updates
+  broadcastDashboardRefresh('candidate_status_changed');
 }
 
 // Position-related broadcasts
 export function broadcastPositionUpdate(position: any, actingUserId?: string) {
   // Use smart change detection - only broadcast if data actually changed
   broadcastPositionUpdateIfChanged(position, actingUserId);
+  
+  // Also trigger dashboard refresh for real-time updates
+  broadcastDashboardRefresh('position_updated');
 }
 
 export function broadcastPositionCreated(position: any, actingUserId?: string) {
@@ -64,6 +79,9 @@ export function broadcastPositionCreated(position: any, actingUserId?: string) {
     action: 'created',
     timestamp: new Date().toISOString()
   });
+  
+  // Also trigger dashboard refresh for real-time updates
+  broadcastDashboardRefresh('position_created');
 }
 
 export function broadcastPositionDeleted(positionId: string, actingUserId?: string) {
@@ -74,6 +92,9 @@ export function broadcastPositionDeleted(positionId: string, actingUserId?: stri
     action: 'deleted',
     timestamp: new Date().toISOString()
   });
+  
+  // Also trigger dashboard refresh for real-time updates
+  broadcastDashboardRefresh('position_deleted');
 }
 
 export function broadcastPositionListUpdated() {
@@ -82,6 +103,9 @@ export function broadcastPositionListUpdated() {
     action: 'list_updated',
     timestamp: new Date().toISOString()
   });
+  
+  // Also trigger dashboard refresh for real-time updates
+  broadcastDashboardRefresh('position_list_updated');
 }
 
 export function broadcastPositionStatisticsUpdated(statistics: any) {
@@ -144,8 +168,18 @@ export function broadcastUploadFailed(fileName: string, userId: string, error: s
 
 // Dashboard broadcasts
 export function broadcastDashboardUpdate(data: any) {
-  // Use smart change detection for dashboard updates with 1 second interval
-  broadcastDashboardUpdateIfChanged(data, { minBroadcastInterval: 1000 });
+  // Use smart change detection for dashboard updates with 500ms interval for better real-time updates
+  broadcastDashboardUpdateIfChanged(data, { minBroadcastInterval: 500 });
+}
+
+// Force dashboard refresh when candidates or positions change
+export function broadcastDashboardRefresh(reason: string = 'data_changed') {
+  // Force broadcast dashboard refresh without change detection
+  forceBroadcast('dashboard_update', {
+    type: 'refresh',
+    reason,
+    timestamp: new Date().toISOString()
+  });
 }
 
 // Generic broadcast function

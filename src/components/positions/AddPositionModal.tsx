@@ -399,7 +399,7 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
                         <SelectItem value="none">No Grade</SelectItem>
                         {grades.map((grade) => (
                           <SelectItem key={grade.id} value={grade.id}>
-                            {grade.name} {grade.label && `- ${grade.label}`} ({grade.slaDays} days SLA)
+                            {grade.label || grade.name}
                           </SelectItem>
                         ))}
                       </SelectContent>

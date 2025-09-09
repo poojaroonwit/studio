@@ -10,10 +10,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Loader2, RotateCcw } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { TiptapEditorWithExpand } from "@/components/ui/wysiwyg-editors";
 
 interface BulkMatchCriteriaModalProps {
   isOpen: boolean;
@@ -121,17 +121,16 @@ export function BulkMatchCriteriaModal({
                 Set Default
               </Button>
             </div>
-            <Textarea
-              id="matchCriteria"
-              placeholder="Enter the match criteria content (HTML format supported)..."
-              value={matchCriteria}
-              onChange={(e) => setMatchCriteria(e.target.value)}
-              rows={8}
-              className="resize-none"
-              disabled={isLoading}
-            />
+            <div className="flex-1 flex flex-col min-h-0">
+              <TiptapEditorWithExpand
+                value={matchCriteria}
+                onChange={setMatchCriteria}
+                placeholder="Enter the match criteria content..."
+                className="min-h-[200px]"
+              />
+            </div>
             <p className="text-sm text-muted-foreground">
-              You can use HTML formatting for rich text content. Click "Set Default" to load the system default match criteria.
+              Use the rich text editor to format your match criteria. Click "Set Default" to load the system default match criteria.
             </p>
           </div>
           

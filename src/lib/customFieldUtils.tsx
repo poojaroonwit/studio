@@ -16,16 +16,15 @@ export function filterCustomFieldsBySection(
     // Check visibility settings based on model and section
     switch (modelName) {
       case 'Candidate':
-        // For candidate detail sections - show all custom fields regardless of visibility settings
-        if (section === 'jobs' || section === 'candidate-info' || section === 'education' || section === 'experience') {
-          // Show all custom fields for candidates in edit mode
-          // If section is specified, check if it matches (but don't require it)
-          if (field.candidateDetailSection && field.candidateDetailSection !== section) {
-            // If field has a specific section and it doesn't match, skip it
-            return false;
+        // For candidate detail sections - only show fields assigned to the specific section
+        if (section === 'jobs' || section === 'candidate-info' || section === 'education' || section === 'experience' || section === 'job-suitability') {
+          // Only show custom fields that are specifically assigned to this section
+          if (field.candidateDetailSection) {
+            return field.candidateDetailSection === section;
           }
           
-          return true;
+          // If no section is assigned, don't show the field in any section
+          return false;
         }
         // For regular candidate detail (not full detail)
         return field.showInCandidateDetail && !field.showInFullCandidateDetail;

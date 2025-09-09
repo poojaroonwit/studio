@@ -203,7 +203,13 @@ export function PositionSelectDropdown({
                         value === position.id ? "opacity-100" : "opacity-0"
                       )}
                     />
-                    <span className="font-medium text-foreground">{position.title}</span>
+                    <div className="flex flex-col">
+                      <span className="font-medium text-foreground">{position.title}</span>
+                      <span className="text-sm text-muted-foreground">
+                        {position.department}
+                        {position.positionLevel && ` • ${position.positionLevel}`}
+                      </span>
+                    </div>
                     {showOpenStatus && (
                       <Badge 
                         variant={position.isOpen ? "default" : "secondary"}

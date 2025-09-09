@@ -97,15 +97,12 @@ export function broadcastCandidateUpdateIfChanged(
     minBroadcastInterval: options.minBroadcastInterval || 500, // 500ms for candidates
     ignoreFields: ['updated_at', 'last_activity', ...(options.ignoreFields || [])]
   })) {
-    console.log('[DataChange] Broadcasting candidate update:', candidate.id);
     broadcastMediumPriority('candidate_update', {
       candidate,
       actingUserId,
       action: 'updated',
       timestamp: new Date().toISOString()
     });
-  } else {
-    console.log('[DataChange] Skipping candidate update - no meaningful change:', candidate.id);
   }
 }
 
@@ -120,15 +117,12 @@ export function broadcastPositionUpdateIfChanged(
     minBroadcastInterval: options.minBroadcastInterval || 500, // 500ms for positions
     ignoreFields: ['updated_at', 'last_activity', ...(options.ignoreFields || [])]
   })) {
-    console.log('[DataChange] Broadcasting position update:', position.id);
     broadcastHighPriority('position_update', {
       position,
       actingUserId,
       action: 'updated',
       timestamp: new Date().toISOString()
     });
-  } else {
-    console.log('[DataChange] Skipping position update - no meaningful change:', position.id);
   }
 }
 
@@ -142,15 +136,12 @@ export function broadcastUploadQueueUpdateIfChanged(
     minBroadcastInterval: options.minBroadcastInterval || 100, // Reduced to 100ms for faster updates
     ignoreFields: ['timestamp', ...(options.ignoreFields || [])]
   })) {
-    console.log('[DataChange] Broadcasting upload queue update:', summary);
     // Use forceBroadcast to bypass all throttling for upload queue updates
     forceBroadcast('upload_queue_update', {
       type: 'queue',
       summary,
       timestamp: new Date().toISOString()
     });
-  } else {
-    console.log('[DataChange] Skipping upload queue update - no meaningful change');
   }
 }
 
@@ -161,16 +152,13 @@ export function broadcastDashboardUpdateIfChanged(
   const trackerKey = 'dashboard_data';
   
   if (hasDataChanged(trackerKey, data, {
-    minBroadcastInterval: options.minBroadcastInterval || 500, // 500ms for dashboard
+    minBroadcastInterval: options.minBroadcastInterval || 200, // 200ms for dashboard (reduced for better real-time updates)
     ignoreFields: ['timestamp', 'last_updated', ...(options.ignoreFields || [])]
   })) {
-    console.log('[DataChange] Broadcasting dashboard update');
-    broadcastLowPriority('dashboard_update', {
+    broadcastMediumPriority('dashboard_update', { // Changed from low to medium priority
       ...data,
       timestamp: new Date().toISOString()
     });
-  } else {
-    console.log('[DataChange] Skipping dashboard update - no meaningful change');
   }
 }
 
@@ -192,16 +180,12 @@ export function broadcastBatchUpdateIfChanged(
     minBroadcastInterval: options.minBroadcastInterval || 500, // 500ms for batch updates
     ignoreFields: ['timestamp', ...(options.ignoreFields || [])]
   })) {
-    console.log(`[DataChange] Broadcasting ${itemType} batch update:`, items.length, 'items');
     broadcastAll({ type: `${itemType}_update`, items, actingUserId, action: 'batch_updated', timestamp: new Date().toISOString() }, `${itemType}_update`);
-  } else {
-    console.log(`[DataChange] Skipping ${itemType} batch update - no meaningful change`);
   }
 }
 
 // Force broadcast (bypass change detection)
 export function forceBroadcast(eventType: UnifiedEventType, data: any, targetUserId?: string) {
-  console.log('[DataChange] Force broadcasting:', eventType);
   if (!targetUserId) {
     broadcastAll({ type: eventType, ...data }, eventType);
   }
@@ -234,9 +218,6 @@ export function cleanupOldTrackers(maxAge: number = 30 * 60 * 1000) { // 30 minu
     }
   }
   
-  if (cleaned > 0) {
-    console.log(`[DataChange] Cleaned up ${cleaned} old change trackers`);
-  }
   
   return cleaned;
 }

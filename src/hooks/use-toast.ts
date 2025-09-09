@@ -81,6 +81,28 @@ export function useToast() {
     toast.dismiss();
   };
 
+  // Dismiss a specific toast by ID
+  const dismissById = (toastId: string) => {
+    toast.dismiss(toastId);
+  };
+
+  // Clear all toasts and return the toast ID for potential dismissal
+  const showWithId = (message: string, options?: ToastOptions) => {
+    return toast(message, options);
+  };
+
+  const successWithId = (message: string, options?: ToastOptions) => {
+    return toast.success(message, options);
+  };
+
+  const errorWithId = (message: string, options?: ToastOptions) => {
+    return toast.error(message, options);
+  };
+
+  const loadingWithId = (message: string, options?: ToastOptions) => {
+    return toast.loading(message, options);
+  };
+
   return { 
     show, 
     success, 
@@ -89,6 +111,11 @@ export function useToast() {
     showWithDescription,
     successWithDescription,
     errorWithDescription,
-    dismiss 
+    dismiss,
+    dismissById,
+    showWithId,
+    successWithId,
+    errorWithId,
+    loadingWithId
   };
 } 

@@ -92,6 +92,38 @@ export function useToastManager(options: ToastManagerOptions = {}) {
     recentToastsRef.current = [];
   }, []);
 
+  // Clear all toasts
+  const clearAll = useCallback(() => {
+    toast.dismiss();
+    clearRecent();
+  }, [clearRecent]);
+
+  // Show toast with ID for potential dismissal
+  const showToastWithId = useCallback((message: string, type: 'success' | 'error' | 'loading' | 'info' = 'info', options?: ToastOptions) => {
+    if (isDuplicate(message, type)) {
+      return null;
+    }
+
+    addToRecent(message, type);
+    
+    let toastId: string | undefined;
+    switch (type) {
+      case 'success':
+        toastId = toast.success(message, options);
+        break;
+      case 'error':
+        toastId = toast.error(message, options);
+        break;
+      case 'loading':
+        toastId = toast.loading(message, options);
+        break;
+      default:
+        toastId = toast(message, options);
+    }
+    
+    return toastId;
+  }, [isDuplicate, addToRecent]);
+
   return {
     showToast,
     success,
@@ -99,6 +131,8 @@ export function useToastManager(options: ToastManagerOptions = {}) {
     loading,
     info,
     clearRecent,
+    clearAll,
+    showToastWithId,
     isDuplicate,
   };
 }

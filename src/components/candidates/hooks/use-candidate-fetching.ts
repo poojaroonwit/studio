@@ -21,7 +21,7 @@ interface UseCandidateFetchingProps {
   setPermissionError: (error: boolean) => void;
   setFetchError: (error: string | null) => void;
   setIsLoading: (loading: boolean) => void;
-  showPinSection?: boolean;
+  getShowPinSection: () => boolean;
 }
 
 export function useCandidateFetching({
@@ -42,7 +42,7 @@ export function useCandidateFetching({
   setPermissionError,
   setFetchError,
   setIsLoading,
-  showPinSection
+  getShowPinSection
 }: UseCandidateFetchingProps) {
   const currentRequestRef = useRef<string | null>(null);
   const latestRequestIdRef = useRef<string | null>(null);
@@ -131,10 +131,8 @@ export function useCandidateFetching({
         // For unsorted state, send empty string to indicate no sorting
         query.append('sortDirection', '');
       }
-      // Add pin section setting
-      if (showPinSection !== undefined) {
-        query.append('showPinSection', String(showPinSection));
-      }
+      // Add pin section setting - always send it to ensure proper sorting
+      query.append('showPinSection', String(getShowPinSection()));
       
       const apiUrl = `/api/candidates?${query.toString()}`;
       
@@ -191,7 +189,7 @@ export function useCandidateFetching({
       setTableLoading(false);
       setIsFetching(false);
     }
-  }, [sessionStatus, searchParams, sortColumn, sortDirection, showPinSection]);
+  }, [sessionStatus, searchParams, sortColumn, sortDirection, getShowPinSection]);
 
   // Create a debounced version for table refresh
   const debouncedFetchTableData = useCallback((currentFilters: CandidateFilterValues, currentPage: number, currentPageSize: number) => {

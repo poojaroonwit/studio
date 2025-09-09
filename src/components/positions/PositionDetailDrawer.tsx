@@ -947,7 +947,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         </TableHeader>
         <TableBody>
           {sortedAppliedCandidates.map((candidate) => (
-            <TableRow key={candidate.id}>
+            <TableRow key={candidate.id} className={candidate.isPinned ? 'bg-blue-50/50' : ''}>
               <TableCell>{rowNumber++}</TableCell>
               <TableCell>
                 <div>
@@ -1019,7 +1019,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                     {candidate.isPinned ? (
                       <PinIcon className="h-4 w-4 text-primary" />
                     ) : (
-                      <PinOff className="h-4 w-4" />
+                      <PinIcon className="h-4 w-4" />
                     )}
                   </Button>
                 </div>
@@ -1156,7 +1156,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         </TableHeader>
         <TableBody>
           {sortedPotentialCandidates.map((candidate) => (
-            <TableRow key={candidate.id}>
+            <TableRow key={candidate.id} className={candidate.isPinned ? 'bg-blue-50/50' : ''}>
               <TableCell>{rowNumber++}</TableCell>
               <TableCell>
                 <div>
@@ -1213,7 +1213,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                     {candidate.isPinned ? (
                       <PinIcon className="h-4 w-4 text-primary" />
                     ) : (
-                      <PinOff className="h-4 w-4" />
+                      <PinIcon className="h-4 w-4" />
                     )}
                   </Button>
                 </div>
@@ -1414,7 +1414,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                     return (
                       <TableRow 
                         key={candidate.id} 
-                        className="hover:bg-muted/50"
+                        className={`hover:bg-muted/50 ${candidate.isPinned ? 'bg-blue-50/50' : ''}`}
                       >
                         <TableCell className="text-center font-mono text-xs text-muted-foreground">{rowNumber++}</TableCell>
                         <TableCell>
@@ -1485,7 +1485,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                         {isExpanded && group.map((candidate) => (
                           <TableRow 
                             key={candidate.id} 
-                            className="hover:bg-muted/50"
+                            className={`hover:bg-muted/50 ${candidate.isPinned ? 'bg-blue-50/50' : ''}`}
                           >
                             <TableCell className="text-center font-mono text-xs text-muted-foreground">{rowNumber++}</TableCell>
                             <TableCell>

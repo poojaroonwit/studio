@@ -18,6 +18,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Clock, Loader2, CheckCircle, XCircle, Search, Filter, AlertCircle, Info, Upload, FileText, Users, Calendar as CalendarIcon, MoreHorizontal, Play, X, Trash2, Eye, RotateCcw, CheckSquare, Square, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, RefreshCw, ImageIcon } from 'lucide-react';
 import { FileViewerModal } from '@/components/ui/file-viewer-modal';
 import { ExpandablePayload } from '@/components/ui/ExpandablePayload';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
 import { useSharedSSE } from '@/hooks/use-shared-sse';
 import { toast } from 'react-hot-toast';
@@ -98,6 +99,9 @@ export default function CandidateImportUploadQueue() {
   const [sortField, setSortField] = useState<string>('upload_date');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [positionSearchTerm, setPositionSearchTerm] = useState<string>('');
+  const [sourceFilter, setSourceFilter] = useState<string>('all');
+  const [sourceSearchTerm, setSourceSearchTerm] = useState<string>('');
+  const [availableSources, setAvailableSources] = useState<Array<{ id: string; name: string; logo?: string }>>([]);
 
   // Use shared SSE hook for realtime updates
   const { isConnected: realtimeConnected, subscribeToEvents } = useSharedSSE();
@@ -116,6 +120,19 @@ export default function CandidateImportUploadQueue() {
     }
   }, []);
 
+  const fetchSources = useCallback(async () => {
+    try {
+      const response = await fetch('/api/candidate-sources');
+      if (response.ok) {
+        const data = await response.json();
+        // The API returns an array directly, not wrapped in a data property
+        setAvailableSources(data || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch sources:', error);
+    }
+  }, []);
+
   const fetchQueue = useCallback(async (currentPage = 1, currentPageSize = 10) => {
     setLoading(true);
     setErrorMessage(null);
@@ -127,6 +144,7 @@ export default function CandidateImportUploadQueue() {
         ...(searchTerm && { file_name: searchTerm }),
         ...(statusFilter !== 'all' && { status: statusFilter }),
         ...(positionFilter !== 'all' && { position_id: positionFilter }),
+        ...(sourceFilter !== 'all' && { source_id: sourceFilter }),
         sort_field: sortField,
         sort_direction: sortDirection
       });
@@ -171,11 +189,12 @@ export default function CandidateImportUploadQueue() {
     } finally {
       setLoading(false);
     }
-  }, [searchTerm, statusFilter, positionFilter, dateRange, dateFilterType]);
+  }, [searchTerm, statusFilter, positionFilter, sourceFilter, dateRange, dateFilterType, sortField, sortDirection]);
 
   useEffect(() => {
     fetchPositions();
-  }, [fetchPositions]);
+    fetchSources();
+  }, [fetchPositions, fetchSources]);
 
   useEffect(() => {
     fetchQueue(page, pageSize);
@@ -412,6 +431,13 @@ export default function CandidateImportUploadQueue() {
     fetchQueue(1, pageSize);
   };
 
+  const handleSourceFilterChange = (value: string) => {
+    setSourceFilter(value);
+    setSourceSearchTerm(''); // Clear search when source is selected
+    setPage(1);
+    fetchQueue(1, pageSize);
+  };
+
   const handleDateRangeChange = (range: DateRange | undefined) => {
     setDateRange(range);
     setPage(1);
@@ -435,6 +461,8 @@ export default function CandidateImportUploadQueue() {
     setStatusFilter('all');
     setPositionFilter('all');
     setPositionSearchTerm('');
+    setSourceFilter('all');
+    setSourceSearchTerm('');
     setDateRange(undefined);
     setDateFilterType('create');
     setPage(1);
@@ -760,6 +788,7 @@ export default function CandidateImportUploadQueue() {
       setSortDirection('asc');
     }
     setPage(1);
+    // Trigger fetchQueue with updated sort parameters
     fetchQueue(1, pageSize);
   };
 
@@ -999,7 +1028,7 @@ export default function CandidateImportUploadQueue() {
       {/* Filters */}
       <div className="p-3 border-b border-border/50">
         <div className="flex items-center justify-end">
-                      {(searchTerm || statusFilter !== 'all' || positionFilter !== 'all' || positionSearchTerm || dateRange || dateFilterType !== 'create') && (
+                      {(searchTerm || statusFilter !== 'all' || positionFilter !== 'all' || positionSearchTerm || sourceFilter !== 'all' || sourceSearchTerm || dateRange || dateFilterType !== 'create') && (
             <Button
               variant="ghost"
               size="sm"
@@ -1011,7 +1040,7 @@ export default function CandidateImportUploadQueue() {
             </Button>
           )}
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-7 gap-2">
+        <div className="grid grid-cols-2 md:grid-cols-8 gap-2">
             <div className="space-y-1">
               <Label htmlFor="search" className="text-xs text-muted-foreground">Search</Label>
               <div className="flex space-x-1">
@@ -1068,6 +1097,44 @@ export default function CandidateImportUploadQueue() {
                     .map((position) => (
                       <SelectItem key={position.id} value={position.id}>
                         {position.title}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="source" className="text-xs text-muted-foreground">Source</Label>
+              <Select value={sourceFilter} onValueChange={handleSourceFilterChange}>
+                <SelectTrigger className="h-7 text-xs">
+                  <SelectValue placeholder="All" />
+                </SelectTrigger>
+                <SelectContent>
+                  <div className="p-2">
+                    <Input
+                      placeholder="Search sources..."
+                      value={sourceSearchTerm}
+                      onChange={(e) => setSourceSearchTerm(e.target.value)}
+                      className="h-7 text-xs mb-2"
+                    />
+                  </div>
+                  <SelectItem value="all">All Sources</SelectItem>
+                  {availableSources
+                    .filter((source) => 
+                      source.name.toLowerCase().includes(sourceSearchTerm.toLowerCase())
+                    )
+                    .map((source) => (
+                      <SelectItem key={source.id} value={source.id}>
+                        <div className="flex items-center gap-2">
+                          {source.logo && (
+                            <img 
+                              src={source.logo} 
+                              alt={`${source.name} logo`}
+                              className="h-4 w-4 object-contain rounded-full"
+                            />
+                          )}
+                          {source.name}
+                        </div>
                       </SelectItem>
                     ))}
                 </SelectContent>
@@ -1506,7 +1573,7 @@ export default function CandidateImportUploadQueue() {
 
       {/* Details Dialog */}
       <Dialog open={showDetails} onOpenChange={setShowDetails}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto" dialogId="candidate-import-upload-queue-modal">
+        <DialogContent className="max-w-3xl w-full max-h-[80vh] overflow-y-auto" dialogId="candidate-import-upload-queue-modal">
           <DialogHeader>
             <DialogTitle>Queue Item Details</DialogTitle>
             <DialogDescription>
@@ -1515,118 +1582,130 @@ export default function CandidateImportUploadQueue() {
           </DialogHeader>
           
           {selectedItem && (
-            <div className="space-y-6">
-              {/* Basic Information */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-sm font-medium">File Name</Label>
-                  <p className="text-sm">{selectedItem.file_name}</p>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium">File Size</Label>
-                  <p className="text-sm">{formatFileSize(selectedItem.file_size)}</p>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium">Status</Label>
-                  <div className="flex items-center space-x-2">
-                    {getStatusIcon(selectedItem.status)}
-                    <Badge className={getStatusColor(selectedItem.status)}>
-                      {selectedItem.status}
-                    </Badge>
-                  </div>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium">Position</Label>
-                  <p className="text-sm">{selectedItem.position_title || 'Not assigned'}</p>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium">Upload Date</Label>
-                  <p className="text-sm">{formatDate(selectedItem.upload_date)}</p>
-                </div>
-                {selectedItem.process_date && (
-                  <div>
-                    <Label className="text-sm font-medium">Process Date</Label>
-                    <p className="text-sm">{formatDate(selectedItem.process_date)}</p>
-                  </div>
-                )}
-                {selectedItem.completed_date && (
-                  <div>
-                    <Label className="text-sm font-medium">Completed Date</Label>
-                    <p className="text-sm">{formatDate(selectedItem.completed_date)}</p>
-                  </div>
-                )}
-                <div>
-                  <Label className="text-sm font-medium">Duration</Label>
-                  <p className="text-sm">{calculateDuration(selectedItem.process_date, selectedItem.completed_date)}</p>
-                </div>
-                {selectedItem.user_email && (
-                  <div>
-                    <Label className="text-sm font-medium">Uploaded By</Label>
-                    <p className="text-sm">{selectedItem.user_email}</p>
-                  </div>
-                )}
-                {selectedItem.source && (
-                  <div>
-                    <Label className="text-sm font-medium">Source</Label>
-                    <p className="text-sm">{selectedItem.source}</p>
-                  </div>
-                )}
-              </div>
+            <div className="space-y-4">
+              <Tabs defaultValue="details">
+                <TabsList>
+                  <TabsTrigger value="details">Details</TabsTrigger>
+                  <TabsTrigger value="webhook">Webhook Send</TabsTrigger>
+                  {selectedItem.error ? (
+                    <TabsTrigger value="errors">Error Logs</TabsTrigger>
+                  ) : null}
+                </TabsList>
 
-              <Separator />
-              
-              {/* Progress Information */}
-              {selectedItem.progress !== undefined && (
-                <div>
-                  <Label className="text-sm font-medium">Progress</Label>
-                  <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
-                    <div
-                      className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${selectedItem.progress}%` }}
+                <TabsContent value="details" className="mt-4">
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label className="text-sm font-medium">File Name</Label>
+                        <p className="text-sm">{selectedItem.file_name}</p>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium">File Size</Label>
+                        <p className="text-sm">{formatFileSize(selectedItem.file_size)}</p>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium">Status</Label>
+                        <div className="flex items-center space-x-2">
+                          {getStatusIcon(selectedItem.status)}
+                          <Badge className={getStatusColor(selectedItem.status)}>
+                            {selectedItem.status}
+                          </Badge>
+                        </div>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium">Position</Label>
+                        <p className="text-sm">{selectedItem.position_title || 'Not assigned'}</p>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium">Upload Date</Label>
+                        <p className="text-sm">{formatDate(selectedItem.upload_date)}</p>
+                      </div>
+                      {selectedItem.process_date && (
+                        <div>
+                          <Label className="text-sm font-medium">Process Date</Label>
+                          <p className="text-sm">{formatDate(selectedItem.process_date)}</p>
+                        </div>
+                      )}
+                      {selectedItem.completed_date && (
+                        <div>
+                          <Label className="text-sm font-medium">Completed Date</Label>
+                          <p className="text-sm">{formatDate(selectedItem.completed_date)}</p>
+                        </div>
+                      )}
+                      <div>
+                        <Label className="text-sm font-medium">Duration</Label>
+                        <p className="text-sm">{calculateDuration(selectedItem.process_date, selectedItem.completed_date)}</p>
+                      </div>
+                      {selectedItem.user_email && (
+                        <div>
+                          <Label className="text-sm font-medium">Uploaded By</Label>
+                          <p className="text-sm">{selectedItem.user_email}</p>
+                        </div>
+                      )}
+                      {selectedItem.source && (
+                        <div>
+                          <Label className="text-sm font-medium">Source</Label>
+                          <p className="text-sm">{selectedItem.source}</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {selectedItem.progress !== undefined && (
+                      <div>
+                        <Label className="text-sm font-medium">Progress</Label>
+                        <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+                          <div
+                            className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                            style={{ width: `${selectedItem.progress}%` }}
+                          />
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {selectedItem.progress}% complete
+                        </p>
+                      </div>
+                    )}
+
+                    {selectedItem.processed_candidates !== undefined && selectedItem.total_candidates !== undefined && (
+                      <div>
+                        <Label className="text-sm font-medium">Candidates Processed</Label>
+                        <p className="text-sm">
+                          {selectedItem.processed_candidates} of {selectedItem.total_candidates} candidates
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="webhook" className="mt-4">
+                  {selectedItem.webhook_payload ? (
+                    <ExpandablePayload
+                      data={selectedItem.webhook_payload}
+                      title="Webhook Payload"
+                      maxHeight="max-h-40"
+                      compact={true}
                     />
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {selectedItem.progress}% complete
-                  </p>
-                </div>
-              )}
-              
-              {selectedItem.processed_candidates !== undefined && selectedItem.total_candidates !== undefined && (
-                <div>
-                  <Label className="text-sm font-medium">Candidates Processed</Label>
-                  <p className="text-sm">
-                    {selectedItem.processed_candidates} of {selectedItem.total_candidates} candidates
-                  </p>
-                </div>
-              )}
-
-              <Separator />
-              
-              {/* Webhook Payload */}
-              {selectedItem.webhook_payload && (
-                <ExpandablePayload
-                  data={selectedItem.webhook_payload}
-                  title="Webhook Payload"
-                  maxHeight="max-h-40"
-                  compact={true}
-                />
-              )}
-              
-              {/* Error Information */}
-              {selectedItem.error && (
-                <div>
-                  <Label className="text-sm font-medium text-red-700">Error</Label>
-                  <p className="text-sm text-red-700 mt-1">{selectedItem.error}</p>
-                  {selectedItem.error_details && (
-                    <details className="mt-2">
-                      <summary className="text-sm text-red-600 cursor-pointer">View Error Details</summary>
-                      <pre className="text-xs text-red-700 mt-2 p-2 bg-red-50 rounded overflow-auto max-h-40">
-                        {selectedItem.error_details}
-                      </pre>
-                    </details>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No webhook payload available.</p>
                   )}
-                </div>
-              )}
+                </TabsContent>
+
+                {selectedItem.error ? (
+                  <TabsContent value="errors" className="mt-4">
+                    <div>
+                      <Label className="text-sm font-medium text-red-700">Error</Label>
+                      <p className="text-sm text-red-700 mt-1">{selectedItem.error}</p>
+                      {selectedItem.error_details && (
+                        <details className="mt-2">
+                          <summary className="text-sm text-red-600 cursor-pointer">View Error Details</summary>
+                          <pre className="text-xs text-red-700 mt-2 p-2 bg-red-50 rounded overflow-auto max-h-40">
+                            {selectedItem.error_details}
+                          </pre>
+                        </details>
+                      )}
+                    </div>
+                  </TabsContent>
+                ) : null}
+              </Tabs>
             </div>
           )}
         </DialogContent>

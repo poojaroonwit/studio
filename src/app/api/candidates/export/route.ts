@@ -318,13 +318,13 @@ export async function GET(request: NextRequest) {
     
     if (minAppliedJobFitScore !== null && minAppliedJobFitScore !== undefined) {
       whereConditions.push(`c."fitScore" >= $${paramIndex}`);
-      queryParams.push(parseInt(minAppliedJobFitScore));
+      queryParams.push(parseFloat(minAppliedJobFitScore) / 100);
       paramIndex++;
     }
     
     if (maxAppliedJobFitScore !== null && maxAppliedJobFitScore !== undefined) {
       whereConditions.push(`c."fitScore" <= $${paramIndex}`);
-      queryParams.push(parseInt(maxAppliedJobFitScore));
+      queryParams.push(parseFloat(maxAppliedJobFitScore) / 100);
       paramIndex++;
     }
     

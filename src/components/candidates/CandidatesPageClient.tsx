@@ -916,10 +916,8 @@ export function CandidatesPageClient({
       const endIndex = startIndex + pageSize;
       return aiMatchedCandidates.slice(startIndex, endIndex);
     }
-    
-    const startIndex = (page - 1) * pageSize;
-    const endIndex = startIndex + pageSize;
-    return mappedCandidates.slice(startIndex, endIndex);
+    // Server already returns a single page of candidates. Do not slice again.
+    return mappedCandidates;
   }, [isAiSearchActive, aiMatchedCandidateIds, mappedCandidates, page, pageSize]);
 
   // For row numbering in table

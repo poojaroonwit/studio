@@ -239,6 +239,7 @@ export async function GET(request: NextRequest) {
       process_date: 'uq.process_date',
       completed_date: 'uq.completed_date',
       position_title: 'p.title',
+      source_name: 'cs.name',
       // Duration in seconds; null-safe to 0 so rows without duration group at start when ASC
       duration: "COALESCE(EXTRACT(EPOCH FROM (uq.completed_date - uq.process_date)), 0)"
     };

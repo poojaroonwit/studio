@@ -421,6 +421,14 @@ const renderTableCells = (
               const isValidId = candidate.id && uuidSchema.safeParse(candidate.id).success;
               return (
                 <>
+                  {/* Pin icon before avatar */}
+                  <div className="flex-shrink-0">
+                    {candidate.isPinned ? (
+                      <PinIcon className="h-4 w-4 text-primary" />
+                    ) : (
+                      <PinOff className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </div>
                   <CandidateAvatarCompact
                     user={{
                       id: candidate.id,
@@ -877,7 +885,7 @@ export function CandidateTable({
       return (
         <TableRow 
           key={candidate.id} 
-          className="cursor-pointer hover:bg-muted/50 transition-colors"
+          className={`cursor-pointer hover:bg-muted/50 transition-colors ${candidate.isPinned ? 'bg-blue-50/50' : ''}`}
           onClick={(e) => handleRowClick(candidate, e)}
         >
           <TableCell key={`${candidate.id}-row-number`} className="text-center text-muted-foreground">
@@ -1049,6 +1057,13 @@ export function CandidateTable({
               let rowNumber = baseIndex + 1;
               const { pinned, unpinned } = candidatesByPinStatus;
               
+              // If showPinSection is disabled, show all candidates mixed together
+              if (!settings?.showPinSection) {
+                const allCandidates = [...pinned, ...unpinned];
+                return renderCandidateRows(allCandidates, rowNumber);
+              }
+              
+              // If showPinSection is enabled, show sections
               return (
                 <>
                   {/* Pinned Candidates Section */}

@@ -51,6 +51,9 @@ export interface CandidateSettings {
   
   // Table size settings
   rowHeight: 'compact' | 'normal' | 'comfortable';
+  
+  // Pin section settings
+  showPinSection: boolean;
 }
 
 const defaultSettings: CandidateSettings = {
@@ -78,7 +81,8 @@ const defaultSettings: CandidateSettings = {
   showHorizontalFitScoreFilters: true,
   fitScoreType: 'applied',
   fitScoreFilterMode: 'single',
-  rowHeight: 'normal'
+  rowHeight: 'normal',
+  showPinSection: false
 } as const;
 
 // Column configuration for drag and drop
@@ -377,6 +381,35 @@ export function CandidateSettingsDrawer({
                   <div className="text-xs text-muted-foreground">
                     Choose the spacing between table rows
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Separator />
+
+            {/* Pin Section Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Pin Section</CardTitle>
+                <CardDescription>
+                  Control how pinned candidates are displayed in the table
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="showPinSection" className="text-sm font-medium">
+                      Show Pin Section
+                    </Label>
+                    <div className="text-xs text-muted-foreground">
+                      When enabled, pinned candidates appear in a separate section at the top. When disabled, pinned candidates are mixed with regular candidates but still show pin icons.
+                    </div>
+                  </div>
+                  <Switch
+                    id="showPinSection"
+                    checked={localSettings.showPinSection}
+                    onCheckedChange={(checked) => handleSettingChange('showPinSection', checked)}
+                  />
                 </div>
               </CardContent>
             </Card>

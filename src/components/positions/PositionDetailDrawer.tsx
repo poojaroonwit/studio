@@ -28,6 +28,7 @@ import { TiptapEditorWithExpand } from '@/components/ui/wysiwyg-editors';
 import type { Position, Candidate, Grade } from '@/lib/types';
 import { usePositionLevels } from '@/hooks/use-position-levels';
 import { getPositionStatusBadge } from '@/lib/positionUtils';
+import { getSLARemainingDays } from '@/lib/slaUtils';
 import { ScoreBadge } from '@/components/ui/score-color';
 import { PositionCustomFieldDisplay } from './PositionCustomFieldDisplay';
 import { PositionCustomFieldEdit } from './PositionCustomFieldEdit';
@@ -80,6 +81,10 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   const [headcounts, setHeadcounts] = useState<any[]>([]);
   const [headcountsTotal, setHeadcountsTotal] = useState(0);
 
+  // State for SLA calculation
+  const [slaDaysLeft, setSlaDaysLeft] = useState<number | null>(null);
+  const [slaLoading, setSlaLoading] = useState(false);
+
   // State for applied candidates
   const [appliedCandidates, setAppliedCandidates] = useState<Candidate[]>([]);
   const [appliedCandidatesPage, setAppliedCandidatesPage] = useState(1);
@@ -125,7 +130,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   const [appliedCandidatesOpenMenu, setAppliedCandidatesOpenMenu] = useState<string | null>(null);
 
   // Sorting state for potential candidates table
-  const [potentialCandidatesSortColumn, setPotentialCandidatesSortColumn] = useState<string | null>('fitScore');
+  const [potentialCandidatesSortColumn, setPotentialCandidatesSortColumn] = useState<string | null>('matchScore');
   const [potentialCandidatesSortDirection, setPotentialCandidatesSortDirection] = useState<'asc' | 'desc'>('desc');
   const [potentialCandidatesOpenMenu, setPotentialCandidatesOpenMenu] = useState<string | null>(null);
 
@@ -382,6 +387,8 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         query.append('sortDirection', appliedCandidatesSortDirection);
       }
       
+      query.append('showPinSection', 'true');
+      
       const url = `/api/positions/${positionId}/candidates?${query.toString()}`;
       
       const response = await fetch(url);
@@ -418,6 +425,8 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         query.append('sortDirection', allCandidatesSortDirection);
       }
       
+      query.append('showPinSection', 'true');
+      
       const response = await fetch(`/api/positions/${positionId}/candidates?${query.toString()}`);
       if (!response.ok) throw new Error('Failed to fetch all candidates');
       
@@ -451,6 +460,8 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       if (potentialCandidatesSortDirection) {
         query.append('sortDirection', potentialCandidatesSortDirection);
       }
+      
+      query.append('showPinSection', 'true');
       
       // Fetch candidates who have job matches associated with this position but haven't applied
       const response = await fetch(`/api/positions/${positionId}/job-matches?${query.toString()}`);
@@ -503,6 +514,25 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
     setSelectedCandidateId(candidateId);
     setIsCandidateModalOpen(true);
   };
+
+  // Calculate SLA days left
+  const calculateSLA = useCallback(async () => {
+    if (!position || !position.grade?.slaDays) {
+      setSlaDaysLeft(null);
+      return;
+    }
+
+    setSlaLoading(true);
+    try {
+      const daysLeft = await getSLARemainingDays(position);
+      setSlaDaysLeft(daysLeft);
+    } catch (error) {
+      console.error('Error calculating SLA:', error);
+      setSlaDaysLeft(null);
+    } finally {
+      setSlaLoading(false);
+    }
+  }, [position]);
 
   // Handle custom field changes
   const handleCustomFieldChange = useCallback((fieldCode: string, value: any) => {
@@ -691,6 +721,13 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
     };
     fetchDefaultMatchCriteria();
   }, []);
+
+  // Calculate SLA when position changes
+  useEffect(() => {
+    if (position) {
+      calculateSLA();
+    }
+  }, [position, calculateSLA]);
 
   // Fetch data when drawer opens or positionId changes
   useEffect(() => {
@@ -1936,30 +1973,36 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                                     )}
                                   </div>
                                   {(() => {
-                                    if (position.hiringDate && position.grade?.slaDays) {
-                                      const hiringDate = new Date(position.hiringDate);
-                                      const slaEndDate = new Date(hiringDate.getTime() + (position.grade.slaDays * 24 * 60 * 60 * 1000));
-                                      const now = new Date();
-                                      const daysLeft = Math.ceil((slaEndDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
+                                    if (position.grade?.slaDays) {
+                                      if (slaLoading) {
+                                        return (
+                                          <div className="text-xs text-muted-foreground flex items-center gap-1">
+                                            <Loader2 className="h-3 w-3 animate-spin" />
+                                            Calculating SLA...
+                                          </div>
+                                        );
+                                      }
                                       
-                                      if (daysLeft > 0) {
-                                        return (
-                                          <div className="text-xs text-muted-foreground">
-                                            SLA: {daysLeft} days left
-                                          </div>
-                                        );
-                                      } else if (daysLeft === 0) {
-                                        return (
-                                          <div className="text-xs text-orange-600">
-                                            SLA: Due today
-                                          </div>
-                                        );
-                                      } else {
-                                        return (
-                                          <div className="text-xs text-red-600">
-                                            SLA: {Math.abs(daysLeft)} days overdue
-                                          </div>
-                                        );
+                                      if (slaDaysLeft !== null) {
+                                        if (slaDaysLeft > 0) {
+                                          return (
+                                            <div className="text-xs text-muted-foreground">
+                                              SLA: {slaDaysLeft} days left
+                                            </div>
+                                          );
+                                        } else if (slaDaysLeft === 0) {
+                                          return (
+                                            <div className="text-xs text-orange-600">
+                                              SLA: Due today
+                                            </div>
+                                          );
+                                        } else {
+                                          return (
+                                            <div className="text-xs text-red-600">
+                                              SLA: {Math.abs(slaDaysLeft)} days overdue
+                                            </div>
+                                          );
+                                        }
                                       }
                                     }
                                     return null;

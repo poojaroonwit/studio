@@ -370,6 +370,21 @@ export function CandidatesPageClient({
           return; // Don't trigger full refresh for deletion events
         }
         
+        // Handle individual candidate updates (like pin/unpin) without full refresh
+        if (event.type === 'candidate_update' && event.data && !event.data.action) {
+          if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+            console.log('[CandidatesPage] Individual candidate update event received, updating specific candidate');
+          }
+          
+          // Update the specific candidate in local state
+          const updatedCandidate = event.data;
+          if (updatedCandidate && updatedCandidate.id) {
+            setFilteredCandidates(prev => prev.map(c => c.id === updatedCandidate.id ? updatedCandidate : c));
+            setAllCandidatesForCounts(prev => prev.map(c => c.id === updatedCandidate.id ? updatedCandidate : c));
+          }
+          return; // Don't trigger full refresh for individual candidate updates
+        }
+        
         // Rate limit updates to prevent excessive reloading
         if (now - lastUpdateTime < MIN_UPDATE_INTERVAL) {
           if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
@@ -1734,7 +1749,7 @@ export function CandidatesPageClient({
                 }}
                 onEditPosition={setSelectedPositionForEdit}
                 onRefreshCandidateData={async (candidateId) => {
-                  await fetchCandidateById(candidateId);
+                  await refreshCandidateInList(candidateId, fetchTableData, filters, page, pageSize, aiMatchedCandidateIds);
                 }}
                 selectedCandidateIds={selectedCandidateIds}
                 onToggleSelectCandidate={(candidateId) => {

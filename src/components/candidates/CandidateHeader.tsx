@@ -3,8 +3,9 @@ import { CandidateAvatar } from '@/components/ui/candidate-avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Edit, Edit3, MoreVertical, RefreshCw, Users, X, BrainCircuit, Upload, Trash2, ExternalLink } from 'lucide-react';
+import { Edit, Edit3, MoreVertical, RefreshCw, Users, X, BrainCircuit, Upload, Trash2, ExternalLink, Copy, Pin } from 'lucide-react';
 import { formatCandidateNameWithLang } from "@/lib/candidateUtils";
+import { toast } from 'react-hot-toast';
 import type { Candidate, UserProfile, RecruitmentStage, CandidateSource } from '@/lib/types';
 import { CandidateRecruiterCell } from './CandidateRecruiterCell';
 import { CandidateSourceCell } from './CandidateSourceCell';
@@ -76,6 +77,24 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
     availableStages.forEach((s) => { if (s.id && s.name) map[s.id] = s.name; });
     return map;
   }, [availableStages]);
+
+  const handleCopyId = async () => {
+    if (candidate.id) {
+      try {
+        await navigator.clipboard.writeText(candidate.id);
+        toast.success('Candidate ID copied to clipboard');
+      } catch (err) {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = candidate.id;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        toast.success('Candidate ID copied to clipboard');
+      }
+    }
+  };
 
   return (
     <div 
@@ -205,8 +224,18 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
                 </span>
                 <div className="flex items-center gap-2">
                   {candidate.id && (
-                    <Badge variant="outline" className="text-xs px-3 py-1 rounded-full bg-background/50 backdrop-blur-sm border-border/50 shadow-sm">
-                      <span className="text-muted-foreground">ID:</span> {candidate.id}
+                    <button
+                      onClick={handleCopyId}
+                      className="p-2 rounded-full hover:bg-muted/50 transition-colors duration-200 group"
+                      title={`Copy ID: ${candidate.id}`}
+                    >
+                      <Copy className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                    </button>
+                  )}
+                  {candidate.isPinned && (
+                    <Badge variant="secondary" className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary border-primary/20 flex items-center gap-1">
+                      <Pin className="w-3 h-3 rotate-45 fill-current" />
+                      Pinned
                     </Badge>
                   )}
                 </div>

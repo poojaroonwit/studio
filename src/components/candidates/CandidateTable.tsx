@@ -1083,7 +1083,7 @@ export function CandidateTable({
                   {pinned.length > 0 && (
                     <>
                       {/* Section Header for Pinned Candidates */}
-                      <TableRow className="bg-primary/10 border-b-2 border-primary/20">
+                      <TableRow className="bg-primary/10 border-b-2 border-primary/80">
                         <TableCell colSpan={getVisibleColumnCount()} className="py-3 px-4">
                           <div className="flex items-center gap-2">
                             <PinIcon className="h-4 w-4 text-primary" />

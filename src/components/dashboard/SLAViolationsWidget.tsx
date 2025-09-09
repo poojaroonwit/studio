@@ -15,9 +15,10 @@ import type { SLAViolationNotification, SLAPositionData, SLAStatistics } from '@
 
 interface SLAViolationsWidgetProps {
   recruiterId?: string;
+  onDataUpdate?: () => void;
 }
 
-export function SLAViolationsWidget({ recruiterId }: SLAViolationsWidgetProps) {
+export function SLAViolationsWidget({ recruiterId, onDataUpdate }: SLAViolationsWidgetProps) {
   const { data: session } = useSession();
   const [violations, setViolations] = useState<SLAViolationNotification[]>([]);
   const [allPositions, setAllPositions] = useState<SLAPositionData[]>([]);
@@ -68,6 +69,13 @@ export function SLAViolationsWidget({ recruiterId }: SLAViolationsWidgetProps) {
     }
     fetchSLAData();
   }, [actualRecruiterId, session]);
+
+  // Refresh SLA data when dashboard data updates
+  useEffect(() => {
+    if (onDataUpdate) {
+      fetchSLAData();
+    }
+  }, [onDataUpdate]);
 
   const getSeverityColor = (status: string) => {
     switch (status) {

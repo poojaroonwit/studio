@@ -81,8 +81,13 @@ export async function GET(request: NextRequest) {
   }
 
   // Check if user has permission to view candidate sources
-  // Users should be able to view sources if they can view candidates or manage system settings
-  if (!hasPermission(session.user, 'CANDIDATES_VIEW') && !hasPermission(session.user, 'SYSTEM_SETTINGS_VIEW')) {
+  // Users should be able to view sources if they can view candidates (since sources are used for candidate management)
+  // Also allow Admin role to access
+  const hasViewPermission = hasPermission(session.user, 'CANDIDATES_VIEW') || 
+                           session.user.role === 'Admin';
+  
+  if (!hasViewPermission) {
+    console.warn(`Permission denied for user ${session.user.id} (${session.user.name}) - missing CANDIDATES_VIEW permission`);
     return NextResponse.json({ message: "Forbidden: Insufficient permissions to view candidate sources" }, { status: 403 });
   }
 
@@ -110,8 +115,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
-  // Check permissions
-  if (!hasPermission(session.user, 'SYSTEM_SETTINGS_EDIT')) {
+  // Check permissions - only admins can create/edit candidate sources
+  if (!hasPermission(session.user, 'SYSTEM_SETTINGS_EDIT') && session.user.role !== 'Admin') {
     return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
   }
 

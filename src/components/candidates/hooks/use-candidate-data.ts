@@ -244,6 +244,35 @@ export function useCandidateData({
       if (currentFilters.includeNoScoreInApplied !== undefined) {
         params.append('includeNoScoreInApplied', String(currentFilters.includeNoScoreInApplied));
       }
+      
+      // Add application date filters to ensure counts match the filtered results
+      if (currentFilters.applicationDateStart) {
+        params.append('applicationDateStart', currentFilters.applicationDateStart.toISOString());
+      }
+      if (currentFilters.applicationDateEnd) {
+        params.append('applicationDateEnd', currentFilters.applicationDateEnd.toISOString());
+      }
+      
+      // Add experience years filters to ensure counts match the filtered results
+      if (currentFilters.minExperienceYears !== undefined) {
+        params.append('minExperienceYears', String(currentFilters.minExperienceYears));
+      }
+      if (currentFilters.maxExperienceYears !== undefined) {
+        params.append('maxExperienceYears', String(currentFilters.maxExperienceYears));
+      }
+      
+      // Add skills filter to ensure counts match the filtered results
+      if (currentFilters.skills) {
+        params.append('skills', currentFilters.skills);
+      }
+      
+      // Add location filter to ensure counts match the filtered results
+      if (currentFilters.location) {
+        params.append('location', currentFilters.location);
+        if (currentFilters.locationOperator) {
+          params.append('locationOperator', currentFilters.locationOperator);
+        }
+      }
 
       const url = `/api/candidates/fit-score-counts?${params.toString()}`;
       

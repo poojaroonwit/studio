@@ -312,6 +312,35 @@ import { ToastClearButton } from '@/components/ui/ToastClearButton';
 4. **Analytics**: Track toast usage patterns for UX improvements
 5. **Custom Animations**: Enhanced animations for toast appearance/disappearance
 
+## Z-Index Issues
+
+### Problem: Toasts Appearing Behind Drawers/Modals
+
+**Issue**: Toasts were appearing behind position drawers and other modal components due to incorrect z-index configuration.
+
+**Root Cause**: The ToastClient component was using `'dropdown'` type instead of `'overlay'` type in the ZIndexContext system.
+
+**Solution**: Changed the toast registration type from `'dropdown'` to `'overlay'` in `src/components/ui/ToastClient.tsx`:
+
+```typescript
+// Before (incorrect)
+const { contentZIndex } = useDynamicZIndex('toast-client', 'dropdown');
+
+// After (correct)
+const { contentZIndex } = useDynamicZIndex('toast-client', 'overlay');
+```
+
+**Z-Index Hierarchy**: The system follows this hierarchy:
+- `overlay` (toasts) > `dropdown` > `modal`/`drawer` > base content
+
+**Dynamic Z-Index Calculation**: The system uses a completely dynamic approach without hardcoded values:
+- Toasts get `highestOther + (Z_INDEX_INCREMENT * 2)` to ensure they're always above everything
+- Dropdowns are positioned between toasts and other components
+- Modals/drawers are positioned between dropdowns and base content
+- All calculations are relative to existing components, ensuring proper layering
+
+**Verification**: Use the `ToastZIndexTest` component to verify that toasts appear above drawers and modals.
+
 ## Troubleshooting
 
 ### Common Issues
@@ -320,6 +349,7 @@ import { ToastClearButton } from '@/components/ui/ToastClearButton';
 2. **Permission Errors**: Check user permissions and session validity
 3. **Duplicate Toasts**: Use managed toast system to prevent duplicates
 4. **Memory Leaks**: Clear toast references when components unmount
+5. **Z-Index Issues**: Ensure toasts use `'overlay'` type in ZIndexContext
 
 ### Debug Tips
 

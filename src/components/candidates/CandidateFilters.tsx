@@ -750,36 +750,36 @@ export function CandidateFilters({
         case 'minappliedjobfitscore':
           const minScore = parseInt(value, 10);
           if (!isNaN(minScore)) {
-            filters.minAppliedJobFitScore = minScore;
+            filters.minAppliedJobFitScore = minScore / 100; // Convert percentage to decimal
           }
           break;
         case 'maxfitscore':
         case 'maxappliedjobfitscore':
           const maxScore = parseInt(value, 10);
           if (!isNaN(maxScore)) {
-            filters.maxAppliedJobFitScore = maxScore;
+            filters.maxAppliedJobFitScore = maxScore / 100; // Convert percentage to decimal
           }
           break;
         case 'matchingfitscore':
           const matchingScore = parseInt(value, 10);
           if (!isNaN(matchingScore)) {
             // Set matching fit score range
-            filters.minMatchingJobFitScore = matchingScore;
-            filters.maxMatchingJobFitScore = 100;
+            filters.minMatchingJobFitScore = matchingScore / 100; // Convert percentage to decimal
+            filters.maxMatchingJobFitScore = 1; // 100% = 1.0 in decimal
           }
           break;
         case 'matchingfitscoremin':
         case 'minmatchingjobfitscore':
           const matchingMinScore = parseInt(value, 10);
           if (!isNaN(matchingMinScore)) {
-            filters.minMatchingJobFitScore = matchingMinScore;
+            filters.minMatchingJobFitScore = matchingMinScore / 100; // Convert percentage to decimal
           }
           break;
         case 'matchingfitscoremax':
         case 'maxmatchingjobfitscore':
           const matchingMaxScore = parseInt(value, 10);
           if (!isNaN(matchingMaxScore)) {
-            filters.maxMatchingJobFitScore = matchingMaxScore;
+            filters.maxMatchingJobFitScore = matchingMaxScore / 100; // Convert percentage to decimal
           }
           break;
         case 'applicationdatestart':

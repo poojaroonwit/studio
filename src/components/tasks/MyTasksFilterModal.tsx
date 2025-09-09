@@ -35,6 +35,7 @@ export function MyTasksFilterModal({
 }: MyTasksFilterModalProps) {
   const [localFilters, setLocalFilters] = useState(filters);
   const [activeTab, setActiveTab] = useState('basic');
+  const [selectedRecruiters, setSelectedRecruiters] = useState<Set<string>>(new Set());
 
   // Reset local filters when modal opens
   useEffect(() => {
@@ -43,8 +44,31 @@ export function MyTasksFilterModal({
     }
   }, [open, filters]);
 
+  const handleSelectAllRecruiters = () => {
+    setSelectedRecruiters(new Set(recruiters.map(r => r.id)));
+  };
+
+  const handleClearAllRecruiters = () => {
+    setSelectedRecruiters(new Set());
+  };
+
+  const handleToggleRecruiter = (recruiterId: string) => {
+    const newSelected = new Set(selectedRecruiters);
+    if (newSelected.has(recruiterId)) {
+      newSelected.delete(recruiterId);
+    } else {
+      newSelected.add(recruiterId);
+    }
+    setSelectedRecruiters(newSelected);
+  };
+
   const handleApply = () => {
-    onFiltersChange(localFilters);
+    // Convert selectedRecruiters to the format expected by the parent component
+    const updatedFilters = {
+      ...localFilters,
+      selectedRecruiters: Array.from(selectedRecruiters)
+    };
+    onFiltersChange(updatedFilters);
     onOpenChange(false);
   };
 
@@ -152,11 +176,11 @@ export function MyTasksFilterModal({
 
                 <Separator />
 
-                {/* Recruiter Filter */}
+                {/* Recruiter Filter - Multi-select */}
                 <div className="space-y-3">
                   <Label className="text-sm font-medium flex items-center gap-2">
                     <User className="w-4 h-4" />
-                    Recruiter
+                    Recruiters
                   </Label>
                   <Popover>
                     <PopoverTrigger asChild>
@@ -165,31 +189,13 @@ export function MyTasksFilterModal({
                         role="combobox"
                         className="w-full justify-between"
                       >
-                        {localFilters.recruiterId ? (
-                          <div className="flex items-center gap-2">
-                            {(() => {
-                              const selectedRecruiter = recruiters.find((rec: any) => rec.id === localFilters.recruiterId);
-                              return selectedRecruiter ? (
-                                <>
-                                  <RecruiterAvatarCompact
-                                    user={{
-                                      id: selectedRecruiter.id,
-                                      name: selectedRecruiter.name,
-                                      avatarUrl: selectedRecruiter.avatarUrl,
-                                      personalColor: selectedRecruiter.personalColor
-                                    }}
-                                    size="xs"
-                                  />
-                                  <span>{selectedRecruiter.name}</span>
-                                </>
-                              ) : (
-                                <span>Unknown recruiter</span>
-                              );
-                            })()}
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">All recruiters</span>
-                        )}
+                        <div className="flex items-center gap-2">
+                          <Filter className="h-4 w-4" />
+                          {selectedRecruiters.size === 0 
+                            ? `All Recruiters (${recruiters.length})` 
+                            : `${selectedRecruiters.size} Recruiter${selectedRecruiters.size !== 1 ? 's' : ''}`
+                          }
+                        </div>
                         <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
                       </Button>
                     </PopoverTrigger>
@@ -199,31 +205,35 @@ export function MyTasksFilterModal({
                       popoverId="my-tasks-recruiter-dropdown" 
                       zIndexType="dropdown"
                     >
-                      <div className="p-2">
-                        <div className="text-sm font-medium mb-2">Select Recruiter</div>
-                        
-                        {/* All recruiters option */}
-                        <button
-                          onClick={() => setLocalFilters({ ...localFilters, recruiterId: undefined })}
-                          className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-accent text-left"
-                        >
-                          <div className="h-6 w-6 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                            <User className="h-3 w-3 text-gray-500" />
+                      <div className="p-3 border-b border-border">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-sm font-medium">Filter Recruiters</h4>
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={handleSelectAllRecruiters}
+                              className="h-6 px-2 text-xs"
+                            >
+                              All
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={handleClearAllRecruiters}
+                              className="h-6 px-2 text-xs"
+                            >
+                              Clear
+                            </Button>
                           </div>
-                          <div className="flex flex-col flex-1">
-                            <span className="text-sm">All Recruiter</span>
-                            <span className="text-xs text-muted-foreground">Show all recruiters</span>
-                          </div>
-                          {!localFilters.recruiterId && (
-                            <div className="w-4 h-4 rounded-full bg-primary" />
-                          )}
-                        </button>
-
+                        </div>
+                      </div>
+                      <div className="p-2 max-h-64 overflow-y-auto">
                         {/* Available recruiters */}
                         {recruiters.map((rec: any) => (
                           <button
                             key={rec.id}
-                            onClick={() => setLocalFilters({ ...localFilters, recruiterId: rec.id })}
+                            onClick={() => handleToggleRecruiter(rec.id)}
                             className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-accent text-left"
                           >
                             <RecruiterAvatarCompact
@@ -239,7 +249,7 @@ export function MyTasksFilterModal({
                               <span className="text-sm font-medium">{rec.name}</span>
                               <span className="text-xs text-muted-foreground">Recruiter</span>
                             </div>
-                            {localFilters.recruiterId === rec.id && (
+                            {selectedRecruiters.has(rec.id) && (
                               <div className="w-4 h-4 rounded-full bg-primary" />
                             )}
                           </button>

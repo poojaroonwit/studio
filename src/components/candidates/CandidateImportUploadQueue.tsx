@@ -1722,14 +1722,12 @@ export default function CandidateImportUploadQueue() {
 
                 <TabsContent value="webhook" className="mt-4">
                   {selectedItem.webhook_payload ? (
-                    <div className="whitespace-pre-wrap break-words">
-                      <ExpandablePayload
-                        data={selectedItem.webhook_payload}
-                        title="Webhook Payload"
-                        maxHeight="max-h-40"
-                        compact={true}
-                      />
-                    </div>
+                    <ExpandablePayload
+                      data={selectedItem.webhook_payload}
+                      title="Webhook Payload"
+                      maxHeight="max-h-40"
+                      compact={true}
+                    />
                   ) : (
                     <p className="text-sm text-muted-foreground">No webhook payload available.</p>
                   )}

@@ -255,8 +255,8 @@ export async function GET(request: NextRequest) {
     const positionId = url.searchParams.get('positionId') || advancedFilters.positionId;
     const status = url.searchParams.get('status') || advancedFilters.status;
     const education = url.searchParams.get('education');
-    const minAppliedJobFitScore = url.searchParams.get('minAppliedJobFitScore');
-    const maxAppliedJobFitScore = url.searchParams.get('maxAppliedJobFitScore');
+    const minAppliedJobFitScore = url.searchParams.get('minAppliedJobFitScore') || advancedFilters.minAppliedJobFitScore;
+    const maxAppliedJobFitScore = url.searchParams.get('maxAppliedJobFitScore') || advancedFilters.maxAppliedJobFitScore;
     const applicationDateStart = url.searchParams.get('applicationDateStart') || advancedFilters.applicationDateStart;
     const applicationDateEnd = url.searchParams.get('applicationDateEnd') || advancedFilters.applicationDateEnd;
     const recruiterId = url.searchParams.get('recruiterId') || advancedFilters.recruiterId;
@@ -318,13 +318,17 @@ export async function GET(request: NextRequest) {
     
     if (minAppliedJobFitScore !== null && minAppliedJobFitScore !== undefined) {
       whereConditions.push(`c."fitScore" >= $${paramIndex}`);
-      queryParams.push(parseFloat(minAppliedJobFitScore) / 100);
+      // Check if this is from advanced filters (already in decimal) or regular filters (needs conversion)
+      const isFromAdvancedFilters = advancedFilters.minAppliedJobFitScore === minAppliedJobFitScore;
+      queryParams.push(isFromAdvancedFilters ? parseFloat(minAppliedJobFitScore) : parseFloat(minAppliedJobFitScore) / 100);
       paramIndex++;
     }
     
     if (maxAppliedJobFitScore !== null && maxAppliedJobFitScore !== undefined) {
       whereConditions.push(`c."fitScore" <= $${paramIndex}`);
-      queryParams.push(parseFloat(maxAppliedJobFitScore) / 100);
+      // Check if this is from advanced filters (already in decimal) or regular filters (needs conversion)
+      const isFromAdvancedFilters = advancedFilters.maxAppliedJobFitScore === maxAppliedJobFitScore;
+      queryParams.push(isFromAdvancedFilters ? parseFloat(maxAppliedJobFitScore) : parseFloat(maxAppliedJobFitScore) / 100);
       paramIndex++;
     }
     

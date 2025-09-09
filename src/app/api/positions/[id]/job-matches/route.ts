@@ -61,6 +61,23 @@ export async function GET(
 
     // Search term
     const searchTerm = searchParams.get('searchTerm') || '';
+    
+    // Handle NULL values in sorting - for fitScore, put NULL values first when ascending, last when descending
+    let sortClause = `${sortColumn} ${sortDirection}`;
+    
+    // Only prioritize pinned candidates if showPinSection is enabled
+    const showPinSection = searchParams.get('showPinSection');
+    if (showPinSection === 'true') {
+      sortClause = `c."isPinned" DESC, c."pinnedAt" DESC NULLS LAST, ${sortClause}`;
+    }
+    
+    if (sortColumnParam === 'matchScore') {
+      if (sortDirection === 'ASC') {
+        sortClause = `jm."fitScore" ${sortDirection} NULLS FIRST`;
+      } else {
+        sortClause = `jm."fitScore" ${sortDirection} NULLS LAST`;
+      }
+    }
 
     const client = await getPool().connect();
     try {
@@ -100,6 +117,8 @@ export async function GET(
       const candidatesQuery = `
         SELECT 
           c.*, 
+          c."isPinned",
+          c."pinnedAt",
           rs.name as "statusName",
           p.id as "positionId", 
           p.title as "positionTitle", 
@@ -138,7 +157,7 @@ export async function GET(
           WHERE jm2."candidateId" = c.id
         ) AS jm_data ON true
         WHERE ${whereClause}
-        ORDER BY ${sortColumn} ${sortDirection}
+        ORDER BY ${sortClause}
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1};
       `;
 
@@ -203,6 +222,8 @@ export async function GET(
           transitionHistory: row.transitionHistory || [],
           jobMatches: row.jobMatches || [],
           associationType: 'matched',
+          isPinned: row.isPinned || false,
+          pinnedAt: row.pinnedAt ? row.pinnedAt.toISOString() : null,
         };
       });
 

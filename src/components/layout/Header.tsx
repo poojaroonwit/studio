@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from '@/components/ui/dropdown-menu';
 import { Sun, Moon, LogOut, LogIn, Edit3, KeyRound, AlertTriangle, Trash2, RefreshCw, Monitor, ChevronDown } from 'lucide-react';
-import { ToastClearButton } from '@/components/ui/ToastClearButton';
 import { useSidebar } from '@/components/ui/sidebar';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { usePathname } from 'next/navigation';
@@ -475,7 +474,6 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
           {/* Theme switch is shown inside avatar dropdown, not here */}
           {user && <WarningIcon />}
           {user && <NotificationIcon />}
-          {user && <ToastClearButton />}
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

@@ -807,7 +807,7 @@ export default function DashboardPageClient({
     };
 
     fetchApiCounts();
-  }, [status, session?.user?.id]);
+  }, [status, session?.user?.id, hasSSEUpdated]); // Add hasSSEUpdated to trigger API count refresh
 
   const recentApplications = useMemo(() => {
     // Use the API-fetched count instead of client-side filtering
@@ -1020,18 +1020,6 @@ export default function DashboardPageClient({
             </div>
           )}
           <RealTimeStatus onDataUpdate={fetchDataClientSide} />
-          <Button 
-            onClick={() => {
-              setIsPageRefresh(true);
-              fetchDataClientSide();
-            }}
-            variant="outline" 
-            size="sm"
-            className="ml-2"
-          >
-            <Loader2 className="h-4 w-4 mr-2" />
-            Refresh
-          </Button>
         </div>
       </div>
 
@@ -1442,9 +1430,9 @@ export default function DashboardPageClient({
                                  {/* Right side - SLA Monitoring (full height) */}
             <div className="lg:col-span-5" ref={sharedRef}>
               <div className="relative space-y-4 overflow-y-auto h-full" >
-                <SLAViolationsWidget />
+                <SLAViolationsWidget onDataUpdate={fetchDataClientSide} />
                 {!canViewAllCandidates && session?.user?.id && (
-                  <SLAViolationsWidget recruiterId={session.user.id} />
+                  <SLAViolationsWidget recruiterId={session.user.id} onDataUpdate={fetchDataClientSide} />
                 )}
               </div>
             </div>

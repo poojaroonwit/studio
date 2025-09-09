@@ -42,7 +42,8 @@ import { Command, CommandEmpty, CommandInput, CommandList, CommandItem } from '@
 import { ChevronsUpDown, Check, UserX, User, RotateCcw } from 'lucide-react';
 import { useUserPreferences } from '@/hooks/use-user-preferences';
 import { useEnhancedSSE } from '@/hooks/use-enhanced-sse';
-import { checkSLAViolation, getSLABadgeVariant, formatSLAMessage, getSLARemainingDays } from '@/lib/slaUtils';
+import { formatSLAMessage } from '@/lib/slaUtils';
+import { SLABadge } from './SLABadge';
 import { Pagination } from '@/components/ui/pagination';
 import { useJobMatchFeature } from '@/hooks/useJobMatchFeature';
 import { useSharedSSE } from '@/hooks/use-shared-sse';
@@ -1577,26 +1578,7 @@ export default function PositionsPageClient() {
                                               >
                           {position.title}
                           {/* SLA badges inline with title */}
-                          {position.isOpen && (() => {
-                            const slaResult = checkSLAViolation(position);
-                            const remaining = getSLARemainingDays(position);
-                            if (slaResult && slaResult.isViolated) {
-                              const variant = getSLABadgeVariant(slaResult.daysOverdue);
-                              return (
-                                <Badge variant={variant} className="ml-2 text-[10px] px-1.5 py-0.5">
-                                  SLA overdue {slaResult.daysOverdue}d
-                                </Badge>
-                              );
-                            }
-                            if (remaining !== null && remaining <= 3 && remaining > 0) {
-                              return (
-                                <Badge variant="secondary" className="ml-2 text-[10px] px-1.5 py-0.5">
-                                  SLA due in {remaining}d
-                                </Badge>
-                              );
-                            }
-                            return null;
-                          })()}
+                          <SLABadge position={position} />
                           {position.grade && position.grade.color && (
                             <span 
                               className="inline text-xs px-1.5 py-0.5 rounded-full border ml-1"
@@ -1616,13 +1598,9 @@ export default function PositionsPageClient() {
                           )}
                         <Eye className="h-3 w-3 opacity-0 group-hover:opacity-60 transition-opacity" />
                       </button>
-                      {position.positionLevel && (
-                        <span className="text-xs text-muted-foreground mt-0.5">
-                          {position.positionLevel}
-                        </span>
-                      )}
                       <span className="text-xs text-muted-foreground mt-0.5">
                         {position.department}
+                        {position.positionLevel && ` • ${position.positionLevel}`}
                       </span>
                     </div>
                   </TableCell>

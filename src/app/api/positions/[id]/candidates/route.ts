@@ -34,23 +34,30 @@ export async function GET(
     const allowedSortColumns = {
       name: 'name',
       email: 'email',
-      fitScore: '"fitScore"',
+      fitScore: 'COALESCE((c."parsedData"->\'job_applied\'->>\'fitScore\')::numeric, c."fitScore")',
       applicationDate: '"applicationDate"',
       status: 'status',
       lastUpdate: '"updatedAt"',
     };
     const sortColumnParam = searchParams.get('sortColumn') || 'fitScore';
     const sortDirectionParam = (searchParams.get('sortDirection') || 'desc').toLowerCase();
-    const sortColumn = allowedSortColumns[sortColumnParam as keyof typeof allowedSortColumns] || '"fitScore"';
+    const sortColumn = allowedSortColumns[sortColumnParam as keyof typeof allowedSortColumns] || 'COALESCE((c."parsedData"->\'job_applied\'->>\'fitScore\')::numeric, c."fitScore")';
     const sortDirection = sortDirectionParam === 'asc' ? 'ASC' : 'DESC';
     
     // Handle NULL values in sorting - for fitScore, put NULL values first when ascending, last when descending
     let sortClause = `${sortColumn} ${sortDirection}`;
+    
+    // Only prioritize pinned candidates if showPinSection is enabled
+    const showPinSection = searchParams.get('showPinSection');
+    if (showPinSection === 'true') {
+      sortClause = `c."isPinned" DESC, c."pinnedAt" DESC NULLS LAST, ${sortClause}`;
+    }
+    
     if (sortColumnParam === 'fitScore') {
       if (sortDirection === 'ASC') {
-        sortClause = `"fitScore" ${sortDirection} NULLS FIRST`;
+        sortClause = `COALESCE((c."parsedData"->'job_applied'->>'fitScore')::numeric, c."fitScore") ${sortDirection} NULLS FIRST`;
       } else {
-        sortClause = `"fitScore" ${sortDirection} NULLS LAST`;
+        sortClause = `COALESCE((c."parsedData"->'job_applied'->>'fitScore')::numeric, c."fitScore") ${sortDirection} NULLS LAST`;
       }
     }
 
@@ -78,6 +85,8 @@ export async function GET(
          baseQuery = `
             SELECT 
               c.*, 
+              c."isPinned",
+              c."pinnedAt",
               rs.name as "status",
               p.id as "positionId", 
               p.title as "positionTitle", 
@@ -122,6 +131,8 @@ export async function GET(
          baseQuery = `
             SELECT 
               c.*, 
+              c."isPinned",
+              c."pinnedAt",
               rs.name as "status",
               p.id as "positionId", 
               p.title as "positionTitle", 
@@ -171,6 +182,8 @@ export async function GET(
             WITH applied_candidates AS (
               SELECT 
                 c.*, 
+                c."isPinned",
+                c."pinnedAt",
                 rs.name as "status",
                 p.id as "positionId", 
                 p.title as "positionTitle", 
@@ -211,6 +224,8 @@ export async function GET(
             matched_candidates AS (
               SELECT 
                 c.*, 
+                c."isPinned",
+                c."pinnedAt",
                 rs.name as "status",
                 p.id as "positionId", 
                 p.title as "positionTitle", 
@@ -381,6 +396,8 @@ export async function GET(
           transitionHistory: row.transitionHistory || [],
           jobMatches: row.jobMatches || [],
           associationType: associationType,
+          isPinned: row.isPinned || false,
+          pinnedAt: row.pinnedAt ? row.pinnedAt.toISOString() : null,
         };
       });
 
@@ -407,7 +424,8 @@ export async function GET(
     console.error('Error fetching position candidates:', error);
     
     // Log additional details for debugging
-    console.error('Position ID:', id);
+    const { id: positionId } = await params;
+    console.error('Position ID:', positionId);
     console.error('Search params:', Object.fromEntries(new URL(request.url).searchParams));
     console.error('Error stack:', error.stack);
     
@@ -415,7 +433,7 @@ export async function GET(
       message: 'Error fetching position candidates', 
       error: error.message,
       details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-      positionId: id,
+      positionId: positionId,
       searchParams: Object.fromEntries(new URL(request.url).searchParams)
     }, { status: 500 });
   }

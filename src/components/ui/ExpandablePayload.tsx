@@ -58,10 +58,10 @@ export function ExpandablePayload({
 
   return (
     <>
-      <div className={`space-y-2 ${className}`}>
+      <div className={`space-y-2 w-full max-w-full ${className}`}>
         <div className="flex items-center justify-between">
-          <h4 className="text-sm font-medium">{title}</h4>
-          <div className="flex items-center gap-2">
+          <h4 className="text-sm font-medium truncate">{title}</h4>
+          <div className="flex items-center gap-2 flex-shrink-0">
             {showCopyButton && (
               <Button
                 variant="ghost"
@@ -87,13 +87,12 @@ export function ExpandablePayload({
           </div>
         </div>
         
-        <div className={`relative ${compact ? 'text-xs' : 'text-sm'}`}>
-          <pre className={`p-3 bg-muted rounded-md overflow-auto ${maxHeight} border`}>
-            {jsonString}
-          </pre>
-          
-          {/* Overlay gradient for truncated content */}
-          <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-background to-transparent pointer-events-none" />
+        <div className={`relative w-full ${compact ? 'text-xs' : 'text-sm'}`}>
+          <div className="w-full max-w-full overflow-hidden">
+            <pre className={`p-3 bg-muted rounded-md overflow-auto ${maxHeight} border whitespace-pre-wrap break-words w-full`}>
+              {jsonString}
+            </pre>
+          </div>
         </div>
       </div>
 
@@ -139,7 +138,7 @@ export function ExpandablePayload({
           
           <div className="px-6 pb-6">
             <ScrollArea className="h-[70vh] w-full">
-              <pre className="p-4 bg-muted rounded-md text-sm overflow-auto border">
+              <pre className="p-4 bg-muted rounded-md text-sm overflow-auto border whitespace-pre-wrap break-words max-w-full">
                 {jsonString}
               </pre>
             </ScrollArea>

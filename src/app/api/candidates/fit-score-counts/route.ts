@@ -246,6 +246,86 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Handle application date filters
+    const applicationDateStart = searchParams.get('applicationDateStart');
+    const applicationDateEnd = searchParams.get('applicationDateEnd');
+    
+    if (applicationDateStart) {
+      whereClauses.push(`c."applicationDate" >= $${paramIndex++}`);
+      queryParams.push(new Date(applicationDateStart));
+    }
+    
+    if (applicationDateEnd) {
+      whereClauses.push(`c."applicationDate" <= $${paramIndex++}`);
+      queryParams.push(new Date(applicationDateEnd));
+    }
+
+    // Handle experience years filters
+    const minExperienceYears = searchParams.get('minExperienceYears');
+    const maxExperienceYears = searchParams.get('maxExperienceYears');
+    
+    if (minExperienceYears !== null) {
+      const minExp = parseInt(minExperienceYears, 10);
+      if (minExp === -1) {
+        // No experience filter
+        whereClauses.push(`(c."parsedData"->>'experience' IS NULL OR c."parsedData"->>'experience' = '[]' OR c."parsedData"->>'experience' = '')`);
+      } else {
+        whereClauses.push(`CAST(c."parsedData"->>'totalExperienceYears' AS DECIMAL) >= $${paramIndex++}`);
+        queryParams.push(minExp);
+      }
+    }
+    
+    if (maxExperienceYears !== null) {
+      const maxExp = parseInt(maxExperienceYears, 10);
+      whereClauses.push(`CAST(c."parsedData"->>'totalExperienceYears' AS DECIMAL) <= $${paramIndex++}`);
+      queryParams.push(maxExp);
+    }
+
+    // Handle skills filter
+    const skills = searchParams.get('skills');
+    if (skills) {
+      const skillsList = skills.split(',').map(s => s.trim().toLowerCase()).filter(s => s !== '');
+      if (skillsList.length > 0) {
+        const skillsConditions = skillsList.map((_, index) => 
+          `LOWER(c."parsedData"->>'skills') LIKE $${paramIndex + index}`
+        ).join(' AND ');
+        whereClauses.push(`(${skillsConditions})`);
+        queryParams.push(...skillsList.map(skill => `%${skill}%`));
+        paramIndex += skillsList.length;
+      }
+    }
+
+    // Handle location filter
+    const location = searchParams.get('location');
+    const locationOperator = searchParams.get('locationOperator') || 'contains';
+    
+    if (location) {
+      let operator = 'ILIKE';
+      let value = location;
+      
+      switch (locationOperator) {
+        case 'is':
+          operator = '=';
+          break;
+        case 'startsWith':
+          operator = 'ILIKE';
+          value = `${location}%`;
+          break;
+        case 'endsWith':
+          operator = 'ILIKE';
+          value = `%${location}`;
+          break;
+        case 'contains':
+        default:
+          operator = 'ILIKE';
+          value = `%${location}%`;
+          break;
+      }
+      
+      whereClauses.push(`c.location ${operator} $${paramIndex++}`);
+      queryParams.push(value);
+    }
+
     const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
 
     // Simple query to get all candidates with scores

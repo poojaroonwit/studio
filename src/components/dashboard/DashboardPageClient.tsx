@@ -77,6 +77,10 @@ export default function DashboardPageClient({
   const [isPageRefresh, setIsPageRefresh] = useState(true);
   const [hasSSEUpdated, setHasSSEUpdated] = useState(false);
   
+  // State for headcount data with SLA
+  const [headcountData, setHeadcountData] = useState<any[]>([]);
+  const [headcountLoading, setHeadcountLoading] = useState(false);
+  
   // Helper function to safely get stage name
   const getStageName = useCallback((stageId: string | undefined): string | null => {
     if (!stageId) return null;
@@ -328,6 +332,107 @@ export default function DashboardPageClient({
     }
   }, [status, session?.user?.id, session?.user?.role, modulePermissions, stageIds.hired, stageIds.rejected]);
 
+  // Function to fetch headcount data with SLA information
+  const fetchHeadcountData = useCallback(async () => {
+    if (status !== 'authenticated' || !session?.user?.id) {
+      return;
+    }
+    
+    setHeadcountLoading(true);
+    try {
+      // Fetch all open positions first
+      const positionsRes = await safeFetch('/api/positions?isOpen=true&includeHeadcount=true', { 
+        credentials: 'include' as const, 
+        timeoutMs: 10000 
+      });
+      
+      if (!positionsRes.ok || !positionsRes.data) {
+        console.warn('Failed to fetch positions for headcount data');
+        return;
+      }
+      
+      const positions = Array.isArray((positionsRes.data as any)?.data) ? 
+        (positionsRes.data as any).data : 
+        (Array.isArray(positionsRes.data) ? positionsRes.data : []);
+      
+      // Fetch headcount data for each position
+      const headcountPromises = positions.map(async (position: any) => {
+        try {
+          const headcountRes = await safeFetch(`/api/headcount?positionId=${position.id}`, { 
+            credentials: 'include' as const, 
+            timeoutMs: 5000 
+          });
+          
+          if (!headcountRes.ok || !headcountRes.data) {
+            return [];
+          }
+          
+          const headcounts = Array.isArray(headcountRes.data) ? headcountRes.data : [];
+          
+          // Fetch SLA data for each headcount
+          const headcountWithSLA = await Promise.all(headcounts.map(async (headcount: any) => {
+            try {
+              const slaRes = await safeFetch(`/api/headcount/${headcount.id}/sla`, { 
+                credentials: 'include' as const, 
+                timeoutMs: 5000 
+              });
+              
+              return {
+                ...headcount,
+                position: position,
+                sla: slaRes.ok && slaRes.data ? slaRes.data : null
+              };
+            } catch (error) {
+              console.warn(`Failed to fetch SLA for headcount ${headcount.id}:`, error);
+              return {
+                ...headcount,
+                position: position,
+                sla: null
+              };
+            }
+          }));
+          
+          return headcountWithSLA;
+        } catch (error) {
+          console.warn(`Failed to fetch headcounts for position ${position.id}:`, error);
+          return [];
+        }
+      });
+      
+      const allHeadcounts = await Promise.all(headcountPromises);
+      const flattenedHeadcounts = allHeadcounts.flat();
+      
+      setHeadcountData(flattenedHeadcounts);
+    } catch (error) {
+      console.error('Error fetching headcount data:', error);
+    } finally {
+      setHeadcountLoading(false);
+    }
+  }, [status, session?.user?.id]);
+
+  // Helper function to render SLA badge for headcount
+  const renderSLABadge = useCallback((sla: any) => {
+    if (!sla || !sla.violation) {
+      return <div className="text-sm text-muted-foreground">No SLA</div>;
+    }
+
+    const { violation } = sla;
+    
+    if (violation.isViolated) {
+      return (
+        <Badge variant="destructive" className="text-xs">
+          {violation.daysOverdue} days overdue
+        </Badge>
+      );
+    } else {
+      return (
+        <Badge variant="secondary" className="text-xs">
+          {violation.daysRemaining} days left
+        </Badge>
+      );
+    }
+  }, []);
+
   // FIXED: Stabilize callback functions to prevent infinite loops and temporal dead zone issues
   const handleCandidateUpdate = useCallback((updatedCandidate: any) => {
     // Refresh dashboard data when candidates are updated
@@ -441,6 +546,13 @@ export default function DashboardPageClient({
       }
     }
   }, [status, session?.user?.id, initialCandidates, initialPositions, initialUsers]);
+
+  // Fetch headcount data when positions are available
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user?.id && allPositions.length > 0) {
+      fetchHeadcountData();
+    }
+  }, [status, session?.user?.id, allPositions.length, fetchHeadcountData]);
 
   // Use shared SSE connection instead of creating a separate one
   const { isConnected: sseConnected, subscribeToEvents } = useSharedSSE();
@@ -1856,59 +1968,68 @@ export default function DashboardPageClient({
             </CardContent>
           </Card>
 
-          {/* Positions Needing Applicants */}
+          {/* Headcount with SLA Status */}
           <Card className="shadow-sm hover:shadow-md transition-all duration-200">
             <CardHeader>
               <CardTitle className="flex items-center text-lg">
                 <Briefcase className="mr-2 h-5 w-5 text-blue-500" />
-                Positions Needing Applicants ({openPositionsWithNoCandidates.length})
+                Headcount Status ({headcountData.length})
               </CardTitle>
               <CardDescription>
-                Number of open headcount with no candidates yet.
+                Open headcount grouped by position with SLA information.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {isLoading ? (
+              {headcountLoading ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
-              ) : openPositionsWithNoCandidates.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Position</TableHead>
-                      <TableHead>Department</TableHead>
-                      <TableHead>Level</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {openPositionsWithNoCandidates.slice(0, 5).map(position => (
-                      <TableRow key={position.id} className="hover:bg-muted/50">
-                        <TableCell>
+              ) : headcountData.length > 0 ? (
+                <div className="space-y-4">
+                  {headcountData.slice(0, 10).map((headcount: any) => (
+                    <div key={headcount.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
                           <button
                             onClick={() => {
-                              setSelectedPositionId(position.id);
+                              setSelectedPositionId(headcount.position.id);
                               setIsPositionDrawerOpen(true);
                             }}
                             className="font-medium hover:underline text-left cursor-pointer hover:text-primary/80 transition-colors"
                           >
-                            {position.title}
+                            {headcount.position.title}
                           </button>
-                        </TableCell>
-                        <TableCell>{position.department}</TableCell>
-                        <TableCell>{position.positionLevel || 'N/A'}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="text-green-600 border-green-600">Open</Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                          <Badge variant="outline" className="text-xs">
+                            {headcount.position.department}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge 
+                            variant={headcount.status === 'filled' ? 'default' : 'secondary'}
+                            className="text-xs"
+                          >
+                            {headcount.status === 'filled' ? 'Filled' : 'Vacant'}
+                          </Badge>
+                          {renderSLABadge(headcount.sla)}
+                        </div>
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {headcount.position.positionLevel && (
+                          <span>Level: {headcount.position.positionLevel}</span>
+                        )}
+                        {headcount.candidate && (
+                          <span className="ml-4">
+                            Candidate: {headcount.candidate.name}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-8 text-center">
                   <CheckCircle2 className="h-12 w-12 text-green-500 mb-3" />
-                  <p className="text-sm text-muted-foreground">All open headcount have applicants!</p>
+                  <p className="text-sm text-muted-foreground">No headcount data available</p>
                 </div>
               )}
             </CardContent>

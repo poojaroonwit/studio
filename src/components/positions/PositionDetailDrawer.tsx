@@ -81,9 +81,6 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   const [headcounts, setHeadcounts] = useState<any[]>([]);
   const [headcountsTotal, setHeadcountsTotal] = useState(0);
 
-  // State for SLA calculation
-  const [slaDaysLeft, setSlaDaysLeft] = useState<number | null>(null);
-  const [slaLoading, setSlaLoading] = useState(false);
 
   // State for applied candidates
   const [appliedCandidates, setAppliedCandidates] = useState<Candidate[]>([]);
@@ -497,35 +494,6 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   };
 
   // Calculate SLA days left
-  const calculateSLA = useCallback(async () => {
-    if (!position || !position.grade?.slaDays || !position.id) {
-      setSlaDaysLeft(null);
-      return;
-    }
-
-    setSlaLoading(true);
-    try {
-      const response = await fetch(`/api/positions/${position.id}/sla`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      
-      // Handle cases where SLA calculation is not possible
-      if (data.error) {
-        console.warn('SLA calculation not possible:', data.error);
-        setSlaDaysLeft(null);
-      } else {
-        setSlaDaysLeft(data.remainingDays);
-      }
-    } catch (error) {
-      console.error('Error calculating SLA:', error);
-      setSlaDaysLeft(null);
-    } finally {
-      setSlaLoading(false);
-    }
-  }, [position]);
 
   // Handle custom field changes
   const handleCustomFieldChange = useCallback((fieldCode: string, value: any) => {
@@ -713,12 +681,6 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
     fetchDefaultMatchCriteria();
   }, []);
 
-  // Calculate SLA when position changes
-  useEffect(() => {
-    if (position) {
-      calculateSLA();
-    }
-  }, [position, calculateSLA]);
 
   // Fetch data when drawer opens or positionId changes
   useEffect(() => {
@@ -2025,41 +1987,6 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                                       </span>
                                     )}
                                   </div>
-                                  {(() => {
-                                    if (position.grade?.slaDays) {
-                                      if (slaLoading) {
-                                        return (
-                                          <div className="text-xs text-muted-foreground flex items-center gap-1">
-                                            <Loader2 className="h-3 w-3 animate-spin" />
-                                            Calculating SLA...
-                                          </div>
-                                        );
-                                      }
-                                      
-                                      if (slaDaysLeft !== null) {
-                                        if (slaDaysLeft > 0) {
-                                          return (
-                                            <div className="text-xs text-muted-foreground">
-                                              SLA: {slaDaysLeft} days left
-                                            </div>
-                                          );
-                                        } else if (slaDaysLeft === 0) {
-                                          return (
-                                            <div className="text-xs text-orange-600">
-                                              SLA: Due today
-                                            </div>
-                                          );
-                                        } else {
-                                          return (
-                                            <div className="text-xs text-red-600">
-                                              SLA: {Math.abs(slaDaysLeft)} days overdue
-                                            </div>
-                                          );
-                                        }
-                                      }
-                                    }
-                                    return null;
-                                  })()}
                                 </div>
                               ) : (
                                 <Badge variant="outline" className="ml-2 text-xs text-muted-foreground border-muted-foreground/50 bg-muted/20">

@@ -290,6 +290,26 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
     }
   };
 
+  // Group headcounts by request date
+  const groupedHeadcounts = headcounts.reduce((groups, headcount) => {
+    const requestDate = headcount.requestDate 
+      ? format(new Date(headcount.requestDate), 'yyyy-MM-dd')
+      : 'No Date';
+    
+    if (!groups[requestDate]) {
+      groups[requestDate] = [];
+    }
+    groups[requestDate].push(headcount);
+    return groups;
+  }, {} as Record<string, Headcount[]>);
+
+  // Sort groups by date (newest first, then "No Date" last)
+  const sortedGroups = Object.entries(groupedHeadcounts).sort(([a], [b]) => {
+    if (a === 'No Date') return 1;
+    if (b === 'No Date') return -1;
+    return b.localeCompare(a); // Newest first
+  });
+
   const renderCustomFieldValue = (definition: CustomFieldDefinition, value: any) => {
     if (!value) return <span className="text-muted-foreground text-sm">-</span>;
 
@@ -429,7 +449,25 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
                </TableRow>
              </TableHeader>
               <TableBody>
-                {headcounts.map((headcount) => (
+                {sortedGroups.map(([requestDate, groupHeadcounts]) => (
+                  <React.Fragment key={requestDate}>
+                    {/* Group Header Row */}
+                    <TableRow className="bg-muted/50">
+                      <TableCell colSpan={7 + customFieldDefinitions.length + 2} className="font-medium py-3">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4" />
+                          <span>
+                            Request Date: {requestDate === 'No Date' ? 'Not Set' : format(new Date(requestDate), 'MMM dd, yyyy')}
+                          </span>
+                          <Badge variant="outline" className="ml-2">
+                            {groupHeadcounts.length} headcount{groupHeadcounts.length !== 1 ? 's' : ''}
+                          </Badge>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                    
+                    {/* Headcount Rows for this group */}
+                    {groupHeadcounts.map((headcount) => (
                   <TableRow key={headcount.id}>
                     <TableCell>
                       {getTypeBadge(headcount.type)}
@@ -521,6 +559,8 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
                       </div>
                     </TableCell>
                   </TableRow>
+                    ))}
+                  </React.Fragment>
                 ))}
               </TableBody>
             </Table>

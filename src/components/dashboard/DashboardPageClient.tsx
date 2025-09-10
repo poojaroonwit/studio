@@ -1527,7 +1527,7 @@ export default function DashboardPageClient({
                           },
                           y: {
                             grid: { display: false },
-                            ticks: { color: '#64748b', font: { size: 13 } },
+                            ticks: { color: '#64748b', font: { size: 11 } },
                           },
                         },
                       }}

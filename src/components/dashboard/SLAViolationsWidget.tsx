@@ -179,11 +179,11 @@ export function SLAViolationsWidget({ recruiterId, onDataUpdate }: SLAViolations
             <CardTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-orange-500" />
               SLA Monitoring
-              {violations.length > 0 && (
+              {/* {violations.length > 0 && (
                 <Badge variant="destructive" className="ml-2">
                   {violations.length}
                 </Badge>
-              )}
+              )} */}
             </CardTitle>
             <CardDescription>
               {actualRecruiterId ? 'Your positions with SLA monitoring' : 'All positions with SLA monitoring'}

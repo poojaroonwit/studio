@@ -117,17 +117,48 @@ export function SLAViolationsWidget({ recruiterId, onDataUpdate }: SLAViolations
 
   const getCountsForPosition = (positionId: string) => {
     const relevant = headcounts.filter(h => h.positionId === positionId && h.headcountStatus === 'vacant');
-    let remaining = 0;
-    let overdue = 0;
-    let remainingDaysList: number[] = [];
-    for (const h of relevant) {
-      if (h.isViolated) overdue += 1;
-      else if (typeof h.daysRemaining === 'number' && h.daysRemaining >= 0) {
-        remaining += 1;
-        remainingDaysList.push(h.daysRemaining);
+    
+    // Filter to show only headcounts that are overdue or within 3 days of being overdue
+    const criticalHeadcounts = relevant.filter(h => {
+      if (h.isViolated) return true; // Show overdue headcounts
+      if (typeof h.daysRemaining === 'number' && h.daysRemaining <= 3) return true; // Show headcounts with 3 days or less remaining
+      return false; // Hide headcounts with more than 3 days remaining
+    });
+    
+    // Group critical headcounts by request date and remaining days
+    const groupedByRequestDate: { [key: string]: { count: number; daysRemaining: number | null; isOverdue: boolean } } = {};
+    
+    for (const h of criticalHeadcounts) {
+      const requestDate = h.requestDate ? new Date(h.requestDate).toISOString().split('T')[0] : 'unknown';
+      const key = `${requestDate}_${h.daysRemaining || 'overdue'}`;
+      
+      if (!groupedByRequestDate[key]) {
+        groupedByRequestDate[key] = {
+          count: 0,
+          daysRemaining: h.daysRemaining,
+          isOverdue: h.isViolated
+        };
       }
+      groupedByRequestDate[key].count += 1;
     }
-    return { remaining, overdue, remainingDaysList };
+    
+    // Convert to array and sort by days remaining (overdue first, then by days remaining)
+    const groupedEntries = Object.entries(groupedByRequestDate).map(([key, data]) => ({
+      requestDate: key.split('_')[0],
+      ...data
+    })).sort((a, b) => {
+      // Overdue items first
+      if (a.isOverdue && !b.isOverdue) return -1;
+      if (!a.isOverdue && b.isOverdue) return 1;
+      
+      // Then sort by days remaining (ascending)
+      if (a.daysRemaining === null && b.daysRemaining === null) return 0;
+      if (a.daysRemaining === null) return 1;
+      if (b.daysRemaining === null) return -1;
+      return a.daysRemaining - b.daysRemaining;
+    });
+    
+    return { groupedEntries };
   };
 
   if (isLoading) {
@@ -386,24 +417,20 @@ export function SLAViolationsWidget({ recruiterId, onDataUpdate }: SLAViolations
                             </div>
                             {/* Headcount grouping summary */}
                             {headcounts.length > 0 && (
-                              <div className="mt-1 text-[11px] text-muted-foreground flex items-center gap-3 flex-wrap">
+                              <div className="mt-1 text-[11px] text-muted-foreground space-y-1">
                                 {(() => {
-                                  const { remaining, overdue, remainingDaysList } = getCountsForPosition(position.positionId);
+                                  const { groupedEntries } = getCountsForPosition(position.positionId);
                                   return (
                                     <>
-                                      {remaining > 0 && (
-                                        <>
-                                          <span>
-                                            {remaining} headcount{remaining > 1 ? 's' : ''} {remainingDaysList.length > 0 ? `${remainingDaysList.join(', ')} days remaining` : 'remaining'}
-                                          </span>
-                                          {overdue > 0 && <span>•</span>}
-                                        </>
-                                      )}
-                                      {overdue > 0 && (
-                                        <span className="text-red-600 dark:text-red-400">
-                                          {overdue} headcount{overdue > 1 ? 's' : ''} overdue
-                                        </span>
-                                      )}
+                                      {groupedEntries.map((group, index) => (
+                                        <div key={index} className="flex items-center">
+                                          {group.count} headcount{group.count > 1 ? 's' : ''} {
+                                            group.isOverdue 
+                                              ? <span className="text-red-600 dark:text-red-400">overdue</span>
+                                              : `${group.daysRemaining} days remain`
+                                          }
+                                        </div>
+                                      ))}
                                     </>
                                   );
                                 })()}

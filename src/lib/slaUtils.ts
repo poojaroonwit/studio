@@ -59,11 +59,11 @@ export async function getSLARemainingDays(position: Position): Promise<number | 
   return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 }
 
-export function getSLABadgeVariant(daysOverdue: number): 'default' | 'secondary' | 'destructive' | 'outline' {
+export function getSLABadgeVariant(daysOverdue: number): 'default' | 'secondary' | 'destructive' | 'outline' | 'warning' {
   if (daysOverdue === 0) return 'default';
-  if (daysOverdue <= 7) return 'secondary';
-  if (daysOverdue <= 30) return 'outline';
-  return 'destructive';
+  // Any overdue SLA should show as red (destructive)
+  if (daysOverdue > 0) return 'destructive';
+  return 'default';
 }
 
 export function formatSLAMessage(slaResult: SLACheckResult): string {

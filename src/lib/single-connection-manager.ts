@@ -3,6 +3,9 @@
 
 import { Pool, PoolClient } from 'pg';
 
+// Suppress pg-native warning by setting environment variable
+process.env.PG_NATIVE = 'false';
+
 class SingleConnectionManager {
   private static instance: SingleConnectionManager;
   private pool: Pool | null = null;
@@ -40,7 +43,9 @@ class SingleConnectionManager {
       connectionTimeoutMillis: parseInt(process.env.DATABASE_CONNECTION_TIMEOUT || '600000'),
       statement_timeout: parseInt(process.env.DATABASE_STATEMENT_TIMEOUT || '180000'),
       allowExitOnIdle: false,
-    });
+      // Disable pg-native to prevent warning
+      native: false,
+    } as any);
 
     // Enhanced error handling
     this.pool.on('error', (err, client) => {

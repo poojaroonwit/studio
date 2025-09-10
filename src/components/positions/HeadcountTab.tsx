@@ -21,7 +21,6 @@ import {
 import { toast } from 'react-hot-toast';
 import { format } from 'date-fns';
 import type { Headcount, HeadcountType, HeadcountStatus, Candidate, CustomFieldDefinition } from '@/lib/types';
-import { Badge } from '@/components/ui/badge';
 import { HeadcountModal } from './HeadcountModal';
 import { HeadcountAttachmentModal } from './HeadcountAttachmentModal';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';

@@ -2,6 +2,9 @@
 import { Pool } from 'pg';
 import { addProcessHandler } from './process-manager';
 
+// Suppress pg-native warning by setting environment variable
+process.env.PG_NATIVE = 'false';
+
 let pool: Pool | null = null;
 let shutdownHandlerAdded = false;
 
@@ -202,7 +205,9 @@ export function getPool() {
       statement_timeout: parseInt(process.env.DATABASE_STATEMENT_TIMEOUT || '180000'), // ✅ 3min timeout
       // Add better error handling
       allowExitOnIdle: false,
-    };
+      // Disable pg-native to prevent warning
+      native: false,
+    } as any;
     
     pool = new Pool(poolConfig);
     

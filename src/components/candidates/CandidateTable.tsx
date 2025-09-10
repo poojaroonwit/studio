@@ -927,7 +927,8 @@ export function CandidateTable({
       return (
         <TableRow 
           key={candidate.id} 
-          className={`cursor-pointer transition-colors ${candidate.isPinned ? 'bg-blue-500/20' : ''}`}
+          className={`cursor-pointer transition-colors ${candidate.isPinned ? 'bg-blue-500/20' : ''} ${getRowPaddingClass(settings?.rowHeight)}`}
+          style={getRowHeightStyle(settings?.rowHeight)}
           onClick={(e) => handleRowClick(candidate, e)}
         >
           <TableCell key={`${candidate.id}-row-number`} className="text-center text-muted-foreground">
@@ -1113,8 +1114,8 @@ export function CandidateTable({
                   {pinned.length > 0 && (
                     <>
                       {/* Section Header for Pinned Candidates */}
-                      <TableRow className="bg-primary/15 dark:bg-primary/25 border-b-2 border-primary/30">
-                        <TableCell colSpan={getVisibleColumnCount()} className="py-3 px-4">
+                      <TableRow className={`bg-primary/15 dark:bg-primary/25 border-b-2 border-primary/30 ${getRowPaddingClass(settings?.rowHeight)}`} style={getRowHeightStyle(settings?.rowHeight)}>
+                        <TableCell colSpan={getVisibleColumnCount()} className="px-4">
                           <div className="flex items-center gap-2">
                             <PinIcon className="h-4 w-4 text-primary rotate-45" />
                             <span className="font-semibold text-primary">Pinned Candidates</span>
@@ -1131,8 +1132,8 @@ export function CandidateTable({
                   {unpinned.length > 0 && (
                     <>
                       {/* Section Header for Unpinned Candidates */}
-                      <TableRow className="bg-muted/30 border-b border-muted">
-                        <TableCell colSpan={getVisibleColumnCount()} className="py-2 px-4">
+                      <TableRow className={`bg-muted/30 border-b border-muted ${getRowPaddingClass(settings?.rowHeight)}`} style={getRowHeightStyle(settings?.rowHeight)}>
+                        <TableCell colSpan={getVisibleColumnCount()} className="px-4">
                           <div className="flex items-center gap-2">
                             <Users className="h-4 w-4 text-muted-foreground" />
                             <span className="font-medium text-foreground">All Candidates</span>

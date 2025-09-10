@@ -119,11 +119,15 @@ export function SLAViolationsWidget({ recruiterId, onDataUpdate }: SLAViolations
     const relevant = headcounts.filter(h => h.positionId === positionId && h.headcountStatus === 'vacant');
     let remaining = 0;
     let overdue = 0;
+    let remainingDaysList: number[] = [];
     for (const h of relevant) {
       if (h.isViolated) overdue += 1;
-      else if (typeof h.daysRemaining === 'number' && h.daysRemaining >= 0) remaining += 1;
+      else if (typeof h.daysRemaining === 'number' && h.daysRemaining >= 0) {
+        remaining += 1;
+        remainingDaysList.push(h.daysRemaining);
+      }
     }
-    return { remaining, overdue };
+    return { remaining, overdue, remainingDaysList };
   };
 
   if (isLoading) {
@@ -243,7 +247,20 @@ export function SLAViolationsWidget({ recruiterId, onDataUpdate }: SLAViolations
                     <span className="text-sm font-medium">SLA Compliance Rate</span>
                     <span className="text-sm text-muted-foreground">{statistics.complianceRate}%</span>
                   </div>
-                  <Progress value={statistics.complianceRate} className="h-2" />
+                  <div className="relative h-2 w-full overflow-hidden rounded-md bg-gray-200 dark:bg-gray-700">
+                    <div 
+                      className={`h-full transition-all ${
+                        statistics.complianceRate >= 90 
+                          ? 'bg-green-500' 
+                          : statistics.complianceRate >= 70 
+                          ? 'bg-yellow-500' 
+                          : statistics.complianceRate >= 50 
+                          ? 'bg-orange-500' 
+                          : 'bg-red-500'
+                      }`}
+                      style={{ width: `${statistics.complianceRate}%` }}
+                    />
+                  </div>
                   <p className="text-xs text-muted-foreground">
                     {statistics.onTrack} positions on track, {statistics.total - statistics.onTrack} violations
                   </p>
@@ -358,31 +375,35 @@ export function SLAViolationsWidget({ recruiterId, onDataUpdate }: SLAViolations
                               <Badge variant="outline" className="text-xs">
                                 {position.gradeName}
                               </Badge>
-                              <span>•</span>
-                              {position.isViolated ? (
-                                <span className={getSeverityColor(position.status)}>
-                                  {position.daysOverdue} days overdue
-                                </span>
-                              ) : (
-                                <span className="text-green-600 dark:text-green-400">
-                                  {position.daysRemaining} days remaining
-                                </span>
+                              {position.isViolated && (
+                                <>
+                                  <span>•</span>
+                                  <span className={getSeverityColor(position.status)}>
+                                    {position.daysOverdue} days overdue
+                                  </span>
+                                </>
                               )}
                             </div>
                             {/* Headcount grouping summary */}
                             {headcounts.length > 0 && (
                               <div className="mt-1 text-[11px] text-muted-foreground flex items-center gap-3 flex-wrap">
                                 {(() => {
-                                  const { remaining, overdue } = getCountsForPosition(position.positionId);
+                                  const { remaining, overdue, remainingDaysList } = getCountsForPosition(position.positionId);
                                   return (
                                     <>
-                                      <span>
-                                        {remaining} headcount {position.daysRemaining} days remaining
-                                      </span>
-                                      <span>•</span>
-                                      <span className={overdue > 0 ? 'text-red-600 dark:text-red-400' : ''}>
-                                        {overdue} headcount overdue
-                                      </span>
+                                      {remaining > 0 && (
+                                        <>
+                                          <span>
+                                            {remaining} headcount{remaining > 1 ? 's' : ''} {remainingDaysList.length > 0 ? `${remainingDaysList.join(', ')} days remaining` : 'remaining'}
+                                          </span>
+                                          {overdue > 0 && <span>•</span>}
+                                        </>
+                                      )}
+                                      {overdue > 0 && (
+                                        <span className="text-red-600 dark:text-red-400">
+                                          {overdue} headcount{overdue > 1 ? 's' : ''} overdue
+                                        </span>
+                                      )}
                                     </>
                                   );
                                 })()}

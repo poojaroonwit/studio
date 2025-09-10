@@ -1811,6 +1811,9 @@ export default function PositionsPageClient() {
           setIsNewDrawerOpen(open);
           if (!open) {
             setSelectedPositionId(null);
+            // Refresh position data when drawer closes to get updated headcount data
+            console.log('[PositionsPage] Drawer closed, refreshing position data');
+            fetchPositions(false);
           }
         }}
         positionId={selectedPositionId}
@@ -1823,6 +1826,9 @@ export default function PositionsPageClient() {
           setIsEditDrawerOpen(open);
           if (!open) {
             setEditingPositionId(null);
+            // Refresh position data when drawer closes to get updated headcount data
+            console.log('[PositionsPage] Edit drawer closed, refreshing position data');
+            fetchPositions(false);
           }
         }}
         positionId={editingPositionId}

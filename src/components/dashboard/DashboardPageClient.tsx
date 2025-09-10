@@ -173,9 +173,11 @@ export default function DashboardPageClient({
           if (response.ok) {
             const stages = await response.json();
             const stageMap: Record<string, string> = {};
-            stages.forEach((stage: { id: string; name: string }) => {
-              stageMap[stage.id] = stage.name;
-            });
+            if (Array.isArray(stages)) {
+              stages.forEach((stage: { id: string; name: string }) => {
+                stageMap[stage.id] = stage.name;
+              });
+            }
             setStageNames(stageMap);
           }
         }

@@ -88,6 +88,11 @@ const formatScoreWithGrade = (score: number) => {
 const calculateTotalEducationDuration = (educationArray: any[]) => {
   let totalMonths = 0;
   
+  // Ensure educationArray is actually an array
+  if (!Array.isArray(educationArray)) {
+    return '';
+  }
+  
   educationArray.forEach((edu: any) => {
     let startDate: Date | null = null;
     let endDate: Date | null = null;
@@ -150,7 +155,7 @@ export const EducationTab: React.FC<EducationTabProps> = ({
   onCustomFieldChange
 }) => {
   const education = (candidate.parsedData && 'education' in (candidate.parsedData as any))
-    ? ((candidate.parsedData as any).education || [])
+    ? (Array.isArray((candidate.parsedData as any).education) ? (candidate.parsedData as any).education : [])
     : [];
   const totalDuration = calculateTotalEducationDuration(education);
 

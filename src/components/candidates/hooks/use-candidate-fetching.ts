@@ -79,6 +79,7 @@ export function useCandidateFetching({
       }
 
       // Only append individual filters if NOT processing an advanced query
+      // Exception: Allow fit score filters to be combined with advanced queries
       if (!advancedQueryParam && currentFilters.name) {
         query.append('name', currentFilters.name);
         if (currentFilters.nameOperator) query.append('nameOperator', currentFilters.nameOperator);
@@ -94,12 +95,15 @@ export function useCandidateFetching({
       if (!advancedQueryParam && currentFilters.selectedPositionIds && currentFilters.selectedPositionIds.length > 0) query.append('positionId', currentFilters.selectedPositionIds.join(','));
       if (!advancedQueryParam && currentFilters.selectedStatuses && currentFilters.selectedStatuses.length > 0) query.append('status', currentFilters.selectedStatuses.join(','));
       if (!advancedQueryParam && currentFilters.education) query.append('education', currentFilters.education);
-      if (!advancedQueryParam && currentFilters.minAppliedJobFitScore !== undefined) query.append('minAppliedJobFitScore', String(currentFilters.minAppliedJobFitScore));
-      if (!advancedQueryParam && currentFilters.maxAppliedJobFitScore !== undefined) query.append('maxAppliedJobFitScore', String(currentFilters.maxAppliedJobFitScore));
-      if (!advancedQueryParam && currentFilters.minMatchingJobFitScore !== undefined) query.append('minMatchingJobFitScore', String(currentFilters.minMatchingJobFitScore));
-      if (!advancedQueryParam && currentFilters.maxMatchingJobFitScore !== undefined) query.append('maxMatchingJobFitScore', String(currentFilters.maxMatchingJobFitScore));
-      if (!advancedQueryParam && currentFilters.includeNoScoreInApplied) query.append('includeNoScoreInApplied', 'true');
-      if (!advancedQueryParam && currentFilters.includeNoScoreInMatching) query.append('includeNoScoreInMatching', 'true');
+      
+      // Fit score filters can be combined with advanced queries
+      if (currentFilters.minAppliedJobFitScore !== undefined) query.append('minAppliedJobFitScore', String(currentFilters.minAppliedJobFitScore));
+      if (currentFilters.maxAppliedJobFitScore !== undefined) query.append('maxAppliedJobFitScore', String(currentFilters.maxAppliedJobFitScore));
+      if (currentFilters.minMatchingJobFitScore !== undefined) query.append('minMatchingJobFitScore', String(currentFilters.minMatchingJobFitScore));
+      if (currentFilters.maxMatchingJobFitScore !== undefined) query.append('maxMatchingJobFitScore', String(currentFilters.maxMatchingJobFitScore));
+      if (currentFilters.includeNoScoreInApplied) query.append('includeNoScoreInApplied', 'true');
+      if (currentFilters.includeNoScoreInMatching) query.append('includeNoScoreInMatching', 'true');
+      
       if (!advancedQueryParam && currentFilters.minExperienceYears !== undefined && (currentFilters.minExperienceYears > 0 || currentFilters.minExperienceYears === -1)) query.append('minExperienceYears', String(currentFilters.minExperienceYears));
       if (!advancedQueryParam && currentFilters.maxExperienceYears !== undefined && currentFilters.maxExperienceYears < 50) query.append('maxExperienceYears', String(currentFilters.maxExperienceYears));
       if (!advancedQueryParam && currentFilters.applicationDateStart) {

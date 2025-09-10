@@ -648,7 +648,7 @@ export function CandidatesPageClient({
     const updatedSettings = { 
       ...candidateSettings, 
       sortColumn: column || 'applicationDate',
-      sortDirection: direction || 'desc'
+      sortDirection: direction !== undefined ? direction : 'desc'
     };
     await setCandidateSettings(updatedSettings);
   }, [candidateSettings, setCandidateSettings]);
@@ -1824,8 +1824,11 @@ export function CandidatesPageClient({
                 sortColumn={sortColumn}
                 sortDirection={sortDirection}
                 onSort={(column, direction) => {
-                  if (column === sortColumn && (direction === null || direction === undefined)) {
-                    // 3-state toggle: unsorted -> asc -> desc -> unsorted
+                  if (direction !== undefined && direction !== null) {
+                    // Explicit direction provided (from dropdown menu)
+                    handleSortChange(column || 'applicationDate', direction);
+                  } else if (column === sortColumn) {
+                    // Same column clicked - 3-state toggle: asc -> desc -> unsorted -> asc
                     if (sortDirection === 'asc') {
                       handleSortChange(column, 'desc');
                     } else if (sortDirection === 'desc') {
@@ -1835,12 +1838,9 @@ export function CandidatesPageClient({
                       // From unsorted (null) to asc
                       handleSortChange(column, 'asc');
                     }
-                  } else if (column !== sortColumn && (direction === null || direction === undefined)) {
+                  } else {
                     // New column clicked - start with ascending
                     handleSortChange(column, 'asc');
-                  } else {
-                    // Set new column and direction (always update even if same values)
-                    handleSortChange(column || 'applicationDate', direction || 'desc');
                   }
                 }}
                 onEditPosition={setSelectedPositionForEdit}

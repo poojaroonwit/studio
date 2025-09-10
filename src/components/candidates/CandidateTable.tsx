@@ -900,7 +900,7 @@ export function CandidateTable({
       return (
         <TableRow 
           key={candidate.id} 
-          className={`cursor-pointer transition-colors ${candidate.isPinned ? 'bg-primary/15 dark:bg-primary/25' : ''}`}
+          className={`cursor-pointer transition-colors ${candidate.isPinned ? 'bg-blue-500/20' : ''}`}
           onClick={(e) => handleRowClick(candidate, e)}
         >
           <TableCell key={`${candidate.id}-row-number`} className="text-center text-muted-foreground">

@@ -48,7 +48,6 @@ const editPositionFormSchema = z.object({
   isOpen: z.boolean().default(true),
   positionLevel: z.string().optional().nullable(),
   gradeId: z.string().uuid().optional().nullable(),
-  requestDate: z.string().optional().nullable(),
 });
 
 export type EditPositionFormValues = z.infer<typeof editPositionFormSchema>;
@@ -163,7 +162,6 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       isOpen: true,
       positionLevel: '',
       gradeId: null,
-      requestDate: null,
     },
   });
 
@@ -337,7 +335,6 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         isOpen: data.isOpen ?? true,
         positionLevel: data.positionLevel || '',
         gradeId: data.gradeId || null,
-        requestDate: data.requestDate ? new Date(data.requestDate).toISOString().split('T')[0] : null,
       });
       
       // Set drawer as ready for WYSIWYG editors
@@ -558,7 +555,6 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         isOpen: position.isOpen ?? true,
         positionLevel: position.positionLevel || '',
         gradeId: position.gradeId || null,
-        requestDate: position.requestDate ? new Date(position.requestDate).toISOString().split('T')[0] : null,
       });
       
       // Force re-render of WYSIWYG editors with new content
@@ -602,7 +598,6 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         isOpen: position.isOpen ?? true,
         positionLevel: position.positionLevel || '',
         gradeId: position.gradeId || null,
-        requestDate: position.requestDate ? new Date(position.requestDate).toISOString().split('T')[0] : null,
       });
     }
     setIsEditMode(false);
@@ -867,7 +862,6 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         isOpen: position.isOpen ?? true,
         positionLevel: position.positionLevel || '',
         gradeId: position.gradeId || null,
-        requestDate: position.requestDate ? new Date(position.requestDate).toISOString().split('T')[0] : null,
       });
     }
   }, [position, isEditMode, form]);
@@ -1059,7 +1053,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                   </TableRow>
                 )}
                 {pinned.map((candidate) => (
-                  <TableRow key={candidate.id} className="bg-primary/15 dark:bg-primary/25">
+                  <TableRow key={candidate.id} className="bg-blue-500/20">
                     <TableCell>{rowNumber++}</TableCell>
                     <TableCell>
                       <div>
@@ -2075,25 +2069,6 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                             )}
                           </div>
 
-                          {/* Position Request Date */}
-                          <div className="space-y-2">
-                            <Label htmlFor="requestDate">Position Request Date</Label>
-                            {isEditMode ? (
-                              <Controller
-                                name="requestDate"
-                                control={form.control}
-                                render={({ field }) => (
-                                  <Input type="date" value={field.value || ''} onChange={field.onChange} />
-                                )}
-                              />
-                            ) : (
-                              position.requestDate ? (
-                                <div className="text-base">{format(parseISO(position.requestDate), 'PPP')}</div>
-                              ) : (
-                                <div className="text-base text-muted-foreground">Not set</div>
-                              )
-                            )}
-                          </div>
 
                           {/* Status */}
                           <div className="space-y-2">

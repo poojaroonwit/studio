@@ -21,6 +21,7 @@ import {
 import { toast } from 'react-hot-toast';
 import { format } from 'date-fns';
 import type { Headcount, HeadcountType, HeadcountStatus, Candidate, CustomFieldDefinition } from '@/lib/types';
+import { Badge } from '@/components/ui/badge';
 import { HeadcountModal } from './HeadcountModal';
 import { HeadcountAttachmentModal } from './HeadcountAttachmentModal';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -50,6 +51,7 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
   const [unassignWarning, setUnassignWarning] = useState<any>(null);
   const [showUnassignDialog, setShowUnassignDialog] = useState(false);
   const [headcountToUnassign, setHeadcountToUnassign] = useState<string | null>(null);
+  const [headcountSLA, setHeadcountSLA] = useState<Record<string, any>>({});
 
   useEffect(() => {
     if (positionId) {
@@ -58,6 +60,12 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
       fetchCustomFieldDefinitions();
     }
   }, [positionId]);
+
+  useEffect(() => {
+    if (headcounts.length > 0) {
+      fetchHeadcountSLA();
+    }
+  }, [headcounts]);
 
   const fetchHeadcountTypeOptions = async () => {
     try {
@@ -87,6 +95,24 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
     } catch (error) {
       console.error('Error fetching custom field definitions:', error);
     }
+  };
+
+  const fetchHeadcountSLA = async () => {
+    const slaData: Record<string, any> = {};
+    
+    for (const headcount of headcounts) {
+      try {
+        const response = await fetch(`/api/headcount/${headcount.id}/sla`);
+        if (response.ok) {
+          const data = await response.json();
+          slaData[headcount.id] = data;
+        }
+      } catch (error) {
+        console.error(`Error fetching SLA for headcount ${headcount.id}:`, error);
+      }
+    }
+    
+    setHeadcountSLA(slaData);
   };
 
   const fetchHeadcounts = async () => {
@@ -282,6 +308,29 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
     );
   };
 
+  const getSLABadge = (headcountId: string) => {
+    const slaData = headcountSLA[headcountId];
+    if (!slaData || !slaData.violation) {
+      return <div className="text-sm text-muted-foreground">No SLA</div>;
+    }
+
+    const { violation } = slaData;
+    
+    if (violation.isViolated) {
+      return (
+        <Badge variant="destructive" className="text-xs">
+          {violation.daysOverdue} days overdue
+        </Badge>
+      );
+    } else {
+      return (
+        <Badge variant="secondary" className="text-xs">
+          {violation.daysRemaining} days left
+        </Badge>
+      );
+    }
+  };
+
   const renderCustomFieldValue = (definition: CustomFieldDefinition, value: any) => {
     if (!value) return <span className="text-muted-foreground text-sm">-</span>;
 
@@ -406,6 +455,9 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
                <TableRow>
                  <TableHead>Type</TableHead>
                  <TableHead>Status</TableHead>
+                 <TableHead>Request Date</TableHead>
+                 <TableHead>Onboarding Date</TableHead>
+                 <TableHead>SLA</TableHead>
                  <TableHead>Candidate</TableHead>
                  <TableHead>Notes</TableHead>
                  {customFieldDefinitions.map((definition) => (
@@ -425,6 +477,23 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
                     </TableCell>
                     <TableCell>
                       {getStatusBadge(headcount)}
+                    </TableCell>
+                    <TableCell>
+                      {headcount.requestDate ? (
+                        <div className="text-sm">{format(new Date(headcount.requestDate), 'MMM dd, yyyy')}</div>
+                      ) : (
+                        <div className="text-sm text-muted-foreground">Not set</div>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {headcount.onboardingDate ? (
+                        <div className="text-sm">{format(new Date(headcount.onboardingDate), 'MMM dd, yyyy')}</div>
+                      ) : (
+                        <div className="text-sm text-muted-foreground">Not set</div>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {getSLABadge(headcount.id)}
                     </TableCell>
                     <TableCell>
                       {headcount.candidate ? (

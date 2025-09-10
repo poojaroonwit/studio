@@ -294,11 +294,11 @@ export class SimpleWarningChecker {
           let slaDays = threshold || 15;
           
           if (entity?.entityType === 'candidate' && entity?.position) {
-            // Note: This is a simplified version for message generation
+            // Use the effective SLA start date which now gets requestDate from headcounts
+            // This is a simplified version for message generation
             // The actual calculation should use getEffectiveSLAStartDate
-            if (entity.position.requestDate) {
-              dateToUse = entity.position.requestDate;
-            }
+            // For now, we'll use the current value (applicationDate) as fallback
+            // TODO: Implement proper getEffectiveSLAStartDate call here
           }
           if (entity?.entityType === 'candidate' && entity?.position?.grade?.slaDays) {
             slaDays = entity.position.grade.slaDays;

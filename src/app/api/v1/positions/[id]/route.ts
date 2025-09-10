@@ -22,7 +22,6 @@ const updatePositionSchema = z.object({
   matchCriteria: z.string().optional().nullable(),
   isOpen: z.boolean().optional(),
   positionLevel: z.string().optional().nullable(),
-  requestDate: z.string().optional().nullable(),
   custom_attributes: z.record(z.any()).optional().nullable(),
 });
 
@@ -36,7 +35,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const { id } = await params;
   const client = await getPool().connect();
   try {
-    const query = 'SELECT p.id, p.title, p.department, p.description, p."matchCriteria", p."isOpen", p."positionLevel", p."gradeId", p."requestDate", p."recruiterId", p."customAttributes", p."createdAt", p."updatedAt", u.name as "recruiterName", u.email as "recruiterEmail" FROM "Position" p LEFT JOIN "User" u ON p."recruiterId" = u.id WHERE p.id = $1';
+    const query = 'SELECT p.id, p.title, p.department, p.description, p."matchCriteria", p."isOpen", p."positionLevel", p."gradeId", p."recruiterId", p."customAttributes", p."createdAt", p."updatedAt", u.name as "recruiterName", u.email as "recruiterEmail" FROM "Position" p LEFT JOIN "User" u ON p."recruiterId" = u.id WHERE p.id = $1';
     const result = await client.query(query, [id]);
     if (result.rows.length === 0) {
       return handleApiError(req, createNotFoundError('Position not found'));
@@ -117,10 +116,6 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     if (updateData.positionLevel !== undefined) {
       updateFields.push(`"positionLevel" = $${paramIndex++}`);
       updateValues.push(updateData.positionLevel);
-    }
-    if (updateData.requestDate !== undefined) {
-      updateFields.push(`"requestDate" = $${paramIndex++}`);
-      updateValues.push(updateData.requestDate);
     }
     if (updateData.custom_attributes !== undefined) {
       updateFields.push(`"customAttributes" = $${paramIndex++}`);

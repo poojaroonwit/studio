@@ -1,6 +1,6 @@
 import { getPool } from '@/lib/db';
 import type { Position, Grade } from '@/lib/types';
-import { checkSLAViolation, getSLARemainingDays } from './slaUtils';
+import { checkSLAViolation, getSLARemainingDays, checkSLAViolationForHeadcount } from './slaUtils';
 
 export interface SLAViolationNotification {
   positionId: string;
@@ -60,60 +60,71 @@ export async function checkAndNotifySLAViolations(): Promise<SLAViolationNotific
   const client = await getPool().connect();
   
   try {
-    // Get all positions with grades and request dates
+    // Get all headcounts with position and grade information
     const query = `
       SELECT 
-        p.id,
-        p.title,
-        p."requestDate",
+        h.id as "headcountId",
+        h."positionId",
+        h.type as "headcountType",
+        h.status as "headcountStatus",
+        h."requestDate",
+        h."onboardingDate",
+        p.title as "positionTitle",
         p."recruiterId",
         u.name as "recruiterName",
         g.name as "gradeName",
         g."sla_days" as "slaDays",
         g.color as "gradeColor"
-      FROM "Position" p
+      FROM "Headcount" h
+      LEFT JOIN "Position" p ON h."positionId" = p.id
       LEFT JOIN "User" u ON p."recruiterId" = u.id
       LEFT JOIN "Grade" g ON p."gradeId" = g.id
       WHERE p."gradeId" IS NOT NULL
         AND p."isOpen" = true
-        AND p."requestDate" IS NOT NULL
+        AND h."requestDate" IS NOT NULL
+        AND h.status = 'vacant'
     `;
     
     const result = await client.query(query);
     const violations: SLAViolationNotification[] = [];
     
     for (const row of result.rows) {
-      const position: Position = {
-        id: row.id,
-        title: row.title,
-        department: '',
-        isOpen: true,
+      const headcount = {
+        id: row.headcountId,
+        positionId: row.positionId,
+        type: row.headcountType,
+        status: row.headcountStatus,
         requestDate: row.requestDate,
-        grade: {
-          id: '',
-          name: row.gradeName,
-          slaDays: row.slaDays,
-          color: row.gradeColor,
-          isActive: true,
-          sortOrder: 0,
-          minLevel: 0,
-          maxLevel: 0,
+        onboardingDate: row.onboardingDate,
+        position: {
+          id: row.positionId,
+          title: row.positionTitle,
+          recruiterId: row.recruiterId,
+          recruiterName: row.recruiterName,
+          grade: {
+            id: '',
+            name: row.gradeName,
+            slaDays: row.slaDays,
+            color: row.gradeColor,
+            isActive: true,
+            sortOrder: 0,
+            minLevel: 0,
+            maxLevel: 0,
+          },
         },
-        recruiterId: row.recruiterId,
-        recruiterName: row.recruiterName,
       };
       
-      const slaResult = await checkSLAViolation(position);
+      const slaResult = await checkSLAViolationForHeadcount(headcount);
       if (slaResult && slaResult.isViolated) {
         violations.push({
-          positionId: position.id,
-          positionTitle: position.title,
-          recruiterId: position.recruiterId || null,
-          recruiterName: position.recruiterName || null,
+          positionId: headcount.positionId,
+          positionTitle: headcount.position.title,
+          recruiterId: headcount.position.recruiterId || null,
+          recruiterName: headcount.position.recruiterName || null,
           gradeName: slaResult.gradeName,
           daysOverdue: slaResult.daysOverdue,
           slaDays: slaResult.slaDays,
-          requestDate: position.requestDate!,
+          requestDate: headcount.requestDate!,
           createdAt: new Date().toISOString(),
         });
       }
@@ -134,7 +145,7 @@ export async function getAllSLAPositions(recruiterId?: string): Promise<SLAPosit
         p.id,
         p.title,
         p.department,
-        p."requestDate",
+        MIN(h."requestDate") as "requestDate",
         p."recruiterId",
         u.name as "recruiterName",
         g.name as "gradeName",
@@ -144,9 +155,11 @@ export async function getAllSLAPositions(recruiterId?: string): Promise<SLAPosit
       FROM "Position" p
       LEFT JOIN "User" u ON p."recruiterId" = u.id
       LEFT JOIN "Grade" g ON p."gradeId" = g.id
+      LEFT JOIN "Headcount" h ON p.id = h."positionId"
       WHERE p."gradeId" IS NOT NULL
         AND p."isOpen" = true
-        AND p."requestDate" IS NOT NULL
+        AND h."requestDate" IS NOT NULL
+      GROUP BY p.id, p.title, p.department, p."recruiterId", u.name, g.name, g."sla_days", g.color, p."createdAt"
     `;
     
     const params: any[] = [];
@@ -155,7 +168,7 @@ export async function getAllSLAPositions(recruiterId?: string): Promise<SLAPosit
       params.push(recruiterId);
     }
     
-    query += ` ORDER BY p."requestDate" ASC`;
+    query += ` ORDER BY MIN(h."requestDate") ASC`;
     
     const result = await client.query(query, params);
     const slaPositions: SLAPositionData[] = [];
@@ -214,6 +227,112 @@ export async function getAllSLAPositions(recruiterId?: string): Promise<SLAPosit
     }
     
     return slaPositions;
+  } finally {
+    client.release();
+  }
+}
+
+export async function getAllSLAHeadcounts(recruiterId?: string): Promise<any[]> {
+  const client = await getPool().connect();
+  
+  try {
+    let query = `
+      SELECT 
+        h.id as "headcountId",
+        h."positionId",
+        h.type as "headcountType",
+        h.status as "headcountStatus",
+        h."requestDate",
+        h."onboardingDate",
+        p.title as "positionTitle",
+        p.department as "positionDepartment",
+        p."recruiterId",
+        u.name as "recruiterName",
+        g.name as "gradeName",
+        g."sla_days" as "slaDays",
+        g.color as "gradeColor",
+        h."createdAt"
+      FROM "Headcount" h
+      LEFT JOIN "Position" p ON h."positionId" = p.id
+      LEFT JOIN "User" u ON p."recruiterId" = u.id
+      LEFT JOIN "Grade" g ON p."gradeId" = g.id
+      WHERE p."gradeId" IS NOT NULL
+        AND p."isOpen" = true
+        AND h."requestDate" IS NOT NULL
+    `;
+    
+    const params: any[] = [];
+    if (recruiterId) {
+      query += ` AND p."recruiterId" = $1`;
+      params.push(recruiterId);
+    }
+    
+    query += ` ORDER BY h."requestDate" ASC`;
+    
+    const result = await client.query(query, params);
+    const slaHeadcounts: any[] = [];
+    
+    for (const row of result.rows) {
+      const headcount = {
+        id: row.headcountId,
+        positionId: row.positionId,
+        type: row.headcountType,
+        status: row.headcountStatus,
+        requestDate: row.requestDate,
+        onboardingDate: row.onboardingDate,
+        position: {
+          id: row.positionId,
+          title: row.positionTitle,
+          department: row.positionDepartment,
+          recruiterId: row.recruiterId,
+          recruiterName: row.recruiterName,
+          grade: {
+            id: '',
+            name: row.gradeName,
+            slaDays: row.slaDays,
+            color: row.gradeColor,
+            isActive: true,
+            sortOrder: 0,
+            minLevel: 0,
+            maxLevel: 0,
+          },
+        },
+      };
+      
+      const slaResult = await checkSLAViolationForHeadcount(headcount);
+      
+      // Determine status based on SLA
+      let status: 'on_track' | 'warning' | 'critical' | 'urgent' = 'on_track';
+      if (slaResult && slaResult.isViolated) {
+        if (slaResult.daysOverdue <= 7) status = 'warning';
+        else if (slaResult.daysOverdue <= 30) status = 'critical';
+        else status = 'urgent';
+      } else if (slaResult && slaResult.daysRemaining <= 7) {
+        status = 'warning';
+      }
+      
+      slaHeadcounts.push({
+        headcountId: headcount.id,
+        positionId: headcount.positionId,
+        headcountType: headcount.type,
+        headcountStatus: headcount.status,
+        positionTitle: headcount.position.title,
+        department: headcount.position.department,
+        recruiterId: headcount.position.recruiterId || null,
+        recruiterName: headcount.position.recruiterName || null,
+        gradeName: row.gradeName,
+        gradeColor: row.gradeColor,
+        slaDays: row.slaDays,
+        requestDate: headcount.requestDate!,
+        isViolated: slaResult ? slaResult.isViolated : false,
+        daysOverdue: slaResult ? slaResult.daysOverdue : 0,
+        daysRemaining: slaResult ? slaResult.daysRemaining : null,
+        status,
+        createdAt: row.createdAt,
+      });
+    }
+    
+    return slaHeadcounts;
   } finally {
     client.release();
   }
@@ -322,7 +441,7 @@ export async function getSLAViolationsForRecruiter(recruiterId: string): Promise
       SELECT 
         p.id,
         p.title,
-        p."requestDate",
+        MIN(h."requestDate") as "requestDate",
         p."recruiterId",
         u.name as "recruiterName",
         g.name as "gradeName",
@@ -331,10 +450,12 @@ export async function getSLAViolationsForRecruiter(recruiterId: string): Promise
       FROM "Position" p
       LEFT JOIN "User" u ON p."recruiterId" = u.id
       LEFT JOIN "Grade" g ON p."gradeId" = g.id
+      LEFT JOIN "Headcount" h ON p.id = h."positionId"
       WHERE p."recruiterId" = $1
         AND p."gradeId" IS NOT NULL
         AND p."isOpen" = true
-        AND p."requestDate" IS NOT NULL
+        AND h."requestDate" IS NOT NULL
+      GROUP BY p.id, p.title, p."recruiterId", u.name, g.name, g."sla_days", g.color
     `;
     
     const result = await client.query(query, [recruiterId]);

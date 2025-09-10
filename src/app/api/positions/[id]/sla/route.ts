@@ -27,13 +27,12 @@ export async function GET(
 
     const client = await getPool().connect();
     try {
-      // Get position with grade information
+      // Get position with grade information and earliest requestDate from headcounts
       const positionQuery = `
         SELECT 
           p.id,
           p.title,
           p.department,
-          p."requestDate",
           p."isOpen",
           p."recruiterId",
           g.id as "gradeId",
@@ -43,10 +42,15 @@ export async function GET(
           g.is_active as "gradeIsActive",
           g.sort_order as "gradeSortOrder",
           g.min_level as "gradeMinLevel",
-          g.max_level as "gradeMaxLevel"
+          g.max_level as "gradeMaxLevel",
+          MIN(h."requestDate") as "requestDate"
         FROM "Position" p
         LEFT JOIN "Grade" g ON p."gradeId" = g.id
+        LEFT JOIN "Headcount" h ON p.id = h."positionId"
         WHERE p.id = $1
+        GROUP BY p.id, p.title, p.department, p."isOpen", p."recruiterId", 
+                 g.id, g.name, g."sla_days", g.color, g.is_active, 
+                 g.sort_order, g.min_level, g.max_level
       `;
       
       const positionResult = await client.query(positionQuery, [positionId]);

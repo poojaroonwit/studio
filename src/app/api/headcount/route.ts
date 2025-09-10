@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Request body is required' }, { status: 400 });
     }
     
-    const { positionId, type, status = 'vacant', candidateId, notes, memoId } = body;
+    const { positionId, type, status = 'vacant', candidateId, onboardingDate, requestDate, notes, memoId } = body;
 
     if (!positionId || !type) {
       return NextResponse.json({ error: 'Position ID and type are required' }, { status: 400 });
@@ -133,6 +133,8 @@ export async function POST(request: NextRequest) {
         type,
         status,
         candidateId: candidateId || null,
+        onboardingDate: onboardingDate ? new Date(onboardingDate) : null,
+        requestDate: requestDate ? new Date(requestDate) : null,
         notes: notes || null,
         memoId: memoId || null,
         customFields: body.customFields || {},

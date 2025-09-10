@@ -254,8 +254,6 @@ async function checkOverdue(fieldValue: any, threshold: number | null, entity: a
     const effectiveStartDate = await getEffectiveSLAStartDate(entity.position);
     if (effectiveStartDate) {
       dateToUse = effectiveStartDate;
-    } else if (entity.position.requestDate) {
-      dateToUse = entity.position.requestDate;
     }
   }
   

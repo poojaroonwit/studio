@@ -217,7 +217,6 @@ export async function GET(request: NextRequest) {
           p."isOpen", 
           p."positionLevel", 
           p."gradeId", 
-          p."requestDate", 
           p."recruiterId", 
           p."customAttributes", 
           p."createdAt", 

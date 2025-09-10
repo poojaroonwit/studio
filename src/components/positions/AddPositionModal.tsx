@@ -40,7 +40,6 @@ const addPositionFormSchema = z.object({
   isOpen: z.boolean().default(true),
   positionLevel: z.string().optional().nullable(),
   gradeId: z.string().uuid().optional().nullable(),
-  requestDate: z.string().optional().nullable(),
   recruiterId: z.string().uuid().optional().nullable(),
 });
 
@@ -75,7 +74,6 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
       matchCriteria: '',
       isOpen: true,
       positionLevel: '',
-      requestDate: new Date().toISOString().split('T')[0], // Set default to today
     },
   });
 
@@ -96,7 +94,6 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
         matchCriteria: '',
         isOpen: true,
         positionLevel: '',
-        requestDate: new Date().toISOString().split('T')[0], // Set default to today
       });
       
       // Fetch default match criteria and grades
@@ -408,15 +405,6 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
                    />
                  </div>
 
-                 <div className="grid grid-cols-[120px_1fr] gap-3 items-center">
-                   <Label htmlFor="hiring-date-add" className="font-medium text-sm">Position Request Date</Label>
-                   <Input
-                     id="hiring-date-add"
-                     type="date"
-                     {...form.register('requestDate')}
-                     disabled={isSaving}
-                   />
-                 </div>
 
                  <div className="grid grid-cols-[120px_1fr] gap-3 items-center">
                    <Label htmlFor="recruiter-add" className="font-medium text-sm">Assigned Recruiter</Label>

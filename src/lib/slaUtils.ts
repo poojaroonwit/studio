@@ -127,35 +127,119 @@ export async function getLatestHiredDateForPosition(positionId: string): Promise
 }
 
 /**
- * Get the effective SLA start date for a position
- * If all headcounts are filled, use the latest hired date
- * Otherwise, use the position request date (requestDate)
+ * Get the earliest request date for a position across all its headcounts
+ * @param positionId - The position ID
+ * @returns The earliest request date or null if no headcounts have request dates
+ */
+export async function getEarliestRequestDateForPosition(positionId: string): Promise<Date | null> {
+  try {
+    const client = await getPool().connect();
+    try {
+      const query = `
+        SELECT MIN(h."requestDate") as earliest_request_date
+        FROM "Headcount" h
+        WHERE h."positionId" = $1 
+        AND h."requestDate" IS NOT NULL
+      `;
+      
+      const result = await client.query(query, [positionId]);
+      const earliestRequestDate = result.rows[0]?.earliest_request_date;
+      
+      return earliestRequestDate ? new Date(earliestRequestDate) : null;
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('Error getting earliest request date for position:', error);
+    return null;
+  }
+}
+
+/**
+ * Check SLA violation for a specific headcount
+ * @param headcount - The headcount object with position grade information
+ * @returns SLA violation result or null
+ */
+export async function checkSLAViolationForHeadcount(headcount: any): Promise<any> {
+  if (!headcount.requestDate) {
+    return null;
+  }
+
+  const startDate = getEffectiveSLAStartDateForHeadcount(headcount);
+  if (!startDate) {
+    return null;
+  }
+
+  // Get the grade SLA days from the position
+  const grade = headcount.position?.grade;
+  if (!grade || !grade.slaDays) {
+    return null;
+  }
+
+  const now = new Date();
+  const daysDiff = Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+  const isViolated = daysDiff > grade.slaDays;
+
+  return {
+    isViolated,
+    daysOverdue: isViolated ? daysDiff - grade.slaDays : 0,
+    daysRemaining: isViolated ? 0 : grade.slaDays - daysDiff,
+    slaDays: grade.slaDays,
+    gradeName: grade.name,
+    startDate: startDate.toISOString(),
+    currentDate: now.toISOString()
+  };
+}
+
+/**
+ * Get SLA remaining days for a specific headcount
+ * @param headcount - The headcount object with position grade information
+ * @returns Number of days remaining or null
+ */
+export async function getSLARemainingDaysForHeadcount(headcount: any): Promise<number | null> {
+  const violationResult = await checkSLAViolationForHeadcount(headcount);
+  return violationResult ? violationResult.daysRemaining : null;
+}
+
+/**
+ * Get the effective SLA start date for a headcount
+ * For filled headcounts, use the onboarding date
+ * For vacant headcounts, use the request date
+ * @param headcount - The headcount object
+ * @returns The effective SLA start date or null
+ */
+export function getEffectiveSLAStartDateForHeadcount(headcount: any): Date | null {
+  // If headcount is filled and has onboarding date, use that
+  if (headcount.status === 'filled' && headcount.onboardingDate) {
+    return new Date(headcount.onboardingDate);
+  }
+  
+  // Otherwise, use the request date
+  if (headcount.requestDate) {
+    return new Date(headcount.requestDate);
+  }
+  
+  return null;
+}
+
+/**
+ * Get the effective SLA start date for a position (legacy function for backward compatibility)
+ * This now returns the earliest request date from all headcounts
  * @param position - The position object
  * @returns The effective SLA start date or null
  */
 export async function getEffectiveSLAStartDate(position: Position): Promise<Date | null> {
-  if (!position.requestDate) {
+  // If position has no ID, we can't get headcount data
+  if (!position.id) {
     return null;
   }
 
-  // If position has no ID (e.g., in some contexts), just use requestDate
-  if (!position.id) {
-    return new Date(position.requestDate);
-  }
-
   try {
-    const latestHiredDate = await getLatestHiredDateForPosition(position.id);
-    
-    // If all headcounts are filled and we have a latest hired date, use it
-    if (latestHiredDate) {
-      return latestHiredDate;
-    }
-    
-    // Otherwise, use the position request date
-    return new Date(position.requestDate);
+    // Get the earliest request date from headcounts
+    const earliestRequestDate = await getEarliestRequestDateForPosition(position.id);
+    return earliestRequestDate;
   } catch (error) {
     console.error('Error getting effective SLA start date:', error);
-    // Fallback to position request date
-    return new Date(position.requestDate);
+    return null;
   }
 }

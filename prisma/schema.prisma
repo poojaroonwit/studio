@@ -64,7 +64,6 @@ model Position {
   updatedAt         DateTime           @updatedAt
   companyId         String?            @db.Uuid
   gradeId           String?            @db.Uuid
-  requestDate       DateTime?
   positionAttribute String?
   candidates        Candidate[]
   headcounts        Headcount[]        @relation("PositionHeadcount")
@@ -652,6 +651,7 @@ model Headcount {
   status         String       @default("vacant")
   candidateId    String?      @db.Uuid
   onboardingDate DateTime?
+  requestDate    DateTime?
   notes          String?
   memoId         String?      @map("memo_id")
   customFields   Json?        @default("{}") @map("custom_fields")
@@ -665,6 +665,7 @@ model Headcount {
   @@index([candidateId])
   @@index([type])
   @@index([status])
+  @@index([requestDate])
 }
 
 model WarningConfiguration {

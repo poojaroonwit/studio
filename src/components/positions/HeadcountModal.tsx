@@ -52,6 +52,8 @@ export function HeadcountModal({
     type: 'new' as HeadcountType,
     status: 'vacant' as HeadcountStatus,
     candidateId: null as string | null,
+    onboardingDate: '',
+    requestDate: '',
     notes: '',
     memoId: '',
     customFields: {} as Record<string, any>,
@@ -88,6 +90,8 @@ export function HeadcountModal({
         type: headcount.type,
         status: headcount.status,
         candidateId: headcount.candidateId || null,
+        onboardingDate: headcount.onboardingDate ? new Date(headcount.onboardingDate).toISOString().split('T')[0] : '',
+        requestDate: headcount.requestDate ? new Date(headcount.requestDate).toISOString().split('T')[0] : '',
         notes: headcount.notes || '',
         memoId: headcount.memoId || '',
         customFields: headcount.customFields || {},
@@ -98,6 +102,8 @@ export function HeadcountModal({
         type: 'new',
         status: 'vacant', // Default to vacant
         candidateId: null, // No candidate assignment for new headcount
+        onboardingDate: '',
+        requestDate: new Date().toISOString().split('T')[0], // Default to today
         notes: '',
         memoId: '',
         customFields: {},
@@ -206,6 +212,30 @@ export function HeadcountModal({
                   Note: Status "filled" requires a candidate assignment. Assign the candidate through the candidate details page first.
                 </p>
               )}
+            </div>
+          </div>
+
+          {/* Date Fields */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="requestDate">Request Date</Label>
+              <Input
+                id="requestDate"
+                type="date"
+                value={formData.requestDate}
+                onChange={(e) => setFormData(prev => ({ ...prev, requestDate: e.target.value }))}
+                disabled={loading}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="onboardingDate">Onboarding Date</Label>
+              <Input
+                id="onboardingDate"
+                type="date"
+                value={formData.onboardingDate}
+                onChange={(e) => setFormData(prev => ({ ...prev, onboardingDate: e.target.value }))}
+                disabled={loading}
+              />
             </div>
           </div>
 

@@ -972,7 +972,6 @@ export interface Position {
   positionAttribute?: string | null;
   gradeId?: string | null;
   grade?: Grade | null;
-  requestDate?: string | null;
   recruiterId?: string | null;
   recruiterName?: string | null;
   customAttributes?: Record<string, any> | null;
@@ -1369,6 +1368,8 @@ export interface Headcount {
   type: HeadcountType;
   status: HeadcountStatus;
   candidateId?: string | null;
+  onboardingDate?: string | null;
+  requestDate?: string | null;
   notes?: string | null;
   memoId?: string | null;
   customFields?: Record<string, any>;
@@ -1384,6 +1385,8 @@ export interface CreateHeadcountRequest {
   type: HeadcountType;
   status?: HeadcountStatus;
   candidateId?: string | null;
+  onboardingDate?: string | null;
+  requestDate?: string | null;
   notes?: string | null;
   memoId?: string | null;
   customFields?: Record<string, any>;
@@ -1393,6 +1396,8 @@ export interface UpdateHeadcountRequest {
   type?: HeadcountType;
   status?: HeadcountStatus;
   candidateId?: string | null;
+  onboardingDate?: string | null;
+  requestDate?: string | null;
   notes?: string | null;
   memoId?: string | null;
   customFields?: Record<string, any>;

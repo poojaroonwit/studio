@@ -1835,6 +1835,9 @@ export function CandidatesPageClient({
                       // From unsorted (null) to asc
                       handleSortChange(column, 'asc');
                     }
+                  } else if (column !== sortColumn && (direction === null || direction === undefined)) {
+                    // New column clicked - start with ascending
+                    handleSortChange(column, 'asc');
                   } else {
                     // Set new column and direction (always update even if same values)
                     handleSortChange(column || 'applicationDate', direction || 'desc');

@@ -106,8 +106,8 @@ export default function SystemStatusPage() {
   };
 
   const handleCheckMinioBucket = useCallback(async () => {
-    if (sessionStatus !== 'authenticated' || session?.user?.role !== 'Admin') {
-      toast.error('You must be an Admin to perform this check.');
+    if (sessionStatus !== 'authenticated' || (session?.user?.role !== 'Admin' && !(session?.user?.modulePermissions || []).includes('SYSTEM_SETTINGS_VIEW'))) {
+      toast.error('You must be an Admin or have SYSTEM_SETTINGS_VIEW permission to perform this check.');
       return;
     }
     updateStatusItem('minio_bucket_check', { isLoading: true, status: 'checking' });
@@ -274,7 +274,7 @@ export default function SystemStatusPage() {
                 <div className="mt-3 ml-7 sm:ml-0">
                   <Button 
                     onClick={item.action} 
-                    disabled={item.isLoading || (item.id === 'minio_bucket_check' && session?.user?.role !== 'Admin')} 
+                    disabled={item.isLoading || (item.id === 'minio_bucket_check' && session?.user?.role !== 'Admin' && !(session?.user?.modulePermissions || []).includes('SYSTEM_SETTINGS_VIEW'))} 
                     variant="outline" 
                     size="sm" 
                     className={cn("btn-hover-primary-gradient",
@@ -287,8 +287,8 @@ export default function SystemStatusPage() {
                      item.id === 'minio_bucket_check' ? <HardDrive className="mr-2 h-4 w-4" /> : null}
                     {item.isLoading ? "Processing..." : item.actionLabel}
                   </Button>
-                   {(item.id === 'minio_bucket_check' && session?.user?.role !== 'Admin') && (
-                     <p className="text-xs text-destructive mt-1">Admin role required to perform this check.</p>
+                   {(item.id === 'minio_bucket_check' && session?.user?.role !== 'Admin' && !(session?.user?.modulePermissions || []).includes('SYSTEM_SETTINGS_VIEW')) && (
+                     <p className="text-xs text-destructive mt-1">Admin role or SYSTEM_SETTINGS_VIEW permission required to perform this check.</p>
                    )}
                 </div>
               )}

@@ -2006,7 +2006,7 @@ export default function DashboardPageClient({
                         <div className="flex items-center gap-2">
                           <Badge 
                             variant={headcount.status === 'filled' ? 'default' : 'secondary'}
-                            className="text-xs"
+                            className={`text-xs ${headcount.status === 'filled' ? 'bg-green-100 text-green-800 hover:bg-green-200' : ''}`}
                           >
                             {headcount.status === 'filled' ? 'Filled' : 'Vacant'}
                           </Badge>

@@ -13,7 +13,7 @@ export async function authenticateUser(email: string, password: string) {
     const userResult = await client.query(`
       SELECT 
         u.id, u.name, u.email, u.role, u.image, u.password, 
-        u."avatarUrl", u."personal_color"
+        u."avatarUrl", u."personal_color", u."is_active"
       FROM "User" u 
       WHERE u.email = $1
     `, [email]);
@@ -26,6 +26,11 @@ export async function authenticateUser(email: string, password: string) {
     // Verify password
     const isValid = await bcrypt.compare(password, user.password);
     if (!isValid) {
+      return null;
+    }
+
+    // Check if user is active
+    if (!user.is_active) {
       return null;
     }
 
@@ -67,7 +72,7 @@ export async function getUserSessionData(userId: string) {
     const result = await client.query(`
       SELECT 
         u.id, u.name, u.email, u.role, u.image,
-        u."avatarUrl", u."personal_color"
+        u."avatarUrl", u."personal_color", u."is_active"
       FROM "User" u 
       WHERE u.id = $1
     `, [userId]);
@@ -85,6 +90,7 @@ export async function getUserSessionData(userId: string) {
       image: user.image,
       avatarUrl: user.avatarUrl,
       personalColor: user.personal_color,
+      isActive: user.is_active,
     };
   } catch (error) {
     console.error('[AUTH UTILS] Get user session data error:', error);

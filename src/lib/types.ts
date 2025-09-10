@@ -1116,6 +1116,7 @@ export interface UserProfile {
   role: 'Admin' | 'Recruiter' | 'Hiring Manager';
   password?: string;
   authenticationMethod?: 'basic' | 'azure';
+  isActive?: boolean;
   userTeamId?: string | null; // Direct foreign key to UserTeam
   userGroupId?: string | null; // Direct foreign key to UserGroup
   modulePermissions?: PlatformModuleId[];

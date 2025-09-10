@@ -347,6 +347,35 @@ export default function ManageUsersPage() {
     }
   };
 
+  const handleToggleUserStatus = async (user: UserProfile) => {
+    try {
+      const newStatus = user.isActive !== false ? false : true;
+      const response = await fetch(`/api/users/${user.id}/toggle-status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive: newStatus }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to update user status' }));
+        if (response.status === 401 || response.status === 403) {
+          signIn(undefined, { callbackUrl: pathname });
+          return;
+        }
+        throw new Error(errorData.message || 'Failed to update user status');
+      }
+      
+      // Update local state
+      setUsers(prev => prev.map(u => 
+        u.id === user.id ? { ...u, isActive: newStatus } : u
+      ));
+      
+      toast.success(`User ${user.name} ${newStatus ? 'enabled' : 'disabled'} successfully.`);
+    } catch (error) {
+      toast.error((error as Error).message);
+    }
+  };
+
   // Pagination handlers
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -508,6 +537,7 @@ export default function ManageUsersPage() {
                         <TableHead className="hidden sm:table-cell">Email</TableHead>
                         <TableHead>Role</TableHead>
                         <TableHead className="hidden md:table-cell">Teams</TableHead>
+                        <TableHead>Status</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -542,6 +572,11 @@ export default function ManageUsersPage() {
                               : <span className="text-xs text-muted-foreground">No teams</span>
                             }
                           </TableCell>
+                          <TableCell>
+                            <Badge variant={user.isActive !== false ? "default" : "destructive"}>
+                              {user.isActive !== false ? "Active" : "Disabled"}
+                            </Badge>
+                          </TableCell>
                                                      <TableCell className="text-right">
                              {(hasPermission(session?.user, 'USERS_EDIT') || hasPermission(session?.user, 'WARNING_CONFIGURATIONS_MANAGE')) && (
                               <DropdownMenu>
@@ -559,6 +594,21 @@ export default function ManageUsersPage() {
                                      <AlertTriangle className="mr-2 h-4 w-4" />
                                      Warning Configurations
                                    </DropdownMenuItem>
+                                   {hasPermission(session?.user, 'USERS_EDIT') && (
+                                     <DropdownMenuItem onClick={() => handleToggleUserStatus(user)}>
+                                       {user.isActive !== false ? (
+                                         <>
+                                           <ShieldAlert className="mr-2 h-4 w-4" />
+                                           Disable User
+                                         </>
+                                       ) : (
+                                         <>
+                                           <ShieldCheck className="mr-2 h-4 w-4" />
+                                           Enable User
+                                         </>
+                                       )}
+                                     </DropdownMenuItem>
+                                   )}
                                   
                                   <DropdownMenuSeparator />
                                   <DropdownMenuItem 

@@ -369,8 +369,8 @@ export default function PositionsPageClient() {
       }
       
       // Check if recruiter sync happened
-      if (responseData.recruiterSync) {
-        const sync = responseData.recruiterSync;
+      if (responseData && typeof responseData === 'object' && 'recruiterSync' in responseData) {
+        const sync = (responseData as any).recruiterSync;
         if (sync.candidatesUpdated > 0) {
           toast.success(
             `Recruiter assigned successfully. ${sync.candidatesUpdated} candidate${sync.candidatesUpdated > 1 ? 's' : ''} automatically assigned.`
@@ -985,7 +985,7 @@ export default function PositionsPageClient() {
       }
       
       // Handle different event types with improved debouncing and rate limiting
-      if (event.type === 'position_update' || event.type === 'dashboard_update') {
+      if (event.type === 'position_update' || event.type === 'dashboard_update' || event.type === 'candidate_update') {
         const now = Date.now();
         
         // Rate limit updates to prevent excessive reloading

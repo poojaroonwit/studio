@@ -137,6 +137,7 @@ export async function GET(request: NextRequest) {
           personalColor: true,
           authenticationMethod: true,
           forcePasswordChange: true,
+          isActive: true,
           createdAt: true,
           updatedAt: true,
           userGroupId: true, // Added for fetching user group
@@ -246,7 +247,7 @@ export async function POST(request: NextRequest) {
    // The role determines which UserGroup the user gets, and the UserGroup contains the permissions
 
   // Handle default role logic
-  let finalRole = role;
+  let finalRole: 'Admin' | 'Recruiter' | 'Hiring Manager' = role;
   let finalUserGroupIds = userGroupIds;
   
   if (!role) {
@@ -311,7 +312,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Map the default group to a role string for API compatibility
-    let roleString = 'Recruiter'; // default fallback
+    let roleString: 'Admin' | 'Recruiter' | 'Hiring Manager' = 'Recruiter'; // default fallback
     if (defaultUserGroup.name.toLowerCase().includes('admin')) {
       roleString = 'Admin';
     } else if (defaultUserGroup.name.toLowerCase().includes('hiring') || defaultUserGroup.name.toLowerCase().includes('manager')) {
@@ -435,7 +436,7 @@ export async function POST(request: NextRequest) {
              name,
              email,
              password: hashedPassword,
-             role: finalRole,
+             role: finalRole || 'Recruiter',
              avatarUrl: defaultAvatarUrl,
              dataAiHint: defaultDataAiHint,
              // Remove module_permissions - permissions come from UserGroup

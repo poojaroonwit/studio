@@ -19,6 +19,7 @@ model User {
   authenticationMethod       String?                     @default("basic") @map("authentication_method")
   forcePasswordChange        Boolean                     @default(false) @map("force_password_change")
   emailVerified              DateTime?
+  isActive                   Boolean                     @default(true) @map("is_active")
   createdAt                  DateTime                    @default(now())
   updatedAt                  DateTime                    @updatedAt
   azure_oid                  String?                     @unique
@@ -48,6 +49,7 @@ model User {
   @@index([authenticationMethod])
   @@index([userGroupId])
   @@index([userTeamId])
+  @@index([isActive])
 }
 
 model Position {

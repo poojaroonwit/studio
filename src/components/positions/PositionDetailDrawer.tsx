@@ -718,7 +718,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       }
       
       // Handle different event types with improved debouncing and rate limiting
-      if (event.type === 'position_update' || event.type === 'dashboard_update') {
+      if (event.type === 'position_update' || event.type === 'dashboard_update' || event.type === 'candidate_update') {
         const now = Date.now();
         
         // Rate limit updates to prevent excessive reloading

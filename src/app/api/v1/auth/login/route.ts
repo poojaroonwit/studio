@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     const user = result.rows[0];
     if (user && user.password) {
       const isValid = await bcrypt.compare(password, user.password);
-      if (isValid) {
+      if (isValid && user.is_active) {
         const mergedPermissions = await getMergedUserPermissions(user.id);
         const token = jwt.sign(
           {

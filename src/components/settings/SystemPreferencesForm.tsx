@@ -194,7 +194,7 @@ export function SystemPreferencesForm({ onSave, onCancel }: SystemPreferencesFor
     );
   }
 
-  if (session?.user?.role !== 'Admin' &&  !(session?.user?.modulePermissions || []).includes('SYSTEM_SETTINGS_MANAGE')) {
+  if (session?.user?.role !== 'Admin' &&  !(session?.user?.modulePermissions || []).includes('SYSTEM_SETTINGS_EDIT')) {
     return (
       <div className="flex flex-col items-center justify-center p-8 text-center">
         <div className="p-4 rounded-full bg-muted/50 mb-4">

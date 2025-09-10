@@ -45,7 +45,7 @@ export async function validateUserExists(userId: string): Promise<boolean> {
   
   const client = await getPool().connect();
   try {
-    const result = await client.query('SELECT id FROM "User" WHERE id = $1', [userId]);
+    const result = await client.query('SELECT id FROM "User" WHERE id = $1 AND "is_active" = true', [userId]);
     const exists = result.rows.length > 0;
     
     // Update cache
@@ -95,6 +95,24 @@ export async function validateUserSession(session: any): Promise<{
   
   const userExists = await validateUserExists(userId);
   if (!userExists) {
+    // Check if user exists but is disabled
+    const client = await getPool().connect();
+    try {
+      const result = await client.query('SELECT "is_active" FROM "User" WHERE id = $1', [userId]);
+      if (result.rows.length > 0 && !result.rows[0].is_active) {
+        return { 
+          isValid: false, 
+          error: 'Your account has been disabled. Please contact your administrator.',
+          userId,
+          userName
+        };
+      }
+    } catch (error) {
+      console.error('[VALIDATE USER SESSION] Error checking user status:', error);
+    } finally {
+      client.release();
+    }
+    
     return { 
       isValid: false, 
       error: 'Invalid user session. Please sign in again.',
@@ -176,6 +194,7 @@ export const authOptions: NextAuthOptions = {
             token.modulePermissions = modulePermissions;
             
             // Cache user data in token to avoid repeated database calls
+            (token as any).name = user.name;
             (token as any).avatarUrl = (user as any).avatarUrl;
             (token as any).personalColor = (user as any).personalColor;
           }
@@ -217,6 +236,7 @@ export const authOptions: NextAuthOptions = {
               const userData = await getUserSessionData(token.id as string);
               if (userData) {
                 token.role = userData.role as UserProfile['role'];
+                (token as any).name = userData.name;
                 (token as any).avatarUrl = userData.avatarUrl || userData.image || null;
                 (token as any).personalColor = userData.personalColor || null;
               }
@@ -288,9 +308,28 @@ export const authOptions: NextAuthOptions = {
             try {
               const userData = await getUserSessionData(token.id as string);
               if (userData) {
+                // Check if user is active - if not, return a minimal session to invalidate
+                if (!userData.isActive) {
+                  return {
+                    ...session,
+                    user: {
+                      ...session.user,
+                      id: '',
+                      role: 'Recruiter',
+                      modulePermissions: [],
+                      avatarUrl: null,
+                      personalColor: null
+                    }
+                  };
+                }
+                
                 // Add role to session (ensure it's always fresh from database)
                 session.user.role = userData.role as UserProfile['role'];
                 token.role = userData.role as UserProfile['role'];
+                
+                // Add name to session (ensure it's always fresh from database)
+                session.user.name = userData.name;
+                (token as any).name = userData.name;
                 
                 // Add avatarUrl to session (avatarUrl takes precedence over image)
                 session.user.avatarUrl = userData.avatarUrl || userData.image || null;
@@ -306,6 +345,7 @@ export const authOptions: NextAuthOptions = {
             }
           } else {
             // Use cached data from token
+            session.user.name = (token as any).name || session.user.name;
             session.user.avatarUrl = (token as any).avatarUrl || null;
             session.user.personalColor = (token as any).personalColor || null;
           }
@@ -456,6 +496,31 @@ export async function requireSessionAndPermission(requiredPermission: string, re
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return { error: NextResponse.json({ message: 'Unauthorized' }, { status: 401 }) };
+  }
+  
+  // Check if user is active
+  const userExists = await validateUserExists(session.user.id);
+  if (!userExists) {
+    // Check if user exists but is disabled
+    const client = await getPool().connect();
+    try {
+      const result = await client.query('SELECT "is_active" FROM "User" WHERE id = $1', [session.user.id]);
+      if (result.rows.length > 0 && !result.rows[0].is_active) {
+        await logAudit(
+          'WARN',
+          `Disabled user attempted to access resource: ${session.user.name || session.user.email}.`,
+          `API:${requiredPermission}`,
+          session.user.id
+        );
+        return { error: NextResponse.json({ message: 'Your account has been disabled. Please contact your administrator.' }, { status: 403 }) };
+      }
+    } catch (error) {
+      console.error('[REQUIRE SESSION] Error checking user status:', error);
+    } finally {
+      client.release();
+    }
+    
+    return { error: NextResponse.json({ message: 'Invalid user session. Please sign in again.' }, { status: 401 }) };
   }
   
   // Check specific permissions from user groups

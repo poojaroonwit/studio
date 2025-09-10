@@ -108,13 +108,13 @@ export default function AutoCloseTab() {
     }
   };
 
-  if (session?.user?.role !== 'Admin') {
+  if (session?.user?.role !== 'Admin' && !(session?.user?.modulePermissions || []).includes('POSITIONS_EDIT_DETAILED')) {
     return (
       <div className="space-y-6">
         <Alert>
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            You need administrator permissions to access this feature.
+            You need administrator permissions or POSITIONS_EDIT_DETAILED permission to access this feature.
           </AlertDescription>
         </Alert>
       </div>

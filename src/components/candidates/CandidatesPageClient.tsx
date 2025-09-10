@@ -102,7 +102,7 @@ export function CandidatesPageClient({
   // Get pagination and sorting from settings
   const pageSize = candidateSettings?.pageSize || 20;
   const sortColumn = candidateSettings?.sortColumn || 'applicationDate';
-  const sortDirection = candidateSettings?.sortDirection || 'desc';
+  const sortDirection = candidateSettings?.sortDirection !== undefined ? candidateSettings.sortDirection : 'desc';
   
 
   const [tableLoading, setTableLoading] = useState<boolean>(false);

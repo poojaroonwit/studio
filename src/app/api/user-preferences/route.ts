@@ -72,6 +72,7 @@ export async function GET(request: NextRequest) {
         showStatusColumn: boolean;
         showAppliedDateColumn: boolean;
         showLastUpdateColumn: boolean;
+        showCreatedDateColumn: boolean;
         columnOrder: string[];
         showFilters: boolean;
         showHorizontalFitScoreFilters: boolean;
@@ -132,6 +133,7 @@ export async function GET(request: NextRequest) {
         showStatusColumn: true,
         showAppliedDateColumn: true,
         showLastUpdateColumn: true,
+        showCreatedDateColumn: false,
         columnOrder: [
           'candidate',
           'appliedJob',
@@ -141,7 +143,8 @@ export async function GET(request: NextRequest) {
           'source',
           'status',
           'appliedDate',
-          'lastUpdate'
+          'lastUpdate',
+          'createdAt'
         ],
         showFilters: true,
         showHorizontalFitScoreFilters: true,
@@ -282,6 +285,9 @@ export async function GET(request: NextRequest) {
             case 'showLastUpdateColumn':
               transformedPreferences.candidates.showLastUpdateColumn = value === 'true';
               break;
+            case 'showCreatedDateColumn':
+              transformedPreferences.candidates.showCreatedDateColumn = value === 'true';
+              break;
             case 'showFilters':
               transformedPreferences.candidates.showFilters = value === 'true';
               break;
@@ -320,7 +326,7 @@ export async function GET(request: NextRequest) {
               transformedPreferences.candidates.sortColumn = value || 'applicationDate';
               break;
             case 'sortDirection':
-              transformedPreferences.candidates.sortDirection = value as 'asc' | 'desc' | null;
+              transformedPreferences.candidates.sortDirection = value === 'null' ? null : value as 'asc' | 'desc' | null;
               break;
           }
         } else if (pref.modelType === 'sidebar') {
@@ -372,7 +378,7 @@ export async function POST(request: NextRequest) {
 
     // Process updates
     const updatePromises = Object.entries(updates).map(async ([key, value]) => {
-      const stringValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
+      const stringValue = value === null ? 'null' : (typeof value === 'object' ? JSON.stringify(value) : String(value));
       
       // Use upsert to create or update the preference
       return prisma.userUIDisplayPreference.upsert({

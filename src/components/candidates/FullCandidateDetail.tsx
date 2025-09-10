@@ -912,6 +912,9 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
              // Show error toast
              if (!suppressToast) {
                toastError(error?.message || 'Failed to update status.');
+             } else {
+               // If suppressToast is true, re-throw the error so the calling component can handle it
+               throw error;
              }
              
              // Error handled - return false to indicate transaction failed

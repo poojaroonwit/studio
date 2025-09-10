@@ -15,15 +15,13 @@ import {
   FileText, 
   Paperclip,
   Loader2,
-  AlertCircle,
-  UserX
+  AlertCircle
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { format } from 'date-fns';
 import type { Headcount, HeadcountType, HeadcountStatus, Candidate, CustomFieldDefinition } from '@/lib/types';
 import { HeadcountModal } from './HeadcountModal';
 import { HeadcountAttachmentModal } from './HeadcountAttachmentModal';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 interface HeadcountTabProps {
   positionId: string;
@@ -33,7 +31,7 @@ interface HeadcountTabProps {
 
 const HEADCOUNT_STATUS_OPTIONS: { value: HeadcountStatus; label: string; color: string }[] = [
   { value: 'vacant', label: 'Vacant', color: 'bg-gray-100 text-gray-800' },
-  { value: 'filled', label: 'Filled', color: 'bg-purple-100 text-purple-800' },
+  { value: 'filled', label: 'Filled', color: 'bg-green-100 text-green-800' },
 ];
 
 export function HeadcountTab({ positionId, candidates, onHeadcountChange }: HeadcountTabProps) {
@@ -47,9 +45,6 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
   const [selectedHeadcount, setSelectedHeadcount] = useState<Headcount | null>(null);
   const [editingHeadcount, setEditingHeadcount] = useState<Headcount | null>(null);
   const [customFieldDefinitions, setCustomFieldDefinitions] = useState<CustomFieldDefinition[]>([]);
-  const [unassignWarning, setUnassignWarning] = useState<any>(null);
-  const [showUnassignDialog, setShowUnassignDialog] = useState(false);
-  const [headcountToUnassign, setHeadcountToUnassign] = useState<string | null>(null);
   const [headcountSLA, setHeadcountSLA] = useState<Record<string, any>>({});
 
   useEffect(() => {
@@ -105,9 +100,14 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
         if (response.ok) {
           const data = await response.json();
           slaData[headcount.id] = data;
+          console.log(`SLA data for headcount ${headcount.id}:`, data);
+        } else {
+          console.error(`Failed to fetch SLA for headcount ${headcount.id}:`, response.status, response.statusText);
+          slaData[headcount.id] = { error: `HTTP ${response.status}` };
         }
       } catch (error) {
         console.error(`Error fetching SLA for headcount ${headcount.id}:`, error);
+        slaData[headcount.id] = { error: 'Network error' };
       }
     }
     
@@ -127,6 +127,7 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
         throw new Error('Failed to fetch headcounts');
       }
       const data = await response.json();
+      console.log('Fetched headcounts:', data);
       setHeadcounts(data);
     } catch (error) {
       console.error('Error fetching headcounts:', error);
@@ -170,65 +171,6 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
     }
   };
 
-  const handleUnassignCandidate = async (headcountId: string) => {
-    try {
-      // First check for warnings
-      const warningResponse = await fetch(`/api/headcount/${headcountId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'check_unassign_warning' }),
-      });
-
-      if (!warningResponse.ok) {
-        throw new Error('Failed to check unassign warning');
-      }
-
-      const warning = await warningResponse.json();
-
-      if (warning.hasWarning) {
-        setUnassignWarning(warning);
-        setHeadcountToUnassign(headcountId);
-        setShowUnassignDialog(true);
-        return;
-      }
-
-      // No warning, proceed with unassign
-      await performUnassign(headcountId);
-    } catch (error) {
-      console.error('Error checking unassign warning:', error);
-      toast.error('Failed to check unassign warning');
-    }
-  };
-
-  const performUnassign = async (headcountId: string) => {
-    try {
-      const response = await fetch(`/api/headcount/${headcountId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'unassign_candidate' }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to unassign candidate');
-      }
-
-      const result = await response.json();
-
-      if (result.success) {
-        toast.success('Candidate unassigned successfully');
-        if (result.statusUpdateResult?.statusChanged) {
-          toast.success(`Candidate status automatically changed from "${result.statusUpdateResult.oldStatus}" to "${result.statusUpdateResult.newStatus}"`);
-        }
-        fetchHeadcounts();
-        onHeadcountChange?.();
-      } else {
-        toast.error(result.message || 'Failed to unassign candidate');
-      }
-    } catch (error) {
-      console.error('Error unassigning candidate:', error);
-      toast.error('Failed to unassign candidate');
-    }
-  };
 
   const handleManageAttachments = (headcount: Headcount) => {
     setSelectedHeadcount(headcount);
@@ -309,7 +251,25 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
 
   const getSLABadge = (headcountId: string) => {
     const slaData = headcountSLA[headcountId];
-    if (!slaData || !slaData.violation) {
+    
+    // Check if we have SLA data
+    if (!slaData) {
+      return <div className="text-sm text-muted-foreground">Loading...</div>;
+    }
+    
+    // Check if there's an error (no grade, no request date, etc.)
+    if (slaData.error) {
+      console.log(`SLA error for headcount ${headcountId}:`, slaData.error);
+      return (
+        <div className="text-sm text-muted-foreground" title={slaData.error}>
+          No SLA
+        </div>
+      );
+    }
+    
+    // Check if we have violation data
+    if (!slaData.violation) {
+      console.log(`No violation data for headcount ${headcountId}:`, slaData);
       return <div className="text-sm text-muted-foreground">No SLA</div>;
     }
 
@@ -553,15 +513,6 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleUnassignCandidate(headcount.id)}
-                          title="Unassign candidate"
-                          disabled={!headcount.candidate}
-                        >
-                          <UserX className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
                           onClick={() => handleDeleteHeadcount(headcount.id)}
                           title="Delete headcount"
                         >
@@ -598,36 +549,6 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
         onUpdate={handleAttachmentUpdate}
       />
 
-      {/* Unassign Warning Dialog */}
-      <AlertDialog open={showUnassignDialog} onOpenChange={setShowUnassignDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-orange-500" />
-              Warning: Candidate Status Will Change
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {unassignWarning?.message}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                if (headcountToUnassign) {
-                  performUnassign(headcountToUnassign);
-                }
-                setShowUnassignDialog(false);
-                setUnassignWarning(null);
-                setHeadcountToUnassign(null);
-              }}
-              className="bg-orange-500 hover:bg-orange-600"
-            >
-              Continue with Unassign
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

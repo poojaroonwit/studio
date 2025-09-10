@@ -356,7 +356,8 @@ export default function SystemPreferencesPage() {
   const [primaryGradientStart, setPrimaryGradientStart] = useState<string>(DEFAULT_PRIMARY_GRADIENT_START);
   const [primaryGradientEnd, setPrimaryGradientEnd] = useState<string>(DEFAULT_PRIMARY_GRADIENT_END);
 
-  const canEdit = session?.user?.role === "Admin";
+  const canEdit = session?.user?.role === "Admin" || 
+    (session?.user?.modulePermissions && session.user.modulePermissions.includes('SYSTEM_SETTINGS_EDIT'));
 
   // Refs for cleanup and resource management
   const isMountedRef = useRef(true);

@@ -32,7 +32,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     return handleApiError(req, createUnauthorizedError('Authentication required'));
   }
 
-  if (user.role !== 'Admin') {
+  if (user.role !== 'Admin' && !user.modulePermissions?.includes('USERS_VIEW')) {
     return handleApiError(req, createForbiddenError('Insufficient permissions to view users'));
   }
 
@@ -70,7 +70,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     return handleApiError(req, createUnauthorizedError('Authentication required'));
   }
 
-  if (user.role !== 'Admin') {
+  if (user.role !== 'Admin' && !user.modulePermissions?.includes('USERS_EDIT')) {
     return handleApiError(req, createForbiddenError('Insufficient permissions to update users'));
   }
 
@@ -177,7 +177,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     return handleApiError(req, createUnauthorizedError('Authentication required'));
   }
 
-  if (user.role !== 'Admin') {
+  if (user.role !== 'Admin' && !user.modulePermissions?.includes('USERS_DELETE')) {
     return handleApiError(req, createForbiddenError('Insufficient permissions to delete users'));
   }
 

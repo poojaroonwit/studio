@@ -5,7 +5,7 @@ import { getServerSession } from 'next-auth/next';
 import { v4 as uuidv4 } from 'uuid';
 import { getPool } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
-import { broadcastCandidateUpdate } from '@/lib/simple-broadcaster';
+import { broadcastCandidateUpdate, broadcastCandidateStatusChanged } from '@/lib/simple-broadcaster';
 import { hasAnyPermission } from '@/lib/permissions';
 
 const bulkActionSchema = z.object({
@@ -417,6 +417,11 @@ export async function POST(request: NextRequest) {
                 // Broadcast the updated candidate with new status
                 const updatedCandidate = { ...candidate, status: newStatus };
                 broadcastCandidateUpdate(updatedCandidate, actingUserId);
+                
+                // Also broadcast status change
+                if (candidate.statusId) {
+                  broadcastCandidateStatusChanged(updatedCandidate, candidate.statusId, String(newStatus), actingUserId);
+                }
               }
             }
           }

@@ -6,7 +6,7 @@ import { logAudit } from '@/lib/auditLog';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { v4 as uuidv4 } from 'uuid';
-import { broadcastCandidateUpdate, broadcastCandidateDeleted } from '@/lib/simple-broadcaster';
+import { broadcastCandidateUpdate, broadcastCandidateDeleted, broadcastCandidateStatusChanged } from '@/lib/simple-broadcaster';
 import { normalizeFitScore } from '@/lib/scoreUtils';
 import { syncRecruiterForCandidate } from '@/lib/recruiterSync';
 import { NotificationService } from '@/lib/notificationService';
@@ -1047,6 +1047,12 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     try {
       broadcastCandidateUpdate({ ...candidate, customAttributes }, actingUserId);
       console.log('Candidate update broadcasted successfully');
+      
+      // Also broadcast status change if status was updated
+      if (status !== undefined && oldStatus !== status) {
+        broadcastCandidateStatusChanged({ ...candidate, customAttributes }, oldStatus, status, actingUserId);
+        console.log('Candidate status change broadcasted successfully');
+      }
     } catch (broadcastError) {
       console.error('Failed to broadcast candidate update:', broadcastError);
       // Don't fail the request if broadcasting fails

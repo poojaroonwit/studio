@@ -104,12 +104,12 @@ function displayFitScoreWithGrade(score: number | undefined | null) {
 function getRowHeightStyle(rowHeight: 'compact' | 'normal' | 'comfortable' = 'normal') {
   switch (rowHeight) {
     case 'compact':
-      return { height: '32px', minHeight: '32px' }; // 32px
+      return { height: '48px', minHeight: '48px' }; // 48px (was normal)
     case 'comfortable':
-      return { height: '64px', minHeight: '64px' }; // 64px
+      return { height: '80px', minHeight: '80px' }; // 80px (more padding)
     case 'normal':
     default:
-      return { height: '48px', minHeight: '48px' }; // 48px
+      return { height: '64px', minHeight: '64px' }; // 64px (was comfortable)
   }
 }
 
@@ -117,12 +117,12 @@ function getRowHeightStyle(rowHeight: 'compact' | 'normal' | 'comfortable' = 'no
 function getRowPaddingClass(rowHeight: 'compact' | 'normal' | 'comfortable' = 'normal') {
   switch (rowHeight) {
     case 'compact':
-      return "[&>td]:py-1";
+      return "[&>td]:py-2"; // was normal
     case 'comfortable':
-      return "[&>td]:py-4";
+      return "[&>td]:py-6"; // more padding than before
     case 'normal':
     default:
-      return "[&>td]:py-2";
+      return "[&>td]:py-4"; // was comfortable
   }
 }
 

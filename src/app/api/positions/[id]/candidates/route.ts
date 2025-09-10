@@ -34,14 +34,14 @@ export async function GET(
     const allowedSortColumns = {
       name: 'name',
       email: 'email',
-      fitScore: 'COALESCE((c."parsedData"->\'job_applied\'->>\'fitScore\')::numeric, c."fitScore")',
+      fitScore: 'COALESCE(("parsedData"->\'job_applied\'->>\'fitScore\')::numeric, "fitScore")',
       applicationDate: '"applicationDate"',
       status: 'status',
       lastUpdate: '"updatedAt"',
     };
     const sortColumnParam = searchParams.get('sortColumn') || 'fitScore';
     const sortDirectionParam = (searchParams.get('sortDirection') || 'desc').toLowerCase();
-    const sortColumn = allowedSortColumns[sortColumnParam as keyof typeof allowedSortColumns] || 'COALESCE((c."parsedData"->\'job_applied\'->>\'fitScore\')::numeric, c."fitScore")';
+    const sortColumn = allowedSortColumns[sortColumnParam as keyof typeof allowedSortColumns] || 'COALESCE(("parsedData"->\'job_applied\'->>\'fitScore\')::numeric, "fitScore")';
     const sortDirection = sortDirectionParam === 'asc' ? 'ASC' : 'DESC';
     
     // Handle NULL values in sorting - for fitScore, put NULL values first when ascending, last when descending
@@ -50,14 +50,14 @@ export async function GET(
     // Only prioritize pinned candidates if showPinSection is enabled
     const showPinSection = searchParams.get('showPinSection');
     if (showPinSection === 'true') {
-      sortClause = `c."isPinned" DESC, c."pinnedAt" DESC NULLS LAST, ${sortClause}`;
+      sortClause = `"isPinned" DESC, "pinnedAt" DESC NULLS LAST, ${sortClause}`;
     }
     
     if (sortColumnParam === 'fitScore') {
       if (sortDirection === 'ASC') {
-        sortClause = `COALESCE((c."parsedData"->'job_applied'->>'fitScore')::numeric, c."fitScore") ${sortDirection} NULLS FIRST`;
+        sortClause = `COALESCE(("parsedData"->'job_applied'->>'fitScore')::numeric, "fitScore") ${sortDirection} NULLS FIRST`;
       } else {
-        sortClause = `COALESCE((c."parsedData"->'job_applied'->>'fitScore')::numeric, c."fitScore") ${sortDirection} NULLS LAST`;
+        sortClause = `COALESCE(("parsedData"->'job_applied'->>'fitScore')::numeric, "fitScore") ${sortDirection} NULLS LAST`;
       }
     }
 

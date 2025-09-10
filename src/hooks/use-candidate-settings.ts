@@ -12,6 +12,7 @@ const defaultSettings: CandidateSettings = {
   showStatusColumn: true,
   showAppliedDateColumn: true,
   showLastUpdateColumn: false,
+  showCreatedDateColumn: false,
   columnOrder: [
     'candidate',
     'appliedJob',
@@ -21,7 +22,8 @@ const defaultSettings: CandidateSettings = {
     'source',
     'status',
     'appliedDate',
-    'lastUpdate'
+    'lastUpdate',
+    'createdAt'
   ],
   showFilters: true,
   showHorizontalFitScoreFilters: true,

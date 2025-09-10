@@ -619,8 +619,10 @@ export function CandidateRowKanbanView({
         
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
-          const statusText = res.status === 403 ? 'Access denied' : `HTTP ${res.status}`;
-          throw new Error(data.message || `Failed to update candidate status: ${statusText}`);
+          if (res.status === 403) {
+            throw new Error('Permission denied: You do not have permission to update candidate status. Please contact your administrator.');
+          }
+          throw new Error(data.message || `Failed to update candidate status: HTTP ${res.status}`);
         }
         
         const result = await res.json();
@@ -827,8 +829,10 @@ export function FlexibleKanbanView({
         
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
-          const statusText = res.status === 403 ? 'Access denied' : `HTTP ${res.status}`;
-          throw new Error(data.message || `Failed to update candidate status: ${statusText}`);
+          if (res.status === 403) {
+            throw new Error('Permission denied: You do not have permission to update candidate status. Please contact your administrator.');
+          }
+          throw new Error(data.message || `Failed to update candidate status: HTTP ${res.status}`);
         }
         
         const result = await res.json();
@@ -2335,8 +2339,10 @@ export function HorizontalStageKanbanView({
         
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
-          const statusText = res.status === 403 ? 'Access denied' : `HTTP ${res.status}`;
-          throw new Error(data.message || `Failed to update candidate status: ${statusText}`);
+          if (res.status === 403) {
+            throw new Error('Permission denied: You do not have permission to update candidate status. Please contact your administrator.');
+          }
+          throw new Error(data.message || `Failed to update candidate status: HTTP ${res.status}`);
         }
         
         const result = await res.json();

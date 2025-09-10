@@ -33,8 +33,10 @@ export async function updateCandidatesStatusBulk(candidateIds: string[], status:
     
     if (!response.ok) {
       console.error('Bulk action failed:', result);
-      const statusText = response.status === 403 ? 'Access denied' : `HTTP ${response.status}`;
-      throw new Error(result.message || `Candidate status update failed: ${statusText}`);
+      if (response.status === 403) {
+        throw new Error('Permission denied: You do not have permission to update candidate status. Please contact your administrator.');
+      }
+      throw new Error(result.message || `Candidate status update failed: HTTP ${response.status}`);
     }
     
     // Check for rejected candidates (this should not happen with our new upfront validation)

@@ -98,21 +98,21 @@ export function useCandidateFetching({
       if (!advancedQueryParam && currentFilters.maxAppliedJobFitScore !== undefined) query.append('maxAppliedJobFitScore', String(currentFilters.maxAppliedJobFitScore));
       if (!advancedQueryParam && currentFilters.minMatchingJobFitScore !== undefined) query.append('minMatchingJobFitScore', String(currentFilters.minMatchingJobFitScore));
       if (!advancedQueryParam && currentFilters.maxMatchingJobFitScore !== undefined) query.append('maxMatchingJobFitScore', String(currentFilters.maxMatchingJobFitScore));
-      if (currentFilters.includeNoScoreInApplied) query.append('includeNoScoreInApplied', 'true');
-      if (currentFilters.includeNoScoreInMatching) query.append('includeNoScoreInMatching', 'true');
-      if (currentFilters.minExperienceYears !== undefined && (currentFilters.minExperienceYears > 0 || currentFilters.minExperienceYears === -1)) query.append('minExperienceYears', String(currentFilters.minExperienceYears));
-      if (currentFilters.maxExperienceYears !== undefined && currentFilters.maxExperienceYears < 50) query.append('maxExperienceYears', String(currentFilters.maxExperienceYears));
-      if (currentFilters.applicationDateStart) {
+      if (!advancedQueryParam && currentFilters.includeNoScoreInApplied) query.append('includeNoScoreInApplied', 'true');
+      if (!advancedQueryParam && currentFilters.includeNoScoreInMatching) query.append('includeNoScoreInMatching', 'true');
+      if (!advancedQueryParam && currentFilters.minExperienceYears !== undefined && (currentFilters.minExperienceYears > 0 || currentFilters.minExperienceYears === -1)) query.append('minExperienceYears', String(currentFilters.minExperienceYears));
+      if (!advancedQueryParam && currentFilters.maxExperienceYears !== undefined && currentFilters.maxExperienceYears < 50) query.append('maxExperienceYears', String(currentFilters.maxExperienceYears));
+      if (!advancedQueryParam && currentFilters.applicationDateStart) {
         query.append('applicationDateStart', currentFilters.applicationDateStart.toISOString());
       }
-      if (currentFilters.applicationDateEnd) {
+      if (!advancedQueryParam && currentFilters.applicationDateEnd) {
         query.append('applicationDateEnd', currentFilters.applicationDateEnd.toISOString());
       }
-      if (currentFilters.selectedRecruiterIds && currentFilters.selectedRecruiterIds.length > 0) query.append('recruiterId', currentFilters.selectedRecruiterIds.join(','));
-      if (currentFilters.selectedSourceIds && currentFilters.selectedSourceIds.length > 0) query.append('sourceId', currentFilters.selectedSourceIds.join(','));
+      if (!advancedQueryParam && currentFilters.selectedRecruiterIds && currentFilters.selectedRecruiterIds.length > 0) query.append('recruiterId', currentFilters.selectedRecruiterIds.join(','));
+      if (!advancedQueryParam && currentFilters.selectedSourceIds && currentFilters.selectedSourceIds.length > 0) query.append('sourceId', currentFilters.selectedSourceIds.join(','));
       
       // Handle custom field filters
-      if (currentFilters.customFieldFilters && Object.keys(currentFilters.customFieldFilters).length > 0) {
+      if (!advancedQueryParam && currentFilters.customFieldFilters && Object.keys(currentFilters.customFieldFilters).length > 0) {
         for (const [fieldCode, value] of Object.entries(currentFilters.customFieldFilters)) {
           if (value !== undefined && value !== null && value !== '') {
             query.append(`customField_${fieldCode}`, String(value));

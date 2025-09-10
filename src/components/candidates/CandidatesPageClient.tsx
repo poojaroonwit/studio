@@ -1587,6 +1587,8 @@ export function CandidatesPageClient({
       }
       return newSet;
     });
+    // Reset to first page when fit score filter changes
+    setPage(1);
   }, []);
 
   const memoizedHandleHorizontalMatchingFitScoreGradeToggle = useCallback((grade: string) => {
@@ -1599,11 +1601,15 @@ export function CandidatesPageClient({
       }
       return newSet;
     });
+    // Reset to first page when matching fit score filter changes
+    setPage(1);
   }, []);
 
   const memoizedClearAllHorizontalFitScoreFilters = useCallback(() => {
     setHorizontalSelectedFitScoreGrades(new Set());
     setHorizontalSelectedMatchingFitScoreGrades(new Set());
+    // Reset to first page when clearing all fit score filters
+    setPage(1);
   }, []);
 
   // Handle authentication

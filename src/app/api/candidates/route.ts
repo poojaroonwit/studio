@@ -292,9 +292,13 @@ export async function GET(request: NextRequest) {
       email: 'c.email',
       fitScore: 'c."fitScore"',
       applicationDate: 'c."applicationDate"',
-              status: 'c."statusId"',
+      status: 'c."statusId"',
       lastUpdate: 'c."updatedAt"',
       source: 'cs.name',
+      recruiter: 'u.name',
+      position: 'p.title',
+      createdAt: 'c."createdAt"',
+      phone: 'c.phone',
     };
     const sortColumnParam = searchParams.get('sortColumn') || 'applicationDate';
     const sortDirectionParam = searchParams.get('sortDirection');

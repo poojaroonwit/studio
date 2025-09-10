@@ -67,8 +67,10 @@ export function useCandidateActions({
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        const statusText = response.status === 403 ? 'Access denied' : `HTTP ${response.status}`;
-        throw new Error(errorData.message || `Failed to update candidate status: ${statusText}`);
+        if (response.status === 403) {
+          throw new Error('Permission denied: You do not have permission to update candidate status. Please contact your administrator.');
+        }
+        throw new Error(errorData.message || `Failed to update candidate status: HTTP ${response.status}`);
       }
 
       const result = await response.json();

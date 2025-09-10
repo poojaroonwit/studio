@@ -35,6 +35,7 @@ export interface CandidateSettings {
   showStatusColumn: boolean;
   showAppliedDateColumn: boolean;
   showLastUpdateColumn: boolean;
+  showCreatedDateColumn: boolean;
   
   // Column order
   columnOrder: string[];
@@ -73,6 +74,7 @@ const defaultSettings: CandidateSettings = {
   showStatusColumn: true,
   showAppliedDateColumn: true,
   showLastUpdateColumn: false,
+  showCreatedDateColumn: false,
   columnOrder: [
     'candidate',
     'appliedJob',
@@ -82,7 +84,8 @@ const defaultSettings: CandidateSettings = {
     'source',
     'status',
     'appliedDate',
-    'lastUpdate'
+    'lastUpdate',
+    'createdAt'
   ],
   showFilters: true,
   showHorizontalFitScoreFilters: true,
@@ -106,6 +109,7 @@ const columnConfig = [
   { key: 'status', label: 'Status', settingKey: 'showStatusColumn' as keyof CandidateSettings },
   { key: 'appliedDate', label: 'Applied Date', settingKey: 'showAppliedDateColumn' as keyof CandidateSettings },
   { key: 'lastUpdate', label: 'Last Update', settingKey: 'showLastUpdateColumn' as keyof CandidateSettings },
+  { key: 'createdAt', label: 'Created Date', settingKey: 'showCreatedDateColumn' as keyof CandidateSettings },
 ];
 
 export function CandidateSettingsDrawer({

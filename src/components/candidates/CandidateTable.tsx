@@ -201,7 +201,8 @@ const renderTableHeaders = (
     'source',
     'status',
     'appliedDate',
-    'lastUpdate'
+    'lastUpdate',
+    'createdAt'
   ];
 
   const columnOrder = settings?.columnOrder || defaultColumnOrder;
@@ -232,8 +233,9 @@ const renderTableHeaders = (
     appliedJob: {
       key: 'applied-job',
       label: 'Applied Job',
-      className: 'min-w-[120px] max-w-[200px]',
-      sortable: false,
+      className: 'min-w-[120px] max-w-[200px] cursor-pointer select-none group',
+      sortable: true,
+      sortKey: 'position',
       show: !settings || settings.showAppliedJobColumn !== false
     },
     jobMatches: {
@@ -254,8 +256,9 @@ const renderTableHeaders = (
     recruiter: {
       key: 'recruiter',
       label: 'Recruiter',
-      className: 'min-w-[100px] max-w-[150px]',
-      sortable: false,
+      className: 'min-w-[100px] max-w-[150px] cursor-pointer select-none group',
+      sortable: true,
+      sortKey: 'recruiter',
       show: !settings || settings.showRecruiterColumn !== false
     },
     source: {
@@ -289,6 +292,14 @@ const renderTableHeaders = (
       sortable: true,
       sortKey: 'lastUpdate',
       show: !settings || settings.showLastUpdateColumn !== false
+    },
+    createdAt: {
+      key: 'created-date',
+      label: 'Created Date',
+      className: 'min-w-[100px] max-w-[140px] hidden lg:table-cell cursor-pointer select-none group',
+      sortable: true,
+      sortKey: 'createdAt',
+      show: !settings || (settings as any).showCreatedDateColumn !== false
     }
   };
 
@@ -374,7 +385,8 @@ const renderTableCells = (
     'source',
     'status',
     'appliedDate',
-    'lastUpdate'
+    'lastUpdate',
+    'createdAt'
   ];
 
   const columnOrder = settings?.columnOrder || defaultColumnOrder;
@@ -610,6 +622,15 @@ const renderTableCells = (
       render: () => (
         <TableCell key={`${candidate.id}-last-update`} className="hidden lg:table-cell max-w-[140px] text-ellipsis whitespace-nowrap">
           {displayAppliedDate(candidate.updatedAt)}
+        </TableCell>
+      )
+    },
+    createdAt: {
+      key: 'created-date',
+      show: !settings || settings.showCreatedDateColumn !== false,
+      render: () => (
+        <TableCell key={`${candidate.id}-created-date`} className="hidden lg:table-cell max-w-[140px] text-ellipsis whitespace-nowrap">
+          {displayAppliedDate(candidate.createdAt)}
         </TableCell>
       )
     }
@@ -1001,7 +1022,8 @@ export function CandidateTable({
     if (!settings || settings.showSourceColumn !== false) count++;
     if (!settings || settings.showStatusColumn !== false) count++;
     if (!settings || settings.showAppliedDateColumn !== false) count++;
-    if (!settings || settings.showLastUpdateColumn !== false) count++; // Last update column is always visible
+    if (!settings || settings.showLastUpdateColumn !== false) count++;
+    if (!settings || (settings as any).showCreatedDateColumn !== false) count++;
     count++; // Actions column is always visible
     return count;
   };

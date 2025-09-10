@@ -426,8 +426,8 @@ export function SLAViolationsWidget({ recruiterId, onDataUpdate }: SLAViolations
                                         <div key={index} className="flex items-center">
                                           {group.count} headcount{group.count > 1 ? 's' : ''} {
                                             group.isOverdue 
-                                              ? <span className="text-red-600 dark:text-red-400">overdue</span>
-                                              : `${group.daysRemaining} days remain`
+                                              ? <span className="text-red-600 dark:text-red-400"> overdue</span>
+                                              : ` ${group.daysRemaining} days remain`
                                           }
                                         </div>
                                       ))}

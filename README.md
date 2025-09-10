@@ -1,11 +1,24 @@
-# FitScan - Modern Applicant Tracking System
+# FitScan - Enterprise Applicant Tracking System (ATS)
 
-A comprehensive, enterprise-grade Applicant Tracking System (ATS) built with Next.js, featuring advanced candidate management, automated workflows, and seamless integrations.
+A comprehensive, enterprise-grade Applicant Tracking System built with modern web technologies, featuring advanced candidate management, AI-powered matching, automated workflows, and seamless integrations for recruitment teams of all sizes.
 
 ![FitScan](https://img.shields.io/badge/Next.js-15.5.2-black?style=for-the-badge&logo=next.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=for-the-badge&logo=typescript)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-green?style=for-the-badge&logo=postgresql)
 ![Docker](https://img.shields.io/badge/Docker-20.10-blue?style=for-the-badge&logo=docker)
+![AI](https://img.shields.io/badge/AI-Powered-orange?style=for-the-badge&logo=openai)
+
+## 🎯 Overview
+
+FitScan is a modern, scalable Applicant Tracking System designed to streamline recruitment processes through intelligent automation, comprehensive candidate management, and powerful analytics. Built with enterprise-grade security and performance in mind, it supports organizations from startups to large enterprises.
+
+### Key Value Propositions
+- **AI-Powered Candidate Matching**: Intelligent job-candidate matching using Google AI
+- **Real-time Collaboration**: Live updates and notifications via Server-Sent Events
+- **Enterprise Security**: Role-based access control with granular permissions
+- **Scalable Architecture**: Built on modern tech stack for high performance
+- **Comprehensive Analytics**: Detailed insights into recruitment performance
+- **Workflow Automation**: N8N integration for custom automation workflows
 
 ## 🚀 Features
 
@@ -71,28 +84,92 @@ A comprehensive, enterprise-grade Applicant Tracking System (ATS) built with Nex
 - **Background Processing**: Queue-based file processing system
 - **Multi-language Font Support**: Automatic font switching between Inter (English) and IBM Plex Sans Thai (Thai)
 
-## 🛠️ Tech Stack
+## 🛠️ Technology Stack
 
-| Component | Technology |
-|-----------|------------|
-| **Frontend** | Next.js 15.5.2 (App Router), React 18, TypeScript |
-| **UI Framework** | Tailwind CSS, ShadCN UI Components, Inter & IBM Plex Sans Thai Fonts |
-| **Backend** | Next.js API Routes, Prisma ORM |
-| **Database** | PostgreSQL 15 |
-| **Authentication** | NextAuth.js (Azure AD + Credentials) |
-| **File Storage** | MinIO Object Storage |
-| **Caching** | Built-in caching |
-| **AI/ML** | Genkit (Google AI) |
-| **Deployment** | Docker, Docker Compose, PM2 |
-| **Monitoring** | Built-in health checks, audit logging |
-| **Real-time** | Server-Sent Events (SSE) |
-| **Testing** | Vitest, Testing Library |
+### Frontend Technologies
+| Component | Technology | Purpose |
+|-----------|------------|---------|
+| **Framework** | Next.js 15.5.2 (App Router) | Full-stack React framework with SSR/SSG |
+| **UI Library** | React 18 | Component-based user interface |
+| **Language** | TypeScript 5.0 | Type-safe development |
+| **Styling** | Tailwind CSS | Utility-first CSS framework |
+| **Components** | ShadCN UI | Pre-built accessible components |
+| **Fonts** | Inter (English) + IBM Plex Sans Thai | Multi-language typography support |
+| **Charts** | Chart.js + Recharts | Data visualization and analytics |
+
+### Backend Technologies
+| Component | Technology | Purpose |
+|-----------|------------|---------|
+| **API Framework** | Next.js API Routes | RESTful API endpoints |
+| **ORM** | Prisma 6.11.0 | Database abstraction and migrations |
+| **Database** | PostgreSQL 15 | Primary data storage |
+| **Authentication** | NextAuth.js | Multi-provider authentication |
+| **File Storage** | MinIO | Object storage for files and media |
+| **AI Integration** | Google AI (Genkit) | Intelligent candidate matching |
+| **Real-time** | Server-Sent Events (SSE) | Live updates and notifications |
+
+### DevOps & Infrastructure
+| Component | Technology | Purpose |
+|-----------|------------|---------|
+| **Containerization** | Docker + Docker Compose | Application deployment |
+| **Process Management** | PM2 | Production process management |
+| **Monitoring** | Built-in health checks | System monitoring and alerts |
+| **Logging** | Structured logging | Audit trails and debugging |
+| **Testing** | Vitest + Testing Library | Unit and integration testing |
+| **Automation** | N8N | Workflow automation platform |
+
+## 🏗️ System Architecture
+
+### High-Level Architecture
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Frontend      │    │   Backend       │    │   Database      │
+│   (Next.js)     │◄──►│   (API Routes)  │◄──►│   (PostgreSQL)  │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         │                       │                       │
+         ▼                       ▼                       ▼
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   MinIO         │    │   AI Services   │    │   N8N           │
+│   (File Storage)│    │   (Google AI)   │    │   (Automation)  │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+```
+
+### Core Business Processes
+
+#### 1. Candidate Lifecycle Management
+```
+Application → Screening → Shortlisting → Interview → Offer → Hiring
+     ↓           ↓           ↓           ↓         ↓        ↓
+   Applied   Screening  Shortlisted Interviewing Offer   Hired
+```
+
+#### 2. AI-Powered Matching Workflow
+```
+Resume Upload → AI Parsing → Skill Extraction → Job Matching → Fit Score Calculation
+```
+
+#### 3. Real-time Collaboration
+```
+User Action → SSE Broadcast → Live Updates → Notification → Audit Log
+```
+
+### Database Schema Overview
+- **User Management**: Users, UserGroups, UserTeams, Permissions
+- **Candidate Management**: Candidates, Attachments, TransitionRecords
+- **Position Management**: Positions, Grades, PositionLevels
+- **Workflow Management**: RecruitmentStages, CustomFields, Webhooks
+- **Analytics**: AuditLogs, LogEntries, Notifications
+- **System Configuration**: SystemSettings, SystemPreferences
 
 ## 📋 Prerequisites
 
+### System Requirements
 - **Docker & Docker Compose** (for production deployment)
 - **Node.js 18+** (for development)
 - **PostgreSQL 15+** (if not using Docker)
+- **8GB RAM minimum** (16GB recommended for production)
+- **2 CPU cores minimum** (4+ cores recommended for production)
 
 
 ## 🚀 Quick Start
@@ -411,14 +488,20 @@ docker run --rm -v candidatrack_minio_data:/data -v $(pwd):/backup alpine tar cz
 
 ## 📚 Documentation
 
-### Project Documentation
-- **Business Requirements Document**: `documents/BRD.md`
-- **Software Requirements Specification**: `documents/SRS.md`
-- **Test Cases**: `documents/TestCases.md`
+### Comprehensive Documentation Suite
+- **Business Requirements Document**: `BRD.md` - Complete business requirements and specifications
+- **System Requirements Document**: `SRD.md` - Technical requirements and architecture details
+- **User Manual (English)**: `User_Manual_English.md` - Complete user guide in English
+- **User Manual (Thai)**: `User_Manual_Thai.md` - คู่มือผู้ใช้ฉบับภาษาไทย
+- **Test Cases**: `TestCases.md` - Comprehensive test scenarios and validation procedures
+- **API Documentation**: `/api-docs` - Interactive Swagger UI for all endpoints
 
-### API Documentation
-- **Interactive Swagger UI**: `/api-docs`
-- **API Endpoints**: Comprehensive REST API for all features
+### Key Documentation Features
+- **Multi-language Support**: Documentation available in English and Thai
+- **Comprehensive Coverage**: From business requirements to technical implementation
+- **User-Focused**: Step-by-step guides for all user roles
+- **Developer-Friendly**: Complete API documentation with examples
+- **Testing Guidelines**: Detailed test cases for quality assurance
 
 ## 🧹 Project Maintenance
 

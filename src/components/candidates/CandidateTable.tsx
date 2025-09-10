@@ -798,14 +798,20 @@ export function CandidateTable({
 
   const togglePin = async (candidate: Candidate) => {
     try {
-      await fetch(`/api/candidates/${candidate.id}`, {
+      const response = await fetch(`/api/candidates/${candidate.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isPinned: !candidate.isPinned })
       });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to ${candidate.isPinned ? 'unpin' : 'pin'} candidate`);
+      }
+      
       await onRefreshCandidateData(candidate.id);
-    } catch (e) {
-      // ignore
+    } catch (error) {
+      console.error('Error toggling pin status:', error);
+      // You might want to show a toast notification here
     }
   };
 

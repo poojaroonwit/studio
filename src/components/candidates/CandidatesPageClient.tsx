@@ -1854,6 +1854,8 @@ export function CandidatesPageClient({
                 onEditPosition={setSelectedPositionForEdit}
                 onRefreshCandidateData={async (candidateId) => {
                   await refreshCandidateInList(candidateId, fetchTableData, filters, page, pageSize, aiMatchedCandidateIds);
+                  // Also refresh pinned candidates list when pin status changes
+                  await fetchAllPinnedCandidates();
                 }}
                 selectedCandidateIds={selectedCandidateIds}
                 onToggleSelectCandidate={(candidateId) => {

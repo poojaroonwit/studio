@@ -1686,19 +1686,25 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                                   onClick={async (e) => {
                                     e.stopPropagation();
                                     try {
-                                      await fetch(`/api/candidates/${candidate.id}`, {
+                                      const response = await fetch(`/api/candidates/${candidate.id}`, {
                                         method: 'PUT',
                                         headers: { 'Content-Type': 'application/json' },
                                         body: JSON.stringify({ isPinned: !candidate.isPinned })
                                       });
-                                      if (candidate.isPinned) {
-                                        candidate.isPinned = false;
-                                      } else {
-                                        candidate.isPinned = true;
+                                      
+                                      if (!response.ok) {
+                                        throw new Error(`Failed to ${candidate.isPinned ? 'unpin' : 'pin'} candidate`);
                                       }
-                                      setAppliedCandidates((prev) => [...prev]);
-                                      setPotentialCandidates((prev) => [...prev]);
-                                    } catch {}
+                                      
+                                      // Update the candidate in the appropriate list
+                                      const updateCandidate = (prev: any[]) => 
+                                        prev.map(c => c.id === candidate.id ? { ...c, isPinned: !c.isPinned } : c);
+                                      
+                                      setAppliedCandidates(updateCandidate);
+                                      setPotentialCandidates(updateCandidate);
+                                    } catch (error) {
+                                      console.error('Error toggling pin status:', error);
+                                    }
                                   }}
                                   title={candidate.isPinned ? 'Unpin' : 'Pin'}
                                   className="hover:bg-primary/10"

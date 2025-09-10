@@ -1,6 +1,9 @@
 -- Example Data SQL Script for FitScan
 -- This script creates sample data for candidates, positions, and upload queue
 -- Run this after the initial database setup and seeding
+-- 
+-- NOTE: This script uses ON CONFLICT DO NOTHING to handle existing data
+-- If you want to update existing records, modify the conflict handling accordingly
 
 -- ==============================================
 -- PREREQUISITES
@@ -33,7 +36,8 @@ INSERT INTO "CandidateSource" (
 ('770e8400-e29b-41d4-a716-446655440004', 'JobThai', 'Thai job portal', true, 4, true, NOW(), NOW()),
 ('770e8400-e29b-41d4-a716-446655440005', 'Facebook', 'Social media platform', true, 5, true, NOW(), NOW()),
 ('770e8400-e29b-41d4-a716-446655440006', 'University', 'University career services', false, 6, true, NOW(), NOW()),
-('770e8400-e29b-41d4-a716-446655440007', 'JobExpo', 'Job fair and career expo', false, 7, true, NOW(), NOW());
+('770e8400-e29b-41d4-a716-446655440007', 'JobExpo', 'Job fair and career expo', false, 7, true, NOW(), NOW())
+ON CONFLICT (name) DO NOTHING;
 
 -- ==============================================
 -- CREATE EXAMPLE RECRUITMENT STAGES
@@ -53,7 +57,8 @@ INSERT INTO "RecruitmentStage" (
 ('880e8400-e29b-41d4-a716-446655440005', 'Interviewing', 'Interview in progress', true, 5),
 ('880e8400-e29b-41d4-a716-446655440006', 'Offer Extended', 'Job offer has been extended', true, 6),
 ('880e8400-e29b-41d4-a716-446655440007', 'Hired', 'Candidate has been hired', true, 7),
-('880e8400-e29b-41d4-a716-446655440008', 'Rejected', 'Candidate has been rejected', true, 8);
+('880e8400-e29b-41d4-a716-446655440008', 'Rejected', 'Candidate has been rejected', true, 8)
+ON CONFLICT (name) DO NOTHING;
 
 -- ==============================================
 -- CREATE EXAMPLE GRADES
@@ -80,7 +85,8 @@ INSERT INTO "Grade" (
 ('990e8400-e29b-41d4-a716-446655440005', 'G5', 'Senior Mid Level', 'Senior mid level position', 9, 10, 10, '#8B5CF6', true, 5, NOW(), NOW()),
 ('990e8400-e29b-41d4-a716-446655440006', 'G6', 'Senior Level', 'Senior level position', 11, 12, 7, '#06B6D4', true, 6, NOW(), NOW()),
 ('990e8400-e29b-41d4-a716-446655440007', 'G7', 'Principal Level', 'Principal level position', 13, 14, 5, '#84CC16', true, 7, NOW(), NOW()),
-('990e8400-e29b-41d4-a716-446655440008', 'G8', 'Director Level', 'Director level position', 15, 16, 3, '#F97316', true, 8, NOW(), NOW());
+('990e8400-e29b-41d4-a716-446655440008', 'G8', 'Director Level', 'Director level position', 15, 16, 3, '#F97316', true, 8, NOW(), NOW())
+ON CONFLICT (name) DO NOTHING;
 
 -- ==============================================
 -- CREATE EXAMPLE USERS
@@ -97,7 +103,8 @@ INSERT INTO "User" (
 ) VALUES 
 ('110e8400-e29b-41d4-a716-446655440001', 'admin@qsncc.com', 'Admin User', '$2a$10$hashedpassword', 'admin', NOW(), NOW()),
 ('110e8400-e29b-41d4-a716-446655440002', 'recruiter1@qsncc.com', 'John Recruiter', '$2a$10$hashedpassword', 'recruiter', NOW(), NOW()),
-('110e8400-e29b-41d4-a716-446655440003', 'recruiter2@qsncc.com', 'Jane Recruiter', '$2a$10$hashedpassword', 'recruiter', NOW(), NOW());
+('110e8400-e29b-41d4-a716-446655440003', 'recruiter2@qsncc.com', 'Jane Recruiter', '$2a$10$hashedpassword', 'recruiter', NOW(), NOW())
+ON CONFLICT (email) DO NOTHING;
 
 -- ==============================================
 -- CREATE EXAMPLE POSITIONS
@@ -300,7 +307,8 @@ INSERT INTO "Position" (
     NOW(),
     (SELECT id FROM "Grade" WHERE name = 'G5' LIMIT 1),
     'Full-time'
-);
+)
+ON CONFLICT (id) DO NOTHING;
 
 -- ==============================================
 -- CREATE EXAMPLE CANDIDATES
@@ -1338,7 +1346,8 @@ SELECT
     tc.application_date, NOW(), tc.avatar_url, tc.data_ai_hint, tc.assignment_justification,
     tc.education_data, tc.experience_data, null, tc.source_id, tc.sub_source, tc.status_id,
     tc.is_pinned, tc.pinned_at
-FROM temp_candidates tc;
+FROM temp_candidates tc
+ON CONFLICT (id) DO NOTHING;
 
 -- Drop the temporary table
 DROP TABLE temp_candidates;
@@ -1820,7 +1829,8 @@ INSERT INTO "upload_queue" (
     '{"candidate_name": "John Smith", "email": "john.smith@email.com", "position": "Software Engineer"}',
     '550e8400-e29b-41d4-a716-446655440001',
     '2024-02-19 10:32:00'
-);
+)
+ON CONFLICT (id) DO NOTHING;
 
 -- ==============================================
 -- CREATE EXAMPLE TRANSITION RECORDS
@@ -2361,7 +2371,8 @@ INSERT INTO "CandidateComment" (
     '2024-01-30 16:45:00',
     '2024-01-30 16:45:00',
     '{}'
-);
+)
+ON CONFLICT (id) DO NOTHING;
 
 -- ==============================================
 -- VERIFICATION QUERIES

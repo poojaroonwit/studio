@@ -808,7 +808,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   return (
                   <div className="flex flex-col h-screen bg-background">
                 {/* Enhanced Board Header - Always Sticky within main content */}
-      <div className="bg-card border-b border-border shadow-sm sticky top-0 z-20 backdrop-blur-sm bg-card/95">
+      <div className="bg-card border-b border-border shadow-sm sticky top-16 z-20 backdrop-blur-sm bg-card/95">
         <div className="px-6 py-4 space-y-4">
                      {/* Main Controls Row */}
            <div className="flex flex-wrap items-center gap-3 justify-between">

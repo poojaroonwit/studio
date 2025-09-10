@@ -157,16 +157,13 @@ export async function getEarliestRequestDateForPosition(positionId: string): Pro
 
 /**
  * Check SLA violation for a specific headcount
+ * For vacant headcounts: Calculate (now - request_date) and compare with grade SLA
+ * For filled headcounts: Calculate (hired_date - request_date) and compare with grade SLA
  * @param headcount - The headcount object with position grade information
  * @returns SLA violation result or null
  */
 export async function checkSLAViolationForHeadcount(headcount: any): Promise<any> {
   if (!headcount.requestDate) {
-    return null;
-  }
-
-  const startDate = getEffectiveSLAStartDateForHeadcount(headcount);
-  if (!startDate) {
     return null;
   }
 
@@ -176,8 +173,28 @@ export async function checkSLAViolationForHeadcount(headcount: any): Promise<any
     return null;
   }
 
-  const now = new Date();
-  const daysDiff = Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+  const requestDate = new Date(headcount.requestDate);
+  let endDate: Date;
+  let calculationType: string;
+
+  if (headcount.status === 'filled' && headcount.candidateId) {
+    // For filled headcounts: use hired date
+    const hiredDate = await getHiredDateForHeadcount(headcount);
+    if (!hiredDate) {
+      // If no hired date found, fall back to current date
+      endDate = new Date();
+      calculationType = 'filled_no_hired_date';
+    } else {
+      endDate = hiredDate;
+      calculationType = 'filled_with_hired_date';
+    }
+  } else {
+    // For vacant headcounts: use current date
+    endDate = new Date();
+    calculationType = 'vacant';
+  }
+
+  const daysDiff = Math.floor((endDate.getTime() - requestDate.getTime()) / (1000 * 60 * 60 * 24));
   const isViolated = daysDiff > grade.slaDays;
 
   return {
@@ -186,8 +203,10 @@ export async function checkSLAViolationForHeadcount(headcount: any): Promise<any
     daysRemaining: isViolated ? 0 : grade.slaDays - daysDiff,
     slaDays: grade.slaDays,
     gradeName: grade.name,
-    startDate: startDate.toISOString(),
-    currentDate: now.toISOString()
+    requestDate: requestDate.toISOString(),
+    endDate: endDate.toISOString(),
+    calculationType,
+    daysElapsed: daysDiff
   };
 }
 
@@ -199,6 +218,37 @@ export async function checkSLAViolationForHeadcount(headcount: any): Promise<any
 export async function getSLARemainingDaysForHeadcount(headcount: any): Promise<number | null> {
   const violationResult = await checkSLAViolationForHeadcount(headcount);
   return violationResult ? violationResult.daysRemaining : null;
+}
+
+/**
+ * Get the hired date for a specific headcount's candidate
+ * @param headcount - The headcount object with candidateId
+ * @returns The hired date or null if not found
+ */
+export async function getHiredDateForHeadcount(headcount: any): Promise<Date | null> {
+  if (!headcount.candidateId) {
+    return null;
+  }
+
+  const client = await getPool().connect();
+  try {
+    const query = `
+      SELECT tr.date
+      FROM "TransitionRecord" tr
+      WHERE tr."candidateId" = $1
+        AND tr.stage = 'Hired'
+      ORDER BY tr.date DESC
+      LIMIT 1
+    `;
+    
+    const result = await client.query(query, [headcount.candidateId]);
+    return result.rows[0]?.date || null;
+  } catch (error) {
+    console.error('Error getting hired date for headcount:', error);
+    return null;
+  } finally {
+    client.release();
+  }
 }
 
 /**

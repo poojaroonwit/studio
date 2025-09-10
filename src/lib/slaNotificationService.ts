@@ -67,6 +67,7 @@ export async function checkAndNotifySLAViolations(): Promise<SLAViolationNotific
         h."positionId",
         h.type as "headcountType",
         h.status as "headcountStatus",
+        h."candidateId",
         h."requestDate",
         h."onboardingDate",
         p.title as "positionTitle",
@@ -82,7 +83,6 @@ export async function checkAndNotifySLAViolations(): Promise<SLAViolationNotific
       WHERE p."gradeId" IS NOT NULL
         AND p."isOpen" = true
         AND h."requestDate" IS NOT NULL
-        AND h.status = 'vacant'
     `;
     
     const result = await client.query(query);
@@ -94,6 +94,7 @@ export async function checkAndNotifySLAViolations(): Promise<SLAViolationNotific
         positionId: row.positionId,
         type: row.headcountType,
         status: row.headcountStatus,
+        candidateId: row.candidateId,
         requestDate: row.requestDate,
         onboardingDate: row.onboardingDate,
         position: {
@@ -242,6 +243,7 @@ export async function getAllSLAHeadcounts(recruiterId?: string): Promise<any[]> 
         h."positionId",
         h.type as "headcountType",
         h.status as "headcountStatus",
+        h."candidateId",
         h."requestDate",
         h."onboardingDate",
         p.title as "positionTitle",
@@ -278,6 +280,7 @@ export async function getAllSLAHeadcounts(recruiterId?: string): Promise<any[]> 
         positionId: row.positionId,
         type: row.headcountType,
         status: row.headcountStatus,
+        candidateId: row.candidateId,
         requestDate: row.requestDate,
         onboardingDate: row.onboardingDate,
         position: {

@@ -4,7 +4,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Eye, AlertTriangle, Settings } from 'lucide-react';
 import { SLAViolationsWidget } from '@/components/dashboard/SLAViolationsWidget';
-import { PositionHeadcountChart } from '@/components/dashboard/PositionHeadcountChart';
 
 export const metadata: Metadata = {
   title: 'SLA Monitoring - Studio 8',
@@ -49,37 +48,6 @@ export default function SLAMonitoringPage() {
           </div>
           <div className="h-[800px]">
             <SLAViolationsWidget recruiterId="current" />
-          </div>
-        </div>
-      </div>
-
-      {/* Position Headcount Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-        {/* All Positions Headcount Chart */}
-        <div className="space-y-4">
-          <div className="flex items-center space-x-3">
-            <div className="h-8 w-1 bg-gradient-to-b from-purple-500 to-purple-400 rounded-full"></div>
-            <div>
-              <h2 className="text-xl font-bold text-foreground">Position Headcount Charts</h2>
-              <p className="text-sm text-muted-foreground mt-1">Headcount breakdown by position with SLA status</p>
-            </div>
-          </div>
-          <div className="h-[800px]">
-            <PositionHeadcountChart />
-          </div>
-        </div>
-
-        {/* Recruiter-Specific Headcount Chart */}
-        <div className="space-y-4">
-          <div className="flex items-center space-x-3">
-            <div className="h-8 w-1 bg-gradient-to-b from-indigo-500 to-indigo-400 rounded-full"></div>
-            <div>
-              <h2 className="text-xl font-bold text-foreground">Your Position Headcounts</h2>
-              <p className="text-sm text-muted-foreground mt-1">Headcount breakdown for your assigned positions</p>
-            </div>
-          </div>
-          <div className="h-[800px]">
-            <PositionHeadcountChart recruiterId="current" />
           </div>
         </div>
       </div>

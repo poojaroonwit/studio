@@ -23,6 +23,7 @@ export function SLAViolationsWidget({ recruiterId, onDataUpdate }: SLAViolations
   const [violations, setViolations] = useState<SLAViolationNotification[]>([]);
   const [allPositions, setAllPositions] = useState<SLAPositionData[]>([]);
   const [statistics, setStatistics] = useState<SLAStatistics | null>(null);
+  const [headcounts, setHeadcounts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
@@ -44,6 +45,7 @@ export function SLAViolationsWidget({ recruiterId, onDataUpdate }: SLAViolations
       }
       url.searchParams.set('includeAll', 'true');
       url.searchParams.set('includeStats', 'true');
+      url.searchParams.set('includeHeadcounts', 'true');
       
       const response = await fetch(url.toString());
       if (!response.ok) {
@@ -54,6 +56,7 @@ export function SLAViolationsWidget({ recruiterId, onDataUpdate }: SLAViolations
       setViolations(data.violations || []);
       setAllPositions(data.allPositions || []);
       setStatistics(data.statistics || null);
+      setHeadcounts(data.headcounts || []);
     } catch (err) {
       console.error('Error fetching SLA data:', err);
       setError((err as Error).message);
@@ -111,6 +114,17 @@ export function SLAViolationsWidget({ recruiterId, onDataUpdate }: SLAViolations
     if (filterSeverity === 'all') return true;
     return position.status === filterSeverity;
   });
+
+  const getCountsForPosition = (positionId: string) => {
+    const relevant = headcounts.filter(h => h.positionId === positionId && h.headcountStatus === 'vacant');
+    let remaining = 0;
+    let overdue = 0;
+    for (const h of relevant) {
+      if (h.isViolated) overdue += 1;
+      else if (typeof h.daysRemaining === 'number' && h.daysRemaining >= 0) remaining += 1;
+    }
+    return { remaining, overdue };
+  };
 
   if (isLoading) {
     return (
@@ -355,6 +369,25 @@ export function SLAViolationsWidget({ recruiterId, onDataUpdate }: SLAViolations
                                 </span>
                               )}
                             </div>
+                            {/* Headcount grouping summary */}
+                            {headcounts.length > 0 && (
+                              <div className="mt-1 text-[11px] text-muted-foreground flex items-center gap-3 flex-wrap">
+                                {(() => {
+                                  const { remaining, overdue } = getCountsForPosition(position.positionId);
+                                  return (
+                                    <>
+                                      <span>
+                                        {remaining} headcount {position.daysRemaining} days remaining
+                                      </span>
+                                      <span>•</span>
+                                      <span className={overdue > 0 ? 'text-red-600 dark:text-red-400' : ''}>
+                                        {overdue} headcount overdue
+                                      </span>
+                                    </>
+                                  );
+                                })()}
+                              </div>
+                            )}
                           </div>
                           <Button
                             variant="ghost"

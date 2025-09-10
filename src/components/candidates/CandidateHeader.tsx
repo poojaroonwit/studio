@@ -101,7 +101,7 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
 
   return (
     <div 
-      className="bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-100/20 dark:from-slate-900 dark:via-slate-800/50 dark:to-slate-700/30 shadow-lg backdrop-blur-sm border-b border-border p-4 sticky top-0 pointer-events-auto"
+      className="bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-100/20 dark:from-slate-900 dark:via-slate-800/50 dark:to-slate-700/30 shadow-lg backdrop-blur-sm border-b border-border p-4 sticky top-16 pointer-events-auto"
       style={{ zIndex: contentZIndex }}
     >
      

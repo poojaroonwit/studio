@@ -590,9 +590,11 @@ export default function PositionsPageClient() {
               vacant: position.headcountData.vacant || 0,
               filled: position.headcountData.filled || 0
             };
+            console.log(`[PositionsPage] Headcount data for position ${position.title}:`, headcountMap[position.id]);
           }
         });
         setHeadcountData(headcountMap);
+        console.log('[PositionsPage] Updated headcount data:', headcountMap);
       }
         
         // Update statistics if included in response
@@ -969,7 +971,7 @@ export default function PositionsPageClient() {
     let mounted = true;
     let refreshTimeout: NodeJS.Timeout;
     let lastUpdateTime = 0;
-    const MIN_UPDATE_INTERVAL = 1000; // Minimum 1 second between updates
+    const MIN_UPDATE_INTERVAL = 500; // Minimum 500ms between updates
     
     // Only subscribe to events if user is authenticated
     if (status !== 'authenticated' || !session?.user?.id) {
@@ -1008,13 +1010,17 @@ export default function PositionsPageClient() {
         refreshTimeout = setTimeout(() => {
           if (mounted && status === 'authenticated' && session?.user?.id) {
             lastUpdateTime = Date.now();
-            // Only fetch if not currently loading
-            if (!isLoading) {
+            console.log('[PositionsPage] SSE refresh triggered - isLoading:', isLoading, 'isTableLoading:', isTableLoading, 'isSearching:', isSearching);
+            // Only fetch if not currently in table loading state (allow during initial load)
+            if (!isTableLoading && !isSearching) {
+              console.log('[PositionsPage] Calling fetchPositions and fetchRecruiterStats');
               fetchPositions(false);
               fetchRecruiterStats();
+            } else {
+              console.log('[PositionsPage] Skipping refresh due to loading state');
             }
           }
-        }, 1000); // 1 second debounce for better performance
+        }, 500); // 500ms debounce for better responsiveness
       }
     });
     

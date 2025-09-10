@@ -961,7 +961,7 @@ export function FlexibleKanbanView({
                 "flex flex-col h-full shadow-sm border border-border bg-card transition-all duration-200",
                 dragOverColumn === colValue && dragOverRow === 'none' && "ring-2 ring-primary ring-opacity-50 bg-primary/5"
               )}>
-                <CardHeader className="p-4 border-b border-border sticky top-0 bg-card z-10 flex-shrink-0">
+                <CardHeader className="p-4 border-b border-border sticky top-16 bg-card z-10 flex-shrink-0">
                   <div className="flex items-center gap-3">
                     <Avatar className="h-8 w-8">
                       <AvatarFallback className="bg-primary/10 text-primary text-sm">
@@ -1048,7 +1048,7 @@ export function FlexibleKanbanView({
             "flex flex-col h-full shadow-sm border border-border bg-card transition-all duration-200",
             dragOverColumn === 'uncategorized' && dragOverRow === 'none' && "ring-2 ring-primary ring-opacity-50 bg-primary/5"
           )}>
-            <CardHeader className="p-4 border-b border-border sticky top-0 bg-card z-10 flex-shrink-0">
+            <CardHeader className="p-4 border-b border-border sticky top-16 bg-card z-10 flex-shrink-0">
               <div className="flex items-center gap-3">
                 <Avatar className="h-8 w-8">
                   <AvatarFallback className="bg-muted text-muted-foreground text-sm">?</AvatarFallback>
@@ -1176,7 +1176,7 @@ export function FlexibleKanbanView({
         {effectiveColumnValues.map((colValue) => (
           <div key={colValue} className="flex flex-col h-full" style={{ flex: '1 1 0%' }}>
             <Card className="flex flex-col h-full shadow-sm border border-border bg-card">
-              <CardHeader className="p-4 border-b border-border sticky top-0 bg-card z-10 flex-shrink-0">
+              <CardHeader className="p-4 border-b border-border sticky top-16 bg-card z-10 flex-shrink-0">
                 <div className="flex items-center gap-3">
                   <Avatar className="h-8 w-8">
                     <AvatarFallback className="bg-primary/10 text-primary text-sm">
@@ -1291,7 +1291,7 @@ export function FlexibleKanbanView({
         {/* Always show Uncategorized column for unmatched columns */}
         <div key="uncategorized-col" className="flex flex-col h-full" style={{ flex: '1 1 0%' }}>
           <Card className="flex flex-col h-full shadow-sm border border-border bg-card">
-            <CardHeader className="p-4 border-b border-border sticky top-0 bg-card z-10 flex-shrink-0">
+            <CardHeader className="p-4 border-b border-border sticky top-16 bg-card z-10 flex-shrink-0">
               <div className="flex items-center gap-3">
                 <Avatar className="h-8 w-8">
                   <AvatarFallback className="bg-muted text-muted-foreground text-sm">?</AvatarFallback>
@@ -2059,7 +2059,7 @@ export function MultiRecruiterKanbanView({ candidates, stages, recruiters, onMov
       {recruiters.map((recruiter: any) => (
         <div key={recruiter.id} className="flex-shrink-0 w-80 flex flex-col h-full">
           <Card className="flex flex-col h-full shadow-sm border border-border bg-card">
-            <CardHeader className="p-4 border-b border-border sticky top-0 bg-card z-10 flex-shrink-0">
+            <CardHeader className="p-4 border-b border-border sticky top-16 bg-card z-10 flex-shrink-0">
               <div className="flex items-center gap-3">
                 <RecruiterAvatarCompact
                   user={{
@@ -2546,7 +2546,7 @@ export function HorizontalStageKanbanView({
                   isDragOver && !isCurrentColumn && "ring-2 ring-primary ring-opacity-50 bg-primary/5",
                   isCurrentColumn && isDragging && "opacity-50"
                 )}>
-                  <CardHeader className="p-4 border-b border-border sticky top-0 bg-card z-10 flex-shrink-0">
+                  <CardHeader className="p-4 border-b border-border sticky top-16 bg-card z-10 flex-shrink-0">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className={cn(

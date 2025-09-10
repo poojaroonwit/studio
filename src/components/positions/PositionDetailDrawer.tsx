@@ -702,7 +702,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
     let mounted = true;
     let refreshTimeout: NodeJS.Timeout;
     let lastUpdateTime = 0;
-    const MIN_UPDATE_INTERVAL = 1000; // Minimum 1 second between updates
+    const MIN_UPDATE_INTERVAL = 500; // Minimum 500ms between updates
     
     // Only subscribe to events if user is authenticated and drawer is open
     if (sessionStatus !== 'authenticated' || !positionId || !isOpen) {
@@ -745,7 +745,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
             fetchPosition();
             fetchHeadcountCount();
           }
-        }, 1000); // 1 second debounce for better performance
+        }, 500); // 500ms debounce for better responsiveness
       }
     });
     

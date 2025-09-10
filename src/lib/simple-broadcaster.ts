@@ -7,10 +7,9 @@ import {
   broadcastCandidateUpdateIfChanged, 
   broadcastPositionUpdateIfChanged, 
   broadcastUploadQueueUpdateIfChanged,
-  broadcastDashboardUpdateIfChanged,
-  forceBroadcast 
+  broadcastDashboardUpdateIfChanged
 } from './data-change-tracker';
-import { broadcastHighPriority, broadcastMediumPriority, broadcastLowPriority } from './aggressive-sse-optimizer';
+import { broadcastHighPriority, broadcastMediumPriority, broadcastLowPriority, forceBroadcast } from './aggressive-sse-optimizer';
 
 // Candidate-related broadcasts
 export function broadcastCandidateUpdate(candidate: any, actingUserId?: string) {
@@ -48,8 +47,8 @@ export function broadcastCandidateDeleted(candidateId: string, actingUserId?: st
 }
 
 export function broadcastCandidateStatusChanged(candidate: any, oldStatus: string, newStatus: string, actingUserId?: string) {
-  // High priority for status changes (always meaningful)
-  broadcastHighPriority('candidate_update', {
+  // Force immediate broadcast for status changes (bypasses all optimizations)
+  forceBroadcast('candidate_update', {
     candidate,
     actingUserId,
     action: 'status_changed',
@@ -98,8 +97,8 @@ export function broadcastPositionDeleted(positionId: string, actingUserId?: stri
 }
 
 export function broadcastPositionListUpdated() {
-  // High priority for list updates
-  broadcastHighPriority('position_update', {
+  // Force immediate broadcast for list updates (bypasses all optimizations)
+  forceBroadcast('position_update', {
     action: 'list_updated',
     timestamp: new Date().toISOString()
   });

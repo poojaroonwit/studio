@@ -267,9 +267,11 @@ export async function GET(
               )
               AND ($2 = '' OR c.name ILIKE $3 OR c.email ILIKE $3)
             )
-            SELECT *, 1 as sort_order FROM applied_candidates
-            UNION ALL
-            SELECT *, 2 as sort_order FROM matched_candidates
+            SELECT * FROM (
+              SELECT *, 1 as sort_order FROM applied_candidates
+              UNION ALL
+              SELECT *, 2 as sort_order FROM matched_candidates
+            ) combined_results
             ORDER BY sort_order, SORT_COLUMN_PLACEHOLDER SORT_DIRECTION_PLACEHOLDER
             LIMIT $4 OFFSET $5;
           `;

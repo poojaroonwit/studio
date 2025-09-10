@@ -39,7 +39,7 @@ export async function GET(
           h."requestDate",
           h.notes,
           h."memo_id",
-          h."customFields",
+          h."custom_fields",
           h."createdAt",
           h."updatedAt",
           p.title as "positionTitle",
@@ -79,7 +79,7 @@ export async function GET(
         requestDate: headcountRow.requestDate,
         notes: headcountRow.notes,
         memoId: headcountRow.memo_id,
-        customFields: headcountRow.customFields,
+        customFields: headcountRow.custom_fields,
         createdAt: headcountRow.createdAt,
         updatedAt: headcountRow.updatedAt,
         position: {
@@ -101,44 +101,22 @@ export async function GET(
         },
       };
 
-      // Validate headcount has required data for SLA calculation
-      if (!headcount.requestDate) {
-        return NextResponse.json({
-          violation: null,
-          remainingDays: null,
-          headcount: {
-            id: headcount.id,
-            type: headcount.type,
-            status: headcount.status,
-            positionTitle: headcount.position.title,
-            hasGrade: !!headcount.position.grade,
-            slaDays: headcount.position.grade?.slaDays || null,
-          },
-          error: 'Headcount does not have a request date set'
-        });
-      }
-
-      if (!headcount.position.grade || !headcount.position.grade.slaDays) {
-        return NextResponse.json({
-          violation: null,
-          remainingDays: null,
-          headcount: {
-            id: headcount.id,
-            type: headcount.type,
-            status: headcount.status,
-            positionTitle: headcount.position.title,
-            hasGrade: !!headcount.position.grade,
-            slaDays: headcount.position.grade?.slaDays || null,
-          },
-          error: 'Position does not have a grade with SLA days configured'
-        });
-      }
+      // Let the SLA calculation function handle validation
+      // This allows for more flexible error handling in the frontend
 
       // Calculate SLA information for this headcount
       const [violationResult, remainingDays] = await Promise.all([
         checkSLAViolationForHeadcount(headcount),
         getSLARemainingDaysForHeadcount(headcount)
       ]);
+
+      // Determine if there's an error based on missing data
+      let errorMessage = null;
+      if (!headcount.requestDate) {
+        errorMessage = 'Headcount does not have a request date set';
+      } else if (!headcount.position.grade || !headcount.position.grade.slaDays) {
+        errorMessage = 'Position does not have a grade with SLA days configured';
+      }
 
       return NextResponse.json({
         violation: violationResult,
@@ -150,7 +128,8 @@ export async function GET(
           positionTitle: headcount.position.title,
           hasGrade: !!headcount.position.grade,
           slaDays: headcount.position.grade?.slaDays || null,
-        }
+        },
+        ...(errorMessage && { error: errorMessage })
       });
 
     } finally {

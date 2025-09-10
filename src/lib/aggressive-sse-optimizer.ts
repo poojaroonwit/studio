@@ -222,6 +222,7 @@ export function forceBroadcast(
   data: any, 
   targetUserId?: string
 ): void {
+  console.log(`[ForceBroadcast] Sending immediate event: ${eventType}`, data);
   if (!targetUserId) {
     broadcast({ type: eventType, ...data }, eventType);
   }

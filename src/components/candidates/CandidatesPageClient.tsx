@@ -264,7 +264,14 @@ export function CandidatesPageClient({
     setPermissionError,
     setFetchError,
     setIsLoading,
-    getShowPinSection: () => candidateSettings?.showPinSection || false
+    getShowPinSection: () => {
+      // If settings are still loading, return false to avoid showing pinned candidates
+      // until we know the user's actual preference
+      if (settingsLoading) {
+        return false;
+      }
+      return candidateSettings?.showPinSection || false;
+    }
   });
 
   const {
@@ -1431,7 +1438,8 @@ export function CandidatesPageClient({
       !serverAuthError &&
       !serverPermissionError &&
       !hasInitialDataFetch &&
-      initialCandidates.length === 0
+      initialCandidates.length === 0 &&
+      !settingsLoading // Wait for settings to be loaded before making API calls
     ) {
       setHasInitialDataFetch(true);
       setIsLoading(true);
@@ -1451,7 +1459,7 @@ export function CandidatesPageClient({
         // The initial candidates are already loaded and will be used
       }
     }
-  }, [sessionStatus, serverAuthError, serverPermissionError, hasInitialDataFetch, fetchTableData, fetchAllCandidatesForCounts, initialCandidates.length, filters]);
+  }, [sessionStatus, serverAuthError, serverPermissionError, hasInitialDataFetch, fetchTableData, fetchAllCandidatesForCounts, initialCandidates.length, filters, settingsLoading]);
 
   // SIMPLIFIED: Main filter change handler - reduced dependencies to prevent resource leaks  
   useEffect(() => {

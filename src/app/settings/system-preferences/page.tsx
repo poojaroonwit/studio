@@ -1233,6 +1233,20 @@ export default function SystemPreferencesPage() {
         // Add all sidebar color keys
         ...Object.keys(sidebarColors)
       ];
+      
+      // Sync primary button colors to sidebar active colors
+      const finalPrimaryGradientStart = primaryGradientStart || DEFAULT_PRIMARY_GRADIENT_START;
+      const finalPrimaryGradientEnd = primaryGradientEnd || DEFAULT_PRIMARY_GRADIENT_END;
+      
+      // Update sidebar active colors to match primary button colors
+      const updatedSidebarColors = {
+        ...sidebarColors,
+        sidebarActiveBgStartL: finalPrimaryGradientStart,
+        sidebarActiveBgEndL: finalPrimaryGradientEnd,
+        sidebarActiveBgStartD: finalPrimaryGradientStart,
+        sidebarActiveBgEndD: finalPrimaryGradientEnd,
+      };
+      
       let settingsToSave = [
         { key: 'themePreference', value: themePreference },
         { key: 'appName', value: appName },
@@ -1259,11 +1273,11 @@ export default function SystemPreferencesPage() {
         { key: 'sidebarBackgroundImageFit', value: sidebarImageFit },
         { key: 'sidebarBackgroundImagePosition', value: sidebarImagePosition },
         // Always sync primaryGradientStart/End to sidebar active color
-        { key: 'primaryGradientStart', value: primaryGradientStart || DEFAULT_PRIMARY_GRADIENT_START },
-        { key: 'primaryGradientEnd', value: primaryGradientEnd || DEFAULT_PRIMARY_GRADIENT_END },
+        { key: 'primaryGradientStart', value: finalPrimaryGradientStart },
+        { key: 'primaryGradientEnd', value: finalPrimaryGradientEnd },
       ];
-      // Add sidebar colors
-      Object.entries(sidebarColors).forEach(([key, value]) => {
+      // Add sidebar colors (using updated colors that sync with primary button)
+      Object.entries(updatedSidebarColors).forEach(([key, value]) => {
         if (value) {
           settingsToSave.push({ key, value });
         }
@@ -1309,9 +1323,9 @@ export default function SystemPreferencesPage() {
       // Immediately update theme/colors in DOM
       setThemeAndColors({
         themePreference,
-        primaryGradientStart: primaryGradientStart || sidebarColors.sidebarActiveBgStartL || DEFAULT_PRIMARY_GRADIENT_START,
-        primaryGradientEnd: primaryGradientEnd || sidebarColors.sidebarActiveBgEndL || DEFAULT_PRIMARY_GRADIENT_END,
-        sidebarColors,
+        primaryGradientStart: finalPrimaryGradientStart,
+        primaryGradientEnd: finalPrimaryGradientEnd,
+        sidebarColors: updatedSidebarColors,
       });
 
       // Apply sidebar background settings
@@ -1329,9 +1343,9 @@ export default function SystemPreferencesPage() {
           logoUrl: savedLogoUrl,
           showLogoOnly,
           themePreference,
-          primaryGradientStart: primaryGradientStart || sidebarColors.sidebarActiveBgStartL || DEFAULT_PRIMARY_GRADIENT_START,
-          primaryGradientEnd: primaryGradientEnd || sidebarColors.sidebarActiveBgEndL || DEFAULT_PRIMARY_GRADIENT_END,
-          sidebarColors,
+          primaryGradientStart: finalPrimaryGradientStart,
+          primaryGradientEnd: finalPrimaryGradientEnd,
+          sidebarColors: updatedSidebarColors,
           sidebarActiveStyle,
           sidebarLogoSize,
           contextualLogos: {

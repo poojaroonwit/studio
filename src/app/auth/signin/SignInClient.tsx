@@ -409,14 +409,18 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
     let activeBgStart = '';
     let activeBgEnd = '';
     if (initialSettings) {
+      // Use primary gradient colors as the source of truth for sidebar active colors
+      const primaryGradientStart = initialSettings.find(s => s.key === 'primaryGradientStart')?.value;
+      const primaryGradientEnd = initialSettings.find(s => s.key === 'primaryGradientEnd')?.value;
+      
       if (isThemeDark) {
         activeFontColor = initialSettings.find(s => s.key === 'sidebarActiveTextD')?.value || '#fff';
-        activeBgStart = initialSettings.find(s => s.key === 'sidebarActiveBgStartD')?.value || DEFAULT_PRIMARY_GRADIENT_START_SIGNIN;
-        activeBgEnd = initialSettings.find(s => s.key === 'sidebarActiveBgEndD')?.value || DEFAULT_PRIMARY_GRADIENT_END_SIGNIN;
+        activeBgStart = primaryGradientStart || DEFAULT_PRIMARY_GRADIENT_START_SIGNIN;
+        activeBgEnd = primaryGradientEnd || DEFAULT_PRIMARY_GRADIENT_END_SIGNIN;
       } else {
         activeFontColor = initialSettings.find(s => s.key === 'sidebarActiveTextL')?.value || '#fff';
-        activeBgStart = initialSettings.find(s => s.key === 'sidebarActiveBgStartL')?.value || DEFAULT_PRIMARY_GRADIENT_START_SIGNIN;
-        activeBgEnd = initialSettings.find(s => s.key === 'sidebarActiveBgEndL')?.value || DEFAULT_PRIMARY_GRADIENT_END_SIGNIN;
+        activeBgStart = primaryGradientStart || DEFAULT_PRIMARY_GRADIENT_START_SIGNIN;
+        activeBgEnd = primaryGradientEnd || DEFAULT_PRIMARY_GRADIENT_END_SIGNIN;
       }
     } else {
       // fallback to CSS variables or defaults

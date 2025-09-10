@@ -458,7 +458,7 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
                  <TableHead>Onboarding Date</TableHead>
                  <TableHead>SLA</TableHead>
                  <TableHead>Candidate</TableHead>
-                 <TableHead>Notes</TableHead>
+                 <TableHead>Memo</TableHead>
                  {customFieldDefinitions.map((definition) => (
                    <TableHead key={definition.id} className="min-w-[120px]">
                      {definition.label}
@@ -511,16 +511,16 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
                         <span className="text-muted-foreground text-sm">No candidate assigned</span>
                       )}
                     </TableCell>
-                                         <TableCell>
-                       {headcount.notes ? (
-                         <div className="flex items-center gap-1 max-w-xs">
-                           <FileText className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                           <span className="text-sm truncate">{headcount.notes}</span>
-                         </div>
-                       ) : (
-                         <span className="text-muted-foreground text-sm">No notes</span>
-                       )}
-                     </TableCell>
+                    <TableCell>
+                      {headcount.memoId ? (
+                        <div className="flex items-center gap-1 max-w-xs">
+                          <FileText className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                          <span className="text-sm truncate">{headcount.memoId}</span>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">No memo</span>
+                      )}
+                    </TableCell>
                      {customFieldDefinitions.map((definition) => (
                        <TableCell key={definition.id}>
                          {renderCustomFieldValue(definition, headcount.customFields?.[definition.field_code])}

@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useSession } from "next-auth/react";
 import { useUserPreferences } from "@/hooks/use-user-preferences";
+import { useHasAssignedPositions } from "@/hooks/use-has-assigned-positions";
 import { AssignedPositionsSidebar } from "./AssignedPositionsSidebar";
 
 // Completely isolated navigation items - no external dependencies
@@ -411,6 +412,7 @@ const SafeSidebarNavComponent = React.memo(() => {
   const { open } = useSidebar();
   const { pendingCount, isLoading } = usePendingCount();
   const { sidebar: sidebarPreferences } = useUserPreferences();
+  const { hasPositions } = useHasAssignedPositions();
   
   if (hasError) {
     return <FallbackNav />;
@@ -532,7 +534,7 @@ const SafeSidebarNavComponent = React.memo(() => {
             </React.Fragment>
           ))}
           {/* Assigned positions inside the SidebarMenu list */}
-          {sidebarPreferences?.showAssignedPositions && (
+          {sidebarPreferences?.showAssignedPositions && hasPositions && (
             <>
               <SidebarGroupLabel>Job assigned</SidebarGroupLabel>
               <SidebarMenuItem>

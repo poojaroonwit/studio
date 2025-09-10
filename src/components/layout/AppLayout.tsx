@@ -181,8 +181,8 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
 
       updateThemeAndColorsRef.current?.({
         themePreference: prefs.appThemePreference || 'system',
-        primaryGradientStart: prefs.primaryGradientStart || prefs.sidebarActiveBgStartL,
-        primaryGradientEnd: prefs.primaryGradientEnd || prefs.sidebarActiveBgEndL,
+        primaryGradientStart: prefs.primaryGradientStart,
+        primaryGradientEnd: prefs.primaryGradientEnd,
         sidebarColors,
       });
 
@@ -194,8 +194,8 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
         // Then apply the full theme
         setThemeAndColors({
           themePreference: prefs.appThemePreference || 'system',
-          primaryGradientStart: prefs.primaryGradientStart || prefs.sidebarActiveBgStartL,
-          primaryGradientEnd: prefs.primaryGradientEnd || prefs.sidebarActiveBgEndL,
+          primaryGradientStart: prefs.primaryGradientStart,
+          primaryGradientEnd: prefs.primaryGradientEnd,
           sidebarColors,
         });
       }).catch((error) => {

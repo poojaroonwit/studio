@@ -14,6 +14,92 @@
 -- 6. Candidate sources
 
 -- ==============================================
+-- CREATE EXAMPLE CANDIDATE SOURCES
+-- ==============================================
+
+INSERT INTO "CandidateSource" (
+    id,
+    name,
+    description,
+    "allow_sub_source",
+    "sort_order",
+    "is_active",
+    "createdAt",
+    "updatedAt"
+) VALUES 
+('770e8400-e29b-41d4-a716-446655440001', 'Linkedin', 'Professional networking platform', true, 1, true, NOW(), NOW()),
+('770e8400-e29b-41d4-a716-446655440002', 'JobsDB', 'Job search platform', true, 2, true, NOW(), NOW()),
+('770e8400-e29b-41d4-a716-446655440003', 'Referral', 'Employee referrals', false, 3, true, NOW(), NOW()),
+('770e8400-e29b-41d4-a716-446655440004', 'JobThai', 'Thai job portal', true, 4, true, NOW(), NOW()),
+('770e8400-e29b-41d4-a716-446655440005', 'Facebook', 'Social media platform', true, 5, true, NOW(), NOW()),
+('770e8400-e29b-41d4-a716-446655440006', 'University', 'University career services', false, 6, true, NOW(), NOW()),
+('770e8400-e29b-41d4-a716-446655440007', 'JobExpo', 'Job fair and career expo', false, 7, true, NOW(), NOW());
+
+-- ==============================================
+-- CREATE EXAMPLE RECRUITMENT STAGES
+-- ==============================================
+
+INSERT INTO "RecruitmentStage" (
+    id,
+    name,
+    description,
+    "is_system",
+    "sort_order"
+) VALUES 
+('880e8400-e29b-41d4-a716-446655440001', 'Applied', 'Candidate has submitted application', true, 1),
+('880e8400-e29b-41d4-a716-446655440002', 'Screening', 'Initial screening in progress', true, 2),
+('880e8400-e29b-41d4-a716-446655440003', 'Shortlisted', 'Candidate has been shortlisted', true, 3),
+('880e8400-e29b-41d4-a716-446655440004', 'Interview Scheduled', 'Interview has been scheduled', true, 4),
+('880e8400-e29b-41d4-a716-446655440005', 'Interviewing', 'Interview in progress', true, 5),
+('880e8400-e29b-41d4-a716-446655440006', 'Offer Extended', 'Job offer has been extended', true, 6),
+('880e8400-e29b-41d4-a716-446655440007', 'Hired', 'Candidate has been hired', true, 7),
+('880e8400-e29b-41d4-a716-446655440008', 'Rejected', 'Candidate has been rejected', true, 8);
+
+-- ==============================================
+-- CREATE EXAMPLE GRADES
+-- ==============================================
+
+INSERT INTO "Grade" (
+    id,
+    name,
+    label,
+    description,
+    "min_level",
+    "max_level",
+    "sla_days",
+    color,
+    "is_active",
+    "sort_order",
+    "createdAt",
+    "updatedAt"
+) VALUES 
+('990e8400-e29b-41d4-a716-446655440001', 'G1', 'Entry Level', 'Entry level position', 1, 2, 30, '#3B82F6', true, 1, NOW(), NOW()),
+('990e8400-e29b-41d4-a716-446655440002', 'G2', 'Junior Level', 'Junior level position', 3, 4, 25, '#10B981', true, 2, NOW(), NOW()),
+('990e8400-e29b-41d4-a716-446655440003', 'G3', 'Mid Junior Level', 'Mid junior level position', 5, 6, 20, '#F59E0B', true, 3, NOW(), NOW()),
+('990e8400-e29b-41d4-a716-446655440004', 'G4', 'Mid Level', 'Mid level position', 7, 8, 15, '#EF4444', true, 4, NOW(), NOW()),
+('990e8400-e29b-41d4-a716-446655440005', 'G5', 'Senior Mid Level', 'Senior mid level position', 9, 10, 10, '#8B5CF6', true, 5, NOW(), NOW()),
+('990e8400-e29b-41d4-a716-446655440006', 'G6', 'Senior Level', 'Senior level position', 11, 12, 7, '#06B6D4', true, 6, NOW(), NOW()),
+('990e8400-e29b-41d4-a716-446655440007', 'G7', 'Principal Level', 'Principal level position', 13, 14, 5, '#84CC16', true, 7, NOW(), NOW()),
+('990e8400-e29b-41d4-a716-446655440008', 'G8', 'Director Level', 'Director level position', 15, 16, 3, '#F97316', true, 8, NOW(), NOW());
+
+-- ==============================================
+-- CREATE EXAMPLE USERS
+-- ==============================================
+
+INSERT INTO "User" (
+    id,
+    email,
+    name,
+    password,
+    role,
+    "createdAt",
+    "updatedAt"
+) VALUES 
+('110e8400-e29b-41d4-a716-446655440001', 'admin@qsncc.com', 'Admin User', '$2a$10$hashedpassword', 'admin', NOW(), NOW()),
+('110e8400-e29b-41d4-a716-446655440002', 'recruiter1@qsncc.com', 'John Recruiter', '$2a$10$hashedpassword', 'recruiter', NOW(), NOW()),
+('110e8400-e29b-41d4-a716-446655440003', 'recruiter2@qsncc.com', 'Jane Recruiter', '$2a$10$hashedpassword', 'recruiter', NOW(), NOW());
+
+-- ==============================================
 -- CREATE EXAMPLE POSITIONS
 -- ==============================================
 
@@ -31,7 +117,6 @@ INSERT INTO "Position" (
     "createdAt",
     "updatedAt",
     "gradeId",
-    "requestDate",
     "positionAttribute"
 ) VALUES 
 -- Software Development Positions
@@ -48,7 +133,6 @@ INSERT INTO "Position" (
     NOW(),
     NOW(),
     (SELECT id FROM "Grade" WHERE name = 'G6' LIMIT 1),
-    '2024-03-15',
     'Full-time'
 ),
 (
@@ -64,7 +148,6 @@ INSERT INTO "Position" (
     NOW(),
     NOW(),
     (SELECT id FROM "Grade" WHERE name = 'G4' LIMIT 1),
-    '2024-02-28',
     'Full-time'
 ),
 (
@@ -80,7 +163,6 @@ INSERT INTO "Position" (
     NOW(),
     NOW(),
     (SELECT id FROM "Grade" WHERE name = 'G6' LIMIT 1),
-    '2024-04-01',
     'Full-time'
 ),
 (
@@ -96,7 +178,6 @@ INSERT INTO "Position" (
     NOW(),
     NOW(),
     (SELECT id FROM "Grade" WHERE name = 'G7' LIMIT 1),
-    '2024-03-30',
     'Full-time'
 ),
 (
@@ -112,7 +193,6 @@ INSERT INTO "Position" (
     NOW(),
     NOW(),
     (SELECT id FROM "Grade" WHERE name = 'G5' LIMIT 1),
-    '2024-03-20',
     'Full-time'
 ),
 -- Additional positions for more variety
@@ -129,7 +209,6 @@ INSERT INTO "Position" (
     NOW(),
     NOW(),
     (SELECT id FROM "Grade" WHERE name = 'G5' LIMIT 1),
-    '2024-04-15',
     'Full-time'
 ),
 (
@@ -145,7 +224,6 @@ INSERT INTO "Position" (
     NOW(),
     NOW(),
     (SELECT id FROM "Grade" WHERE name = 'G6' LIMIT 1),
-    '2024-03-25',
     'Full-time'
 ),
 (
@@ -161,7 +239,6 @@ INSERT INTO "Position" (
     NOW(),
     NOW(),
     (SELECT id FROM "Grade" WHERE name = 'G3' LIMIT 1),
-    '2024-04-10',
     'Full-time'
 ),
 (
@@ -177,7 +254,6 @@ INSERT INTO "Position" (
     NOW(),
     NOW(),
     (SELECT id FROM "Grade" WHERE name = 'G4' LIMIT 1),
-    '2024-04-05',
     'Full-time'
 ),
 (
@@ -193,7 +269,6 @@ INSERT INTO "Position" (
     NOW(),
     NOW(),
     (SELECT id FROM "Grade" WHERE name = 'G5' LIMIT 1),
-    '2024-04-20',
     'Full-time'
 ),
 (
@@ -209,7 +284,6 @@ INSERT INTO "Position" (
     NOW(),
     NOW(),
     (SELECT id FROM "Grade" WHERE name = 'G4' LIMIT 1),
-    '2024-04-12',
     'Full-time'
 ),
 (
@@ -225,7 +299,6 @@ INSERT INTO "Position" (
     NOW(),
     NOW(),
     (SELECT id FROM "Grade" WHERE name = 'G5' LIMIT 1),
-    '2024-04-18',
     'Full-time'
 );
 
@@ -263,23 +336,23 @@ INSERT INTO "Candidate" (
 -- Candidate 1: Senior Software Engineer
 (
     '660e8400-e29b-41d4-a716-446655440001',
-    'John Smith',
-    'john.smith@email.com',
+    'Somchai Rattanakul',
+    'somchai.rattanakul@email.com',
     '+66-81-234-5678',
     '550e8400-e29b-41d4-a716-446655440001',
     (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
     0.85,
     '2024-01-15',
-    '{"skills": ["JavaScript", "React", "Node.js", "PostgreSQL", "AWS"], "experience_years": 6, "education": "Bachelor of Computer Science", "languages": ["English", "Thai"], "certifications": ["AWS Certified Developer"]}',
-    '{"expected_salary": "100,000 THB", "availability": "2 weeks notice", "preferred_location": "Bangkok", "remote_work": true}',
-    '/uploads/resumes/john_smith_resume.pdf',
+    '{"skills": ["JavaScript", "React", "Node.js", "PostgreSQL", "AWS", "Docker", "Kubernetes", "TypeScript", "GraphQL"], "experience_years": 6, "education": "Bachelor of Computer Science", "languages": ["English", "Thai", "Chinese"], "certifications": ["AWS Certified Developer", "Google Cloud Professional"], "specializations": ["Full-stack Development", "Cloud Architecture", "Microservices"]}',
+    '{"expected_salary": "120,000 THB", "availability": "2 weeks notice", "preferred_location": "Bangkok", "remote_work": true, "work_preferences": ["Flexible hours", "Learning opportunities", "Tech conferences"]}',
+    '/uploads/resumes/somchai_rattanakul_resume.pdf',
     '2024-01-15',
     NOW(),
     'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
-    'Experienced full-stack developer with strong React and Node.js skills. Has AWS certification and 6 years of experience.',
-    'Strong technical background with relevant experience in our tech stack. AWS certification is a plus.',
-    '[{"degree": "Bachelor of Computer Science", "university": "Chulalongkorn University", "year": 2018, "gpa": "3.5"}]',
-    '[{"company": "TechCorp Thailand", "position": "Senior Software Engineer", "duration": "2021-2024", "description": "Led development of microservices architecture and improved system performance by 40%"}, {"company": "StartupXYZ", "position": "Software Engineer", "duration": "2018-2021", "description": "Developed full-stack applications using React and Node.js"}]',
+    'Experienced full-stack developer with strong React and Node.js skills. Has AWS and Google Cloud certifications with 6 years of experience in fintech and e-commerce.',
+    'Exceptional candidate with 6+ years of full-stack development experience in fintech and e-commerce. Strong technical skills in React, Node.js, and cloud technologies (AWS, Google Cloud certified). Previous experience at Kasikorn Bank demonstrates ability to handle high-volume, mission-critical applications. Microservices architecture experience aligns perfectly with our current tech stack. Proven track record of performance improvements (40% system performance boost, 60% transaction time reduction). Multilingual capabilities (English, Thai, Chinese) valuable for our international team. Ready to contribute immediately to our mobile banking and payment systems.',
+    '[{"degree": "Bachelor of Computer Science", "university": "Chulalongkorn University", "year": 2018, "gpa": "3.5", "honors": "Magna Cum Laude"}, {"degree": "Certificate in Cloud Computing", "university": "AWS Training Center", "year": 2022, "gpa": "4.0"}]',
+    '[{"company": "Kasikorn Bank", "position": "Senior Software Engineer", "duration": "2021-2024", "description": "Led development of microservices architecture for mobile banking app, improved system performance by 40% and reduced transaction time by 60%"}, {"company": "Lazada Thailand", "position": "Software Engineer", "duration": "2018-2021", "description": "Developed full-stack applications using React and Node.js for e-commerce platform, handled 1M+ daily transactions"}]',
     null,
     (SELECT id FROM "CandidateSource" WHERE name = 'Linkedin' LIMIT 1),
     'Direct Application',
@@ -290,23 +363,23 @@ INSERT INTO "Candidate" (
 -- Candidate 2: Frontend Developer
 (
     '660e8400-e29b-41d4-a716-446655440002',
-    'Sarah Johnson',
-    'sarah.johnson@email.com',
+    'Siriporn Chaiyaporn',
+    'siriporn.chaiyaporn@email.com',
     '+66-82-345-6789',
     '550e8400-e29b-41d4-a716-446655440002',
     (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
     0.78,
     '2024-01-20',
-    '{"skills": ["React", "TypeScript", "CSS", "Jest", "Figma"], "experience_years": 4, "education": "Bachelor of Information Technology", "languages": ["English", "Thai"], "certifications": []}',
-    '{"expected_salary": "75,000 THB", "availability": "1 month notice", "preferred_location": "Bangkok", "remote_work": false}',
-    '/uploads/resumes/sarah_johnson_resume.pdf',
+    '{"skills": ["React", "TypeScript", "CSS", "Jest", "Figma", "Next.js", "Tailwind CSS", "Storybook", "Cypress"], "experience_years": 4, "education": "Bachelor of Information Technology", "languages": ["English", "Thai", "Japanese"], "certifications": ["React Developer Certification"], "specializations": ["UI/UX Development", "Performance Optimization", "Accessibility"]}',
+    '{"expected_salary": "85,000 THB", "availability": "1 month notice", "preferred_location": "Bangkok", "remote_work": false, "work_preferences": ["Creative projects", "User-centered design", "Modern tech stack"]}',
+    '/uploads/resumes/siriporn_chaiyaporn_resume.pdf',
     '2024-01-20',
     NOW(),
     'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face',
-    'Frontend specialist with strong React and TypeScript skills. Has experience with testing and design tools.',
-    'Good frontend skills with modern technologies. Experience with testing frameworks is valuable.',
-    '[{"degree": "Bachelor of Information Technology", "university": "KMITL", "year": 2020, "gpa": "3.7"}]',
-    '[{"company": "Digital Agency Co.", "position": "Frontend Developer", "duration": "2022-2024", "description": "Built responsive web applications and improved user experience metrics"}, {"company": "WebStudio", "position": "Junior Frontend Developer", "duration": "2020-2022", "description": "Developed user interfaces using React and CSS frameworks"}]',
+    'Frontend specialist with strong React and TypeScript skills. Has experience with testing, design tools, and accessibility standards.',
+    'Strong frontend specialist with 4+ years of experience in modern React development and UI/UX design. Proven expertise in TypeScript, Next.js, and modern CSS frameworks (Tailwind CSS). Experience with comprehensive testing (Jest, Cypress) and accessibility standards ensures high-quality, inclusive user experiences. Previous work at Agoda demonstrates ability to handle high-traffic travel platforms with complex user interactions. Achieved 25% improvement in user experience metrics and 40% reduction in page load times. Google UX Design Certificate shows commitment to user-centered design principles. Multilingual skills (English, Thai, Japanese) valuable for our diverse user base. Strong portfolio showcasing mobile-first design and e-commerce optimization.',
+    '[{"degree": "Bachelor of Information Technology", "university": "King Mongkut Institute of Technology Ladkrabang", "year": 2020, "gpa": "3.7", "honors": "Dean List"}, {"degree": "Certificate in UI/UX Design", "university": "Bangkok University", "year": 2021, "gpa": "3.9"}]',
+    '[{"company": "Agoda", "position": "Frontend Developer", "duration": "2022-2024", "description": "Built responsive web applications for travel booking platform, improved user experience metrics by 25% and reduced page load time by 40%"}, {"company": "Central Group", "position": "Junior Frontend Developer", "duration": "2020-2022", "description": "Developed user interfaces using React and CSS frameworks for e-commerce platform, implemented accessibility features"}]',
     null,
     (SELECT id FROM "CandidateSource" WHERE name = 'JobsDB' LIMIT 1),
     'Job Portal',
@@ -317,23 +390,23 @@ INSERT INTO "Candidate" (
 -- Candidate 3: Data Scientist
 (
     '660e8400-e29b-41d4-a716-446655440003',
-    'Michael Chen',
-    'michael.chen@email.com',
+    'Pichai Wongsuwan',
+    'pichai.wongsuwan@email.com',
     '+66-83-456-7890',
     '550e8400-e29b-41d4-a716-446655440003',
     (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
     0.92,
     '2024-01-18',
-    '{"skills": ["Python", "R", "SQL", "Machine Learning", "TensorFlow", "Spark"], "experience_years": 5, "education": "Master of Data Science", "languages": ["English", "Chinese", "Thai"], "certifications": ["Google Cloud ML Engineer"]}',
-    '{"expected_salary": "120,000 THB", "availability": "3 weeks notice", "preferred_location": "Bangkok", "remote_work": true}',
-    '/uploads/resumes/michael_chen_resume.pdf',
+    '{"skills": ["Python", "R", "SQL", "Machine Learning", "TensorFlow", "Spark", "Pandas", "Scikit-learn", "PyTorch", "Tableau", "Power BI"], "experience_years": 5, "education": "Master of Data Science", "languages": ["English", "Thai", "Chinese"], "certifications": ["Google Cloud ML Engineer", "AWS Machine Learning Specialty"], "specializations": ["Predictive Analytics", "Deep Learning", "Business Intelligence"]}',
+    '{"expected_salary": "140,000 THB", "availability": "3 weeks notice", "preferred_location": "Bangkok", "remote_work": true, "work_preferences": ["Research projects", "AI innovation", "Data-driven decisions"]}',
+    '/uploads/resumes/pichai_wongsuwan_resume.pdf',
     '2024-01-18',
     NOW(),
     'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
-    'Highly qualified data scientist with advanced degree and strong ML background. Google Cloud certification.',
-    'Excellent candidate with advanced degree and relevant experience. Strong technical skills and certifications.',
-    '[{"degree": "Master of Data Science", "university": "Stanford University", "year": 2019, "gpa": "3.8"}, {"degree": "Bachelor of Statistics", "university": "Chulalongkorn University", "year": 2017, "gpa": "3.6"}]',
-    '[{"company": "DataTech Solutions", "position": "Senior Data Scientist", "duration": "2021-2024", "description": "Led ML model development and improved prediction accuracy by 25%"}, {"company": "Analytics Pro", "position": "Data Scientist", "duration": "2019-2021", "description": "Built predictive models and performed statistical analysis"}]',
+    'Highly qualified data scientist with advanced degree and strong ML background. Google Cloud and AWS certifications with experience in fintech and e-commerce analytics.',
+    'Outstanding data scientist with Master degree from Chulalongkorn University and 5+ years of experience in fintech and e-commerce analytics. Advanced expertise in Python, machine learning frameworks (TensorFlow, PyTorch), and cloud ML platforms (AWS, Google Cloud certified). Previous experience at SCB Bank demonstrates deep understanding of financial risk assessment and fraud detection systems. Achieved 35% improvement in ML model accuracy and 50% reduction in false positives. Experience at Shopee Thailand shows ability to build recommendation systems and customer segmentation models, resulting in 20% increase in conversion rates. Strong background in both statistical analysis and deep learning applications. Multilingual capabilities (English, Thai, Chinese) valuable for our international data initiatives. Ready to lead our AI/ML initiatives and drive data-driven decision making.',
+    '[{"degree": "Master of Data Science", "university": "Chulalongkorn University", "year": 2019, "gpa": "3.8", "thesis": "Deep Learning for Financial Risk Assessment"}, {"degree": "Bachelor of Statistics", "university": "Thammasat University", "year": 2017, "gpa": "3.6"}]',
+    '[{"company": "SCB Bank", "position": "Senior Data Scientist", "duration": "2021-2024", "description": "Built ML models for credit risk assessment and fraud detection, improved accuracy by 35% and reduced false positives by 50%"}, {"company": "Shopee Thailand", "position": "Data Scientist", "duration": "2019-2021", "description": "Developed recommendation systems and customer segmentation models, increased conversion rate by 20%"}]',
     null,
     (SELECT id FROM "CandidateSource" WHERE name = 'Referral' LIMIT 1),
     'Employee Referral',
@@ -344,23 +417,23 @@ INSERT INTO "Candidate" (
 -- Candidate 4: Product Manager
 (
     '660e8400-e29b-41d4-a716-446655440004',
-    'Emily Wilson',
-    'emily.wilson@email.com',
+    'Niran Srisawat',
+    'niran.srisawat@email.com',
     '+66-84-567-8901',
     '550e8400-e29b-41d4-a716-446655440004',
     (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
     0.88,
     '2024-01-22',
-    '{"skills": ["Product Management", "Agile", "Analytics", "User Research", "A/B Testing"], "experience_years": 5, "education": "MBA", "languages": ["English", "Thai"], "certifications": ["Certified Scrum Product Owner"]}',
-    '{"expected_salary": "130,000 THB", "availability": "1 month notice", "preferred_location": "Bangkok", "remote_work": false}',
-    '/uploads/resumes/emily_wilson_resume.pdf',
+    '{"skills": ["Product Management", "Agile", "Analytics", "User Research", "A/B Testing", "Figma", "Jira", "Confluence", "SQL", "Tableau"], "experience_years": 5, "education": "MBA", "languages": ["English", "Thai", "Chinese"], "certifications": ["Certified Scrum Product Owner", "Google Analytics Certified"], "specializations": ["Digital Products", "Mobile Apps", "E-commerce"]}',
+    '{"expected_salary": "150,000 THB", "availability": "1 month notice", "preferred_location": "Bangkok", "remote_work": false, "work_preferences": ["Innovation", "User impact", "Cross-functional collaboration"]}',
+    '/uploads/resumes/niran_srisawat_resume.pdf',
     '2024-01-22',
     NOW(),
     'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face',
-    'Experienced product manager with MBA and strong analytical skills. Has experience with agile methodologies.',
-    'Strong product management background with MBA. Experience with user research and analytics.',
-    '[{"degree": "MBA", "university": "INSEAD", "year": 2020, "gpa": "3.9"}, {"degree": "Bachelor of Business Administration", "university": "Thammasat University", "year": 2018, "gpa": "3.8"}]',
-    '[{"company": "ProductCorp", "position": "Senior Product Manager", "duration": "2022-2024", "description": "Led product strategy and increased user engagement by 35%"}, {"company": "TechStartup", "position": "Product Manager", "duration": "2020-2022", "description": "Managed product roadmap and coordinated with engineering teams"}]',
+    'Experienced product manager with MBA and strong analytical skills. Has experience with agile methodologies and digital product development in fintech.',
+    'Exceptional product manager with MBA from Chulalongkorn University and 5+ years of experience in digital product development, particularly in fintech and mobile applications. Strong background in user research, analytics, and agile methodologies with CSPO certification. Previous experience at True Money demonstrates expertise in digital wallet and payment systems, achieving 35% increase in user engagement and 50% growth in transaction volume. Experience at Line Thailand shows ability to manage complex, multi-country product initiatives and coordinate with international engineering teams. Proficient in modern product tools (Figma, Jira, Confluence) and data analysis (SQL, Tableau). Strong understanding of Thai market dynamics and user behavior patterns. Multilingual capabilities (English, Thai, Chinese) valuable for our regional expansion. Ready to drive product strategy and lead cross-functional teams in our digital transformation initiatives.',
+    '[{"degree": "MBA", "university": "Chulalongkorn University", "year": 2020, "gpa": "3.9", "specialization": "Digital Business"}, {"degree": "Bachelor of Business Administration", "university": "Thammasat University", "year": 2018, "gpa": "3.8", "honors": "Summa Cum Laude"}]',
+    '[{"company": "True Money", "position": "Senior Product Manager", "duration": "2022-2024", "description": "Led digital wallet product strategy, increased user engagement by 35% and transaction volume by 50%"}, {"company": "Line Thailand", "position": "Product Manager", "duration": "2020-2022", "description": "Managed messaging app features and coordinated with engineering teams across multiple countries"}]',
     null,
     (SELECT id FROM "CandidateSource" WHERE name = 'Linkedin' LIMIT 1),
     'Professional Network',
@@ -371,23 +444,23 @@ INSERT INTO "Candidate" (
 -- Candidate 5: UX Designer
 (
     '660e8400-e29b-41d4-a716-446655440005',
-    'David Brown',
-    'david.brown@email.com',
+    'Supaporn Thongchai',
+    'supaporn.thongchai@email.com',
     '+66-85-678-9012',
     '550e8400-e29b-41d4-a716-446655440005',
     (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
     0.75,
     '2024-01-25',
-    '{"skills": ["Figma", "Sketch", "User Research", "Prototyping", "Design Systems"], "experience_years": 3, "education": "Bachelor of Design", "languages": ["English", "Thai"], "certifications": []}',
-    '{"expected_salary": "85,000 THB", "availability": "2 weeks notice", "preferred_location": "Bangkok", "remote_work": true}',
-    '/uploads/resumes/david_brown_resume.pdf',
+    '{"skills": ["Figma", "Sketch", "User Research", "Prototyping", "Design Systems", "Adobe Creative Suite", "Principle", "InVision", "Miro", "Hotjar"], "experience_years": 3, "education": "Bachelor of Design", "languages": ["English", "Thai", "Japanese"], "certifications": ["Google UX Design Certificate"], "specializations": ["Mobile Design", "E-commerce UX", "Accessibility"]}',
+    '{"expected_salary": "95,000 THB", "availability": "2 weeks notice", "preferred_location": "Bangkok", "remote_work": true, "work_preferences": ["User-centered design", "Creative freedom", "Design systems"]}',
+    '/uploads/resumes/supaporn_thongchai_resume.pdf',
     '2024-01-25',
     NOW(),
     'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=face',
-    'Creative UX designer with strong portfolio and user research experience. Proficient in modern design tools.',
-    'Good UX skills with experience in user research. Portfolio shows strong design capabilities.',
-    '[{"degree": "Bachelor of Design", "university": "Silpakorn University", "year": 2021, "gpa": "3.6"}]',
-    '[{"company": "Design Studio", "position": "UX Designer", "duration": "2022-2024", "description": "Designed user interfaces and conducted user research studies"}, {"company": "Creative Agency", "position": "Junior UX Designer", "duration": "2021-2022", "description": "Created wireframes and prototypes for web applications"}]',
+    'Creative UX designer with strong portfolio and user research experience. Proficient in modern design tools with focus on mobile and e-commerce applications.',
+    'Creative UX designer with 3+ years of experience in modern design tools and user-centered design principles. Strong expertise in Figma, Adobe Creative Suite, and prototyping tools (Principle, InVision). Google UX Design Certificate demonstrates commitment to industry best practices and accessibility standards. Previous experience at Central Group shows ability to design for complex e-commerce platforms, achieving 15% improvement in conversion rates through user research and iterative design. Experience at Digital Agency Bangkok demonstrates versatility in working with international clients and diverse user bases. Strong portfolio showcasing mobile-first design, accessibility features, and data-driven design decisions. Understanding of Thai user behavior patterns and cultural considerations valuable for our local market focus. Multilingual skills (English, Thai, Japanese) enable effective collaboration with international teams.',
+    '[{"degree": "Bachelor of Design", "university": "Silpakorn University", "year": 2021, "gpa": "3.6", "specialization": "Digital Design"}, {"degree": "Certificate in UX Design", "university": "Google Career Certificates", "year": 2022, "gpa": "4.0"}]',
+    '[{"company": "Central Group", "position": "UX Designer", "duration": "2022-2024", "description": "Designed user interfaces for e-commerce platform and conducted user research studies, improved conversion rate by 15%"}, {"company": "Digital Agency Bangkok", "position": "Junior UX Designer", "duration": "2021-2022", "description": "Created wireframes and prototypes for mobile applications, worked with international clients"}]',
     null,
     (SELECT id FROM "CandidateSource" WHERE name = 'JobThai' LIMIT 1),
     'Job Portal',
@@ -1186,23 +1259,23 @@ INSERT INTO "Candidate" (
 -- Candidate 35: Scrum Master
 (
     '660e8400-e29b-41d4-a716-446655440035',
-    'Elena Rodriguez',
-    'elena.rodriguez@email.com',
+    'Kamonwan Srisuwan',
+    'kamonwan.srisuwan@email.com',
     '+66-95-678-9012',
     '550e8400-e29b-41d4-a716-446655440004',
     (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
     0.79,
     '2024-03-28',
-    '{"skills": ["Scrum", "Agile", "Project Management", "Team Facilitation", "Jira", "Confluence", "Retrospectives"], "experience_years": 6, "education": "Bachelor of Business Administration", "languages": ["English", "Spanish", "Thai"], "certifications": ["Certified ScrumMaster (CSM)", "Professional Scrum Master (PSM)"]}',
-    '{"expected_salary": "80,000 THB", "availability": "2 weeks notice", "preferred_location": "Bangkok", "remote_work": false}',
-    '/uploads/resumes/elena_rodriguez_resume.pdf',
+    '{"skills": ["Scrum", "Agile", "Project Management", "Team Facilitation", "Jira", "Confluence", "Retrospectives", "SAFe", "Kanban", "Lean"], "experience_years": 6, "education": "Bachelor of Business Administration", "languages": ["English", "Thai", "Chinese"], "certifications": ["Certified ScrumMaster (CSM)", "Professional Scrum Master (PSM)", "SAFe Agilist"], "specializations": ["Agile Transformation", "Team Coaching", "Process Improvement"]}',
+    '{"expected_salary": "90,000 THB", "availability": "2 weeks notice", "preferred_location": "Bangkok", "remote_work": false, "work_preferences": ["Agile transformation", "Team development", "Process improvement"]}',
+    '/uploads/resumes/kamonwan_srisuwan_resume.pdf',
     '2024-03-28',
     NOW(),
     'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face',
-    'Experienced Scrum Master with strong agile facilitation skills.',
-    'Good agile background with CSM and PSM certifications.',
-    '[{"degree": "Bachelor of Business Administration", "university": "Universidad de Madrid", "year": 2018, "gpa": "3.5"}]',
-    '[{"company": "Agile Solutions", "position": "Senior Scrum Master", "duration": "2020-2024", "description": "Facilitated agile teams and improved delivery processes"}, {"company": "Tech Company", "position": "Scrum Master", "duration": "2018-2020", "description": "Led scrum ceremonies and coached development teams"}]',
+    'Experienced Scrum Master with strong agile facilitation skills and experience in digital transformation projects.',
+    'Experienced Scrum Master with 6+ years of agile facilitation and team coaching experience. Certified ScrumMaster (CSM) and Professional Scrum Master (PSM) with additional SAFe Agilist certification. Previous experience at True Corporation demonstrates expertise in large-scale digital transformation projects, achieving 40% improvement in delivery velocity and 30% reduction in time-to-market. Experience at AIS shows ability to coordinate agile teams across multiple countries and complex mobile app development projects. Strong background in agile methodologies (Scrum, Kanban, SAFe) and process improvement techniques. Proven track record of coaching development teams, facilitating retrospectives, and implementing agile best practices. Multilingual capabilities (English, Thai, Chinese) valuable for our international team coordination. Ready to lead our agile transformation initiatives and improve team productivity.',
+    '[{"degree": "Bachelor of Business Administration", "university": "Thammasat University", "year": 2018, "gpa": "3.5", "specialization": "Management Information Systems"}, {"degree": "Certificate in Agile Project Management", "university": "Scrum Alliance", "year": 2020, "gpa": "4.0"}]',
+    '[{"company": "True Corporation", "position": "Senior Scrum Master", "duration": "2020-2024", "description": "Facilitated agile teams for digital transformation projects, improved delivery velocity by 40% and reduced time-to-market by 30%"}, {"company": "AIS", "position": "Scrum Master", "duration": "2018-2020", "description": "Led scrum ceremonies and coached development teams for mobile app development"}]',
     null,
     (SELECT id FROM "CandidateSource" WHERE name = 'Referral' LIMIT 1),
     'Employee Referral',
@@ -1307,8 +1380,8 @@ DECLARE
         (SELECT id FROM "RecruitmentStage" WHERE name = 'Shortlisted' LIMIT 1),
         (SELECT id FROM "RecruitmentStage" WHERE name = 'Interview Scheduled' LIMIT 1)
     ];
-    first_names TEXT[] := ARRAY['John', 'Jane', 'Michael', 'Sarah', 'David', 'Lisa', 'Robert', 'Emily', 'James', 'Maria', 'William', 'Anna', 'Richard', 'Jennifer', 'Thomas', 'Jessica', 'Charles', 'Ashley', 'Christopher', 'Amanda', 'Daniel', 'Stephanie', 'Matthew', 'Melissa', 'Anthony', 'Nicole', 'Mark', 'Elizabeth', 'Donald', 'Helen', 'Steven', 'Samantha', 'Paul', 'Cynthia', 'Andrew', 'Kathleen', 'Joshua', 'Amy', 'Kenneth', 'Shirley', 'Kevin', 'Angela', 'Brian', 'Brenda', 'George', 'Emma', 'Timothy', 'Olivia', 'Ronald', 'Catherine'];
-    last_names TEXT[] := ARRAY['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez', 'Hernandez', 'Lopez', 'Gonzalez', 'Wilson', 'Anderson', 'Thomas', 'Taylor', 'Moore', 'Jackson', 'Martin', 'Lee', 'Perez', 'Thompson', 'White', 'Harris', 'Sanchez', 'Clark', 'Ramirez', 'Lewis', 'Robinson', 'Walker', 'Young', 'Allen', 'King', 'Wright', 'Scott', 'Torres', 'Nguyen', 'Hill', 'Flores', 'Green', 'Adams', 'Nelson', 'Baker', 'Hall', 'Rivera', 'Campbell', 'Mitchell', 'Carter', 'Roberts'];
+    first_names TEXT[] := ARRAY['Somchai', 'Siriporn', 'Pichai', 'Niran', 'Supaporn', 'Anchalee', 'Prasert', 'Wanida', 'Somsak', 'Ratchanee', 'Chaiwat', 'Sirirat', 'Prapas', 'Kamonwan', 'Suthep', 'Pornthip', 'Wichai', 'Sirilak', 'Prasong', 'Kannika', 'Somkid', 'Siriphan', 'Prasit', 'Kamonrat', 'Suthat', 'Pornpimol', 'Wichit', 'Sirin', 'Prasert', 'Kannikar', 'Somchit', 'Siriporn', 'Prasong', 'Kamonwan', 'Suthat', 'Pornthip', 'Wichai', 'Sirilak', 'Prasert', 'Kannika', 'Somkid', 'Siriphan', 'Prasit', 'Kamonrat', 'Suthat', 'Pornpimol', 'Wichit', 'Sirin', 'Prasert', 'Kannikar'];
+    last_names TEXT[] := ARRAY['Rattanakul', 'Chaiyaporn', 'Wongsuwan', 'Srisawat', 'Thongchai', 'Srisuwan', 'Prasertkul', 'Chaiyaporn', 'Rattanakul', 'Srisawat', 'Wongsuwan', 'Chaiyaporn', 'Rattanakul', 'Srisawat', 'Wongsuwan', 'Chaiyaporn', 'Rattanakul', 'Srisawat', 'Wongsuwan', 'Chaiyaporn', 'Rattanakul', 'Srisawat', 'Wongsuwan', 'Chaiyaporn', 'Rattanakul', 'Srisawat', 'Wongsuwan', 'Chaiyaporn', 'Rattanakul', 'Srisawat', 'Wongsuwan', 'Chaiyaporn', 'Rattanakul', 'Srisawat', 'Wongsuwan', 'Chaiyaporn', 'Rattanakul', 'Srisawat', 'Wongsuwan', 'Chaiyaporn', 'Rattanakul', 'Srisawat', 'Wongsuwan', 'Chaiyaporn', 'Rattanakul', 'Srisawat', 'Wongsuwan', 'Chaiyaporn', 'Rattanakul', 'Srisawat'];
 BEGIN
     FOR i IN 41..487 LOOP
         candidate_id := '660e8400-e29b-41d4-a716-44665544' || LPAD(i::TEXT, 4, '0');
@@ -1330,16 +1403,16 @@ BEGIN
             (SELECT id FROM "User" WHERE email = 'admin@qsncc.com' LIMIT 1),
             0.60 + (i % 35) * 0.01, -- Fit score between 0.60 and 0.94
             '2024-01-01'::DATE + (i % 120) * INTERVAL '1 day', -- Application dates over 4 months
-            '{"skills": ["Skill1", "Skill2", "Skill3"], "experience_years": ' || (2 + (i % 8)) || ', "education": "Bachelor Degree", "languages": ["English", "Thai"], "certifications": []}',
-            '{"expected_salary": "' || (50000 + (i % 100000)) || ' THB", "availability": "2 weeks notice", "preferred_location": "Bangkok", "remote_work": ' || (i % 2 = 0) || '}',
+            '{"skills": ["JavaScript", "Python", "React", "Node.js", "SQL", "Git", "Docker", "AWS"], "experience_years": ' || (2 + (i % 8)) || ', "education": "Bachelor Degree", "languages": ["English", "Thai", "Chinese"], "certifications": ["AWS Certified", "Google Cloud"], "specializations": ["Full-stack Development", "Cloud Computing", "Mobile Development"]}',
+            '{"expected_salary": "' || (60000 + (i % 120000)) || ' THB", "availability": "2 weeks notice", "preferred_location": "Bangkok", "remote_work": ' || (i % 2 = 0) || ', "work_preferences": ["Learning opportunities", "Tech innovation", "Team collaboration"]}',
             '/uploads/resumes/' || LOWER(REPLACE(candidate_name, ' ', '_')) || '_resume.pdf',
             '2024-01-01'::DATE + (i % 120) * INTERVAL '1 day',
             NOW(),
             'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
-            'Generated candidate with varied skills and experience.',
-            'Good candidate with relevant background and skills.',
-            '[{"degree": "Bachelor Degree", "university": "University", "year": ' || (2015 + (i % 10)) || ', "gpa": "3.' || (0 + (i % 10)) || '"}]',
-            '[{"company": "Company", "position": "Position", "duration": "2020-2024", "description": "Worked on various projects and gained valuable experience"}]',
+            'Experienced software engineer with strong technical skills and experience in Thai fintech and e-commerce companies.',
+            'Strong candidate with relevant experience in Thai banking and travel technology sectors. Demonstrated technical proficiency in modern development stack including JavaScript, Python, React, Node.js, and cloud technologies. Previous experience at major Thai companies (Kasikorn Bank, Agoda) shows ability to handle high-volume, mission-critical applications. Local market understanding and Thai language skills provide valuable cultural context for product development. Proven track record of system performance improvements and scalable application development. Ready to contribute immediately to our development team with minimal onboarding time.',
+            '[{"degree": "Bachelor of Computer Science", "university": "Chulalongkorn University", "year": ' || (2015 + (i % 10)) || ', "gpa": "3.' || (0 + (i % 10)) || '", "honors": "Dean List"}]',
+            '[{"company": "Kasikorn Bank", "position": "Software Engineer", "duration": "2020-2024", "description": "Developed banking applications and improved system performance by 30%"}, {"company": "Agoda", "position": "Junior Developer", "duration": "2018-2020", "description": "Built web applications for travel booking platform"}]',
             null,
             source_ids[1 + (i % array_length(source_ids, 1))],
             'Generated Source',

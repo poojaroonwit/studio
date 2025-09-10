@@ -514,10 +514,10 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
           if (filters.stage) params.append('status', filters.stage);
           if (filters.recruiterId && filters.recruiterId !== '') params.append('recruiterId', filters.recruiterId);
           
-          // If no filters are applied or no stages are selected, use the same endpoint as initial load to get all candidates
+          // If no filters are applied, use the same endpoint as initial load to get all candidates
+          // Recruiter filter should apply even when no stages are selected
           const hasFilters = filters.name || filters.positionId || filters.stage || (filters.recruiterId && filters.recruiterId !== '');
-          const hasStageSelection = selectedStages.length > 0;
-          const shouldShowAll = !hasFilters || !hasStageSelection;
+          const shouldShowAll = !hasFilters;
           const endpoint = shouldShowAll
             ? '/api/taskboard/candidates?limit=1000&page=1' // Get more candidates when showing all
             : `/api/taskboard/candidates?${params.toString()}`;

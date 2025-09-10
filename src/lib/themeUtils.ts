@@ -36,10 +36,18 @@ export function setThemeAndColors({
     root.style.setProperty('--primary-gradient-start-l', primaryGradientStart);
     root.style.setProperty('--primary-gradient-start-d', primaryGradientStart);
     root.style.setProperty('--primary', `hsl(${primaryGradientStart})`);
+    
+    // Also set sidebar active colors to match primary button colors
+    root.style.setProperty('--sidebar-active-bg-start-l', primaryGradientStart);
+    root.style.setProperty('--sidebar-active-bg-start-d', primaryGradientStart);
   }
   if (primaryGradientEnd) {
     root.style.setProperty('--primary-gradient-end-l', primaryGradientEnd);
     root.style.setProperty('--primary-gradient-end-d', primaryGradientEnd);
+    
+    // Also set sidebar active colors to match primary button colors
+    root.style.setProperty('--sidebar-active-bg-end-l', primaryGradientEnd);
+    root.style.setProperty('--sidebar-active-bg-end-d', primaryGradientEnd);
   }
 
   // Apply sidebar styles with explicit theme information

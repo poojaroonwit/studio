@@ -137,11 +137,9 @@ export class ErrorBoundary extends Component<Props, State> {
     }
 
     return (
-      <details className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-xs">
-        <summary className="cursor-pointer font-medium text-red-700">
-          Error Details (Click to expand)
-        </summary>
-        <div className="mt-2 space-y-1">
+      <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-xs">
+        <p className="font-medium text-red-700 mb-2">Error Details</p>
+        <div className="space-y-1">
           <p className="text-red-600 font-medium">Stack Trace (Relevant Lines):</p>
           {relevantLines.map((line, index) => (
             <pre key={index} className="text-red-500 font-mono text-xs whitespace-pre-wrap">
@@ -162,7 +160,7 @@ export class ErrorBoundary extends Component<Props, State> {
             </ul>
           </div>
         </div>
-      </details>
+      </div>
     );
   }
 
@@ -271,12 +269,12 @@ export class ErrorBoundary extends Component<Props, State> {
             </div>
 
             {process.env.NODE_ENV === 'development' && this.state.errorInfo && (
-              <details className="mt-4 p-3 bg-gray-100 rounded text-xs">
-                <summary className="cursor-pointer font-medium">Error Details (Development)</summary>
-                <pre className="mt-2 whitespace-pre-wrap text-gray-700">
+              <div className="mt-4 p-3 bg-gray-100 rounded text-xs">
+                <p className="font-medium mb-2">Error Details (Development)</p>
+                <pre className="whitespace-pre-wrap text-gray-700">
                   {this.state.errorInfo.componentStack}
                 </pre>
-              </details>
+              </div>
             )}
           </div>
         </div>

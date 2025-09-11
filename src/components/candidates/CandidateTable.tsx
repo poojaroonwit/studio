@@ -1114,7 +1114,9 @@ export function CandidateTable({
                   {pinned.length > 0 && (
                     <>
                       {/* Section Header for Pinned Candidates */}
-                      <TableRow className={`bg-primary/15 dark:bg-primary/25 border-b-2 border-primary/30 ${getRowPaddingClass(settings?.rowHeight)}`} style={getRowHeightStyle(settings?.rowHeight)}>
+                      <TableRow className={`bg-primary/15 dark:bg-primary/25 border-b-2 border-primary/30 ${getRowPaddingClass(settings?.rowHeight)}`} 
+                      // style={getRowHeightStyle(settings?.rowHeight)}
+                      >
                         <TableCell colSpan={getVisibleColumnCount()} className="px-4">
                           <div className="flex items-center gap-2">
                             <PinIcon className="h-4 w-4 text-primary rotate-45" />

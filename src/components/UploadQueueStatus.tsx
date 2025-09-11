@@ -528,12 +528,12 @@ export function UploadQueueStatus() {
                   <Label className="text-sm font-medium text-red-700">Error</Label>
                   <p className="text-sm text-red-700 mt-1">{selectedItem.error}</p>
                   {selectedItem.error_details && (
-                    <details className="mt-2">
-                      <summary className="text-sm text-red-600 cursor-pointer">View Error Details</summary>
-                      <pre className="text-xs text-red-700 mt-2 p-2 bg-red-50 rounded overflow-auto">
+                    <div className="mt-2">
+                      <Label className="text-sm font-medium text-red-700">Error Details</Label>
+                      <pre className="text-xs text-red-700 mt-1 p-2 bg-red-50 rounded overflow-auto">
                         {selectedItem.error_details}
                       </pre>
-                    </details>
+                    </div>
                   )}
                 </div>
               )}

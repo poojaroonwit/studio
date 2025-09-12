@@ -122,17 +122,16 @@ export function CandidateRecruiterCell({
       <div className="flex items-center gap-2">
         {displayRecruiter?.name ? (
           <>
-            <div className="h-5 w-5">
-              <RecruiterAvatarCompact
-                user={{
-                  id: displayRecruiter.id,
-                  name: displayRecruiter.name,
-                  avatarUrl: displayRecruiter.avatarUrl,
-                  personalColor: displayRecruiter.personalColor || undefined
-                }}
-                size="xs"
-              />
-            </div>
+            <RecruiterAvatarCompact
+              user={{
+                id: displayRecruiter.id,
+                name: displayRecruiter.name,
+                avatarUrl: displayRecruiter.avatarUrl,
+                personalColor: displayRecruiter.personalColor || undefined
+              }}
+              size="xs"
+              className="h-5 w-5"
+            />
             <span className="text-sm font-medium text-foreground truncate">
               {displayRecruiter.name}
             </span>
@@ -177,17 +176,16 @@ export function CandidateRecruiterCell({
             </div>
           ) : displayRecruiter?.name ? (
             <div className="flex items-center gap-2 min-w-0">
-              <div className="h-5 w-5">
-                <RecruiterAvatarCompact
-                  user={{
-                    id: displayRecruiter.id,
-                    name: displayRecruiter.name,
-                    avatarUrl: displayRecruiter.avatarUrl,
-                    personalColor: displayRecruiter.personalColor || undefined
-                  }}
-                  size="xs"
-                />
-              </div>
+              <RecruiterAvatarCompact
+                user={{
+                  id: displayRecruiter.id,
+                  name: displayRecruiter.name,
+                  avatarUrl: displayRecruiter.avatarUrl,
+                  personalColor: displayRecruiter.personalColor || undefined
+                }}
+                size="xs"
+                className="h-5 w-5"
+              />
               <span className="text-sm font-medium text-foreground truncate flex-1">
                 {displayRecruiter.name}
               </span>
@@ -266,17 +264,16 @@ export function CandidateRecruiterCell({
                   onClick={() => handleSelect(recruiter.id)}
                   className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-accent text-left"
                 >
-                  <div className="h-5 w-5">
-                    <RecruiterAvatarCompact
-                      user={{
-                        id: recruiter.id,
-                        name: recruiter.name,
-                        avatarUrl: recruiter.avatarUrl,
-                        personalColor: recruiter.personalColor
-                      }}
-                      size="xs"
-                    />
-                  </div>
+                  <RecruiterAvatarCompact
+                    user={{
+                      id: recruiter.id,
+                      name: recruiter.name,
+                      avatarUrl: recruiter.avatarUrl,
+                      personalColor: recruiter.personalColor
+                    }}
+                    size="xs"
+                    className="h-5 w-5"
+                  />
                   <div className="flex flex-col flex-1">
                     <span className="text-sm font-medium">{recruiter.name}</span>
                     <span className="text-xs text-muted-foreground">Recruiter</span>

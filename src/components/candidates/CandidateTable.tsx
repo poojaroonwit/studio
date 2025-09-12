@@ -908,113 +908,113 @@ export function CandidateTable({
       // If only one candidate with this email, render normally
       if (group.length === 1) {
         const candidate = group[0];
-        const dateValue = candidate.updatedAt || candidate.createdAt;
-        let displayDate = 'N/A';
-        if (dateValue && typeof dateValue === 'string') {
-          try {
-            displayDate = format(parseISO(dateValue), "MMM d, yyyy");
-          } catch (e) {
-            displayDate = 'Invalid Date';
-          }
-        } else if (dateValue) {
-          try {
-            displayDate = format(new Date(dateValue as any), "MMM d, yyyy");
-          } catch (e) {
-             displayDate = 'Invalid Date';
-          }
+      const dateValue = candidate.updatedAt || candidate.createdAt;
+      let displayDate = 'N/A';
+      if (dateValue && typeof dateValue === 'string') {
+        try {
+          displayDate = format(parseISO(dateValue), "MMM d, yyyy");
+        } catch (e) {
+          displayDate = 'Invalid Date';
         }
+      } else if (dateValue) {
+        try {
+          displayDate = format(new Date(dateValue as any), "MMM d, yyyy");
+        } catch (e) {
+           displayDate = 'Invalid Date';
+        }
+      }
 
-        const currentRowNumber = rowNumber++;
-        
-        return (
-          <TableRow 
-            key={candidate.id} 
-            className={`cursor-pointer transition-colors ${candidate.isPinned ? 'bg-blue-500/20' : ''} ${getRowPaddingClass(settings?.rowHeight)}`}
-            style={getRowHeightStyle(settings?.rowHeight)}
-            onClick={(e) => handleRowClick(candidate, e)}
-          >
-            <TableCell key={`${candidate.id}-row-number`} className="text-center text-muted-foreground">
-              {currentRowNumber}
-            </TableCell>
-            <TableCell key={`${candidate.id}-select`} className="text-center">
-              <Checkbox
-                checked={safeSelectedCandidateIds.has(candidate.id)}
-                onCheckedChange={() => onToggleSelectCandidate(candidate.id)}
-                aria-label={`Select candidate ${candidate.name}`}
-              />
-            </TableCell>
-            {/* Render columns based on column order from settings */}
-            {renderTableCells(
-              candidate,
-              settings,
-              isJobMatchEnabled,
-              availableRecruiter,
-              availableSources,
-              canEditCandidates,
-              canAssignSource,
-              assigningRecruiter,
-              assigningSource,
-              handleAssignRecruiter,
-              handleAssignSource,
-              handleResetAssigning,
-              stageNames,
-              stageColors as any,
-              displayFitScoreWithGrade,
-              displayAppliedDate,
-              (id: string, name: string) => { setSelectedCandidateSummary({ id, name }); setIsDetailModalOpen(true); },
-              togglePin
-            )}
+      const currentRowNumber = rowNumber++;
+      
+      return (
+        <TableRow 
+          key={candidate.id} 
+          className={`cursor-pointer transition-colors ${candidate.isPinned ? 'bg-blue-500/20' : ''} ${getRowPaddingClass(settings?.rowHeight)}`}
+          style={getRowHeightStyle(settings?.rowHeight)}
+          onClick={(e) => handleRowClick(candidate, e)}
+        >
+          <TableCell key={`${candidate.id}-row-number`} className="text-center text-muted-foreground">
+            {currentRowNumber}
+          </TableCell>
+          <TableCell key={`${candidate.id}-select`} className="text-center">
+            <Checkbox
+              checked={safeSelectedCandidateIds.has(candidate.id)}
+              onCheckedChange={() => onToggleSelectCandidate(candidate.id)}
+              aria-label={`Select candidate ${candidate.name}`}
+            />
+          </TableCell>
+          {/* Render columns based on column order from settings */}
+          {renderTableCells(
+            candidate,
+            settings,
+            isJobMatchEnabled,
+            availableRecruiter,
+            availableSources,
+            canEditCandidates,
+            canAssignSource,
+            assigningRecruiter,
+            assigningSource,
+            handleAssignRecruiter,
+            handleAssignSource,
+            handleResetAssigning,
+            stageNames,
+            stageColors as any,
+            displayFitScoreWithGrade,
+            displayAppliedDate,
+            (id: string, name: string) => { setSelectedCandidateSummary({ id, name }); setIsDetailModalOpen(true); },
+            togglePin
+          )}
 
-            <TableCell key={`${candidate.id}-actions`} className="text-right max-w-[100px]">
-              <div className="flex items-center justify-end">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    {canViewDetailed && (
-                      <DropdownMenuItem
-                        key="view-detail"
-                        onSelect={() => { setSelectedCandidateSummary({ id: candidate.id, name: candidate.name }); setIsDetailModalOpen(true); }}
-                      >
-                        <Eye className="mr-2 h-4 w-4" />
-                        View Details
-                      </DropdownMenuItem>
-                    )}
+          <TableCell key={`${candidate.id}-actions`} className="text-right max-w-[100px]">
+            <div className="flex items-center justify-end">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {canViewDetailed && (
                     <DropdownMenuItem
-                      key="pin-toggle"
-                      onSelect={() => togglePin(candidate)}
+                      key="view-detail"
+                      onSelect={() => { setSelectedCandidateSummary({ id: candidate.id, name: candidate.name }); setIsDetailModalOpen(true); }}
                     >
-                      {candidate.isPinned ? (
-                        <>
-                          <PinIcon className="mr-2 h-4 w-4 text-blue-600 fill-current rotate-45" />
-                          Unpin from top
-                        </>
-                      ) : (
-                        <>
-                          <PinIcon className="mr-2 h-4 w-4 text-foreground rotate-45" />
-                          Pin to top (shared)
-                        </>
-                      )}
+                      <Eye className="mr-2 h-4 w-4" />
+                      View Details
                     </DropdownMenuItem>
-                    {canDeleteCandidates && (
-                      <DropdownMenuItem
-                        key="delete"
-                        onSelect={() => confirmDelete(candidate)}
-                        className="text-destructive focus:text-destructive"
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete
-                      </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem
+                    key="pin-toggle"
+                    onSelect={() => togglePin(candidate)}
+                  >
+                    {candidate.isPinned ? (
+                      <>
+                        <PinIcon className="mr-2 h-4 w-4 text-blue-600 fill-current rotate-45" />
+                        Unpin from top
+                      </>
+                    ) : (
+                      <>
+                        <PinIcon className="mr-2 h-4 w-4 text-foreground rotate-45" />
+                        Pin to top (shared)
+                      </>
                     )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </TableCell>
-          </TableRow>
-        );
+                  </DropdownMenuItem>
+                  {canDeleteCandidates && (
+                    <DropdownMenuItem
+                      key="delete"
+                      onSelect={() => confirmDelete(candidate)}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </TableCell>
+        </TableRow>
+      );
       }
       
       // Multiple candidates with same email - render as grouped
@@ -1162,7 +1162,7 @@ export function CandidateTable({
           <TableRow 
             className="bg-muted/10"
           >
-            <TableCell colSpan={getVisibleColumnCount()} className="py-0.5">
+            <TableCell colSpan={getVisibleColumnCount()} className="py-1">
             </TableCell>
           </TableRow>
         </React.Fragment>

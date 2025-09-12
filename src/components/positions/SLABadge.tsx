@@ -75,7 +75,7 @@ export function SLABadge({ position, className }: SLABadgeProps) {
   if (slaResult && slaResult.isViolated) {
     const variant = getSLABadgeVariant(slaResult.daysOverdue);
     return (
-      <Badge variant={variant} className={`ml-2 text-[10px] px-1.5 py-0.5 ${className}`}>
+      <Badge variant={variant} className={`ml-2 text-[10px] px-1.5 py-0.5 rounded-full ${className}`}>
         SLA overdue {slaResult.daysOverdue}d
       </Badge>
     );
@@ -83,7 +83,7 @@ export function SLABadge({ position, className }: SLABadgeProps) {
 
   if (remaining !== null && remaining <= 3 && remaining > 0) {
     return (
-      <Badge variant="warning" className={`ml-2 text-[10px] px-1.5 py-0.5 ${className}`}>
+      <Badge variant="warning" className={`ml-2 text-[10px] px-1.5 py-0.5 rounded-full ${className}`}>
         SLA due in {remaining}d
       </Badge>
     );

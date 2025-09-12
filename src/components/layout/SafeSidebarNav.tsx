@@ -206,15 +206,17 @@ const FallbackNav = React.memo(() => {
           <SidebarMenuItem>
             <Link href="/process-queue" className="w-full">
               <SidebarMenuButton className="w-full justify-center relative" size="default">
-                       <UploadCloud className="h-5 w-5 text-sidebar-active-foreground" />
-                {pendingCount !== null && (
-                  <Badge 
-                    variant={pendingCount === 0 ? "zero" : "destructive"} 
-                    className="absolute top-0 right-0 h-4 w-4 p-0 text-xs flex items-center justify-center min-w-[16px] transform translate-x-1/2 -translate-y-1/2"
-                  >
-                    {pendingCount > 99 ? '99+' : pendingCount}
-                  </Badge>
-                )}
+                       <div className="relative">
+                         <UploadCloud className="h-5 w-5 text-sidebar-active-foreground" />
+                         {pendingCount !== null && (
+                           <Badge 
+                             variant={pendingCount === 0 ? "zero" : "destructive"} 
+                             className="absolute -top-1 -right-1 h-3 w-3 p-0 text-xs flex items-center justify-center min-w-[12px]"
+                           >
+                             {pendingCount > 99 ? '99+' : pendingCount}
+                           </Badge>
+                         )}
+                       </div>
               </SidebarMenuButton>
             </Link>
           </SidebarMenuItem>
@@ -225,15 +227,17 @@ const FallbackNav = React.memo(() => {
             <SidebarMenuItem>
               <Link href="/process-queue" className="w-full">
                 <SidebarMenuButton className="w-full justify-center relative" size="default">
-                       <UploadCloud className="h-5 w-5 text-sidebar-active-foreground" />
-                  {pendingCount !== null && (
-                    <Badge 
-                      variant={pendingCount === 0 ? "zero" : "destructive"} 
-                      className="absolute -top-1 -right-1 h-4 w-4 p-0 text-xs flex items-center justify-center min-w-[16px]"
-                    >
-                      {pendingCount > 99 ? '99+' : pendingCount}
-                    </Badge>
-                  )}
+                 <div className="relative">
+                   <UploadCloud className="h-5 w-5 text-sidebar-active-foreground" />
+                   {pendingCount !== null && (
+                     <Badge 
+                       variant={pendingCount === 0 ? "zero" : "destructive"} 
+                       className="absolute -top-1 -right-1 h-3 w-3 p-0 text-xs flex items-center justify-center min-w-[12px]"
+                     >
+                       {pendingCount > 99 ? '99+' : pendingCount}
+                     </Badge>
+                   )}
+                 </div>
                 </SidebarMenuButton>
               </Link>
             </SidebarMenuItem>
@@ -493,15 +497,17 @@ const SafeSidebarNavComponent = React.memo(() => {
                       className="w-full justify-center relative"
                       size="default"
                     >
-                       <UploadCloud className="h-5 w-5 text-sidebar-active-foreground" />
-                      {pendingCount !== null && (
-                        <Badge 
-                          variant={pendingCount === 0 ? "zero" : "destructive"} 
-                          className="absolute top-0 right-0 h-4 w-4 p-0 text-xs flex items-center justify-center min-w-[16px] transform translate-x-1/2 -translate-y-1/2"
-                        >
-                          {pendingCount > 99 ? '99+' : pendingCount}
-                        </Badge>
-                      )}
+                       <div className="relative">
+                         <UploadCloud className="h-5 w-5 text-sidebar-active-foreground" />
+                         {pendingCount !== null && (
+                           <Badge 
+                             variant={pendingCount === 0 ? "zero" : "destructive"} 
+                             className="absolute -top-1 -right-1 h-3 w-3 p-0 text-xs flex items-center justify-center min-w-[12px]"
+                           >
+                             {pendingCount > 99 ? '99+' : pendingCount}
+                           </Badge>
+                         )}
+                       </div>
                     </SidebarMenuButton>
                   </OptimizedLink>
                 </MenuItemWithTooltip>

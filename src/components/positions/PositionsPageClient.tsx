@@ -1612,9 +1612,13 @@ export default function PositionsPageClient() {
                   </TableCell>
                   <TableCell>
                     {position.isOpen ? (
-                      <Badge variant="success">Open</Badge>
+                      <Badge variant="success" className="bg-green-500/50 text-green-800 rounded-full">
+                        Open <span className="ml-1 font-bold">1</span>
+                      </Badge>
                     ) : (
-                      <Badge variant="secondary">Closed</Badge>
+                      <Badge variant="secondary" className="bg-gray-500/50 text-gray-800 rounded-full">
+                        Closed <span className="ml-1 font-bold">0</span>
+                      </Badge>
                     )}
                   </TableCell>
                   <TableCell className="text-center">
@@ -1632,9 +1636,15 @@ export default function PositionsPageClient() {
                                 ? 'success' 
                                 : 'secondary'
                           } 
-                          className="text-xs px-2 py-0.5"
+                          className={`text-xs px-2 py-0.5 rounded-full ${
+                            headcountData[position.id].filled === 0 && headcountData[position.id].total === 0 
+                              ? 'bg-red-500/50 text-red-800' 
+                              : headcountData[position.id].filled >= headcountData[position.id].total 
+                                ? 'bg-green-500/50 text-green-800' 
+                                : 'bg-blue-500/50 text-blue-800'
+                          }`}
                         >
-                          {headcountData[position.id].filled}/{headcountData[position.id].total}
+                          {headcountData[position.id].filled}/{headcountData[position.id].total} <span className="ml-1 font-bold">{headcountData[position.id].total}</span>
                         </Badge>
                       </div>
                     ) : (

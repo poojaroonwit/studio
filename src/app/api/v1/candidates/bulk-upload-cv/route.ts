@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     const file = formData.get('file');
     const positionId = formData.get('positionId');
     const sourceId = formData.get('sourceId'); // Add sourceId parameter
-    const additionalAttachment = formData.get('additionalAttachment'); // Add additional attachment
+    const additionalAttachments = formData.getAll('additionalAttachments'); // Support multiple additional attachments
 
     if (!file || typeof file === 'string') {
       return new Response(JSON.stringify({ error: 'No file uploaded' }), { status: 400, headers: handleCors(req) });
@@ -53,42 +53,53 @@ export async function POST(req: NextRequest) {
   const fileName = generateUniqueFilename(file.name);
   const objectName = `resumes/upload-queue/${fileName}`;
   
-  // Handle additional attachment if provided
-  let additionalAttachmentPath = null;
-  if (additionalAttachment && typeof additionalAttachment !== 'string') {
-    try {
-      const attachmentBuffer = Buffer.from(await additionalAttachment.arrayBuffer());
-      const attachmentFileName = generateUniqueFilename(additionalAttachment.name);
-      const attachmentObjectName = `attachments/upload-queue/${attachmentFileName}`;
-      
-      await minioClient.putObject(
-        MINIO_BUCKET,
-        attachmentObjectName,
-        attachmentBuffer,
-        attachmentBuffer.length,
-        {
-          'Content-Type': additionalAttachment.type || 'application/octet-stream',
-          'x-amz-meta-originalname': sanitizeFilename(additionalAttachment.name),
-          'x-amz-meta-uploaded-by': user.id,
-          'x-amz-meta-upload-date': new Date().toISOString(),
-          'x-amz-meta-attachment-type': 'additional',
+  // Handle multiple additional attachments if provided
+  const additionalAttachmentPaths = [];
+  if (additionalAttachments && additionalAttachments.length > 0) {
+    for (const additionalAttachment of additionalAttachments) {
+      if (additionalAttachment && typeof additionalAttachment !== 'string') {
+        try {
+          const attachmentBuffer = Buffer.from(await additionalAttachment.arrayBuffer());
+          const attachmentFileName = generateUniqueFilename(additionalAttachment.name);
+          const attachmentObjectName = `attachments/upload-queue/${attachmentFileName}`;
+          
+          await minioClient.putObject(
+            MINIO_BUCKET,
+            attachmentObjectName,
+            attachmentBuffer,
+            attachmentBuffer.length,
+            {
+              'Content-Type': additionalAttachment.type || 'application/octet-stream',
+              'x-amz-meta-originalname': sanitizeFilename(additionalAttachment.name),
+              'x-amz-meta-uploaded-by': user.id,
+              'x-amz-meta-upload-date': new Date().toISOString(),
+              'x-amz-meta-attachment-type': 'additional',
+            }
+          );
+          
+          additionalAttachmentPaths.push({
+            path: attachmentObjectName,
+            name: additionalAttachment.name,
+            size: additionalAttachment.size,
+            type: additionalAttachment.type || 'application/octet-stream'
+          });
+          
+          // console.log(`Additional attachment '${additionalAttachment.name}' uploaded to MinIO`, {
+          //   attachmentPath: attachmentObjectName,
+          //   attachmentSize: attachmentBuffer.length
+          // });
+        } catch (attachmentError) {
+          console.error('Additional attachment upload error:', attachmentError);
+          return new Response(JSON.stringify({ 
+            error: 'Failed to upload additional attachment',
+            details: attachmentError instanceof Error ? attachmentError.message : 'Storage error',
+            failedFile: additionalAttachment.name
+          }), { 
+            status: 500, 
+            headers: handleCors(req) 
+          });
         }
-      );
-      
-      additionalAttachmentPath = attachmentObjectName;
-      // console.log(`Additional attachment '${additionalAttachment.name}' uploaded to MinIO`, {
-      //   attachmentPath: attachmentObjectName,
-      //   attachmentSize: attachmentBuffer.length
-      // });
-    } catch (attachmentError) {
-      console.error('Additional attachment upload error:', attachmentError);
-      return new Response(JSON.stringify({ 
-        error: 'Failed to upload additional attachment',
-        details: attachmentError instanceof Error ? attachmentError.message : 'Storage error'
-      }), { 
-        status: 500, 
-        headers: handleCors(req) 
-      });
+      }
     }
   }
   
@@ -117,16 +128,11 @@ export async function POST(req: NextRequest) {
     });
   }
   
-  // Prepare upload queue job with source information and additional attachment
+  // Prepare upload queue job with source information and additional attachments
   const webhookPayload = { 
     targetPositionId: positionId,
     sourceId: sourceId || null, // Include sourceId in webhook payload
-    additionalAttachment: additionalAttachmentPath ? {
-      path: additionalAttachmentPath,
-      name: additionalAttachment instanceof File ? additionalAttachment.name : 'attachment',
-      size: additionalAttachment instanceof File ? additionalAttachment.size : 0,
-      type: additionalAttachment instanceof File ? additionalAttachment.type : 'application/octet-stream'
-    } : null
+    additionalAttachments: additionalAttachmentPaths.length > 0 ? additionalAttachmentPaths : null
   };
 
   const uploadQueueJob = {

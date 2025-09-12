@@ -588,8 +588,8 @@ export const candidatesPaths = {
   },
   '/api/v1/candidates/bulk-upload-cv': {
     post: {
-      summary: 'Bulk upload CVs (v1 API)',
-      description: 'Upload multiple CV files for candidates. Requires Bearer token authentication.',
+      summary: 'Upload CV with optional additional attachments (v1 API)',
+      description: 'Upload a single CV file for a candidate with optional additional attachments (e.g., cover letters, portfolios, certificates). Requires Bearer token authentication.',
       tags: ['V1 Candidates'],
       security: [{ bearerAuth: [] }],
       requestBody: {
@@ -599,17 +599,82 @@ export const candidatesPaths = {
             schema: {
               type: 'object',
               properties: {
-                files: { type: 'array', items: { type: 'string', format: 'binary' } }
+                file: { 
+                  type: 'string', 
+                  format: 'binary',
+                  description: 'Main CV file (PDF)'
+                },
+                positionId: {
+                  type: 'string',
+                  description: 'Position ID to assign the candidate to'
+                },
+                sourceId: {
+                  type: 'string',
+                  description: 'Source ID for tracking the candidate source'
+                },
+                additionalAttachments: {
+                  type: 'array',
+                  items: {
+                    type: 'string',
+                    format: 'binary'
+                  },
+                  description: 'Optional additional attachments (e.g., cover letters, portfolios, certificates). Can upload multiple files.'
+                }
               },
-              required: ['files']
+              required: ['file', 'positionId']
             }
           }
         }
       },
       responses: {
-        '200': { description: 'CVs uploaded successfully' },
-        '400': { description: 'Invalid files' },
-        '401': { description: 'Unauthorized' }
+        '200': { 
+          description: 'CV uploaded successfully',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean' },
+                  uploadQueueJob: {
+                    type: 'object',
+                    properties: {
+                      id: { type: 'string' },
+                      file_name: { type: 'string' },
+                      file_size: { type: 'number' },
+                      status: { type: 'string' },
+                      source: { type: 'string' },
+                      upload_id: { type: 'string' },
+                      file_path: { type: 'string' },
+                      webhook_payload: { 
+                        type: 'object',
+                        properties: {
+                          targetPositionId: { type: 'string' },
+                          sourceId: { type: 'string' },
+                          additionalAttachments: {
+                            type: 'array',
+                            items: {
+                              type: 'object',
+                              properties: {
+                                path: { type: 'string' },
+                                name: { type: 'string' },
+                                size: { type: 'number' },
+                                type: { type: 'string' }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        '400': { description: 'Invalid file or missing required parameters' },
+        '401': { description: 'Unauthorized' },
+        '403': { description: 'Forbidden: Insufficient permissions' },
+        '500': { description: 'Internal server error' }
       }
     }
   },

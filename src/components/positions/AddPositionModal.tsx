@@ -314,8 +314,8 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
           </DialogHeader>
           
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 min-h-0 overflow-hidden">
-            <ScrollArea className="flex-1 px-8 pb-6">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-0">
+            <ScrollArea className="flex-1 px-8 pb-6 overflow-auto">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pb-4">
                              {/* First Column: Basic Information */}
                <div className="space-y-6 bg-muted/30 p-4 rounded-lg">
                  <div className="flex items-center gap-2 mb-4">
@@ -448,7 +448,7 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
                </div>
               
               {/* Second Column: Job Description */}
-              <div className="flex flex-col min-h-0 bg-muted/20 p-4 rounded-lg">
+              <div className="flex flex-col bg-muted/20 p-4 rounded-lg" style={{ minHeight: '400px' }}>
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <FileText className="h-4 w-4 text-primary" />
@@ -488,12 +488,12 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
                   name="description"
                   control={form.control}
                   render={({ field }) => (
-                    <div className="flex-1 flex flex-col min-h-0">
+                    <div className="flex-1 flex flex-col" style={{ minHeight: '300px' }}>
                       <TiptapEditorWithExpand
                         value={field.value || ''}
                         onChange={field.onChange}
                         placeholder="Enter job description"
-                        className="flex-1 min-h-0"
+                        className="flex-1"
                         isOpen={isModalReady}
                         expandTitle="Edit Job Description"
                       />
@@ -503,7 +503,7 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
               </div>
 
               {/* Third Column: Match Criteria */}
-              <div className="flex flex-col min-h-0 bg-muted/20 p-4 rounded-lg">
+              <div className="flex flex-col bg-muted/20 p-4 rounded-lg" style={{ minHeight: '400px' }}>
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <Target className="h-4 w-4 text-primary" />
@@ -536,12 +536,12 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
                   name="matchCriteria"
                   control={form.control}
                   render={({ field }) => (
-                    <div className="flex-1 flex flex-col min-h-0">
+                    <div className="flex-1 flex flex-col" style={{ minHeight: '300px' }}>
                       <TiptapEditorWithExpand
                         value={field.value || ''}
                         onChange={field.onChange}
                         placeholder="Enter match criteria for this position..."
-                        className="flex-1 min-h-0"
+                        className="flex-1"
                         isOpen={isModalReady}
                         expandTitle="Edit Match Criteria"
                       />

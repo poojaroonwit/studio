@@ -491,7 +491,7 @@ const SidebarToggleButton = memo(() => {
             <Button
               variant="outline"
               size="icon"
-              className="h-8 w-8 rounded-full border-2 bg-background/80 backdrop-blur-sm shadow-lg hover:bg-background/90"
+              className="h-8 w-8 rounded-full border-2 bg-background/80 backdrop-blur-sm shadow-lg hover:bg-background/90 text-sidebar-foreground"
               onClick={handleToggle}
               disabled={isTogglingRef.current}
             >

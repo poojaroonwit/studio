@@ -1157,6 +1157,14 @@ export function CandidateTable({
               </TableRow>
             );
           })}
+          
+          {/* Bottom bar */}
+          <TableRow 
+            className="bg-muted/10"
+          >
+            <TableCell colSpan={getVisibleColumnCount()} className="py-0.5">
+            </TableCell>
+          </TableRow>
         </React.Fragment>
       );
     }).filter(Boolean);

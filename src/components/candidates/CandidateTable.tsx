@@ -1024,43 +1024,46 @@ export function CandidateTable({
       
       return (
         <React.Fragment key={`group-${email}`}>
-          {/* Group header row */}
+          {/* Group bar */}
           <TableRow 
-            className={`cursor-pointer transition-colors bg-orange-50 dark:bg-orange-950/20 border-l-4 border-orange-400 ${getRowPaddingClass(settings?.rowHeight)}`}
-            style={getRowHeightStyle(settings?.rowHeight)}
-            onClick={() => setExpandedEmails(prev => ({ ...prev, [email]: !prev[email] }))}
+            className="bg-muted/30 hover:bg-muted/50 transition-colors"
           >
-            <TableCell className="text-center text-muted-foreground">
-              {currentRowNumber}
-            </TableCell>
-            <TableCell className="text-center">
-              <Checkbox
-                checked={group.every(c => safeSelectedCandidateIds.has(c.id))}
-                onCheckedChange={(checked) => {
-                  group.forEach(candidate => {
-                    if (checked) {
-                      onToggleSelectCandidate(candidate.id);
-                    } else if (safeSelectedCandidateIds.has(candidate.id)) {
-                      onToggleSelectCandidate(candidate.id);
-                    }
-                  });
-                }}
-                aria-label={`Select all candidates with email ${email}`}
-              />
-            </TableCell>
-            <TableCell colSpan={getVisibleColumnCount() - 2}>
-              <div className="flex items-center gap-2">
-                <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                  {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                </Button>
+            <TableCell colSpan={getVisibleColumnCount()}>
+              <div className="flex items-center justify-between py-2">
+                <div className="flex items-center gap-3">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-7 w-7 p-0 hover:bg-background"
+                    onClick={() => setExpandedEmails(prev => ({ ...prev, [email]: !prev[email] }))}
+                  >
+                    {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium text-foreground">
+                      {group.length} candidate{group.length > 1 ? 's' : ''} with email: {email}
+                    </span>
+                    <Badge variant="secondary" className="text-xs">
+                      {group.length}
+                    </Badge>
+                  </div>
+                </div>
                 <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4 text-orange-600" />
-                  <span className="font-medium text-orange-800 dark:text-orange-200">
-                    {group.length} duplicate candidate{group.length > 1 ? 's' : ''} with email: {email}
-                  </span>
-                  <Badge variant="outline" className="text-xs">
-                    {group.length} entries
-                  </Badge>
+                  <Checkbox
+                    checked={group.every(c => safeSelectedCandidateIds.has(c.id))}
+                    onCheckedChange={(checked) => {
+                      group.forEach(candidate => {
+                        if (checked) {
+                          onToggleSelectCandidate(candidate.id);
+                        } else if (safeSelectedCandidateIds.has(candidate.id)) {
+                          onToggleSelectCandidate(candidate.id);
+                        }
+                      });
+                    }}
+                    aria-label={`Select all candidates with email ${email}`}
+                  />
+                  <span className="text-xs text-muted-foreground">Select all</span>
                 </div>
               </div>
             </TableCell>
@@ -1089,7 +1092,7 @@ export function CandidateTable({
             return (
               <TableRow 
                 key={candidate.id} 
-                className={`cursor-pointer transition-colors ${candidate.isPinned ? 'bg-blue-500/20' : ''} ${getRowPaddingClass(settings?.rowHeight)} pl-8`}
+                className={`cursor-pointer transition-colors ${candidate.isPinned ? 'bg-blue-500/20' : ''} ${getRowPaddingClass(settings?.rowHeight)}`}
                 style={getRowHeightStyle(settings?.rowHeight)}
                 onClick={(e) => handleRowClick(candidate, e)}
               >

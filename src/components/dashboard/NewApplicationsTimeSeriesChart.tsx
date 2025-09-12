@@ -715,7 +715,9 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
                        color: 'rgb(100, 116, 139)',
                        font: { size: 10 },
                        usePointStyle: true,
-                       padding: 15
+                       padding: 15,
+                       boxWidth: 0,
+                       boxHeight: 0
                      }
                    },
                    tooltip: {
